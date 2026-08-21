@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import os
 import re
 import shutil
@@ -1073,6 +1074,35 @@ def process_download(
                 "episode": actual_ep_num,
                 "is_upgrade": is_upgrade,
             })
+
+    # Сбрасываем серии, которые были привязаны к этой загрузке (или были в статусе DOWNLOADING для этого тайтла),
+    # но не оказались в составе скачанной раздачи (например, раздача содержала только 7 серий из 13).
+    # Они переводятся в статус WANTED ("в поиске") или UNAIRED ("еще не вышло"), с прогрессом 0.0%.
+    if db:
+        today = dt.date.today()
+        unimported_query = db.query(Episode).filter(
+            Episode.show_id == show.id,
+            Episode.status == EpisodeStatus.DOWNLOADING,
+        )
+        if torrent_hash:
+            unimported_query = unimported_query.filter(Episode.torrent_hash == torrent_hash)
+
+        try:
+            unimported_eps = unimported_query.all()
+            for u_ep in unimported_eps:
+                u_ep.torrent_hash = None
+                u_ep.download_client_id = None
+                u_ep.download_progress = 0.0
+                air_d = u_ep.air_date
+                if isinstance(air_d, dt.datetime):
+                    air_d = air_d.date()
+                if air_d and air_d > today:
+                    u_ep.status = EpisodeStatus.UNAIRED
+                else:
+                    u_ep.status = EpisodeStatus.WANTED
+                db.add(u_ep)
+        except Exception:
+            pass
 
     # Очищаем оставшиеся пустые поддиректории в download_path, если это была специальная папка раздачи
     # (НИ В КОЕМ СЛУЧАЕ не удаляем поддиректории в общих корневых папках загрузок!)

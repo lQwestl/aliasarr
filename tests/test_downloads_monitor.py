@@ -320,7 +320,46 @@ class TestDownloadsMonitor(unittest.TestCase):
             self.assertFalse(mock_postprocess.called)
             self.assertEqual(results, [])
 
+    def test_orphan_torrent_resets_episodes_to_wanted(self):
+        """Проверяет, что если торрент был удален или отсутствует в клиенте, серии сбрасываются в wanted/unaired."""
+        import datetime as dt
+        show = SimpleNamespace(id=1, title="Test Anime", content_type="anime", monitored=True)
+        dc = SimpleNamespace(id=10, name="DC1", type="qbittorrent", enabled=True)
+        ep_aired = SimpleNamespace(
+            id=101, show_id=1, season_number=2, episode_number=8,
+            status="downloading", torrent_hash="hash-missing",
+            download_client_id=10, download_progress=1.0,
+            air_date=dt.datetime(2026, 8, 15),
+        )
+        ep_future = SimpleNamespace(
+            id=102, show_id=1, season_number=2, episode_number=9,
+            status="downloading", torrent_hash="hash-missing",
+            download_client_id=10, download_progress=1.0,
+            air_date=dt.datetime(2026, 9, 15),
+        )
+
+        db_mock = MagicMock()
+        db_mock.query.return_value.filter.return_value.all.side_effect = [
+            [ep_aired, ep_future],   # downloading episodes
+            [dc],                    # active clients
+        ]
+
+        # Клиент пустой (торрент отсутствует)
+        settings = SimpleNamespace(root_folder="", download_folder_anime="")
+        with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+             patch("app.services.downloads_monitor.get_client", return_value=FakeClient([])), \
+             patch("app.services.downloads_monitor._run_postprocess_in_thread") as mock_postprocess:
+            results = asyncio.run(check_downloads(db_mock))
+            self.assertEqual(ep_aired.status, "wanted")
+            self.assertEqual(ep_aired.download_progress, 0.0)
+            self.assertIsNone(ep_aired.torrent_hash)
+
+            self.assertEqual(ep_future.status, "unaired")
+            self.assertEqual(ep_future.download_progress, 0.0)
+            self.assertIsNone(ep_future.torrent_hash)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

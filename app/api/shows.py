@@ -203,6 +203,32 @@ def get_show(show_id: int, db: Session = Depends(get_db), current_user: User = D
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
+
+    needs_commit = False
+    today = dt.date.today()
+    for ep in show.episodes:
+        if ep.status == EpisodeStatus.DOWNLOADING:
+            if ep.file_path and os.path.exists(ep.file_path):
+                ep.status = EpisodeStatus.DOWNLOADED
+                ep.download_progress = 1.0
+                needs_commit = True
+            elif not ep.torrent_hash:
+                ep.download_progress = 0.0
+                air_d = ep.air_date
+                if isinstance(air_d, dt.datetime):
+                    air_d = air_d.date()
+                if air_d and air_d > today:
+                    ep.status = EpisodeStatus.UNAIRED
+                else:
+                    ep.status = EpisodeStatus.WANTED
+                needs_commit = True
+    if needs_commit:
+        try:
+            db.commit()
+            db.refresh(show)
+        except Exception:
+            pass
+
     return _attach_computed_fields(db, [show])[0]
 
 

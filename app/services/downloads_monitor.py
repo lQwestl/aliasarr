@@ -29,7 +29,7 @@ except ImportError:
         def in_(self, other): return self
     DownloadClient = type("DownloadClient", (), {"id": _MockCol(), "name": _MockCol(), "type": _MockCol(), "enabled": _MockCol()})
     Episode = type("Episode", (), {"id": _MockCol(), "show_id": _MockCol(), "status": _MockCol(), "torrent_hash": _MockCol(), "download_client_id": _MockCol(), "download_progress": _MockCol()})
-    EpisodeStatus = type("EpisodeStatus", (), {"DOWNLOADING": "downloading", "DOWNLOADED": "downloaded", "WANTED": "wanted", "MISSING": "missing"})
+    EpisodeStatus = type("EpisodeStatus", (), {"DOWNLOADING": "downloading", "DOWNLOADED": "downloaded", "WANTED": "wanted", "MISSING": "missing", "UNAIRED": "unaired"})
     Show = type("Show", (), {"id": _MockCol(), "title": _MockCol(), "content_type": _MockCol(), "path": _MockCol()})
 from app.services.download_client import get_client
 from app.services.postprocess import process_download, process_movie_download
@@ -246,6 +246,24 @@ async def check_downloads(db: Session) -> list[dict]:
     for torrent_hash, eps in episodes_by_hash.items():
         entry = torrents_by_hash.get(torrent_hash)
         if not entry:
+            # Торрент больше не существует в активных клиентах (удален или завершен без раздачи)
+            # Сбрасываем серии в статус WANTED / UNAIRED, чтобы не висел ложный прогресс 100%
+            import datetime as dt
+            today = dt.date.today()
+            for ep in eps:
+                if ep.status == EpisodeStatus.DOWNLOADING:
+                    ep.torrent_hash = None
+                    ep.download_client_id = None
+                    ep.download_progress = 0.0
+                    air_d = ep.air_date
+                    if isinstance(air_d, dt.datetime):
+                        air_d = air_d.date()
+                    if air_d and air_d > today:
+                        ep.status = EpisodeStatus.UNAIRED
+                    else:
+                        ep.status = EpisodeStatus.WANTED
+                    db.add(ep)
+                    progress_changed = True
             continue
         t, dc_row = entry
 
