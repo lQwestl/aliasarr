@@ -321,8 +321,38 @@ class TestManualImportLogic(unittest.TestCase):
         self.assertEqual(ep3_downloaded.status, "downloaded")
         self.assertEqual(res_off["affected"], 2)
 
+    def test_set_unaired_monitored(self):
+        """Проверяет перевод невышедших серий в статус WANTED и обратно."""
+        try:
+            from app.api.shows import set_unaired_monitored
+        except ImportError:
+            self.skipTest("FastAPI not installed in test runner")
+            return
+
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+        import datetime as dt
+
+        future_date = dt.datetime.utcnow() + dt.timedelta(days=30)
+        past_date = dt.datetime.utcnow() - dt.timedelta(days=30)
+
+        show = SimpleNamespace(id=1, title="Test Series", content_type="series", monitored=True)
+        ep_future = SimpleNamespace(id=101, show_id=1, season_number=1, episode_number=20, status="unaired", air_date=future_date)
+        ep_past = SimpleNamespace(id=102, show_id=1, season_number=1, episode_number=1, status="downloaded", air_date=past_date)
+
+        db_mock = MagicMock()
+        db_mock.get.return_value = show
+        db_mock.query.return_value.filter.return_value.all.return_value = [ep_future, ep_past]
+        current_user = SimpleNamespace(id=1, username="admin")
+
+        res = set_unaired_monitored(1, monitored=True, db=db_mock, current_user=current_user)
+        self.assertEqual(ep_future.status, "wanted")
+        self.assertEqual(ep_past.status, "downloaded")
+        self.assertEqual(res["affected"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 

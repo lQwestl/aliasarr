@@ -786,6 +786,9 @@ const TRANSLATIONS = {
     "show.unmonitor_all_seasons": "Игнорировать все сезоны",
     "show.monitor_all_tooltip": "Перевести все сезоны и нескачанные серии в мониторинг (в поиске)",
     "show.unmonitor_all_tooltip": "Перевести все сезоны и нескачанные серии в статус «игнорируется»",
+    "show.monitor_unaired": "Мониторить невышедшие",
+    "show.monitor_unaired_tooltip": "Перевести все невышедшие серии тайтла в статус «в поиске»",
+    "show.unaired_monitored": "Все невышедшие серии переведены в статус «в поиске»",
     "show.all_seasons_monitored": "Все сезоны переведены в мониторинг (в поиске)",
     "show.all_seasons_unmonitored": "Все сезоны переведены в статус «игнорируется»",
     "manual_import.global_btn": "Ручной импорт",
@@ -1738,6 +1741,9 @@ const TRANSLATIONS = {
     "show.unmonitor_all_seasons": "Ignore All Seasons",
     "show.monitor_all_tooltip": "Set all seasons and un-downloaded episodes to monitoring (Wanted)",
     "show.unmonitor_all_tooltip": "Set all seasons and un-downloaded episodes to Ignored",
+    "show.monitor_unaired": "Monitor Unaired",
+    "show.monitor_unaired_tooltip": "Set all unreleased episodes of the show to 'Wanted' status",
+    "show.unaired_monitored": "All unaired episodes set to 'Wanted' status",
     "show.all_seasons_monitored": "All seasons set to monitoring (Wanted)",
     "show.all_seasons_unmonitored": "All seasons set to Ignored",
     "manual_import.global_btn": "Manual Import",
@@ -3886,6 +3892,9 @@ async function refreshShowModal() {
         </button>
         <button class="btn btn-secondary btn-small" onclick="setAllSeasonsMonitor(${show.id}, false)" title="${t("show.unmonitor_all_tooltip")}">
           <i data-lucide="bookmark-minus" class="ico-sm"></i> <span>${t("show.unmonitor_all_seasons")}</span>
+        </button>
+        <button class="btn btn-secondary btn-small" onclick="setUnairedMonitor(${show.id}, true)" title="${t("show.monitor_unaired_tooltip")}">
+          <i data-lucide="calendar-search" class="ico-sm"></i> <span>${t("show.monitor_unaired")}</span>
         </button>` : ""}
         <button class="btn btn-secondary btn-small" onclick="syncShowPath(${show.id})" title="${t("show.sync_tooltip")}">
           <i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.btn_sync")}</span>
@@ -4470,6 +4479,20 @@ async function setAllSeasonsMonitor(showId, value) {
   try {
     const result = await api(`/api/v1/shows/${targetId}/all_seasons/monitor?monitored=${Boolean(value)}`, { method: "PUT" });
     toast(value ? t("show.all_seasons_monitored") : t("show.all_seasons_unmonitored"), false);
+    await refreshShowModal();
+    if (typeof loadShows === "function") {
+      loadShows().catch(() => {});
+    }
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true);
+  }
+}
+
+async function setUnairedMonitor(showId, value) {
+  const targetId = showId || CURRENT_SHOW_ID;
+  try {
+    const result = await api(`/api/v1/shows/${targetId}/unaired/monitor?monitored=${Boolean(value)}`, { method: "PUT" });
+    toast(value ? t("show.unaired_monitored") : t("show.all_seasons_unmonitored"), false);
     await refreshShowModal();
     if (typeof loadShows === "function") {
       loadShows().catch(() => {});

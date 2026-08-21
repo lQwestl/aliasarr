@@ -519,6 +519,7 @@ def set_show_monitored(
 def set_all_seasons_monitored(
     show_id: int,
     monitored: bool,
+    include_unaired: bool = Query(True, description="Переводить невышедшие серии в статус WANTED (в поиске)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_library")),
 ):
@@ -540,7 +541,7 @@ def set_all_seasons_monitored(
             air_d = getattr(ep, "air_date", None)
             if isinstance(air_d, dt.datetime):
                 air_d = air_d.date()
-            if air_d and air_d > today:
+            if not include_unaired and air_d and air_d > today:
                 ep.status = EpisodeStatus.UNAIRED
             else:
                 ep.status = EpisodeStatus.WANTED
@@ -553,11 +554,47 @@ def set_all_seasons_monitored(
     return {"show_id": show_id, "monitored": monitored, "affected": affected}
 
 
+@router.put("/{show_id}/unaired/monitor", summary="Массово изменить статус мониторинга невышедших серий")
+def set_unaired_monitored(
+    show_id: int,
+    monitored: bool = Query(True, description="True = WANTED (в поиске), False = IGNORED"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    """Переводит все будущие/невышедшие серии тайтла в статус WANTED («в поиске») или IGNORED."""
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Show not found")
+
+    if monitored:
+        show.monitored = True
+        db.add(show)
+
+    today = dt.date.today()
+    episodes = db.query(Episode).filter(Episode.show_id == show_id).all()
+    affected = 0
+    for ep in episodes:
+        if ep.status == EpisodeStatus.DOWNLOADED:
+            continue
+        air_d = getattr(ep, "air_date", None)
+        if isinstance(air_d, dt.datetime):
+            air_d = air_d.date()
+        is_unaired = (air_d and air_d > today) or ep.status == EpisodeStatus.UNAIRED
+        if is_unaired:
+            ep.status = EpisodeStatus.WANTED if monitored else EpisodeStatus.IGNORED
+            db.add(ep)
+            affected += 1
+
+    db.commit()
+    return {"show_id": show_id, "monitored": monitored, "affected": affected}
+
+
 @router.put("/{show_id}/seasons/{season_number}/monitor")
 def set_season_monitored(
     show_id: int,
     season_number: int,
     monitored: bool,
+    include_unaired: bool = Query(True, description="Включать невышедшие серии в статус WANTED"),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_library")),
 ):
@@ -578,7 +615,7 @@ def set_season_monitored(
             air_d = getattr(ep, "air_date", None)
             if isinstance(air_d, dt.datetime):
                 air_d = air_d.date()
-            if air_d and air_d > today:
+            if not include_unaired and air_d and air_d > today:
                 ep.status = EpisodeStatus.UNAIRED
             else:
                 ep.status = EpisodeStatus.WANTED
