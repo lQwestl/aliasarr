@@ -139,8 +139,23 @@ class TestParser(unittest.TestCase):
         self.assertEqual(r9.season, 2)
         self.assertEqual(r9.episodes, [])
 
+    def test_hell_mode_season_2_episodes(self):
+        for i in range(1, 8):
+            fn = f"Hell_Mode_Yarikomizuki_no_Gamer_wa_Hai_Sette_2_[0{i}]_[HEVC].mkv"
+            p = parse_episode(fn)
+            self.assertEqual(p.season, 2, f"Failed season for {fn}")
+            self.assertEqual(p.episodes, [i], f"Failed episode for {fn}")
+            self.assertEqual(p.kind, ReleaseKind.EPISODE)
+
+        torrent_title = "Hell Mode Yarikomizuki no Gamer wa Hai Sette 2 - AniLiberty [WEBRip 1080p HEVC]"
+        p_pack = parse_episode(torrent_title)
+        self.assertEqual(p_pack.season, 2)
+        self.assertEqual(p_pack.episodes, [])
+        self.assertEqual(p_pack.kind, ReleaseKind.SEASON_PACK)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 

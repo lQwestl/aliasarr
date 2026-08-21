@@ -130,6 +130,30 @@ _RE_ROMAN_SEASON_EP = re.compile(
     re.IGNORECASE,
 )
 
+# Цифра сезона, за которой следует серия в скобках [01] или через дефис - 01:
+# "Hell_Mode_Yarikomizuki_no_Gamer_wa_Hai_Sette_2_[04]_[HEVC].mkv", "KonoSuba 2 [05] [1080p].mkv"
+_RE_SEASON_DIGIT_BRACKET_EP = re.compile(
+    r"(?:[\s_.\-]|^)(\d{1,2})[\s_.\-]+\[\s*(?:(?:ep|эп|серия|episode)\.?\s*)?(\d{1,4})(?:v\d)?\s*\]",
+    re.IGNORECASE,
+)
+_RE_SEASON_DIGIT_DASH_EP = re.compile(
+    r"(?:[\s_.\-]|^)(\d{1,2})[\s_.\-]+[-–]\s*(\d{1,4})(?:v\d)?\b(?!\d)",
+    re.IGNORECASE,
+)
+
+# Одиночная серия в скобках: [01], [04], [EP02], [Ep.05], [01v2]
+_RE_BRACKET_SINGLE_EP = re.compile(
+    r"\[\s*(?:(?:ep|эп|серия|episode)\.?\s*)?(\d{1,4})(?:v\d)?\s*\]",
+    re.IGNORECASE,
+)
+
+# Хвостовая цифра сезона перед группой/качеством в паках:
+# "Hell Mode Yarikomizuki no Gamer wa Hai Sette 2 - AniLiberty [WEBRip 1080p HEVC]"
+_RE_TRAILING_SEASON_DIGIT_PACK = re.compile(
+    r"[\s_.\-](\d{1,2})\s*[-–]\s*(?:[A-Za-zА-Яа-я0-9_-]+)?\s*\[",
+    re.IGNORECASE,
+)
+
 # S01E01-E10, S01E01-10, S01E01~E10, S01E01_E10
 _RE_SXXEXX_RANGE = re.compile(
     r"\bS(\d{1,2})\s*E(\d{1,3})\s*(?:[-–~_]|to)\s*(?:E)?(\d{1,3})\b",
@@ -445,6 +469,22 @@ def parse_episode(release_name: str) -> ParsedRelease:
                 raw=raw, matched_pattern="roman_season_ep",
             )
 
+    # 1к. Цифра сезона + серия в скобках [01] или через дефис - 01:
+    # "Hell_Mode_Yarikomizuki_no_Gamer_wa_Hai_Sette_2_[04]_[HEVC].mkv", "KonoSuba 2 [05] [1080p].mkv"
+    m_s_br = _RE_SEASON_DIGIT_BRACKET_EP.search(protected)
+    if m_s_br:
+        return ParsedRelease(
+            kind=ReleaseKind.EPISODE, season=int(m_s_br.group(1)), episodes=[int(m_s_br.group(2))],
+            raw=raw, matched_pattern="season_digit_bracket_ep",
+        )
+
+    m_s_dash = _RE_SEASON_DIGIT_DASH_EP.search(protected)
+    if m_s_dash:
+        return ParsedRelease(
+            kind=ReleaseKind.EPISODE, season=int(m_s_dash.group(1)), episodes=[int(m_s_dash.group(2))],
+            raw=raw, matched_pattern="season_digit_dash_ep",
+        )
+
     # 2a. Мульти-сезонный диапазон (Сезон: 1-3, Сезоны 1-5, S01-S05, Seasons 1-5, 1-10 сезоны, 1-100 сезоны) — ДО единичного сезона!
     m_range = _RE_MULTI_SEASON_RANGE.search(protected)
     if m_range:
@@ -492,6 +532,12 @@ def parse_episode(release_name: str) -> ParsedRelease:
         season = int(season_num_match.group(0)) if season_num_match else 1
         return _season_pack_result(season, raw, "season_pack:keyword")
 
+    # 2д. Хвостовая цифра сезона перед релиз-группой/качеством в паках:
+    # "Hell Mode Yarikomizuki no Gamer wa Hai Sette 2 - AniLiberty [WEBRip 1080p HEVC]"
+    m_trail_s = _RE_TRAILING_SEASON_DIGIT_PACK.search(protected)
+    if m_trail_s and not (_RE_BRACKET_RANGE.search(protected) or _RE_RANGE_IZ_N.search(protected) or _RE_BRACKET_SINGLE_EP.search(protected)):
+        return _season_pack_result(int(m_trail_s.group(1)), raw, "season_pack:trailing_digit")
+
     # 3. 1x05
     m = _RE_XFORMAT.search(protected)
     if m:
@@ -536,6 +582,14 @@ def parse_episode(release_name: str) -> ParsedRelease:
             return ParsedRelease(
                 kind=ReleaseKind.EPISODE, episodes=[ep_num],
                 is_range=False, raw=raw, matched_pattern="single_iz_n",
+            )
+    m = _RE_BRACKET_SINGLE_EP.search(protected)
+    if m:
+        ep_num = int(m.group(1))
+        if 0 <= ep_num <= 2500:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, episodes=[ep_num],
+                is_range=False, raw=raw, matched_pattern="[single]",
             )
     m = _RE_PLAIN_RANGE.search(protected)
     if m:
