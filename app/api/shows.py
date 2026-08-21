@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 import re
 
 from app.database import get_db
-from app.models.db import Alias, Episode, EpisodeStatus, Show, User
+from app.models.db import Alias, Episode, EpisodeStatus, MonitorStatus, Show, User
 from app.schemas import AliasCreate, AliasOut, AliasUpdate, EpisodeOut, ShowCreate, ShowOut, ShowUpdate
 from app.services.audit_service import log_audit
 from app.services.parser import ReleaseKind, parse_episode
@@ -205,64 +205,77 @@ def get_show(show_id: int, db: Session = Depends(get_db), current_user: User = D
         raise HTTPException(404, "Show not found")
 
     needs_commit = False
-    today = dt.date.today()
-    for ep in show.episodes:
-        air_d = ep.air_date
-        if isinstance(air_d, dt.datetime):
-            air_d = air_d.date()
-        target_default_status = (
-            EpisodeStatus.IGNORED
-            if getattr(ep, "monitor_status", None) == MonitorStatus.IGNORED or not getattr(show, "monitored", True)
-            else (EpisodeStatus.UNAIRED if air_d and air_d > today else EpisodeStatus.WANTED)
-        )
+    try:
+        today = dt.date.today()
+        for ep in show.episodes:
+            air_d = getattr(ep, "air_date", None)
+            if isinstance(air_d, dt.datetime):
+                air_d = air_d.date()
+            is_ep_ignored = (
+                getattr(ep, "status", None) == EpisodeStatus.IGNORED
+                or getattr(ep, "monitor_status", None) == MonitorStatus.IGNORED
+                or not getattr(show, "monitored", True)
+            )
+            target_default_status = (
+                EpisodeStatus.IGNORED
+                if is_ep_ignored
+                else (EpisodeStatus.UNAIRED if air_d and air_d > today else EpisodeStatus.WANTED)
+            )
 
-        # Проверяем физический файл серии на диске
-        if ep.file_path:
-            if os.path.exists(ep.file_path):
-                if ep.status != EpisodeStatus.DOWNLOADED:
-                    ep.status = EpisodeStatus.DOWNLOADED
-                    ep.download_progress = 1.0
+            # Проверяем физический файл серии на диске
+            if getattr(ep, "file_path", None):
+                file_exists = False
+                try:
+                    file_exists = os.path.exists(ep.file_path)
+                except Exception:
+                    file_exists = False
+
+                if file_exists:
+                    if ep.status != EpisodeStatus.DOWNLOADED:
+                        ep.status = EpisodeStatus.DOWNLOADED
+                        ep.download_progress = 1.0
+                        needs_commit = True
+                else:
+                    # Файл был удален с диска пользователем: сбрасываем путь, качество, MediaInfo и статус
+                    ep.file_path = None
+                    ep.downloaded_quality = None
+                    ep.file_size_bytes = None
+                    ep.video_codec = None
+                    ep.audio_codec = None
+                    ep.audio_channels = None
+                    ep.dynamic_range = None
+                    ep.release_group = None
+                    ep.download_progress = 0.0
+                    if ep.status == EpisodeStatus.DOWNLOADED:
+                        ep.status = target_default_status
                     needs_commit = True
             else:
-                # Файл был удален с диска пользователем: сбрасываем путь, качество, MediaInfo и статус
-                ep.file_path = None
-                ep.downloaded_quality = None
-                ep.file_size_bytes = None
-                ep.video_codec = None
-                ep.audio_codec = None
-                ep.audio_channels = None
-                ep.dynamic_range = None
-                ep.release_group = None
-                ep.download_progress = 0.0
+                # Файла нет: очищаем качество и MediaInfo, если они случайно остались
+                if getattr(ep, "downloaded_quality", None) is not None or getattr(ep, "file_size_bytes", None) is not None or getattr(ep, "video_codec", None) is not None:
+                    ep.downloaded_quality = None
+                    ep.file_size_bytes = None
+                    ep.video_codec = None
+                    ep.audio_codec = None
+                    ep.audio_channels = None
+                    ep.dynamic_range = None
+                    ep.release_group = None
+                    needs_commit = True
                 if ep.status == EpisodeStatus.DOWNLOADED:
                     ep.status = target_default_status
-                needs_commit = True
-        else:
-            # Файла нет: очищаем качество и MediaInfo, если они случайно остались
-            if ep.downloaded_quality is not None or ep.file_size_bytes is not None or ep.video_codec is not None:
-                ep.downloaded_quality = None
-                ep.file_size_bytes = None
-                ep.video_codec = None
-                ep.audio_codec = None
-                ep.audio_channels = None
-                ep.dynamic_range = None
-                ep.release_group = None
-                needs_commit = True
-            if ep.status == EpisodeStatus.DOWNLOADED:
-                ep.status = target_default_status
-                ep.download_progress = 0.0
-                needs_commit = True
-            elif ep.status == EpisodeStatus.DOWNLOADING and not ep.torrent_hash:
-                ep.status = target_default_status
-                ep.download_progress = 0.0
-                needs_commit = True
+                    ep.download_progress = 0.0
+                    needs_commit = True
+                elif ep.status == EpisodeStatus.DOWNLOADING and not getattr(ep, "torrent_hash", None):
+                    ep.status = target_default_status
+                    ep.download_progress = 0.0
+                    needs_commit = True
 
-    if needs_commit:
-        try:
-            db.commit()
-            db.refresh(show)
-        except Exception:
-            pass
+        if needs_commit:
+            try:
+                db.commit()
+            except Exception:
+                db.rollback()
+    except Exception:
+        pass
 
     return _attach_computed_fields(db, [show])[0]
 
@@ -418,17 +431,28 @@ def list_episodes(show_id: int, db: Session = Depends(get_db), current_user: Use
     today = dt.date.today()
     out = []
     for ep in episodes:
-        air_d = ep.air_date
+        air_d = getattr(ep, "air_date", None)
         if isinstance(air_d, dt.datetime):
             air_d = air_d.date()
+        is_ep_ignored = (
+            getattr(ep, "status", None) == EpisodeStatus.IGNORED
+            or getattr(ep, "monitor_status", None) == MonitorStatus.IGNORED
+            or not getattr(show, "monitored", True)
+        )
         target_default_status = (
             EpisodeStatus.IGNORED
-            if getattr(ep, "monitor_status", None) == MonitorStatus.IGNORED or not getattr(show, "monitored", True)
+            if is_ep_ignored
             else (EpisodeStatus.UNAIRED if air_d and air_d > today else EpisodeStatus.WANTED)
         )
 
-        has_real_file = bool(ep.file_path and os.path.exists(ep.file_path))
-        if ep.file_path and not has_real_file:
+        has_real_file = False
+        if getattr(ep, "file_path", None):
+            try:
+                has_real_file = os.path.exists(ep.file_path)
+            except Exception:
+                has_real_file = False
+
+        if getattr(ep, "file_path", None) and not has_real_file:
             ep.file_path = None
             ep.downloaded_quality = None
             ep.file_size_bytes = None
@@ -441,8 +465,8 @@ def list_episodes(show_id: int, db: Session = Depends(get_db), current_user: Use
             if ep.status == EpisodeStatus.DOWNLOADED:
                 ep.status = target_default_status
             needs_commit = True
-        elif not ep.file_path:
-            if ep.downloaded_quality is not None or ep.video_codec is not None:
+        elif not getattr(ep, "file_path", None):
+            if getattr(ep, "downloaded_quality", None) is not None or getattr(ep, "video_codec", None) is not None:
                 ep.downloaded_quality = None
                 ep.file_size_bytes = None
                 ep.video_codec = None
@@ -471,7 +495,7 @@ def list_episodes(show_id: int, db: Session = Depends(get_db), current_user: Use
         try:
             db.commit()
         except Exception:
-            pass
+            db.rollback()
     return out
 
 
@@ -678,12 +702,17 @@ def sync_show_disk(
 
     if not video_files:
         for ep in episodes:
-            air_d = ep.air_date
+            air_d = getattr(ep, "air_date", None)
             if isinstance(air_d, dt.datetime):
                 air_d = air_d.date()
+            is_ep_ignored = (
+                getattr(ep, "status", None) == EpisodeStatus.IGNORED
+                or getattr(ep, "monitor_status", None) == MonitorStatus.IGNORED
+                or not getattr(show, "monitored", True)
+            )
             target_default_status = (
                 EpisodeStatus.IGNORED
-                if getattr(ep, "monitor_status", None) == MonitorStatus.IGNORED or not getattr(show, "monitored", True)
+                if is_ep_ignored
                 else (EpisodeStatus.UNAIRED if air_d and air_d > today else EpisodeStatus.WANTED)
             )
             ep.file_path = None
@@ -698,7 +727,10 @@ def sync_show_disk(
             if ep.status == EpisodeStatus.DOWNLOADED:
                 ep.status = target_default_status
             db.add(ep)
-        db.commit()
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
         return {"imported_count": 0, "path": show.path, "message": f"Видеофайлы не найдены в {show.path}. Статусы сброшены."}
 
     if show.content_type == "movie":
@@ -760,13 +792,25 @@ def sync_show_disk(
     # Для всех серий, которые НЕ были найдены на диске — сбрасываем путь, качество, MediaInfo и статус
     for ep in episodes:
         if ep.id not in matched_episodes_set:
-            if ep.file_path and not os.path.exists(ep.file_path):
-                air_d = ep.air_date
+            has_real_file = False
+            if getattr(ep, "file_path", None):
+                try:
+                    has_real_file = os.path.exists(ep.file_path)
+                except Exception:
+                    has_real_file = False
+
+            if getattr(ep, "file_path", None) and not has_real_file:
+                air_d = getattr(ep, "air_date", None)
                 if isinstance(air_d, dt.datetime):
                     air_d = air_d.date()
+                is_ep_ignored = (
+                    getattr(ep, "status", None) == EpisodeStatus.IGNORED
+                    or getattr(ep, "monitor_status", None) == MonitorStatus.IGNORED
+                    or not getattr(show, "monitored", True)
+                )
                 target_default_status = (
                     EpisodeStatus.IGNORED
-                    if getattr(ep, "monitor_status", None) == MonitorStatus.IGNORED or not getattr(show, "monitored", True)
+                    if is_ep_ignored
                     else (EpisodeStatus.UNAIRED if air_d and air_d > today else EpisodeStatus.WANTED)
                 )
                 ep.file_path = None
@@ -781,8 +825,8 @@ def sync_show_disk(
                 if ep.status == EpisodeStatus.DOWNLOADED:
                     ep.status = target_default_status
                 db.add(ep)
-            elif not ep.file_path:
-                if ep.downloaded_quality is not None or ep.video_codec is not None:
+            elif not getattr(ep, "file_path", None):
+                if getattr(ep, "downloaded_quality", None) is not None or getattr(ep, "video_codec", None) is not None:
                     ep.downloaded_quality = None
                     ep.file_size_bytes = None
                     ep.video_codec = None
@@ -792,7 +836,10 @@ def sync_show_disk(
                     ep.release_group = None
                     db.add(ep)
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
     return {"imported_count": imported_count, "path": show.path, "message": f"Синхронизировано серий: {imported_count}"}
 
 
