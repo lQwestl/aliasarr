@@ -3845,12 +3845,20 @@ async function refreshShowModal() {
             ${show.country ? `<span class="meta-badge">${escapeHtml(show.country)}</span>` : ""}
             ${show.network ? `<span class="meta-badge">${escapeHtml(show.network)}</span>` : ""}
           </div>
-          <div class="show-detail-path" style="margin-top: 10px; font-size: 13px; color: var(--text-muted); display: flex; align-items: center; justify-content: space-between; padding: 10px; background: var(--panel-alt); border-radius: 6px;">
-            <div style="min-width: 0; padding-right: 10px;">
+          <div class="show-detail-path" style="margin-top: 10px; font-size: 13px; color: var(--text-muted); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px; background: var(--panel-alt); border-radius: 6px;">
+            <div style="min-width: 0; flex: 1;">
               <div style="font-weight: 600; margin-bottom: 4px; color: var(--text);">${t("show.directory")}</div>
               <code style="word-break: break-all;">${show.path || t("show.not_set")}</code>
             </div>
-            ${show.path && canManageLib ? `<button class="btn btn-secondary btn-small" style="flex-shrink: 0;" onclick="syncShowPath(${show.id})" title="${t("show.btn_sync")}"><i data-lucide="refresh-cw" class="ico-sm"></i> ${t("show.btn_sync")}</button>` : ""}
+            ${show.path && canManageLib ? `
+            <div style="display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;">
+              <button class="btn btn-secondary btn-small" onclick="syncShowPath(${show.id})" title="${t("show.sync_tooltip")}">
+                <i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.btn_sync")}</span>
+              </button>
+              <button class="btn btn-secondary btn-small" onclick="openManualImportModal(${show.id})" title="${t("show.manual_import")}">
+                <i data-lucide="hard-drive-download" class="ico-sm"></i> <span>${t("show.manual_import")}</span>
+              </button>
+            </div>` : ""}
           </div>
         </div>
       </div>
@@ -3895,13 +3903,7 @@ async function refreshShowModal() {
         </button>
         <button class="btn btn-secondary btn-small" onclick="setUnairedMonitor(${show.id}, true)" title="${t("show.monitor_unaired_tooltip")}">
           <i data-lucide="calendar-search" class="ico-sm"></i> <span>${t("show.monitor_unaired")}</span>
-        </button>` : ""}
-        <button class="btn btn-secondary btn-small" onclick="syncShowPath(${show.id})" title="${t("show.sync_tooltip")}">
-          <i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.btn_sync")}</span>
-        </button>
-        <button class="btn btn-secondary btn-small" onclick="openManualImportModal(${show.id})" title="${t("show.manual_import")}">
-          <i data-lucide="hard-drive-download" class="ico-sm"></i> <span>${t("show.manual_import")}</span>
-        </button>` : ""}
+        </button>` : ""}` : ""}
         ${canSearch ? `
         <button class="btn btn-primary btn-small" onclick="forceSearchShow(this, ${show.id})"><i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.force_search")}</span></button>
         <button class="btn btn-secondary btn-small" onclick="searchReleasesForShow(this, ${show.id})"><i data-lucide="search" class="ico-sm"></i> <span>${t("show.search_manual")}</span></button>` : ""}
