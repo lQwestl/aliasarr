@@ -73,16 +73,17 @@ class DecisionEngine:
         seeders: int = 0,
         settings: Optional[AppSettings] = None,
         quality_profile: Optional[QualityProfile] = None,
+        categories: Optional[List[int]] = None,
     ) -> DecisionResult:
         """
         Полная оценка релиза по всем спецификациям Decision Engine.
         """
         rejections: List[str] = []
 
-        # 0. Проверка на не-видео контент (музыка, манга, артбуки, дорожки, сабы)
+        # 0. Проверка на не-видео контент (игры, консоли, ROM, софт, музыка, манга, артбуки)
         from app.services.matcher import is_non_video_release, build_alias_candidates, match_release
-        if is_non_video_release(title):
-            rejections.append("Релиз не является видео-контентом (музыка, манга, артбук, саундтрек)")
+        if is_non_video_release(title, categories=categories):
+            rejections.append("Релиз не является видео-контентом (игры/консоли/ROM/софт/музыка/книги)")
 
         # 1. Извлечение метаданных
         quality = parse_quality(title)
@@ -108,7 +109,7 @@ class DecisionEngine:
         # 4. Проверка соответствия шоу и сезона/серий (Title & SeasonSpecification)
         if show:
             aliases = build_alias_candidates(show)
-            match = match_release(title, show.id, aliases, content_type=show.content_type)
+            match = match_release(title, show.id, aliases, content_type=show.content_type, categories=categories)
             if not match.matched:
                 rejections.append(f"Название релиза не соответствует тайтлу «{show.title}»")
 

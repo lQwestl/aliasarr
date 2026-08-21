@@ -264,7 +264,13 @@ async def search_custom_releases(
                 continue
             seen_guids.add(rel.guid)
 
-            match = match_release(rel.title, show.id if show else 0, alias_candidates, content_type=show.content_type if show else "series") if show else None
+            match = match_release(
+                rel.title,
+                show.id if show else 0,
+                alias_candidates,
+                content_type=show.content_type if show else "series",
+                categories=getattr(rel, "categories", None),
+            ) if show else None
 
             # Оценка через DecisionEngine
             decision = DecisionEngine.evaluate_release(
@@ -275,6 +281,7 @@ async def search_custom_releases(
                 size_bytes=rel.size_bytes or 0,
                 seeders=rel.seeders or 0,
                 settings=settings,
+                categories=getattr(rel, "categories", None),
             )
 
             pub_iso, age_days = _parse_release_age_and_date(getattr(rel, "pub_date", None))
@@ -379,7 +386,13 @@ async def search_releases_for_show(
                     continue
                 seen_guids.add(rel.guid)
 
-                match = match_release(rel.title, show_id, alias_candidates, content_type=show.content_type)
+                match = match_release(
+                    rel.title,
+                    show_id,
+                    alias_candidates,
+                    content_type=show.content_type,
+                    categories=getattr(rel, "categories", None),
+                )
 
                 # Оценка через DecisionEngine
                 decision = DecisionEngine.evaluate_release(
@@ -390,6 +403,7 @@ async def search_releases_for_show(
                     size_bytes=rel.size_bytes or 0,
                     seeders=rel.seeders or 0,
                     settings=settings,
+                    categories=getattr(rel, "categories", None),
                 )
 
                 pub_iso, age_days = _parse_release_age_and_date(getattr(rel, "pub_date", None))

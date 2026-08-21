@@ -401,7 +401,13 @@ async def _collect_candidates(
                     continue
                 seen_guids.add(rel.guid)
 
-                match = match_release(rel.title, show.id, alias_candidates, content_type=show.content_type)
+                match = match_release(
+                    rel.title,
+                    show.id,
+                    alias_candidates,
+                    content_type=show.content_type,
+                    categories=getattr(rel, "categories", None),
+                )
                 if not match.matched:
                     continue
 
@@ -425,7 +431,19 @@ async def _do_search_and_grab(
     if episode_ids:
         wanted_episodes = db.query(Episode).filter(Episode.show_id == show.id, Episode.id.in_(episode_ids)).all()
     else:
-        if wanted_only:
+        if show.content_type == "movie":
+            # Для фильмов: если шоу отслеживается (monitored), поиск должен охватывать фильм
+            # независимо от того, наступила ли уже дата премьеры (WANTED или UNAIRED)
+            quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
+            upgrade_allowed = getattr(quality_profile, "upgrade_allowed", False) if quality_profile else False
+            if show.monitored:
+                if upgrade_allowed:
+                    status_filter = Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.UNAIRED, EpisodeStatus.DOWNLOADED])
+                else:
+                    status_filter = Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.UNAIRED])
+            else:
+                status_filter = Episode.status == EpisodeStatus.WANTED
+        elif wanted_only:
             status_filter = Episode.status == EpisodeStatus.WANTED
         else:
             quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
@@ -483,7 +501,7 @@ async def _do_search_and_grab(
         if parsed.matched_pattern in ("extra_ignored", "non_video_ignored"):
             return False
         from app.services.matcher import is_non_video_release
-        if is_non_video_release(rel.title):
+        if is_non_video_release(rel.title, categories=getattr(rel, "categories", None)):
             return False
 
         # Фильмы: ориентируемся только на совпадение по алиасу.

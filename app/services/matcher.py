@@ -62,8 +62,8 @@ _JUNK_WORDS = {
     "закадровый", "перевод", "озвучка", "субтитры", "hevc", "aac",
 }
 
-# Ключевые слова релизов НЕ-видео контента (манга, артбуки, саундтреки, чистый звук, дорожки, сабы, музыка и т.д.),
-# а также опенинги, эндинги, трейлеры, бонусы и спешлы, не являющиеся регулярными сериями.
+# Ключевые слова релизов НЕ-видео контента (игры, консоли, ROM, софт, манга, артбуки, саундтреки, чистый звук, дорожки, сабы, музыка и т.д.),
+# а также опенинги, эндинги, трейлеры, бонусы и спешлы, не являющиеся регулярными видео-сериями или фильмами.
 NON_VIDEO_KEYWORDS = re.compile(
     r"("
     r"манг[аи]|manga|"
@@ -97,15 +97,72 @@ NON_VIDEO_KEYWORDS = re.compile(
     r"комикс(?:ы)?|comic(?!s? *tv)|"
     r"\bscans?\b|\bсканы\b|"
     r"\[flac\]|\[mp3\]|\[lossless\]|\bflac\s+pack\b|\bmp3\s+pack\b|"
-    r"\.cbz\b|\.cbr\b|\.pdf\b|\.epub\b|\.fb2\b|\.djvu\b"
+    r"\.cbz\b|\.cbr\b|\.pdf\b|\.epub\b|\.fb2\b|\.djvu\b|"
+    # Игры, консоли, платформы, ROM, образы дисков, репаки и софт:
+    r"\b(?:nintendo(?:\s*(?:wii(?:\s*u)?|switch|nsw|3ds|nds|ds|gba|gbc|gamecube|ngc|n64|snes|nes|virtual\s*boy))?)\b|"
+    r"\[(?:nintendo(?:\s*wii)?|wii|wii-u|wiiu|switch|nsw|3ds|nds|gba|gbc|gamecube|ngc|n64|snes|nes|ps[1-5]|psx|psp|ps\s*vita|psvita|xbox|xbox360|xbox\s*360|xbox\s*one|xbox\s*series|x360|xone|pc|mac|linux|android|ios|win/mac)\]|"
+    r"\((?:nintendo(?:\s*wii)?|wii|wii-u|wiiu|switch|nsw|3ds|nds|gba|gbc|gamecube|ngc|n64|snes|nes|ps[1-5]|psx|psp|ps\s*vita|psvita|xbox|xbox360|xbox\s*360|xbox\s*one|xbox\s*series|x360|xone|win/mac)\)|"
+    r"\b(?:wii|wii-u|wiiu|gamecube|ngc|n64|gba|nds|3ds|snes|nes)\b|"
+    r"\[[^\]]*\b(?:ntsc|pal|ntsc-u|ntsc-j|pal-e|pal/eng|ntsc/eng|ntsc/rus|pal/rus|region\s*free)\b[^\]]*\]|"
+    r"\([^)]*\b(?:ntsc|pal|ntsc-u|ntsc-j|pal-e|pal/eng|ntsc/eng|ntsc/rus|pal/rus|region\s*free)\b[^)]*\)|"
+    r"\b(?:playstation(?:\s*[1-5]|\s*portable|\s*vita)?|ps[1-5]|psx|psp|ps\s*vita|psvita)\b(?=.*(?:\[|\b(?:game|iso|rom|pkg|ntsc|pal|cusa\d+|usa|eur|jpn)\b))|"
+    r"\b(?:xbox(?:\s*360|\s*one|\s*series\s*[xs])?|x360|xone)\b(?=.*(?:\[|\b(?:game|iso|rom|jtag|rgh|god|xex|pal|ntsc)\b))|"
+    r"\b(?:pc\s*games?|pc\s*iso|pc\s*rip|mac\s*games?|linux\s*games?|android\s*games?|ios\s*games?)\b|"
+    r"\b(?:steam[-_\s]?rip|gog\s*rip|gog\s*edition|full\s*game|game\s*rip)\b|"
+    r"\b(?:nsp|xci|cia|vpk|wbfs|gcm|nkit|rvz|chd|pbp|xex|god|cso)\b|"
+    r"\[(?:iso|cso|wbfs|nsp|xci|cia|vpk|gcm|nkit|rvz|chd|pbp|xex|god|rom|bin|cue|nds|3ds|gba|nes|sfc|smc|wad|pkg|prototype|beta|alpha|devbuild|debug|trainer|cheat|homebrew|rom\s*hack|crack|keygen|patch|activator)\]|"
+    r"\((?:iso|cso|wbfs|nsp|xci|cia|vpk|gcm|nkit|rvz|chd|pbp|xex|god|rom|bin|cue|nds|3ds|gba|nes|sfc|smc|wad|pkg|prototype|beta|alpha|devbuild|debug|trainer|cheat|homebrew|rom\s*hack|crack|keygen|patch|activator)\)|"
+    r"\.(?:iso|cso|wbfs|nsp|xci|cia|vpk|gcm|nkit|rvz|chd|pbp|xex|god|rom|nds|3ds|gba|nes|sfc|smc|wad|pkg|exe|msi|apk|ipa)\b|"
+    r"\b(?:fitgirl|dodi|codex|skidrow|flt|empress|plaza|rune|cpy|hoodlum|xatab|decepticon|chikibriki|igruha|хатаб|механики)\b|"
+    r"\b(?:repack\s+by|repack\s+от|репак\s+от|rip\s+by)\b|"
+    r"\b(?:trainer|cheat\s*table|homebrew|rom\s*hack|savegame|game\s*save)\b|"
+    r"\b(?:prototype|devbuild|debug\s*build)\b"
     r")",
     re.IGNORECASE,
 )
 
+NON_VIDEO_CATEGORY_RANGES = [
+    (1000, 1999),  # Console / Games
+    (4000, 4999),  # PC Software / Games
+    (7000, 7999),  # Books / Comics / EBooks
+]
 
-def is_non_video_release(title: str) -> bool:
-    """True, если релиз похож на не-видео контент (манга/артбук/саундтрек/звук/сабы/ранобэ и т.п.)."""
-    return bool(NON_VIDEO_KEYWORDS.search(title or ""))
+NON_VIDEO_EXACT_CATEGORIES = {
+    3010, 3030, 3040, 3050, 3060,  # Audio non-video (MP3, Audiobooks, Lossless)
+    8000, 8010, 8020,              # Other non-video
+}
+
+VIDEO_CATEGORY_RANGES = [
+    (2000, 2999),  # Movies
+    (5000, 5999),  # TV / Anime
+]
+
+
+def is_non_video_release(title: str, categories: Optional[list[int]] = None) -> bool:
+    """True, если релиз похож на не-видео контент (игры/консоли/ROM/софт/манга/артбук/саундтрек и т.п.)."""
+    if NON_VIDEO_KEYWORDS.search(title or ""):
+        return True
+
+    if categories:
+        has_video_cat = False
+        all_non_video = True
+        for cat in categories:
+            is_video = any(start <= cat <= end for start, end in VIDEO_CATEGORY_RANGES) or cat == 3020
+            if is_video:
+                has_video_cat = True
+                all_non_video = False
+                break
+            is_non_video = (
+                any(start <= cat <= end for start, end in NON_VIDEO_CATEGORY_RANGES)
+                or cat in NON_VIDEO_EXACT_CATEGORIES
+            )
+            if not is_non_video:
+                all_non_video = False
+
+        if not has_video_cat and all_non_video:
+            return True
+
+    return False
 
 
 def build_alias_candidates(show) -> list[AliasCandidate]:
@@ -271,13 +328,14 @@ def match_release(
     aliases: Iterable[AliasCandidate],
     threshold: int = DEFAULT_FUZZY_THRESHOLD,
     content_type: str = "series",
+    categories: Optional[list[int]] = None,
 ) -> MatchResult:
     """Полный матчинг релиза: алиас (fuzzy) + парсинг номера серии + проверка типа контента."""
     alias, score = best_alias_match(release_name, aliases, threshold)
     parsed = parse_episode(release_name)
 
-    # Отсеиваем не-видео релизы (манга, артбуки, OST/саундтреки)
-    if is_non_video_release(release_name):
+    # Отсеиваем не-видео релизы (игры, консоли, ROM, софт, манга, артбуки, OST/саундтреки)
+    if is_non_video_release(release_name, categories=categories):
         return MatchResult(
             matched=False, show_id=None, alias_id=None, alias_text=None,
             score=score, parsed=parsed,

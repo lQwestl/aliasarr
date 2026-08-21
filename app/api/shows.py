@@ -404,6 +404,7 @@ def set_season_monitored(
 
 
 @router.post("/{show_id}/search")
+@router.post("/{show_id}/auto-search")
 async def force_search_show(
     show_id: int,
     db: Session = Depends(get_db),

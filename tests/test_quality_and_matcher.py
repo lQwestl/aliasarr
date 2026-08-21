@@ -266,7 +266,76 @@ class TestQualityAndMatcher(unittest.TestCase):
         self.assertTrue(dec2.approved, f"Expected title2 to be approved, got rejections: {dec2.rejections}")
         self.assertEqual(dec2.rejections, [])
 
+    def test_spider_man_movie_vs_nintendo_wii_game(self):
+        from app.services.matcher import is_non_video_release
+        from app.services.decision_engine import DecisionEngine
+        from unittest.mock import MagicMock
+
+        aliases = [
+            AliasCandidate(1, "Spider-Man: Brand New Day", "en", 1),
+            AliasCandidate(2, "Человек-паук: Новый день", "ru", 2),
+            AliasCandidate(3, "Spider-Man 4", "en", 3),
+            AliasCandidate(5, "Marvel Studios' Spider-Man: Brand New Day", "en", 5),
+            AliasCandidate(6, "Человек-паук КВМ 4", "ru", 6),
+        ]
+
+        # 1. Invalid Nintendo Wii game release with alias Spider-Man 4
+        game_release = "[Nintendo Wii] Spider-Man 4 [NTSC, ENG] [Prototype]"
+        self.assertTrue(is_non_video_release(game_release))
+
+        m_game = match_release(game_release, show_id=1, aliases=aliases, content_type="movie")
+        self.assertFalse(m_game.matched, "Expected Nintendo Wii game release NOT to match movie")
+
+        # 2. DecisionEngine evaluation
+        mock_show = MagicMock()
+        mock_show.id = 1
+        mock_show.title = "Spider-Man: Brand New Day"
+        mock_show.content_type = "movie"
+        mock_show.quality_profile_id = None
+        mock_show.aliases = [
+            MagicMock(id=1, text="Spider-Man: Brand New Day", language=MagicMock(value="en"), priority=1),
+            MagicMock(id=2, text="Человек-паук: Новый день", language=MagicMock(value="ru"), priority=2),
+            MagicMock(id=3, text="Spider-Man 4", language=MagicMock(value="en"), priority=3),
+        ]
+        mock_ep = MagicMock()
+        mock_ep.season_number = 1
+        mock_ep.episode_number = 1
+        mock_ep.status = "wanted"
+        mock_ep.downloaded_quality = None
+        mock_ep.file_path = None
+
+        mock_db = MagicMock()
+        mock_db.get.return_value = None
+
+        dec_game = DecisionEngine.evaluate_release(
+            db=mock_db,
+            title=game_release,
+            show=mock_show,
+            episodes=[mock_ep],
+            size_bytes=4 * 1024 * 1024 * 1024,
+            seeders=15,
+        )
+        self.assertFalse(dec_game.approved)
+        self.assertTrue(any("не является видео-контентом" in r for r in dec_game.rejections))
+
+        # 3. Valid movie release
+        valid_movie = "Spider-Man: Brand New Day (2026) 1080p WEB-DL DDP5.1 Atmos H.264"
+        self.assertFalse(is_non_video_release(valid_movie))
+        m_movie = match_release(valid_movie, show_id=1, aliases=aliases, content_type="movie")
+        self.assertTrue(m_movie.matched)
+
+        dec_movie = DecisionEngine.evaluate_release(
+            db=mock_db,
+            title=valid_movie,
+            show=mock_show,
+            episodes=[mock_ep],
+            size_bytes=6 * 1024 * 1024 * 1024,
+            seeders=50,
+        )
+        self.assertTrue(dec_movie.approved, f"Expected movie release to be approved, got: {dec_movie.rejections}")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

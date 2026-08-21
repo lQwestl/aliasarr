@@ -5996,7 +5996,13 @@ async function finishWizard(button) {
       switchTab("library");
 
       if (runAutoSearch && showId) {
-        api(`/api/v1/shows/${showId}/auto-search`, { method: "POST" }).catch(err => {
+        toast(CURRENT_LANG === "en" ? "Starting auto-search…" : "Запуск автопоиска…");
+        api(`/api/v1/shows/${showId}/search`, { method: "POST" }).then(res => {
+          if (res && res.grabbed && res.grabbed.length > 0) {
+            toast((CURRENT_LANG === "en" ? "Grabbed release: " : "Захвачен релиз: ") + res.grabbed.map(g => g.title || g).join(", "));
+          }
+          loadShows();
+        }).catch(err => {
           console.warn("Auto-search error after adding:", err);
         });
       }
