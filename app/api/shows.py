@@ -515,6 +515,44 @@ def set_show_monitored(
     return {"show_id": show_id, "monitored": monitored}
 
 
+@router.put("/{show_id}/all_seasons/monitor", summary="Массово изменить статус мониторинга всех сезонов")
+def set_all_seasons_monitored(
+    show_id: int,
+    monitored: bool,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    """Массово переключает статус всех сезонов и серий тайтла (WANTED <-> IGNORED)."""
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Show not found")
+
+    show.monitored = monitored
+    db.add(show)
+
+    episodes = db.query(Episode).filter(Episode.show_id == show_id).all()
+    today = dt.date.today()
+    affected = 0
+    for ep in episodes:
+        if ep.status == EpisodeStatus.DOWNLOADED:
+            continue  # уже скачанные серии не трогаем
+        if monitored:
+            air_d = getattr(ep, "air_date", None)
+            if isinstance(air_d, dt.datetime):
+                air_d = air_d.date()
+            if air_d and air_d > today:
+                ep.status = EpisodeStatus.UNAIRED
+            else:
+                ep.status = EpisodeStatus.WANTED
+        else:
+            ep.status = EpisodeStatus.IGNORED
+        db.add(ep)
+        affected += 1
+
+    db.commit()
+    return {"show_id": show_id, "monitored": monitored, "affected": affected}
+
+
 @router.put("/{show_id}/seasons/{season_number}/monitor")
 def set_season_monitored(
     show_id: int,
@@ -532,10 +570,20 @@ def set_season_monitored(
     if not episodes:
         raise HTTPException(404, "Season not found")
 
+    today = dt.date.today()
     for ep in episodes:
         if ep.status == EpisodeStatus.DOWNLOADED:
             continue  # уже скачанные серии не трогаем
-        ep.status = EpisodeStatus.WANTED if monitored else EpisodeStatus.IGNORED
+        if monitored:
+            air_d = getattr(ep, "air_date", None)
+            if isinstance(air_d, dt.datetime):
+                air_d = air_d.date()
+            if air_d and air_d > today:
+                ep.status = EpisodeStatus.UNAIRED
+            else:
+                ep.status = EpisodeStatus.WANTED
+        else:
+            ep.status = EpisodeStatus.IGNORED
         db.add(ep)
     db.commit()
     return {"show_id": show_id, "season": season_number, "monitored": monitored, "affected": len(episodes)}

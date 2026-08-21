@@ -782,6 +782,12 @@ const TRANSLATIONS = {
     "show.manual_import": "Ручной импорт",
     "show.btn_sync": "Импорт библиотеки",
     "show.sync_tooltip": "Сканировать файлы на диске и обновить серии в библиотеке",
+    "show.monitor_all_seasons": "Мониторить все сезоны",
+    "show.unmonitor_all_seasons": "Игнорировать все сезоны",
+    "show.monitor_all_tooltip": "Перевести все сезоны и нескачанные серии в мониторинг (в поиске)",
+    "show.unmonitor_all_tooltip": "Перевести все сезоны и нескачанные серии в статус «игнорируется»",
+    "show.all_seasons_monitored": "Все сезоны переведены в мониторинг (в поиске)",
+    "show.all_seasons_unmonitored": "Все сезоны переведены в статус «игнорируется»",
     "manual_import.global_btn": "Ручной импорт",
     "manual_import.title": "Ручной импорт файлов",
     "manual_import.col_show": "Тайтл (сериал / фильм)",
@@ -1728,6 +1734,12 @@ const TRANSLATIONS = {
     "show.manual_import": "Manual Import",
     "show.btn_sync": "Library Import",
     "show.sync_tooltip": "Rescan disk files and update library episodes",
+    "show.monitor_all_seasons": "Monitor All Seasons",
+    "show.unmonitor_all_seasons": "Ignore All Seasons",
+    "show.monitor_all_tooltip": "Set all seasons and un-downloaded episodes to monitoring (Wanted)",
+    "show.unmonitor_all_tooltip": "Set all seasons and un-downloaded episodes to Ignored",
+    "show.all_seasons_monitored": "All seasons set to monitoring (Wanted)",
+    "show.all_seasons_unmonitored": "All seasons set to Ignored",
     "manual_import.global_btn": "Manual Import",
     "manual_import.title": "Manual File Import",
     "manual_import.col_show": "Series / Movie",
@@ -3868,6 +3880,13 @@ async function refreshShowModal() {
         <button class="btn btn-secondary btn-small" onclick="toggleMonitored(this, ${show.id}, ${!show.monitored})">
           <i data-lucide="${show.monitored ? 'pause' : 'play'}" class="ico-sm"></i> <span>${show.monitored ? t("action.unmonitor") : t("action.monitor")}</span>
         </button>
+        ${show.content_type !== "movie" ? `
+        <button class="btn btn-secondary btn-small" onclick="setAllSeasonsMonitor(${show.id}, true)" title="${t("show.monitor_all_tooltip")}">
+          <i data-lucide="bookmark-plus" class="ico-sm"></i> <span>${t("show.monitor_all_seasons")}</span>
+        </button>
+        <button class="btn btn-secondary btn-small" onclick="setAllSeasonsMonitor(${show.id}, false)" title="${t("show.unmonitor_all_tooltip")}">
+          <i data-lucide="bookmark-minus" class="ico-sm"></i> <span>${t("show.unmonitor_all_seasons")}</span>
+        </button>` : ""}
         <button class="btn btn-secondary btn-small" onclick="syncShowPath(${show.id})" title="${t("show.sync_tooltip")}">
           <i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.btn_sync")}</span>
         </button>
@@ -4444,6 +4463,20 @@ async function executeShowDeletion() {
       toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true);
     }
   });
+}
+
+async function setAllSeasonsMonitor(showId, value) {
+  const targetId = showId || CURRENT_SHOW_ID;
+  try {
+    const result = await api(`/api/v1/shows/${targetId}/all_seasons/monitor?monitored=${Boolean(value)}`, { method: "PUT" });
+    toast(value ? t("show.all_seasons_monitored") : t("show.all_seasons_unmonitored"), false);
+    await refreshShowModal();
+    if (typeof loadShows === "function") {
+      loadShows().catch(() => {});
+    }
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true);
+  }
 }
 
 async function setSeasonMonitor(seasonNumber, value) {

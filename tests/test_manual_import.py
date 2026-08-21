@@ -283,7 +283,46 @@ class TestManualImportLogic(unittest.TestCase):
         self.assertIsNone(res_eps[0].downloaded_quality)
         self.assertIsNone(res_eps[0].file_path)
 
+    def test_set_all_seasons_monitored(self):
+        """Проверяет массовое переключение всех сезонов в WANTED и IGNORED."""
+        try:
+            from app.api.shows import set_all_seasons_monitored
+        except ImportError:
+            self.skipTest("FastAPI not installed in test runner")
+            return
+
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+        import datetime as dt
+
+        show = SimpleNamespace(id=1, title="Test Series", content_type="series", monitored=False)
+        ep1 = SimpleNamespace(id=101, show_id=1, season_number=1, episode_number=1, status="ignored", air_date=dt.datetime(2025, 1, 1))
+        ep2 = SimpleNamespace(id=102, show_id=1, season_number=2, episode_number=1, status="ignored", air_date=dt.datetime(2025, 1, 1))
+        ep3_downloaded = SimpleNamespace(id=103, show_id=1, season_number=1, episode_number=2, status="downloaded", air_date=dt.datetime(2025, 1, 1))
+
+        db_mock = MagicMock()
+        db_mock.get.return_value = show
+        db_mock.query.return_value.filter.return_value.all.return_value = [ep1, ep2, ep3_downloaded]
+        current_user = SimpleNamespace(id=1, username="admin")
+
+        # 1. Turn ON monitoring for all seasons
+        res_on = set_all_seasons_monitored(1, monitored=True, db=db_mock, current_user=current_user)
+        self.assertTrue(show.monitored)
+        self.assertEqual(ep1.status, "wanted")
+        self.assertEqual(ep2.status, "wanted")
+        self.assertEqual(ep3_downloaded.status, "downloaded")
+        self.assertEqual(res_on["affected"], 2)
+
+        # 2. Turn OFF monitoring for all seasons
+        res_off = set_all_seasons_monitored(1, monitored=False, db=db_mock, current_user=current_user)
+        self.assertFalse(show.monitored)
+        self.assertEqual(ep1.status, "ignored")
+        self.assertEqual(ep2.status, "ignored")
+        self.assertEqual(ep3_downloaded.status, "downloaded")
+        self.assertEqual(res_off["affected"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
