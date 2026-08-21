@@ -1,0 +1,124 @@
+"""
+Отслеживание обновляемых раздач (онгоингов) на трекерах.
+
+Сохраняет guid и URL раздачи (например, на RuTracker, где автор добавляет новые серии в ту же тему).
+Периодическая задача перепроверяет раздачу и при появлении новых серий инициирует выборочную докачку.
+"""
+
+from __future__ import annotations
+
+import datetime as dt
+
+from sqlalchemy.orm import Session
+
+from app.models.db import Episode, EpisodeStatus, Indexer, Show, TrackedRelease
+from app.services.parser import parse_episode
+from app.services.torznab import TorznabClient
+
+
+async def recheck_tracked_release(db: Session, tracked: TrackedRelease) -> dict:
+    """
+    Перепроверяет один отслеживаемый топик.
+    Возвращает summary: {"updated": bool, "new_episodes": [...]}
+    """
+    indexer = db.get(Indexer, tracked.indexer_id)
+    if not indexer:
+        return {"updated": False, "reason": "indexer_missing"}
+
+    client = TorznabClient(indexer.base_url, indexer.api_key, indexer.timeout_seconds)
+
+    # Ищем топик заново по его же guid/url через тот же индексатор.
+    # Для реального трекера обычно есть отдельный "details"-запрос по guid;
+    # здесь — упрощённый поиск для демонстрации архитектуры.
+    try:
+        releases = await client.search(tracked.topic_guid)
+        if not releases and tracked.show_id:
+            show = db.get(Show, tracked.show_id)
+            if show:
+                releases = await client.search(show.title)
+    except Exception as exc:
+        return {"updated": False, "reason": f"search_failed: {exc}"}
+
+    match = next(
+        (r for r in releases if r.guid == tracked.topic_guid or (tracked.topic_url and r.page_url == tracked.topic_url) or (tracked.infohash and getattr(r, 'infohash', None) == tracked.infohash)),
+        None,
+    )
+    if match is None:
+        return {"updated": False, "reason": "topic_not_found"}
+
+    parsed = parse_episode(match.title)
+    already_downloaded = {(e["season"], e["episode"]) for e in tracked.downloaded_episodes}
+
+    new_episode_numbers = [
+        ep for ep in parsed.episodes
+        if (parsed.season, ep) not in already_downloaded
+    ]
+
+    tracked.last_checked_at = dt.datetime.utcnow()
+
+    if not new_episode_numbers:
+        db.add(tracked)
+        db.commit()
+        return {"updated": False, "new_episodes": []}
+
+    tracked.last_updated_at = dt.datetime.utcnow()
+
+    # Помечаем новые серии как wanted, если они мониторятся
+    wanted_episodes = []
+    for ep_num in new_episode_numbers:
+        episode = (
+            db.query(Episode)
+            .filter_by(show_id=tracked.show_id, season_number=parsed.season or 0, episode_number=ep_num)
+            .first()
+        )
+        if episode and episode.status != EpisodeStatus.DOWNLOADED:
+            episode.status = EpisodeStatus.WANTED
+            db.add(episode)
+            wanted_episodes.append(ep_num)
+
+    db.add(tracked)
+    db.commit()
+
+    return {
+        "updated": True,
+        "new_episodes": wanted_episodes,
+        "download_url": match.download_url,
+        "note": "Требуется selective download только новых файлов через клиент (qBittorrent API)",
+    }
+
+
+async def recheck_all_active(db: Session) -> list[dict]:
+    """Перепроверяет все активные отслеживаемые раздачи (вызывается из APScheduler)."""
+    tracked_list = db.query(TrackedRelease).filter(TrackedRelease.active == True).all()  # noqa: E712
+    if not tracked_list:
+        return []
+    total = len(tracked_list)
+    from app.services.task_manager import task_manager
+    async with task_manager.track(
+        name="tracker_sync",
+        title="Проверка отслеживаемых раздач",
+        message=f"Проверка {total} раздач на трекерах...",
+        total_items=total,
+        current_item=0,
+        progress=0.0,
+    ) as t_task:
+        results = []
+        updated_count = 0
+        for i, tracked in enumerate(tracked_list):
+            show_title = (tracked.show.title if tracked.show else None) or (f"Show #{tracked.show_id}" if tracked.show_id else "раздача")
+            t_task.update(
+                progress=(i + 1) / total,
+                current_item=i + 1,
+                total_items=total,
+                message=f"Проверка {i + 1} из {total}: {show_title}",
+            )
+            result = await recheck_tracked_release(db, tracked)
+            result["tracked_release_id"] = tracked.id
+            if result.get("updated"):
+                updated_count += 1
+            results.append(result)
+        if updated_count > 0:
+            t_task.complete(f"Обнаружено {updated_count} обновлений раздач")
+        else:
+            t_task.complete(f"Все {total} раздач актуальны")
+        return results

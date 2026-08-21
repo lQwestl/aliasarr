@@ -1,0 +1,379 @@
+"""
+Alias-matcher: сопоставляет имя релиза (топика с трекера) с шоу по списку
+алиасов (рус/eng/jp/romaji), с учётом парсинга номера серии.
+
+Использует rapidfuzz для нечёткого сравнения нормализованных строк.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass
+from typing import Iterable, Optional
+
+try:
+    from rapidfuzz import fuzz
+except ImportError:
+    class FuzzFallback:
+        @staticmethod
+        def partial_ratio(s1: str, s2: str) -> float:
+            return 100.0 if s1 and s2 and (s1 in s2 or s2 in s1) else 0.0
+
+        @staticmethod
+        def token_set_ratio(s1: str, s2: str) -> float:
+            w1, w2 = set(s1.split()), set(s2.split())
+            if not w1 or not w2:
+                return 0.0
+            return (len(w1 & w2) / max(len(w1), len(w2))) * 100.0
+
+        @staticmethod
+        def token_sort_ratio(s1: str, s2: str) -> float:
+            return 100.0 if " ".join(sorted(s1.split())) == " ".join(sorted(s2.split())) else 0.0
+
+    fuzz = FuzzFallback
+
+from app.services.parser import ParsedRelease, ReleaseKind, parse_episode
+
+# Порог уверенности fuzzy-совпадения имени (0-100)
+DEFAULT_FUZZY_THRESHOLD = 82
+
+
+@dataclass
+class AliasCandidate:
+    alias_id: int
+    text: str
+    language: str = "ru"
+    priority: int = 100
+
+
+@dataclass
+class MatchResult:
+    matched: bool
+    show_id: Optional[int]
+    alias_id: Optional[int]
+    alias_text: Optional[str]
+    score: float
+    parsed: ParsedRelease
+
+
+_JUNK_WORDS = {
+    "webrip", "webdl", "web", "dl", "hdtv", "bdrip", "bluray", "remux",
+    "rus", "eng", "sub", "dub", "dubbed", "subbed", "vo", "многоголосый",
+    "закадровый", "перевод", "озвучка", "субтитры", "hevc", "aac",
+}
+
+# Ключевые слова релизов НЕ-видео контента (манга, артбуки, саундтреки, чистый звук, дорожки, сабы, музыка и т.д.),
+# а также опенинги, эндинги, трейлеры, бонусы и спешлы, не являющиеся регулярными сериями.
+NON_VIDEO_KEYWORDS = re.compile(
+    r"("
+    r"манг[аи]|manga|"
+    r"ранобэ|ранобе|light\s?novel|ranobe|"
+    r"артбук|art\s?book|"
+    r"саундтрек(?:и)?|soundtracks?|\bost\b|"
+    r"\b(?:wavpack|ape|alac|dxd|sacd|dsd\d*|vinyl|audio\s*cd|maxi[-_\s]?single|single|ep)\b|"
+    r"\b(?:tracks\+?\.?cue|image\+?\.?cue|lossless|flac\s*\(tracks\)|flac\s*\(image|discography|дискография)\b|"
+    r"\[(?:32/\d+|24/\d+|12\"|dxd|tr\d+|vinyl|lp|cd)\]|"
+    r"\((?:12\"|32/\d+|24/\d+|tracks|image\+\.cue|tracks\+\.cue|wavpack|flac)\)|"
+    r"\b(?:death\s*metal|black\s*metal|heavy\s*metal|hard\s*rock|prog\s*rock|krautrock|psychedelic|occult\s*rock|euro[-_\s]?disco|synth[-_\s]?pop|ambient|trance|hip[-_\s]?hop)\b|"
+    r"\b(?:nc)?(?:op|ed|pv|cm|ins)\s*[-–_./\s]?\s*\d*\b|"
+    r"\b(?:opening|ending)s?\s*[-–_./\s]?\s*\d*\b|"
+    r"\b(?:опенинг(?:и)?|эндинг(?:и)?)\s*[-–_./\s]?\s*\d*\b|"
+    r"\b(?:creditless|ncop|nced)\s*\d*\b|"
+    r"\b(?:op\s*[/&]\s*ed|ncop\s*[/&]\s*nced)\b|"
+    r"\[(?:op[/&]ed|ncop[/&]nced|op|ed|pv|ost|soundtrack)\]|"
+    r"\((?:op[/&]ed|ncop[/&]nced|op|ed|pv|ost|soundtrack)\)|"
+    r"\b(?:theme\s*songs?|music\s*videos?|character\s*songs?|клипы?)\b|"
+    r"\b(?:sample|trailer|preview|teaser|menu|promo|трейлер(?:ы)?|промо)\b|"
+    r"\b(?:extra|bonus|featurette|behind[-_\s]the[-_\s]scenes|making[-_\s]of|interview|deleted[-_\s]scene|бонус(?:ы)?|допы|дополнительные\s*материалы)\b|"
+    r"\bclean[-_\s]?(?:op|ed|opening|ending)\b|"
+    r"\bopenings?\s*(?:&|and)\s*endings?\b|"
+    r"\b(?:rus|eng|jap|jpn|ukr|ger|fra|spa)?\s*(?:sound|audio|soundtracks?|ost|audio[-\s]?tracks?|чистый\s*звук|звуковые\s*дорожки|аудиодорожк[иа]|звуковые\s*файлы|sound\s*pack|audio\s*pack|только\s*звук|только\s*аудио|озвучка\s*отдельно)\b|"
+    r"\[(?:audio|sound|soundtrack|ost|audio[-\s]?tracks?|звук|аудиодорожки|озвучка\s*отдельно)\]|"
+    r"\((?:audio|sound|soundtrack|ost|audio[-\s]?tracks?|звук|аудиодорожки|озвучка\s*отдельно)\)|"
+    r"\b(?:rus|eng|jap|jpn|ukr)?\s*(?:subs?\s*only|только\s*субтитры|только\s*сабы|subtitles?\s*pack|пак\s*субтитров)\b|"
+    r"\[(?:subs\s*only|субтитры|сабы|пак\s*субтитров)\]|"
+    r"\((?:subs\s*only|субтитры|сабы|пак\s*субтитров)\)|"
+    r"додзинси|doujin|"
+    r"комикс(?:ы)?|comic(?!s? *tv)|"
+    r"\bscans?\b|\bсканы\b|"
+    r"\[flac\]|\[mp3\]|\[lossless\]|\bflac\s+pack\b|\bmp3\s+pack\b|"
+    r"\.cbz\b|\.cbr\b|\.pdf\b|\.epub\b|\.fb2\b|\.djvu\b"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def is_non_video_release(title: str) -> bool:
+    """True, если релиз похож на не-видео контент (манга/артбук/саундтрек/звук/сабы/ранобэ и т.п.)."""
+    return bool(NON_VIDEO_KEYWORDS.search(title or ""))
+
+
+def build_alias_candidates(show) -> list[AliasCandidate]:
+    """
+    Формирует список кандидатов для поиска и сопоставления.
+    Включает основное название тайтла и все пользовательские/автоматические алиасы.
+    Список отсортирован по приоритету: меньшее число = опрашивается раньше.
+    """
+    seen_normalized: set[str] = set()
+    candidates: list[AliasCandidate] = []
+
+    title_norm = normalize_title(show.title)
+    if title_norm:
+        seen_normalized.add(title_norm)
+        candidates.append(AliasCandidate(alias_id=0, text=show.title, language="en", priority=0))
+
+    for alias in show.aliases:
+        norm = normalize_title(alias.text)
+        if not norm or norm in seen_normalized:
+            continue
+        seen_normalized.add(norm)
+        candidates.append(AliasCandidate(
+            alias_id=alias.id, text=alias.text, language=alias.language.value,
+            priority=getattr(alias, "priority", 100) or 100,
+        ))
+
+    # Приоритет — единственный фактор порядка (НЕ язык): меньше число = ищем раньше.
+    candidates.sort(key=lambda c: c.priority)
+    return candidates
+
+
+def normalize_title(text: str) -> str:
+    """Приводит название к сравнимому виду: нижний регистр, без пунктуации и шумовых слов."""
+    text = text.lower()
+    text = re.sub(r"[._\[\](){}\-–—/|]", " ", text)
+    text = re.sub(r"[^\w\s]", " ", text, flags=re.UNICODE)
+    words = [w for w in text.split() if w not in _JUNK_WORDS]
+    return " ".join(words).strip()
+
+
+_TITLE_STOPWORDS = {"the", "a", "an", "of", "and", "in", "on", "at", "to", "for", "with", "by", "tv", "hd"}
+
+
+def _clean_stopwords(text: str) -> str:
+    """Убирает вспомогательные артикли и предлоги для сравнения заголовков."""
+    words = [w for w in text.split() if w not in _TITLE_STOPWORDS]
+    return " ".join(words).strip()
+
+
+def extract_title_segments(release_name: str) -> list[str]:
+    """
+    Извлекает сегменты названий тайтла из имени релиза (русское / английское / оригинальное),
+    отсекая технический мусор, скобки релиз-групп, указания сезонов, года и разрешения.
+    """
+    s = re.sub(r"^\s*(?:\[[^\]]*\]|\([^\)]*\))\s*", "", release_name or "")
+    raw_parts = re.split(r"\s*[/|]\s*", s)
+    cut_re = re.compile(
+        r"""
+        (?:
+            \s*\(|\s*\[|\s*[-–]\s*\d
+        |   [._\s]\b(?:S\d{1,3}(?:[-_.\s]*E\d{1,3})?|E\d{1,3}|EP\d{1,3}|Seasons?[:\s]*\d|Сез(?:он(?:ы|а)?)?[:\s]*\d)\b
+        |   \b(?:\d{1,3}(?:\s*[-–~]\s*\d{1,3})?\s*(?:сезон(?:ы|а)?|seasons?))\b
+        |   [._\s]\b(?:Complete|Full\b|19\d\d|20\d\d|1080p|720p|2160p|480p|576p|BDRip|WEB-?DL|WEBRip|HDTV|Remux)\b
+        )
+        """,
+        re.IGNORECASE | re.VERBOSE,
+    )
+    clean_segments: list[str] = []
+    for p in raw_parts:
+        m = cut_re.search(p)
+        if m:
+            p = p[:m.start()]
+        cleaned = normalize_title(p)
+        if cleaned:
+            clean_segments.append(cleaned)
+
+    full_norm = normalize_title(release_name)
+    if full_norm and full_norm not in clean_segments:
+        clean_segments.append(full_norm)
+
+    return clean_segments
+
+
+def best_alias_match(
+    release_name: str,
+    aliases: Iterable[AliasCandidate],
+    threshold: int = DEFAULT_FUZZY_THRESHOLD,
+) -> tuple[Optional[AliasCandidate], float]:
+    """
+    Находит алиас с максимальным fuzzy-скором против имени релиза.
+    Точно проверяет совпадение сегментов тайтла и штрафует лишние слова (например, "Comet Lucifer" != "Lucifer").
+    """
+    segments = extract_title_segments(release_name)
+    if not segments:
+        return None, 0.0
+
+    best: Optional[AliasCandidate] = None
+    best_score = 0.0
+
+    for alias in aliases:
+        norm_alias = normalize_title(alias.text)
+        if not norm_alias:
+            continue
+
+        alias_words = set(norm_alias.split())
+        alias_clean = _clean_stopwords(norm_alias)
+
+        for seg in segments:
+            seg_words = set(seg.split())
+            seg_clean = _clean_stopwords(seg)
+
+            # 1. Точное совпадение сегмента с алиасом (с учётом или без стоп-слов)
+            if seg == norm_alias or (alias_clean and seg_clean == alias_clean):
+                score = 100.0
+                if score > best_score:
+                    best_score = score
+                    best = alias
+                continue
+
+            # 2. Нечёткое сравнение полного сегмента
+            sort_ratio = fuzz.token_sort_ratio(norm_alias, seg)
+            ratio = fuzz.ratio(norm_alias, seg) if hasattr(fuzz, "ratio") else fuzz.token_sort_ratio(norm_alias, seg)
+            base_score = max(ratio, sort_ratio)
+
+            # Для коротких алиасов (1 слово или длина <= 8 символов) не допускаем подмену слова (например, Luzifer != Lucifer)
+            if len(alias_words) == 1 and len(seg_words) == 1:
+                if norm_alias != seg:
+                    if len(norm_alias) <= 8 or base_score < 95.0:
+                        continue
+
+            # Проверяем наличие лишних значимых слов (например: "comet lucifer" против "lucifer")
+            extra_words = seg_words - alias_words - _TITLE_STOPWORDS
+            missing_words = alias_words - seg_words - _TITLE_STOPWORDS
+
+            if extra_words:
+                # Сильный штраф за посторонние слова в названии
+                penalty = len(extra_words) * 35.0
+                score = max(0.0, base_score - penalty)
+            elif missing_words:
+                penalty = len(missing_words) * 30.0
+                score = max(0.0, base_score - penalty)
+            else:
+                score = base_score
+
+            if score > best_score:
+                best_score = score
+                best = alias
+
+    if best is not None and best_score >= threshold:
+        return best, best_score
+    return None, best_score
+
+
+MOVIE_KEYWORDS = re.compile(
+    r"\b(movie|film|фильм|полнометражный\s*фильм|телефильм|the\s+movie)\b",
+    re.IGNORECASE,
+)
+
+
+def match_release(
+    release_name: str,
+    show_id: int,
+    aliases: Iterable[AliasCandidate],
+    threshold: int = DEFAULT_FUZZY_THRESHOLD,
+    content_type: str = "series",
+) -> MatchResult:
+    """Полный матчинг релиза: алиас (fuzzy) + парсинг номера серии + проверка типа контента."""
+    alias, score = best_alias_match(release_name, aliases, threshold)
+    parsed = parse_episode(release_name)
+
+    # Отсеиваем не-видео релизы (манга, артбуки, OST/саундтреки)
+    if is_non_video_release(release_name):
+        return MatchResult(
+            matched=False, show_id=None, alias_id=None, alias_text=None,
+            score=score, parsed=parsed,
+        )
+
+    if alias is None:
+        return MatchResult(
+            matched=False, show_id=None, alias_id=None, alias_text=None,
+            score=score, parsed=parsed,
+        )
+
+    # Защита от фильмов и спин-оффов при поиске сериала / аниме-сериала
+    if content_type in ("series", "anime"):
+        # Если релиз помечен как отдельный фильм (Movie / Film / Фильм)
+        if MOVIE_KEYWORDS.search(release_name):
+            alias_has_movie = bool(MOVIE_KEYWORDS.search(alias.text))
+            if not alias_has_movie:
+                # Проверяем, есть ли явная метка сезона (например, Season 1)
+                from app.services.parser import detect_season_label
+                s_lbl = detect_season_label(release_name)
+                if s_lbl["type"] not in ("numbered", "range", "complete", "final"):
+                    return MatchResult(
+                        matched=False, show_id=None, alias_id=None, alias_text=None,
+                        score=score, parsed=parsed,
+                    )
+
+        # Если релиз не имеет ни сезона, ни серий, ни меток пака (одиночный фильм)
+        from app.services.parser import detect_season_label
+        s_lbl = detect_season_label(release_name)
+        if parsed.kind == ReleaseKind.UNKNOWN and s_lbl["type"] == "none":
+            # Для сериалов/аниме одиночные релизы без сезонов/серий не должны матчиться
+            return MatchResult(
+                matched=False, show_id=None, alias_id=None, alias_text=None,
+                score=score, parsed=parsed,
+            )
+
+        # Защита от спин-офф префиксов ("El Camino: A Breaking Bad Movie", "Better Call Saul: ...")
+        # Если до двоеточия или тире идёт заголовок другого тайтла, которого нет среди алиасов
+        if ":" in release_name or " - " in release_name:
+            norm_rel_lower = release_name.lower()
+            prefix_part = norm_rel_lower.split(":", 1)[0] if ":" in norm_rel_lower else norm_rel_lower.split(" - ", 1)[0]
+            norm_prefix = normalize_title(prefix_part)
+            if len(norm_prefix) >= 4:
+                prefix_matches_any_alias = any(
+                    normalize_title(a.text) in norm_prefix or norm_prefix in normalize_title(a.text)
+                    for a in aliases
+                )
+                if not prefix_matches_any_alias:
+                    if s_lbl["type"] not in ("numbered", "range", "complete", "final"):
+                        return MatchResult(
+                            matched=False, show_id=None, alias_id=None, alias_text=None,
+                            score=score, parsed=parsed,
+                        )
+
+    # Для фильмов: номера в названии («Эпизод 4», «Часть 2») — часть названия франшизы, а не серии сериала
+    if content_type == "movie":
+        parsed = ParsedRelease(
+            kind=ReleaseKind.EPISODE,
+            season=None,
+            episodes=[],
+            raw=release_name,
+            matched_pattern="movie",
+        )
+
+    return MatchResult(
+        matched=True, show_id=show_id, alias_id=alias.alias_id, alias_text=alias.text,
+        score=score, parsed=parsed,
+    )
+
+
+def score_candidate(
+    match: MatchResult,
+    seeders: int = 0,
+    quality_rank: int = 0,
+    size_bytes: int = 0,
+    preferred_size_bytes: Optional[int] = None,
+) -> float:
+    """
+    Скоринг релиза-кандидата для выбора лучшего среди совпавших.
+    Простая взвешенная сумма: совпадение имени + сиды + качество + близость к целевому размеру.
+    """
+    if not match.matched:
+        return -1.0
+
+    name_component = match.score  # 0-100
+    seed_component = min(seeders, 200) / 2  # 0-100, насыщение на 200 сидах
+    quality_component = quality_rank * 10  # предполагается 0-10 ранг качества
+
+    size_component = 0.0
+    if preferred_size_bytes and size_bytes:
+        diff_ratio = abs(size_bytes - preferred_size_bytes) / preferred_size_bytes
+        size_component = max(0.0, 100 - diff_ratio * 100)
+
+    return (
+        name_component * 0.4
+        + seed_component * 0.25
+        + quality_component * 0.2
+        + size_component * 0.15
+    )

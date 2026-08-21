@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  aliasarr:
+    build: .
+    # Или, когда появится готовый образ в registry:
+    # image: your-registry/aliasarr:latest
+    container_name: aliasarr
+    restart: unless-stopped
+    ports:
+      - "8989:8989"
+    environment:
+      - DATABASE_URL=sqlite:////config/aliasarr.db
+      - TZ=Europe/Moscow
+      - PUID=1000
+      - PGID=1000
+      # Опционально: зафиксировать свой API-ключ (тогда кнопка "Новый ключ" в
+      # интерфейсе будет недоступна — ключ управляется только отсюда).
+      # По умолчанию строка ниже закомментирована: ключ генерируется автоматически
+      # при первом запуске и его можно менять прямо в интерфейсе (Настройки → Общие).
+      # - ALIASARR_API_KEY=your-own-random-key-here
+    volumes:
+      # На TrueNAS замените пути на реальные datasets, например:
+      # /mnt/pool/apps/aliasarr/config:/config
+      - ./config:/config
+      - ./data:/data
+      - ./app:/app/app
+      - ./web:/app/web
+      # Папка загрузок должна быть ОБЩЕЙ с qBittorrent/Transmission контейнером,
+      # чтобы Aliasarr мог найти и разложить скачанные файлы
+      - ./downloads:/downloads
+    networks:
+      - arr-network
+
+networks:
+  arr-network:
+    driver: bridge

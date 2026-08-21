@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title data-i18n="qg.page_title">Справочник по качеству и Custom Formats — Aliasarr</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2300F0FF'/%3E%3Cstop offset='1' stop-color='%23FF2A4D'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ctext x='32' y='45' font-family='Arial,Helvetica,sans-serif' font-size='36' font-weight='800' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260816-05">
+<script>
+  (function () {
+    try {
+      var theme = localStorage.getItem("vbeacon_theme") || "dark";
+      document.documentElement.setAttribute("data-theme", theme);
+    } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    --guide-max-width: 1400px;
+  }
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    overflow-x: hidden;
+  }
+  .guide-header {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    background: var(--panel);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .guide-header-inner {
+    max-width: var(--guide-max-width);
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+  .guide-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+  .guide-header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .guide-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .guide-search {
+    position: relative;
+    width: 320px;
+    display: flex;
+    align-items: center;
+  }
+  .guide-search input {
+    width: 100%;
+    height: 38px;
+    box-sizing: border-box;
+    padding: 0 14px 0 36px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13.5px;
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    outline: none;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .guide-search input:focus {
+    border-color: var(--teal, #00F0FF);
+  }
+  .guide-search .search-icon-wrap {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+  .guide-btn-action {
+    height: 38px;
+    box-sizing: border-box;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    background: var(--panel-alt, rgba(255,255,255,0.06));
+    border: 1px solid var(--border);
+    color: var(--text);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .guide-btn-action:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+  .guide-theme-btn, .guide-lang-btn {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 10px;
+    flex-shrink: 0;
+  }
+  .guide-mobile-toc-toggle {
+    display: none;
+  }
+  .guide-layout {
+    display: flex;
+    max-width: var(--guide-max-width);
+    margin: 0 auto;
+    padding: 24px 20px 80px 20px;
+    gap: 28px;
+  }
+  .guide-sidebar {
+    width: 290px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 76px;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius, 12px);
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .guide-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+  .guide-sidebar-arrow {
+    display: none;
+    transition: transform 0.2s ease;
+  }
+  .guide-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .guide-nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .guide-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s ease;
+  }
+  .guide-nav-link i, .guide-nav-link svg, .guide-nav-link span.ico-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .guide-nav-link:hover, .guide-nav-link.active {
+    color: var(--text);
+    background: var(--panel-alt, rgba(255,255,255,0.06));
+  }
+  .guide-nav-link.active {
+    color: var(--teal, #00F0FF);
+    font-weight: 600;
+  }
+  .guide-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius, 12px);
+    padding: 24px;
+    margin-bottom: 24px;
+    scroll-margin-top: 86px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+    box-sizing: border-box;
+  }
+  .guide-card h2 {
+    margin: 0 0 16px 0;
+    font-size: 20px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+  }
+  .guide-card h3 {
+    margin: 20px 0 8px 0;
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+  }
+  .regex-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 10px 0 16px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 13px;
+    box-sizing: border-box;
+  }
+  .regex-code {
+    color: var(--teal, #00F0FF);
+    word-break: break-all;
+    user-select: all;
+    line-height: 1.45;
+  }
+  .btn-copy {
+    background: var(--panel-alt, rgba(255,255,255,0.06));
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    flex-shrink: 0;
+  }
+  .btn-copy:hover {
+    color: var(--text);
+    background: var(--border);
+  }
+  .btn-copy.copied {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border-color: #10b981;
+  }
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 14px 0;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .example-table {
+    width: 100%;
+    min-width: 520px;
+    border-collapse: collapse;
+    margin: 0;
+    font-size: 13px;
+  }
+  .example-table th, .example-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .example-table tr:last-child td {
+    border-bottom: none;
+  }
+  .example-table th {
+    background: var(--panel-alt, rgba(255,255,255,0.03));
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .badge-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-score-pos {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+  }
+  .badge-score-neg {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+  .badge-builtin {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--teal, #00F0FF);
+  }
+  .icon-title {
+    color: var(--teal, #00F0FF);
+    display: inline-flex;
+    align-items: center;
+  }
+  .icon-danger {
+    color: var(--danger, #FF2A4D);
+    display: inline-flex;
+    align-items: center;
+  }
+  .guide-back-to-top {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--teal, #00F0FF);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 99;
+    transition: all 0.2s ease;
+  }
+  .guide-back-to-top:hover {
+    transform: translateY(-2px);
+    border-color: var(--teal, #00F0FF);
+    background: var(--panel-alt);
+  }
+  .guide-back-to-top.visible {
+    display: flex;
+  }
+
+  @media (max-width: 900px) {
+    .guide-header {
+      padding: 10px 14px;
+    }
+    .guide-header-inner {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .guide-header-left {
+      justify-content: space-between;
+      width: 100%;
+    }
+    .guide-header-right {
+      width: 100%;
+      display: flex;
+      gap: 8px;
+    }
+    .guide-search {
+      flex: 1;
+      width: auto;
+    }
+    .guide-mobile-toc-toggle {
+      display: inline-flex;
+    }
+    .guide-layout {
+      flex-direction: column;
+      padding: 14px 12px 80px 12px;
+      gap: 14px;
+    }
+    .guide-sidebar {
+      width: 100%;
+      box-sizing: border-box;
+      position: static;
+      max-height: none;
+      top: 0;
+      padding: 12px 14px;
+      margin-bottom: 2px;
+      cursor: pointer;
+    }
+    .guide-sidebar-header {
+      display: flex;
+    }
+    .guide-sidebar-arrow {
+      display: inline-flex;
+    }
+    .guide-sidebar.collapsed .guide-nav-list {
+      display: none;
+    }
+    .guide-sidebar.collapsed .guide-sidebar-arrow {
+      transform: rotate(-90deg);
+    }
+    .guide-card {
+      padding: 16px 14px;
+      margin-bottom: 16px;
+      border-radius: 10px;
+      scroll-margin-top: 140px;
+    }
+    .guide-card h2 {
+      font-size: 17px;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .guide-card h3 {
+      font-size: 14px;
+      margin: 14px 0 6px 0;
+    }
+    .regex-box {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      padding: 10px;
+    }
+    .regex-code {
+      font-size: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    .btn-copy {
+      width: 100%;
+      justify-content: center;
+      height: 34px;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .guide-header-title-extra {
+      display: none;
+    }
+    .guide-btn-action .guide-btn-text {
+      display: none;
+    }
+    .guide-btn-action {
+      padding: 0 10px;
+    }
+    .example-table {
+      font-size: 12px;
+    }
+    .example-table th, .example-table td {
+      padding: 8px 10px;
+    }
+    .guide-back-to-top {
+      bottom: 16px;
+      right: 16px;
+      width: 38px;
+      height: 38px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="guide-header">
+  <div class="guide-header-inner">
+    <div class="guide-header-left">
+      <a href="/" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
+        <div class="brand-mark brand-mark-logo" style="width:32px; height:32px; font-size:17px; border-radius:8px;">A</div>
+        <span class="brand-name" style="font-size:19px; font-weight:700;">Aliasarr</span>
+      </a>
+      <div style="height:20px; width:1px; background:var(--border);"></div>
+      <span class="guide-header-title">
+        <span data-i18n="qg.header_title">Справочник по качеству</span> <span class="guide-header-title-extra" data-i18n="qg.header_title_extra">и Custom Formats</span>
+      </span>
+    </div>
+    <div class="guide-header-right">
+      <div class="guide-search">
+        <span class="search-icon-wrap"><i data-lucide="search" class="ico-xs"></i></span>
+        <input type="text" id="guide-search-input" placeholder="Поиск (LostFilm, 4K, HDR)..." data-i18n-placeholder="qg.search_placeholder" oninput="filterGuide(this.value)">
+      </div>
+      <button class="guide-btn-action guide-mobile-toc-toggle" onclick="toggleSidebarToc()" title="Содержание" data-i18n-title="qg.sections_btn">
+        <i data-lucide="list" class="ico-xs"></i> <span class="guide-btn-text" data-i18n="qg.sections_btn">Разделы</span>
+      </button>
+      <button class="guide-btn-action guide-lang-btn" id="guide-lang-toggle" onclick="toggleGuideLang()" title="Switch Language / Сменить язык">
+        <i data-lucide="languages" class="ico-xs"></i> <span id="guide-lang-label">RU</span>
+      </button>
+      <button class="guide-btn-action guide-theme-btn" id="guide-theme-toggle" onclick="toggleGuideTheme()" title="Переключить тему">
+        <i data-lucide="moon" class="ico-xs"></i>
+      </button>
+      <a href="/" class="guide-btn-action" title="Вернуться в Aliasarr" data-i18n-title="qg.back_to_app">
+        <i data-lucide="arrow-left" class="ico-xs"></i> <span class="guide-btn-text" data-i18n="qg.back_to_app">В приложение</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<div class="guide-layout">
+  <!-- SIDEBAR NAVIGATION (COLLAPSIBLE ON MOBILE) -->
+  <aside class="guide-sidebar collapsed" id="guide-sidebar" onclick="onSidebarClick(event)">
+    <div class="guide-sidebar-header">
+      <span data-i18n="qg.toc_title">📑 Содержание справочника</span>
+      <i data-lucide="chevron-down" class="ico-xs guide-sidebar-arrow"></i>
+    </div>
+    <ul class="guide-nav-list" id="guide-toc">
+      <li><a href="#overview" class="guide-nav-link" onclick="closeSidebarMobile()"><i data-lucide="compass" class="ico-xs icon-title"></i> <span data-i18n="qg.toc_1">1. Концепция качества</span></a></li>
+      <li><a href="#scoring" class="guide-nav-link" onclick="closeSidebarMobile()"><i data-lucide="award" class="ico-xs icon-title"></i> <span data-i18n="qg.toc_2">2. Скоринг и Апгрейд</span></a></li>
+      <li><a href="#builtin-formats" class="guide-nav-link" onclick="closeSidebarMobile()"><i data-lucide="shield-check" class="ico-xs icon-title"></i> <span data-i18n="qg.toc_3">3. Штатные форматы</span></a></li>
+      <li><a href="#regex-syntax" class="guide-nav-link" onclick="closeSidebarMobile()"><i data-lucide="code-2" class="ico-xs icon-title"></i> <span data-i18n="qg.toc_4">4. Синтаксис Regex</span></a></li>
+      <li><a href="#voiceovers" class="guide-nav-link" onclick="closeSidebarMobile()"><i data-lucide="mic" class="ico-xs icon-title"></i> <span data-i18n="qg.toc_5">5. Озвучки и Студии</span></a></li>
+      <li><a href="#video-hdr" class="guide-nav-link" onclick="closeSidebarMobile()"><i data-lucide="clapperboard" class="ico-xs icon-title"></i> <span data-i18n="qg.toc_6">6. Кодеки, HDR, IMAX</span></a></li>
+      <li><a href="#audio-codecs" class="guide-nav-link" onclick="closeSidebarMobile()"><i data-lucide="speaker" class="ico-xs icon-title"></i> <span data-i18n="qg.toc_7">7. Аудио (Atmos, 5.1)</span></a></li>
+      <li><a href="#editions" class="guide-nav-link" onclick="closeSidebarMobile()"><i data-lucide="layers" class="ico-xs icon-title"></i> <span data-i18n="qg.toc_8">8. Remux, Proper, Repack</span></a></li>
+      <li><a href="#negative-filters" class="guide-nav-link" onclick="closeSidebarMobile()"><i data-lucide="shield-x" class="ico-xs icon-danger"></i> <span data-i18n="qg.toc_9">9. Фильтрация мусора</span></a></li>
+      <li><a href="#profiles-examples" class="guide-nav-link" onclick="closeSidebarMobile()"><i data-lucide="sliders" class="ico-xs icon-title"></i> <span data-i18n="qg.toc_10">10. Готовые профили</span></a></li>
+    </ul>
+  </aside>
+
+  <!-- MAIN GUIDE CONTENT -->
+  <main class="guide-content" id="guide-main">
+    
+    <!-- 1. OVERVIEW -->
+    <section class="guide-card" id="overview">
+      <h2><i data-lucide="compass" class="icon-title"></i> <span data-i18n="qg.s1_title">1. Как Aliasarr выбирает лучшее качество</span></h2>
+      <p data-i18n="qg.s1_intro">В <strong>Aliasarr</strong> система выбора релизов построена на двухуровневой модели:</p>
+      <ol style="padding-left: 20px; margin: 8px 0;">
+        <li data-i18n="qg.s1_li1"><strong>Профиль качества (Quality Profile)</strong> — задаёт список разрешённых качеств и источников (например: <code>1080p</code>, <code>2160p</code>, <code>Remux-1080p</code>) в порядке возрастания приоритета.</li>
+        <li data-i18n="qg.s1_li2"><strong>Кастомные форматы (Custom Formats)</strong> — начисляют релизу дополнительные <strong>очки (Score)</strong> за конкретные свойства: нужная студия озвучки (LostFilm, HDRezka, Дубляж), формат HDR/Dolby Vision, многоканальный звук Dolby Atmos или видеокодек HEVC/AV1.</li>
+      </ol>
+      <div class="hint-box" style="background:rgba(0, 240, 255, 0.05); border-color:var(--teal, #00F0FF); margin-top:16px;">
+        <i data-lucide="info" class="ico-sm icon-title" style="vertical-align:middle; margin-right:4px;"></i>
+        <strong data-i18n="qg.s1_formula_title">Формула выбора релиза:</strong> <span data-i18n="qg.s1_formula_text">Из всех найденных раздач Aliasarr сначала оставляет только те, чьё качество разрешено в профиле. Затем раздачи сортируются: <code>Сумма очков Custom Formats &gt; Ранг качества &gt; Количество сидов</code>.</span>
+      </div>
+    </section>
+
+    <!-- 2. SCORING & UPGRADES -->
+    <section class="guide-card" id="scoring">
+      <h2><i data-lucide="award" class="icon-title"></i> <span data-i18n="qg.s2_title">2. Скоринг, Cutoff (Порог) и Авто-апгрейд</span></h2>
+      <p data-i18n="qg.s2_intro">В настройках каждого профиля качества задаются ключевые правила автоматизации:</p>
+      <div class="table-responsive">
+        <table class="example-table">
+          <thead>
+            <tr>
+              <th style="width:200px;" data-i18n="qg.s2_th_param">Параметр</th>
+              <th data-i18n="qg.s2_th_desc">Назначение и принцип работы</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong data-i18n="qg.s2_cutoff_q_label">Cutoff Quality</strong><br><span class="hint" data-i18n="qg.s2_cutoff_q_hint">Порог качества</span></td>
+              <td data-i18n="qg.s2_cutoff_q_desc">Минимальное базовое качество (например, <code>Bluray-1080p</code>), после достижения которого Aliasarr перестаёт искать более качественные релизы. Если качество скачанного файла ниже порога — система продолжит отслеживать раздачи.</td>
+            </tr>
+            <tr>
+              <td><strong data-i18n="qg.s2_cutoff_s_label">Cutoff Score</strong><br><span class="hint" data-i18n="qg.s2_cutoff_s_hint">Порог очков</span></td>
+              <td data-i18n="qg.s2_cutoff_s_desc">Минимальная сумма очков кастомных форматов (например, <code>100</code>), при которой релиз считается полностью удовлетворительным.</td>
+            </tr>
+            <tr>
+              <td><strong data-i18n="qg.s2_upgrade_label">Upgrade Allowed</strong><br><span class="hint" data-i18n="qg.s2_upgrade_hint">Разрешить апгрейд</span></td>
+              <td data-i18n="qg.s2_upgrade_desc">Если включено — Aliasarr автоматически скачает более качественную версию при её появлении (например, заменит WEBRip на BDRip или озвучку ColdFilm на LostFilm/Дубляж). Если выключено — останется первый скачанный релиз.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 3. BUILTIN FORMATS -->
+    <section class="guide-card" id="builtin-formats">
+      <div id="custom-formats" style="scroll-margin-top:86px;"></div>
+      <h2><i data-lucide="shield-check" class="icon-title"></i> <span data-i18n="qg.s3_title">3. Штатные кастомные форматы</span></h2>
+      <p data-i18n="qg.s3_intro">В Aliasarr предустановлены <strong>17 штатных (системных) кастомных форматов</strong>. Они обеспечивают точную градацию релизов по разрешению и источнику:</p>
+      
+      <div class="hint-box" style="margin-bottom:16px;">
+        <strong data-i18n="qg.s3_protection_title">Защита и сброс штатных форматов:</strong>
+        <p style="margin:4px 0 0 0;" data-i18n="qg.s3_protection_text">Штатные форматы <strong>нельзя случайно удалить</strong>. Вы можете свободно менять их Score (очки), включать/выключать добавление в имя файла или модифицировать Regex. Если потребуется вернуть исходные настройки — нажмите кнопку <strong>«Изменить»</strong> на нужном формате и воспользуйтесь кнопкой <strong>«Сбросить до заводских настроек»</strong>.</p>
+      </div>
+
+      <div class="table-responsive">
+        <table class="example-table">
+          <thead>
+            <tr>
+              <th data-i18n="qg.s3_th_format">Формат</th>
+              <th data-i18n="qg.s3_th_score">Очки (Score)</th>
+              <th data-i18n="qg.s3_th_regex">Регулярное выражение (Regex)</th>
+              <th data-i18n="qg.s3_th_status">Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Remux-2160p</strong></td><td><span class="badge-tag badge-score-pos">+110</span></td><td><code>\b(remux.*2160p|2160p.*remux|uhd.*remux)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>Bluray-2160p</strong></td><td><span class="badge-tag badge-score-pos">+100</span></td><td><code>\b(bluray.*2160p|2160p.*bluray|uhd.*bluray)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBDL-2160p</strong></td><td><span class="badge-tag badge-score-pos">+95</span></td><td><code>\b(web[-_. ]?dl.*2160p|2160p.*web[-_. ]?dl)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBRip-2160p</strong></td><td><span class="badge-tag badge-score-pos">+90</span></td><td><code>\b(webrip.*2160p|2160p.*webrip)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>HDTV-2160p</strong></td><td><span class="badge-tag badge-score-pos">+85</span></td><td><code>\b(hdtv.*2160p|2160p.*hdtv)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>Remux-1080p</strong></td><td><span class="badge-tag badge-score-pos">+80</span></td><td><code>\b(remux.*1080p|1080p.*remux|bdremux.*1080p)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>Bluray-1080p</strong></td><td><span class="badge-tag badge-score-pos">+70</span></td><td><code>\b(bluray.*1080p|1080p.*bluray|bdrip.*1080p)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBDL-1080p</strong></td><td><span class="badge-tag badge-score-pos">+60</span></td><td><code>\b(web[-_. ]?dl.*1080p|1080p.*web[-_. ]?dl)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBRip-1080p</strong></td><td><span class="badge-tag badge-score-pos">+55</span></td><td><code>\b(webrip.*1080p|1080p.*webrip)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>HDTV-1080p</strong></td><td><span class="badge-tag badge-score-pos">+50</span></td><td><code>\b(hdtv.*1080p|1080p.*hdtv)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>Bluray-720p</strong></td><td><span class="badge-tag badge-score-pos">+45</span></td><td><code>\b(bluray.*720p|720p.*bluray|bdrip.*720p)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBDL-720p</strong></td><td><span class="badge-tag badge-score-pos">+40</span></td><td><code>\b(web[-_. ]?dl.*720p|720p.*web[-_. ]?dl)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBRip-720p</strong></td><td><span class="badge-tag badge-score-pos">+35</span></td><td><code>\b(webrip.*720p|720p.*webrip)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>HDTV-720p</strong></td><td><span class="badge-tag badge-score-pos">+30</span></td><td><code>\b(hdtv.*720p|720p.*hdtv)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>DVDRip</strong></td><td><span class="badge-tag badge-score-pos">+20</span></td><td><code>\b(dvdrip|dvd-rip)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>DVD</strong></td><td><span class="badge-tag badge-score-pos">+15</span></td><td><code>\b(dvd|dvd9|dvd5|ntsc|pal)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>SDTV</strong></td><td><span class="badge-tag badge-score-pos">+10</span></td><td><code>\b(sdtv|tvrip|pdtv|dsr|480p|576p)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. REGEX SYNTAX -->
+    <section class="guide-card" id="regex-syntax">
+      <h2><i data-lucide="code-2" class="icon-title"></i> <span data-i18n="qg.s4_title">4. Синтаксис Release Title Regex в Aliasarr</span></h2>
+      <p data-i18n="qg.s4_intro">Кастомные форматы используют регулярные выражения (Python <code>re.search</code> с флагом <code>re.IGNORECASE</code>). Регистр букв (большие или маленькие) не имеет значения.</p>
+      
+      <h3 data-i18n="qg.s4_chars_title">Основные спецсимволы:</h3>
+      <div class="table-responsive">
+        <table class="example-table">
+          <thead>
+            <tr>
+              <th style="width:140px;" data-i18n="qg.s4_th_symbol">Символ</th>
+              <th data-i18n="qg.s4_th_desc">Описание</th>
+              <th data-i18n="qg.s4_th_example">Пример</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>\b</code></td>
+              <td data-i18n="qg.s4_b_desc">Граница слова. Предотвращает ложные совпадения внутри других слов.</td>
+              <td data-i18n="qg.s4_b_ex"><code>\bhd\b</code> найдёт &laquo;HD&raquo;, но не &laquo;HDRezka&raquo; или &laquo;Shadow&raquo;.</td>
+            </tr>
+            <tr>
+              <td><code>|</code></td>
+              <td data-i18n="qg.s4_or_desc">Логическое <strong>ИЛИ</strong>. Позволяет перечислять альтернативы.</td>
+              <td><code>(lostfilm|лостфильм)</code></td>
+            </tr>
+            <tr>
+              <td><code>(?:...)</code> / <code>(...)</code></td>
+              <td data-i18n="qg.s4_group_desc">Группировка условий.</td>
+              <td><code>\b(dovi|dolby[-._ ]?vision)\b</code></td>
+            </tr>
+            <tr>
+              <td><code>[-._ ]?</code></td>
+              <td data-i18n="qg.s4_sep_desc">Опциональный разделитель (тире, точка, подчеркивание или пробел).</td>
+              <td data-i18n="qg.s4_sep_ex">Совпадёт с &laquo;HDR-10&raquo;, &laquo;HDR.10&raquo;, &laquo;HDR_10&raquo; и &laquo;HDR 10&raquo;.</td>
+            </tr>
+            <tr>
+              <td><code>\+</code>, <code>\.</code></td>
+              <td data-i18n="qg.s4_esc_desc">Экранирование спецсимволов. Перед служебными символами ставится обратный слэш.</td>
+              <td data-i18n="qg.s4_esc_ex"><code>\bhdr10\+\b</code> найдёт &laquo;HDR10+&raquo;.</td>
+            </tr>
+            <tr>
+              <td><code>.*</code></td>
+              <td data-i18n="qg.s4_dotstar_desc">Любые символы между словами (в любом количестве).</td>
+              <td><code>\b(remux.*2160p)\b</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 5. VOICEOVERS CATALOG -->
+    <section class="guide-card" id="voiceovers">
+      <h2><i data-lucide="mic" class="icon-title"></i> <span data-i18n="qg.s5_title">5. Каталог готовых Regex: Озвучки и Студии перевода</span></h2>
+      <p data-i18n="qg.s5_intro">Скопируйте нужный шаблон и создайте новый кастомный формат (например, с очками <code>+200</code>), чтобы Aliasarr отдавал предпочтение вашей любимой озвучке.</p>
+
+      <div class="template-item">
+        <h3><i data-lucide="volume-2" class="ico-xs icon-title"></i> <span data-i18n="qg.v_dub_title">Полный дубляж / Лицензия / iTunes (Dubbing)</span></h3>
+        <p class="hint" data-i18n="qg.v_dub_hint">Профессиональный полный дубляж фильма или сериала.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(дублир|дубляж|itunes|dbe|звук\s*d\b|line\s*d\b)</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="film" class="ico-xs icon-title"></i> <span data-i18n="qg.v_lostfilm_title">LostFilm (Лостфильм)</span></h3>
+        <p class="hint" data-i18n="qg.v_lostfilm_hint">Популярная студийная многоголосая озвучка для зарубежных сериалов.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(lostfilm|лостфильм)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="video" class="ico-xs icon-title"></i> <span data-i18n="qg.v_hdrezka_title">HDRezka / Резка (Rezka Studio)</span></h3>
+        <p class="hint" data-i18n="qg.v_hdrezka_hint">Студийные переводы и эксклюзивные озвучки от HDRezka Studio.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(hdrezka|rezka|хдрезка|резка)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="box" class="ico-xs icon-title"></i> <span data-i18n="qg.v_kubik_title">Кубик в Кубе (Kubik v Kube)</span></h3>
+        <p class="hint" data-i18n="qg.v_kubik_hint">Харизматичная авторская озвучка с фирменным стилем.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(kubik|кубик\s*в\s*кубе)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="headphones" class="ico-xs icon-title"></i> <span data-i18n="qg.v_rhs_title">Red Head Sound (RHS)</span></h3>
+        <p class="hint" data-i18n="qg.v_rhs_hint">Дубляж с оригинальными официальными голосами актеров.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(red\s*head\s*sound|rhs|ред\s*хед\s*саунд)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="sparkles" class="ico-xs icon-title"></i> <span data-i18n="qg.v_pifagor_title">Пифагор / Мосфильм / Невафильм</span></h3>
+        <p class="hint" data-i18n="qg.v_pifagor_hint">Классический театральный дубляж кинопроката.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(пифагор|мосфильм|невафильм|кириллица)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="tv" class="ico-xs icon-title"></i> <span data-i18n="qg.v_newstudio_title">NewStudio / AlexFilm / TVShows</span></h3>
+        <p class="hint" data-i18n="qg.v_newstudio_hint">Качественные многоголосые релизы сериалов.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(newstudio|alexfilm|tvshows|jaskier|ньюстудио|алексфильм)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="flame" class="ico-xs icon-title"></i> <span data-i18n="qg.v_anime_title">Аниме: AniLibria / AniDUB / Studio Band</span></h3>
+        <p class="hint" data-i18n="qg.v_anime_hint">Лучшие студии озвучки для аниме-тайтлов.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(anilibria|anidub|studio\s*band|aniplay|shiza\s*project|анилибрия|анидаб)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="globe" class="ico-xs icon-title"></i> <span data-i18n="qg.v_orig_title">Оригинальный звук (Original Audio / English)</span></h3>
+        <p class="hint" data-i18n="qg.v_orig_hint">Наличие оригинальной дорожки или мульти-аудио релиза.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(original\s*audio|eng\s*audio|en\+ru|multi|dual\s*audio)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. VIDEO & HDR -->
+    <section class="guide-card" id="video-hdr">
+      <h2><i data-lucide="clapperboard" class="icon-title"></i> <span data-i18n="qg.s6_title">6. Каталог Regex: Видеокодеки, HDR, Dolby Vision и IMAX</span></h2>
+
+      <div class="template-item">
+        <h3><i data-lucide="sun-medium" class="ico-xs icon-title"></i> <span data-i18n="qg.hdr_dv_title">Dolby Vision (DV / DoVi)</span></h3>
+        <p class="hint" data-i18n="qg.hdr_dv_hint">Премиальный динамический HDR-формат.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(dv|dovi|dolby[-._ ]?vision)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="sparkle" class="ico-xs icon-title"></i> <span data-i18n="qg.hdr_hdr10_title">HDR10+ / HDR10</span></h3>
+        <p class="hint" data-i18n="qg.hdr_hdr10_hint">Расширенный динамический диапазон HDR10 / HDR10 Plus.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(hdr10\+|hdr10plus|hdr10|hdr)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="maximize-2" class="ico-xs icon-title"></i> <span data-i18n="qg.hdr_imax_title">IMAX Enhanced / Open Matte</span></h3>
+        <p class="hint" data-i18n="qg.hdr_imax_hint">Расширенное соотношение сторон без черных полос сверху и снизу.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(imax|imax[-._ ]?enhanced|open[-._ ]?matte)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="cpu" class="ico-xs icon-title"></i> <span data-i18n="qg.hdr_hevc_title">HEVC / x265 (H.265)</span></h3>
+        <p class="hint" data-i18n="qg.hdr_hevc_hint">Современный высокоэффективный видеокодек.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(x265|hevc|h265|h[-._ ]?265)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="zap" class="ico-xs icon-title"></i> <span data-i18n="qg.hdr_av1_title">AV1 Кодек</span></h3>
+        <p class="hint" data-i18n="qg.hdr_av1_hint">Новейший открытый видеокодек нового поколения.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(av1)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="palette" class="ico-xs icon-title"></i> <span data-i18n="qg.hdr_10bit_title">10-Bit Color (Hi10P)</span></h3>
+        <p class="hint" data-i18n="qg.hdr_10bit_hint">10-битная глубина цвета (отсутствие градиентных полос / бандинга).</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(10[-._ ]?bit|hi10p)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. AUDIO CODECS -->
+    <section class="guide-card" id="audio-codecs">
+      <h2><i data-lucide="speaker" class="icon-title"></i> <span data-i18n="qg.s7_title">7. Каталог Regex: Аудиоформаты и Многоканальный звук</span></h2>
+
+      <div class="template-item">
+        <h3><i data-lucide="radio" class="ico-xs icon-title"></i> <span data-i18n="qg.aud_atmos_title">Dolby Atmos</span></h3>
+        <p class="hint" data-i18n="qg.aud_atmos_hint">Пространственный объектный звук Dolby Atmos (TrueHD Atmos или DDP Atmos).</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(atmos|ddp[._ -]?atmos|truehd[._ -]?atmos)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="disc" class="ico-xs icon-title"></i> <span data-i18n="qg.aud_lossless_title">TrueHD / DTS-HD Master Audio (Lossless)</span></h3>
+        <p class="hint" data-i18n="qg.aud_lossless_hint">Несжатый высококачественный студийный звук без потерь.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(truehd|dts[-._ ]?hd(?:[-._ ]?ma)?|flac|lossless)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="volume-2" class="ico-xs icon-title"></i> <span data-i18n="qg.aud_surround_title">5.1 / 7.1 Surround Sound</span></h3>
+        <p class="hint" data-i18n="qg.aud_surround_hint">Многоканальные аудиодорожки 6ch / 8ch.</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(5[._ -]1|7[._ -]1|6ch|8ch|ddp?5[._ -]1)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. EDITIONS -->
+    <section class="guide-card" id="editions">
+      <h2><i data-lucide="layers" class="icon-title"></i> <span data-i18n="qg.s8_title">8. Издания: Remux, Hybrid, Proper, Repack</span></h2>
+
+      <div class="template-item">
+        <h3><i data-lucide="git-merge" class="ico-xs icon-title"></i> <span data-i18n="qg.ed_hybrid_title">Hybrid (Гибридный релиз)</span></h3>
+        <p class="hint" data-i18n="qg.ed_hybrid_hint">Релиз, собранный из лучших компонентов (например, видеоряд 4K BDRip + оригинальная HDR дорожка + дубляж с iTunes).</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(hybrid)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="rotate-ccw" class="ico-xs icon-title"></i> <span data-i18n="qg.ed_proper_title">Proper / Repack / Rerip</span></h3>
+        <p class="hint" data-i18n="qg.ed_proper_hint">Исправленная версия релиза от релиз-группы (устранены рассинхрон звука, битые кадры или ошибки склейки).</p>
+        <div class="regex-box">
+          <span class="regex-code">\b(proper|repack|rerip)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. NEGATIVE FILTERS -->
+    <section class="guide-card" id="negative-filters">
+      <h2><i data-lucide="shield-x" class="icon-danger"></i> <span data-i18n="qg.s9_title">9. Фильтрация мусора (Отрицательный скоринг)</span></h2>
+      <p data-i18n="qg.s9_intro">Вы можете отсекать некачественные релизы, задав кастомному формату <strong>отрицательные очки</strong> (например, <code>-10000</code>). Релизы с отрицательным итоговым баллом не будут захватываться автоматически.</p>
+
+      <div class="template-item">
+        <h3><i data-lucide="ban" class="ico-xs icon-danger"></i> <span data-i18n="qg.neg_casino_title">Казино и Реклама (1xBet, JoyCasino, Advert)</span></h3>
+        <p class="hint" data-i18n="qg.neg_casino_hint">Релизы с навязчивой аудио/видео-рекламой ставок и букмекеров. Задайте Score: <span class="badge-tag badge-score-neg">-10000</span></p>
+        <div class="regex-box">
+          <span class="regex-code">\b(1xbet|joycasino|advert|casino|vavada|melbet|mostbet)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="video-off" class="ico-xs icon-danger"></i> <span data-i18n="qg.neg_cam_title">Экранки и ранние записи (CAMRip / Telesync / TS)</span></h3>
+        <p class="hint" data-i18n="qg.neg_cam_hint">Записи с кинотеатра на камеру. Задайте Score: <span class="badge-tag badge-score-neg">-10000</span></p>
+        <div class="regex-box">
+          <span class="regex-code">\b(camrip|hdcam|telesync|ts|telecine|tc|dvdscr|screener)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+
+      <div class="template-item">
+        <h3><i data-lucide="subtitles" class="ico-xs icon-danger"></i> <span data-i18n="qg.neg_hardsub_title">Вшитые субтитры (Hardcoded Subtitles / Korsub)</span></h3>
+        <p class="hint" data-i18n="qg.neg_hardsub_hint">Неотключаемые китайские или корейские субтитры поверх изображения. Задайте Score: <span class="badge-tag badge-score-neg">-1000</span></p>
+        <div class="regex-box">
+          <span class="regex-code">\b(hardsub|hc|korsub|chsub)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="qg.btn_copy">Скопировать</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. PROFILES EXAMPLES -->
+    <section class="guide-card" id="profiles-examples">
+      <h2><i data-lucide="sliders" class="icon-title"></i> <span data-i18n="qg.s10_title">10. Примеры настройки профилей под разные задачи</span></h2>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-top:16px;">
+        <div class="hint-box" style="background:var(--panel-alt, rgba(255,255,255,0.02));">
+          <h3 style="margin-top:0;"><i data-lucide="crown" class="ico-xs icon-title"></i> <span data-i18n="qg.ex1_title">4K Кинотеатр (Max Quality)</span></h3>
+          <ul style="padding-left:18px; margin-bottom:0; font-size:13px;">
+            <li><strong data-i18n="qg.ex1_q">Качества:</strong> <span>WEBDL-2160p, Bluray-2160p, Remux-2160p</span></li>
+            <li><strong data-i18n="qg.s2_cutoff_q_label">Cutoff Quality:</strong> <span>Bluray-2160p</span></li>
+            <li><strong data-i18n="qg.ex1_bonus">Форматы с бонусом:</strong> <span data-i18n="qg.ex1_bonus_val">Dolby Vision (+150), Atmos (+100), Дубляж (+200)</span></li>
+            <li><strong data-i18n="qg.ex1_penalties">Штрафы:</strong> <span data-i18n="qg.ex1_penalties_val">Казино (-10000), CAMRip (-10000)</span></li>
+          </ul>
+        </div>
+
+        <div class="hint-box" style="background:var(--panel-alt, rgba(255,255,255,0.02));">
+          <h3 style="margin-top:0;"><i data-lucide="tv-2" class="ico-xs icon-title"></i> <span data-i18n="qg.ex2_title">Сериалы (LostFilm / Резка)</span></h3>
+          <ul style="padding-left:18px; margin-bottom:0; font-size:13px;">
+            <li><strong data-i18n="qg.ex1_q">Качества:</strong> <span>WEBDL-1080p, Bluray-1080p</span></li>
+            <li><strong data-i18n="qg.s2_cutoff_q_label">Cutoff Quality:</strong> <span>WEBDL-1080p</span></li>
+            <li><strong data-i18n="qg.ex1_bonus">Форматы с бонусом:</strong> <span data-i18n="qg.ex2_bonus_val">LostFilm (+250), HDRezka (+200), NewStudio (+150)</span></li>
+            <li><strong data-i18n="qg.ex1_penalties">Штрафы:</strong> <span data-i18n="qg.ex2_penalties_val">Казино (-10000), Hardsub (-1000)</span></li>
+          </ul>
+        </div>
+
+        <div class="hint-box" style="background:var(--panel-alt, rgba(255,255,255,0.02));">
+          <h3 style="margin-top:0;"><i data-lucide="sparkles" class="ico-xs icon-title"></i> <span data-i18n="qg.ex3_title">Аниме (AniLibria + 10-bit)</span></h3>
+          <ul style="padding-left:18px; margin-bottom:0; font-size:13px;">
+            <li><strong data-i18n="qg.ex1_q">Качества:</strong> <span>WEBDL-1080p, Bluray-1080p</span></li>
+            <li><strong data-i18n="qg.s2_cutoff_q_label">Cutoff Quality:</strong> <span>Bluray-1080p</span></li>
+            <li><strong data-i18n="qg.ex1_bonus">Форматы с бонусом:</strong> <span data-i18n="qg.ex3_bonus_val">AniLibria (+200), Studio Band (+200), 10-bit (+100)</span></li>
+            <li><strong data-i18n="qg.ex1_penalties">Штрафы:</strong> <span>CAMRip (-10000)</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- FLOATING BACK TO TOP BUTTON -->
+<button class="guide-back-to-top" id="guide-back-to-top" onclick="window.scrollTo({top:0, behavior:'smooth'})" title="Наверх" data-i18n-title="qg.back_to_top">
+  <i data-lucide="arrow-up" class="ico-sm"></i>
+</button>
+
+<script>
+  // Complete self-contained SVG icons dictionary
+  const SVG_ICONS = {
+    "arrow-left": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>',
+    "arrow-up": '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>',
+    "moon": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
+    "sun": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
+    "wand-2": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>',
+    "languages": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>',
+    "search": '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+    "list": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>',
+    "chevron-down": '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+    "compass": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>',
+    "award": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>',
+    "shield-check": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>',
+    "code-2": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>',
+    "mic": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>',
+    "clapperboard": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 4"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>',
+    "speaker": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><circle cx="12" cy="14" r="4"/><line x1="12" x2="12.01" y1="6" y2="6"/></svg>',
+    "layers": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 12.5-9.17 4.16a2 2 0 0 1-1.66 0L2 12.5"/><path d="m22 17.5-9.17 4.16a2 2 0 0 1-1.66 0L2 17.5"/></svg>',
+    "shield-x": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m14.5 9.5-5 5"/><path d="m9.5 9.5 5 5"/></svg>',
+    "sliders": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="1" x2="7" y1="14" y2="14"/><line x1="9" x2="15" y1="8" y2="8"/><line x1="17" x2="23" y1="16" y2="16"/></svg>',
+    "info": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+    "copy": '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+    "check": '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    "volume-2": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
+    "film": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>',
+    "video": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>',
+    "box": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>',
+    "headphones": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>',
+    "sparkles": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>',
+    "tv": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>',
+    "flame": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+    "globe": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>',
+    "sun-medium": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v1"/><path d="M12 20v1"/><path d="M3 12h1"/><path d="M20 12h1"/><path d="m18.364 5.636-.707.707"/><path d="m6.343 17.657-.707.707"/><path d="m5.636 5.636.707.707"/><path d="m17.657 17.657.707.707"/></svg>',
+    "sparkle": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>',
+    "maximize-2": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>',
+    "cpu": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>',
+    "zap": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+    "palette": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
+    "radio": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>',
+    "disc": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2"/></svg>',
+    "git-merge": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>',
+    "rotate-ccw": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>',
+    "ban": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>',
+    "video-off": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M10.66 6H14a2 2 0 0 1 2 2v2.34l1 1L22 8v8"/><path d="M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2l10 10Z"/></svg>',
+    "subtitles": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="M7 15h4M15 15h2M7 11h2M13 11h4"/></svg>',
+    "crown": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>',
+    "tv-2": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 21h10"/><rect width="20" height="14" x="2" y="3" rx="2"/></svg>'
+  };
+
+  function renderGuideIcons() {
+    document.querySelectorAll("[data-lucide]").forEach(function(el) {
+      var icon = el.getAttribute("data-lucide");
+      if (SVG_ICONS[icon]) {
+        var span = document.createElement("span");
+        span.className = el.className + " ico-wrap";
+        span.style.display = "inline-flex";
+        span.style.alignItems = "center";
+        span.style.justifyContent = "center";
+        span.innerHTML = SVG_ICONS[icon];
+        el.parentNode.replaceChild(span, el);
+      }
+    });
+  }
+
+  const GUIDE_TRANSLATIONS = {
+    ru: {
+    "qg.page_title": "Справочник по качеству и Custom Formats — Aliasarr",
+    "qg.header_title": "Справочник по качеству",
+    "qg.header_title_extra": "и Custom Formats",
+    "qg.search_placeholder": "Поиск (LostFilm, 4K, HDR)...",
+    "qg.sections_btn": "Разделы",
+    "qg.back_to_app": "В приложение",
+    "qg.back_to_top": "Наверх",
+    "qg.toc_title": "📑 Содержание справочника",
+    "qg.toc_1": "1. Концепция качества",
+    "qg.toc_2": "2. Скоринг и Апгрейд",
+    "qg.toc_3": "3. Штатные форматы",
+    "qg.toc_4": "4. Синтаксис Regex",
+    "qg.toc_5": "5. Озвучки и Студии",
+    "qg.toc_6": "6. Кодеки, HDR, IMAX",
+    "qg.toc_7": "7. Аудио (Atmos, 5.1)",
+    "qg.toc_8": "8. Remux, Proper, Repack",
+    "qg.toc_9": "9. Фильтрация мусора",
+    "qg.toc_10": "10. Готовые профили",
+    "qg.s1_title": "1. Как Aliasarr выбирает лучшее качество",
+    "qg.s1_intro": "В <strong>Aliasarr</strong> система выбора релизов построена на двухуровневой модели:",
+    "qg.s1_li1": "<strong>Профиль качества (Quality Profile)</strong> — задаёт список разрешённых качеств и источников (например: <code>1080p</code>, <code>2160p</code>, <code>Remux-1080p</code>) в порядке возрастания приоритета.",
+    "qg.s1_li2": "<strong>Кастомные форматы (Custom Formats)</strong> — начисляют релизу дополнительные <strong>очки (Score)</strong> за конкретные свойства: нужная студия озвучки (LostFilm, HDRezka, Дубляж), формат HDR/Dolby Vision, многоканальный звук Dolby Atmos или видеокодек HEVC/AV1.",
+    "qg.s1_formula_title": "Формула выбора релиза:",
+    "qg.s1_formula_text": "Из всех найденных раздач Aliasarr сначала оставляет только те, чьё качество разрешено в профиле. Затем раздачи сортируются: <code>Сумма очков Custom Formats &gt; Ранг качества &gt; Количество сидов</code>.",
+    "qg.s2_title": "2. Скоринг, Cutoff (Порог) и Авто-апгрейд",
+    "qg.s2_intro": "В настройках каждого профиля качества задаются ключевые правила автоматизации:",
+    "qg.s2_th_param": "Параметр",
+    "qg.s2_th_desc": "Назначение и принцип работы",
+    "qg.s2_cutoff_q_label": "Cutoff Quality",
+    "qg.s2_cutoff_q_hint": "Порог качества",
+    "qg.s2_cutoff_q_desc": "Минимальное базовое качество (например, <code>Bluray-1080p</code>), после достижения которого Aliasarr перестаёт искать более качественные релизы. Если качество скачанного файла ниже порога — система продолжит отслеживать раздачи.",
+    "qg.s2_cutoff_s_label": "Cutoff Score",
+    "qg.s2_cutoff_s_hint": "Порог очков",
+    "qg.s2_cutoff_s_desc": "Минимальная сумма очков кастомных форматов (например, <code>100</code>), при которой релиз считается полностью удовлетворительным.",
+    "qg.s2_upgrade_label": "Upgrade Allowed",
+    "qg.s2_upgrade_hint": "Разрешить апгрейд",
+    "qg.s2_upgrade_desc": "Если включено — Aliasarr автоматически скачает более качественную версию при её появлении (например, заменит WEBRip на BDRip или озвучку ColdFilm на LostFilm/Дубляж). Если выключено — останется первый скачанный релиз.",
+    "qg.s3_title": "3. Штатные кастомные форматы",
+    "qg.s3_intro": "В Aliasarr предустановлены <strong>17 штатных (системных) кастомных форматов</strong>. Они обеспечивают точную градацию релизов по разрешению и источнику:",
+    "qg.s3_protection_title": "Защита и сброс штатных форматов:",
+    "qg.s3_protection_text": "Штатные форматы <strong>нельзя случайно удалить</strong>. Вы можете свободно менять их Score (очки), включать/выключать добавление в имя файла или модифицировать Regex. Если потребуется вернуть исходные настройки — нажмите кнопку <strong>«Изменить»</strong> на нужном формате и воспользуйтесь кнопкой <strong>«Сбросить до заводских настроек»</strong>.",
+    "qg.s3_th_format": "Формат",
+    "qg.s3_th_score": "Очки (Score)",
+    "qg.s3_th_regex": "Регулярное выражение (Regex)",
+    "qg.s3_th_status": "Статус",
+    "qg.badge_builtin": "Штатный",
+    "qg.s4_title": "4. Синтаксис Release Title Regex в Aliasarr",
+    "qg.s4_intro": "Кастомные форматы используют регулярные выражения (Python <code>re.search</code> с флагом <code>re.IGNORECASE</code>). Регистр букв (большие или маленькие) не имеет значения.",
+    "qg.s4_chars_title": "Основные спецсимволы:",
+    "qg.s4_th_symbol": "Символ",
+    "qg.s4_th_desc": "Описание",
+    "qg.s4_th_example": "Пример",
+    "qg.s4_b_desc": "Граница слова. Предотвращает ложные совпадения внутри других слов.",
+    "qg.s4_b_ex": "<code>\\bhd\\b</code> найдёт &laquo;HD&raquo;, но не &laquo;HDRezka&raquo; или &laquo;Shadow&raquo;.",
+    "qg.s4_or_desc": "Логическое <strong>ИЛИ</strong>. Позволяет перечислять альтернативы.",
+    "qg.s4_group_desc": "Группировка условий.",
+    "qg.s4_sep_desc": "Опциональный разделитель (тире, точка, подчеркивание или пробел).",
+    "qg.s4_sep_ex": "Совпадёт с &laquo;HDR-10&raquo;, &laquo;HDR.10&raquo;, &laquo;HDR_10&raquo; и &laquo;HDR 10&raquo;.",
+    "qg.s4_esc_desc": "Экранирование спецсимволов. Перед служебными символами ставится обратный слэш.",
+    "qg.s4_esc_ex": "<code>\\bhdr10\\+\\b</code> найдёт &laquo;HDR10+&raquo;.",
+    "qg.s4_dotstar_desc": "Любые символы между словами (в любом количестве).",
+    "qg.s5_title": "5. Каталог готовых Regex: Озвучки и Студии перевода",
+    "qg.s5_intro": "Скопируйте нужный шаблон и создайте новый кастомный формат (например, с очками <code>+200</code>), чтобы Aliasarr отдавал предпочтение вашей любимой озвучке.",
+    "qg.v_dub_title": "Полный дубляж / Лицензия / iTunes (Dubbing)",
+    "qg.v_dub_hint": "Профессиональный полный дубляж фильма или сериала.",
+    "qg.v_lostfilm_title": "LostFilm (Лостфильм)",
+    "qg.v_lostfilm_hint": "Популярная студийная многоголосая озвучка для зарубежных сериалов.",
+    "qg.v_hdrezka_title": "HDRezka / Резка (Rezka Studio)",
+    "qg.v_hdrezka_hint": "Студийные переводы и эксклюзивные озвучки от HDRezka Studio.",
+    "qg.v_kubik_title": "Кубик в Кубе (Kubik v Kube)",
+    "qg.v_kubik_hint": "Харизматичная авторская озвучка с фирменным стилем.",
+    "qg.v_rhs_title": "Red Head Sound (RHS)",
+    "qg.v_rhs_hint": "Дубляж с оригинальными официальными голосами актеров.",
+    "qg.v_pifagor_title": "Пифагор / Мосфильм / Невафильм",
+    "qg.v_pifagor_hint": "Классический театральный дубляж кинопроката.",
+    "qg.v_newstudio_title": "NewStudio / AlexFilm / TVShows",
+    "qg.v_newstudio_hint": "Качественные многоголосые релизы сериалов.",
+    "qg.v_anime_title": "Аниме: AniLibria / AniDUB / Studio Band",
+    "qg.v_anime_hint": "Лучшие студии озвучки для аниме-тайтлов.",
+    "qg.v_orig_title": "Оригинальный звук (Original Audio / English)",
+    "qg.v_orig_hint": "Наличие оригинальной дорожки или мульти-аудио релиза.",
+    "qg.s6_title": "6. Каталог Regex: Видеокодеки, HDR, Dolby Vision и IMAX",
+    "qg.hdr_dv_title": "Dolby Vision (DV / DoVi)",
+    "qg.hdr_dv_hint": "Премиальный динамический HDR-формат.",
+    "qg.hdr_hdr10_title": "HDR10+ / HDR10",
+    "qg.hdr_hdr10_hint": "Расширенный динамический диапазон HDR10 / HDR10 Plus.",
+    "qg.hdr_imax_title": "IMAX Enhanced / Open Matte",
+    "qg.hdr_imax_hint": "Расширенное соотношение сторон без черных полос сверху и снизу.",
+    "qg.hdr_hevc_title": "HEVC / x265 (H.265)",
+    "qg.hdr_hevc_hint": "Современный высокоэффективный видеокодек.",
+    "qg.hdr_av1_title": "AV1 Кодек",
+    "qg.hdr_av1_hint": "Новейший открытый видеокодек нового поколения.",
+    "qg.hdr_10bit_title": "10-Bit Color (Hi10P)",
+    "qg.hdr_10bit_hint": "10-битная глубина цвета (отсутствие градиентных полос / бандинга).",
+    "qg.s7_title": "7. Каталог Regex: Аудиоформаты и Многоканальный звук",
+    "qg.aud_atmos_title": "Dolby Atmos",
+    "qg.aud_atmos_hint": "Пространственный объектный звук Dolby Atmos (TrueHD Atmos или DDP Atmos).",
+    "qg.aud_lossless_title": "TrueHD / DTS-HD Master Audio (Lossless)",
+    "qg.aud_lossless_hint": "Несжатый высококачественный студийный звук без потерь.",
+    "qg.aud_surround_title": "5.1 / 7.1 Surround Sound",
+    "qg.aud_surround_hint": "Многоканальные аудиодорожки 6ch / 8ch.",
+    "qg.s8_title": "8. Издания: Remux, Hybrid, Proper, Repack",
+    "qg.ed_hybrid_title": "Hybrid (Гибридный релиз)",
+    "qg.ed_hybrid_hint": "Релиз, собранный из лучших компонентов (например, видеоряд 4K BDRip + оригинальная HDR дорожка + дубляж с iTunes).",
+    "qg.ed_proper_title": "Proper / Repack / Rerip",
+    "qg.ed_proper_hint": "Исправленная версия релиза от релиз-группы (устранены рассинхрон звука, битые кадры или ошибки склейки).",
+    "qg.s9_title": "9. Фильтрация мусора (Отрицательный скоринг)",
+    "qg.s9_intro": "Вы можете отсекать некачественные релизы, задав кастомному формату <strong>отрицательные очки</strong> (например, <code>-10000</code>). Релизы с отрицательным итоговым баллом не будут захватываться автоматически.",
+    "qg.neg_casino_title": "Казино и Реклама (1xBet, JoyCasino, Advert)",
+    "qg.neg_casino_hint": "Релизы с навязчивой аудио/видео-рекламой ставок и букмекеров. Задайте Score: <span class=\"badge-tag badge-score-neg\">-10000</span>",
+    "qg.neg_cam_title": "Экранки и ранние записи (CAMRip / Telesync / TS)",
+    "qg.neg_cam_hint": "Записи с кинотеатра на камеру. Задайте Score: <span class=\"badge-tag badge-score-neg\">-10000</span>",
+    "qg.neg_hardsub_title": "Вшитые субтитры (Hardcoded Subtitles / Korsub)",
+    "qg.neg_hardsub_hint": "Неотключаемые китайские или корейские субтитры поверх изображения. Задайте Score: <span class=\"badge-tag badge-score-neg\">-1000</span>",
+    "qg.s10_title": "10. Примеры настройки профилей под разные задачи",
+    "qg.ex1_title": "4K Кинотеатр (Max Quality)",
+    "qg.ex1_q": "Качества:",
+    "qg.ex1_bonus": "Форматы с бонусом:",
+    "qg.ex1_penalties": "Штрафы:",
+    "qg.ex1_bonus_val": "Dolby Vision (+150), Atmos (+100), Дубляж (+200)",
+    "qg.ex1_penalties_val": "Казино (-10000), CAMRip (-10000)",
+    "qg.ex2_title": "Сериалы (LostFilm / Резка)",
+    "qg.ex2_bonus_val": "LostFilm (+250), HDRezka (+200), NewStudio (+150)",
+    "qg.ex2_penalties_val": "Казино (-10000), Hardsub (-1000)",
+    "qg.ex3_title": "Аниме (AniLibria + 10-bit)",
+    "qg.ex3_bonus_val": "AniLibria (+200), Studio Band (+200), 10-bit (+100)",
+    "qg.btn_copy": "Скопировать",
+    "qg.btn_copied": "Скопировано!"
+},
+    en: {
+    "qg.page_title": "Quality Profiles & Custom Formats Reference — Aliasarr",
+    "qg.header_title": "Quality Guide",
+    "qg.header_title_extra": "& Custom Formats",
+    "qg.search_placeholder": "Search (LostFilm, 4K, HDR)...",
+    "qg.sections_btn": "Sections",
+    "qg.back_to_app": "Back to App",
+    "qg.back_to_top": "Back to top",
+    "qg.toc_title": "📑 Table of Contents",
+    "qg.toc_1": "1. Quality Concept",
+    "qg.toc_2": "2. Scoring & Upgrades",
+    "qg.toc_3": "3. Built-in Formats",
+    "qg.toc_4": "4. Regex Syntax",
+    "qg.toc_5": "5. Voiceovers & Studios",
+    "qg.toc_6": "6. Codecs, HDR, IMAX",
+    "qg.toc_7": "7. Audio (Atmos, 5.1)",
+    "qg.toc_8": "8. Remux, Proper, Repack",
+    "qg.toc_9": "9. Junk Filtering",
+    "qg.toc_10": "10. Profile Examples",
+    "qg.s1_title": "1. How Aliasarr Chooses the Best Quality",
+    "qg.s1_intro": "In <strong>Aliasarr</strong>, release selection operates on a two-tier evaluation model:",
+    "qg.s1_li1": "<strong>Quality Profile</strong> — defines the allowed resolutions and source qualities (e.g. <code>1080p</code>, <code>2160p</code>, <code>Remux-1080p</code>) in ascending priority order.",
+    "qg.s1_li2": "<strong>Custom Formats</strong> — award additional <strong>Score points</strong> for specific release traits: preferred translation studio (LostFilm, HDRezka, Dubbing), HDR/Dolby Vision format, Dolby Atmos audio, or HEVC/AV1 codec.",
+    "qg.s1_formula_title": "Release Selection Formula:",
+    "qg.s1_formula_text": "From all search results, Aliasarr first filters out items not matching the profile's allowed qualities. Releases are then sorted by: <code>Custom Formats Total Score &gt; Quality Rank &gt; Seeders Count</code>.",
+    "qg.s2_title": "2. Scoring, Cutoff & Auto-Upgrade",
+    "qg.s2_intro": "Key automation rules configured within each Quality Profile:",
+    "qg.s2_th_param": "Parameter",
+    "qg.s2_th_desc": "Purpose and Behavior",
+    "qg.s2_cutoff_q_label": "Cutoff Quality",
+    "qg.s2_cutoff_q_hint": "Quality Threshold",
+    "qg.s2_cutoff_q_desc": "The target base quality (e.g. <code>Bluray-1080p</code>) upon reaching which Aliasarr stops seeking higher tier releases. If downloaded media is below cutoff, monitoring remains active.",
+    "qg.s2_cutoff_s_label": "Cutoff Score",
+    "qg.s2_cutoff_s_hint": "Score Threshold",
+    "qg.s2_cutoff_s_desc": "The minimum sum of Custom Format score points (e.g. <code>100</code>) at which the release is deemed fully satisfactory.",
+    "qg.s2_upgrade_label": "Upgrade Allowed",
+    "qg.s2_upgrade_hint": "Allow Upgrades",
+    "qg.s2_upgrade_desc": "When enabled, Aliasarr will automatically download superior releases as they appear (e.g. replacing WEBRip with BDRip or upgrading audio tracks). When disabled, the first acquired release is retained.",
+    "qg.s3_title": "3. Built-in Custom Formats",
+    "qg.s3_intro": "Aliasarr comes with <strong>17 pre-configured built-in custom formats</strong> providing precise resolution and source grading:",
+    "qg.s3_protection_title": "Built-in Formats Protection & Reset:",
+    "qg.s3_protection_text": "System formats <strong>cannot be deleted</strong>. You can freely adjust their Score, toggle rename template inclusion, or tweak Regex patterns. To restore defaults, click <strong>«Edit»</strong> and use the <strong>«Reset to factory defaults»</strong> button.",
+    "qg.s3_th_format": "Format",
+    "qg.s3_th_score": "Score",
+    "qg.s3_th_regex": "Regular Expression (Regex)",
+    "qg.s3_th_status": "Status",
+    "qg.badge_builtin": "Built-in",
+    "qg.s4_title": "4. Release Title Regex Syntax in Aliasarr",
+    "qg.s4_intro": "Custom formats match against release names using regular expressions (Python <code>re.search</code> with <code>re.IGNORECASE</code>). Matches are case-insensitive.",
+    "qg.s4_chars_title": "Essential Special Characters:",
+    "qg.s4_th_symbol": "Symbol",
+    "qg.s4_th_desc": "Description",
+    "qg.s4_th_example": "Example",
+    "qg.s4_b_desc": "Word boundary. Prevents accidental substring matching inside other words.",
+    "qg.s4_b_ex": "<code>\\bhd\\b</code> matches &laquo;HD&raquo;, but not &laquo;HDRezka&raquo; or &laquo;Shadow&raquo;.",
+    "qg.s4_or_desc": "Logical <strong>OR</strong>. Allows matching any of the listed alternatives.",
+    "qg.s4_group_desc": "Grouping conditions.",
+    "qg.s4_sep_desc": "Optional separator (dash, dot, underscore, or space).",
+    "qg.s4_sep_ex": "Matches &laquo;HDR-10&raquo;, &laquo;HDR.10&raquo;, &laquo;HDR_10&raquo;, and &laquo;HDR 10&raquo;.",
+    "qg.s4_esc_desc": "Special character escape. Prepend a backslash before reserved regex symbols.",
+    "qg.s4_esc_ex": "<code>\\bhdr10\\+\\b</code> matches &laquo;HDR10+&raquo;.",
+    "qg.s4_dotstar_desc": "Wildcard matching any characters between words (any length).",
+    "qg.s5_title": "5. Regex Catalog: Voiceovers & Translation Studios",
+    "qg.s5_intro": "Copy any template below and create a new custom format (e.g. with score <code>+200</code>) to prioritize your favorite studio or audio track.",
+    "qg.v_dub_title": "Full Dubbing / Official License / iTunes (Dubbing)",
+    "qg.v_dub_hint": "Professional full theatrical or digital dubbing.",
+    "qg.v_lostfilm_title": "LostFilm",
+    "qg.v_lostfilm_hint": "Popular multi-voice studio translation for TV series.",
+    "qg.v_hdrezka_title": "HDRezka / Rezka Studio",
+    "qg.v_hdrezka_hint": "Studio multi-voice translations and exclusive tracks from HDRezka.",
+    "qg.v_kubik_title": "Kubik v Kube",
+    "qg.v_kubik_hint": "Distinctive author voiceover with unique style.",
+    "qg.v_rhs_title": "Red Head Sound (RHS)",
+    "qg.v_rhs_hint": "Dubbing featuring original official Russian voice actors.",
+    "qg.v_pifagor_title": "Pythagor / Mosfilm / Nevafilm",
+    "qg.v_pifagor_hint": "Classic theatrical cinema dubbing.",
+    "qg.v_newstudio_title": "NewStudio / AlexFilm / TVShows",
+    "qg.v_newstudio_hint": "High quality multi-voice releases for TV shows.",
+    "qg.v_anime_title": "Anime: AniLibria / AniDUB / Studio Band",
+    "qg.v_anime_hint": "Leading voiceover studios for anime series and films.",
+    "qg.v_orig_title": "Original Audio / English",
+    "qg.v_orig_hint": "Original soundtrack or multi-language dual-audio release.",
+    "qg.s6_title": "6. Regex Catalog: Video Codecs, HDR, Dolby Vision & IMAX",
+    "qg.hdr_dv_title": "Dolby Vision (DV / DoVi)",
+    "qg.hdr_dv_hint": "Premium dynamic HDR video standard.",
+    "qg.hdr_hdr10_title": "HDR10+ / HDR10",
+    "qg.hdr_hdr10_hint": "High Dynamic Range HDR10 / HDR10 Plus.",
+    "qg.hdr_imax_title": "IMAX Enhanced / Open Matte",
+    "qg.hdr_imax_hint": "Expanded aspect ratio without top and bottom black letterbox bars.",
+    "qg.hdr_hevc_title": "HEVC / x265 (H.265)",
+    "qg.hdr_hevc_hint": "Modern high-efficiency video encoding codec.",
+    "qg.hdr_av1_title": "AV1 Codec",
+    "qg.hdr_av1_hint": "Next-generation royalty-free open video codec.",
+    "qg.hdr_10bit_title": "10-Bit Color (Hi10P)",
+    "qg.hdr_10bit_hint": "10-bit color depth (prevents color banding in gradients).",
+    "qg.s7_title": "7. Regex Catalog: Audio Formats & Multi-Channel Sound",
+    "qg.aud_atmos_title": "Dolby Atmos",
+    "qg.aud_atmos_hint": "Immersive 3D object-based audio (TrueHD Atmos or DDP Atmos).",
+    "qg.aud_lossless_title": "TrueHD / DTS-HD Master Audio (Lossless)",
+    "qg.aud_lossless_hint": "Uncompressed high-fidelity lossless studio sound.",
+    "qg.aud_surround_title": "5.1 / 7.1 Surround Sound",
+    "qg.aud_surround_hint": "Multi-channel surround audio tracks (6ch / 8ch).",
+    "qg.s8_title": "8. Editions: Remux, Hybrid, Proper, Repack",
+    "qg.ed_hybrid_title": "Hybrid (Hybrid Release)",
+    "qg.ed_hybrid_hint": "Release compiled from the best sources (e.g. 4K BDRip video + original HDR track + official iTunes audio).",
+    "qg.ed_proper_title": "Proper / Repack / Rerip",
+    "qg.ed_proper_hint": "Corrected release from release group fixing audio desync, corrupted frames, or bad muxing.",
+    "qg.s9_title": "9. Junk Filtering (Negative Scoring)",
+    "qg.s9_intro": "Exclude low-quality or unwanted releases by assigning <strong>negative score points</strong> (e.g. <code>-10000</code>). Releases with net negative score will never be auto-grabbed.",
+    "qg.neg_casino_title": "Casino & Gambling Ads (1xBet, JoyCasino, Advert)",
+    "qg.neg_casino_hint": "Releases with intrusive embedded casino ads or betting voiceovers. Set Score: <span class=\"badge-tag badge-score-neg\">-10000</span>",
+    "qg.neg_cam_title": "CAMRip & Pre-release Recordings (CAM / Telesync / TS)",
+    "qg.neg_cam_hint": "Cinema screen camera recordings. Set Score: <span class=\"badge-tag badge-score-neg\">-10000</span>",
+    "qg.neg_hardsub_title": "Hardcoded Subtitles (Hardsub / Korsub / HC)",
+    "qg.neg_hardsub_hint": "Burned-in foreign subtitles over the video image. Set Score: <span class=\"badge-tag badge-score-neg\">-1000</span>",
+    "qg.s10_title": "10. Profile Configuration Examples",
+    "qg.ex1_title": "4K Home Cinema (Max Quality)",
+    "qg.ex1_q": "Qualities:",
+    "qg.ex1_bonus": "Bonus Formats:",
+    "qg.ex1_penalties": "Penalties:",
+    "qg.ex1_bonus_val": "Dolby Vision (+150), Atmos (+100), Dubbing (+200)",
+    "qg.ex1_penalties_val": "Casino (-10000), CAMRip (-10000)",
+    "qg.ex2_title": "TV Series (LostFilm / HDRezka)",
+    "qg.ex2_bonus_val": "LostFilm (+250), HDRezka (+200), NewStudio (+150)",
+    "qg.ex2_penalties_val": "Casino (-10000), Hardsub (-1000)",
+    "qg.ex3_title": "Anime (AniLibria + 10-bit)",
+    "qg.ex3_bonus_val": "AniLibria (+200), Studio Band (+200), 10-bit (+100)",
+    "qg.btn_copy": "Copy",
+    "qg.btn_copied": "Copied!"
+}
+  };
+
+  let CURRENT_GUIDE_LANG = "ru";
+
+  function getSavedGuideLang() {
+    var urlParams = new URLSearchParams(window.location.search);
+    var pLang = urlParams.get('lang');
+    if (pLang === 'en' || pLang === 'ru') return pLang;
+    var stored = localStorage.getItem("vbeacon_lang") || localStorage.getItem("aliasarr_lang");
+    if (stored === 'en' || stored === 'ru') return stored;
+    return "ru";
+  }
+
+  function applyGuideLanguage(lang) {
+    CURRENT_GUIDE_LANG = (lang === "en") ? "en" : "ru";
+    document.documentElement.setAttribute("lang", CURRENT_GUIDE_LANG);
+    try {
+      localStorage.setItem("vbeacon_lang", CURRENT_GUIDE_LANG);
+      localStorage.setItem("aliasarr_lang", CURRENT_GUIDE_LANG);
+    } catch (e) {}
+
+    var dict = GUIDE_TRANSLATIONS[CURRENT_GUIDE_LANG] || GUIDE_TRANSLATIONS.ru;
+
+    // Update text elements
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n");
+      if (dict[key] !== undefined) {
+        el.innerHTML = dict[key];
+      }
+    });
+
+    // Update placeholders
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n-placeholder");
+      if (dict[key] !== undefined) {
+        el.placeholder = dict[key];
+      }
+    });
+
+    // Update titles
+    document.querySelectorAll("[data-i18n-title]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n-title");
+      if (dict[key] !== undefined) {
+        el.title = dict[key];
+      }
+    });
+
+    // Update document title
+    if (dict["qg.page_title"]) {
+      document.title = dict["qg.page_title"];
+    }
+
+    // Update Lang button label
+    var langLabel = document.getElementById("guide-lang-label");
+    if (langLabel) {
+      langLabel.textContent = CURRENT_GUIDE_LANG === "en" ? "EN" : "RU";
+    }
+
+    updateThemeToggleBtn(document.documentElement.getAttribute('data-theme') || 'dark');
+  }
+
+  function toggleGuideLang() {
+    var nextLang = (CURRENT_GUIDE_LANG === "ru") ? "en" : "ru";
+    applyGuideLanguage(nextLang);
+  }
+
+  function updateThemeToggleBtn(theme) {
+    var btn = document.getElementById('guide-theme-toggle');
+    if (!btn) return;
+    var iconName = theme === 'light' ? 'sun' : (theme === 'dracula' ? 'wand-2' : 'moon');
+    btn.innerHTML = (SVG_ICONS[iconName] || '');
+  }
+
+  function toggleGuideTheme() {
+    var current = document.documentElement.getAttribute('data-theme') || 'dark';
+    var next = current === 'light' ? 'dark' : (current === 'dark' ? 'dracula' : 'light');
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('vbeacon_theme', next); } catch (e) {}
+    updateThemeToggleBtn(next);
+  }
+
+  function toggleSidebarToc() {
+    var sb = document.getElementById('guide-sidebar');
+    if (sb) {
+      sb.classList.toggle('collapsed');
+      if (!sb.classList.contains('collapsed')) {
+        sb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }
+
+  function onSidebarClick(e) {
+    if (window.innerWidth <= 900) {
+      if (e.target.closest('.guide-sidebar-header')) {
+        var sb = document.getElementById('guide-sidebar');
+        if (sb) sb.classList.toggle('collapsed');
+      }
+    }
+  }
+
+  function closeSidebarMobile() {
+    if (window.innerWidth <= 900) {
+      var sb = document.getElementById('guide-sidebar');
+      if (sb) sb.classList.add('collapsed');
+    }
+  }
+
+  window.addEventListener('storage', function (e) {
+    if (e.key === 'vbeacon_theme' && e.newValue) {
+      document.documentElement.setAttribute('data-theme', e.newValue);
+      updateThemeToggleBtn(e.newValue);
+    }
+    if ((e.key === 'vbeacon_lang' || e.key === 'aliasarr_lang') && e.newValue) {
+      applyGuideLanguage(e.newValue);
+    }
+  });
+
+  function copyRegex(btn) {
+    var box = btn.closest('.regex-box');
+    if (!box) return;
+    var codeEl = box.querySelector('.regex-code');
+    if (!codeEl) return;
+    var text = codeEl.textContent.trim();
+    var dict = GUIDE_TRANSLATIONS[CURRENT_GUIDE_LANG] || GUIDE_TRANSLATIONS.ru;
+    var copiedLabel = dict["qg.btn_copied"] || "Copied!";
+    var copyLabel = dict["qg.btn_copy"] || "Copy";
+    var checkIco = SVG_ICONS["check"] || '';
+    var copyIco = SVG_ICONS["copy"] || '';
+
+    navigator.clipboard.writeText(text).then(function() {
+      btn.innerHTML = checkIco + ' ' + copiedLabel;
+      btn.classList.add('copied');
+      setTimeout(function() {
+        btn.innerHTML = copyIco + ' ' + copyLabel;
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  function filterGuide(query) {
+    var q = query.toLowerCase().trim();
+    var cards = document.querySelectorAll('.guide-card');
+    cards.forEach(function(card) {
+      if (!q) {
+        card.style.display = 'block';
+        var items = card.querySelectorAll('.template-item, tr');
+        items.forEach(function(el) { el.style.display = ''; });
+        return;
+      }
+      var cardText = card.textContent.toLowerCase();
+      if (cardText.indexOf(q) !== -1) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  // Active TOC highlighter and back-to-top button on scroll
+  var backToTopBtn = document.getElementById('guide-back-to-top');
+  window.addEventListener('scroll', function() {
+    var scrollY = window.scrollY;
+    if (backToTopBtn) {
+      if (scrollY > 300) {
+        backToTopBtn.classList.add('visible');
+      } else {
+        backToTopBtn.classList.remove('visible');
+      }
+    }
+
+    var sections = document.querySelectorAll('.guide-card');
+    var scrollPos = scrollY + 140;
+    sections.forEach(function(sec) {
+      var id = sec.getAttribute('id');
+      var top = sec.offsetTop;
+      var height = sec.offsetHeight;
+      var link = document.querySelector('.guide-nav-link[href="#' + id + '"]');
+      if (link) {
+        if (scrollPos >= top && scrollPos < top + height) {
+          document.querySelectorAll('.guide-nav-link').forEach(function(l) { l.classList.remove('active'); });
+          link.classList.add('active');
+        }
+      }
+    });
+  });
+
+  async function syncServerGuideSettings() {
+    try {
+      var res = await fetch('/api/v1/settings');
+      if (res.ok) {
+        var s = await res.json();
+        var urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.has('lang') && s.language && (s.language === 'en' || s.language === 'ru')) {
+          applyGuideLanguage(s.language);
+        }
+        if (s.theme) {
+          document.documentElement.setAttribute('data-theme', s.theme);
+          updateThemeToggleBtn(s.theme);
+        }
+      }
+    } catch (e) {}
+  }
+
+  // Render built-in SVG icons immediately
+  renderGuideIcons();
+  // Initial load language and theme
+  applyGuideLanguage(getSavedGuideLang());
+  updateThemeToggleBtn(document.documentElement.getAttribute('data-theme') || 'dark');
+  syncServerGuideSettings();
+</script>
+</body>
+</html>

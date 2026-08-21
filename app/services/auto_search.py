@@ -1,0 +1,830 @@
+"""
+Автоматический поиск, сопоставление и отправка в загрузчик разыскиваемых серий и фильмов (WANTED / Upgrades).
+
+Фоновый процесс:
+1. Находит все Episode со статусом WANTED у мониторящихся тайтлов
+2. Ищет релизы по настроенным алиасам во всех активных индексаторах с учётом приоритетов
+3. Сопоставляет релизы с тайтлом (matcher.py), фильтрует по профилю качества и числу сидов
+4. Группирует кандидатов с защитой от дублирования раздач
+5. Отправляет лучший релиз в торрент-клиент и переводит статус серий в DOWNLOADING
+6. Создаёт записи в истории загрузок и отправляет уведомления
+"""
+
+from __future__ import annotations
+
+import asyncio
+import datetime as dt
+import logging
+
+try:
+    from sqlalchemy import and_, or_
+    from sqlalchemy.orm import Session
+    from app.models.db import (
+        DownloadClient,
+        DownloadHistory,
+        Episode,
+        EpisodeStatus,
+        Indexer,
+        QualityProfile,
+        Show,
+        TrackedRelease,
+    )
+except ImportError:
+    and_ = None
+    or_ = None
+    Session = object
+    DownloadClient = None
+    DownloadHistory = None
+    Episode = None
+    EpisodeStatus = type("EpisodeStatus", (), {"DOWNLOADED": "downloaded", "WANTED": "wanted", "DOWNLOADING": "downloading", "IGNORED": "ignored", "MISSING": "missing", "UNAIRED": "unaired"})
+    Indexer = None
+    QualityProfile = None
+    Show = None
+    TrackedRelease = None
+
+from app.services.download_client import get_client
+from app.services.matcher import build_alias_candidates, match_release, score_candidate
+from app.services.notifications import notify_all
+from app.services.parser import ReleaseKind, detect_season_label, parse_episode
+from app.services.quality import is_allowed, parse_quality
+from app.services.indexer_service import get_indexer_client
+from app.services.settings_service import get_or_create_settings
+from app.services.torznab import TorznabClient
+
+logger = logging.getLogger("aliasarr.auto_search")
+
+
+def _get_show_max_season(db: Session, show: Show) -> int:
+    """Возвращает максимальный номер сезона среди всех серий шоу в БД.
+    Возвращает 1, если серий нет (безопасный дефолт)."""
+    from sqlalchemy import func as _func
+    result = db.query(_func.max(Episode.season_number)).filter(Episode.show_id == show.id).scalar()
+    return result or 1
+
+
+def evaluate_torrent_file_priority(
+    file_name: str,
+    file_index: int,
+    target_episodes: list[Episode],
+    import_extra_files: bool = True,
+    extra_extensions: set[str] | None = None,
+    content_type: str = "series",
+) -> int:
+    """
+    Определяет приоритет скачивания файла торрента (1 = скачивать, 0 = не скачивать).
+    Учитывает:
+    - Для фильмов (content_type == "movie"): все видеофайлы и сопутствующие файлы скачиваются.
+    - Для сериалов/аниме:
+      - Сезон и номер серии (season_number, episode_number)
+      - Абсолютную нумерацию аниме (absolute_number)
+      - Дополнительные файлы: субтитры (.ass/.srt), аудиодорожки (.mka), шрифты (Fonts/ .ttf/.otf), NFO.
+    """
+    import os
+    import re
+
+    if extra_extensions is None:
+        extra_extensions = {".srt", ".ass", ".sub", ".idx", ".vtt", ".nfo", ".mka", ".ttf", ".otf", ".woff", ".woff2", ".eot"}
+
+    ext = os.path.splitext(file_name)[1].lower()
+    fname_lower = file_name.lower().replace("\\", "/")
+
+    # Для фильмов: все видеофайлы скачиваются (приоритет 1). Исключаются только сэмплы.
+    if content_type == "movie":
+        if ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}:
+            if "/sample" in fname_lower or fname_lower.endswith("-sample.mkv"):
+                return 0
+            return 1
+        if ext in extra_extensions or "/fonts/" in fname_lower or fname_lower.startswith("fonts/") or "/attachments/" in fname_lower:
+            return 1 if import_extra_files else 0
+        return 0
+
+    # 1. Шрифты для субтитров аниме и сериалов — всегда оставляем, если включен импорт доп. файлов
+    if ext in {".ttf", ".otf", ".ttc", ".woff", ".woff2", ".eot"} or "/fonts/" in fname_lower or fname_lower.startswith("fonts/") or "/attachments/" in fname_lower:
+        return 1 if import_extra_files else 0
+
+    target_keys = {(ep.season_number, ep.episode_number) for ep in target_episodes}
+    target_abs = {ep.absolute_number for ep in target_episodes if ep.absolute_number is not None}
+    primary_season = target_episodes[0].season_number if target_episodes else 1
+
+    # 2. Не-видео файлы (субтитры, аудио, nfo)
+    if ext in extra_extensions:
+        if not import_extra_files:
+            return 0
+        base_name = os.path.basename(file_name)
+        parsed = parse_episode(base_name)
+        if not parsed or not parsed.episodes:
+            parsed = parse_episode(file_name)
+        if not parsed or not parsed.episodes:
+            # Общие субтитры/nfo без явного номера серии в названии (например, общая папка subs)
+            return 1
+
+        if parsed.season is not None:
+            for ep_num in parsed.episodes:
+                if (parsed.season, ep_num) in target_keys:
+                    return 1
+            return 0
+        else:
+            for ep_num in parsed.episodes:
+                if (primary_season, ep_num) in target_keys or ep_num in target_abs:
+                    return 1
+            return 0
+
+    # 3. Видеофайлы (.mkv, .mp4, .avi, .ts, etc.)
+    if ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}:
+        base_name = os.path.basename(file_name)
+        parsed = parse_episode(base_name)
+        if not parsed or not parsed.episodes:
+            parsed = parse_episode(file_name)
+        if not parsed or not parsed.episodes:
+            # Если не удалось спарсить номер серии, но разыскивается 1 серия и в имени нет чужих меток
+            if len(target_episodes) == 1 and not re.search(r"\bs\d+|\be\d+|\bep\d+", fname_lower):
+                return 1
+            return 0
+
+        if parsed.season is not None:
+            for ep_num in parsed.episodes:
+                if (parsed.season, ep_num) in target_keys:
+                    return 1
+            return 0
+        else:
+            for ep_num in parsed.episodes:
+                if (primary_season, ep_num) in target_keys or ep_num in target_abs:
+                    return 1
+            return 0
+
+    # Все прочие неизвестные файлы
+    return 0
+
+
+async def _ensure_movie_files_wanted(dl_client, torrent_hash: str) -> None:
+    """Гарантирует, что для фильма в Transmission / qBittorrent / Deluge включены все видеофайлы и субтитры (галочки проставлены)."""
+    import os
+    for attempt in range(15):
+        try:
+            torrent = await dl_client.get_torrent(torrent_hash)
+            if torrent and torrent.files:
+                wanted_indices = []
+                for f in torrent.files:
+                    ext = os.path.splitext(f.name)[1].lower()
+                    fname_lower = f.name.lower().replace("\\", "/")
+                    if ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm", ".srt", ".ass", ".sub", ".mka", ".nfo", ".ttf", ".otf"}:
+                        if not ("/sample" in fname_lower or fname_lower.endswith("-sample.mkv")):
+                            wanted_indices.append(f.index)
+                if not wanted_indices:
+                    wanted_indices = [f.index for f in torrent.files]
+                await dl_client.set_file_priorities(torrent_hash, wanted_indices, 1)
+                await dl_client.resume_torrent(torrent_hash)
+                logger.info("Для фильма в торренте %s успешно включены все файлы (%d шт) и возобновлено скачивание", torrent_hash, len(wanted_indices))
+                return
+        except Exception as exc:
+            logger.debug("Ожидание метаданных торрента фильма %s: %s", torrent_hash, exc)
+        await asyncio.sleep(1.5)
+
+
+async def _limit_torrent_files_to_episodes(
+    dl_client,
+    torrent_hash: str,
+    wanted_episodes: list[Episode],
+    db: Session = None,
+    explicit_episode_ids: set[int] | None = None,
+    content_type: str = "series",
+) -> None:
+    """Выключает в загрузчике файлы, не относящиеся к переданным сериям (Sonarr selective download).
+    
+    Гарантирует, что полный пак или сезонный батч не будет качать чужие сезоны/серии."""
+    if content_type == "movie":
+        # Для фильмов гарантируем, что все файлы фильма включены (галочки стоят)
+        await _ensure_movie_files_wanted(dl_client, torrent_hash)
+        return
+
+    target_eps = [
+        ep for ep in wanted_episodes
+        if explicit_episode_ids is None or ep.id in explicit_episode_ids
+    ]
+    if not target_eps:
+        target_eps = wanted_episodes
+
+    torrent = None
+    for attempt in range(15):  # до ~22 секунд ожидания метаданных торрента
+        try:
+            torrent = await dl_client.get_torrent(torrent_hash)
+            if torrent and torrent.files:
+                break
+        except Exception:
+            pass
+        await asyncio.sleep(1.5)
+
+    if not torrent or not torrent.files:
+        logger.warning(
+            "Не удалось получить список файлов раздачи %s — метаданные торрента ещё не загружены",
+            torrent_hash,
+        )
+        return
+
+    import_extras = True
+    extra_exts = None
+    try:
+        if db and hasattr(db, "is_active") and db.is_active:
+            settings = get_or_create_settings(db)
+        else:
+            from app.database import SessionLocal
+            with SessionLocal() as s_db:
+                settings = get_or_create_settings(s_db)
+        import_extras = getattr(settings, "import_extra_files", True)
+        raw_exts = getattr(settings, "extra_file_extensions", "")
+        if raw_exts:
+            extra_exts = {f".{e.strip().lstrip('.')}".lower() for e in raw_exts.split(",") if e.strip()}
+    except Exception as exc:
+        logger.debug("Настройки доп. файлов не загружены, используются по умолчанию: %s", exc)
+
+    unwanted_indices = []
+    wanted_indices = []
+
+    for f in torrent.files:
+        prio = evaluate_torrent_file_priority(
+            file_name=f.name,
+            file_index=f.index,
+            target_episodes=target_eps,
+            import_extra_files=import_extras,
+            extra_extensions=extra_exts,
+            content_type=content_type,
+        )
+        if prio > 0:
+            wanted_indices.append(f.index)
+        else:
+            unwanted_indices.append(f.index)
+
+    if unwanted_indices:
+        await dl_client.set_file_priorities(torrent_hash, unwanted_indices, 0)
+    if wanted_indices:
+        await dl_client.set_file_priorities(torrent_hash, wanted_indices, 1)
+
+    try:
+        await dl_client.resume_torrent(torrent_hash)
+    except Exception as exc:
+        logger.warning("Не удалось возобновить раздачу %s: %s", torrent_hash, exc)
+
+    logger.info(
+        "Раздача %s: скачивание ограничено выбранными сериями (%d шт), отключено файлов: %d, включено: %d",
+        torrent_hash, len(target_eps), len(unwanted_indices), len(wanted_indices)
+    )
+
+
+_SHOW_SEARCH_LOCKS: dict[int, asyncio.Lock] = {}
+
+
+def _get_show_lock(show_id: int) -> asyncio.Lock:
+    if show_id not in _SHOW_SEARCH_LOCKS:
+        _SHOW_SEARCH_LOCKS[show_id] = asyncio.Lock()
+    return _SHOW_SEARCH_LOCKS[show_id]
+
+
+async def search_and_grab_show(
+    db: Session,
+    show: Show,
+    episode_ids: set[int] | None = None,
+    wanted_only: bool = False,
+) -> dict:
+    """Ищет и захватывает лучший релиз для wanted-серий данного шоу.
+
+    episode_ids: если задан — ищет релизы только для указанных серий.
+    wanted_only: если True — искать только разыскиваемые (WANTED) серии и не выполнять апгрейд качества."""
+    lock = _get_show_lock(show.id)
+    if lock.locked():
+        logger.info("Поиск для шоу %d уже выполняется в другом запросе, пропускаем дублирующий запуск", show.id)
+        return {"show_id": show.id, "grabbed": [], "reason": "already_searching"}
+
+    async with lock:
+        show.is_searching = True
+        db.add(show)
+        db.commit()
+
+        try:
+            result = await _do_search_and_grab(db, show, episode_ids, wanted_only=wanted_only)
+            grabbed_count = len(result.get("grabbed", []))
+            reason = result.get("reason")
+            if reason == "no_enabled_indexers":
+                show.last_search_result = "Нет включённых индексаторов"
+            elif reason == "no_wanted_episodes":
+                show.last_search_result = "Нет серий в статусе «разыскивается»"
+            elif grabbed_count:
+                show.last_search_result = f"Захвачено релизов: {grabbed_count}"
+            else:
+                criteria = result.get("criteria")
+                if criteria:
+                    show.last_search_result = (
+                        "Подходящих релизов не найдено. Искали по: " + criteria
+                    )
+                else:
+                    show.last_search_result = "Подходящих релизов не найдено"
+            return result
+        except Exception as exc:
+            show.last_search_result = f"Ошибка поиска: {exc}"
+            logger.exception("Ошибка автопоиска для видео %s", show.id)
+            return {"show_id": show.id, "grabbed": [], "reason": "error"}
+        finally:
+            show.is_searching = False
+            show.last_search_at = dt.datetime.utcnow()
+            db.add(show)
+            db.commit()
+
+
+async def _collect_candidates(
+    db: Session,
+    show: Show,
+    indexers: list[Indexer],
+    wanted_episodes: list[Episode] | None = None,
+) -> list[dict]:
+    """Собирает все релизы по всем алиасам во всех индексаторах (по приоритету), дедуп по guid."""
+    quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
+    allowed_qualities = quality_profile.allowed_qualities if quality_profile else []
+    alias_candidates = build_alias_candidates(show)
+
+    # Формируем список поисковых запросов: базовые алиасы + варианты номеров для конкретных wanted-серий
+    query_terms: list[str] = []
+    seen_queries: set[str] = set()
+
+    for alias in alias_candidates:
+        q = alias.text.strip()
+        if q and q.lower() not in seen_queries:
+            seen_queries.add(q.lower())
+            query_terms.append(q)
+
+    if wanted_episodes and len(wanted_episodes) <= 6:
+        for ep in wanted_episodes:
+            for alias in alias_candidates[:3]:
+                base = alias.text.strip()
+                if ep.absolute_number is not None:
+                    for fmt in (
+                        f"{base} {ep.absolute_number}",
+                        f"{base} {ep.absolute_number:02d}",
+                        f"{base} {ep.absolute_number:03d}",
+                        f"{base} - {ep.absolute_number}",
+                    ):
+                        if fmt.lower() not in seen_queries:
+                            seen_queries.add(fmt.lower())
+                            query_terms.append(fmt)
+                elif ep.season_number == 0:
+                    for fmt in (
+                        f"{base} OVA",
+                        f"{base} Special",
+                        f"{base} SP{ep.episode_number:02d}",
+                        f"{base} S00E{ep.episode_number:02d}",
+                    ):
+                        if fmt.lower() not in seen_queries:
+                            seen_queries.add(fmt.lower())
+                            query_terms.append(fmt)
+                else:
+                    for fmt in (
+                        f"{base} S{ep.season_number:02d}E{ep.episode_number:02d}",
+                        f"{base} {ep.episode_number:02d}",
+                    ):
+                        if fmt.lower() not in seen_queries:
+                            seen_queries.add(fmt.lower())
+                            query_terms.append(fmt)
+
+    seen_guids: set[str] = set()
+    candidates: list[dict] = []
+
+    # Опрашиваем индексаторы по приоритету (меньшее число = опрашивается раньше)
+    for indexer in sorted(indexers, key=lambda i: i.priority):
+        client = get_indexer_client(indexer)
+        for term in query_terms:
+            try:
+                releases = await client.search(term)
+            except Exception as exc:
+                logger.warning("Индексатор %s недоступен: %s", indexer.name, exc)
+                continue
+
+            for rel in releases:
+                if rel.guid in seen_guids:
+                    continue
+                seen_guids.add(rel.guid)
+
+                match = match_release(rel.title, show.id, alias_candidates, content_type=show.content_type)
+                if not match.matched:
+                    continue
+
+                quality = parse_quality(rel.title)
+                if not is_allowed(quality, allowed_qualities):
+                    continue
+
+                candidates.append({
+                    "rel": rel, "match": match, "quality": quality, "indexer": indexer,
+                })
+
+    return candidates
+
+
+async def _do_search_and_grab(
+    db: Session,
+    show: Show,
+    episode_ids: set[int] | None = None,
+    wanted_only: bool = False,
+) -> dict:
+    if episode_ids:
+        wanted_episodes = db.query(Episode).filter(Episode.show_id == show.id, Episode.id.in_(episode_ids)).all()
+    else:
+        if wanted_only:
+            status_filter = Episode.status == EpisodeStatus.WANTED
+        else:
+            quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
+            upgrade_allowed = getattr(quality_profile, "upgrade_allowed", False) if quality_profile else False
+            if show.monitored and upgrade_allowed:
+                status_filter = or_(Episode.status == EpisodeStatus.WANTED, Episode.status == EpisodeStatus.DOWNLOADED)
+            else:
+                status_filter = Episode.status == EpisodeStatus.WANTED
+        wanted_episodes = db.query(Episode).filter(Episode.show_id == show.id, status_filter).all()
+    if not wanted_episodes:
+        return {"show_id": show.id, "grabbed": [], "reason": "no_wanted_episodes"}
+
+    indexers = db.query(Indexer).filter(Indexer.enabled == True).all()  # noqa: E712
+    if not indexers:
+        return {"show_id": show.id, "grabbed": [], "reason": "no_enabled_indexers"}
+
+    settings = get_or_create_settings(db)
+    alias_candidates = build_alias_candidates(show)
+    search_terms = ", ".join(f"«{a.text}»" for a in alias_candidates[:5])
+
+    candidates = await _collect_candidates(db, show, indexers, wanted_episodes=wanted_episodes)
+
+    # Фильтр по минимальному числу сидов
+    if settings.min_seeds and settings.min_seeds > 0:
+        candidates = [c for c in candidates if c["rel"].seeders >= settings.min_seeds]
+
+    if not candidates:
+        return {"show_id": show.id, "grabbed": [], "criteria": search_terms}
+
+    # Подсчитываем сколько всего серий в каждом сезоне, и сколько мы ищем,
+    # чтобы не скачивать целый season-pack, если разыскивается лишь 1-2 серии (bugfix)
+    total_episodes_by_season = {}
+    wanted_count_by_season = {}
+    for ep in wanted_episodes:
+        if ep.season_number not in total_episodes_by_season:
+            total_episodes_by_season[ep.season_number] = db.query(Episode).filter_by(
+                show_id=show.id, season_number=ep.season_number
+            ).count()
+        wanted_count_by_season[ep.season_number] = wanted_count_by_season.get(ep.season_number, 0) + 1
+
+    # Для каждой wanted-серии находим кандидатов, которые её покрывают
+    episodes_by_key: dict[tuple[int, int], Episode] = {
+        (ep.season_number, ep.episode_number): ep for ep in wanted_episodes
+    }
+
+    def covers(c, ep: Episode) -> bool:
+        """
+        Проверяет, покрывает ли кандидат (c) конкретную серию (ep).
+        """
+        rel = c["rel"]
+        match_result = c["match"]
+        parsed = match_result.parsed
+
+        # Исключаем опенинги, эндинги, трейлеры, бонусы и не-видео материалы
+        if parsed.matched_pattern in ("extra_ignored", "non_video_ignored"):
+            return False
+        from app.services.matcher import is_non_video_release
+        if is_non_video_release(rel.title):
+            return False
+
+        # Фильмы: ориентируемся только на совпадение по алиасу.
+        if show.content_type == "movie":
+            return True
+
+        # 1. Проверяем точное совпадение по absolute_number (для аниме)
+        if ep.absolute_number is not None and parsed.episodes:
+            if ep.absolute_number in parsed.episodes:
+                if parsed.season is not None and parsed.season != ep.season_number:
+                    pass
+                else:
+                    return True
+
+        # 2. Определяем метку сезона из заголовка релиза
+        season_label = detect_season_label(rel.title)
+        label_type = season_label["type"]
+
+        # --- Случай 0: Мультисезонный диапазон (Сезоны 1-5, S01-S05, Seasons 1-5) ---
+        if label_type == "range":
+            if ep.season_number not in season_label.get("seasons", []):
+                return False
+            if parsed.episodes:
+                return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
+            return True
+
+        # --- Случай 0б: Мультисезонный список из parsed.seasons ---
+        if parsed.seasons and len(parsed.seasons) > 1:
+            if ep.season_number not in parsed.seasons:
+                return False
+            if parsed.episodes:
+                return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
+            return True
+
+        # --- Случай 1: явный номер сезона в названии релиза ---
+        if label_type == "numbered":
+            label_season = season_label["season"]
+            if label_season != ep.season_number:
+                return False
+            if parsed.episodes:
+                return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
+            return parsed.kind == ReleaseKind.SEASON_PACK
+
+        # --- Случай 2: «Final Season» ---
+        if label_type == "final":
+            max_s = _get_show_max_season(db, show)
+            if max_s > 1 and ep.season_number != max_s:
+                return False
+            if parsed.episodes:
+                return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
+            return True
+
+        # --- Случай 3: «Complete Series» / «Все сезоны» ---
+        if label_type == "complete":
+            if parsed.episodes:
+                return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
+            return True
+
+        # --- Случай 4: OVA/ONA/Special — сезон 0 ---
+        if label_type == "ova_ona" or parsed.season == 0:
+            if ep.season_number != 0:
+                return False
+            if parsed.episodes:
+                return ep.episode_number in parsed.episodes
+            return True
+
+        # --- Случай 5: сезон в названии релиза указан через parse_episode ---
+        parsed_season = parsed.season
+        if parsed_season is not None:
+            if parsed_season != ep.season_number:
+                return False
+            if parsed.episodes:
+                return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
+            return parsed.kind == ReleaseKind.SEASON_PACK
+
+        # --- Случай 6: сезон в названии релиза не указан (аниме absolute / lone number) ---
+        if parsed.episodes:
+            if ep.absolute_number is not None:
+                return ep.absolute_number in parsed.episodes
+            return ep.episode_number in parsed.episodes and ep.season_number in (0, 1)
+
+        return False
+
+    # Строим для каждого кандидата множество wanted-серий, которые он закрывает,
+    # и скор (сиды + качество + совпадение имени).
+    from app.services.quality import parse_quality, is_upgrade
+    quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
+    allowed_qualities = quality_profile.allowed_qualities if quality_profile else []
+    
+    scored_candidates = []
+    for c in candidates:
+        covered = [ep for ep in wanted_episodes if covers(c, ep)]
+        
+        final_covered = []
+        for ep in covered:
+            if ep.status == EpisodeStatus.DOWNLOADED:
+                if wanted_only:
+                    continue
+                if not quality_profile or not getattr(quality_profile, "upgrade_allowed", False):
+                    continue
+                
+                # Определяем текущее качество имеющегося файла
+                current_quality_name = ep.downloaded_quality
+                if not current_quality_name and ep.file_path and os.path.exists(ep.file_path):
+                    current_quality_name = parse_quality(os.path.basename(ep.file_path)).name
+                
+                if not current_quality_name:
+                    # Если файл физически есть на диске, но качество неизвестно — не заменяем вслепую
+                    if getattr(ep, "has_file", False) or (ep.file_path and os.path.exists(ep.file_path)):
+                        continue
+                    current_quality_name = "SDTV"
+
+                current_quality = parse_quality(current_quality_name)
+                
+                # Проверка достижения порога качества (cutoff_quality)
+                if getattr(quality_profile, "cutoff_quality", None):
+                    cutoff = parse_quality(quality_profile.cutoff_quality)
+                    if current_quality.rank >= cutoff.rank:
+                        continue
+
+                if not is_upgrade(current_quality, c["quality"], allowed_qualities):
+                    continue
+            final_covered.append(ep)
+            
+        if not final_covered:
+            continue
+            
+        score = score_candidate(c["match"], seeders=c["rel"].seeders, quality_rank=c["quality"].rank)
+        scored_candidates.append({**c, "covered": final_covered, "score": score})
+
+    if not scored_candidates:
+        return {"show_id": show.id, "grabbed": [], "criteria": search_terms}
+
+    # Многоуровневая сортировка кандидатов:
+    # 1. Флаг Full/Complete (1 если полный пак / закрывает все нужные серии, 0 если частичный)
+    # 2. Количество закрываемых нужных серий (coverage_count: чем больше закрывает, тем выше приоритет)
+    # 3. Ранг качества и кастомных форматов
+    # 4. Приоритет индексатора (0 — высший приоритет, 100 — низший)
+    # 5. Число сидеров (seeders)
+    # 6. Скор соответствия названия (match.score)
+    def candidate_sort_key(c):
+        season_lbl = detect_season_label(c["rel"].title)
+        is_full = 1 if (
+            season_lbl["type"] == "complete" or
+            c["match"].parsed.matched_pattern in ("season_pack:complete", "season_pack:multi_range") or
+            len(c["covered"]) >= len(wanted_episodes)
+        ) else 0
+        coverage_count = len(c["covered"])
+        quality_rank = c["quality"].rank
+        indexer_priority = getattr(c["indexer"], "priority", 100) or 100
+        seeders = c["rel"].seeders or 0
+        match_score = c["score"]
+        return (is_full, coverage_count, quality_rank, -indexer_priority, seeders, match_score)
+
+    scored_candidates.sort(key=candidate_sort_key, reverse=True)
+
+    # Жадный алгоритм захвата без дубликатов:
+    # - Если один релиз закрывает все сезоны/серии, он скачивается в единственном экземпляре.
+    # - Если полного пака нет, последовательно берутся лучшие паки по сезонам с приоритетных трекеров,
+    #   а недостающие сезоны добираются со следующих трекеров.
+    # - Железная гарантия: ровно один релиз на каждый сезон (никаких параллельных дублей).
+    remaining = dict(episodes_by_key)  # (season, ep) -> Episode ещё не закрыт релизом
+    grabbed_seasons: set[int] = set()
+    to_grab: list[dict] = []
+    for c in scored_candidates:
+        still_covered = [
+            ep for ep in c["covered"]
+            if (ep.season_number, ep.episode_number) in remaining
+        ]
+        if not still_covered:
+            continue
+
+        # Проверяем, не закрыт ли уже этот сезон другим ранее выбранным релизом
+        candidate_seasons = {ep.season_number for ep in still_covered}
+        if not (candidate_seasons - grabbed_seasons) and len(candidate_seasons) == 1:
+            continue
+
+        to_grab.append({**c, "covered": still_covered})
+        for ep in still_covered:
+            remaining.pop((ep.season_number, ep.episode_number), None)
+            grabbed_seasons.add(ep.season_number)
+        if not remaining:
+            break
+
+    grabbed = []
+    download_client_row = (
+        db.query(DownloadClient).filter(DownloadClient.enabled == True).order_by(  # noqa: E712
+            DownloadClient.is_default.desc()
+        ).first()
+    )
+    if download_client_row is None:
+        logger.warning("Нет доступного download client для видео %s", show.id)
+        return {"show_id": show.id, "grabbed": [], "criteria": search_terms}
+
+    for c in to_grab:
+        rel, match, indexer, covered = c["rel"], c["match"], c["indexer"], c["covered"]
+        # Папка временного скачивания для соответствующей категории контента
+        if show.content_type == "movie":
+            save_path = settings.download_folder_movies
+        elif show.content_type == "anime":
+            save_path = settings.download_folder_anime
+        else:
+            save_path = settings.download_folder_series
+        # Находим старые торрент-хэши для этих серий (если раздача заменяется/апгрейдится),
+        # чтобы удалить старый дубликат из торрент-клиента и не качать дважды
+        old_hashes_to_cleanup = {
+            ep.torrent_hash for ep in covered
+            if ep.torrent_hash and ep.status == EpisodeStatus.DOWNLOADING
+        }
+
+        try:
+            dl_client = get_client(download_client_row)
+            torrent_hash = await dl_client.add_torrent(rel.download_url, download_client_row.category, save_path)
+        except Exception as exc:
+            logger.error("Не удалось отправить релиз в download client: %s", exc)
+            continue
+
+        # Удаляем старые дублирующие раздачи из торрент-клиента
+        for old_hash in old_hashes_to_cleanup:
+            if old_hash != torrent_hash:
+                try:
+                    await dl_client.remove_torrent(old_hash, delete_files=True)
+                    logger.info("Удалена старая дублирующая раздача %s из загрузчика", old_hash)
+                except Exception as exc:
+                    logger.warning("Не удалось удалить старую раздачу %s: %s", old_hash, exc)
+
+        for ep in covered:
+            ep.status = EpisodeStatus.DOWNLOADING
+            ep.download_client_id = download_client_row.id
+            ep.torrent_hash = torrent_hash
+            db.add(ep)
+
+        # Для сериалов/аниме запускаем selective download в фоне, для фильмов — гарантируем включение всех файлов
+        if torrent_hash:
+            try:
+                if show.content_type == "movie":
+                    asyncio.create_task(_ensure_movie_files_wanted(dl_client, torrent_hash))
+                else:
+                    target_eps_data = [
+                        Episode(
+                            id=ep.id,
+                            season_number=ep.season_number,
+                            episode_number=ep.episode_number,
+                            absolute_number=ep.absolute_number,
+                        )
+                        for ep in covered
+                    ]
+                    asyncio.create_task(
+                        _limit_torrent_files_to_episodes(
+                            dl_client,
+                            torrent_hash,
+                            target_eps_data,
+                            None,
+                            explicit_episode_ids=episode_ids,
+                            content_type=show.content_type,
+                        )
+                    )
+            except Exception as exc:
+                logger.warning("Не удалось запланировать обработку файлов раздачи: %s", exc)
+
+        tracked = TrackedRelease(
+            show_id=show.id,
+            indexer_id=indexer.id,
+            topic_guid=rel.guid,
+            topic_url=rel.page_url or rel.download_url or "",
+            infohash=torrent_hash or rel.infohash,
+            downloaded_episodes=[{"season": ep.season_number, "episode": ep.episode_number} for ep in covered],
+            last_checked_at=dt.datetime.utcnow(),
+        )
+        db.add(tracked)
+
+        db.add(DownloadHistory(
+            show_id=show.id, episode_id=covered[0].id, release_title=rel.title,
+            indexer_id=indexer.id, event_type="grabbed",
+            matched_alias=match.alias_text, show_title_snapshot=show.title,
+        ))
+        db.commit()
+
+        is_upgrade = any(ep.status == EpisodeStatus.DOWNLOADED for ep in covered)
+        ep_list = ", ".join(f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in covered)
+        title_linked = f'<a href="{rel.guid}">«{show.title}»</a>' if rel.guid else f"«{show.title}»"
+        
+        action_text = "Обнаружено лучшее качество и начато скачивание для" if is_upgrade else "Захвачен релиз для"
+        await notify_all(
+            db, "grab",
+            f"{action_text} {title_linked} ({ep_list}), сиды: {rel.seeders}: {rel.title}",
+        )
+
+        for ep in covered:
+            grabbed.append({
+                "episode_id": ep.id, "season": ep.season_number, "episode": ep.episode_number,
+                "release": rel.title, "score": c["score"], "seeders": rel.seeders,
+            })
+
+    from app.services.task_manager import task_manager
+    async with task_manager.track(
+        name="show_search",
+        title=f"Поиск релизов: {show.title}",
+        message="Опрос трекеров и сопоставление алиасов...",
+    ) as s_task:
+        if not grabbed:
+            s_task.complete("Релизов не найдено")
+            return {"show_id": show.id, "grabbed": [], "criteria": search_terms}
+
+        s_task.complete(f"Захвачено {len(grabbed)} релиз(ов)")
+        return {"show_id": show.id, "grabbed": grabbed}
+
+
+async def run_wanted_search(db: Session) -> list[dict]:
+    """Запускает поиск/захват для всех мониторящихся шоу с wanted-сериями."""
+    from app.services.task_manager import task_manager
+    async with task_manager.track(
+        name="wanted_search",
+        title="Автопоиск разыскиваемых релизов (Wanted)",
+        message="Проверка библиотеки...",
+    ) as w_task:
+        wanted_shows_ids = [
+            r[0] for r in db.query(Episode.show_id).join(Show, Show.id == Episode.show_id).filter(
+                Show.monitored == True,  # noqa: E712
+                Episode.status == EpisodeStatus.WANTED,
+            ).distinct().all()
+        ]
+        if not wanted_shows_ids:
+            w_task.complete("Поиск завершён: нет разыскиваемых релизов (Wanted)")
+            return []
+
+        shows = db.query(Show).filter(Show.id.in_(wanted_shows_ids)).all()
+        w_task.update(message=f"Поиск для {len(shows)} тайтлов с разыскиваемыми сериями...")
+        results = []
+        total_grabbed = 0
+        for idx, show in enumerate(shows, 1):
+            w_task.update(
+                message=f"Обработка ({idx}/{len(shows)}): «{show.title}»...",
+                progress=round(idx / max(1, len(shows)), 2),
+            )
+            result = await search_and_grab_show(db, show, wanted_only=True)
+            if result.get("grabbed"):
+                results.append(result)
+                total_grabbed += len(result["grabbed"])
+        if total_grabbed > 0:
+            w_task.complete(f"Завершено: захвачено {total_grabbed} релиз(ов)")
+        else:
+            w_task.complete("Поиск завершён: новых релизов не обнаружено")
+        return results
