@@ -237,6 +237,53 @@ class TestManualImportLogic(unittest.TestCase):
             self.assertEqual(len(move_progress_calls), 2)
             self.assertEqual(move_progress_calls[-1], (10 * 1024 * 1024, 10 * 1024 * 1024))
 
+    def test_deleted_file_resets_quality_and_status(self):
+        """Проверяет, что при отсутствии файла на диске сбрасывается ярлык качества (downloaded_quality) и статус."""
+        try:
+            from app.api.shows import get_show, list_episodes
+        except ImportError:
+            self.skipTest("FastAPI not installed in test runner")
+            return
+
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+
+        show = SimpleNamespace(id=1, title="Test Anime", content_type="anime", monitored=True, premiere_date=None, path="/media/anime/Test Anime")
+        ep1 = SimpleNamespace(
+            id=101, show_id=1, season_number=1, episode_number=2, absolute_number=2,
+            title="The Appraisal Ceremony", air_date=None, status="downloaded",
+            downloaded_quality="SDTV", file_path="/non/existent/path/S01E02.mkv",
+            download_progress=1.0, video_codec="x264", audio_codec="AAC",
+            audio_channels="2.0", dynamic_range=None, release_group=None,
+            file_size_bytes=1000000, monitor_status="monitored",
+        )
+        show.episodes = [ep1]
+
+        db_mock = MagicMock()
+        db_mock.get.return_value = show
+        db_mock.query.return_value.filter.return_value.all.return_value = [ep1]
+        db_mock.query.return_value.filter.return_value.order_by.return_value.all.return_value = [ep1]
+        db_mock.query.return_value.filter.return_value.group_by.return_value.all.return_value = []
+
+        current_user = SimpleNamespace(id=1, username="admin")
+
+        # 1. Test get_show
+        res_show = get_show(1, db=db_mock, current_user=current_user)
+        self.assertIsNone(ep1.downloaded_quality)
+        self.assertIsNone(ep1.file_path)
+        self.assertEqual(ep1.status, "wanted")
+        self.assertEqual(ep1.download_progress, 0.0)
+
+        # 2. Test list_episodes
+        ep1.downloaded_quality = "SDTV"
+        ep1.file_path = "/non/existent/path/S01E02.mkv"
+        res_eps = list_episodes(1, db=db_mock, current_user=current_user)
+        self.assertEqual(len(res_eps), 1)
+        self.assertFalse(res_eps[0].has_file)
+        self.assertIsNone(res_eps[0].downloaded_quality)
+        self.assertIsNone(res_eps[0].file_path)
+
 
 if __name__ == "__main__":
     unittest.main()
+

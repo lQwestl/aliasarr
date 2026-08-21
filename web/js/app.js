@@ -4071,16 +4071,18 @@ function renderMovieBlock(show, ep, canManageLib = true) {
     statusHtml = `<span class="status-pill status-${ep.status}">${escapeHtml(episodeStatusLabel(ep.status))}</span>`;
   }
 
-  const hasFile = Boolean(ep.has_file || ep.file_path || ep.status === "downloaded");
+  const hasFile = Boolean(ep.has_file || (ep.file_path && ep.status === "downloaded"));
   const hasFileBadge = hasFile
     ? `<span class="badge-file-present" title="${ep.file_path ? t("show.present_on_disk") + ': ' + escapeHtml(ep.file_path) : t("show.present_on_disk")}"><i data-lucide="hard-drive"></i> ${ep.downloaded_quality ? escapeHtml(ep.downloaded_quality) : t("show.on_disk")}</span>`
     : "";
   // MediaInfo бейджи
   let mediaInfoBadges = "";
-  if (ep.dynamic_range) mediaInfoBadges += `<span class="badge-hdr">${escapeHtml(ep.dynamic_range)}</span> `;
-  if (ep.video_codec) mediaInfoBadges += `<span class="badge-quality" style="font-size:10px;">${escapeHtml(ep.video_codec)}</span> `;
-  if (ep.audio_codec) mediaInfoBadges += `<span class="badge-audio">${escapeHtml(ep.audio_codec)}</span> `;
-  if (ep.release_group) mediaInfoBadges += `<span class="badge-group">${escapeHtml(ep.release_group)}</span> `;
+  if (hasFile) {
+    if (ep.dynamic_range) mediaInfoBadges += `<span class="badge-hdr">${escapeHtml(ep.dynamic_range)}</span> `;
+    if (ep.video_codec) mediaInfoBadges += `<span class="badge-quality" style="font-size:10px;">${escapeHtml(ep.video_codec)}</span> `;
+    if (ep.audio_codec) mediaInfoBadges += `<span class="badge-audio">${escapeHtml(ep.audio_codec)}</span> `;
+    if (ep.release_group) mediaInfoBadges += `<span class="badge-group">${escapeHtml(ep.release_group)}</span> `;
+  }
 
   return `
     <div class="season-block" id="season-block-1">
@@ -4174,17 +4176,19 @@ function renderEpisodeRow(ep, canManageLib = true, show = null) {
     statusHtml = `<span class="status-pill status-${ep.status}">${escapeHtml(episodeStatusLabel(ep.status))}</span>`;
   }
 
-  const hasFile = Boolean(ep.has_file || ep.file_path || ep.status === "downloaded");
+  const hasFile = Boolean(ep.has_file || (ep.file_path && ep.status === "downloaded"));
   const hasFileBadge = hasFile
     ? `<span class="badge-file-present" title="${ep.file_path ? t("show.present_on_disk") + ': ' + escapeHtml(ep.file_path) : t("show.present_on_disk")}"><i data-lucide="hard-drive"></i> ${ep.downloaded_quality ? escapeHtml(ep.downloaded_quality) : t("show.on_disk")}</span>`
     : "";
 
   // MediaInfo бейджи
   let mediaInfoBadges = "";
-  if (ep.dynamic_range) mediaInfoBadges += `<span class="badge-hdr">${escapeHtml(ep.dynamic_range)}</span> `;
-  if (ep.video_codec) mediaInfoBadges += `<span class="badge-quality" style="font-size:10px;">${escapeHtml(ep.video_codec)}</span> `;
-  if (ep.audio_codec) mediaInfoBadges += `<span class="badge-audio">${escapeHtml(ep.audio_codec)}</span> `;
-  if (ep.release_group) mediaInfoBadges += `<span class="badge-group">${escapeHtml(ep.release_group)}</span> `;
+  if (hasFile) {
+    if (ep.dynamic_range) mediaInfoBadges += `<span class="badge-hdr">${escapeHtml(ep.dynamic_range)}</span> `;
+    if (ep.video_codec) mediaInfoBadges += `<span class="badge-quality" style="font-size:10px;">${escapeHtml(ep.video_codec)}</span> `;
+    if (ep.audio_codec) mediaInfoBadges += `<span class="badge-audio">${escapeHtml(ep.audio_codec)}</span> `;
+    if (ep.release_group) mediaInfoBadges += `<span class="badge-group">${escapeHtml(ep.release_group)}</span> `;
+  }
 
   let epCodeHtml = "";
   const isAnime = Boolean(show && show.content_type === "anime");
