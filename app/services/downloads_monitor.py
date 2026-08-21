@@ -37,9 +37,8 @@ from app.services.settings_service import get_or_create_settings
 
 logger = logging.getLogger("aliasarr.downloads_monitor")
 
-# Прогресс >= этого значения считается "докачано" — используем порог чуть ниже
-# 100%, т.к. клиенты иногда округляют и не отдают ровно 1.0 даже на seed-раздачах.
-_COMPLETE_THRESHOLD = 0.999
+# Прогресс 100% для завершения раздачи
+_COMPLETE_THRESHOLD = 1.0
 
 
 def _folder_and_template(settings, content_type: str) -> tuple[str, str, str]:
@@ -92,6 +91,8 @@ def _resolve_torrent_files_and_path(t, settings, show: Show | None = None) -> tu
     if getattr(t, "files", None):
         resolved_files = []
         for tf in t.files:
+            if getattr(tf, "priority", 1) == 0:
+                continue
             fname = getattr(tf, "name", "")
             if not fname:
                 continue
@@ -176,6 +177,7 @@ def _run_postprocess_in_thread(
     season_template: str,
     is_movie: bool,
     specific_files: list[str] | None = None,
+    torrent_hash: str | None = None,
 ) -> list[dict]:
     """Выполняет перемещение файлов и обновление БД в отдельном потоке,
     чтобы не блокировать asyncio event loop и веб-интерфейс GUI."""
@@ -197,6 +199,7 @@ def _run_postprocess_in_thread(
                 root_folder,
                 season_folder_template=season_template,
                 specific_files=specific_files,
+                torrent_hash=torrent_hash,
             )
     except Exception as exc:
         logger.exception("Ошибка в _run_postprocess_in_thread для шоу %s: %s", show_id, exc)
@@ -256,13 +259,21 @@ async def check_downloads(db: Session) -> list[dict]:
             db.add(ep)
 
         state_str = str(t.state).lower()
-        is_done = (
-            t.progress >= _COMPLETE_THRESHOLD
-            or state_str in (
-                "completed", "seeding", "pausedup", "stalledup", "forcedup",
-                "queuedup", "uploading", "100%", "finished", "seed", "complete", "6"
-            )
-        )
+        _DOWNLOADING_STATES = {
+            "downloading", "stalleddl", "forceddl", "queueddl", "checkingdl",
+            "allocating", "metadl", "moving", "4", "checking", "check pending",
+        }
+        _SEEDING_COMPLETED_STATES = {
+            "completed", "seeding", "pausedup", "stalledup", "forcedup",
+            "queuedup", "uploading", "100%", "finished", "seed", "complete", "6",
+        }
+
+        if state_str in _DOWNLOADING_STATES:
+            is_done = False
+        elif state_str in _SEEDING_COMPLETED_STATES:
+            is_done = True
+        else:
+            is_done = (t.progress >= 1.0)
 
         if not is_done:
             continue
@@ -342,6 +353,7 @@ async def check_downloads(db: Session) -> list[dict]:
                     season_template,
                     show.content_type == "movie",
                     specific_files,
+                    torrent_hash,
                 )
                 results.append({"show_id": show.id, "torrent_hash": torrent_hash, "imported": import_results})
 

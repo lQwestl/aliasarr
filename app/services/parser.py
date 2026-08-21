@@ -103,6 +103,33 @@ _RE_PREFIX_SEASON = re.compile(
     re.IGNORECASE,
 )
 
+# Префиксные порядковые сезоны с диапазоном или одиночной серией:
+# "2nd Season - 01", "2nd Season [01-12]", "2-й сезон - 02", "1st Season 05", "2nd Season - 01v2"
+_RE_PREFIX_SEASON_EP_RANGE = re.compile(
+    r"\b(\d{1,2})\s*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?\s*(?:сезон|сез|season)\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})\s*[-–~]\s*(\d{1,4})\s*\]?",
+    re.IGNORECASE,
+)
+_RE_PREFIX_SEASON_EP_SINGLE = re.compile(
+    r"\b(\d{1,2})\s*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?\s*(?:сезон|сез|season)\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})(?:v\d)?\s*\]?(?!\d)",
+    re.IGNORECASE,
+)
+
+# S-dash / Season-dash с сериями: "S2 - 01", "S02 - 02", "Season 2 - 01", "Сезон 2 - 02", "S2 [01-12]"
+_RE_S_DASH_EP_RANGE = re.compile(
+    r"\b(?:S|Season|Сезон|Сез)\.?\s*(\d{1,2})\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})\s*[-–~]\s*(\d{1,4})\s*\]?",
+    re.IGNORECASE,
+)
+_RE_S_DASH_EP_SINGLE = re.compile(
+    r"\b(?:S|Season|Сезон|Сез)\.?\s*(\d{1,2})\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})(?:v\d)?\s*\]?(?!\d)",
+    re.IGNORECASE,
+)
+
+# Римские цифры сезонов с серией: "II сезон - 05", "Season II - 03"
+_RE_ROMAN_SEASON_EP = re.compile(
+    r"\b(?:(?:Season|Сезон|Сез)\.?\s*(i|ii|iii|iv|v|vi|vii|viii|ix|x)|(i|ii|iii|iv|v|vi|vii|viii|ix|x)\s*(?:сезон|сез|season))\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})(?:v\d)?\s*\]?",
+    re.IGNORECASE,
+)
+
 # S01E01-E10, S01E01-10, S01E01~E10, S01E01_E10
 _RE_SXXEXX_RANGE = re.compile(
     r"\bS(\d{1,2})\s*E(\d{1,3})\s*(?:[-–~_]|to)\s*(?:E)?(\d{1,3})\b",
@@ -371,6 +398,52 @@ def parse_episode(release_name: str) -> ParsedRelease:
             kind=ReleaseKind.EPISODE, season=0, episodes=[int(m.group(1))],
             raw=raw, matched_pattern="ova_ona_episode",
         )
+
+    # 1ж. Префиксные сезоны с сериями: "2nd Season - 01", "2nd Season [01-12]", "2-й сезон - 02", "1st Season 05"
+    m_pref_range = _RE_PREFIX_SEASON_EP_RANGE.search(protected)
+    if m_pref_range:
+        s = int(m_pref_range.group(1))
+        start, end = int(m_pref_range.group(2)), int(m_pref_range.group(3))
+        if start <= end and (end - start) < 300:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=s, episodes=list(range(start, end + 1)),
+                is_range=True, raw=raw, matched_pattern="prefix_season_ep_range",
+            )
+
+    m_pref_single = _RE_PREFIX_SEASON_EP_SINGLE.search(protected)
+    if m_pref_single:
+        return ParsedRelease(
+            kind=ReleaseKind.EPISODE, season=int(m_pref_single.group(1)), episodes=[int(m_pref_single.group(2))],
+            raw=raw, matched_pattern="prefix_season_ep_single",
+        )
+
+    # 1з. S-dash / Season-dash с сериями: "S2 - 01", "S02 - 02", "Season 2 - 01", "Сезон 2 - 02", "S2 [01-12]"
+    m_sd_range = _RE_S_DASH_EP_RANGE.search(protected)
+    if m_sd_range:
+        s = int(m_sd_range.group(1))
+        start, end = int(m_sd_range.group(2)), int(m_sd_range.group(3))
+        if start <= end and (end - start) < 300:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=s, episodes=list(range(start, end + 1)),
+                is_range=True, raw=raw, matched_pattern="s_dash_ep_range",
+            )
+
+    m_sd_single = _RE_S_DASH_EP_SINGLE.search(protected)
+    if m_sd_single:
+        return ParsedRelease(
+            kind=ReleaseKind.EPISODE, season=int(m_sd_single.group(1)), episodes=[int(m_sd_single.group(2))],
+            raw=raw, matched_pattern="s_dash_ep_single",
+        )
+
+    # 1и. Римские цифры сезонов с серией: "II сезон - 05", "Season II - 03"
+    m_roman_ep = _RE_ROMAN_SEASON_EP.search(protected)
+    if m_roman_ep:
+        r_val = (m_roman_ep.group(1) or m_roman_ep.group(2)).lower()
+        if r_val in ROMAN_SEASON_MAP:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=ROMAN_SEASON_MAP[r_val], episodes=[int(m_roman_ep.group(3))],
+                raw=raw, matched_pattern="roman_season_ep",
+            )
 
     # 2a. Мульти-сезонный диапазон (Сезон: 1-3, Сезоны 1-5, S01-S05, Seasons 1-5, 1-10 сезоны, 1-100 сезоны) — ДО единичного сезона!
     m_range = _RE_MULTI_SEASON_RANGE.search(protected)

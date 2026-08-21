@@ -103,8 +103,8 @@ class TestDownloadsMonitor(unittest.TestCase):
         settings = SimpleNamespace(root_folder="", root_folder_series="/media/series", rename_template_series="{Series Title}", season_folder_template_series="Season {season}")
 
         postprocess_called = []
-        def fake_postprocess(show_id, dl_path, tpl, root, s_tpl, is_movie, specific_files=None):
-            postprocess_called.append((show_id, dl_path, is_movie, specific_files))
+        def fake_postprocess(show_id, dl_path, tpl, root, s_tpl, is_movie, specific_files=None, torrent_hash=None):
+            postprocess_called.append((show_id, dl_path, is_movie, specific_files, torrent_hash))
             return [{"file": "a.mkv", "status": "imported", "dest": "/media/series/Test Show/Season 1/S01E01.mkv"}]
 
         with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
@@ -137,8 +137,8 @@ class TestDownloadsMonitor(unittest.TestCase):
         settings = SimpleNamespace(root_folder="", root_folder_movies="/media/movies", rename_template_movie="{Movie Title}")
 
         postprocess_called = []
-        def fake_postprocess(show_id, dl_path, tpl, root, s_tpl, is_movie, specific_files=None):
-            postprocess_called.append((show_id, dl_path, is_movie, specific_files))
+        def fake_postprocess(show_id, dl_path, tpl, root, s_tpl, is_movie, specific_files=None, torrent_hash=None):
+            postprocess_called.append((show_id, dl_path, is_movie, specific_files, torrent_hash))
             return [{"file": "movie.mkv", "status": "imported", "dest": "/media/movies/Test Movie/Test Movie (2024).mkv"}]
 
         with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
@@ -284,6 +284,43 @@ class TestDownloadsMonitor(unittest.TestCase):
             fake_client2.pause_torrent.assert_called_once_with("hash1")
             self.assertEqual(len(results2), 1)
 
+    def test_premature_import_prevented_at_99_97_percent(self):
+        """Проверяет, что при 99.97% прогресса в состоянии downloading импорт НЕ запускается."""
+        show = SimpleNamespace(id=1, title="Test Anime", content_type="anime", monitored=True)
+        dc = SimpleNamespace(id=10, name="DC1", type="qbittorrent", enabled=True, seed_time_limit=None, seed_ratio_limit=None)
+        ep = SimpleNamespace(
+            id=101, show_id=1, season_number=2, episode_number=1,
+            status="downloading", torrent_hash="hash-anime",
+            download_client_id=10, download_progress=0.0,
+        )
+
+        db_mock = MagicMock()
+        db_mock.query.return_value.filter.return_value.all.side_effect = [
+            [ep],   # downloading episodes
+            [dc],   # active clients
+        ]
+        db_mock.get.return_value = show
+
+        # Торрент ещё активно качается (99.97%, state='downloading')
+        torrent = TorrentInfo(hash="hash-anime", name="Test Anime S2", progress=0.9997, state="downloading", save_path="/tmp/anime", size=1000)
+        settings = SimpleNamespace(
+            root_folder="", root_folder_anime="/media/anime",
+            rename_template_anime="{Series Title} - S{season:00}E{episode:00} - {Episode Title}",
+            season_folder_template_anime="Сезон {season}",
+            download_folder_anime="",
+        )
+
+        with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+             patch("app.services.downloads_monitor.get_client", return_value=FakeClient([torrent])), \
+             patch("app.services.downloads_monitor._run_postprocess_in_thread") as mock_postprocess:
+            results = asyncio.run(check_downloads(db_mock))
+            # Прогресс обновляется до 0.9997, но импорт НЕ запускается
+            self.assertEqual(ep.download_progress, 0.9997)
+            self.assertEqual(ep.status, "downloading")
+            self.assertFalse(mock_postprocess.called)
+            self.assertEqual(results, [])
+
 
 if __name__ == "__main__":
     unittest.main()
+

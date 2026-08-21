@@ -719,6 +719,7 @@ def process_download(
     root_folder: str,
     season_folder_template: str = "Сезон {season}",
     specific_files: list[str] | None = None,
+    torrent_hash: str | None = None,
 ) -> list[dict]:
     """
     Обрабатывает завершённую загрузку для сериала/аниме:
@@ -803,6 +804,28 @@ def process_download(
     total_videos = len(video_files)
     used_companions = set()
 
+    dl_eps: list[Episode] = []
+    if torrent_hash and db:
+        try:
+            dl_eps = (
+                db.query(Episode)
+                .filter(Episode.show_id == show.id, Episode.torrent_hash == torrent_hash)
+                .order_by(Episode.season_number, Episode.episode_number)
+                .all()
+            )
+        except Exception:
+            dl_eps = []
+    if not dl_eps and db:
+        try:
+            dl_eps = (
+                db.query(Episode)
+                .filter(Episode.show_id == show.id, Episode.status == EpisodeStatus.DOWNLOADING)
+                .order_by(Episode.season_number, Episode.episode_number)
+                .all()
+            )
+        except Exception:
+            dl_eps = []
+
     for file_path in video_files:
         filename = os.path.basename(file_path)
         parsed = parse_episode(filename)
@@ -816,12 +839,16 @@ def process_download(
         if parsed.kind not in (ReleaseKind.EPISODE, ReleaseKind.ABSOLUTE) or not parsed.episodes:
             if len(video_files) == 1:
                 # Если видеофайл один, проверяем ожидающие серии
-                candidate_ep = (
-                    db.query(Episode)
-                    .filter(Episode.show_id == show.id, Episode.status.in_([EpisodeStatus.DOWNLOADING, EpisodeStatus.WANTED, EpisodeStatus.MISSING]))
-                    .order_by(Episode.season_number, Episode.episode_number)
-                    .first()
-                )
+                candidate_ep = None
+                if dl_eps:
+                    candidate_ep = dl_eps[0]
+                elif db:
+                    candidate_ep = (
+                        db.query(Episode)
+                        .filter(Episode.show_id == show.id, Episode.status.in_([EpisodeStatus.DOWNLOADING, EpisodeStatus.WANTED, EpisodeStatus.MISSING]))
+                        .order_by(Episode.season_number, Episode.episode_number)
+                        .first()
+                    )
                 if candidate_ep:
                     parsed.episodes = [candidate_ep.episode_number]
                     parsed.season = candidate_ep.season_number
@@ -835,20 +862,46 @@ def process_download(
 
         for ep_num in parsed.episodes:
             episode = None
-            if parsed.season is None:
-                episode = (
-                    db.query(Episode)
-                    .filter_by(show_id=show.id, absolute_number=ep_num)
-                    .first()
-                )
 
-            if episode is None:
-                season_num = parsed.season if parsed.season is not None else 1
-                episode = (
-                    db.query(Episode)
-                    .filter_by(show_id=show.id, season_number=season_num, episode_number=ep_num)
-                    .first()
-                )
+            # 1. Приоритетный поиск среди серий этой конкретной загрузки (dl_eps)
+            if dl_eps:
+                if parsed.season is not None:
+                    episode = next(
+                        (ep for ep in dl_eps if ep.season_number == parsed.season and (ep.episode_number == ep_num or ep.absolute_number == ep_num)),
+                        None,
+                    )
+                else:
+                    episode = next(
+                        (ep for ep in dl_eps if ep.episode_number == ep_num or ep.absolute_number == ep_num),
+                        None,
+                    )
+
+            # 2. Поиск по базе данных
+            if episode is None and db:
+                if parsed.season is not None:
+                    episode = (
+                        db.query(Episode)
+                        .filter_by(show_id=show.id, season_number=parsed.season, episode_number=ep_num)
+                        .first()
+                    )
+                else:
+                    episode = (
+                        db.query(Episode)
+                        .filter_by(show_id=show.id, absolute_number=ep_num)
+                        .first()
+                    )
+                    if episode is None and dl_eps:
+                        episode = (
+                            db.query(Episode)
+                            .filter_by(show_id=show.id, season_number=dl_eps[0].season_number, episode_number=ep_num)
+                            .first()
+                        )
+                    if episode is None:
+                        episode = (
+                            db.query(Episode)
+                            .filter_by(show_id=show.id, season_number=1, episode_number=ep_num)
+                            .first()
+                        )
 
             if episode:
                 season_num = episode.season_number
@@ -856,7 +909,7 @@ def process_download(
                 episode_title = episode.title or ""
                 absolute_num = episode.absolute_number if episode.absolute_number is not None else ep_num
             else:
-                season_num = parsed.season if parsed.season is not None else 1
+                season_num = parsed.season if parsed.season is not None else (dl_eps[0].season_number if dl_eps else 1)
                 actual_ep_num = ep_num
                 episode_title = ""
                 absolute_num = ep_num
