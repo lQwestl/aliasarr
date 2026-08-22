@@ -125,28 +125,7 @@ def get_health_check(db: Session = Depends(get_db)):
     """Расширенные проверки здоровья и метрики системы для дашборда."""
     checks = []
 
-    # 1. База данных
-    try:
-        from app.services.backup_service import _get_sqlite_db_path
-        db_path = _get_sqlite_db_path()
-        db_size_mb = 0.0
-        if db_path and os.path.exists(db_path):
-            db_size_mb = round(os.path.getsize(db_path) / (1024 * 1024), 2)
-        checks.append({
-            "key": "database",
-            "level": "ok",
-            "title": "База данных",
-            "message": f"SQLite подключена и исправна (размер базы: {db_size_mb} MB)",
-        })
-    except Exception:
-        checks.append({
-            "key": "database",
-            "level": "ok",
-            "title": "База данных",
-            "message": "База данных SQLite активна",
-        })
-
-    # 2. Дисковое пространство (/data, /downloads, /config)
+    # 1. Дисковое пространство (/data, /downloads, /config)
     paths_to_check = [
         ("/data", "Медиатека (/data)"),
         ("/downloads", "Загрузки (/downloads)"),
@@ -157,7 +136,6 @@ def get_health_check(db: Session = Depends(get_db)):
         target_dir = p_path if os.path.exists(p_path) else os.getcwd()
         try:
             usage = shutil.disk_usage(target_dir)
-            # Избегаем дублирования одинаковых точек монтирования
             mount_id = (usage.total, usage.free)
             if mount_id in seen_mounts and p_path != "/data":
                 continue
@@ -165,6 +143,7 @@ def get_health_check(db: Session = Depends(get_db)):
 
             total_gb = usage.total / (1024 ** 3)
             free_gb = usage.free / (1024 ** 3)
+            used_pct = round(((usage.total - usage.free) / usage.total) * 100, 1) if usage.total > 0 else 0
             free_pct = (usage.free / usage.total) * 100 if usage.total > 0 else 0
 
             lvl = "ok"
@@ -181,13 +160,14 @@ def get_health_check(db: Session = Depends(get_db)):
             checks.append({
                 "key": f"disk_{p_path}",
                 "level": lvl,
-                "title": f"Диск {p_label}",
-                "message": f"Свободно {_fmt_sz(free_gb)} из {_fmt_sz(total_gb)} ({free_pct:.0f}% свободно)",
+                "title": f"Диск: {p_label}",
+                "message": f"Свободно {_fmt_sz(free_gb)} из {_fmt_sz(total_gb)} ({used_pct}% занято)",
+                "used_pct": used_pct,
             })
         except Exception:
             pass
 
-    # 3. Индексаторы
+    # 2. Индексаторы
     idx_total = db.query(Indexer).count()
     indexers_enabled = db.query(Indexer).filter(Indexer.enabled == True).count()  # noqa: E712
     checks.append({
@@ -198,7 +178,7 @@ def get_health_check(db: Session = Depends(get_db)):
         else "Нет ни одного включённого индексатора — поиск релизов не работает",
     })
 
-    # 4. Загрузчики (Download Clients)
+    # 3. Загрузчики (Download Clients)
     dc_total = db.query(DownloadClient).count()
     dc_enabled = db.query(DownloadClient).filter(DownloadClient.enabled == True).count()  # noqa: E712
     checks.append({
@@ -209,18 +189,18 @@ def get_health_check(db: Session = Depends(get_db)):
         else "Нет активных download-клиентов — захваченные релизы не будут скачиваться",
     })
 
-    # 5. Источники метаданных
+    # 4. Источники метаданных
     md_total = db.query(MetadataSource).count()
     md_enabled = db.query(MetadataSource).filter(MetadataSource.enabled == True).count()  # noqa: E712
     checks.append({
         "key": "metadata",
         "level": "ok" if md_enabled else "warn",
         "title": "Метаданные",
-        "message": f"Активно {md_enabled} источников (Sonarr/Radarr SkyHook, TMDB, TVDB)" if md_enabled
+        "message": f"Активно {md_enabled} источников (SkyHook, TheTVDB, TVMaze, TMDB)" if md_enabled
         else "Нет активных источников метаданных",
     })
 
-    # 6. Планировщик фоновых задач
+    # 5. Планировщик фоновых задач
     checks.append({
         "key": "scheduler",
         "level": "ok",
@@ -228,7 +208,7 @@ def get_health_check(db: Session = Depends(get_db)):
         "message": "Служба автоматической проверки загрузок и трекеров работает",
     })
 
-    # 7. Профили качества
+    # 6. Профили качества
     shows_without_profile = db.query(Show).filter(Show.quality_profile_id.is_(None)).count()
     if shows_without_profile:
         checks.append({
@@ -237,20 +217,13 @@ def get_health_check(db: Session = Depends(get_db)):
             "title": "Профили качества",
             "message": f"Видео без профиля качества: {shows_without_profile} (разрешено любое качество)",
         })
-
-    # 8. Протокол соединения
-    try:
-        from app.services.settings_service import get_or_create_settings
-        app_settings = get_or_create_settings(db)
-        is_ssl = getattr(app_settings, "ssl_enabled", False)
+    else:
         checks.append({
-            "key": "security_ssl",
+            "key": "profiles",
             "level": "ok",
-            "title": "Безопасность",
-            "message": "Защищённый протокол HTTPS (SSL) активен" if is_ssl else "Веб-интерфейс работает по HTTP",
+            "title": "Профили качества",
+            "message": "Все тайтлы библиотеки привязаны к профилям качества",
         })
-    except Exception:
-        pass
 
     has_error = any(c.get("level") == "error" for c in checks)
     has_warn = any(c.get("level") == "warn" for c in checks)

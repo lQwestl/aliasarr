@@ -158,7 +158,9 @@ const TRANSLATIONS = {
     "dash.full_calendar": "Весь календарь →",
     "dash.recent_grabs": "Последние захваты",
     "dash.full_history": "Вся история →",
+    "dash.about_title": "О программе",
     "dash.system_health": "Здоровье системы",
+    "health.status_ok": "В норме",
     "dash.video_count": "видео",
     "dash.episodes_count": "серий",
     "dash.no_upcoming": "Ближайших выходов не найдено",
@@ -1114,7 +1116,9 @@ const TRANSLATIONS = {
     "dash.full_calendar": "Full Calendar →",
     "dash.recent_grabs": "Recent Grabs",
     "dash.full_history": "Full History →",
+    "dash.about_title": "About",
     "dash.system_health": "System Health",
+    "health.status_ok": "Healthy",
     "dash.video_count": "videos",
     "dash.episodes_count": "episodes",
     "dash.no_upcoming": "No upcoming releases found",
@@ -3275,32 +3279,104 @@ async function loadDashboard() {
       </div>`).join("") || `<div class="simple-list-empty">${t("dash.no_grabs")}</div>`;
   } catch (e) {}
 
+  loadSystemAbout();
   loadHealthCheck();
+}
+
+async function loadSystemAbout() {
+  const el = document.getElementById("dash-about-content");
+  const versionBadge = document.getElementById("dash-about-version");
+  if (!el) return;
+  try {
+    const info = await api("/api/v1/system/about");
+    if (!info) return;
+
+    if (versionBadge) {
+      versionBadge.textContent = `v${info.version || '1.0.0'}`;
+    }
+
+    const isRu = CURRENT_LANG !== "en";
+    const rows = [
+      {
+        icon: "tag",
+        label: isRu ? "Версия" : "Version",
+        val: `<span class="badge-teal mono">v${escapeHtml(info.version || '1.0.0')} (${escapeHtml(info.branch || 'main')})</span>`,
+      },
+      {
+        icon: "box",
+        label: isRu ? "Среда выполнения" : "Runtime",
+        val: `<span class="mono">${escapeHtml(info.runtime || 'Docker')}</span>`,
+      },
+      {
+        icon: "terminal",
+        label: "Python",
+        val: `<span class="mono">${escapeHtml(info.python_version || '3.11')}</span>`,
+      },
+      {
+        icon: "database",
+        label: isRu ? "База данных" : "Database",
+        val: `<span class="mono">${escapeHtml(info.database_type || 'SQLite')} ${escapeHtml(info.database_version || '')} (${info.database_size_formatted || '0 B'})</span>`,
+      },
+      {
+        icon: "folder",
+        label: isRu ? "Каталог настроек" : "AppData Dir",
+        val: `<span class="mono" title="${escapeHtml(info.config_directory || '')}">${escapeHtml(info.config_directory || '/config')}</span>`,
+      },
+      {
+        icon: "clock",
+        label: isRu ? "Время работы" : "Uptime",
+        val: `<span>${escapeHtml(isRu ? info.uptime_formatted : info.uptime_formatted_en)}</span>`,
+      },
+      {
+        icon: "globe",
+        label: isRu ? "Часовой пояс" : "Timezone",
+        val: `<span>${escapeHtml(info.timezone || 'UTC')}</span>`,
+      },
+      {
+        icon: info.ssl_enabled ? "shield-check" : "globe",
+        label: isRu ? "Режим подключения" : "Connection Mode",
+        val: `<span class="mono" style="color:${info.ssl_enabled ? 'var(--teal)' : 'inherit'}">${escapeHtml(isRu ? info.mode : info.mode_en)}</span>`,
+      },
+    ];
+
+    el.innerHTML = rows.map(r => `
+      <div class="about-item">
+        <span class="about-label">
+          <i data-lucide="${r.icon}"></i>
+          <span>${r.label}</span>
+        </span>
+        <span class="about-val">${r.val}</span>
+      </div>
+    `).join("");
+
+    if (typeof lucide !== "undefined" && lucide.createIcons) {
+      lucide.createIcons();
+    }
+  } catch (e) {
+    console.error("loadSystemAbout error:", e);
+    el.innerHTML = `<div class="about-item"><span style="color:var(--text-muted);">${escapeHtml(e.message || "Ошибка загрузки информации")}</span></div>`;
+  }
 }
 
 function formatHealthMessage(msg) {
   if (CURRENT_LANG !== "en") return msg;
   return (msg || "")
-    .replace(/^SQLite подключена и исправна \(размер базы: ([\d\.]+) MB\)/i, "SQLite connected and healthy (DB size: $1 MB)")
-    .replace(/^База данных SQLite активна/i, "SQLite database active")
+    .replace(/^Свободно (.+?) из (.+?) \((\d+)% занято\)/i, "Free $1 of $2 ($3% used)")
     .replace(/^Свободно (.+?) из (.+?) \((\d+)% свободно\)/i, "Free $1 of $2 ($3% free)")
     .replace(/^Включено (\d+) из (\d+) трекеров/i, "Enabled $1 of $2 trackers")
     .replace(/^Нет ни одного включённого индексатора.*/i, "No enabled indexers — release searching will not work")
     .replace(/^Включено (\d+) из (\d+) клиентов загрузки/i, "Enabled $1 of $2 download clients")
     .replace(/^Нет активных download-клиентов.*/i, "No active download clients — grabbed releases will not be downloaded")
-    .replace(/^Активно (\d+) источников.*/i, "Active $1 metadata sources (Sonarr/Radarr SkyHook, TMDB, TVDB)")
+    .replace(/^Активно (\d+) источников.*/i, "Active $1 metadata sources (SkyHook, TheTVDB, TVMaze, TMDB)")
     .replace(/^Нет активных источников метаданных/i, "No active metadata sources")
     .replace(/^Служба автоматической проверки загрузок и трекеров работает/i, "Automatic downloads and tracker monitoring service active")
-    .replace(/^Все тайтлы привязаны к профилям качества/i, "All titles are assigned to quality profiles")
-    .replace(/^Видео без профиля качества: (\d+).*/i, "Videos without quality profile: $1 (any quality allowed)")
-    .replace(/^Защищённый протокол HTTPS \(SSL\) активен/i, "Secure HTTPS (SSL) protocol active")
-    .replace(/^Веб-интерфейс работает по HTTP/i, "Web UI running via HTTP");
+    .replace(/^Все тайтлы библиотеки привязаны к профилям качества/i, "All titles in library are assigned to quality profiles")
+    .replace(/^Видео без профиля качества: (\d+).*/i, "Videos without quality profile: $1 (any quality allowed)");
 }
 
 function formatHealthTitle(title) {
   if (CURRENT_LANG !== "en") return title;
   const map = {
-    "База данных": "Database",
     "Индексаторы": "Indexers",
     "Загрузчики": "Download Clients",
     "Метаданные": "Metadata Sources",
@@ -3309,6 +3385,9 @@ function formatHealthTitle(title) {
     "Безопасность": "Security",
   };
   if (map[title]) return map[title];
+  if (title && title.startsWith("Диск: ")) {
+    return title.replace("Диск: ", "Disk: ");
+  }
   if (title && title.startsWith("Диск ")) {
     return title.replace("Диск ", "Disk ");
   }
@@ -3317,28 +3396,67 @@ function formatHealthTitle(title) {
 
 async function loadHealthCheck() {
   const el = document.getElementById("health-checks");
+  const healthBadge = document.getElementById("dash-health-badge");
   if (!el) return;
   try {
     const res = await api("/api/v1/health-check");
     const checks = (res && Array.isArray(res.checks)) ? res.checks : [];
+    const overall = res && res.status ? res.status : "ok";
+
+    if (healthBadge) {
+      if (overall === "error") {
+        healthBadge.className = "badge badge-error";
+        healthBadge.textContent = CURRENT_LANG === "en" ? "Issues Found" : "Есть ошибки";
+      } else if (overall === "warn") {
+        healthBadge.className = "badge badge-warn";
+        healthBadge.textContent = CURRENT_LANG === "en" ? "Warnings" : "Предупреждения";
+      } else {
+        healthBadge.className = "badge badge-ok";
+        healthBadge.textContent = CURRENT_LANG === "en" ? "Healthy" : "В норме";
+      }
+    }
+
     if (checks.length > 0) {
-      el.innerHTML = checks.map(c => `
-        <div class="health-row" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--border);">
-          <div style="display:flex; align-items:center; gap:10px; min-width:180px;">
-            <span class="health-dot health-${c.level || 'ok'}"></span>
-            <strong style="font-size:13.5px; color:var(--text);">${escapeHtml(formatHealthTitle(c.title || "Статус"))}</strong>
+      el.innerHTML = checks.map(c => {
+        const lvl = c.level || 'ok';
+        let progressHtml = "";
+        if (c.used_pct !== undefined) {
+          const fillColor = lvl === 'error' ? 'var(--danger)' : (lvl === 'warn' ? '#fbbf24' : 'var(--teal)');
+          progressHtml = `
+            <div class="health-progress-bar">
+              <div class="health-progress-fill" style="width:${Math.min(100, Math.max(0, c.used_pct))}%; background:${fillColor};"></div>
+            </div>
+          `;
+        }
+        return `
+          <div class="health-item">
+            <div class="health-item-header">
+              <div class="health-item-title">
+                <span class="health-dot health-${lvl}"></span>
+                <span>${escapeHtml(formatHealthTitle(c.title || "Статус"))}</span>
+              </div>
+              <span class="badge ${lvl === 'error' ? 'badge-error' : (lvl === 'warn' ? 'badge-warn' : 'badge-ok')}" style="font-size:10.5px; padding:2px 6px;">
+                ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Error' : 'Ошибка') : (lvl === 'warn' ? (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание') : (CURRENT_LANG === 'en' ? 'OK' : 'Норма'))}
+              </span>
+            </div>
+            <div class="health-item-msg">${escapeHtml(formatHealthMessage(c.message))}</div>
+            ${progressHtml}
           </div>
-          <span style="font-size:13px; color:var(--text-muted); text-align:right; flex:1;">${escapeHtml(formatHealthMessage(c.message))}</span>
-        </div>`).join("");
+        `;
+      }).join("");
     } else {
-      el.innerHTML = `<div class="simple-list-empty" style="color:var(--text-muted); padding:8px 0;">${CURRENT_LANG === "en" ? "All systems operational" : "Все службы работают в штатном режиме"}</div>`;
+      el.innerHTML = `<div class="simple-list-empty" style="color:var(--text-muted); padding:8px 0;">${CURRENT_LANG === "en" ? "All services operating normally" : "Все службы работают в штатном режиме"}</div>`;
     }
     if (typeof lucide !== "undefined" && lucide.createIcons) {
       lucide.createIcons();
     }
   } catch (e) {
     console.error("loadHealthCheck error:", e);
-    el.innerHTML = `<div class="health-row" style="padding:8px 0;"><span class="health-dot health-warn"></span><span style="color:var(--text-muted); font-size:13px;">${escapeHtml(e.message || "Ошибка загрузки состояния системы")}</span></div>`;
+    if (healthBadge) {
+      healthBadge.className = "badge badge-warn";
+      healthBadge.textContent = "Error";
+    }
+    el.innerHTML = `<div class="health-item"><div class="health-item-msg" style="color:var(--danger);">${escapeHtml(e.message || "Ошибка загрузки состояния системы")}</div></div>`;
   }
 }
 

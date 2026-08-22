@@ -285,11 +285,32 @@
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header-row">
-          <h3 data-i18n="dash.system_health"><i data-lucide="activity" class="ico-sm icon-title"></i> <span data-i18n="dash.system_health">Здоровье системы</span></h3>
+      <div class="dash-columns system-dash-columns">
+        <!-- Карточка 1: О программе (как у Sonarr) -->
+        <div class="card dash-system-card">
+          <div class="card-header-row">
+            <h3 class="dash-card-header">
+              <i data-lucide="info" class="ico-sm icon-title" style="color:var(--teal)"></i> 
+              <span data-i18n="dash.about_title">О программе</span>
+            </h3>
+            <span class="badge badge-teal" id="dash-about-version">v1.0.0</span>
+          </div>
+          <div id="dash-about-content" class="about-grid">
+            <div class="simple-list-empty" data-i18n="common.loading">Загрузка...</div>
+          </div>
         </div>
-        <div id="health-checks" class="health-grid"></div>
+
+        <!-- Карточка 2: Здоровье системы -->
+        <div class="card dash-system-card">
+          <div class="card-header-row">
+            <h3 class="dash-card-header">
+              <i data-lucide="activity" class="ico-sm icon-title" style="color:var(--teal)"></i> 
+              <span data-i18n="dash.system_health">Здоровье системы</span>
+            </h3>
+            <span class="badge badge-ok" id="dash-health-badge" data-i18n="health.status_ok">В норме</span>
+          </div>
+          <div id="health-checks" class="health-grid"></div>
+        </div>
       </div>
     </section>
 

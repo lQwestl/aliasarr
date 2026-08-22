@@ -28,10 +28,98 @@ from app.services.log_service import purge_old_logs
 from app.services.settings_service import get_or_create_settings
 from app.services.user_service import require_permission, require_any_permission, get_current_user
 
+import platform
+import sqlite3
+import sys
+import time
+
 router = APIRouter(prefix="/api/v1", tags=["system"])
 logger = logging.getLogger("aliasarr.system")
 
 BACKUP_DIR = os.getenv("ALIASARR_BACKUP_DIR", "/config/backups")
+APP_START_TIME = time.time()
+
+
+@router.get("/system/about")
+def get_system_about(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_any_permission("view_dashboard", "manage_settings")),
+):
+    """
+    Информация о программе и среде выполнения (как About в Sonarr/Radarr):
+    версия, сборка, рантайм, ОС, база данных, аптайм, пути и режим работы.
+    """
+    settings = get_or_create_settings(db)
+
+    from app.services.backup_service import _get_sqlite_db_path
+    db_path = _get_sqlite_db_path() or "/config/aliasarr.db"
+    db_size_bytes = os.path.getsize(db_path) if (db_path and os.path.exists(db_path)) else 0
+
+    if db_size_bytes >= 1024 * 1024 * 1024:
+        db_size_fmt = f"{db_size_bytes / (1024 ** 3):.2f} GB"
+    elif db_size_bytes >= 1024 * 1024:
+        db_size_fmt = f"{db_size_bytes / (1024 ** 2):.1f} MB"
+    elif db_size_bytes > 0:
+        db_size_fmt = f"{db_size_bytes / 1024:.1f} KB"
+    else:
+        db_size_fmt = "0 B"
+
+    uptime_sec = int(time.time() - APP_START_TIME)
+    days, rem = divmod(uptime_sec, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, _ = divmod(rem, 60)
+
+    uptime_ru_parts = []
+    if days > 0:
+        uptime_ru_parts.append(f"{days} дн.")
+    if hours > 0 or days > 0:
+        uptime_ru_parts.append(f"{hours} ч.")
+    uptime_ru_parts.append(f"{minutes} мин.")
+    uptime_ru = " ".join(uptime_ru_parts)
+
+    uptime_en_parts = []
+    if days > 0:
+        uptime_en_parts.append(f"{days}d")
+    if hours > 0 or days > 0:
+        uptime_en_parts.append(f"{hours}h")
+    uptime_en_parts.append(f"{minutes}m")
+    uptime_en = " ".join(uptime_en_parts)
+
+    is_docker = os.path.exists("/.dockerenv") or os.environ.get("DOCKER_CONTAINER") == "true" or os.path.exists("/app/run.py")
+    is_ssl = getattr(settings, "ssl_enabled", False)
+    port = int(os.getenv("PORT", getattr(settings, "ssl_port", 8989) if is_ssl else 8989))
+
+    py_ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    arch = platform.machine()
+    os_sys = platform.system()
+
+    return {
+        "app_name": "Aliasarr",
+        "version": "1.0.0",
+        "package_version": "1.0.0 (main)",
+        "branch": "main",
+        "python_version": py_ver,
+        "os_name": os_sys,
+        "os_version": f"{os_sys} {platform.release()}",
+        "architecture": arch,
+        "is_docker": is_docker,
+        "runtime": f"Docker (Linux {arch})" if is_docker else f"{os_sys} ({arch})",
+        "database_type": "SQLite",
+        "database_version": sqlite3.sqlite_version,
+        "database_path": db_path,
+        "database_size_bytes": db_size_bytes,
+        "database_size_formatted": db_size_fmt,
+        "config_directory": "/config" if (is_docker or os.path.exists("/config")) else os.path.abspath("./config"),
+        "uptime_seconds": uptime_sec,
+        "uptime_formatted": uptime_ru,
+        "uptime_formatted_en": uptime_en,
+        "timezone": settings.timezone or "UTC",
+        "ssl_enabled": is_ssl,
+        "mode": f"HTTPS (порт {port})" if is_ssl else f"HTTP (порт {port})",
+        "mode_en": f"HTTPS (port {port})" if is_ssl else f"HTTP (port {port})",
+        "port": port,
+        "authentication": "Форма входа" if getattr(settings, "login_enabled", True) else "Отключена",
+    }
 
 
 # ---------------------------------------------------------------------------
