@@ -91,42 +91,44 @@ ROMAN_SEASON_MAP = {
     "xi": 11, "xii": 12, "xiii": 13, "xiv": 14, "xv": 15, "xvi": 16, "xvii": 17, "xviii": 18, "xix": 19, "xx": 20,
 }
 
+_PART_WORD = r"(?:\s*(?:part|часть|cour|кур|vol(?:ume)?|том)\.?\s*\d+\s*)?"
+
 # Римские цифры сезонов: "I сезон", "II сезон", "III сезон", "IV сезон", "Season I", "Сезон II"
 _RE_ROMAN_SEASON = re.compile(
     r"\b(?:(?:Season|Сезон|Сез)\.?\s*(i|ii|iii|iv|v|vi|vii|viii|ix|x|xi|xii|xiii|xiv|xv|xvi|xvii|xviii|xix|xx)|(i|ii|iii|iv|v|vi|vii|viii|ix|x|xi|xii|xiii|xiv|xv|xvi|xvii|xviii|xix|xx)\s*(?:сезон|сез|season))\b",
     re.IGNORECASE,
 )
 
-# Префиксные порядковые сезоны: "1st Season", "2nd Season", "3rd Season", "1-й сезон", "1 сезон", "01 сезон"
+# Префиксные порядковые сезоны: "1st Season", "2nd Season", "3rd Season", "1-й сезон", "1 сезон", "01 сезон", "4th Season Part 1"
 _RE_PREFIX_SEASON = re.compile(
-    r"\b(\d{1,2})\s*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?\s*(?:сезон|сез|season)\b",
+    r"\b(\d{1,2})\s*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?\s*(?:сезон|сез|season)" + _PART_WORD + r"\b",
     re.IGNORECASE,
 )
 
 # Префиксные порядковые сезоны с диапазоном или одиночной серией:
-# "2nd Season - 01", "2nd Season [01-12]", "2-й сезон - 02", "1st Season 05", "2nd Season - 01v2"
+# "2nd Season - 01", "2nd Season [01-12]", "2-й сезон - 02", "1st Season 05", "2nd Season - 01v2", "4th Season Part 1 - 04"
 _RE_PREFIX_SEASON_EP_RANGE = re.compile(
-    r"\b(\d{1,2})\s*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?\s*(?:сезон|сез|season)\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})\s*[-–~]\s*(\d{1,4})\s*\]?",
+    r"\b(\d{1,2})\s*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?\s*(?:сезон|сез|season)" + _PART_WORD + r"\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})\s*[-–~]\s*(\d{1,4})\s*\]?",
     re.IGNORECASE,
 )
 _RE_PREFIX_SEASON_EP_SINGLE = re.compile(
-    r"\b(\d{1,2})\s*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?\s*(?:сезон|сез|season)\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})(?:v\d)?\s*\]?(?!\d)",
+    r"\b(\d{1,2})\s*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?\s*(?:сезон|сез|season)" + _PART_WORD + r"\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})(?:v\d)?\s*\]?(?!\d)",
     re.IGNORECASE,
 )
 
-# S-dash / Season-dash с сериями: "S2 - 01", "S02 - 02", "Season 2 - 01", "Сезон 2 - 02", "S2 [01-12]"
+# S-dash / Season-dash с сериями: "S2 - 01", "S02 - 02", "Season 2 - 01", "Сезон 2 - 02", "S2 [01-12]", "Season 4 Part 1 - 04"
 _RE_S_DASH_EP_RANGE = re.compile(
-    r"\b(?:S|Season|Сезон|Сез)\.?\s*(\d{1,2})\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})\s*[-–~]\s*(\d{1,4})\s*\]?",
+    r"\b(?:S|Season|Сезон|Сез)\.?\s*(\d{1,2})" + _PART_WORD + r"\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})\s*[-–~]\s*(\d{1,4})\s*\]?",
     re.IGNORECASE,
 )
 _RE_S_DASH_EP_SINGLE = re.compile(
-    r"\b(?:S|Season|Сезон|Сез)\.?\s*(\d{1,2})\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})(?:v\d)?\s*\]?(?!\d)",
+    r"\b(?:S|Season|Сезон|Сез)\.?\s*(\d{1,2})" + _PART_WORD + r"\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})(?:v\d)?\s*\]?(?!\d)",
     re.IGNORECASE,
 )
 
-# Римские цифры сезонов с серией: "II сезон - 05", "Season II - 03"
+# Римские цифры сезонов с серией: "II сезон - 05", "Season II - 03", "Overlord IV Part 1 - 05", "Overlord IV - 05"
 _RE_ROMAN_SEASON_EP = re.compile(
-    r"\b(?:(?:Season|Сезон|Сез)\.?\s*(i|ii|iii|iv|v|vi|vii|viii|ix|x)|(i|ii|iii|iv|v|vi|vii|viii|ix|x)\s*(?:сезон|сез|season))\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})(?:v\d)?\s*\]?",
+    r"\b(?:(?:Season|Сезон|Сез)\.?\s*(i|ii|iii|iv|v|vi|vii|viii|ix|x)|(i|ii|iii|iv|v|vi|vii|viii|ix|x)\s*(?:сезон|сез|season)?)" + _PART_WORD + r"\s*(?:[-–~_:]|\s+)\s*\[?\s*(\d{1,4})(?:v\d)?\s*\]?",
     re.IGNORECASE,
 )
 
@@ -473,17 +475,21 @@ def parse_episode(release_name: str) -> ParsedRelease:
     # "Hell_Mode_Yarikomizuki_no_Gamer_wa_Hai_Sette_2_[04]_[HEVC].mkv", "KonoSuba 2 [05] [1080p].mkv"
     m_s_br = _RE_SEASON_DIGIT_BRACKET_EP.search(protected)
     if m_s_br:
-        return ParsedRelease(
-            kind=ReleaseKind.EPISODE, season=int(m_s_br.group(1)), episodes=[int(m_s_br.group(2))],
-            raw=raw, matched_pattern="season_digit_bracket_ep",
-        )
+        prefix_before = protected[:m_s_br.start(1)].lower().strip(" _.-")
+        if not re.search(r"\b(?:part|часть|cour|кур|vol|volume|том)$", prefix_before, re.IGNORECASE):
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=int(m_s_br.group(1)), episodes=[int(m_s_br.group(2))],
+                raw=raw, matched_pattern="season_digit_bracket_ep",
+            )
 
     m_s_dash = _RE_SEASON_DIGIT_DASH_EP.search(protected)
     if m_s_dash:
-        return ParsedRelease(
-            kind=ReleaseKind.EPISODE, season=int(m_s_dash.group(1)), episodes=[int(m_s_dash.group(2))],
-            raw=raw, matched_pattern="season_digit_dash_ep",
-        )
+        prefix_before = protected[:m_s_dash.start(1)].lower().strip(" _.-")
+        if not re.search(r"\b(?:part|часть|cour|кур|vol|volume|том)$", prefix_before, re.IGNORECASE):
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=int(m_s_dash.group(1)), episodes=[int(m_s_dash.group(2))],
+                raw=raw, matched_pattern="season_digit_dash_ep",
+            )
 
     # 2a. Мульти-сезонный диапазон (Сезон: 1-3, Сезоны 1-5, S01-S05, Seasons 1-5, 1-10 сезоны, 1-100 сезоны) — ДО единичного сезона!
     m_range = _RE_MULTI_SEASON_RANGE.search(protected)
@@ -593,12 +599,14 @@ def parse_episode(release_name: str) -> ParsedRelease:
             )
     m = _RE_PLAIN_RANGE.search(protected)
     if m:
-        start, end = int(m.group(1)), int(m.group(2))
-        if 0 <= start <= end <= 2500 and (end - start) < 300:
-            return ParsedRelease(
-                kind=ReleaseKind.EPISODE, episodes=list(range(start, end + 1)),
-                is_range=True, raw=raw, matched_pattern="plain_range",
-            )
+        prefix_before = protected[:m.start(1)].lower().strip(" _.-")
+        if not re.search(r"\b(?:part|часть|cour|кур|vol|volume|том)$", prefix_before, re.IGNORECASE):
+            start, end = int(m.group(1)), int(m.group(2))
+            if 0 <= start <= end <= 2500 and (end - start) < 300:
+                return ParsedRelease(
+                    kind=ReleaseKind.EPISODE, episodes=list(range(start, end + 1)),
+                    is_range=True, raw=raw, matched_pattern="plain_range",
+                )
 
     # 6. Аниме absolute: "- 154", "- 05", "- 001", "- 00", "- 000"
     m = _RE_DASH_ABSOLUTE.search(protected)

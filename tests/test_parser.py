@@ -154,6 +154,39 @@ class TestParser(unittest.TestCase):
         self.assertEqual(p_pack.kind, ReleaseKind.SEASON_PACK)
 
 
+    def test_slime_season_4_parts(self):
+        # Anime with "4th Season Part 1 - 04"
+        for i in range(1, 13):
+            fn = f"Tensei shitara Slime Datta Ken 4th Season Part 1 - {i:02d} [WEB-DL 1080p].mkv"
+            p = parse_episode(fn)
+            self.assertEqual(p.season, 4, f"Failed season for {fn}")
+            self.assertEqual(p.episodes, [i], f"Failed episode for {fn}")
+            self.assertEqual(p.kind, ReleaseKind.EPISODE)
+
+        torrent_pack = "Tensei shitara Slime Datta Ken 4th Season Part 1 [WEB-DL 1080p]"
+        p_pack = parse_episode(torrent_pack)
+        self.assertEqual(p_pack.season, 4)
+        self.assertEqual(p_pack.episodes, [])
+        self.assertEqual(p_pack.kind, ReleaseKind.SEASON_PACK)
+
+    def test_anime_parts_and_cours(self):
+        p1 = parse_episode("Season 4 Part 1 - 02 [1080p].mkv")
+        self.assertEqual(p1.season, 4)
+        self.assertEqual(p1.episodes, [2])
+
+        p2 = parse_episode("Сезон 4 Часть 2 - 05 [1080p].mkv")
+        self.assertEqual(p2.season, 4)
+        self.assertEqual(p2.episodes, [5])
+
+        p3 = parse_episode("Overlord IV Part 1 - 05 [1080p].mkv")
+        self.assertEqual(p3.season, 4)
+        self.assertEqual(p3.episodes, [5])
+
+        p4 = parse_episode("Overlord IV - 05 [1080p].mkv")
+        self.assertEqual(p4.season, 4)
+        self.assertEqual(p4.episodes, [5])
+
+
 if __name__ == "__main__":
     unittest.main()
 

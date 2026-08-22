@@ -112,8 +112,10 @@ def evaluate_torrent_file_priority(
             return 0
         base_name = os.path.basename(file_name)
         parsed = parse_episode(base_name)
-        if not parsed or not parsed.episodes:
-            parsed = parse_episode(file_name)
+        if not parsed or not parsed.episodes or parsed.season is None:
+            parsed_full = parse_episode(file_name)
+            if parsed_full and parsed_full.episodes:
+                parsed = parsed_full
         if not parsed or not parsed.episodes:
             # Общие субтитры/nfo без явного номера серии в названии (например, общая папка subs)
             return 1
@@ -133,8 +135,10 @@ def evaluate_torrent_file_priority(
     if ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}:
         base_name = os.path.basename(file_name)
         parsed = parse_episode(base_name)
-        if not parsed or not parsed.episodes:
-            parsed = parse_episode(file_name)
+        if not parsed or not parsed.episodes or parsed.season is None:
+            parsed_full = parse_episode(file_name)
+            if parsed_full and parsed_full.episodes:
+                parsed = parsed_full
         if not parsed or not parsed.episodes:
             # Если не удалось спарсить номер серии, но разыскивается 1 серия и в имени нет чужих меток
             if len(target_episodes) == 1 and not re.search(r"\bs\d+|\be\d+|\bep\d+", fname_lower):
@@ -163,12 +167,13 @@ async def _ensure_movie_files_wanted(dl_client, torrent_hash: str) -> None:
         try:
             torrent = await dl_client.get_torrent(torrent_hash)
             if torrent and torrent.files:
+                allowed_exts = {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm", ".srt", ".ass", ".sub", ".mka", ".nfo", ".ttf", ".otf"}
                 wanted_indices = []
                 for f in torrent.files:
-                    ext = os.path.splitext(f.name)[1].lower()
-                    fname_lower = f.name.lower().replace("\\", "/")
-                    if ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm", ".srt", ".ass", ".sub", ".mka", ".nfo", ".ttf", ".otf"}:
-                        if not ("/sample" in fname_lower or fname_lower.endswith("-sample.mkv")):
+                    f_ext = os.path.splitext(f.name)[1].lower()
+                    f_name_lower = f.name.lower().replace("\\", "/")
+                    if f_ext in allowed_exts:
+                        if not ("/sample" in f_name_lower or f_name_lower.endswith("-sample.mkv")):
                             wanted_indices.append(f.index)
                 if not wanted_indices:
                     wanted_indices = [f.index for f in torrent.files]
@@ -254,10 +259,30 @@ async def _limit_torrent_files_to_episodes(
         else:
             unwanted_indices.append(f.index)
 
-    if unwanted_indices:
-        await dl_client.set_file_priorities(torrent_hash, unwanted_indices, 0)
     if wanted_indices:
+        if unwanted_indices:
+            await dl_client.set_file_priorities(torrent_hash, unwanted_indices, 0)
         await dl_client.set_file_priorities(torrent_hash, wanted_indices, 1)
+    else:
+        # ЗАЩИТА: Ни в коем случае не выключаем все файлы в раздаче (иначе торрент сразу завершится со статусом Seeding 0.0%)!
+        # Если ни один файл не подошел под строгий фильтр серий, включаем все видеофайлы, чтобы избежать срыва загрузки:
+        import os
+        video_exts = {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}
+        all_video_indices = [
+            f.index for f in torrent.files
+            if os.path.splitext(f.name)[1].lower() in video_exts or (import_extras and os.path.splitext(f.name)[1].lower() in (extra_exts or set()))
+        ]
+        if not all_video_indices:
+            all_video_indices = [f.index for f in torrent.files]
+        wanted_indices = all_video_indices
+        unwanted_indices = [f.index for f in torrent.files if f.index not in wanted_indices]
+        if unwanted_indices:
+            await dl_client.set_file_priorities(torrent_hash, unwanted_indices, 0)
+        await dl_client.set_file_priorities(torrent_hash, wanted_indices, 1)
+        logger.warning(
+            "Раздача %s: файлы не подошли под строгий фильтр серий. Включены все видеофайлы (%d шт), чтобы загрузка не сорвалась.",
+            torrent_hash, len(wanted_indices)
+        )
 
     try:
         await dl_client.resume_torrent(torrent_hash)
