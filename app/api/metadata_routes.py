@@ -596,7 +596,7 @@ async def proxy_image(url: str):
     try:
         import httpx
         async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-            resp = await client.get(url, headers={"User-Agent": "Aliasarr/0.2.0"})
+            resp = await client.get(url, headers={"User-Agent": "Aliasarr/1.0.0"})
             if resp.status_code == 200:
                 media_type = resp.headers.get("content-type", "image/jpeg")
                 return Response(

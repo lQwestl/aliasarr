@@ -56,7 +56,7 @@ app = FastAPI(
     title="Aliasarr",
     description="*arr-подобный менеджер фильмов/сериалов/аниме с алиасами, "
                  "универсальным парсером серий и слежением за раздачей",
-    version="0.2.0",
+    version="1.0.0",
 )
 
 
@@ -77,7 +77,7 @@ def custom_openapi():
 
     schema = get_openapi(
         title="Aliasarr",
-        version="0.2.0",
+        version="1.0.0",
         description=desc,
         routes=app.routes,
     )

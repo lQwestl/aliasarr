@@ -667,7 +667,7 @@ class SkyHookClient(BaseMetadataClient):
         seen_ids: set[str] = set()
 
         # 1. Поиск сериалов и аниме через Sonarr Skyhook
-        async with httpx.AsyncClient(timeout=20, headers={"User-Agent": "Aliasarr/0.2.0 (Sonarr SkyHook Proxy)"}) as client:
+        async with httpx.AsyncClient(timeout=20, headers={"User-Agent": "Aliasarr/1.0.0 (Sonarr SkyHook Proxy)"}) as client:
             try:
                 resp = await client.get(
                     f"{self.base_url}/search/en/",
@@ -724,7 +724,7 @@ class SkyHookClient(BaseMetadataClient):
             return await self._get_series_details(str(external_id))
 
     async def _get_series_details(self, tvdb_id: str) -> MetadataShowDetails:
-        async with httpx.AsyncClient(timeout=30, headers={"User-Agent": "Aliasarr/0.2.0 (Sonarr SkyHook Proxy)"}) as client:
+        async with httpx.AsyncClient(timeout=30, headers={"User-Agent": "Aliasarr/1.0.0 (Sonarr SkyHook Proxy)"}) as client:
             resp = await client.get(f"{self.base_url}/shows/en/{tvdb_id}")
             resp.raise_for_status()
             data = resp.json()
@@ -858,7 +858,7 @@ class RadarrClient(BaseMetadataClient):
         if httpx is None:
             return results
 
-        async with httpx.AsyncClient(timeout=25, headers={"User-Agent": "Aliasarr/0.2.0 (Radarr Movie Cloud Proxy)"}) as client:
+        async with httpx.AsyncClient(timeout=25, headers={"User-Agent": "Aliasarr/1.0.0 (Radarr Movie Cloud Proxy)"}) as client:
             # 1. Запрос к официальному Radarr SkyHook
             try:
                 resp = await client.get(f"{self.base_url}/search", params={"q": clean_query})
@@ -959,7 +959,7 @@ class RadarrClient(BaseMetadataClient):
     async def _get_movie_by_imdb(self, imdb_id: str) -> Optional[MetadataResult]:
         if httpx is None:
             return None
-        async with httpx.AsyncClient(timeout=20, headers={"User-Agent": "Aliasarr/0.2.0 (Radarr Movie Cloud Proxy)"}) as client:
+        async with httpx.AsyncClient(timeout=20, headers={"User-Agent": "Aliasarr/1.0.0 (Radarr Movie Cloud Proxy)"}) as client:
             try:
                 resp = await client.get(f"{self.base_url}/movie/imdb/{imdb_id}")
                 if resp.status_code == 200:
@@ -993,7 +993,7 @@ class RadarrClient(BaseMetadataClient):
             logger.debug("TMDb direct details lookup failed for %s: %s", clean_id, e)
 
         # 2. Запрос через Radarr Movie API
-        async with httpx.AsyncClient(timeout=30, headers={"User-Agent": "Aliasarr/0.2.0 (Radarr Movie Cloud Proxy)"}) as client:
+        async with httpx.AsyncClient(timeout=30, headers={"User-Agent": "Aliasarr/1.0.0 (Radarr Movie Cloud Proxy)"}) as client:
             data = None
             try:
                 resp = await client.get(f"{self.base_url}/movie/{clean_id}")
