@@ -1,5 +1,6 @@
 # Aliasarr
 
+[![CI](https://github.com/lQwestl/aliasarr/actions/workflows/ci.yml/badge.svg)](https://github.com/lQwestl/aliasarr/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://www.gnu.org/licenses/gpl.html)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg)](https://fastapi.tiangolo.com/)
