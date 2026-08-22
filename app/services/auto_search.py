@@ -106,55 +106,82 @@ def evaluate_torrent_file_priority(
     target_abs = {ep.absolute_number for ep in target_episodes if ep.absolute_number is not None}
     primary_season = target_episodes[0].season_number if target_episodes else 1
 
+    base_name = os.path.basename(file_name)
+    dir_name = os.path.dirname(file_name)
+
+    # 1. Сначала разбираем имя самого файла (basename)
+    parsed = parse_episode(base_name)
+    episodes = parsed.episodes if (parsed and parsed.episodes) else []
+    season = parsed.season if (parsed and parsed.season is not None) else None
+
+    # Проверяем, находится ли файл в подпапке Part 2 / Cour 2 / Сезон X
+    is_part_2 = False
+    if dir_name:
+        dir_lower = dir_name.lower()
+        if re.search(r"\b(?:part|часть|cour|кур)\s*2\b", dir_lower):
+            is_part_2 = True
+        if season is None:
+            dir_parsed = parse_episode(dir_name)
+            if dir_parsed and dir_parsed.season is not None:
+                season = dir_parsed.season
+            else:
+                s_lbl = detect_season_label(dir_name)
+                if s_lbl["type"] == "numbered":
+                    season = s_lbl["season"]
+
+    # Если в basename номер серии не найден, пробуем по полному относительному пути
+    if not episodes:
+        parsed_full = parse_episode(file_name)
+        if parsed_full and parsed_full.episodes:
+            episodes = parsed_full.episodes
+            if season is None and parsed_full.season is not None:
+                season = parsed_full.season
+
     # 2. Не-видео файлы (субтитры, аудио, nfo)
     if ext in extra_extensions:
         if not import_extra_files:
             return 0
-        base_name = os.path.basename(file_name)
-        parsed = parse_episode(base_name)
-        if not parsed or not parsed.episodes or parsed.season is None:
-            parsed_full = parse_episode(file_name)
-            if parsed_full and parsed_full.episodes:
-                parsed = parsed_full
-        if not parsed or not parsed.episodes:
+        if not episodes:
             # Общие субтитры/nfo без явного номера серии в названии (например, общая папка subs)
             return 1
 
-        if parsed.season is not None:
-            for ep_num in parsed.episodes:
-                if (parsed.season, ep_num) in target_keys:
+        for ep_num in episodes:
+            if season is not None:
+                if (season, ep_num) in target_keys:
                     return 1
-            return 0
-        else:
-            for ep_num in parsed.episodes:
+                if is_part_2 and 1 <= ep_num <= 12:
+                    if (season, ep_num + 12) in target_keys:
+                        return 1
+            else:
                 if (primary_season, ep_num) in target_keys or ep_num in target_abs:
                     return 1
-            return 0
+                if is_part_2 and 1 <= ep_num <= 12:
+                    if (primary_season, ep_num + 12) in target_keys or (ep_num + 12) in target_abs:
+                        return 1
+        return 0
 
     # 3. Видеофайлы (.mkv, .mp4, .avi, .ts, etc.)
     if ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}:
-        base_name = os.path.basename(file_name)
-        parsed = parse_episode(base_name)
-        if not parsed or not parsed.episodes or parsed.season is None:
-            parsed_full = parse_episode(file_name)
-            if parsed_full and parsed_full.episodes:
-                parsed = parsed_full
-        if not parsed or not parsed.episodes:
+        if not episodes:
             # Если не удалось спарсить номер серии, но разыскивается 1 серия и в имени нет чужих меток
             if len(target_episodes) == 1 and not re.search(r"\bs\d+|\be\d+|\bep\d+", fname_lower):
                 return 1
             return 0
 
-        if parsed.season is not None:
-            for ep_num in parsed.episodes:
-                if (parsed.season, ep_num) in target_keys:
+        for ep_num in episodes:
+            if season is not None:
+                if (season, ep_num) in target_keys:
                     return 1
-            return 0
-        else:
-            for ep_num in parsed.episodes:
+                if is_part_2 and 1 <= ep_num <= 12:
+                    if (season, ep_num + 12) in target_keys:
+                        return 1
+            else:
                 if (primary_season, ep_num) in target_keys or ep_num in target_abs:
                     return 1
-            return 0
+                if is_part_2 and 1 <= ep_num <= 12:
+                    if (primary_season, ep_num + 12) in target_keys or (ep_num + 12) in target_abs:
+                        return 1
+        return 0
 
     # Все прочие неизвестные файлы
     return 0

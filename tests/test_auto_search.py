@@ -352,3 +352,23 @@ class TestAutoSearch(unittest.TestCase):
         self.assertEqual(ep24.status, EpisodeStatus.WANTED, "Серия 24 должна вернуться в статус WANTED")
         self.assertIsNone(ep23.torrent_hash)
         self.assertIsNone(ep24.torrent_hash)
+
+    def test_selective_priority_part2_cours_and_subdirectories(self):
+        """Проверяет корректность разметки файлов при сплит-курах (Part 2) и подпапках."""
+        ep23 = Episode(id=201, season_number=2, episode_number=23, absolute_number=47)
+        ep24 = Episode(id=202, season_number=2, episode_number=24, absolute_number=48)
+        target_eps = [ep23, ep24]
+
+        # Part 2 с 01..12 (11 -> 23, 12 -> 24)
+        f_p1_01 = "Tensei Shitara Slime Datta Ken (2021)/Part 1/01. Rimurus Busy Life.mkv"
+        f_p2_11 = "Tensei Shitara Slime Datta Ken (2021)/Part 2/11. The One Unleashed.mkv"
+        f_p2_12 = "Tensei Shitara Slime Datta Ken (2021)/Part 2/12. Octagram.mkv"
+        # Подпапки с 23, 24
+        f_s2_p2_23 = "Season 2 Part 2/23. The One Unleashed.mkv"
+        f_s2_p2_24 = "Season 2 Part 2/24. Octagram.mkv"
+
+        self.assertEqual(auto_search.evaluate_torrent_file_priority(f_p1_01, 0, target_eps, True, content_type="anime"), 0)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority(f_p2_11, 1, target_eps, True, content_type="anime"), 1)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority(f_p2_12, 2, target_eps, True, content_type="anime"), 1)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority(f_s2_p2_23, 3, target_eps, True, content_type="anime"), 1)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority(f_s2_p2_24, 4, target_eps, True, content_type="anime"), 1)
