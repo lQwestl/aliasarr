@@ -380,7 +380,49 @@ def create_directory(
         raise HTTPException(400, "Путь должен быть абсолютным")
     try:
         os.makedirs(target, exist_ok=True)
+        from app.services.postprocess import apply_media_permissions
+        apply_media_permissions(target, is_dir=True)
     except OSError as exc:
         raise HTTPException(400, f"Не удалось создать папку: {exc}")
     return {"success": True, "path": target}
+
+
+@router.post("/system/fix-media-permissions")
+def fix_all_media_permissions(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_settings")),
+):
+    """
+    Принудительно рекурсивно устанавливает права доступа (0777 для папок, 0666 для файлов)
+    на всех корневых директориях медиатеки и во всех существующих папках тайтлов.
+    """
+    from app.services.postprocess import apply_media_permissions, get_show_default_path
+    from app.models.db import Show
+
+    settings = get_or_create_settings(db)
+    roots = set()
+    for r in [settings.root_folder, settings.root_folder_movies, settings.root_folder_series, settings.root_folder_anime]:
+        if r and os.path.isdir(r):
+            roots.add(os.path.abspath(r))
+
+    shows = db.query(Show).all()
+    for s in shows:
+        sp = s.path or get_show_default_path(s, settings)
+        if sp and os.path.isdir(sp):
+            roots.add(os.path.abspath(sp))
+
+    total_dirs = 0
+    total_files = 0
+    for r in roots:
+        stats = apply_media_permissions(r, is_dir=True, recursive=True)
+        total_dirs += stats.get("dirs", 0)
+        total_files += stats.get("files", 0)
+
+    return {
+        "success": True,
+        "roots_processed": len(roots),
+        "dirs_fixed": total_dirs,
+        "files_fixed": total_files,
+        "message": f"Права доступа обновлены для {len(roots)} путей ({total_dirs} папок, {total_files} файлов)",
+    }
 

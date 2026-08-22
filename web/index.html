@@ -1314,8 +1314,11 @@
           </table>
           </div>
 
-          <div style="margin-top:14px">
+          <div style="margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <button class="btn btn-primary" onclick="saveFolderSettings(this)" data-i18n="common.save">Сохранить</button>
+            <button type="button" class="btn btn-secondary" onclick="fixAllMediaPermissions(this)" title="Рекурсивно применить права доступа (chmod 0777/0666) ко всем папкам медиатеки для Jellyfin / Plex">
+              <i data-lucide="shield-check" class="ico-sm"></i> <span data-i18n="settings.btn_fix_permissions">Исправить права доступа (Jellyfin / Plex)</span>
+            </button>
           </div>
         </div>
 

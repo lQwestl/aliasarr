@@ -1412,6 +1412,9 @@ def execute_manual_import(
             except Exception as exc:
                 errors.append(f"Ошибка при импорте {item.file_path}: {exc}")
 
+        if imported_count > 0:
+            apply_media_permissions(show_root, is_dir=True, recursive=True)
+
         db.commit()
         log_audit(
             db,
@@ -1792,6 +1795,16 @@ def execute_global_manual_import(
             except Exception as exc:
                 errors.append(f"Ошибка при импорте {item.file_path}: {exc}")
 
+        if imported_count > 0:
+            # Применяем рекурсивные права ко всем затронутым шоу
+            affected_show_ids = {it.show_id for it in payload.items}
+            for s_id in affected_show_ids:
+                s_obj = db.get(Show, s_id)
+                if s_obj:
+                    s_root = s_obj.path or get_show_default_path(s_obj, settings)
+                    if s_root and os.path.exists(s_root):
+                        apply_media_permissions(s_root, is_dir=True, recursive=True)
+
         db.commit()
         log_audit(
             db,
@@ -1811,6 +1824,36 @@ def execute_global_manual_import(
         "imported_count": imported_count,
         "errors": errors,
         "message": f"Успешно импортировано файлов: {imported_count}",
+    }
+
+
+@router.post("/{show_id}/fix-permissions")
+def fix_show_permissions(
+    show_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_any_permission("manage_library", "manage_settings")),
+):
+    """
+    Принудительно рекурсивно устанавливает права доступа (0777 для папок, 0666 для файлов)
+    для папки тайтла на диске, чтобы Jellyfin, Plex, Samba и DLNA могли беспрепятственно видеть и читать все файлы.
+    """
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Шоу не найдено")
+
+    settings = get_or_create_settings(db)
+    show_root = show.path or get_show_default_path(show, settings)
+    if not show_root or not os.path.exists(show_root):
+        raise HTTPException(400, f"Папка тайтла на диске не существует: {show_root}")
+
+    stats = apply_media_permissions(show_root, is_dir=True, recursive=True)
+    return {
+        "success": True,
+        "show_id": show_id,
+        "path": show_root,
+        "dirs_fixed": stats.get("dirs", 0),
+        "files_fixed": stats.get("files", 0),
+        "message": f"Права доступа успешно обновлены: папок — {stats.get('dirs', 0)}, файлов — {stats.get('files', 0)}",
     }
 
 

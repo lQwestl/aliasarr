@@ -145,6 +145,17 @@ def _seed_default_metadata_sources(db: Session) -> None:
 
 @app.on_event("startup")
 async def on_startup():
+    # Устанавливаем umask (по умолчанию 0000), чтобы все создаваемые директории (0777) и файлы (0666)
+    # были сразу доступны для чтения и записи Jellyfin, Plex, Samba, Transmission и qBittorrent.
+    try:
+        env_umask = os.getenv("UMASK", "0000").strip()
+        os.umask(int(env_umask, 8))
+    except Exception:
+        try:
+            os.umask(0o000)
+        except Exception:
+            pass
+
     init_db()
     install_db_log_handler()
     db = SessionLocal()

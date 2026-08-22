@@ -908,6 +908,7 @@ const TRANSLATIONS = {
     "profile.modal_title": "Мой профиль",
     "poster_opt.btn_title": "Опции постера",
     "settings.season_folder_placeholder": "Сезон {season}",
+    "settings.btn_fix_permissions": "Исправить права доступа (Jellyfin / Plex)",
     "dc.category_placeholder": "Категория / Label (по умолчанию aliasarr)",
     "profile.apikey_none": "API-ключ не создан",
     "profile.new_password_placeholder": "Минимум 4 символа",
@@ -1863,6 +1864,7 @@ const TRANSLATIONS = {
     "profile.modal_title": "My Profile",
     "poster_opt.btn_title": "Poster Options",
     "settings.season_folder_placeholder": "Season {season}",
+    "settings.btn_fix_permissions": "Fix Permissions (Jellyfin / Plex)",
     "dc.category_placeholder": "Category / Label (default: aliasarr)",
     "profile.apikey_none": "API key not generated",
     "profile.new_password_placeholder": "At least 4 characters",
@@ -3858,6 +3860,9 @@ async function refreshShowModal() {
               <button class="btn btn-secondary btn-small" onclick="openManualImportModal(${show.id})" title="${t("show.manual_import")}">
                 <i data-lucide="hard-drive-download" class="ico-sm"></i> <span>${t("show.manual_import")}</span>
               </button>
+              <button class="btn btn-secondary btn-small" onclick="fixShowPermissions(this, ${show.id})" title="${CURRENT_LANG === 'en' ? 'Fix permissions (chmod 777/666 for Jellyfin/Plex)' : 'Исправить права доступа (chmod 777/666 для Jellyfin/Plex)'}">
+                <i data-lucide="shield-check" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Permissions' : 'Права доступа'}</span>
+              </button>
             </div>` : ""}
           </div>
         </div>
@@ -3985,6 +3990,30 @@ async function addAlias(showId) {
     await refreshShowModal();
     await loadShows();
   } catch (e) { toast("Ошибка: " + e.message, true); }
+}
+
+async function fixShowPermissions(btn, showId) {
+  if (btn) btn.disabled = true;
+  try {
+    const res = await api(`/api/v1/shows/${showId}/fix-permissions`, { method: "POST" });
+    toast(res.message || (CURRENT_LANG === "en" ? "Permissions updated" : "Права доступа обновлены"));
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error updating permissions: " : "Ошибка обновления прав: ") + e.message, true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function fixAllMediaPermissions(btn) {
+  if (btn) btn.disabled = true;
+  try {
+    const res = await api("/api/v1/system/fix-media-permissions", { method: "POST" });
+    toast(res.message || (CURRENT_LANG === "en" ? "Media permissions updated" : "Права медиатеки обновлены"));
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function deleteAliasFromShow(showId, aliasId) {

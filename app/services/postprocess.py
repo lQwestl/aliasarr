@@ -80,20 +80,58 @@ def is_extra_or_sample(file_path: str, release_root: str = "") -> bool:
     return False
 
 
-def apply_media_permissions(path: str, is_dir: bool = False, file_mode: int = 0o666, dir_mode: int = 0o777) -> None:
+def apply_media_permissions(
+    path: str,
+    is_dir: bool = False,
+    file_mode: int = 0o666,
+    dir_mode: int = 0o777,
+    recursive: bool = False,
+) -> dict[str, int]:
     """
-    Устанавливает права доступа (chmod), чтобы Jellyfin, Plex, Samba и другие сервисы
+    Устанавливает права доступа (chmod/chown), чтобы Jellyfin, Plex, Samba и другие сервисы
     в TrueNAS / Linux / Docker могли беспрепятственно читать и изменять файлы и папки.
+    Возвращает словарь со статистикой: {"dirs": N, "files": M}.
     """
+    stats = {"dirs": 0, "files": 0}
     if not path or not os.path.exists(path):
-        return
+        return stats
+
+    puid_str = os.getenv("PUID", "").strip()
+    pgid_str = os.getenv("PGID", "").strip()
+    puid = int(puid_str) if puid_str.isdigit() else -1
+    pgid = int(pgid_str) if pgid_str.isdigit() else -1
+
+    def _apply_single(target: str, is_target_dir: bool):
+        try:
+            if is_target_dir:
+                os.chmod(target, dir_mode)
+                stats["dirs"] += 1
+            else:
+                os.chmod(target, file_mode)
+                stats["files"] += 1
+            if puid >= 0 or pgid >= 0:
+                os.chown(target, puid if puid >= 0 else -1, pgid if pgid >= 0 else -1)
+        except Exception:
+            pass
+
     try:
         if is_dir or os.path.isdir(path):
-            os.chmod(path, dir_mode)
+            _apply_single(path, True)
+            if recursive:
+                for root, dirs, files in os.walk(path):
+                    for d in dirs:
+                        _apply_single(os.path.join(root, d), True)
+                    for f in files:
+                        _apply_single(os.path.join(root, f), False)
         else:
-            os.chmod(path, file_mode)
+            _apply_single(path, False)
+            parent_dir = os.path.dirname(path)
+            if parent_dir and os.path.isdir(parent_dir):
+                _apply_single(parent_dir, True)
     except Exception:
         pass
+
+    return stats
 
 
 _INVALID_FS_CHARS = re.compile(r'[<>:"/\\|?*]')
@@ -389,7 +427,11 @@ def copy_file_with_progress(
             copied += len(buf)
             if callback and total_size > 0:
                 callback(copied, total_size)
-    shutil.copystat(src, dst)
+    try:
+        shutil.copystat(src, dst)
+    except Exception:
+        pass
+    apply_media_permissions(dst, is_dir=False)
 
 
 def move_file_with_progress(
@@ -406,6 +448,7 @@ def move_file_with_progress(
     src_stat = os.stat(src)
     dst_dir = os.path.dirname(dst)
     os.makedirs(dst_dir, exist_ok=True)
+    apply_media_permissions(dst_dir, is_dir=True)
     dst_dir_stat = os.stat(dst_dir)
 
     if src_stat.st_dev == dst_dir_stat.st_dev:
@@ -414,9 +457,14 @@ def move_file_with_progress(
         os.replace(src, dst)
         if callback:
             callback(src_stat.st_size, src_stat.st_size)
+        apply_media_permissions(dst, is_dir=False)
     else:
         copy_file_with_progress(src, dst, callback=callback, chunk_size=chunk_size)
-        os.remove(src)
+        try:
+            os.remove(src)
+        except Exception:
+            pass
+        apply_media_permissions(dst, is_dir=False)
 
 
 def find_release_files(root: str, specific_files: Optional[list[str]] = None) -> dict[str, list[str]]:
@@ -1147,6 +1195,9 @@ def process_download(
             except Exception:
                 pass
 
+    if imported_count > 0:
+        apply_media_permissions(show_root, is_dir=True, recursive=True)
+
     db.commit()
     return results
 
@@ -1379,6 +1430,8 @@ def process_movie_download(
                     os.rmdir(download_path)
             except Exception:
                 pass
+
+    apply_media_permissions(movie_root, is_dir=True, recursive=True)
 
     db.commit()
     return [{"file": main_file, "status": "imported", "dest": dest_video_path, "season": 1, "episode": 1, "is_upgrade": is_upgrade}]
