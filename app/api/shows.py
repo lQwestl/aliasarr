@@ -643,14 +643,30 @@ async def force_search_show(
     if not show:
         raise HTTPException(404, "Show not found")
 
-    result = await search_and_grab_show(db, show)
-    db.refresh(show)
-    return {
-        "show_id": show_id,
-        "grabbed": result.get("grabbed", []),
-        "status": show.last_search_result,
-        "last_search_at": show.last_search_at,
-    }
+    try:
+        result = await search_and_grab_show(db, show)
+        try:
+            db.refresh(show)
+        except Exception:
+            pass
+        return {
+            "show_id": show_id,
+            "grabbed": result.get("grabbed", []),
+            "status": show.last_search_result,
+            "last_search_at": show.last_search_at,
+        }
+    except Exception as exc:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        logger.exception("Ошибка принудительного автопоиска шоу %s: %s", show_id, exc)
+        return {
+            "show_id": show_id,
+            "grabbed": [],
+            "status": f"Ошибка поиска: {exc}",
+            "last_search_at": None,
+        }
 
 
 class SearchEpisodesIn(BaseModel):
@@ -686,19 +702,36 @@ async def search_selected_episodes(
             db.add(ep)
     db.commit()
 
-    result = await search_and_grab_show(db, show, episode_ids=set(payload.episode_ids))
-    db.refresh(show)
-    grabbed_ids = {g["episode_id"] for g in result.get("grabbed", [])}
-    return {
-        "show_id": show_id,
-        "grabbed": result.get("grabbed", []),
-        "requested": len(payload.episode_ids),
-        "success": bool(grabbed_ids),
-        "message": (
-            f"Захвачено серий: {len(grabbed_ids)} из {len(payload.episode_ids)}"
-            if grabbed_ids else "Подходящих релизов для выбранных серий не найдено"
-        ),
-    }
+    try:
+        result = await search_and_grab_show(db, show, episode_ids=set(payload.episode_ids))
+        try:
+            db.refresh(show)
+        except Exception:
+            pass
+        grabbed_ids = {g["episode_id"] for g in result.get("grabbed", [])}
+        return {
+            "show_id": show_id,
+            "grabbed": result.get("grabbed", []),
+            "requested": len(payload.episode_ids),
+            "success": bool(grabbed_ids),
+            "message": (
+                f"Захвачено серий: {len(grabbed_ids)} из {len(payload.episode_ids)}"
+                if grabbed_ids else "Подходящих релизов для выбранных серий не найдено"
+            ),
+        }
+    except Exception as exc:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        logger.exception("Ошибка поиска серий шоу %s: %s", show_id, exc)
+        return {
+            "show_id": show_id,
+            "grabbed": [],
+            "requested": len(payload.episode_ids),
+            "success": False,
+            "message": f"Ошибка поиска: {exc}",
+        }
 
 
 @router.post("/{show_id}/search-season/{season_number}")
@@ -736,21 +769,39 @@ async def search_season_episodes(
             db.add(ep)
     db.commit()
 
-    target_ids = {ep.id for ep in season_episodes}
-    result = await search_and_grab_show(db, show, episode_ids=target_ids)
-    db.refresh(show)
-    grabbed_ids = {g["episode_id"] for g in result.get("grabbed", [])}
-    return {
-        "show_id": show_id,
-        "season_number": season_number,
-        "grabbed": result.get("grabbed", []),
-        "requested": len(season_episodes),
-        "success": bool(grabbed_ids),
-        "message": (
-            f"Сезон {season_number}: захвачено серий {len(grabbed_ids)} из {len(season_episodes)}"
-            if grabbed_ids else f"Сезон {season_number}: подходящих релизов не найдено"
-        ),
-    }
+    try:
+        target_ids = {ep.id for ep in season_episodes}
+        result = await search_and_grab_show(db, show, episode_ids=target_ids)
+        try:
+            db.refresh(show)
+        except Exception:
+            pass
+        grabbed_ids = {g["episode_id"] for g in result.get("grabbed", [])}
+        return {
+            "show_id": show_id,
+            "season_number": season_number,
+            "grabbed": result.get("grabbed", []),
+            "requested": len(season_episodes),
+            "success": bool(grabbed_ids),
+            "message": (
+                f"Сезон {season_number}: захвачено серий {len(grabbed_ids)} из {len(season_episodes)}"
+                if grabbed_ids else f"Сезон {season_number}: подходящих релизов не найдено"
+            ),
+        }
+    except Exception as exc:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        logger.exception("Ошибка поиска сезона шоу %s: %s", show_id, exc)
+        return {
+            "show_id": show_id,
+            "season_number": season_number,
+            "grabbed": [],
+            "requested": len(season_episodes),
+            "success": False,
+            "message": f"Ошибка поиска сезона: {exc}",
+        }
     
 @router.post("/{show_id}/sync_disk")
 def sync_show_disk(

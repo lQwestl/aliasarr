@@ -390,14 +390,25 @@ async def search_and_grab_show(
                     show.last_search_result = "Подходящих релизов не найдено"
             return result
         except Exception as exc:
+            try:
+                db.rollback()
+            except Exception:
+                pass
             show.last_search_result = f"Ошибка поиска: {exc}"
             logger.exception("Ошибка автопоиска для видео %s", show.id)
             return {"show_id": show.id, "grabbed": [], "reason": "error"}
         finally:
-            show.is_searching = False
-            show.last_search_at = dt.datetime.utcnow()
-            db.add(show)
-            db.commit()
+            try:
+                show.is_searching = False
+                show.last_search_at = dt.datetime.utcnow()
+                db.add(show)
+                db.commit()
+            except Exception as e:
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+                logger.warning("Не удалось обновить статус поиска для шоу %s: %s", show.id, e)
 
 
 async def _collect_candidates(
@@ -833,22 +844,25 @@ async def _do_search_and_grab(
             except Exception as exc:
                 logger.warning("Не удалось запланировать обработку файлов раздачи: %s", exc)
 
+        topic_guid = rel.guid or rel.download_url or rel.infohash or str(uuid.uuid4())
+        topic_url = rel.page_url or rel.download_url or ""
         tracked = TrackedRelease(
             show_id=show.id,
             indexer_id=indexer.id,
-            topic_guid=rel.guid,
-            topic_url=rel.page_url or rel.download_url or "",
+            topic_guid=topic_guid,
+            topic_url=topic_url,
             infohash=torrent_hash or rel.infohash,
             downloaded_episodes=[{"season": ep.season_number, "episode": ep.episode_number} for ep in covered],
             last_checked_at=dt.datetime.utcnow(),
         )
         db.add(tracked)
 
-        db.add(DownloadHistory(
-            show_id=show.id, episode_id=covered[0].id, release_title=rel.title,
-            indexer_id=indexer.id, event_type="grabbed",
-            matched_alias=match.alias_text, show_title_snapshot=show.title,
-        ))
+        if covered:
+            db.add(DownloadHistory(
+                show_id=show.id, episode_id=covered[0].id, release_title=rel.title,
+                indexer_id=indexer.id, event_type="grabbed",
+                matched_alias=match.alias_text, show_title_snapshot=show.title,
+            ))
         db.commit()
 
         is_upgrade = any(ep.status == EpisodeStatus.DOWNLOADED for ep in covered)
@@ -856,10 +870,13 @@ async def _do_search_and_grab(
         title_linked = f'<a href="{rel.guid}">«{show.title}»</a>' if rel.guid else f"«{show.title}»"
         
         action_text = "Обнаружено лучшее качество и начато скачивание для" if is_upgrade else "Захвачен релиз для"
-        await notify_all(
-            db, "grab",
-            f"{action_text} {title_linked} ({ep_list}), сиды: {rel.seeders}: {rel.title}",
-        )
+        try:
+            await notify_all(
+                db, "grab",
+                f"{action_text} {title_linked} ({ep_list}), сиды: {rel.seeders}: {rel.title}",
+            )
+        except Exception as exc:
+            logger.warning("Не удалось отправить уведомление о захвате: %s", exc)
 
         for ep in covered:
             grabbed.append({
