@@ -6736,6 +6736,13 @@ function renderCalendarGrid(startDate, numDays, byDay) {
   return `<div class="calendar-grid">${header}${cells}</div>`;
 }
 
+function truncateCalendarTitle(str, maxLen = 35) {
+  if (!str) return "";
+  const trimmed = str.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  return trimmed.slice(0, maxLen - 1).trim() + "…";
+}
+
 function renderCalendarEventChip(e) {
   const isMovie = e.content_type === "movie";
   const eKey = `${e.show_id}_${e.episode_id || 'prem'}`;
@@ -6776,22 +6783,25 @@ function renderCalendarEventChip(e) {
   }
 
   const canManageLib = hasPermission("manage_library") || hasPermission("manage_calendar");
+  const fullTooltip = `${e.show_title || ""}${epLabel ? " — " + epLabel : ""}${e.title ? " — " + e.title : ""}`;
+  const displayShowTitle = truncateCalendarTitle(e.show_title, 35);
+  const displayEpTitle = e.title ? truncateCalendarTitle(e.title, 30) : (isMovie ? t("calendar.movie_premiere") : "TBA");
 
   return `<div class="calendar-event ${CALENDAR_SETTINGS.full_color ? "calendar-full-color" : ""} status-${e.status}"
-      title="${escapeHtml(e.show_title)}${epLabel ? " — " + epLabel : ""}" onclick="openCalendarEventModal('${eKey}')">
+      title="${escapeHtml(fullTooltip)}" onclick="openCalendarEventModal('${eKey}')">
     <div class="cal-ev-top">
-      <div class="cal-ev-title">${escapeHtml(e.show_title)}</div>
-      <div style="display:flex; align-items:center; gap:4px;">
+      <div class="cal-ev-title" title="${escapeHtml(e.show_title)}">${escapeHtml(displayShowTitle)}</div>
+      <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
         ${movieBadge}
         ${iconHtml ? `<div class="cal-ev-icon">${iconHtml}</div>` : ""}
       </div>
     </div>
     <div class="cal-ev-mid">
-      <div class="cal-ev-ep-title">${e.title ? escapeHtml(e.title) : (isMovie ? "Премьера фильма" : "TBA")}</div>
+      <div class="cal-ev-ep-title" title="${e.title ? escapeHtml(e.title) : ''}">${escapeHtml(displayEpTitle)}</div>
       ${epLabel ? `<div class="cal-ev-ep-num">${epLabel}</div>` : ""}
     </div>
     <div class="cal-ev-bot">
-      <div>${timeStr}</div>
+      <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${timeStr}</div>
       ${canManageLib ? `<span class="cal-event-edit" title="${t('calendar.btn_edit_date')}" onclick="event.stopPropagation(); promptEditCalendarDate(${e.episode_id ?? "null"}, ${e.show_id}, '${escapeHtml(e.show_title).replace(/'/g, "&apos;")}')"><i data-lucide="pencil" style="width: 12px; height: 12px;"></i></span>` : ""}
     </div>
   </div>`;
@@ -6874,7 +6884,7 @@ function renderCalendarAgendaList(byDay, rangeStart, rangeEnd) {
           const posterStyle = e.poster_url ? `style="background-image:url('${e.poster_url}')"` : "";
           const epCode = (e.season != null && e.episode != null)
             ? `S${pad2(e.season)}E${pad2(e.episode)}${e.absolute_episode ? ` (${e.absolute_episode})` : ''}` : "";
-          const epName = isMovie ? t("calendar.movie_premiere") : (e.title ? escapeHtml(e.title) : "TBA");
+          const epName = isMovie ? t("calendar.movie_premiere") : (e.title ? escapeHtml(truncateCalendarTitle(e.title, 50)) : "TBA");
 
           const isPremiere = (e.entry_type === "premiere") || (!isMovie && e.entry_type === "episode" && e.episode === 1);
           const titleLower = (e.title || "").toLowerCase();
@@ -6907,6 +6917,7 @@ function renderCalendarAgendaList(byDay, rangeStart, rangeEnd) {
 
           const catName = isMovie ? t("calendar.cat_movies") : (isAnime ? t("calendar.cat_anime") : t("calendar.cat_series"));
           const catClass = isMovie ? "cat-movies" : (isAnime ? "cat-anime" : "cat-series");
+          const cardTitle = truncateCalendarTitle(e.show_title, 60);
 
           return `<div class="calendar-card status-${e.status}" onclick="openCalendarEventModal('${eKey}')">
             <div class="cal-card-poster" ${posterStyle}>
@@ -6914,7 +6925,7 @@ function renderCalendarAgendaList(byDay, rangeStart, rangeEnd) {
             </div>
             <div class="cal-card-body">
               <div class="cal-card-header">
-                <div class="cal-card-title">${escapeHtml(e.show_title)} ${e.year ? `<span class="cal-card-year">(${e.year})</span>` : ''}</div>
+                <div class="cal-card-title" title="${escapeHtml(e.show_title)}">${escapeHtml(cardTitle)} ${e.year ? `<span class="cal-card-year">(${e.year})</span>` : ''}</div>
                 <div class="cal-card-badges">
                   ${movieBadge}
                   ${iconHtml ? `<span class="cal-badge-finale" title="${isPremiere ? t('calendar.premiere') : (isSeriesFinale ? t('calendar.series_finale') : t('calendar.season_finale'))}">${iconHtml}</span>` : ""}
