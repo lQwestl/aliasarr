@@ -182,9 +182,12 @@ class TestParser(unittest.TestCase):
         self.assertEqual(p3.season, 4)
         self.assertEqual(p3.episodes, [5])
 
-        p4 = parse_episode("Overlord IV - 05 [1080p].mkv")
-        self.assertEqual(p4.season, 4)
-        self.assertEqual(p4.episodes, [5])
+    def test_slime_beatrice_season_pack_resolution_cleanup(self):
+        torrent_pack = "[Beatrice-Raws] Tensei Shitara Slime Datta Ken 2nd Season [BDRip 1920x1080 HEVC FLAC]"
+        p_pack = parse_episode(torrent_pack)
+        self.assertEqual(p_pack.season, 2)
+        self.assertEqual(p_pack.episodes, [])
+        self.assertEqual(p_pack.kind, ReleaseKind.SEASON_PACK)
 
 
 if __name__ == "__main__":

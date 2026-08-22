@@ -312,3 +312,43 @@ class TestAutoSearch(unittest.TestCase):
         self.assertEqual(auto_search.evaluate_torrent_file_priority(f24, 2, target_eps, True, content_type="anime"), 1)
         self.assertEqual(auto_search.evaluate_torrent_file_priority(sub01, 3, target_eps, True, content_type="anime"), 0)
         self.assertEqual(auto_search.evaluate_torrent_file_priority(sub24, 4, target_eps, True, content_type="anime"), 1)
+
+    def test_limit_torrent_files_removes_mismatched_torrent(self):
+        """Если раздача не содержит ни одной запрошенной серии (например, Part 1 1-12 при поиске 23-24),
+        раздача удаляется из загрузчика, а статус серий возвращается в WANTED."""
+        show = make_show(self.session, "Slime S2")
+        ep23 = make_episode(self.session, show, season=2, episode=23, status=EpisodeStatus.DOWNLOADING)
+        ep23.torrent_hash = "hash-part1"
+        ep24 = make_episode(self.session, show, season=2, episode=24, status=EpisodeStatus.DOWNLOADING)
+        ep24.torrent_hash = "hash-part1"
+        self.session.commit()
+
+        class MockTorrentClient:
+            def __init__(self):
+                self.removed = []
+            async def get_torrent(self, torrent_hash):
+                from app.services.download_client import TorrentInfo, TorrentFile
+                files = [
+                    TorrentFile(index=0, name="01. Rimurus Busy Life.mkv", size=1000, progress=0.0, priority=1),
+                    TorrentFile(index=1, name="02. Trade with the Animal Kingdom.mkv", size=1000, progress=0.0, priority=1),
+                ]
+                return TorrentInfo(hash=torrent_hash, name="Slime Part 1", progress=0.0, state="downloading", save_path="", size=2000, files=files)
+            async def remove_torrent(self, torrent_hash, delete_files=False):
+                self.removed.append(torrent_hash)
+
+        mock_client = MockTorrentClient()
+        asyncio.run(auto_search._limit_torrent_files_to_episodes(
+            mock_client,
+            "hash-part1",
+            [ep23, ep24],
+            db=self.session,
+            content_type="anime",
+        ))
+
+        self.assertIn("hash-part1", mock_client.removed, "Неподходящая раздача должна быть удалена из торрент-клиента")
+        self.session.refresh(ep23)
+        self.session.refresh(ep24)
+        self.assertEqual(ep23.status, EpisodeStatus.WANTED, "Серия 23 должна вернуться в статус WANTED")
+        self.assertEqual(ep24.status, EpisodeStatus.WANTED, "Серия 24 должна вернуться в статус WANTED")
+        self.assertIsNone(ep23.torrent_hash)
+        self.assertIsNone(ep24.torrent_hash)

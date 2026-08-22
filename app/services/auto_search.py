@@ -265,34 +265,53 @@ async def _limit_torrent_files_to_episodes(
             "Раздача %s: выбрано серий %d из %d файлов (остальные %d файлов отключены)",
             torrent_hash, len(wanted_indices), len(torrent.files), len(unwanted_indices),
         )
-    else:
-        # ЗАЩИТА: Ни в коем случае не выключаем все файлы в раздаче (иначе торрент сразу завершится со статусом Seeding 0.0%)!
-        # Если ни один файл не подошел под строгий фильтр серий, включаем все видеофайлы, чтобы избежать срыва загрузки:
-        import os
-        video_exts = {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}
-        all_video_indices = [
-            f.index for f in torrent.files
-            if os.path.splitext(f.name)[1].lower() in video_exts or (import_extras and os.path.splitext(f.name)[1].lower() in (extra_exts or set()))
-        ]
-        if not all_video_indices:
-            all_video_indices = [f.index for f in torrent.files]
-        wanted_indices = all_video_indices
-        unwanted_indices = [f.index for f in torrent.files if f.index not in wanted_indices]
-        await dl_client.set_files_wanted_unwanted(torrent_hash, wanted_indices, unwanted_indices)
-        logger.warning(
-            "Раздача %s: файлы не подошли под строгий фильтр серий. Включены все видеофайлы (%d шт), чтобы загрузка не сорвалась.",
-            torrent_hash, len(wanted_indices)
+        try:
+            await dl_client.resume_torrent(torrent_hash)
+        except Exception as exc:
+            logger.warning("Не удалось возобновить раздачу %s: %s", torrent_hash, exc)
+
+        logger.info(
+            "Раздача %s: скачивание ограничено выбранными сериями (%d шт), отключено файлов: %d, включено: %d",
+            torrent_hash, len(target_eps), len(unwanted_indices), len(wanted_indices)
         )
+    else:
+        # Раздача не содержит ни одной из запрошенных серий (например, скачали Part 1 (1-12), а искали серии 23-24).
+        # Удаляем эту неподходящую раздачу из загрузчика и возвращаем серии в статус WANTED.
+        requested_ep_str = ", ".join(f"S{ep.season_number}E{ep.episode_number}" for ep in target_eps)
+        logger.warning(
+            "Раздача %s: ни один файл в раздаче не соответствует запрошенным сериям (%s). Раздача отменена и удалена из загрузчика.",
+            torrent_hash, requested_ep_str,
+        )
+        try:
+            await dl_client.remove_torrent(torrent_hash, delete_files=True)
+        except Exception as exc:
+            logger.warning("Не удалось удалить неподходящую раздачу %s: %s", torrent_hash, exc)
 
-    try:
-        await dl_client.resume_torrent(torrent_hash)
-    except Exception as exc:
-        logger.warning("Не удалось возобновить раздачу %s: %s", torrent_hash, exc)
-
-    logger.info(
-        "Раздача %s: скачивание ограничено выбранными сериями (%d шт), отключено файлов: %d, включено: %d",
-        torrent_hash, len(target_eps), len(unwanted_indices), len(wanted_indices)
-    )
+        try:
+            if db and hasattr(db, "is_active") and db.is_active:
+                for ep in target_eps:
+                    db_ep = db.get(Episode, ep.id)
+                    if db_ep and db_ep.status == EpisodeStatus.DOWNLOADING and db_ep.torrent_hash == torrent_hash:
+                        db_ep.status = EpisodeStatus.WANTED
+                        db_ep.torrent_hash = None
+                        db_ep.download_client_id = None
+                        db_ep.download_progress = 0.0
+                        db.add(db_ep)
+                db.commit()
+            else:
+                from app.database import SessionLocal
+                with SessionLocal() as s_db:
+                    for ep in target_eps:
+                        db_ep = s_db.get(Episode, ep.id)
+                        if db_ep and db_ep.status == EpisodeStatus.DOWNLOADING and db_ep.torrent_hash == torrent_hash:
+                            db_ep.status = EpisodeStatus.WANTED
+                            db_ep.torrent_hash = None
+                            db_ep.download_client_id = None
+                            db_ep.download_progress = 0.0
+                            s_db.add(db_ep)
+                    s_db.commit()
+        except Exception as exc:
+            logger.debug("Ошибка сброса статуса серий для неподходящей раздачи: %s", exc)
 
 
 _SHOW_SEARCH_LOCKS: dict[int, asyncio.Lock] = {}
