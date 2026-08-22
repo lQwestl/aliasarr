@@ -721,6 +721,7 @@ def process_download(
     season_folder_template: str = "Сезон {season}",
     specific_files: list[str] | None = None,
     torrent_hash: str | None = None,
+    progress_callback: Optional[Callable[[float, str], None]] = None,
 ) -> list[dict]:
     """
     Обрабатывает завершённую загрузку для сериала/аниме:
@@ -827,8 +828,15 @@ def process_download(
         except Exception:
             dl_eps = []
 
-    for file_path in video_files:
+    for v_idx, file_path in enumerate(video_files):
         filename = os.path.basename(file_path)
+        start_pct = round(v_idx / max(1, total_videos), 3)
+        if progress_callback:
+            try:
+                progress_callback(start_pct, f"Импорт ({v_idx+1}/{total_videos}): {filename}")
+            except Exception:
+                pass
+
         parsed = parse_episode(filename)
         quality = parse_quality(filename).name
 
@@ -1066,6 +1074,13 @@ def process_download(
                 episode.downloaded_quality = quality
                 db.add(episode)
 
+            end_pct = round((v_idx + 1) / max(1, total_videos), 2)
+            if progress_callback:
+                try:
+                    progress_callback(end_pct, f"Импортировано ({v_idx+1}/{total_videos}): {os.path.basename(dest_video_path)}")
+                except Exception:
+                    pass
+
             results.append({
                 "file": file_path,
                 "status": "imported",
@@ -1143,6 +1158,7 @@ def process_movie_download(
     rename_template: str,
     root_folder: str,
     specific_files: list[str] | None = None,
+    progress_callback: Optional[Callable[[float, str], None]] = None,
 ) -> list[dict]:
     """
     Обрабатывает завершённую загрузку для фильма:
@@ -1150,6 +1166,12 @@ def process_movie_download(
     - создает целевую папку фильма (Папка фильма)
     - переносит фильм и привязывает внешние субтитры, аудиодорожки и шрифты (fonts/)
     """
+    if progress_callback:
+        try:
+            progress_callback(0.2, f"Поиск видеофайла фильма: {show.title}")
+        except Exception:
+            pass
+
     release_files = find_release_files(download_path, specific_files=specific_files)
     video_files = release_files["video"]
     movie_root = show.path or os.path.join(
@@ -1211,6 +1233,12 @@ def process_movie_download(
     )
     dest_video_path = os.path.join(movie_root, target_stem + ext)
 
+    if progress_callback:
+        try:
+            progress_callback(0.5, f"Перемещение фильма: {os.path.basename(main_file)}")
+        except Exception:
+            pass
+
     try:
         # Если уже был старый файл (замена по качеству), удаляем его
         old_ep = db.query(Episode).filter_by(show_id=show.id, season_number=1, episode_number=1).first()
@@ -1219,7 +1247,6 @@ def process_movie_download(
                 os.remove(old_ep.file_path)
             except OSError:
                 pass
-
         try:
             shutil.move(main_file, dest_video_path)
         except OSError:

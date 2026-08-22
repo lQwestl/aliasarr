@@ -178,9 +178,18 @@ def _run_postprocess_in_thread(
     is_movie: bool,
     specific_files: list[str] | None = None,
     torrent_hash: str | None = None,
+    task_id: str | None = None,
 ) -> list[dict]:
     """Выполняет перемещение файлов и обновление БД в отдельном потоке,
     чтобы не блокировать asyncio event loop и веб-интерфейс GUI."""
+    def cb(pct: float, msg: str):
+        if task_id:
+            try:
+                from app.services.task_manager import task_manager
+                task_manager.update_task(task_id, progress=pct, message=msg)
+            except Exception:
+                pass
+
     thread_db = SessionLocal()
     try:
         show_obj = thread_db.get(Show, show_id)
@@ -188,7 +197,7 @@ def _run_postprocess_in_thread(
             return []
         if is_movie:
             return process_movie_download(
-                thread_db, show_obj, download_path, template, root_folder, specific_files=specific_files,
+                thread_db, show_obj, download_path, template, root_folder, specific_files=specific_files, progress_callback=cb,
             )
         else:
             return process_download(
@@ -200,6 +209,7 @@ def _run_postprocess_in_thread(
                 season_folder_template=season_template,
                 specific_files=specific_files,
                 torrent_hash=torrent_hash,
+                progress_callback=cb,
             )
     except Exception as exc:
         logger.exception("Ошибка в _run_postprocess_in_thread для шоу %s: %s", show_id, exc)
@@ -369,6 +379,8 @@ async def check_downloads(db: Session) -> list[dict]:
             name="import_files",
             title=f"Импорт и перенос: {show.title}",
             message=f"Перемещение и переименование файлов для «{show.title}»...",
+            show_id=show.id,
+            progress=0.01,
         ) as t_task:
             try:
                 # Запрашиваем полные метаданные и список файлов торрента из клиента
@@ -397,6 +409,7 @@ async def check_downloads(db: Session) -> list[dict]:
                     show.content_type == "movie",
                     specific_files,
                     torrent_hash,
+                    t_task.id,
                 )
                 results.append({"show_id": show.id, "torrent_hash": torrent_hash, "imported": import_results})
 

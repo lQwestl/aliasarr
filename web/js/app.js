@@ -10616,6 +10616,7 @@ function folderPickerConfirm() {
 // =============================================================================
 
 let TASKS_POLL_INTERVAL = null;
+let TASKS_CURRENT_INTERVAL = 3500;
 let LAST_RUNNING_COUNT = 0;
 let CURRENT_ACTIVE_TASKS = [];
 
@@ -10629,6 +10630,13 @@ async function loadTasksStatus(manual = false) {
       renderTasksPopup(data);
     }
     updateLibraryTasksProgress(data);
+
+    // Динамическая адаптация частоты опроса: 1.2с при активных задачах, 3.5с в режиме покоя
+    const targetInterval = CURRENT_ACTIVE_TASKS.length > 0 ? 1200 : 3500;
+    if (TASKS_CURRENT_INTERVAL !== targetInterval) {
+      TASKS_CURRENT_INTERVAL = targetInterval;
+      restartTasksPolling(targetInterval);
+    }
   } catch (e) {
     // Non-blocking in background
   }

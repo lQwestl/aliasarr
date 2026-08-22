@@ -103,7 +103,7 @@ class TestDownloadsMonitor(unittest.TestCase):
         settings = SimpleNamespace(root_folder="", root_folder_series="/media/series", rename_template_series="{Series Title}", season_folder_template_series="Season {season}")
 
         postprocess_called = []
-        def fake_postprocess(show_id, dl_path, tpl, root, s_tpl, is_movie, specific_files=None, torrent_hash=None):
+        def fake_postprocess(show_id, dl_path, tpl, root, s_tpl, is_movie, specific_files=None, torrent_hash=None, task_id=None):
             postprocess_called.append((show_id, dl_path, is_movie, specific_files, torrent_hash))
             return [{"file": "a.mkv", "status": "imported", "dest": "/media/series/Test Show/Season 1/S01E01.mkv"}]
 
@@ -137,7 +137,7 @@ class TestDownloadsMonitor(unittest.TestCase):
         settings = SimpleNamespace(root_folder="", root_folder_movies="/media/movies", rename_template_movie="{Movie Title}")
 
         postprocess_called = []
-        def fake_postprocess(show_id, dl_path, tpl, root, s_tpl, is_movie, specific_files=None, torrent_hash=None):
+        def fake_postprocess(show_id, dl_path, tpl, root, s_tpl, is_movie, specific_files=None, torrent_hash=None, task_id=None):
             postprocess_called.append((show_id, dl_path, is_movie, specific_files, torrent_hash))
             return [{"file": "movie.mkv", "status": "imported", "dest": "/media/movies/Test Movie/Test Movie (2024).mkv"}]
 
