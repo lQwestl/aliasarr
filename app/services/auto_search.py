@@ -210,7 +210,7 @@ async def _limit_torrent_files_to_episodes(
         target_eps = wanted_episodes
 
     torrent = None
-    for attempt in range(15):  # до ~22 секунд ожидания метаданных торрента
+    for attempt in range(40):  # до ~60 секунд ожидания метаданных торрента
         try:
             torrent = await dl_client.get_torrent(torrent_hash)
             if torrent and torrent.files:
@@ -260,9 +260,11 @@ async def _limit_torrent_files_to_episodes(
             unwanted_indices.append(f.index)
 
     if wanted_indices:
-        if unwanted_indices:
-            await dl_client.set_file_priorities(torrent_hash, unwanted_indices, 0)
-        await dl_client.set_file_priorities(torrent_hash, wanted_indices, 1)
+        await dl_client.set_files_wanted_unwanted(torrent_hash, wanted_indices, unwanted_indices)
+        logger.info(
+            "Раздача %s: выбрано серий %d из %d файлов (остальные %d файлов отключены)",
+            torrent_hash, len(wanted_indices), len(torrent.files), len(unwanted_indices),
+        )
     else:
         # ЗАЩИТА: Ни в коем случае не выключаем все файлы в раздаче (иначе торрент сразу завершится со статусом Seeding 0.0%)!
         # Если ни один файл не подошел под строгий фильтр серий, включаем все видеофайлы, чтобы избежать срыва загрузки:
@@ -276,9 +278,7 @@ async def _limit_torrent_files_to_episodes(
             all_video_indices = [f.index for f in torrent.files]
         wanted_indices = all_video_indices
         unwanted_indices = [f.index for f in torrent.files if f.index not in wanted_indices]
-        if unwanted_indices:
-            await dl_client.set_file_priorities(torrent_hash, unwanted_indices, 0)
-        await dl_client.set_file_priorities(torrent_hash, wanted_indices, 1)
+        await dl_client.set_files_wanted_unwanted(torrent_hash, wanted_indices, unwanted_indices)
         logger.warning(
             "Раздача %s: файлы не подошли под строгий фильтр серий. Включены все видеофайлы (%d шт), чтобы загрузка не сорвалась.",
             torrent_hash, len(wanted_indices)

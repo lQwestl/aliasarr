@@ -293,3 +293,22 @@ class TestAutoSearch(unittest.TestCase):
             res = asyncio.run(auto_search._do_search_and_grab(self.session, movie, wanted_only=True))
             self.assertEqual(res["grabbed"], [])
             self.assertEqual(len(fake_dc.added), 0)
+
+    def test_selective_episodes_priority_on_slime_season_3(self):
+        """Проверяет корректность разметки приоритетов файлов для последних 2 серий 3 сезона аниме."""
+        ep23 = Episode(id=101, season_number=3, episode_number=23, absolute_number=71)
+        ep24 = Episode(id=102, season_number=3, episode_number=24, absolute_number=72)
+        target_eps = [ep23, ep24]
+
+        # Файлы 1..22 должны получить prio=0, файлы 23 и 24 — prio=1
+        f01 = "[Beatrice-Raws] Tensei Shitara Slime Datta Ken 3rd Season 01 [BDRip 1920x1080 HEVC FLAC].mkv"
+        f23 = "[Beatrice-Raws] Tensei Shitara Slime Datta Ken 3rd Season 23 [BDRip 1920x1080 HEVC FLAC].mkv"
+        f24 = "[Beatrice-Raws] Tensei Shitara Slime Datta Ken 3rd Season 24 [BDRip 1920x1080 HEVC FLAC].mkv"
+        sub01 = "ENG Subs/[Beatrice-Raws] Tensei Shitara Slime Datta Ken 3rd Season 01 [BDRip 1920x1080 HEVC FLAC].Asakura.ass"
+        sub24 = "ENG Subs/[Beatrice-Raws] Tensei Shitara Slime Datta Ken 3rd Season 24 [BDRip 1920x1080 HEVC FLAC].Asakura.ass"
+
+        self.assertEqual(auto_search.evaluate_torrent_file_priority(f01, 0, target_eps, True, content_type="anime"), 0)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority(f23, 1, target_eps, True, content_type="anime"), 1)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority(f24, 2, target_eps, True, content_type="anime"), 1)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority(sub01, 3, target_eps, True, content_type="anime"), 0)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority(sub24, 4, target_eps, True, content_type="anime"), 1)

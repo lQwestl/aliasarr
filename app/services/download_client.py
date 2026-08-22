@@ -72,6 +72,12 @@ class BaseDownloadClient:
     async def set_file_priorities(self, torrent_hash: str, file_indices: list[int], priority: int) -> None:
         raise NotImplementedError
 
+    async def set_files_wanted_unwanted(self, torrent_hash: str, wanted_indices: list[int], unwanted_indices: list[int]) -> None:
+        if unwanted_indices:
+            await self.set_file_priorities(torrent_hash, unwanted_indices, 0)
+        if wanted_indices:
+            await self.set_file_priorities(torrent_hash, wanted_indices, 1)
+
     async def remove_torrent(self, torrent_hash: str, delete_files: bool = False) -> None:
         raise NotImplementedError
 
@@ -455,6 +461,12 @@ class TransmissionClient(BaseDownloadClient):
             res = await self._rpc_call("torrent-get", {"fields": fields, "ids": [torrent_hash]})
             torrents = res.get("torrents", [])
             if not torrents:
+                res_all = await self._rpc_call("torrent-get", {"fields": fields})
+                all_torrents = res_all.get("torrents", [])
+                torrents = [t for t in all_torrents if str(t.get("hashString", "")).lower() == torrent_hash.lower()]
+            if not torrents:
+                if self._sync_client:
+                    return await asyncio.to_thread(self._get_torrent_sync, torrent_hash)
                 return None
             t = torrents[0]
             files_raw = t.get("files", [])
@@ -494,6 +506,45 @@ class TransmissionClient(BaseDownloadClient):
             )
         except Exception as exc:
             logger.warning("Ошибка get_torrent в Transmission: %s", exc)
+            if self._sync_client:
+                return await asyncio.to_thread(self._get_torrent_sync, torrent_hash)
+            return None
+
+    def _get_torrent_sync(self, torrent_hash: str) -> Optional[TorrentInfo]:
+        try:
+            t = self._sync_client.get_torrent(torrent_hash)
+            file_infos = []
+            files = getattr(t, "files", []) or []
+            for i, f in enumerate(files):
+                file_infos.append(
+                    TorrentFile(
+                        index=i,
+                        name=getattr(f, "name", ""),
+                        size=getattr(f, "size", 0) or 0,
+                        progress=(getattr(f, "completed", 0) / f.size) if getattr(f, "size", 0) else 0.0,
+                        priority=1 if getattr(f, "selected", True) else 0,
+                    )
+                )
+            dlspeed = getattr(t, "rate_download", 0) or 0
+            upspeed = getattr(t, "rate_upload", 0) or 0
+            eta = getattr(t, "eta", None)
+            if eta and (eta < 0 or eta >= 8640000):
+                eta = None
+            return TorrentInfo(
+                hash=t.hashString,
+                name=t.name,
+                progress=(t.progress or 0) / 100,
+                state=str(t.status),
+                save_path=t.download_dir,
+                size=t.total_size,
+                download_speed=dlspeed,
+                upload_speed=upspeed,
+                eta=eta,
+                seeding_time=int(getattr(t, "seconds_seeding", 0) or 0),
+                ratio=float(getattr(t, "ratio", 0.0) or 0.0),
+                files=file_infos,
+            )
+        except Exception:
             return None
 
     async def set_file_priorities(self, torrent_hash: str, file_indices: list[int], priority: int) -> None:
@@ -504,6 +555,43 @@ class TransmissionClient(BaseDownloadClient):
                 await self._rpc_call("torrent-set", {"ids": [torrent_hash], "files-wanted": file_indices})
         except Exception as exc:
             logger.warning("Ошибка set_file_priorities в Transmission: %s", exc)
+            if self._sync_client:
+                await asyncio.to_thread(self._set_file_priorities_sync, torrent_hash, file_indices, priority)
+
+    def _set_file_priorities_sync(self, torrent_hash: str, file_indices: list[int], priority: int) -> None:
+        try:
+            torrent = self._sync_client.get_torrent(torrent_hash)
+            if priority == 0:
+                self._sync_client.change_torrent(torrent.id, files_unwanted=file_indices)
+            else:
+                self._sync_client.change_torrent(torrent.id, files_wanted=file_indices)
+        except Exception:
+            pass
+
+    async def set_files_wanted_unwanted(self, torrent_hash: str, wanted_indices: list[int], unwanted_indices: list[int]) -> None:
+        try:
+            args = {"ids": [torrent_hash]}
+            if unwanted_indices:
+                args["files-unwanted"] = unwanted_indices
+            if wanted_indices:
+                args["files-wanted"] = wanted_indices
+            await self._rpc_call("torrent-set", args)
+        except Exception as exc:
+            logger.warning("Ошибка set_files_wanted_unwanted в Transmission: %s", exc)
+            if self._sync_client:
+                await asyncio.to_thread(self._set_files_wanted_unwanted_sync, torrent_hash, wanted_indices, unwanted_indices)
+
+    def _set_files_wanted_unwanted_sync(self, torrent_hash: str, wanted_indices: list[int], unwanted_indices: list[int]) -> None:
+        try:
+            torrent = self._sync_client.get_torrent(torrent_hash)
+            kwargs = {}
+            if unwanted_indices:
+                kwargs["files_unwanted"] = unwanted_indices
+            if wanted_indices:
+                kwargs["files_wanted"] = wanted_indices
+            self._sync_client.change_torrent(torrent.id, **kwargs)
+        except Exception:
+            pass
 
     async def remove_torrent(self, torrent_hash: str, delete_files: bool = False) -> None:
         try:

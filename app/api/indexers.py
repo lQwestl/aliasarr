@@ -494,6 +494,12 @@ async def grab_release(
         ep = db.get(Episode, payload.episode_id)
         if ep:
             target_episodes.append(ep)
+    elif payload.episode_ids:
+        target_episodes = (
+            db.query(Episode)
+            .filter(Episode.show_id == show.id, Episode.id.in_(payload.episode_ids))
+            .all()
+        )
     elif payload.season is not None and payload.episode is not None:
         ep = (
             db.query(Episode)
@@ -506,12 +512,6 @@ async def grab_release(
         target_episodes = (
             db.query(Episode)
             .filter(Episode.show_id == show.id, Episode.season_number == payload.season)
-            .all()
-        )
-    elif payload.episode_ids:
-        target_episodes = (
-            db.query(Episode)
-            .filter(Episode.show_id == show.id, Episode.id.in_(payload.episode_ids))
             .all()
         )
 
