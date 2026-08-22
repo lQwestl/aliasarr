@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager, contextmanager
 import datetime as dt
 import logging
 import uuid
-from typing import Any
+from typing import Optional, Any
 
 logger = logging.getLogger("aliasarr.tasks")
 
@@ -22,10 +22,10 @@ class Task:
         name: str,
         title: str,
         message: str = "",
-        progress: float | None = None,
-        show_id: int | None = None,
-        total_items: int | None = None,
-        current_item: int | None = None,
+        progress: Optional[float] = None,
+        show_id: Optional[int] = None,
+        total_items: Optional[int] = None,
+        current_item: Optional[int] = None,
     ) -> None:
         self.id = task_id
         self.name = name
@@ -37,16 +37,16 @@ class Task:
         self.current_item = current_item
         self.status = "running"
         self.started_at = dt.datetime.utcnow()
-        self.ended_at: dt.datetime | None = None
-        self.error: str | None = None
+        self.ended_at: Optional[dt.datetime] = None
+        self.error: Optional[str] = None
 
     def update(
         self,
-        message: str | None = None,
-        progress: float | None = None,
-        current_item: int | None = None,
-        total_items: int | None = None,
-        show_id: int | None = None,
+        message: Optional[str] = None,
+        progress: Optional[float] = None,
+        current_item: Optional[int] = None,
+        total_items: Optional[int] = None,
+        show_id: Optional[int] = None,
     ) -> None:
         if message is not None:
             self.message = message
@@ -59,14 +59,14 @@ class Task:
         if show_id is not None:
             self.show_id = show_id
 
-    def complete(self, message: str | None = None) -> None:
+    def complete(self, message: Optional[str] = None) -> None:
         self.status = "completed"
         self.ended_at = dt.datetime.utcnow()
         if message is not None:
             self.message = message
         self.progress = 1.0
 
-    def fail(self, error: str | None = None, message: str | None = None) -> None:
+    def fail(self, error: Optional[str] = None, message: Optional[str] = None) -> None:
         self.status = "failed"
         self.ended_at = dt.datetime.utcnow()
         if error is not None:
@@ -108,10 +108,10 @@ class TaskManager:
         name: str,
         title: str,
         message: str = "",
-        progress: float | None = None,
-        show_id: int | None = None,
-        total_items: int | None = None,
-        current_item: int | None = None,
+        progress: Optional[float] = None,
+        show_id: Optional[int] = None,
+        total_items: Optional[int] = None,
+        current_item: Optional[int] = None,
     ) -> Task:
         task_id = str(uuid.uuid4())[:8]
         task = Task(
@@ -131,11 +131,11 @@ class TaskManager:
     def update_task(
         self,
         task_id: str,
-        message: str | None = None,
-        progress: float | None = None,
-        current_item: int | None = None,
-        total_items: int | None = None,
-        show_id: int | None = None,
+        message: Optional[str] = None,
+        progress: Optional[float] = None,
+        current_item: Optional[int] = None,
+        total_items: Optional[int] = None,
+        show_id: Optional[int] = None,
     ) -> None:
         task = self._running.get(task_id)
         if task:
@@ -147,14 +147,14 @@ class TaskManager:
                 show_id=show_id,
             )
 
-    def finish_task(self, task_id: str, message: str | None = None) -> None:
+    def finish_task(self, task_id: str, message: Optional[str] = None) -> None:
         task = self._running.pop(task_id, None)
         if task:
             task.complete(message=message)
             self._history.appendleft(task)
             logger.info("Завершена задача [%s] %s: %s", task.id, task.title, task.message)
 
-    def fail_task(self, task_id: str, error: str | None = None, message: str | None = None) -> None:
+    def fail_task(self, task_id: str, error: Optional[str] = None, message: Optional[str] = None) -> None:
         task = self._running.pop(task_id, None)
         if task:
             task.fail(error=error, message=message)
@@ -167,10 +167,10 @@ class TaskManager:
         name: str,
         title: str,
         message: str = "",
-        progress: float | None = None,
-        show_id: int | None = None,
-        total_items: int | None = None,
-        current_item: int | None = None,
+        progress: Optional[float] = None,
+        show_id: Optional[int] = None,
+        total_items: Optional[int] = None,
+        current_item: Optional[int] = None,
     ):
         task = self.start_task(
             name=name,
@@ -196,10 +196,10 @@ class TaskManager:
         name: str,
         title: str,
         message: str = "",
-        progress: float | None = None,
-        show_id: int | None = None,
-        total_items: int | None = None,
-        current_item: int | None = None,
+        progress: Optional[float] = None,
+        show_id: Optional[int] = None,
+        total_items: Optional[int] = None,
+        current_item: Optional[int] = None,
     ):
         task = self.start_task(
             name=name,

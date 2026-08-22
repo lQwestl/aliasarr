@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -12,8 +12,8 @@ router = APIRouter(prefix="/api/v1/settings", tags=["settings"])
 
 
 class SettingsOut(BaseModel):
-    api_key: str | None = None
-    api_key_source: str | None = None  # "env" | "generated" | None
+    api_key: Optional[str] = None
+    api_key_source: Optional[str] = None  # "env" | "generated" | None
 
     # Шаблоны переименования по категориям контента
     rename_template: str          # legacy, равнозначен rename_template_series
@@ -75,57 +75,57 @@ class SettingsOut(BaseModel):
 
 
 class SettingsUpdate(BaseModel):
-    rename_template: str | None = None
-    rename_template_movie: str | None = None
-    rename_template_series: str | None = None
-    rename_template_anime: str | None = None
+    rename_template: Optional[str] = None
+    rename_template_movie: Optional[str] = None
+    rename_template_series: Optional[str] = None
+    rename_template_anime: Optional[str] = None
 
-    season_folder_template_series: str | None = None
-    season_folder_template_anime: str | None = None
+    season_folder_template_series: Optional[str] = None
+    season_folder_template_anime: Optional[str] = None
 
-    root_folder: str | None = None
-    root_folder_movies: str | None = None
-    root_folder_series: str | None = None
-    root_folder_anime: str | None = None
-    download_folder_movies: str | None = None
-    download_folder_series: str | None = None
-    download_folder_anime: str | None = None
+    root_folder: Optional[str] = None
+    root_folder_movies: Optional[str] = None
+    root_folder_series: Optional[str] = None
+    root_folder_anime: Optional[str] = None
+    download_folder_movies: Optional[str] = None
+    download_folder_series: Optional[str] = None
+    download_folder_anime: Optional[str] = None
 
-    import_extra_files: bool | None = None
-    extra_file_extensions: str | None = None
+    import_extra_files: Optional[bool] = None
+    extra_file_extensions: Optional[str] = None
 
-    auth_enabled: bool | None = None
+    auth_enabled: Optional[bool] = None
 
-    language: str | None = None
-    theme: str | None = None
+    language: Optional[str] = None
+    theme: Optional[str] = None
 
-    min_seeds: int | None = None
-    prefer_most_seeded: bool | None = None
+    min_seeds: Optional[int] = None
+    prefer_most_seeded: Optional[bool] = None
 
-    monitor_interval_minutes: int | None = None
-    download_check_interval_minutes: int | None = None
+    monitor_interval_minutes: Optional[int] = None
+    download_check_interval_minutes: Optional[int] = None
 
-    indexer_check_enabled: bool | None = None
-    indexer_check_interval_minutes: int | None = None
-    indexer_check_retries: int | None = None
-    indexer_check_retry_delay_seconds: int | None = None
+    indexer_check_enabled: Optional[bool] = None
+    indexer_check_interval_minutes: Optional[int] = None
+    indexer_check_retries: Optional[int] = None
+    indexer_check_retry_delay_seconds: Optional[int] = None
 
-    log_retention_days: int | None = None
-    events_page_size: int | None = None
+    log_retention_days: Optional[int] = None
+    events_page_size: Optional[int] = None
 
-    timezone: str | None = None
-    calendar_poll_enabled: bool | None = None
-    calendar_poll_interval_minutes: int | None = None
-    calendar_metadata_source: str | None = None
-    calendar_metadata_source_series: str | None = None
-    calendar_metadata_source_movie: str | None = None
-    metadata_auto_refresh_enabled: bool | None = None
-    metadata_refresh_interval_hours: int | None = None
+    timezone: Optional[str] = None
+    calendar_poll_enabled: Optional[bool] = None
+    calendar_poll_interval_minutes: Optional[int] = None
+    calendar_metadata_source: Optional[str] = None
+    calendar_metadata_source_series: Optional[str] = None
+    calendar_metadata_source_movie: Optional[str] = None
+    metadata_auto_refresh_enabled: Optional[bool] = None
+    metadata_refresh_interval_hours: Optional[int] = None
 
-    session_timeout_minutes: int | None = None
-    backup_interval_days: int | None = None
-    backup_retention_count: int | None = None
-    backup_default_type: str | None = None
+    session_timeout_minutes: Optional[int] = None
+    backup_interval_days: Optional[int] = None
+    backup_retention_count: Optional[int] = None
+    backup_default_type: Optional[str] = None
 
 
 def _to_settings_out(settings, is_owner: bool = False) -> SettingsOut:
@@ -376,9 +376,9 @@ def regenerate_key(
 
 
 class SslSettingsUpdate(BaseModel):
-    ssl_enabled: bool | None = None
-    ssl_port: int | None = None
-    ssl_auto_renew: bool | None = None
+    ssl_enabled: Optional[bool] = None
+    ssl_port: Optional[int] = None
+    ssl_auto_renew: Optional[bool] = None
 
 
 @router.get("/ssl")

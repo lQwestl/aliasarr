@@ -12,6 +12,8 @@
 
 from __future__ import annotations
 
+from typing import Optional, List, Dict, Any
+
 import asyncio
 import datetime as dt
 import logging
@@ -67,7 +69,7 @@ def evaluate_torrent_file_priority(
     file_index: int,
     target_episodes: list[Episode],
     import_extra_files: bool = True,
-    extra_extensions: set[str] | None = None,
+    extra_extensions: Optional[set[str]] = None,
     content_type: str = "series",
 ) -> int:
     """
@@ -218,7 +220,7 @@ async def _limit_torrent_files_to_episodes(
     torrent_hash: str,
     wanted_episodes: list[Episode],
     db: Session = None,
-    explicit_episode_ids: set[int] | None = None,
+    explicit_episode_ids: Optional[set[int]] = None,
     content_type: str = "series",
 ) -> None:
     """Выключает в загрузчике файлы, не относящиеся к переданным сериям (Sonarr selective download).
@@ -353,7 +355,7 @@ def _get_show_lock(show_id: int) -> asyncio.Lock:
 async def search_and_grab_show(
     db: Session,
     show: Show,
-    episode_ids: set[int] | None = None,
+    episode_ids: Optional[set[int]] = None,
     wanted_only: bool = False,
 ) -> dict:
     """Ищет и захватывает лучший релиз для wanted-серий данного шоу.
@@ -415,7 +417,7 @@ async def _collect_candidates(
     db: Session,
     show: Show,
     indexers: list[Indexer],
-    wanted_episodes: list[Episode] | None = None,
+    wanted_episodes: Optional[list[Episode]] = None,
 ) -> list[dict]:
     """Собирает все релизы по всем алиасам во всех индексаторах (по приоритету), дедуп по guid."""
     quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
@@ -507,7 +509,7 @@ async def _collect_candidates(
 async def _do_search_and_grab(
     db: Session,
     show: Show,
-    episode_ids: set[int] | None = None,
+    episode_ids: Optional[set[int]] = None,
     wanted_only: bool = False,
 ) -> dict:
     if episode_ids:

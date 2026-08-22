@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import secrets
-from typing import Any
+from typing import Optional, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
@@ -39,7 +39,7 @@ def _create_pre_auth_token(user_id: int) -> str:
     return t
 
 
-def _get_pre_auth_user_id(token: str) -> int | None:
+def _get_pre_auth_user_id(token: str) -> Optional[int]:
     now = dt.datetime.utcnow()
     item = _PRE_AUTH_TOKENS.pop(token, None)
     if not item:
@@ -71,23 +71,23 @@ class ChangePasswordRequest(BaseModel):
 
 
 class AvatarUpdateRequest(BaseModel):
-    avatar: str | None = None  # Data-URL string (base64) or None to clear
+    avatar: Optional[str] = None  # Data-URL string (base64) or None to clear
 
 
 class ProfileUpdateRequest(BaseModel):
-    display_name: str | None = None
-    avatar: str | None = None
-    session_timeout_minutes: int | None = None
+    display_name: Optional[str] = None
+    avatar: Optional[str] = None
+    session_timeout_minutes: Optional[int] = None
 
 
 class CredentialsUpdate(BaseModel):
     login_enabled: bool
     username: str
-    display_name: str | None = None
-    password: str | None = None
-    auth_disabled_for_local_addresses: bool | None = None
-    totp_2fa_enabled: bool | None = None
-    totp_2fa_policy: str | None = None  # "users_choice" | "enforce_all"
+    display_name: Optional[str] = None
+    password: Optional[str] = None
+    auth_disabled_for_local_addresses: Optional[bool] = None
+    totp_2fa_enabled: Optional[bool] = None
+    totp_2fa_policy: Optional[str] = None  # "users_choice" | "enforce_all"
 
 
 def _format_user_out(user: User, include_key: bool = False) -> dict[str, Any]:

@@ -60,7 +60,7 @@ class LogsPageOut(BaseModel):
     page_size: int
 
 
-def _query_logs(db: Session, levels: list[str] | None, page: int, page_size: int, sort: str):
+def _query_logs(db: Session, levels: Optional[list[str]], page: int, page_size: int, sort: str):
     q = db.query(LogEntry)
     if levels:
         q = q.filter(LogEntry.level.in_(levels))
@@ -332,7 +332,7 @@ class DirEntryOut(BaseModel):
 
 class BrowseDirOut(BaseModel):
     path: str
-    parent: str | None
+    parent: Optional[str]
     directories: list[DirEntryOut]
 
 

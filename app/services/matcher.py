@@ -70,7 +70,7 @@ NON_VIDEO_KEYWORDS = re.compile(
     r"ранобэ|ранобе|light\s?novel|ranobe|"
     r"артбук|art\s?book|"
     r"саундтрек(?:и)?|soundtracks?|\bost\b|"
-    r"\b(?:wavpack|ape|alac|dxd|sacd|dsd\d*|vinyl|audio\s*cd|maxi[-_\s]?single|single|ep)\b|"
+    r"\b(?:wavpack|ape|alac|dxd|sacd|dsd\d*|vinyl|audio\s*cd|maxi[-_\s]?single|single|mini[-_\s]?album)\b|\[ep\]|\(ep\)|"
     r"\b(?:tracks\+?\.?cue|image\+?\.?cue|lossless|flac\s*\(tracks\)|flac\s*\(image|discography|дискография)\b|"
     r"\[(?:32/\d+|24/\d+|12\"|dxd|tr\d+|vinyl|lp|cd)\]|"
     r"\((?:12\"|32/\d+|24/\d+|tracks|image\+\.cue|tracks\+\.cue|wavpack|flac)\)|"
@@ -183,9 +183,9 @@ def build_alias_candidates(show) -> list[AliasCandidate]:
         norm = normalize_title(alias.text)
         if not norm or norm in seen_normalized:
             continue
-        seen_normalized.add(norm)
+        lang_str = alias.language.value if hasattr(alias.language, "value") else (str(alias.language) if alias.language else "ru")
         candidates.append(AliasCandidate(
-            alias_id=alias.id, text=alias.text, language=alias.language.value,
+            alias_id=alias.id, text=alias.text, language=lang_str,
             priority=getattr(alias, "priority", 100) or 100,
         ))
 
@@ -197,6 +197,7 @@ def build_alias_candidates(show) -> list[AliasCandidate]:
 def normalize_title(text: str) -> str:
     """Приводит название к сравнимому виду: нижний регистр, без пунктуации и шумовых слов."""
     text = text.lower()
+    text = re.sub(r"['’`´]s\b", "", text)
     text = re.sub(r"[._\[\](){}\-–—/|]", " ", text)
     text = re.sub(r"[^\w\s]", " ", text, flags=re.UNICODE)
     words = [w for w in text.split() if w not in _JUNK_WORDS]
@@ -223,7 +224,7 @@ def extract_title_segments(release_name: str) -> list[str]:
         r"""
         (?:
             \s*\(|\s*\[|\s*[-–]\s*\d
-        |   [._\s]\b(?:S\d{1,3}(?:[-_.\s]*E\d{1,3})?|E\d{1,3}|EP\d{1,3}|Seasons?[:\s]*\d|Сез(?:он(?:ы|а)?)?[:\s]*\d)\b
+        |   [._\s]\b(?:S\d{1,3}(?:[-_.\s]*E\d{1,3})?|E\d{1,3}|EP\d{1,3}|Seasons?[-_.:\s]*\d|Сез(?:он(?:ы|а)?)?[-_.:\s]*\d)\b
         |   \b(?:\d{1,3}(?:\s*[-–~]\s*\d{1,3})?\s*(?:сезон(?:ы|а)?|seasons?))\b
         |   [._\s]\b(?:Complete|Full\b|19\d\d|20\d\d|1080p|720p|2160p|480p|576p|BDRip|WEB-?DL|WEBRip|HDTV|Remux)\b
         )

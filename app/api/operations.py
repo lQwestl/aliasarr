@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import os
 import shutil
-from typing import Optional
+from typing import Optional, List, Dict, Any, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 from pydantic import BaseModel
@@ -252,7 +252,11 @@ def get_health_check(db: Session = Depends(get_db)):
     except Exception:
         pass
 
-    return {"checks": checks}
+    has_error = any(c.get("level") == "error" for c in checks)
+    has_warn = any(c.get("level") == "warn" for c in checks)
+    overall_status = "error" if has_error else ("warn" if has_warn else "ok")
+
+    return {"status": overall_status, "checks": checks}
 
 
 # ---------------------------------------------------------------------------
@@ -262,8 +266,8 @@ def get_health_check(db: Session = Depends(get_db)):
 class QualityProfileIn(BaseModel):
     name: str
     allowed_qualities: list[str] = []
-    min_size_mb: int | None = None
-    max_size_mb: int | None = None
+    min_size_mb: Optional[int] = None
+    max_size_mb: Optional[int] = None
     upgrade_allowed: bool = True
 
 
@@ -464,7 +468,7 @@ CALENDAR_STATUSES = [
 ]
 
 
-def _calendar_status(show: Show, episode: Episode | None, air_date: dt.datetime | None, entry_type: str) -> str:
+def _calendar_status(show: Show, episode: Optional[Episode], air_date: Optional[dt.datetime], entry_type: str) -> str:
     """Определяет статус события календаря на основе состояния шоу и серии."""
     if entry_type == "premiere":
         return "premiere"
@@ -490,31 +494,31 @@ def _calendar_status(show: Show, episode: Episode | None, air_date: dt.datetime 
 
 class CalendarEntryOut(BaseModel):
     show_id: int
-    episode_id: int | None = None
+    episode_id: Optional[int] = None
     show_title: str
-    poster_url: str | None = None
-    season: int | None = None
-    episode: int | None = None
-    absolute_episode: int | None = None
-    title: str | None = None
-    air_date: dt.datetime | None = None
+    poster_url: Optional[str] = None
+    season: Optional[int] = None
+    episode: Optional[int] = None
+    absolute_episode: Optional[int] = None
+    title: Optional[str] = None
+    air_date: Optional[dt.datetime] = None
     status: str
     entry_type: str = "episode"  # "episode" | "premiere"
     content_type: str = "series"  # "series" | "movie" | "anime"
     monitored: bool = True
-    overview: str | None = None
-    rating: float | None = None
-    year: int | None = None
+    overview: Optional[str] = None
+    rating: Optional[float] = None
+    year: Optional[int] = None
     release_types: list[str] = []  # ["cinemas", "digital", "physical"]
 
 
 class CalendarWaitingOut(BaseModel):
     show_id: int
     show_title: str
-    poster_url: str | None = None
+    poster_url: Optional[str] = None
     content_type: str = "series"
-    expected_year: int | None = None
-    expected_quarter: int | None = None
+    expected_year: Optional[int] = None
+    expected_quarter: Optional[int] = None
     monitored: bool = True
 
 
@@ -917,7 +921,7 @@ def move_to_waiting(
 
 
 class SetEpisodeAirDateIn(BaseModel):
-    air_date: dt.datetime | None = None  # None = убрать дату (вернуть в "неопределённую")
+    air_date: Optional[dt.datetime] = None  # None = убрать дату (вернуть в "неопределённую")
 
 
 @router.put("/episodes/{episode_id}/air-date")
@@ -946,7 +950,7 @@ def set_episode_air_date(
 class ScheduleWeeklyIn(BaseModel):
     season_number: int
     start_date: dt.datetime          # дата выхода первой серии
-    weekday: int | None = None       # 0=пн..6=вс; если не задан — берётся из start_date
+    weekday: Optional[int] = None       # 0=пн..6=вс; если не задан — берётся из start_date
     interval_days: int = 7           # обычно раз в неделю, но можно задать другой шаг
     only_undated: bool = True        # проставлять только сериям без текущей даты
 
@@ -1002,7 +1006,7 @@ class HistoryEntryOut(BaseModel):
     show_title: str
     release_title: str
     event_type: str
-    matched_alias: str | None = None
+    matched_alias: Optional[str] = None
     created_at: dt.datetime
 
 
@@ -1225,7 +1229,7 @@ class OrganizerPreviewIn(BaseModel):
     year: int = 2013
     season_number: int = 1
     episode_number: int = 5
-    absolute_number: int | None = 5
+    absolute_number: Optional[int] = 5
     episode_title: str = "First Battle"
     quality: str = "Bluray-1080p"
     release_group: str = "LostFilm"

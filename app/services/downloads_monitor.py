@@ -10,6 +10,8 @@
 
 from __future__ import annotations
 
+from typing import Optional, List, Dict, Any
+
 import asyncio
 import logging
 import os
@@ -57,7 +59,7 @@ def _folder_and_template(settings, content_type: str) -> tuple[str, str, str]:
     )
 
 
-def _resolve_torrent_files_and_path(t, settings, show: Show | None = None) -> tuple[str, list[str]]:
+def _resolve_torrent_files_and_path(t, settings, show: Optional[Show] = None) -> tuple[str, list[str]]:
     """
     Определяет точный путь к завершённой раздаче и конкретный список файлов торрента.
     Гарантирует 100% изоляцию импорта: если скачивался один файл или конкретная папка,
@@ -176,9 +178,9 @@ def _run_postprocess_in_thread(
     root_folder: str,
     season_template: str,
     is_movie: bool,
-    specific_files: list[str] | None = None,
-    torrent_hash: str | None = None,
-    task_id: str | None = None,
+    specific_files: Optional[list[str]] = None,
+    torrent_hash: Optional[str] = None,
+    task_id: Optional[str] = None,
 ) -> list[dict]:
     """Выполняет перемещение файлов и обновление БД в отдельном потоке,
     чтобы не блокировать asyncio event loop и веб-интерфейс GUI."""

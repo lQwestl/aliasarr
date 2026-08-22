@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Тесты компонентов, портированных из Sonarr:
 - LanguageParser (LanguageParser.cs)

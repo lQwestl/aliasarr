@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Optional, List, Dict, Any
+
 import datetime as dt
 import os
 import shutil
@@ -113,7 +117,7 @@ def list_shows(db: Session = Depends(get_db), current_user: User = Depends(requi
     return _attach_computed_fields(db, shows)
 
 
-def _find_duplicate_show(db: Session, title: str, metadata_source: str | None, metadata_id: str | None) -> Show | None:
+def _find_duplicate_show(db: Session, title: str, metadata_source: Optional[str], metadata_id: Optional[str]) -> Optional[Show]:
     if metadata_source and metadata_id:
         existing = (
             db.query(Show)
@@ -984,7 +988,7 @@ def sync_show_disk(
 # ---------------------------------------------------------------------------
 
 class ManualImportScanIn(BaseModel):
-    folder_path: str | None = None
+    folder_path: Optional[str] = None
 
 
 class ManualImportFileCandidate(BaseModel):
@@ -993,17 +997,17 @@ class ManualImportFileCandidate(BaseModel):
     filename: str
     size_bytes: int
     detected_quality: str
-    parsed_season: int | None = None
-    parsed_episode: int | None = None
-    parsed_absolute: int | None = None
-    matched_episode_id: int | None = None
-    existing_file: str | None = None
+    parsed_season: Optional[int] = None
+    parsed_episode: Optional[int] = None
+    parsed_absolute: Optional[int] = None
+    matched_episode_id: Optional[int] = None
+    existing_file: Optional[str] = None
 
 
 class ManualImportScanOut(BaseModel):
     show_id: int
-    show_title: str | None = None
-    show_year: int | None = None
+    show_title: Optional[str] = None
+    show_year: Optional[int] = None
     content_type: str = "series"
     folder_path: str
     files: list[ManualImportFileCandidate]
@@ -1013,7 +1017,7 @@ class ManualImportScanOut(BaseModel):
 class ManualImportItemIn(BaseModel):
     file_path: str
     episode_id: int
-    quality: str | None = None
+    quality: Optional[str] = None
 
 
 class ManualImportExecuteIn(BaseModel):
@@ -1027,13 +1031,13 @@ class GlobalManualImportFileCandidate(BaseModel):
     filename: str
     size_bytes: int
     detected_quality: str
-    matched_show_id: int | None = None
-    matched_show_title: str | None = None
-    parsed_season: int | None = None
-    parsed_episode: int | None = None
-    parsed_absolute: int | None = None
-    matched_episode_id: int | None = None
-    existing_file: str | None = None
+    matched_show_id: Optional[int] = None
+    matched_show_title: Optional[str] = None
+    parsed_season: Optional[int] = None
+    parsed_episode: Optional[int] = None
+    parsed_absolute: Optional[int] = None
+    matched_episode_id: Optional[int] = None
+    existing_file: Optional[str] = None
 
 
 class GlobalManualImportScanOut(BaseModel):
@@ -1047,7 +1051,7 @@ class GlobalManualImportItemIn(BaseModel):
     file_path: str
     show_id: int
     episode_id: int
-    quality: str | None = None
+    quality: Optional[str] = None
 
 
 class GlobalManualImportExecuteIn(BaseModel):
@@ -1058,7 +1062,7 @@ class GlobalManualImportExecuteIn(BaseModel):
 @router.post("/{show_id}/manual-import/scan", response_model=ManualImportScanOut)
 def scan_for_manual_import(
     show_id: int,
-    payload: ManualImportScanIn | None = None,
+    payload: Optional[ManualImportScanIn] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_library")),
 ):
@@ -1432,7 +1436,7 @@ def execute_manual_import(
 
 @router.post("/manual-import/scan-all", response_model=GlobalManualImportScanOut)
 def scan_for_global_manual_import(
-    payload: ManualImportScanIn | None = None,
+    payload: Optional[ManualImportScanIn] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_library")),
 ):

@@ -163,11 +163,11 @@ def render_sonarr_token(
     raw_token: str,
     *,
     show_title: str,
-    year: int | None = None,
-    season: int | None = None,
-    episode: int | None = None,
+    year: Optional[int] = None,
+    season: Optional[int] = None,
+    episode: Optional[int] = None,
     episode_title: str = "",
-    absolute: int | None = None,
+    absolute: Optional[int] = None,
     quality: str = "",
     original_title: str = "",
     original_filename: str = "",
@@ -175,7 +175,7 @@ def render_sonarr_token(
     tvdb_id: str = "",
     tmdb_id: str = "",
     tvmaze_id: str = "",
-    air_date: dt.date | None = None,
+    air_date: Optional[dt.date] = None,
     release_group: str = "",
     custom_formats: str = "",
 ) -> str:
@@ -299,7 +299,7 @@ def render_season_folder_template(
     *,
     season: int,
     show_title: str = "",
-    year: int | None = None,
+    year: Optional[int] = None,
 ) -> str:
     """
     Рендерит имя папки сезона для сериалов и аниме:
@@ -329,8 +329,8 @@ def render_season_folder_template(
 
 def render_episode_template(
     template: str, *, show_title: str, season: int, episode: int,
-    episode_title: str, absolute: int | None = None, quality: str = "",
-    year: int | None = None,
+    episode_title: str, absolute: Optional[int] = None, quality: str = "",
+    year: Optional[int] = None,
 ) -> str:
     """
     Рендерит шаблон для сериала/аниме в Sonarr-формате:
@@ -353,7 +353,7 @@ def render_episode_template(
     return re.sub(r"\s+", " ", res).strip()
 
 
-def render_movie_template(template: str, *, show_title: str, year: int | None, quality: str) -> str:
+def render_movie_template(template: str, *, show_title: str, year: Optional[int], quality: str) -> str:
     """Рендерит шаблон для фильма, например: "{Movie Title} ({Release Year}) {Quality Full}"."""
     def _replacer(m):
         raw = m.group(1)
@@ -419,7 +419,7 @@ def move_file_with_progress(
         os.remove(src)
 
 
-def find_release_files(root: str, specific_files: list[str] | None = None) -> dict[str, list[str]]:
+def find_release_files(root: str, specific_files: Optional[list[str]] = None) -> dict[str, list[str]]:
     """
     Сканирует путь загрузки (или обрабатывает строго список файлов из торрента) и группирует файлы по типам:
     - video: видеофайлы (.mkv, .mp4, .avi, etc.)
@@ -548,7 +548,7 @@ def find_video_files(root: str) -> list[str]:
 def extract_companion_tag(
     companion_fpath: str,
     video_fpath: str = "",
-    ep_num: int | None = None,
+    ep_num: Optional[int] = None,
     release_root: str = "",
 ) -> str:
     """
@@ -719,8 +719,8 @@ def process_download(
     rename_template: str,
     root_folder: str,
     season_folder_template: str = "Сезон {season}",
-    specific_files: list[str] | None = None,
-    torrent_hash: str | None = None,
+    specific_files: Optional[list[str]] = None,
+    torrent_hash: Optional[str] = None,
     progress_callback: Optional[Callable[[float, str], None]] = None,
 ) -> list[dict]:
     """
@@ -1157,7 +1157,7 @@ def process_movie_download(
     download_path: str,
     rename_template: str,
     root_folder: str,
-    specific_files: list[str] | None = None,
+    specific_files: Optional[list[str]] = None,
     progress_callback: Optional[Callable[[float, str], None]] = None,
 ) -> list[dict]:
     """

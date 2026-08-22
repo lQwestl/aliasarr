@@ -220,9 +220,9 @@ from app.services.language_parser import get_language_badges
 @router.get("/search-custom", response_model=list[SearchResultOut])
 async def search_custom_releases(
     query: str,
-    show_id: int | None = None,
-    season: int | None = None,
-    episode: int | None = None,
+    show_id: Optional[int] = None,
+    season: Optional[int] = None,
+    episode: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manual_search")),
 ):
@@ -445,13 +445,13 @@ class GrabRequest(BaseModel):
     show_id: int
     download_url: str
     release_title: str
-    indexer_id: int | None = None
-    episode_id: int | None = None
-    matched_alias: str | None = None
-    page_url: str | None = None
-    season: int | None = None
-    episode: int | None = None
-    episode_ids: list[int] | None = None
+    indexer_id: Optional[int] = None
+    episode_id: Optional[int] = None
+    matched_alias: Optional[str] = None
+    page_url: Optional[str] = None
+    season: Optional[int] = None
+    episode: Optional[int] = None
+    episode_ids: Optional[list[int]] = None
 
 
 @router.post("/grab")

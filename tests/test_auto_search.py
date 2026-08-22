@@ -90,6 +90,10 @@ class FakeDownloadClient:
         pass
 
 
+async def _async_return(val):
+    return val
+
+
 def _release(guid, title, seeders, download_url=None):
     return TorznabRelease(
         title=title, guid=guid, download_url=download_url or f"http://fake.local/{guid}.torrent",
@@ -121,7 +125,7 @@ class TestAutoSearch(unittest.TestCase):
         indexer = make_indexer(self.session)
         same_release = _release("guid-1", "The.Series.Title.S01E01.1080p.WEBDL", seeders=50)
 
-        with patch("app.services.auto_search.TorznabClient.search", lambda self_c, query, categories=None: _async_return([same_release])):
+        with patch("app.services.indexer_service.TorznabIndexerClient.search", lambda self_c, query, categories=None: _async_return([same_release])):
             candidates = asyncio.run(auto_search._collect_candidates(self.session, show, [indexer]))
             self.assertEqual(len(candidates), 1, "Релиз с одинаковым guid не должен дублироваться в кандидатах")
 
@@ -139,7 +143,7 @@ class TestAutoSearch(unittest.TestCase):
         single_ep_popular = _release("guid-single", "Avengers.Show.S01E01.1080p.WEBDL", seeders=200)
 
         fake_dc = FakeDownloadClient()
-        with patch("app.services.auto_search.TorznabClient.search", lambda self_c, query, categories=None: _async_return([season_pack, single_ep_popular])), \
+        with patch("app.services.indexer_service.TorznabIndexerClient.search", lambda self_c, query, categories=None: _async_return([season_pack, single_ep_popular])), \
              patch("app.services.auto_search.get_client", lambda row: fake_dc):
             result = asyncio.run(auto_search._do_search_and_grab(self.session, show))
 
@@ -165,7 +169,7 @@ class TestAutoSearch(unittest.TestCase):
 
         low_seed_release = _release("guid-lowseed", "Low.Seed.Show.S01E01.1080p.WEBDL", seeders=2)
         fake_dc = FakeDownloadClient()
-        with patch("app.services.auto_search.TorznabClient.search", lambda self_c, query, categories=None: _async_return([low_seed_release])), \
+        with patch("app.services.indexer_service.TorznabIndexerClient.search", lambda self_c, query, categories=None: _async_return([low_seed_release])), \
              patch("app.services.auto_search.get_client", lambda row: fake_dc):
             result = asyncio.run(auto_search._do_search_and_grab(self.session, show))
 
@@ -188,7 +192,7 @@ class TestAutoSearch(unittest.TestCase):
         ep2_release = _release("guid-ep2", "Multi.Ep.Show.S01E02.1080p.WEBDL", seeders=50)
 
         fake_dc = FakeDownloadClient()
-        with patch("app.services.auto_search.TorznabClient.search", lambda self_c, query, categories=None: _async_return([ep1_release, ep2_release])), \
+        with patch("app.services.indexer_service.TorznabIndexerClient.search", lambda self_c, query, categories=None: _async_return([ep1_release, ep2_release])), \
              patch("app.services.auto_search.get_client", lambda row: fake_dc):
             result = asyncio.run(auto_search._do_search_and_grab(self.session, show, episode_ids={ep1.id}))
 
@@ -213,7 +217,7 @@ class TestAutoSearch(unittest.TestCase):
         wrong_season_release = _release("guid-s5", "My.Hero.Academia.S05E02.1080p.WEBDL", seeders=50)
 
         fake_dc = FakeDownloadClient()
-        with patch("app.services.auto_search.TorznabClient.search", lambda self_c, query, categories=None: _async_return([absolute_release, wrong_season_release])), \
+        with patch("app.services.indexer_service.TorznabIndexerClient.search", lambda self_c, query, categories=None: _async_return([absolute_release, wrong_season_release])), \
              patch("app.services.auto_search.get_client", lambda row: fake_dc):
             result = asyncio.run(auto_search._do_search_and_grab(self.session, show, episode_ids={ep_s2e2.id}))
 
@@ -232,7 +236,7 @@ class TestAutoSearch(unittest.TestCase):
 
         release = _release("guid-ru", "Тестовое.Аниме.Сезон.1.Серия.3.1080p", seeders=50)
         fake_dc = FakeDownloadClient()
-        with patch("app.services.auto_search.TorznabClient.search", lambda self_c, query, categories=None: _async_return([release])), \
+        with patch("app.services.indexer_service.TorznabIndexerClient.search", lambda self_c, query, categories=None: _async_return([release])), \
              patch("app.services.auto_search.get_client", lambda row: fake_dc):
             result = asyncio.run(auto_search._do_search_and_grab(self.session, show, episode_ids={ep.id}))
 
@@ -262,7 +266,7 @@ class TestAutoSearch(unittest.TestCase):
         release = _release("guid-movie", "The.Robot.Chicken.Star.Wars.2007.BDRip.1080p", seeders=100)
         fake_dc = FakeDownloadClient()
 
-        with patch("app.services.auto_search.TorznabClient.search", lambda self_c, query, categories=None: _async_return([release])), \
+        with patch("app.services.indexer_service.TorznabIndexerClient.search", lambda self_c, query, categories=None: _async_return([release])), \
              patch("app.services.auto_search.get_client", lambda row: fake_dc):
             results = asyncio.run(auto_search.run_wanted_search(self.session))
 
@@ -288,7 +292,7 @@ class TestAutoSearch(unittest.TestCase):
         release = _release("guid-m", "Star.Wars.Movie.1080p.Remux", seeders=100)
         fake_dc = FakeDownloadClient()
 
-        with patch("app.services.auto_search.TorznabClient.search", lambda self_c, query, categories=None: _async_return([release])), \
+        with patch("app.services.indexer_service.TorznabIndexerClient.search", lambda self_c, query, categories=None: _async_return([release])), \
              patch("app.services.auto_search.get_client", lambda row: fake_dc):
             res = asyncio.run(auto_search._do_search_and_grab(self.session, movie, wanted_only=True))
             self.assertEqual(res["grabbed"], [])

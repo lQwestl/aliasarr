@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Optional, List, Dict, Any
+
 import datetime as dt
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -15,20 +19,20 @@ class DownloadClientIn(BaseModel):
     type: str  # qbittorrent|transmission
     host: str
     port: int
-    username: str | None = None
-    password: str | None = None
-    category: str | None = "aliasarr"
+    username: Optional[str] = None
+    password: Optional[str] = None
+    category: Optional[str] = "aliasarr"
     enabled: bool = True
     is_default: bool = False
-    seed_time_limit: int | None = None
-    seed_ratio_limit: float | None = None
+    seed_time_limit: Optional[int] = None
+    seed_ratio_limit: Optional[float] = None
 
 
 class DownloadClientOut(DownloadClientIn):
     id: int
-    is_available: bool | None = None
-    last_checked_at: dt.datetime | None = None
-    last_error: str | None = None
+    is_available: Optional[bool] = None
+    last_checked_at: Optional[dt.datetime] = None
+    last_error: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
-from typing import Any
+from typing import Optional, Any
 
 try:
     from sqlalchemy.orm import Session
@@ -23,11 +23,11 @@ def log_audit(
     description: str = "",
     *,
     user: Any = None,
-    username: str | None = None,
-    user_id: int | None = None,
+    username: Optional[str] = None,
+    user_id: Optional[int] = None,
     details: Any = None,
     request: Any = None,
-) -> AuditLog | None:
+) -> Optional[AuditLog]:
     """Централизованное логирование действий пользователей и системы."""
     try:
         if not description:

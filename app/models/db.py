@@ -13,6 +13,8 @@
 
 from __future__ import annotations
 
+from typing import Optional, List, Dict, Any
+
 import datetime as dt
 import enum
 
@@ -95,34 +97,34 @@ class Show(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
-    year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     metadata_source: Mapped[str] = mapped_column(String(50), default="tmdb")
-    metadata_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    overview: Mapped[str | None] = mapped_column(Text, nullable=True)
-    poster_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
-    path: Mapped[str | None] = mapped_column(String(1000), nullable=True)  # папка на диске
+    metadata_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    overview: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    poster_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    path: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)  # папка на диске
     monitored: Mapped[bool] = mapped_column(Boolean, default=True)
-    quality_profile_id: Mapped[int | None] = mapped_column(ForeignKey("quality_profiles.id"), nullable=True)
+    quality_profile_id: Mapped[Optional[int]] = mapped_column(ForeignKey("quality_profiles.id"), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
-    last_search_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
-    last_search_result: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    last_search_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
+    last_search_result: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     is_searching: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Расширенные метаданные контента
-    network: Mapped[str | None] = mapped_column(String(200), nullable=True)  # Сеть/сервис вещания (Netflix, HBO, Tokyo MX...)
-    rating: Mapped[float | None] = mapped_column(Float, nullable=True)
-    country: Mapped[str | None] = mapped_column(String(300), nullable=True)
-    genre: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    network: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)  # Сеть/сервис вещания (Netflix, HBO, Tokyo MX...)
+    rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    country: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    genre: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     content_type: Mapped[str] = mapped_column(String(20), default="series")  # movie | series | anime (см. ContentCategory)
-    premiere_date: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    premiere_date: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
     # Ожидаемый год/квартал выхода (когда точной даты премьеры ещё нет в метаданных)
-    expected_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    expected_quarter: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 1-4
+    expected_year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    expected_quarter: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # 1-4
     in_calendar: Mapped[bool] = mapped_column(Boolean, default=True)
     # Флаг скрытия из списка неанонсированных тайтлов в календаре без удаления из библиотеки
     calendar_waiting_dismissed: Mapped[bool] = mapped_column(Boolean, default=False)
     # Время последней полной синхронизации метаданных из сети
-    last_metadata_refresh_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    last_metadata_refresh_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
 
     aliases: Mapped[list["Alias"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     episodes: Mapped[list["Episode"]] = relationship(back_populates="show", cascade="all, delete-orphan")
@@ -152,27 +154,27 @@ class Episode(Base):
     show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False)
     season_number: Mapped[int] = mapped_column(Integer, nullable=False)
     episode_number: Mapped[int] = mapped_column(Integer, nullable=False)
-    absolute_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    title: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    air_date: Mapped[dt.date | None] = mapped_column(DateTime, nullable=True)
+    absolute_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    title: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    air_date: Mapped[Optional[dt.date]] = mapped_column(DateTime, nullable=True)
     status: Mapped[EpisodeStatus] = mapped_column(SAEnum(EpisodeStatus), default=EpisodeStatus.MISSING)
-    file_path: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    file_path: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
 
     # Привязка к активной загрузке в клиенте
-    download_client_id: Mapped[int | None] = mapped_column(ForeignKey("download_clients.id"), nullable=True)
-    torrent_hash: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    download_client_id: Mapped[Optional[int]] = mapped_column(ForeignKey("download_clients.id"), nullable=True)
+    torrent_hash: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     download_progress: Mapped[float] = mapped_column(Float, default=0.0)  # 0..1 для прогресс-бара
-    downloaded_quality: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    downloaded_quality: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     # Технические свойства медиафайла
-    video_codec: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    audio_codec: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    audio_channels: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    dynamic_range: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    release_group: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    video_codec: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    audio_codec: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    audio_channels: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    dynamic_range: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    release_group: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     languages: Mapped[list] = mapped_column(JSON, default=list)
     custom_format_score: Mapped[int] = mapped_column(Integer, default=0)
-    file_size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    file_size_bytes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     show: Mapped["Show"] = relationship(back_populates="episodes")
 
@@ -197,10 +199,10 @@ class QualityProfile(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     allowed_qualities: Mapped[list] = mapped_column(JSON, default=list)  # напр. ["1080p","720p"]
-    min_size_mb: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    max_size_mb: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    min_size_mb: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    max_size_mb: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     upgrade_allowed: Mapped[bool] = mapped_column(Boolean, default=True)
-    cutoff_quality: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    cutoff_quality: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     cutoff_score: Mapped[int] = mapped_column(Integer, default=0)
     format_items: Mapped[list] = mapped_column(JSON, default=list)  # [{"format_id": 1, "name": "HDR10+", "score": 100}]
 
@@ -212,15 +214,15 @@ class Indexer(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     type: Mapped[IndexerType] = mapped_column(SAEnum(IndexerType), nullable=False)
     base_url: Mapped[str] = mapped_column(String(1000), nullable=False)
-    api_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    api_key: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     categories: Mapped[list] = mapped_column(JSON, default=list)
     priority: Mapped[int] = mapped_column(Integer, default=25)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     timeout_seconds: Mapped[int] = mapped_column(Integer, default=30)
 
     # Статус доступности torznab-эндпоинта
-    last_check_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
-    last_check_ok: Mapped[bool | None] = mapped_column(Boolean, nullable=True)  # None = ещё не проверялось
+    last_check_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
+    last_check_ok: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)  # None = ещё не проверялось
     consecutive_failures: Mapped[int] = mapped_column(Integer, default=0)
 
 
@@ -230,8 +232,8 @@ class MetadataSource(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     type: Mapped[str] = mapped_column(String(50), default="tmdb")
-    base_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
-    api_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    base_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    api_key: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     field_mapping: Mapped[dict] = mapped_column(JSON, default=dict)  # маппинг полей ответа API
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
@@ -250,10 +252,10 @@ class TrackedRelease(Base):
     indexer_id: Mapped[int] = mapped_column(ForeignKey("indexers.id"), nullable=False)
     topic_guid: Mapped[str] = mapped_column(String(500), nullable=False)  # guid/id топика на трекере
     topic_url: Mapped[str] = mapped_column(String(1000), nullable=False)
-    infohash: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    infohash: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     downloaded_episodes: Mapped[list] = mapped_column(JSON, default=list)  # [{"season":1,"episode":5,"file":"..."}]
-    last_checked_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
-    last_updated_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)  # когда топик обновился
+    last_checked_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
+    last_updated_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)  # когда топик обновился
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     show: Mapped["Show"] = relationship(back_populates="tracked_releases")
@@ -264,12 +266,12 @@ class DownloadHistory(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False)
-    episode_id: Mapped[int | None] = mapped_column(ForeignKey("episodes.id"), nullable=True)
+    episode_id: Mapped[Optional[int]] = mapped_column(ForeignKey("episodes.id"), nullable=True)
     release_title: Mapped[str] = mapped_column(String(1000), nullable=False)
-    indexer_id: Mapped[int | None] = mapped_column(ForeignKey("indexers.id"), nullable=True)
+    indexer_id: Mapped[Optional[int]] = mapped_column(ForeignKey("indexers.id"), nullable=True)
     event_type: Mapped[str] = mapped_column(String(50), default="grabbed")  # grabbed|imported|failed
-    matched_alias: Mapped[str | None] = mapped_column(String(500), nullable=True)  # по какому алиасу нашли релиз
-    show_title_snapshot: Mapped[str | None] = mapped_column(String(500), nullable=True)  # имя шоу на момент захвата
+    matched_alias: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # по какому алиасу нашли релиз
+    show_title_snapshot: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # имя шоу на момент захвата
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
 
 
@@ -281,18 +283,18 @@ class DownloadClient(Base):
     type: Mapped[str] = mapped_column(String(50), nullable=False)  # qbittorrent|transmission
     host: Mapped[str] = mapped_column(String(300), nullable=False)
     port: Mapped[int] = mapped_column(Integer, nullable=False)
-    username: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    password: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    category: Mapped[str | None] = mapped_column(String(100), nullable=True, default="aliasarr")
+    username: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    password: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, default="aliasarr")
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
-    is_available: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=None)
-    last_checked_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
-    last_error: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    is_available: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=None)
+    last_checked_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
+    last_error: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     # Время раздачи скачанного контента перед импортом (в минутах; 0/None = импортировать сразу)
-    seed_time_limit: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
+    seed_time_limit: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=None)
     # Коэффициент раздачи (Ratio limit; None/0 = без ограничения)
-    seed_ratio_limit: Mapped[float | None] = mapped_column(Float, nullable=True, default=None)
+    seed_ratio_limit: Mapped[Optional[float]] = mapped_column(Float, nullable=True, default=None)
 
 
 class NotificationConfig(Base):
@@ -374,7 +376,7 @@ class AppSettings(Base):
     # Логин по паре логин/пароль (независимо от API-ключа)
     login_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     username: Mapped[str] = mapped_column(String(200), default="admin")
-    password_hash: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    password_hash: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
 
     # Локализация и тема оформления
     language: Mapped[str] = mapped_column(String(5), default="ru")   # ru | en
@@ -446,21 +448,21 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     username: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(300), nullable=False)
-    display_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    display_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     is_owner: Mapped[bool] = mapped_column(Boolean, default=False)  # Главный админ (нельзя удалить или заблокировать)
-    avatar: Mapped[str | None] = mapped_column(Text, nullable=True)  # Data-URL или путь
+    avatar: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # Data-URL или путь
     permissions: Mapped[dict] = mapped_column(JSON, default=dict)    # {"manage_library": true, "manual_search": true, ...}
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     session_timeout_minutes: Mapped[int] = mapped_column(Integer, default=43200)
-    api_key: Mapped[str | None] = mapped_column(String(100), unique=True, index=True, nullable=True)
+    api_key: Mapped[Optional[str]] = mapped_column(String(100), unique=True, index=True, nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
-    last_login_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    last_login_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
 
     # 2FA TOTP
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
-    totp_secret: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    totp_confirmed_at: Mapped[dt.datetime | None] = mapped_column(DateTime, nullable=True)
+    totp_secret: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    totp_confirmed_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
 
     sessions: Mapped[list["Session"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
@@ -484,12 +486,12 @@ class AuditLog(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow, index=True)
-    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     username: Mapped[str] = mapped_column(String(100), default="system")
     action: Mapped[str] = mapped_column(String(100), index=True)
     description: Mapped[str] = mapped_column(String(1000), default="")
-    details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    ip_address: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    details: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
 
 class Session(Base):
@@ -499,10 +501,10 @@ class Session(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     token: Mapped[str] = mapped_column(String(200), unique=True, nullable=False, index=True)
-    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
     expires_at: Mapped[dt.datetime] = mapped_column(DateTime, nullable=False)
-    ip_address: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
-    user: Mapped["User | None"] = relationship(back_populates="sessions")
+    user: Mapped[Optional["User"]] = relationship(back_populates="sessions")

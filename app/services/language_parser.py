@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import enum
 import re
-from typing import List, Set
+from typing import Optional, List, Set
 
 
 class Language(str, enum.Enum):

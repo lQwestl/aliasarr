@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
-from typing import Any
+from typing import Optional, Any
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func
@@ -19,10 +19,10 @@ router = APIRouter(prefix="/api/v1/audit", tags=["audit"])
 def list_audit_logs(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    user_id: int | None = None,
-    username: str | None = None,
-    action: str | None = None,
-    search: str | None = None,
+    user_id: Optional[int] = None,
+    username: Optional[str] = None,
+    action: Optional[str] = None,
+    search: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("view_audit")),
 ):

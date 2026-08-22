@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import secrets
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -71,7 +71,7 @@ def ensure_master_admin(db: Session) -> User:
     return owner
 
 
-def authenticate_user(db: Session, username: str, password: str) -> User | None:
+def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
     """Проверяет учетные данные пользователя и возвращает объект User при успешной проверке."""
     uname = (username or "").strip()
     if not uname or not password:
@@ -115,7 +115,7 @@ def authenticate_user(db: Session, username: str, password: str) -> User | None:
     return user
 
 
-def create_user_session(db: Session, user: User, request: Request | None = None, is_local_permanent: bool = False) -> str:
+def create_user_session(db: Session, user: User, request: Optional[Request] = None, is_local_permanent: bool = False) -> str:
     """Создает запись сессии в БД и возвращает токен сессии."""
     token = secrets.token_urlsafe(32)
     if is_local_permanent:
@@ -147,7 +147,7 @@ def create_user_session(db: Session, user: User, request: Request | None = None,
     return token
 
 
-def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -> User | None:
+def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
     """Возвращает текущего пользователя из сессии или по API-ключу, привязанного к сессии БД."""
     if hasattr(request.state, "user") and request.state.user:
         user_id = getattr(request.state.user, "id", None)
@@ -190,7 +190,7 @@ def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -
     return None
 
 
-def get_current_user(user: User | None = Depends(get_current_user_optional)) -> User:
+def get_current_user(user: Optional[User] = Depends(get_current_user_optional)) -> User:
     """Строгая зависимость: требует авторизованного пользователя."""
     if not user:
         raise HTTPException(status_code=401, detail="Требуется авторизация")

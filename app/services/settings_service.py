@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Optional, List, Dict, Any
+
 import hashlib
 import os
 import secrets
@@ -49,14 +53,14 @@ def _clear_legacy_folder_defaults(db: Session, settings: AppSettings) -> None:
             setattr(settings, field, "")
             changed = True
 
-    if settings.rename_template_series in _OLD_SERIES_DEFAULTS:
+    if getattr(settings, "rename_template_series", None) in _OLD_SERIES_DEFAULTS:
         settings.rename_template_series = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"
         settings.rename_template = settings.rename_template_series
         changed = True
-    if settings.rename_template_anime in _OLD_ANIME_DEFAULTS:
+    if getattr(settings, "rename_template_anime", None) in _OLD_ANIME_DEFAULTS:
         settings.rename_template_anime = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"
         changed = True
-    if settings.rename_template_movie in _OLD_MOVIE_DEFAULTS:
+    if getattr(settings, "rename_template_movie", None) in _OLD_MOVIE_DEFAULTS:
         settings.rename_template_movie = "{Movie Title} ({Release Year}) {Quality Full}"
         changed = True
 

@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+from typing import Optional, List, Dict, Any
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 

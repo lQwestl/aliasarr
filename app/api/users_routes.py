@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import secrets
-from typing import Any
+from typing import Optional, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
@@ -19,19 +19,19 @@ router = APIRouter(prefix="/api/v1/users", tags=["users"])
 class UserCreate(BaseModel):
     username: str
     password: str
-    display_name: str | None = None
+    display_name: Optional[str] = None
     is_admin: bool = False
     permissions: dict[str, bool] | None = None
     enabled: bool = True
-    session_timeout_minutes: int | None = 43200
+    session_timeout_minutes: Optional[int] = 43200
 
 
 class UserUpdate(BaseModel):
-    display_name: str | None = None
-    is_admin: bool | None = None
+    display_name: Optional[str] = None
+    is_admin: Optional[bool] = None
     permissions: dict[str, bool] | None = None
-    enabled: bool | None = None
-    session_timeout_minutes: int | None = None
+    enabled: Optional[bool] = None
+    session_timeout_minutes: Optional[int] = None
 
 
 class UserPasswordReset(BaseModel):
@@ -39,10 +39,10 @@ class UserPasswordReset(BaseModel):
 
 
 class UserAvatarSet(BaseModel):
-    avatar: str | None = None
+    avatar: Optional[str] = None
 
 
-def _format_user(u: User, viewer: User | None = None) -> dict[str, Any]:
+def _format_user(u: User, viewer: Optional[User] = None) -> dict[str, Any]:
     perms = u.permissions or {}
     if u.is_admin:
         perms = {perm: True for perm in ALL_PERMISSIONS}

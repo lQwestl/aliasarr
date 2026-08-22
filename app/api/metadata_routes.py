@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Optional, List, Dict, Any
+
 import asyncio
 import datetime as dt
 
@@ -29,8 +33,8 @@ def _normalize_source_type(val: str | MetadataSourceType) -> MetadataSourceType:
 class MetadataSourceIn(BaseModel):
     name: str
     type: str  # tmdb|tvmaze|custom
-    base_url: str | None = None
-    api_key: str | None = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
     field_mapping: dict = {}
     enabled: bool = True
 
@@ -39,8 +43,8 @@ class MetadataSourceOut(BaseModel):
     id: int
     name: str
     type: str
-    base_url: str | None = None
-    api_key: str | None = None
+    base_url: Optional[str] = None
+    api_key: Optional[str] = None
     field_mapping: dict = {}
     enabled: bool = True
 
@@ -51,26 +55,26 @@ class MetadataSourceOut(BaseModel):
 class MetadataSearchResultOut(BaseModel):
     external_id: str
     title: str
-    year: int | None
-    overview: str | None = None
-    poster_url: str | None = None
-    rating: float | None = None
-    country: str | None = None
-    genre: str | None = None
-    content_type: str | None = None
+    year: Optional[int]
+    overview: Optional[str] = None
+    poster_url: Optional[str] = None
+    rating: Optional[float] = None
+    country: Optional[str] = None
+    genre: Optional[str] = None
+    content_type: Optional[str] = None
     already_added: bool = False
-    existing_show_id: int | None = None
+    existing_show_id: Optional[int] = None
 
 
 class ImportShowRequest(BaseModel):
     source_id: int
     external_id: str
-    path: str | None = None
+    path: Optional[str] = None
     # Категория контента (movie | series | anime), выбранная пользователем при добавлении
-    content_type: str | None = None
+    content_type: Optional[str] = None
 
 
-def _parse_date(value: str | None) -> dt.datetime | None:
+def _parse_date(value: Optional[str]) -> Optional[dt.datetime]:
     if not value:
         return None
     try:
@@ -79,7 +83,7 @@ def _parse_date(value: str | None) -> dt.datetime | None:
         return None
 
 
-def _find_existing_show(db: Session, *, metadata_source: str | None, metadata_id: str | None, title: str) -> Show | None:
+def _find_existing_show(db: Session, *, metadata_source: Optional[str], metadata_id: Optional[str], title: str) -> Optional[Show]:
     """Ищет уже добавленное шоу — сначала по точному совпадению источника+ID метаданных,
     затем по совпадению названия (без учёта регистра), чтобы ловить дубли и между источниками."""
     if metadata_source and metadata_id:

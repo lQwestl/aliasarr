@@ -348,7 +348,7 @@ class TransmissionClient(BaseDownloadClient):
     def __init__(self, host: str, port: int, username: str, password: str):
         self._rpc_url = _normalize_client_url(host, port, default_port=9091).rstrip("/") + "/transmission/rpc"
         self._auth = (username, password) if (username or password) else None
-        self._session_id: str | None = None
+        self._session_id: Optional[str] = None
         try:
             import transmission_rpc
             self._sync_client = transmission_rpc.Client(
@@ -357,7 +357,7 @@ class TransmissionClient(BaseDownloadClient):
         except ImportError:
             self._sync_client = None
 
-    async def _rpc_call(self, method: str, arguments: dict | None = None) -> dict:
+    async def _rpc_call(self, method: str, arguments: Optional[dict] = None) -> dict:
         headers = {}
         if self._session_id:
             headers["X-Transmission-Session-Id"] = self._session_id

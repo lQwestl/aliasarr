@@ -60,13 +60,13 @@ class ShowOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     title: str
-    year: Optional[int]
-    overview: Optional[str]
-    poster_url: Optional[str]
-    path: Optional[str]
-    monitored: bool
+    year: Optional[int] = None
+    overview: Optional[str] = None
+    poster_url: Optional[str] = None
+    path: Optional[str] = None
+    monitored: bool = True
     quality_profile_id: Optional[int] = None
-    created_at: dt.datetime
+    created_at: Optional[dt.datetime] = None
     last_search_at: Optional[dt.datetime] = None
     last_search_result: Optional[str] = None
     is_searching: bool = False
