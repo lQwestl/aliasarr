@@ -38,7 +38,7 @@ from app.services.postprocess import (
 from app.services.matcher import build_alias_candidates, match_release
 from app.services.quality import parse_quality
 from app.services.settings_service import get_or_create_settings
-from app.services.user_service import require_permission, get_current_user
+from app.services.user_service import require_permission, require_any_permission, get_current_user
 
 router = APIRouter(prefix="/api/v1/shows", tags=["shows"])
 
