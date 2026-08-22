@@ -208,6 +208,9 @@ def _run_postprocess_in_thread(
         thread_db.close()
 
 
+_MISSING_TORRENT_POLL_COUNTS: dict[str, int] = {}
+
+
 async def check_downloads(db: Session) -> list[dict]:
     settings = get_or_create_settings(db)
     downloading = (
@@ -224,6 +227,7 @@ async def check_downloads(db: Session) -> list[dict]:
         return []
 
     torrents_by_hash: dict[str, tuple[any, DownloadClient]] = {}
+    successful_clients: set[int] = set()
     for dc_row in active_clients:
         try:
             client = get_client(dc_row)
@@ -231,6 +235,7 @@ async def check_downloads(db: Session) -> list[dict]:
             for t in torrents:
                 if t.hash:
                     torrents_by_hash[t.hash.lower()] = (t, dc_row)
+            successful_clients.add(dc_row.id)
         except Exception as exc:
             logger.warning("Не удалось получить список торрентов у %s: %s", dc_row.name, exc)
 
@@ -246,8 +251,21 @@ async def check_downloads(db: Session) -> list[dict]:
     for torrent_hash, eps in episodes_by_hash.items():
         entry = torrents_by_hash.get(torrent_hash)
         if not entry:
-            # Торрент больше не существует в активных клиентах (удален или завершен без раздачи)
-            # Сбрасываем серии в статус WANTED / UNAIRED, чтобы не висел ложный прогресс 100%
+            # Если хотя бы один клиент не ответил (ошибка/таймаут), не сбрасываем серии — возможно раздача там
+            client_id = eps[0].download_client_id if eps else None
+            if client_id and client_id not in successful_clients:
+                continue
+            if not successful_clients:
+                continue
+
+            # Защита от кратковременных сбоев: сбрасываем статус только если раздача отсутствует 5 опросов подряд (~30-60 сек)
+            missing_count = _MISSING_TORRENT_POLL_COUNTS.get(torrent_hash, 0) + 1
+            _MISSING_TORRENT_POLL_COUNTS[torrent_hash] = missing_count
+            if missing_count < 5:
+                continue
+
+            _MISSING_TORRENT_POLL_COUNTS.pop(torrent_hash, None)
+            # Торрент действительно удален из загрузчика: сбрасываем в WANTED / UNAIRED
             import datetime as dt
             today = dt.date.today()
             for ep in eps:
@@ -264,7 +282,11 @@ async def check_downloads(db: Session) -> list[dict]:
                         ep.status = EpisodeStatus.WANTED
                     db.add(ep)
                     progress_changed = True
+            logger.info("Раздача %s удалена из загрузчика. Серии переведены в статус поиска.", torrent_hash)
             continue
+
+        # Раздача найдена: сбрасываем счетчик пропущенных опросов
+        _MISSING_TORRENT_POLL_COUNTS.pop(torrent_hash, None)
         t, dc_row = entry
 
         for ep in eps:
@@ -280,18 +302,21 @@ async def check_downloads(db: Session) -> list[dict]:
         _DOWNLOADING_STATES = {
             "downloading", "stalleddl", "forceddl", "queueddl", "checkingdl",
             "allocating", "metadl", "moving", "4", "checking", "check pending",
+            "download", "download_wait", "check_wait", "stopped", "paused",
+            "0", "1", "2", "3",
         }
         _SEEDING_COMPLETED_STATES = {
             "completed", "seeding", "pausedup", "stalledup", "forcedup",
-            "queuedup", "uploading", "100%", "finished", "seed", "complete", "6",
+            "queuedup", "uploading", "100%", "finished", "seed", "complete", "6", "5",
         }
 
+        # Раздача завершена ТОЛЬКО если прогресс >= 0.999 (100%). Никакого импорта при progress < 100%!
         if state_str in _DOWNLOADING_STATES:
             is_done = False
         elif state_str in _SEEDING_COMPLETED_STATES:
-            is_done = True
+            is_done = (t.progress >= 0.999)
         else:
-            is_done = (t.progress >= 1.0)
+            is_done = (t.progress >= 0.999)
 
         if not is_done:
             continue

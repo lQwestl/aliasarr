@@ -349,7 +349,16 @@ class TestDownloadsMonitor(unittest.TestCase):
         with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
              patch("app.services.downloads_monitor.get_client", return_value=FakeClient([])), \
              patch("app.services.downloads_monitor._run_postprocess_in_thread") as mock_postprocess:
-            results = asyncio.run(check_downloads(db_mock))
+            # 5 опросов для подтверждения удаления раздачи
+            db_mock.query.return_value.filter.return_value.all.side_effect = [
+                [ep_aired, ep_future], [dc],
+                [ep_aired, ep_future], [dc],
+                [ep_aired, ep_future], [dc],
+                [ep_aired, ep_future], [dc],
+                [ep_aired, ep_future], [dc],
+            ]
+            for _ in range(5):
+                results = asyncio.run(check_downloads(db_mock))
             self.assertEqual(ep_aired.status, "wanted")
             self.assertEqual(ep_aired.download_progress, 0.0)
             self.assertIsNone(ep_aired.torrent_hash)
