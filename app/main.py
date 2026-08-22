@@ -47,6 +47,9 @@ from app.services.user_service import ensure_master_admin
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("aliasarr.main")
 
+_active_server = None
+_restart_requested = False
+
 from fastapi.openapi.utils import get_openapi
 
 app = FastAPI(

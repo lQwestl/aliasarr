@@ -13,7 +13,20 @@ from app.services.ssl_service import ensure_ssl_certificate
 
 
 def run():
-    init_db()
+    # Настройка umask для Docker / Linux
+    try:
+        env_umask = os.getenv("UMASK", "0000").strip()
+        os.umask(int(env_umask, 8))
+    except Exception:
+        try:
+            os.umask(0o000)
+        except Exception:
+            pass
+
+    try:
+        init_db()
+    except Exception as exc:
+        print(f"[Aliasarr] Database initialization warning: {exc}")
 
     while True:
         db = SessionLocal()
