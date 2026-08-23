@@ -150,7 +150,7 @@ def extract_info_hash_from_torrent_bytes(torrent_bytes: bytes) -> str:
 
 async def _fetch_torrent_content_if_url(url_or_magnet: str) -> tuple[Optional[bytes], str]:
     """
-    Если передан HTTP/HTTPS URL, скачивает содержимое торрент-файла напрямую в Aliasarr.
+    Если передан HTTP/HTTPS URL, скачивает содержимое торрент-файла или разрешает редирект в magnet-ссылку.
     Возвращает (torrent_bytes, magnet_or_url).
     """
     if not url_or_magnet or not url_or_magnet.startswith(("http://", "https://")):
@@ -161,33 +161,54 @@ async def _fetch_torrent_content_if_url(url_or_magnet: str) -> tuple[Optional[by
         "Accept": "application/x-bittorrent, application/octet-stream, */*",
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True, verify=False, headers=headers) as client:
-            resp = await client.get(url_or_magnet)
-            if resp.status_code == 200 and resp.content:
-                content = resp.content
-                if content.startswith(b"\x1f\x8b"):
+    current_url = url_or_magnet
+    for _ in range(5):
+        if current_url.startswith("magnet:"):
+            return None, current_url
+
+        try:
+            async with httpx.AsyncClient(timeout=20.0, follow_redirects=False, verify=False, headers=headers) as client:
+                resp = await client.get(current_url)
+
+                # Обработка редиректов (301, 302, 303, 307, 308)
+                if resp.status_code in (301, 302, 303, 307, 308):
+                    location = resp.headers.get("Location") or resp.headers.get("location") or ""
+                    if location:
+                        if location.startswith("magnet:"):
+                            return None, location
+                        if location.startswith("/"):
+                            parsed = urllib.parse.urlparse(current_url)
+                            current_url = f"{parsed.scheme}://{parsed.netloc}{location}"
+                        else:
+                            current_url = location
+                        continue
+
+                if resp.status_code == 200 and resp.content:
+                    content = resp.content
+                    if content.startswith(b"\x1f\x8b"):
+                        try:
+                            content = gzip.decompress(content)
+                        except Exception:
+                            pass
+
+                    text_preview = ""
                     try:
-                        content = gzip.decompress(content)
+                        text_preview = content[:200].decode("utf-8", errors="ignore").strip()
                     except Exception:
                         pass
 
-                text_preview = ""
-                try:
-                    text_preview = content[:200].decode("utf-8", errors="ignore").strip()
-                except Exception:
-                    pass
-
-                if text_preview.startswith("magnet:"):
-                    return None, text_preview
-                if content.startswith(b"d") or b"4:info" in content:
-                    return content, url_or_magnet
+                    if text_preview.startswith("magnet:"):
+                        return None, text_preview
+                    if content.startswith(b"d") or b"4:info" in content:
+                        return content, current_url
+                    else:
+                        logger.warning("Ответ по URL %s не является торрентом (длина: %d, начало: %r)", current_url, len(content), text_preview[:50])
                 else:
-                    logger.warning("Ответ по URL %s не является торрентом (длина: %d, начало: %r)", url_or_magnet, len(content), text_preview[:50])
-            else:
-                logger.warning("Ошибка скачивания торрента по URL %s (HTTP %s): %s", url_or_magnet, resp.status_code, resp.text[:200])
-    except Exception as exc:
-        logger.warning("Ошибка предварительного скачивания .torrent файла (%s): %s", url_or_magnet, exc)
+                    logger.warning("Ошибка скачивания торрента по URL %s (HTTP %s): %s", current_url, resp.status_code, resp.text[:200])
+                break
+        except Exception as exc:
+            logger.warning("Ошибка запроса торрента по URL (%s): %s", current_url, exc)
+            break
 
     return None, url_or_magnet
 
