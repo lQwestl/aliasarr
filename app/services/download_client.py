@@ -101,6 +101,74 @@ def _normalize_client_url(host: str, port: int, default_port: int = 8080) -> str
     return f"{scheme}://{netloc}:{actual_port}"
 
 
+def extract_info_hash_from_url_or_magnet(url_or_magnet: str) -> str:
+    if not url_or_magnet:
+        return ""
+    m = re.search(r"xt=urn:btih:([a-fA-F0-9]{40}|[a-zA-Z2-7]{32})", url_or_magnet, re.IGNORECASE)
+    if m:
+        h = m.group(1)
+        if len(h) == 32:
+            try:
+                raw = base64.b32decode(h.upper())
+                return raw.hex().lower()
+            except Exception:
+                pass
+        return h.lower()
+    return ""
+
+
+def extract_info_hash_from_torrent_bytes(torrent_bytes: bytes) -> str:
+    if not torrent_bytes:
+        return ""
+    try:
+        info_marker = b"4:info"
+        idx = torrent_bytes.index(info_marker)
+        start_idx = idx + len(info_marker)
+
+        def get_dict_end(pos):
+            char = torrent_bytes[pos:pos+1]
+            if char == b"i":
+                return torrent_bytes.index(b"e", pos + 1) + 1
+            elif char.isdigit():
+                colon = torrent_bytes.index(b":", pos)
+                length = int(torrent_bytes[pos:colon])
+                return colon + 1 + length
+            elif char in (b"l", b"d"):
+                pos += 1
+                while torrent_bytes[pos:pos+1] != b"e":
+                    pos = get_dict_end(pos)
+                return pos + 1
+            raise ValueError(f"Invalid char {char}")
+
+        end_idx = get_dict_end(start_idx)
+        raw_info = torrent_bytes[start_idx:end_idx]
+        return hashlib.sha1(raw_info).hexdigest().lower()
+    except Exception:
+        return ""
+
+
+async def _fetch_torrent_content_if_url(url_or_magnet: str) -> tuple[Optional[bytes], str]:
+    """
+    Если передан HTTP/HTTPS URL, скачивает содержимое торрент-файла напрямую в Aliasarr.
+    Возвращает (torrent_bytes, magnet_or_url).
+    """
+    if not url_or_magnet or not url_or_magnet.startswith(("http://", "https://")):
+        return None, url_or_magnet
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+            resp = await client.get(url_or_magnet)
+            if resp.status_code == 200 and resp.content:
+                if resp.text.startswith("magnet:"):
+                    return None, resp.text.strip()
+                if resp.content.startswith(b"d") or b"4:info" in resp.content:
+                    return resp.content, url_or_magnet
+    except Exception as exc:
+        logger.debug("Ошибка предварительного скачивания .torrent файла: %s", exc)
+
+    return None, url_or_magnet
+
+
 class QBittorrentClient(BaseDownloadClient):
     """Асинхронный клиент qBittorrent Web API v2 через httpx с поддержкой qbittorrentapi."""
 
@@ -135,6 +203,11 @@ class QBittorrentClient(BaseDownloadClient):
             logger.debug("qBittorrent login attempt: %s", exc)
 
     async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None) -> str:
+        torrent_bytes, resolved_url = await _fetch_torrent_content_if_url(url_or_magnet)
+        expected_hash = extract_info_hash_from_url_or_magnet(resolved_url)
+        if torrent_bytes and not expected_hash:
+            expected_hash = extract_info_hash_from_torrent_bytes(torrent_bytes)
+
         try:
             async with httpx.AsyncClient(timeout=15.0, cookies=self._cookies) as client:
                 await self._ensure_auth(client)
@@ -142,18 +215,28 @@ class QBittorrentClient(BaseDownloadClient):
                 before_hashes = {t.get("hash") for t in (before_resp.json() if before_resp.status_code == 200 else [])}
 
                 add_data = {
-                    "urls": url_or_magnet,
                     "category": category or "",
                     "autoTMM": "false",
                 }
                 if save_path:
                     add_data["savepath"] = save_path
 
-                resp = await client.post(f"{self._base_url}/api/v2/torrents/add", data=add_data, cookies=self._cookies, timeout=12.0)
+                if torrent_bytes:
+                    files = {"torrents": ("release.torrent", torrent_bytes, "application/x-bittorrent")}
+                    resp = await client.post(f"{self._base_url}/api/v2/torrents/add", data=add_data, files=files, cookies=self._cookies, timeout=12.0)
+                else:
+                    add_data["urls"] = resolved_url
+                    resp = await client.post(f"{self._base_url}/api/v2/torrents/add", data=add_data, cookies=self._cookies, timeout=12.0)
+
                 if resp.status_code in (401, 403):
                     self._cookies.clear()
                     await self._ensure_auth(client)
-                    resp = await client.post(f"{self._base_url}/api/v2/torrents/add", data=add_data, cookies=self._cookies, timeout=12.0)
+                    if torrent_bytes:
+                        files = {"torrents": ("release.torrent", torrent_bytes, "application/x-bittorrent")}
+                        resp = await client.post(f"{self._base_url}/api/v2/torrents/add", data=add_data, files=files, cookies=self._cookies, timeout=12.0)
+                    else:
+                        resp = await client.post(f"{self._base_url}/api/v2/torrents/add", data=add_data, cookies=self._cookies, timeout=12.0)
+
                 resp.raise_for_status()
 
                 # Проверяем хэш добавленного торрента
@@ -163,13 +246,24 @@ class QBittorrentClient(BaseDownloadClient):
                     after_torrents = after_resp.json()
                     new = [t for t in after_torrents if t.get("hash") not in before_hashes]
                     if new:
-                        return new[0].get("hash", "")
-                    return after_torrents[-1].get("hash", "") if after_torrents else ""
+                        return new[0].get("hash", "").lower()
+                    if expected_hash:
+                        return expected_hash
+                    if after_torrents:
+                        return after_torrents[-1].get("hash", "").lower()
+
+                if expected_hash:
+                    return expected_hash
+                return ""
         except Exception as exc:
             logger.warning("Ошибка добавления торрента через httpx в qBittorrent (%s): %s", self._base_url, exc)
             if self._sync_client:
-                return await asyncio.to_thread(self._add_torrent_sync, url_or_magnet, category, save_path)
-        return ""
+                sync_res = await asyncio.to_thread(self._add_torrent_sync, resolved_url, category, save_path)
+                if sync_res:
+                    return sync_res
+            if expected_hash:
+                return expected_hash
+            raise RuntimeError(f"Ошибка qBittorrent при добавлении торрента: {exc}")
 
     def _add_torrent_sync(self, url_or_magnet: str, category: Optional[str], save_path: Optional[str]) -> str:
         try:
@@ -372,20 +466,42 @@ class TransmissionClient(BaseDownloadClient):
             return resp.json().get("arguments", {})
 
     async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None) -> str:
+        torrent_bytes, resolved_url = await _fetch_torrent_content_if_url(url_or_magnet)
+        expected_hash = extract_info_hash_from_url_or_magnet(resolved_url)
+        if torrent_bytes and not expected_hash:
+            expected_hash = extract_info_hash_from_torrent_bytes(torrent_bytes)
+
         try:
-            args = {"filename": url_or_magnet}
+            if torrent_bytes:
+                metainfo_b64 = base64.b64encode(torrent_bytes).decode("ascii")
+                args = {"metainfo": metainfo_b64}
+            else:
+                args = {"filename": resolved_url}
+
             if category:
                 args["labels"] = [category]
             if save_path:
                 args["download-dir"] = save_path
+
             res = await self._rpc_call("torrent-add", args)
             torrent_added = res.get("torrent-added") or res.get("torrent-duplicate") or {}
-            return str(torrent_added.get("hashString", ""))
+            hash_str = str(torrent_added.get("hashString", "")).strip().lower()
+            if hash_str:
+                return hash_str
+            if expected_hash:
+                return expected_hash
+            if not torrent_added and res:
+                raise RuntimeError(f"Transmission вернул ошибку при добавлении раздачи: {res}")
+            return hash_str
         except Exception as exc:
             logger.warning("Ошибка add_torrent в Transmission: %s", exc)
             if self._sync_client:
-                return await asyncio.to_thread(self._add_torrent_sync, url_or_magnet, category, save_path)
-            return ""
+                sync_res = await asyncio.to_thread(self._add_torrent_sync, resolved_url, category, save_path)
+                if sync_res:
+                    return sync_res
+            if expected_hash:
+                return expected_hash
+            raise RuntimeError(f"Ошибка Transmission при добавлении торрента: {exc}")
 
     def _add_torrent_sync(self, url_or_magnet: str, category: Optional[str], save_path: Optional[str]) -> str:
         try:
@@ -395,7 +511,7 @@ class TransmissionClient(BaseDownloadClient):
             if save_path:
                 kwargs["download_dir"] = save_path
             torrent = self._sync_client.add_torrent(url_or_magnet, **kwargs)
-            return torrent.hashString
+            return str(getattr(torrent, "hashString", "") or "")
         except Exception:
             return ""
 

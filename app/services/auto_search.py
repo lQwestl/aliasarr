@@ -810,6 +810,8 @@ async def _do_search_and_grab(
         try:
             dl_client = get_client(download_client_row)
             torrent_hash = await dl_client.add_torrent(rel.download_url, download_client_row.category, save_path)
+            if not torrent_hash:
+                raise RuntimeError(f"Загрузчик '{download_client_row.name}' не подтвердил добавление раздачи (хэш не получен)")
             log_release_event(
                 stage="grab",
                 level="success",
