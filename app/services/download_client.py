@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import gzip
 import hashlib
 import json
 import logging
@@ -155,16 +156,38 @@ async def _fetch_torrent_content_if_url(url_or_magnet: str) -> tuple[Optional[by
     if not url_or_magnet or not url_or_magnet.startswith(("http://", "https://")):
         return None, url_or_magnet
 
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Aliasarr/1.0",
+        "Accept": "application/x-bittorrent, application/octet-stream, */*",
+    }
+
     try:
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True, verify=False, headers=headers) as client:
             resp = await client.get(url_or_magnet)
             if resp.status_code == 200 and resp.content:
-                if resp.text.startswith("magnet:"):
-                    return None, resp.text.strip()
-                if resp.content.startswith(b"d") or b"4:info" in resp.content:
-                    return resp.content, url_or_magnet
+                content = resp.content
+                if content.startswith(b"\x1f\x8b"):
+                    try:
+                        content = gzip.decompress(content)
+                    except Exception:
+                        pass
+
+                text_preview = ""
+                try:
+                    text_preview = content[:200].decode("utf-8", errors="ignore").strip()
+                except Exception:
+                    pass
+
+                if text_preview.startswith("magnet:"):
+                    return None, text_preview
+                if content.startswith(b"d") or b"4:info" in content:
+                    return content, url_or_magnet
+                else:
+                    logger.warning("Ответ по URL %s не является торрентом (длина: %d, начало: %r)", url_or_magnet, len(content), text_preview[:50])
+            else:
+                logger.warning("Ошибка скачивания торрента по URL %s (HTTP %s): %s", url_or_magnet, resp.status_code, resp.text[:200])
     except Exception as exc:
-        logger.debug("Ошибка предварительного скачивания .torrent файла: %s", exc)
+        logger.warning("Ошибка предварительного скачивания .torrent файла (%s): %s", url_or_magnet, exc)
 
     return None, url_or_magnet
 
@@ -456,14 +479,18 @@ class TransmissionClient(BaseDownloadClient):
         if self._session_id:
             headers["X-Transmission-Session-Id"] = self._session_id
 
-        async with httpx.AsyncClient(timeout=8.0, auth=self._auth) as client:
+        async with httpx.AsyncClient(timeout=10.0, auth=self._auth, verify=False) as client:
             resp = await client.post(self._rpc_url, json={"method": method, "arguments": arguments or {}}, headers=headers)
             if resp.status_code == 409:
                 self._session_id = resp.headers.get("X-Transmission-Session-Id")
                 headers["X-Transmission-Session-Id"] = self._session_id
                 resp = await client.post(self._rpc_url, json={"method": method, "arguments": arguments or {}}, headers=headers)
             resp.raise_for_status()
-            return resp.json().get("arguments", {})
+            data = resp.json()
+            result_str = data.get("result", "")
+            if result_str and result_str not in ("success", "duplicate torrent"):
+                raise RuntimeError(f"Transmission RPC вернул ошибку: '{result_str}'")
+            return data.get("arguments", {})
 
     async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None) -> str:
         torrent_bytes, resolved_url = await _fetch_torrent_content_if_url(url_or_magnet)
@@ -482,6 +509,7 @@ class TransmissionClient(BaseDownloadClient):
                 args["labels"] = [category]
             if save_path:
                 args["download-dir"] = save_path
+            args["paused"] = False
 
             res = await self._rpc_call("torrent-add", args)
             torrent_added = res.get("torrent-added") or res.get("torrent-duplicate") or {}
@@ -490,17 +518,13 @@ class TransmissionClient(BaseDownloadClient):
                 return hash_str
             if expected_hash:
                 return expected_hash
-            if not torrent_added and res:
-                raise RuntimeError(f"Transmission вернул ошибку при добавлении раздачи: {res}")
-            return hash_str
+            raise RuntimeError(f"Transmission не подтвердил получение торрента (ответ: {res})")
         except Exception as exc:
             logger.warning("Ошибка add_torrent в Transmission: %s", exc)
             if self._sync_client:
                 sync_res = await asyncio.to_thread(self._add_torrent_sync, resolved_url, category, save_path)
                 if sync_res:
                     return sync_res
-            if expected_hash:
-                return expected_hash
             raise RuntimeError(f"Ошибка Transmission при добавлении торрента: {exc}")
 
     def _add_torrent_sync(self, url_or_magnet: str, category: Optional[str], save_path: Optional[str]) -> str:
