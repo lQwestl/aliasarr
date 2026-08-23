@@ -509,22 +509,67 @@ def parse_episode(release_name: str) -> ParsedRelease:
         if s_nums:
             return _season_pack_result(s_nums, raw, "season_pack:multi_list")
 
+    # Вспомогательная проверка: содержит ли релиз явный диапазон/номер серии
+    def _extract_embedded_episodes(text_to_check: str) -> list[int]:
+        m_iz_sub = _RE_RANGE_IZ_N.search(text_to_check)
+        if m_iz_sub:
+            s_ep, e_ep = int(m_iz_sub.group(1)), int(m_iz_sub.group(2))
+            if 0 <= s_ep <= e_ep <= 2500 and (e_ep - s_ep) < 300:
+                return list(range(s_ep, e_ep + 1))
+        m_br_sub = _RE_BRACKET_RANGE.search(text_to_check)
+        if m_br_sub:
+            s_ep, e_ep = int(m_br_sub.group(1)), int(m_br_sub.group(2))
+            if 0 <= s_ep <= e_ep <= 2500 and (e_ep - s_ep) < 300:
+                return list(range(s_ep, e_ep + 1))
+        m_s_iz_sub = _RE_SINGLE_IZ_N.search(text_to_check)
+        if m_s_iz_sub:
+            s_ep = int(m_s_iz_sub.group(1))
+            if 0 <= s_ep <= 2500:
+                return [s_ep]
+        m_s_br_sub = _RE_BRACKET_SINGLE_EP.search(text_to_check)
+        if m_s_br_sub:
+            s_ep = int(m_s_br_sub.group(1))
+            if 0 <= s_ep <= 2500:
+                return [s_ep]
+        return []
+
     # 2б. Римские цифры сезонов: "I сезон", "II сезон", "III сезон", "Season IV", "Сезон V"
     m_roman = _RE_ROMAN_SEASON.search(protected)
     if m_roman:
         val = (m_roman.group(1) or m_roman.group(2)).lower()
         if val in ROMAN_SEASON_MAP:
-            return _season_pack_result(ROMAN_SEASON_MAP[val], raw, "season_pack:roman")
+            s_num = ROMAN_SEASON_MAP[val]
+            embedded_eps = _extract_embedded_episodes(protected)
+            if embedded_eps:
+                return ParsedRelease(
+                    kind=ReleaseKind.EPISODE, season=s_num, episodes=embedded_eps,
+                    is_range=len(embedded_eps) > 1, raw=raw, matched_pattern="season_roman_plus_range",
+                )
+            return _season_pack_result(s_num, raw, "season_pack:roman")
 
     # 2в. Префиксные порядковые сезоны: "1st Season", "2nd Season", "3rd Season", "1-й сезон", "1 сезон", "01 сезон"
     m_prefix = _RE_PREFIX_SEASON.search(protected)
     if m_prefix:
-        return _season_pack_result(int(m_prefix.group(1)), raw, "season_pack:prefix")
+        s_num = int(m_prefix.group(1))
+        embedded_eps = _extract_embedded_episodes(protected)
+        if embedded_eps:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=s_num, episodes=embedded_eps,
+                is_range=len(embedded_eps) > 1, raw=raw, matched_pattern="season_prefix_plus_range",
+            )
+        return _season_pack_result(s_num, raw, "season_pack:prefix")
 
     # 2г. Единичный сезон-пак: S01/Сезон 01 без серии, либо ключевые слова "complete"/"полный сезон"
     m = _RE_SEASON_PACK.search(protected)
     if m and not re.search(r"E\.?\d", protected[m.end():m.end() + 6], re.IGNORECASE):
-        return _season_pack_result(int(m.group(1)), raw, "season_pack:Sxx")
+        s_num = int(m.group(1))
+        embedded_eps = _extract_embedded_episodes(protected)
+        if embedded_eps:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=s_num, episodes=embedded_eps,
+                is_range=len(embedded_eps) > 1, raw=raw, matched_pattern="season_plus_range",
+            )
+        return _season_pack_result(s_num, raw, "season_pack:Sxx")
 
     # OVA/ONA/спешл без номера серии — весь блок спешлов целиком (сезон 0)
     if _RE_OVA_ONA_PACK.search(protected):

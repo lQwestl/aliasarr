@@ -476,7 +476,21 @@ class LogEntry(Base):
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow, index=True)
     level: Mapped[str] = mapped_column(String(20), default="info")  # debug|info|warning|error
     component: Mapped[str] = mapped_column(String(200), default="aliasarr")
+class ReleaseLog(Base):
+    """Журнал логики обработки релизов (поиск, сопоставление, парсинг, фильтрация, захват, загрузка, постобработка)."""
+
+    __tablename__ = "release_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow, index=True)
+    stage: Mapped[str] = mapped_column(String(50), default="search", index=True)  # search | match | filter | grab | download | import | error
+    level: Mapped[str] = mapped_column(String(20), default="info", index=True)   # info | success | warning | error
+    show_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    show_title: Mapped[Optional[str]] = mapped_column(String(300), nullable=True, index=True)
+    release_title: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    indexer: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     message: Mapped[str] = mapped_column(Text, default="")
+    details: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
 
 class AuditLog(Base):

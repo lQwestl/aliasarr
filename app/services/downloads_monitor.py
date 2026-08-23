@@ -35,6 +35,7 @@ except ImportError:
     Show = type("Show", (), {"id": _MockCol(), "title": _MockCol(), "content_type": _MockCol(), "path": _MockCol()})
 from app.services.download_client import get_client
 from app.services.postprocess import process_download, process_movie_download
+from app.services.release_log_service import log_release_event
 from app.services.settings_service import get_or_create_settings
 
 logger = logging.getLogger("aliasarr.downloads_monitor")
@@ -421,6 +422,17 @@ async def check_downloads(db: Session) -> list[dict]:
                         db.refresh(ep)
                     except Exception:
                         pass
+
+                log_release_event(
+                    stage="import",
+                    level="success" if import_results else "info",
+                    show_title=show.title,
+                    show_id=show.id,
+                    release_title=getattr(torrent_obj, "name", torrent_hash),
+                    message=f"Импорт завершен: обработано {len(import_results)} файл(ов) для «{show.title}»",
+                    details={"results": import_results, "torrent_hash": torrent_hash},
+                    db=db,
+                )
 
                 # Отправляем уведомление об успешном скачивании и импорте
                 if import_results:

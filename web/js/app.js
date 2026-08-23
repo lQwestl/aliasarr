@@ -39,6 +39,7 @@ const TRANSLATIONS = {
     "nav.settings": "Настройки",
     "nav.events": "События",
     "nav.journal": "Журнал",
+    "nav.release_logs": "Релиз логи",
     "nav.backup": "Бэкап",
     "nav.add_video": "+ Добавить видео",
     "tab.dashboard": "Дашборд",
@@ -50,6 +51,7 @@ const TRANSLATIONS = {
     "tab.settings": "Настройки",
     "tab.events": "События",
     "tab.journal": "Журнал",
+    "tab.release_logs": "Релиз логи",
     "tab.backup": "Бэкап",
 
     // Subtitles
@@ -61,7 +63,19 @@ const TRANSLATIONS = {
     "subtitle.audit": "Журнал всех действий пользователей и событий безопасности",
     "subtitle.events": "Информация, предупреждения и ошибки приложения",
     "subtitle.journal": "Логи приложения (info / warn / debug). Записи старше срока хранения удаляются автоматически.",
+    "subtitle.release_logs": "Диагностический журнал работы движка релизов: поиск, сопоставление, парсинг серий, принятие решений, вызовы загрузчика и импорт.",
     "subtitle.backup": "Резервное копирование настроек приложения (индексаторы, загрузчики, профили качества, шаблоны и т.д.)",
+
+    // Release Logs
+    "release_logs.filter_all_stages": "Все этапы",
+    "release_logs.filter_all_levels": "Все статусы",
+    "release_logs.search_placeholder": "Поиск по тайтлу или раздаче…",
+    "release_logs.col_time": "Время",
+    "release_logs.col_stage": "Этап",
+    "release_logs.col_level": "Статус",
+    "release_logs.col_show": "Тайтл",
+    "release_logs.col_message": "Сообщение и принятое решение",
+    "release_logs.modal_title": "Детали обработки релиза",
 
     // Common actions & words
     "common.save": "Сохранить",
@@ -997,6 +1011,7 @@ const TRANSLATIONS = {
     "nav.settings": "Settings",
     "nav.events": "Events",
     "nav.journal": "Journal",
+    "nav.release_logs": "Release Logs",
     "nav.backup": "Backup",
     "nav.add_video": "+ Add Video",
     "tab.dashboard": "Dashboard",
@@ -1008,6 +1023,7 @@ const TRANSLATIONS = {
     "tab.settings": "Settings",
     "tab.events": "Events",
     "tab.journal": "Journal",
+    "tab.release_logs": "Release Logs",
     "tab.backup": "Backup",
 
     // Subtitles
@@ -1019,7 +1035,19 @@ const TRANSLATIONS = {
     "subtitle.audit": "Security and user activity audit log",
     "subtitle.events": "Application information, warnings, and errors",
     "subtitle.journal": "Application logs (info / warn / debug). Entries older than the retention period are deleted automatically.",
+    "subtitle.release_logs": "Diagnostic release engine log: searching, matching, episode parsing, decision making, download client RPC and media imports.",
     "subtitle.backup": "Backup application settings (indexers, download clients, quality profiles, templates, etc.)",
+
+    // Release Logs
+    "release_logs.filter_all_stages": "All Stages",
+    "release_logs.filter_all_levels": "All Levels",
+    "release_logs.search_placeholder": "Search by title or release…",
+    "release_logs.col_time": "Time",
+    "release_logs.col_stage": "Stage",
+    "release_logs.col_level": "Status",
+    "release_logs.col_show": "Title",
+    "release_logs.col_message": "Message & Decision",
+    "release_logs.modal_title": "Release Processing Details",
 
     // Common actions & words
     "common.save": "Save",
@@ -2165,6 +2193,12 @@ function applyUserPermissionsToUI() {
   const navAudit = document.querySelector('.sidebar nav [data-tab="audit"]');
   if (navAudit) navAudit.style.display = hasPermission("view_audit") ? "" : "none";
 
+  const navReleaseLogs = document.querySelector('.sidebar nav [data-tab="release-logs"]');
+  if (navReleaseLogs) {
+    const canSeeRelLogs = CURRENT_USER && (CURRENT_USER.is_owner || hasPermission("manage_settings"));
+    navReleaseLogs.style.display = canSeeRelLogs ? "" : "none";
+  }
+
   const navBackup = document.querySelector('.sidebar nav [data-tab="backup"]');
   if (navBackup) navBackup.style.display = hasPermission("manage_backups") ? "" : "none";
 
@@ -3134,6 +3168,7 @@ function switchTab(tabId) {
   if (tabId === "settings") loadAllSettings();
   if (tabId === "events") loadEvents();
   if (tabId === "journal") loadJournal();
+  if (tabId === "release-logs") loadReleaseLogs(1);
   if (tabId === "backup") loadBackups();
 
   if (tabId === "activity") {
@@ -10354,6 +10389,179 @@ async function saveJournalRetention() {
     });
     toast(t("settings.toast_saved"));
   } catch (e) { toast("Ошибка: " + e.message, true); }
+}
+
+// ---------- РЕЛИЗ ЛОГИ (RELEASE LOGS) ----------
+let RELEASE_LOGS_STATE = { page: 1, pageSize: 50 };
+let CURRENT_RELEASE_LOGS = [];
+
+async function loadReleaseLogs(page) {
+  if (page) RELEASE_LOGS_STATE.page = page;
+  const stage = document.getElementById("release-logs-stage-filter")?.value || "all";
+  const level = document.getElementById("release-logs-level-filter")?.value || "all";
+  const query = document.getElementById("release-logs-search")?.value || "";
+  const tbody = document.querySelector("#release-logs-table tbody");
+  if (!tbody) return;
+
+  try {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">${t("common.loading")}</td></tr>`;
+    const params = new URLSearchParams({
+      stage: stage,
+      level: level,
+      query: query,
+      page: RELEASE_LOGS_STATE.page,
+      page_size: RELEASE_LOGS_STATE.pageSize,
+      sort: "desc",
+    });
+
+    const data = await api(`/api/v1/release-logs?${params.toString()}`);
+    CURRENT_RELEASE_LOGS = data.items || [];
+
+    if (CURRENT_RELEASE_LOGS.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">${CURRENT_LANG === "en" ? "No release logs recorded yet" : "Записей логики релизов пока нет"}</td></tr>`;
+      renderPagination("release-logs-pagination", 1, RELEASE_LOGS_STATE.pageSize, 0, loadReleaseLogs);
+      return;
+    }
+
+    const stageLabels = {
+      search: { label: CURRENT_LANG === "en" ? "Search" : "Поиск", color: "#38bdf8", bg: "rgba(56,189,248,0.15)" },
+      match: { label: CURRENT_LANG === "en" ? "Match" : "Сопоставление", color: "#a78bfa", bg: "rgba(167,139,250,0.15)" },
+      filter: { label: CURRENT_LANG === "en" ? "Filter" : "Фильтрация", color: "#fbbf24", bg: "rgba(251,191,36,0.15)" },
+      grab: { label: CURRENT_LANG === "en" ? "Grab" : "Захват", color: "#34d399", bg: "rgba(52,211,153,0.15)" },
+      download: { label: CURRENT_LANG === "en" ? "Download" : "Загрузка", color: "#60a5fa", bg: "rgba(96,165,250,0.15)" },
+      import: { label: CURRENT_LANG === "en" ? "Import" : "Импорт", color: "var(--teal)", bg: "rgba(45,212,191,0.15)" },
+      error: { label: CURRENT_LANG === "en" ? "Error" : "Ошибка", color: "var(--danger)", bg: "rgba(248,113,113,0.15)" },
+    };
+
+    tbody.innerHTML = CURRENT_RELEASE_LOGS.map((item, idx) => {
+      const st = stageLabels[item.stage] || { label: item.stage, color: "var(--text-muted)", bg: "rgba(255,255,255,0.05)" };
+      const levelClass = item.level === "error" ? "badge-error" : (item.level === "warning" ? "badge-warn" : (item.level === "success" ? "badge-ok" : "badge-tag"));
+      const levelLabel = item.level === "error" ? (CURRENT_LANG === "en" ? "Error" : "Ошибка") :
+                         (item.level === "warning" ? (CURRENT_LANG === "en" ? "Warn" : "Внимание") :
+                         (item.level === "success" ? (CURRENT_LANG === "en" ? "Success" : "Успех") : (CURRENT_LANG === "en" ? "Info" : "Инфо")));
+
+      return `
+        <tr>
+          <td class="mono col-time" style="font-size:11.5px; white-space:nowrap;">${formatDateTZ(item.created_at)}</td>
+          <td><span class="badge-tag" style="background:${st.bg}; color:${st.color}; font-weight:600; font-size:11px;">${st.label}</span></td>
+          <td><span class="badge ${levelClass}" style="font-size:10.5px; padding:2px 6px;">${levelLabel}</span></td>
+          <td>
+            <div style="font-weight:600; color:var(--text); font-size:13px;">${escapeHtml(item.show_title || "—")}</div>
+            ${item.indexer ? `<span class="hint mono" style="font-size:11px; color:#818cf8;">[${escapeHtml(item.indexer)}]</span>` : ""}
+          </td>
+          <td>
+            <div style="font-size:12.5px; color:var(--text); line-height:1.4;">${escapeHtml(item.message)}</div>
+            ${item.release_title ? `<div class="hint mono" style="font-size:11px; margin-top:3px; word-break:break-all; color:var(--text-muted);">${escapeHtml(item.release_title)}</div>` : ""}
+          </td>
+          <td>
+            <button class="btn btn-icon-only btn-small" onclick="openReleaseLogDetail(${idx})" title="${t("common.details")}">
+              <i data-lucide="info" class="ico-sm"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    renderPagination("release-logs-pagination", RELEASE_LOGS_STATE.page, RELEASE_LOGS_STATE.pageSize, data.total, loadReleaseLogs);
+
+    if (typeof lucide !== "undefined" && lucide.createIcons) {
+      lucide.createIcons();
+    }
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--danger); padding:20px; text-align:center;">${CURRENT_LANG === "en" ? "Loading error:" : "Ошибка загрузки логов релизов:"} ${escapeHtml(e.message)}</td></tr>`;
+  }
+}
+
+function openReleaseLogDetail(index) {
+  const item = CURRENT_RELEASE_LOGS[index];
+  if (!item) return;
+
+  const body = document.getElementById("release-log-detail-body");
+  if (!body) return;
+
+  const isRu = CURRENT_LANG !== "en";
+  body.innerHTML = `
+    <div class="form-col" style="gap:8px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="hint">${isRu ? "Время записи:" : "Timestamp:"}</span>
+        <strong class="mono">${formatDateTZ(item.created_at)}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="hint">${isRu ? "Этап обработки:" : "Stage:"}</span>
+        <strong class="mono" style="text-transform:uppercase;">${escapeHtml(item.stage)}</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="hint">${isRu ? "Статус / Уровень:" : "Level:"}</span>
+        <strong class="mono" style="text-transform:uppercase; color:${item.level === 'error' ? 'var(--danger)' : (item.level === 'success' ? 'var(--teal)' : 'inherit')}">${escapeHtml(item.level)}</strong>
+      </div>
+      ${item.show_title ? `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="hint">${isRu ? "Тайтл (Медиа):" : "Show Title:"}</span>
+          <strong>${escapeHtml(item.show_title)}</strong>
+        </div>
+      ` : ""}
+      ${item.indexer ? `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="hint">${isRu ? "Индексатор / Трекер:" : "Indexer:"}</span>
+          <strong class="mono" style="color:#818cf8;">${escapeHtml(item.indexer)}</strong>
+        </div>
+      ` : ""}
+      ${item.release_title ? `
+        <div style="margin-top:6px;">
+          <span class="hint">${isRu ? "Оригинальное название раздачи:" : "Release Title:"}</span>
+          <div class="mono" style="font-size:12px; background:var(--panel-alt); padding:8px 10px; border-radius:6px; border:1px solid var(--border); margin-top:4px; word-break:break-all;">
+            ${escapeHtml(item.release_title)}
+          </div>
+        </div>
+      ` : ""}
+      <div style="margin-top:6px;">
+        <span class="hint">${isRu ? "Сообщение движка:" : "Engine Message:"}</span>
+        <div style="font-size:13px; background:var(--panel-alt); padding:8px 10px; border-radius:6px; border:1px solid var(--border); margin-top:4px; line-height:1.4;">
+          ${escapeHtml(item.message)}
+        </div>
+      </div>
+      ${item.details ? `
+        <div style="margin-top:6px;">
+          <span class="hint">${isRu ? "Детали парсера и контекст (JSON):" : "Parsed Context & JSON Details:"}</span>
+          <pre class="mono" style="font-size:11.5px; background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border); overflow-x:auto; margin-top:4px; max-height:220px;">${escapeHtml(JSON.stringify(item.details, null, 2))}</pre>
+        </div>
+      ` : ""}
+    </div>
+  `;
+
+  openModal("modal-release-log-detail");
+  if (typeof lucide !== "undefined" && lucide.createIcons) {
+    lucide.createIcons();
+  }
+}
+
+async function downloadReleaseLogs() {
+  try {
+    const resp = await fetch("/api/v1/release-logs/export", { headers: { "X-Api-Key": API_KEY } });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `aliasarr_release_logs_${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(CURRENT_LANG === "en" ? "Logs downloaded" : "Логи релизов скачаны");
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Download error: " : "Ошибка скачивания: ") + e.message, true);
+  }
+}
+
+async function clearReleaseLogs() {
+  const confirmed = await confirmModal(t("common.delete") + "? " + (CURRENT_LANG === "en" ? "Clear all release logs?" : "Очистить весь журнал релизов?"));
+  if (!confirmed) return;
+  try {
+    await api("/api/v1/release-logs", { method: "DELETE" });
+    toast(CURRENT_LANG === "en" ? "Release logs cleared" : "Журнал релизов очищен");
+    loadReleaseLogs(1);
+  } catch (e) {
+    toast("Ошибка: " + e.message, true);
+  }
 }
 
 // ---------- РЕЗЕРВНОЕ КОПИРОВАНИЕ (BACKUP) ----------

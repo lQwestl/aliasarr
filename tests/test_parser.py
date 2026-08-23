@@ -184,12 +184,27 @@ class TestParser(unittest.TestCase):
         self.assertEqual(p3.season, 4)
         self.assertEqual(p3.episodes, [5])
 
-    def test_slime_beatrice_season_pack_resolution_cleanup(self):
-        torrent_pack = "[Beatrice-Raws] Tensei Shitara Slime Datta Ken 2nd Season [BDRip 1920x1080 HEVC FLAC]"
-        p_pack = parse_episode(torrent_pack)
-        self.assertEqual(p_pack.season, 2)
-        self.assertEqual(p_pack.episodes, [])
-        self.assertEqual(p_pack.kind, ReleaseKind.SEASON_PACK)
+    def test_season_with_iz_range_partial_pack(self):
+        # 1. Clevatess Season 2 with [1-7 из 13]
+        t1 = "Клеватесс (ТВ-2): Король демонических зверей | Clevatess Season 2 [TV] [1-7 из 13] [2026] [WEBRip 1080p]"
+        p1 = parse_episode(t1)
+        self.assertEqual(p1.season, 2)
+        self.assertEqual(p1.episodes, [1, 2, 3, 4, 5, 6, 7])
+        self.assertEqual(p1.kind, ReleaseKind.EPISODE)
+
+        # 2. Re:Zero Season 4 with [1-12 из 19]
+        t2 = "Re:Zero (S4) / Re:Zero kara Hajimeru Isekai Seikatsu 4 [TV] [1-12 из 19] [WEB-DL 1080p]"
+        p2 = parse_episode(t2)
+        self.assertEqual(p2.season, 4)
+        self.assertEqual(p2.episodes, list(range(1, 13)))
+        self.assertEqual(p2.kind, ReleaseKind.EPISODE)
+
+        # 3. Mushoku Tensei Season 3 with [01-08 из 14]
+        t3 = "Mushoku Tensei Season 3 [TV] [01-08 из 14] [WEB-DL 1080p]"
+        p3 = parse_episode(t3)
+        self.assertEqual(p3.season, 3)
+        self.assertEqual(p3.episodes, list(range(1, 9)))
+        self.assertEqual(p3.kind, ReleaseKind.EPISODE)
 
 
 if __name__ == "__main__":

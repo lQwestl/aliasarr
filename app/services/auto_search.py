@@ -50,6 +50,7 @@ from app.services.notifications import notify_all
 from app.services.parser import ReleaseKind, detect_season_label, parse_episode
 from app.services.quality import is_allowed, parse_quality
 from app.services.indexer_service import get_indexer_client
+from app.services.release_log_service import log_release_event
 from app.services.settings_service import get_or_create_settings
 from app.services.torznab import TorznabClient
 
@@ -554,6 +555,16 @@ async def _do_search_and_grab(
     if settings.min_seeds and settings.min_seeds > 0:
         candidates = [c for c in candidates if c["rel"].seeders >= settings.min_seeds]
 
+    log_release_event(
+        stage="search",
+        level="info" if candidates else "warning",
+        show_title=show.title,
+        show_id=show.id,
+        message=f"Поиск по алиасам ({search_terms}) в {len(indexers)} трекерах: найдено {len(candidates)} подходящих кандидатов",
+        details={"candidates_count": len(candidates), "indexers_count": len(indexers), "wanted_episodes_count": len(wanted_episodes)},
+        db=db,
+    )
+
     if not candidates:
         return {"show_id": show.id, "grabbed": [], "criteria": search_terms}
 
@@ -799,8 +810,37 @@ async def _do_search_and_grab(
         try:
             dl_client = get_client(download_client_row)
             torrent_hash = await dl_client.add_torrent(rel.download_url, download_client_row.category, save_path)
+            log_release_event(
+                stage="grab",
+                level="success",
+                show_title=show.title,
+                show_id=show.id,
+                release_title=rel.title,
+                indexer=getattr(indexer, "name", "Torznab"),
+                message=f"Релиз успешно захвачен и передан в '{download_client_row.name}' (хэш: {torrent_hash or 'n/a'}). Закрывает серии: {', '.join(f'S{ep.season_number:02d}E{ep.episode_number:02d}' for ep in covered)}",
+                details={
+                    "torrent_hash": torrent_hash,
+                    "save_path": save_path,
+                    "episodes": [f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in covered],
+                    "seeders": rel.seeders,
+                    "quality": c["quality"].name,
+                    "client": download_client_row.name,
+                },
+                db=db,
+            )
         except Exception as exc:
             logger.error("Не удалось отправить релиз в download client: %s", exc)
+            log_release_event(
+                stage="grab",
+                level="error",
+                show_title=show.title,
+                show_id=show.id,
+                release_title=rel.title,
+                indexer=getattr(indexer, "name", "Torznab"),
+                message=f"Ошибка отправки релиза в загрузчик '{download_client_row.name}': {exc}",
+                details={"error": str(exc), "download_url": rel.download_url, "client": download_client_row.name},
+                db=db,
+            )
             continue
 
         # Удаляем старые дублирующие раздачи из торрент-клиента

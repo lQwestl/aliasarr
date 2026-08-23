@@ -75,6 +75,7 @@
       <button class="nav-item" data-tab="settings"><i data-lucide="settings" class="nav-ico"></i><span data-i18n="nav.settings">Настройки</span></button>
       <button class="nav-item" data-tab="events"><i data-lucide="radio" class="nav-ico"></i><span data-i18n="nav.events">События</span></button>
       <button class="nav-item" data-tab="journal"><i data-lucide="scroll-text" class="nav-ico"></i><span data-i18n="nav.journal">Журнал</span></button>
+      <button class="nav-item" data-tab="release-logs" id="nav-release-logs" style="display:none;"><i data-lucide="file-search" class="nav-ico"></i><span data-i18n="nav.release_logs">Релиз логи</span></button>
       <button class="nav-item" data-tab="backup"><i data-lucide="archive" class="nav-ico"></i><span data-i18n="nav.backup">Бэкап</span></button>
     </nav>
     <button class="btn btn-primary btn-block" onclick="openAddShowWizard()" data-i18n="nav.add_video"><i data-lucide="plus"></i> Добавить видео</button>
@@ -2118,6 +2119,62 @@
       </div>
     </section>
 
+    <!-- РЕЛИЗ ЛОГИ (Логирование логики релизов - только для Главного Админа) -->
+    <section id="tab-release-logs" class="tab-panel">
+      <header class="panel-header">
+        <div>
+          <h1 data-i18n="tab.release_logs">Релиз логи</h1>
+          <p class="subtitle" data-i18n="subtitle.release_logs">Диагностический журнал работы движка релизов: поиск, сопоставление, парсинг серий, принятие решений, вызовы загрузчика и импорт.</p>
+        </div>
+      </header>
+
+      <div class="form-row" style="margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+        <select id="release-logs-stage-filter" class="input" style="max-width:180px" onchange="loadReleaseLogs(1)">
+          <option value="all" data-i18n="release_logs.filter_all_stages">Все этапы</option>
+          <option value="search">Поиск (Search)</option>
+          <option value="match">Сопоставление (Match)</option>
+          <option value="filter">Фильтрация (Filter)</option>
+          <option value="grab">Захват / Клиент (Grab)</option>
+          <option value="download">Мониторинг (Download)</option>
+          <option value="import">Импорт (Import)</option>
+        </select>
+
+        <select id="release-logs-level-filter" class="input" style="max-width:170px" onchange="loadReleaseLogs(1)">
+          <option value="all" data-i18n="release_logs.filter_all_levels">Все статусы</option>
+          <option value="success">Успех (Success)</option>
+          <option value="info">Инфо (Info)</option>
+          <option value="warning">Внимание (Warning)</option>
+          <option value="error">Ошибка (Error)</option>
+        </select>
+
+        <input type="text" id="release-logs-search" class="input" style="max-width:260px" placeholder="Поиск по тайтлу или раздаче…" data-i18n-placeholder="release_logs.search_placeholder" onkeydown="if(event.key==='Enter') loadReleaseLogs(1)">
+        
+        <button class="btn btn-secondary btn-small" onclick="loadReleaseLogs(1)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
+
+        <div style="flex:1"></div>
+
+        <button class="btn btn-secondary btn-small" onclick="downloadReleaseLogs()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
+        <button class="btn btn-danger btn-small" onclick="clearReleaseLogs()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table" id="release-logs-table">
+          <thead>
+            <tr>
+              <th style="width:130px;" data-i18n="release_logs.col_time">Время</th>
+              <th style="width:100px;" data-i18n="release_logs.col_stage">Этап</th>
+              <th style="width:90px;" data-i18n="release_logs.col_level">Статус</th>
+              <th style="width:160px;" data-i18n="release_logs.col_show">Тайтл</th>
+              <th data-i18n="release_logs.col_message">Сообщение и принятое решение</th>
+              <th style="width:70px;" data-i18n="common.actions">Детали</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="form-row" id="release-logs-pagination" style="justify-content:center; margin-top:14px;"></div>
+    </section>
+
     <!-- BACKUP (Резервное копирование и восстановление) -->
     <section id="tab-backup" class="tab-panel">
       <header class="panel-header">
@@ -2944,9 +3001,28 @@
   </button>
 </nav>
 
+<div id="modal-release-log-detail" class="modal">
+  <div class="modal-backdrop" onclick="closeModal('modal-release-log-detail')"></div>
+  <div class="modal-content" style="max-width:700px;">
+    <div class="modal-header">
+      <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+        <i data-lucide="file-search" class="ico-sm" style="color:var(--teal)"></i>
+        <span data-i18n="release_logs.modal_title">Детали обработки релиза</span>
+      </h3>
+      <button class="btn-icon-only" onclick="closeModal('modal-release-log-detail')"><i data-lucide="x"></i></button>
+    </div>
+    <div class="modal-body" style="padding:16px;">
+      <div id="release-log-detail-body" class="form-col" style="gap:12px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-release-log-detail')" data-i18n="common.close">Закрыть</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script src="https://unpkg.com/lucide@latest"></script>
-<script src="/ui/static/js/app.js?v=20260816-05"></script>
+<script src="/ui/static/js/app.js?v=20260816-06"></script>
 </body>
 </html>
