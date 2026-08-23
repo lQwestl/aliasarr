@@ -439,10 +439,16 @@ async def check_downloads(db: Session) -> list[dict]:
                     from app.services.notifications import notify_all
                     imported_items = [r for r in import_results if r.get("status") == "imported" and r.get("dest")]
                     has_upgrade = any(r.get("is_upgrade") for r in import_results)
+                    show_content_type = getattr(show, "content_type", "series")
+                    show_year = getattr(show, "year", None)
+                    is_movie = show_content_type == "movie"
+                    yr_str = f" ({show_year})" if show_year else ""
+                    type_prefix = "фильм " if is_movie else ("аниме " if show_content_type == "anime" else "сериал ")
+
                     header = (
-                        f"Релиз скачан и произведена замена старого на новый: «{show.title}»"
+                        f"Релиз скачан и произведена замена старого на новый: {type_prefix}«{show.title}»{yr_str}"
                         if has_upgrade
-                        else f"Релиз скачан и перенесен: «{show.title}»"
+                        else f"Релиз скачан и перенесен: {type_prefix}«{show.title}»{yr_str}"
                     )
 
                     if len(imported_items) == 1:

@@ -812,6 +812,15 @@ async def _do_search_and_grab(
             torrent_hash = await dl_client.add_torrent(rel.download_url, download_client_row.category, save_path)
             if not torrent_hash:
                 raise RuntimeError(f"Загрузчик '{download_client_row.name}' не подтвердил добавление раздачи (хэш не получен)")
+            is_movie = show.content_type == "movie"
+            yr_str = f" ({show.year})" if show.year else ""
+            if is_movie:
+                grab_msg = f"Релиз успешно захвачен для фильма «{show.title}»{yr_str} и передан в '{download_client_row.name}' (хэш: {torrent_hash or 'n/a'}, сиды: {rel.seeders}, качество: {c['quality'].name})"
+                ep_details = ["Фильм"]
+            else:
+                ep_details = [f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in covered]
+                grab_msg = f"Релиз успешно захвачен и передан в '{download_client_row.name}' (хэш: {torrent_hash or 'n/a'}). Закрывает серии: {', '.join(ep_details)}"
+
             log_release_event(
                 stage="grab",
                 level="success",
@@ -819,11 +828,11 @@ async def _do_search_and_grab(
                 show_id=show.id,
                 release_title=rel.title,
                 indexer=getattr(indexer, "name", "Torznab"),
-                message=f"Релиз успешно захвачен и передан в '{download_client_row.name}' (хэш: {torrent_hash or 'n/a'}). Закрывает серии: {', '.join(f'S{ep.season_number:02d}E{ep.episode_number:02d}' for ep in covered)}",
+                message=grab_msg,
                 details={
                     "torrent_hash": torrent_hash,
                     "save_path": save_path,
-                    "episodes": [f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in covered],
+                    "episodes": ep_details,
                     "seeders": rel.seeders,
                     "quality": c["quality"].name,
                     "client": download_client_row.name,
@@ -910,15 +919,19 @@ async def _do_search_and_grab(
         db.commit()
 
         is_upgrade = any(ep.status == EpisodeStatus.DOWNLOADED for ep in covered)
-        ep_list = ", ".join(f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in covered)
         title_linked = f'<a href="{rel.guid}">«{show.title}»</a>' if rel.guid else f"«{show.title}»"
         
-        action_text = "Обнаружено лучшее качество и начато скачивание для" if is_upgrade else "Захвачен релиз для"
+        if show.content_type == "movie":
+            yr_str = f" ({show.year})" if show.year else ""
+            action_text = "Обнаружено лучшее качество и начато скачивание для фильма" if is_upgrade else "Захвачен релиз для фильма"
+            notify_msg = f"{action_text} {title_linked}{yr_str}, сиды: {rel.seeders}: {rel.title}"
+        else:
+            ep_list = ", ".join(f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in covered)
+            action_text = "Обнаружено лучшее качество и начато скачивание для" if is_upgrade else "Захвачен релиз для"
+            notify_msg = f"{action_text} {title_linked} ({ep_list}), сиды: {rel.seeders}: {rel.title}"
+
         try:
-            await notify_all(
-                db, "grab",
-                f"{action_text} {title_linked} ({ep_list}), сиды: {rel.seeders}: {rel.title}",
-            )
+            await notify_all(db, "grab", notify_msg)
         except Exception as exc:
             logger.warning("Не удалось отправить уведомление о захвате: %s", exc)
 
