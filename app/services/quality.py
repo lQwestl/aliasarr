@@ -32,7 +32,7 @@ QUALITY_ORDER = [
 
 # Регулярные выражения источников (Sources)
 _REMUX_RE = re.compile(r"\b(remux|bdremux|uhd[-_. ]?remux)\b", re.IGNORECASE)
-_BLURAY_RE = re.compile(r"\b(bluray|blu-ray|bdrip|brrip|bdmux|bd(?!$)|hd-?dvd)\b", re.IGNORECASE)
+_BLURAY_RE = re.compile(r"\b(bluray|blu-ray|bdrip|brrip|bdmux|bd(?!$)|hd-?dvd|bdmv|uhd[-_. ]?disc|uhd[-_. ]?blu[-_. ]?ray|uhd[-_. ]?bd|4k[-_. ]?bluray|4k[-_. ]?blu-ray|bdiso|blurayiso)\b", re.IGNORECASE)
 _WEBDL_RE = re.compile(r"\b(web[-_. ]?dl(?:mux)?|webdl|amazonhd|ituneshd|netflixu?hd|webhd|hbomaxhd|disneyhd|[. ]web[. ](?:[xh][ .]?26[456]|avc|hevc|ddp?[ .]?5[. ]1))\b", re.IGNORECASE)
 _WEBRIP_RE = re.compile(r"\b(webrip|web-rip|web\b)", re.IGNORECASE)
 _HDTV_RE = re.compile(r"\b(hdtv|pdtv|dsr|tvrip)\b", re.IGNORECASE)
@@ -43,14 +43,14 @@ _DVD_RE = re.compile(r"\b(dvd|dvd9|dvd5|ntsc|pal|xvidvd)\b", re.IGNORECASE)
 _RES_RE = re.compile(r"\b(?P<res>2160p|1080p|1080i|720p|576p|480p|480i|360p|4k|uhd|fhd)\b", re.IGNORECASE)
 
 # Кодеки видео
-_VCODEC_RE = re.compile(r"\b(?P<vcodec>x265|h265|hevc|x264|h264|avc|av1|xvid|divx|vc-?1|mpeg2)\b", re.IGNORECASE)
+_VCODEC_RE = re.compile(r"\b(?P<vcodec>x265|h265|hevc|x264|h264|avc|av1|xvid|divx|vc-?1|mpeg2|mpeg-h)\b", re.IGNORECASE)
 
 # Кодеки аудио
 _ACODEC_RE = re.compile(r"\b(?P<acodec>truehd(?:\.atmos)?|atmos|dts-hd(?:\.ma)?|dts-x|dts|eac3|ddp(?:\+)?|dd\+?|ac3|flac|aac|mp3|pcm|lpcm)\b", re.IGNORECASE)
 _ACHANNELS_RE = re.compile(r"\b(?P<channels>7\.1|5\.1|2\.0|2ch|6ch|8ch)\b", re.IGNORECASE)
 
 # HDR и Dynamic Range
-_HDR_RE = re.compile(r"\b(?P<hdr>dv(?:\.hdr)?|dolby[-_. ]?vision|hdr10\+|hdr10|hdr|hlg)\b", re.IGNORECASE)
+_HDR_RE = re.compile(r"\b(?P<hdr>dv(?:\.hdr)?|dolby[-_. ]?vision|hdr10\+|hdr10|hdr|hlg|bt\.?2020|10[-_. ]?bits?)\b", re.IGNORECASE)
 
 # Модификаторы качества (Proper, Repack, Real, v2, v3...)
 _MODIFIER_RE = re.compile(r"\b(?P<mod>proper|repack\d?|rerip\d?|real|v[2-4])\b", re.IGNORECASE)
@@ -219,3 +219,114 @@ def is_upgrade(current: QualityInfo, candidate: QualityInfo, allowed_qualities: 
     if allowed_qualities and not is_allowed(candidate, allowed_qualities):
         return False
     return candidate.rank > current.rank
+
+
+def detect_file_quality(file_path: str, context_hints: Optional[List[str]] = None) -> QualityInfo:
+    """
+    Интеллектуально определяет качество файла, анализируя:
+    1. Имя самого файла
+    2. Все родительские директории в пути к файлу (от папки файла до корня раздачи)
+    3. Дополнительные контекстные подсказки (название раздачи, TrackedRelease, заголовок топика)
+    4. Особенности контейнеров (BDMV, .m2ts, .iso, VIDEO_TS)
+    """
+    import os
+
+    candidates: List[str] = []
+    if file_path:
+        # 1. Имя файла
+        candidates.append(os.path.basename(file_path))
+
+        # 2. Все родительские папки
+        curr_p = os.path.abspath(file_path) if os.path.isabs(file_path) else file_path
+        for _ in range(5):
+            parent = os.path.dirname(curr_p)
+            if not parent or parent == curr_p or parent in ("/", "\\", ".", ""):
+                break
+            b_name = os.path.basename(parent)
+            if b_name and b_name not in ("STREAM", "PLAYLIST", "CLIPINF", "BACKUP", "BDMV", "VIDEO_TS"):
+                candidates.append(b_name)
+            elif b_name:
+                candidates.append(b_name)
+            curr_p = parent
+
+    if context_hints:
+        for ch in context_hints:
+            if ch and isinstance(ch, str) and ch.strip():
+                candidates.append(ch.strip())
+
+    parsed_list = [parse_quality(c) for c in candidates if c]
+
+    # Ищем качество с наивысшим рангом (не-SDTV)
+    best_q = None
+    for q in parsed_list:
+        if q.name != "SDTV":
+            if best_q is None or q.rank > best_q.rank:
+                best_q = q
+
+    # Объединяем дополнительные метаданные (видеокодек, аудиокодек, HDR, каналы), если они найдены в других частях пути
+    vcodec = next((q.video_codec for q in parsed_list if q.video_codec), None)
+    acodec = next((q.audio_codec for q in parsed_list if q.audio_codec), None)
+    achannels = next((q.audio_channels for q in parsed_list if q.audio_channels), None)
+    hdr = next((q.dynamic_range for q in parsed_list if q.dynamic_range), None)
+    mod = next((q.modifier for q in parsed_list if q.modifier), None)
+
+    if best_q is not None:
+        return QualityInfo(
+            name=best_q.name,
+            rank=best_q.rank,
+            source=best_q.source,
+            resolution=best_q.resolution,
+            modifier=best_q.modifier or mod,
+            video_codec=best_q.video_codec or vcodec,
+            audio_codec=best_q.audio_codec or acodec,
+            audio_channels=best_q.audio_channels or achannels,
+            dynamic_range=best_q.dynamic_range or hdr,
+        )
+
+    # Fallback для BDMV / .m2ts / .iso
+    raw_full = " ".join(candidates).lower()
+    if ".m2ts" in raw_full or "bdmv" in raw_full:
+        is_4k = "2160p" in raw_full or "4k" in raw_full or "uhd" in raw_full
+        q_name = "Bluray-2160p" if is_4k else "Bluray-1080p"
+        try:
+            rank = QUALITY_ORDER.index(q_name)
+        except ValueError:
+            rank = 10
+        return QualityInfo(
+            name=q_name,
+            rank=rank,
+            source="Bluray",
+            resolution="2160p" if is_4k else "1080p",
+            modifier=mod,
+            video_codec=vcodec or ("HEVC" if is_4k else "x264"),
+            audio_codec=acodec,
+            audio_channels=achannels,
+            dynamic_range=hdr,
+        )
+
+    if ".iso" in raw_full or "video_ts" in raw_full:
+        return QualityInfo(
+            name="DVD",
+            rank=1,
+            source="DVD",
+            resolution="480p",
+            modifier=mod,
+            video_codec=vcodec,
+            audio_codec=acodec,
+            audio_channels=achannels,
+            dynamic_range=hdr,
+        )
+
+    # Крайний fallback
+    base_q = parsed_list[0] if parsed_list else QualityInfo(name="SDTV", rank=0, source="SDTV", resolution="480p")
+    return QualityInfo(
+        name=base_q.name,
+        rank=base_q.rank,
+        source=base_q.source,
+        resolution=base_q.resolution,
+        modifier=base_q.modifier or mod,
+        video_codec=base_q.video_codec or vcodec,
+        audio_codec=base_q.audio_codec or acodec,
+        audio_channels=base_q.audio_channels or achannels,
+        dynamic_range=base_q.dynamic_range or hdr,
+    )

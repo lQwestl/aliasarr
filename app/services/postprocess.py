@@ -24,7 +24,7 @@ except ImportError:
     Show = None
 
 from app.services.parser import ReleaseKind, parse_episode
-from app.services.quality import parse_quality
+from app.services.quality import parse_quality, detect_file_quality
 
 SUBTITLE_EXTENSIONS = {".srt", ".ass", ".ssa", ".sub", ".idx", ".vtt", ".smi"}
 AUDIO_EXTENSIONS = {".mka", ".aac", ".ac3", ".dts", ".flac", ".mp3", ".m4a", ".wav", ".eac3", ".opus"}
@@ -876,6 +876,17 @@ def process_download(
         except Exception:
             dl_eps = []
 
+    context_hints = [os.path.basename(download_path), show.title]
+    if db:
+        try:
+            from app.models.db import DownloadHistory
+            if torrent_hash:
+                hist = db.query(DownloadHistory).filter_by(show_id=show.id).order_by(DownloadHistory.id.desc()).first()
+                if hist and hist.release_title:
+                    context_hints.append(hist.release_title)
+        except Exception:
+            pass
+
     for v_idx, file_path in enumerate(video_files):
         filename = os.path.basename(file_path)
         start_pct = round(v_idx / max(1, total_videos), 3)
@@ -886,7 +897,8 @@ def process_download(
                 pass
 
         parsed = parse_episode(filename)
-        quality = parse_quality(filename).name
+        q_info = detect_file_quality(file_path, context_hints)
+        quality = q_info.name
 
         if parsed.kind not in (ReleaseKind.EPISODE, ReleaseKind.ABSOLUTE) or not parsed.episodes:
             parent_dir = os.path.basename(os.path.dirname(file_path))
@@ -1120,6 +1132,19 @@ def process_download(
                 episode.file_path = dest_video_path
                 episode.download_progress = 1.0
                 episode.downloaded_quality = quality
+                if q_info.video_codec:
+                    episode.video_codec = q_info.video_codec
+                if q_info.audio_codec:
+                    episode.audio_codec = q_info.audio_codec
+                if q_info.audio_channels:
+                    episode.audio_channels = q_info.audio_channels
+                if q_info.dynamic_range:
+                    episode.dynamic_range = q_info.dynamic_range
+                if os.path.exists(dest_video_path):
+                    try:
+                        episode.file_size_bytes = os.path.getsize(dest_video_path)
+                    except Exception:
+                        pass
                 db.add(episode)
 
             end_pct = round((v_idx + 1) / max(1, total_videos), 2)
@@ -1274,7 +1299,22 @@ def process_movie_download(
 
     main_file = max(video_files, key=lambda f: os.path.getsize(f) if os.path.exists(f) else 0)
     ext = os.path.splitext(main_file)[1]
-    quality = parse_quality(os.path.basename(main_file)).name
+
+    context_hints = [os.path.basename(download_path), show.title]
+    if db:
+        try:
+            from app.models.db import DownloadHistory, TrackedRelease
+            hist = db.query(DownloadHistory).filter_by(show_id=show.id).order_by(DownloadHistory.id.desc()).first()
+            if hist and hist.release_title:
+                context_hints.append(hist.release_title)
+            tr = db.query(TrackedRelease).filter_by(show_id=show.id).order_by(TrackedRelease.id.desc()).first()
+            if tr and tr.topic_guid:
+                context_hints.append(tr.topic_guid)
+        except Exception:
+            pass
+
+    q_info = detect_file_quality(main_file, context_hints)
+    quality = q_info.name
 
     target_stem = render_movie_template(
         rename_template,
@@ -1394,6 +1434,11 @@ def process_movie_download(
             file_path=dest_video_path,
             download_progress=1.0,
             downloaded_quality=quality,
+            video_codec=q_info.video_codec,
+            audio_codec=q_info.audio_codec,
+            audio_channels=q_info.audio_channels,
+            dynamic_range=q_info.dynamic_range,
+            file_size_bytes=os.path.getsize(dest_video_path) if os.path.exists(dest_video_path) else None,
         )
         db.add(episode)
     else:
@@ -1401,6 +1446,19 @@ def process_movie_download(
         episode.file_path = dest_video_path
         episode.download_progress = 1.0
         episode.downloaded_quality = quality
+        if q_info.video_codec:
+            episode.video_codec = q_info.video_codec
+        if q_info.audio_codec:
+            episode.audio_codec = q_info.audio_codec
+        if q_info.audio_channels:
+            episode.audio_channels = q_info.audio_channels
+        if q_info.dynamic_range:
+            episode.dynamic_range = q_info.dynamic_range
+        if os.path.exists(dest_video_path):
+            try:
+                episode.file_size_bytes = os.path.getsize(dest_video_path)
+            except Exception:
+                pass
         db.add(episode)
 
     # Очищаем оставшиеся пустые поддиректории в download_path, если это была специальная папка раздачи

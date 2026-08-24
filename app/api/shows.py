@@ -36,7 +36,7 @@ from app.services.postprocess import (
     sanitize_filename,
 )
 from app.services.matcher import build_alias_candidates, match_release
-from app.services.quality import parse_quality
+from app.services.quality import parse_quality, detect_file_quality
 from app.services.settings_service import get_or_create_settings
 from app.services.user_service import require_permission, require_any_permission, get_current_user
 
@@ -878,7 +878,7 @@ def sync_show_disk(
         target_files = non_samples if non_samples else video_files
         if target_files:
             main_file = max(target_files, key=lambda f: os.path.getsize(f) if os.path.exists(f) else 0)
-            q_info = parse_quality(os.path.basename(main_file))
+            q_info = detect_file_quality(main_file, [show.title, os.path.basename(show.path or "")])
             episode = next((e for e in episodes if e.season_number == 1 and e.episode_number == 1), None)
             if not episode and episodes:
                 episode = episodes[0]
@@ -900,7 +900,7 @@ def sync_show_disk(
         for file_path in video_files:
             filename = os.path.basename(file_path)
             parsed = parse_episode(filename)
-            q_info = parse_quality(filename)
+            q_info = detect_file_quality(file_path, [show.title, os.path.basename(show.path or "")])
 
             matched_ep = None
             if show.content_type == "anime" and parsed.kind == ReleaseKind.ABSOLUTE and parsed.episodes:
@@ -1124,7 +1124,7 @@ def scan_for_manual_import(
             rel_path = filename
 
         size_bytes = os.path.getsize(file_path) if os.path.exists(file_path) else 0
-        quality = parse_quality(filename).name
+        quality = detect_file_quality(file_path, [show.title, os.path.basename(folder_path)]).name
         parsed = parse_episode(filename)
 
         # 1. Если по имени файла не распознан сезон/серия, пробуем имя родительской папки
@@ -1502,11 +1502,10 @@ def scan_for_global_manual_import(
             rel_path = filename
 
         size_bytes = os.path.getsize(file_path) if os.path.exists(file_path) else 0
-        quality = parse_quality(filename).name
-        parsed = parse_episode(filename)
-
         parent_dir_name = os.path.basename(os.path.dirname(file_path))
         grandparent_dir_name = os.path.basename(os.path.dirname(os.path.dirname(file_path)))
+        quality = detect_file_quality(file_path, [parent_dir_name, grandparent_dir_name, os.path.basename(folder_path)]).name
+        parsed = parse_episode(filename)
         search_names = [filename, parent_dir_name, grandparent_dir_name, rel_path]
 
         # 1. Если по имени файла не распознан сезон/серия, пробуем имя родительской папки

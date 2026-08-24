@@ -5,7 +5,7 @@ import os
 import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from app.services.quality import parse_quality, is_allowed, is_upgrade
+from app.services.quality import parse_quality, is_allowed, is_upgrade, detect_file_quality
 from app.services.matcher import AliasCandidate, match_release, best_alias_match
 
 
@@ -18,6 +18,33 @@ class TestQualityAndMatcher(unittest.TestCase):
         q1 = parse_quality("Show.S01E05.2160p.BluRay")
         q2 = parse_quality("Show.S01E05.480p")
         self.assertTrue(is_upgrade(q2, q1))
+
+    def test_quality_uhd_bluray_disc_bdmv(self):
+        title = "Человек-паук: Возвращение домой / Spider-Man: Homecoming (2017) UHD Blu-ray disc 2160p BDMV"
+        q = parse_quality(title)
+        self.assertEqual(q.name, "Bluray-2160p")
+        self.assertEqual(q.resolution, "2160p")
+        self.assertEqual(q.source, "Bluray")
+
+    def test_detect_file_quality_hierarchical(self):
+        # 1. BDMV stream video file with parent directory context
+        path1 = "/downloads/Spider-Man Homecoming (2017) UHD Blu-ray disc 2160p BDMV/BDMV/STREAM/00001.m2ts"
+        q1 = detect_file_quality(path1)
+        self.assertEqual(q1.name, "Bluray-2160p")
+        self.assertEqual(q1.source, "Bluray")
+        self.assertEqual(q1.resolution, "2160p")
+
+        # 2. Anime episode inside release folder
+        path2 = "/downloads/Attack on Titan S04 Part 2 [WEBRip 1080p HEVC]/01.mkv"
+        q2 = detect_file_quality(path2)
+        self.assertEqual(q2.name, "WEBRip-1080p")
+        self.assertEqual(q2.video_codec, "HEVC")
+
+        # 3. Simple file name with external context hints
+        path3 = "/downloads/Spider-Man.mkv"
+        hints = ["Spider-Man: Brand New Day 2026 DVO, Sub TS 1080p - RUSSIAN"]
+        q3 = detect_file_quality(path3, hints)
+        self.assertEqual(q3.name, "HDTV-1080p")
 
     def test_quality_allowed_filter(self):
         q = parse_quality("Show.S01E05.720p.HDTV")
