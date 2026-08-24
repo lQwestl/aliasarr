@@ -217,7 +217,9 @@ async def on_startup():
         _seed_default_metadata_sources(db)
         seed_default_custom_formats(db)
         monitor_interval = settings.monitor_interval_minutes or 15
-        download_check_interval = settings.download_check_interval_minutes or 2
+        tracker_interval = getattr(settings, "tracker_check_interval_minutes", 30) or 30
+        unaired_interval = getattr(settings, "unaired_check_interval_minutes", 10) or 10
+        download_check_sec = getattr(settings, "download_check_interval_seconds", 30) or (settings.download_check_interval_minutes * 60 if getattr(settings, "download_check_interval_minutes", None) else 30)
         indexer_check_interval = settings.indexer_check_interval_minutes or 30
         calendar_poll_interval = settings.calendar_poll_interval_minutes or 180
         metadata_refresh_hours = getattr(settings, "metadata_refresh_interval_hours", 12) or 12
@@ -440,11 +442,11 @@ async def on_startup():
             finally:
                 db.close()
 
-    scheduler.add_job(_tracker_job, "interval", minutes=30, id="recheck_tracked_releases")
+    scheduler.add_job(_tracker_job, "interval", minutes=tracker_interval, id="recheck_tracked_releases")
     # Периодический поиск разыскиваемого контента
     scheduler.add_job(_wanted_search_job, "interval", minutes=monitor_interval, id="wanted_search")
-    scheduler.add_job(_downloads_check_job, "interval", seconds=30, id="downloads_check")
-    scheduler.add_job(_activate_unaired_job, "interval", minutes=10, id="activate_unaired")
+    scheduler.add_job(_downloads_check_job, "interval", seconds=download_check_sec, id="downloads_check")
+    scheduler.add_job(_activate_unaired_job, "interval", minutes=unaired_interval, id="activate_unaired")
     scheduler.add_job(_indexer_availability_job, "interval", minutes=indexer_check_interval, id="indexer_availability")
     scheduler.add_job(_purge_logs_job, "interval", hours=24, id="purge_old_logs")
     scheduler.add_job(_calendar_poll_job, "interval", minutes=calendar_poll_interval, id="calendar_poll")
@@ -453,9 +455,9 @@ async def on_startup():
     scheduler.add_job(_refresh_metadata_job, "interval", hours=metadata_refresh_hours, id="refresh_metadata")
     scheduler.start()
     logger.info(
-        "Планировщик запущен: слежение за раздачами каждые 30 мин, поиск wanted каждые %d мин, "
-        "проверка загрузок каждые 30 сек, проверка индексаторов каждые %d мин",
-        monitor_interval, indexer_check_interval,
+        "Планировщик запущен: поиск wanted каждые %d мин, загрузки каждые %d сек, "
+        "слежение за раздачами каждые %d мин, активация премьер каждые %d мин, проверка индексаторов каждые %d мин",
+        monitor_interval, download_check_sec, tracker_interval, unaired_interval, indexer_check_interval,
     )
 
 

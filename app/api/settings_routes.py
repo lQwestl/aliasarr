@@ -50,6 +50,9 @@ class SettingsOut(BaseModel):
 
     monitor_interval_minutes: int
     download_check_interval_minutes: int
+    download_check_interval_seconds: int = 30
+    tracker_check_interval_minutes: int = 30
+    unaired_check_interval_minutes: int = 10
 
     indexer_check_enabled: bool
     indexer_check_interval_minutes: int
@@ -104,6 +107,9 @@ class SettingsUpdate(BaseModel):
 
     monitor_interval_minutes: Optional[int] = None
     download_check_interval_minutes: Optional[int] = None
+    download_check_interval_seconds: Optional[int] = None
+    tracker_check_interval_minutes: Optional[int] = None
+    unaired_check_interval_minutes: Optional[int] = None
 
     indexer_check_enabled: Optional[bool] = None
     indexer_check_interval_minutes: Optional[int] = None
@@ -156,6 +162,9 @@ def _to_settings_out(settings, is_owner: bool = False) -> SettingsOut:
         prefer_most_seeded=settings.prefer_most_seeded,
         monitor_interval_minutes=settings.monitor_interval_minutes,
         download_check_interval_minutes=settings.download_check_interval_minutes,
+        download_check_interval_seconds=getattr(settings, "download_check_interval_seconds", 30) or 30,
+        tracker_check_interval_minutes=getattr(settings, "tracker_check_interval_minutes", 30) or 30,
+        unaired_check_interval_minutes=getattr(settings, "unaired_check_interval_minutes", 10) or 10,
         indexer_check_enabled=settings.indexer_check_enabled,
         indexer_check_interval_minutes=settings.indexer_check_interval_minutes,
         indexer_check_retries=settings.indexer_check_retries,
@@ -187,14 +196,25 @@ def get_settings(db: Session = Depends(get_db), current_user: User = Depends(get
     return _to_settings_out(get_or_create_settings(db), is_owner=bool(current_user and current_user.is_owner))
 
 
-def _reschedule(request: Request, job_id: str, minutes: int) -> None:
+def _reschedule(
+    request: Request,
+    job_id: str,
+    minutes: Optional[int] = None,
+    seconds: Optional[int] = None,
+    hours: Optional[int] = None,
+) -> None:
     """Применяет новый интервал периодической задачи на лету без перезапуска."""
     scheduler = getattr(request.app.state, "scheduler", None)
     if scheduler is None:
         return
     job = scheduler.get_job(job_id)
     if job is not None:
-        scheduler.reschedule_job(job_id, trigger="interval", minutes=minutes)
+        if seconds is not None:
+            scheduler.reschedule_job(job_id, trigger="interval", seconds=seconds)
+        elif hours is not None:
+            scheduler.reschedule_job(job_id, trigger="interval", hours=hours)
+        elif minutes is not None:
+            scheduler.reschedule_job(job_id, trigger="interval", minutes=minutes)
 
 
 @router.put("", response_model=SettingsOut, summary="Обновить настройки системы")
@@ -266,12 +286,31 @@ def update_settings(
         if payload.monitor_interval_minutes < 1:
             raise HTTPException(400, "Интервал должен быть не меньше 1 минуты")
         settings.monitor_interval_minutes = payload.monitor_interval_minutes
-        _reschedule(request, "wanted_search", payload.monitor_interval_minutes)
-    if payload.download_check_interval_minutes is not None:
+        _reschedule(request, "wanted_search", minutes=payload.monitor_interval_minutes)
+    if payload.download_check_interval_seconds is not None:
+        if payload.download_check_interval_seconds < 5:
+            raise HTTPException(400, "Интервал проверки загрузок должен быть не меньше 5 секунд")
+        settings.download_check_interval_seconds = payload.download_check_interval_seconds
+        settings.download_check_interval_minutes = max(1, round(payload.download_check_interval_seconds / 60))
+        _reschedule(request, "downloads_check", seconds=payload.download_check_interval_seconds)
+    elif payload.download_check_interval_minutes is not None:
         if payload.download_check_interval_minutes < 1:
             raise HTTPException(400, "Интервал должен быть не меньше 1 минуты")
         settings.download_check_interval_minutes = payload.download_check_interval_minutes
-        _reschedule(request, "downloads_check", payload.download_check_interval_minutes)
+        settings.download_check_interval_seconds = payload.download_check_interval_minutes * 60
+        _reschedule(request, "downloads_check", seconds=settings.download_check_interval_seconds)
+
+    if payload.tracker_check_interval_minutes is not None:
+        if payload.tracker_check_interval_minutes < 1:
+            raise HTTPException(400, "Интервал слежения за раздачами должен быть не меньше 1 минуты")
+        settings.tracker_check_interval_minutes = payload.tracker_check_interval_minutes
+        _reschedule(request, "recheck_tracked_releases", minutes=payload.tracker_check_interval_minutes)
+
+    if payload.unaired_check_interval_minutes is not None:
+        if payload.unaired_check_interval_minutes < 1:
+            raise HTTPException(400, "Интервал активации премьер должен быть не меньше 1 минуты")
+        settings.unaired_check_interval_minutes = payload.unaired_check_interval_minutes
+        _reschedule(request, "activate_unaired", minutes=payload.unaired_check_interval_minutes)
 
     if payload.indexer_check_enabled is not None:
         settings.indexer_check_enabled = payload.indexer_check_enabled

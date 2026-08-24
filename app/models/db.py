@@ -389,6 +389,9 @@ class AppSettings(Base):
     # Интервалы фоновых задач
     monitor_interval_minutes: Mapped[int] = mapped_column(Integer, default=15)
     download_check_interval_minutes: Mapped[int] = mapped_column(Integer, default=2)
+    download_check_interval_seconds: Mapped[int] = mapped_column(Integer, default=30)
+    tracker_check_interval_minutes: Mapped[int] = mapped_column(Integer, default=30)
+    unaired_check_interval_minutes: Mapped[int] = mapped_column(Integer, default=10)
 
     # Проверка доступности индексаторов
     indexer_check_enabled: Mapped[bool] = mapped_column(Boolean, default=True)

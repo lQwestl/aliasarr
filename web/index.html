@@ -1371,10 +1371,19 @@
             <label><span data-i18n="settings.min_seeds">Минимальное число сидов для скачивания</span> <span class="hint" data-i18n="settings.min_seeds_hint">(0 — без ограничения)</span></label>
             <input id="setting-min-seeds" class="input" type="number" min="0" style="max-width:160px">
             <label class="checkbox-row"><input id="setting-prefer-seeded" type="checkbox" onchange="updateMinSeedsAvailability()"> <span data-i18n="settings.prefer_seeded">Скачивать только самый популярный релиз (с наибольшим числом сидов)</span></label>
-            <label><span data-i18n="settings.monitor_interval">Интервал автопоиска для «мониторится»</span> <span class="hint" data-i18n="settings.monitor_interval_hint">(минуты)</span></label>
+            
+            <label><span data-i18n="settings.monitor_interval">Интервал автопоиска разыскиваемого (Wanted Search)</span> <span class="hint" data-i18n="settings.monitor_interval_hint">(минуты)</span></label>
             <input id="setting-monitor-interval" class="input" type="number" min="1" style="max-width:160px">
-            <label><span data-i18n="settings.download_check_interval">Интервал проверки завершения загрузок</span> <span class="hint" data-i18n="settings.download_check_interval_hint">(минуты)</span></label>
-            <input id="setting-download-check-interval" class="input" type="number" min="1" style="max-width:160px">
+            
+            <label><span data-i18n="settings.download_check_interval">Интервал проверки завершения загрузок</span> <span class="hint" data-i18n="settings.download_check_seconds_hint">(секунды)</span></label>
+            <input id="setting-download-check-interval" class="input" type="number" min="5" style="max-width:160px">
+
+            <label><span data-i18n="settings.tracker_check_interval">Интервал слежения за раздачами (Tracker Ongoing)</span> <span class="hint" data-i18n="settings.tracker_check_interval_hint">(минуты)</span></label>
+            <input id="setting-tracker-interval" class="input" type="number" min="1" style="max-width:160px">
+
+            <label><span data-i18n="settings.unaired_check_interval">Интервал активации премьер (Unaired → Wanted)</span> <span class="hint" data-i18n="settings.unaired_check_interval_hint">(минуты)</span></label>
+            <input id="setting-unaired-interval" class="input" type="number" min="1" style="max-width:160px">
+
             <div>
               <button class="btn btn-primary" onclick="saveAutoSearchSettings(this)" data-i18n="common.save">Сохранить</button>
             </div>

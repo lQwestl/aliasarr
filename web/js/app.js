@@ -376,10 +376,14 @@ const TRANSLATIONS = {
     "settings.min_seeds": "Минимальное число сидов для скачивания",
     "settings.min_seeds_hint": "(0 — без ограничения)",
     "settings.prefer_seeded": "Скачивать только самый популярный релиз (с наибольшим числом сидов)",
-    "settings.monitor_interval": "Интервал автопоиска для «мониторится»",
+    "settings.monitor_interval": "Интервал автопоиска разыскиваемого (Wanted Search)",
     "settings.monitor_interval_hint": "(минуты)",
     "settings.download_check_interval": "Интервал проверки завершения загрузок",
-    "settings.download_check_interval_hint": "(минуты)",
+    "settings.download_check_seconds_hint": "(секунды)",
+    "settings.tracker_check_interval": "Интервал слежения за раздачами (Tracker Ongoing)",
+    "settings.tracker_check_interval_hint": "(минуты)",
+    "settings.unaired_check_interval": "Интервал активации премьер (Unaired → Wanted)",
+    "settings.unaired_check_interval_hint": "(минуты)",
     "settings.security_title": "Безопасность и авторизация",
     "settings.security_hint": "Вход по логину и паролю защищает веб-интерфейс. Внешние API-запросы продолжают работать по X-Api-Key заголовку.",
     "settings.require_login": "Требовать вход по логину и паролю",
@@ -1349,10 +1353,14 @@ const TRANSLATIONS = {
     "settings.min_seeds": "Minimum seeders to download",
     "settings.min_seeds_hint": "(0 — no limit)",
     "settings.prefer_seeded": "Download only the most seeded release",
-    "settings.monitor_interval": "Auto search interval for monitored items",
+    "settings.monitor_interval": "Wanted Search auto search interval",
     "settings.monitor_interval_hint": "(minutes)",
     "settings.download_check_interval": "Download completion check interval",
-    "settings.download_check_interval_hint": "(minutes)",
+    "settings.download_check_seconds_hint": "(seconds)",
+    "settings.tracker_check_interval": "Tracker ongoing check interval",
+    "settings.tracker_check_interval_hint": "(minutes)",
+    "settings.unaired_check_interval": "Unaired → Wanted activation interval",
+    "settings.unaired_check_interval_hint": "(minutes)",
     "settings.security_title": "Security & Authentication",
     "settings.security_hint": "Username and password authentication secures the web interface. External API calls continue via X-Api-Key.",
     "settings.require_login": "Require username and password login",
@@ -7231,7 +7239,11 @@ async function loadGeneralSettings() {
     document.getElementById("setting-prefer-seeded").checked = !!s.prefer_most_seeded;
     updateMinSeedsAvailability();
     document.getElementById("setting-monitor-interval").value = s.monitor_interval_minutes ?? 15;
-    document.getElementById("setting-download-check-interval").value = s.download_check_interval_minutes ?? 2;
+    document.getElementById("setting-download-check-interval").value = s.download_check_interval_seconds ?? (s.download_check_interval_minutes ? s.download_check_interval_minutes * 60 : 30);
+    const trackerEl = document.getElementById("setting-tracker-interval");
+    if (trackerEl) trackerEl.value = s.tracker_check_interval_minutes ?? 30;
+    const unairedEl = document.getElementById("setting-unaired-interval");
+    if (unairedEl) unairedEl.value = s.unaired_check_interval_minutes ?? 10;
 
     applyTheme(s.theme || "dark");
     applyLanguage(s.language || "ru");
@@ -7326,13 +7338,17 @@ async function saveExtraFilesSettings(btn) {
 async function saveAutoSearchSettings(btn) {
   await withLoading(btn, async () => {
     try {
+      const dlSec = Number(document.getElementById("setting-download-check-interval").value) || 30;
       await api("/api/v1/settings", {
         method: "PUT",
         body: JSON.stringify({
           min_seeds: Number(document.getElementById("setting-min-seeds").value) || 0,
           prefer_most_seeded: document.getElementById("setting-prefer-seeded").checked,
           monitor_interval_minutes: Number(document.getElementById("setting-monitor-interval").value) || 15,
-          download_check_interval_minutes: Number(document.getElementById("setting-download-check-interval").value) || 2,
+          download_check_interval_seconds: dlSec,
+          download_check_interval_minutes: Math.max(1, Math.round(dlSec / 60)),
+          tracker_check_interval_minutes: Number(document.getElementById("setting-tracker-interval")?.value) || 30,
+          unaired_check_interval_minutes: Number(document.getElementById("setting-unaired-interval")?.value) || 10,
         }),
       });
       toast(t("settings.toast_saved"));
