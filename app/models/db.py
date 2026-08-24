@@ -479,6 +479,9 @@ class LogEntry(Base):
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow, index=True)
     level: Mapped[str] = mapped_column(String(20), default="info")  # debug|info|warning|error
     component: Mapped[str] = mapped_column(String(200), default="aliasarr")
+    message: Mapped[str] = mapped_column(Text, default="")
+
+
 class ReleaseLog(Base):
     """Журнал логики обработки релизов (поиск, сопоставление, парсинг, фильтрация, захват, загрузка, постобработка)."""
 
