@@ -927,6 +927,12 @@ def sync_show_disk(
                 if not matched_ep:
                     matched_ep = next((e for e in episodes if e.episode_number == parsed.episodes[0]), None)
 
+            if not matched_ep:
+                specials = [e for e in episodes if e.season_number == 0]
+                if specials:
+                    from app.services.matcher import match_special_episode
+                    matched_ep = match_special_episode(file_path, specials, parsed)
+
             if matched_ep:
                 matched_ep.status = EpisodeStatus.DOWNLOADED
                 matched_ep.file_path = file_path
@@ -1192,6 +1198,12 @@ def scan_for_manual_import(
                 matched_ep = next((e for e in episodes if e.season_number == target_s and e.episode_number == parsed.episodes[0]), None)
                 if not matched_ep:
                     matched_ep = next((e for e in episodes if e.absolute_number == parsed.episodes[0]), None)
+
+            if not matched_ep:
+                specials = [e for e in episodes if e.season_number == 0]
+                if specials:
+                    from app.services.matcher import match_special_episode
+                    matched_ep = match_special_episode(file_path, specials, parsed)
 
         file_candidates.append(
             ManualImportFileCandidate(
@@ -1583,6 +1595,12 @@ def scan_for_global_manual_import(
                     matched_ep = next((e for e in show_eps if e.season_number == target_s and e.episode_number == parsed.episodes[0]), None)
                     if not matched_ep:
                         matched_ep = next((e for e in show_eps if e.absolute_number == parsed.episodes[0]), None)
+
+                if not matched_ep and show_eps:
+                    specials = [e for e in show_eps if e.season_number == 0]
+                    if specials:
+                        from app.services.matcher import match_special_episode
+                        matched_ep = match_special_episode(file_path, specials, parsed)
         else:
             p_season = parsed.season
             p_episode = parsed.episodes[0] if parsed.episodes else None

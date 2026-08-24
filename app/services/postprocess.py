@@ -966,6 +966,13 @@ def process_download(
                             .first()
                         )
                     if episode is None:
+                        # Проверяем спецвыпуск / OVA / Movie по ключевым словам
+                        specials_for_show = db.query(Episode).filter_by(show_id=show.id, season_number=0).order_by(Episode.episode_number).all()
+                        if specials_for_show:
+                            from app.services.matcher import match_special_episode
+                            episode = match_special_episode(file_path, specials_for_show, parsed)
+
+                    if episode is None:
                         episode = (
                             db.query(Episode)
                             .filter_by(show_id=show.id, season_number=1, episode_number=ep_num)

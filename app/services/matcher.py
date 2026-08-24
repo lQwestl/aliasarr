@@ -436,3 +436,114 @@ def score_candidate(
         + quality_component * 0.2
         + size_component * 0.15
     )
+
+
+def match_special_episode(filepath_or_name: str, specials: list, parsed_ep: Optional[ParsedRelease] = None):
+    """
+    Интеллектуальное сопоставление файла/папки спецвыпуска с серией из Сезона 0 (Specials).
+    Учитывает:
+    1. Названия арок / подзаголовки спешлов (fuzzy & semantic match).
+    2. Прямой номер спешла SP xx (SP 01 -> Episode 1).
+    3. OVA-индекс (OVA 1-5 -> сопоставление с OVA-сериями спешлов).
+    4. Сезонный спешл (Season 1 SP, Season 2 SP).
+    """
+    if not specials:
+        return None
+
+    path_lower = filepath_or_name.lower().replace("\\", "/")
+    fname = os.path.basename(path_lower)
+    fstem = os.path.splitext(fname)[0]
+
+    # Справочник распространенных ключевых слов и переводов арок спешлов
+    SECTOR_KEYWORDS = {
+        "coleus": ["coleus", "koriusu", "колеус", "кориус", "コリウス"],
+        "guren": ["guren", "scarlet", "kizuna", "гурен", "алые узы", "紅蓮"],
+        "veldora": ["veldora", "verudora", "вельдор"],
+        "hinata": ["hinata", "хината"],
+        "diablo": ["diablo", "диабло"],
+        "luminous": ["luminous", "luminus", "люминус"],
+        "teacher": ["teacher", "glamorous", "учител"],
+        "tragedy": ["tragedy", "трагеди"],
+        "butts": ["butts", "butt", "трусик"],
+    }
+
+    # 1. Поиск совпадений по ключевым аркам
+    for kw_key, kw_list in SECTOR_KEYWORDS.items():
+        if any(k in path_lower for k in kw_list):
+            m_num = re.search(r"(?:0?([1-9]))(?:\.avi|\.mkv|\.mp4|\b)", fname)
+            sub_idx = int(m_num.group(1)) if m_num else 1
+            matching_eps = [
+                e for e in specials
+                if any(k in (getattr(e, "title", None) or "").lower() for k in kw_list)
+            ]
+            if matching_eps:
+                if len(matching_eps) >= sub_idx:
+                    return matching_eps[sub_idx - 1]
+                return matching_eps[0]
+
+    # 2. Нечеткое сопоставление по полному названию серии
+    best_ep = None
+    best_score = 0.0
+    for ep in specials:
+        title = (getattr(ep, "title", None) or "").strip().lower()
+        if not title:
+            continue
+        # Проверяем вхождение значимых слов названия
+        words = [w for w in re.split(r"[\s:;,\-\.\?!\(\)]+", title) if len(w) > 3]
+        if words and all(w in path_lower for w in words[:2]):
+            score = fuzz.token_set_ratio(title, path_lower)
+            if score > best_score and score >= 60:
+                best_score = score
+                best_ep = ep
+
+    if best_ep and best_score >= 65:
+        return best_ep
+
+    # 3. Сезонный спешл/рекап (Season 1 SP, [1] ... [sp], Season 2 SP, 2 sp)
+    if "[1]" in path_lower and "sp" in path_lower:
+        recaps_s1 = [e for e in specials if "2" not in (getattr(e, "title", None) or "")]
+        if recaps_s1:
+            return recaps_s1[0]
+
+    m_s_sp = re.search(r"(?:\[|\()?\s*(?:season|сезон|s)?\s*(\d{1,2})\s*(?:\]|\))?[\s._–-]+(?:sp|special|спешл)\b|\b(\d{1,2})\s*[-_.\s]+(?:sp|special|спешл)\b", path_lower)
+    if m_s_sp:
+        s_num = int(next(g for g in m_s_sp.groups() if g is not None))
+        if s_num == 1:
+            return specials[0]
+        elif s_num == 2 and len(specials) >= 7:
+            # Находим спешл 2 сезона (например SP 07 / SP 08)
+            s2_cand = [e for e in specials if getattr(e, "episode_number", 0) in [7, 8]]
+            if s2_cand:
+                return s2_cand[0]
+
+    # 4. OVA 1..N сопоставление
+    m_ova = re.search(r"(?:ova|ona|oad)[-_.\s]?(\d{1,2})", path_lower)
+    if m_ova:
+        ova_num = int(m_ova.group(1))
+        # Если в сезоне 0 есть серии с номерами 2..N (после рекапа SP1) или чисто блок OVA
+        ova_candidates = [
+            e for e in specials
+            if getattr(e, "episode_number", 0) in range(2, 7) or "ova" in (getattr(e, "title", None) or "").lower() or "extra" in (getattr(e, "title", None) or "").lower()
+        ]
+        if len(ova_candidates) >= ova_num:
+            return ova_candidates[ova_num - 1]
+        elif len(specials) >= ova_num:
+            return specials[ova_num - 1]
+
+    # 5. Прямой номер SP 01 / S00E01
+    m_sp = re.search(r"(?:sp|s00e|00x)[\s._–-]*(\d{1,3})", path_lower)
+    if m_sp:
+        sp_num = int(m_sp.group(1))
+        matched = next((e for e in specials if getattr(e, "episode_number", None) == sp_num), None)
+        if matched:
+            return matched
+
+    # 6. Если передан parsed_ep с season=0 и номером серии
+    if parsed_ep and parsed_ep.season == 0 and parsed_ep.episodes:
+        target_num = parsed_ep.episodes[0]
+        matched = next((e for e in specials if getattr(e, "episode_number", None) == target_num), None)
+        if matched:
+            return matched
+
+    return None
+

@@ -206,6 +206,32 @@ class TestParser(unittest.TestCase):
         self.assertEqual(p3.episodes, list(range(1, 9)))
         self.assertEqual(p3.kind, ReleaseKind.EPISODE)
 
+    def test_specials_and_ova_parsing(self):
+        # OVA with hyphen
+        p1 = parse_episode("Tensei shitara Slime Datta Ken OVA-1.avi")
+        self.assertEqual(p1.season, 0)
+        self.assertEqual(p1.episodes, [1])
+
+        p2 = parse_episode("Tensei shitara Slime Datta Ken OVA-5.avi")
+        self.assertEqual(p2.season, 0)
+        self.assertEqual(p2.episodes, [5])
+
+        # OVA range
+        p3 = parse_episode("Attack on Titan OVA 01-08 [BDRip].mkv")
+        self.assertEqual(p3.season, 0)
+        self.assertEqual(p3.episodes, list(range(1, 9)))
+        self.assertTrue(p3.is_range)
+
+        # SP code
+        p4 = parse_episode("Chained Soldier SP02 [BDRip 1080p].mkv")
+        self.assertEqual(p4.season, 0)
+        self.assertEqual(p4.episodes, [2])
+
+        # Season Special
+        p5 = parse_episode("Tensei Shitara Slime Datta Ken 2 sp.avi")
+        self.assertEqual(p5.season, 0)
+        self.assertEqual(p5.episodes, [1])
+
 
 if __name__ == "__main__":
     unittest.main()

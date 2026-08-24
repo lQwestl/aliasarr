@@ -197,10 +197,36 @@ _RE_SEASON_PACK_KEYWORDS = re.compile(
     re.IGNORECASE,
 )
 
-# OVA/ONA/спешлы/фильмы — по общепринятой конвенции (как в Sonarr/большинстве трекеров)
-# относятся к "сезону 0". "OVA 3", "OVA.03", "SP01", "Special 1", "Movie 1", "Film 1".
-_RE_OVA_ONA_EPISODE = re.compile(r"\b(?:OVA|ONA|Special|Specials|Спешл(?:ы)?|SP|Movie|Film)\.?\s?(\d{1,4})\b", re.IGNORECASE)
-_RE_OVA_ONA_PACK = re.compile(r"\b(OVA|ONA|Special|Specials|Спешл(?:ы)?)\b", re.IGNORECASE)
+# OVA/ONA/OAD/спешлы/фильмы — по общепринятой конвенции (как в Sonarr/большинстве трекеров)
+# относятся к "сезону 0". Поддерживаются любые разделители: "OVA 3", "OVA-1", "OVA_01", "OVA.03", "SP01", "Special 1", "Movie 1", "Film 1".
+_RE_OVA_ONA_RANGE = re.compile(
+    r"\b(?:OVA|ONA|OAD|Special|Specials|Спешл(?:ы)?|Спецвыпуск(?:и)?|SP|Picture\s*Drama|Shorts?|Mini[-_\s]?Anime|Recap|Digest|Movie|Film|Фильм|Gekijouban|Gekijōban|劇場版)"
+    r"[\s._–-]*"
+    r"(?:\[|\()?"
+    r"(?:#|№|ep|e)?[\s._–-]*"
+    r"(\d{1,4})\s*[-–~]\s*(\d{1,4})"
+    r"(?:\]|\))?",
+    re.IGNORECASE,
+)
+_RE_OVA_ONA_EPISODE = re.compile(
+    r"\b(?:OVA|ONA|OAD|Special|Specials|Спешл(?:ы)?|Спецвыпуск(?:и)?|SP|Picture\s*Drama|Shorts?|Mini[-_\s]?Anime|Recap|Digest|Movie|Film|Фильм|Gekijouban|Gekijōban|劇場版)"
+    r"[\s._–-]*"
+    r"(?:\[|\()?"
+    r"(?:#|№|ep|e)?[\s._–-]*"
+    r"(\d{1,4})\b"
+    r"(?:\s*(?:\]|\)))?",
+    re.IGNORECASE,
+)
+_RE_SEASON_SP = re.compile(
+    r"(?:(?:\[|\()?\s*(?:Season|Сезон|S)?\s*(\d{1,2})\s*(?:\]|\))?[\s._–-]+(?:sp|special|спешл|ova|ona|recap)\b|"
+    r"\b(?:Season|Сезон|S)\s*(\d{1,2})\s*[-_.\s]+(?:sp|special|спешл|ova|ona|recap)\b|"
+    r"\b(\d{1,2})\s*[-_.\s]+(?:sp|special|спешл|ova|ona|recap)\b)",
+    re.IGNORECASE,
+)
+_RE_OVA_ONA_PACK = re.compile(
+    r"\b(?:OVA|ONA|OAD|Special|Specials|Спешл(?:ы)?|Спецвыпуск(?:и)?|SP|Picture\s*Drama|Shorts?|Recap|Movie|Film|Фильм|Gekijouban|Gekijōban|劇場版)\b|\[(?:sp|ova|ona|oad|special|movie|film)\]",
+    re.IGNORECASE,
+)
 
 # 1x05, 01x05, 1x05-1x07
 _RE_XFORMAT = re.compile(r"\b(\d{1,2})x(\d{2,4})\b", re.IGNORECASE)
@@ -418,12 +444,31 @@ def parse_episode(release_name: str) -> ParsedRelease:
             raw=raw, matched_pattern="wordy_season_episode",
         )
 
-    # 1е. OVA/ONA/спешл/фильм с номером — считаем сезоном 0 (конвенция Sonarr и большинства трекеров)
-    m = _RE_OVA_ONA_EPISODE.search(protected)
-    if m:
+    # 1е. OVA/ONA/OAD/спешл/фильм с диапазоном серий (сезон 0)
+    m_ova_range = _RE_OVA_ONA_RANGE.search(protected)
+    if m_ova_range:
+        start, end = int(m_ova_range.group(1)), int(m_ova_range.group(2))
+        if start <= end and (end - start) < 300:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=0, episodes=list(range(start, end + 1)),
+                is_range=True, raw=raw, matched_pattern="ova_ona_range",
+            )
+
+    # 1е2. OVA/ONA/OAD/спешл/фильм с номером серии (сезон 0)
+    m_ova_ep = _RE_OVA_ONA_EPISODE.search(protected)
+    if m_ova_ep:
         return ParsedRelease(
-            kind=ReleaseKind.EPISODE, season=0, episodes=[int(m.group(1))],
+            kind=ReleaseKind.EPISODE, season=0, episodes=[int(m_ova_ep.group(1))],
             raw=raw, matched_pattern="ova_ona_episode",
+        )
+
+    # 1е3. Сезонный спешл без номера ("Season 2 SP", "2 sp.avi", "S01 Special")
+    m_s_sp = _RE_SEASON_SP.search(protected)
+    if m_s_sp:
+        s_num = next((int(g) for g in m_s_sp.groups() if g is not None), 1)
+        return ParsedRelease(
+            kind=ReleaseKind.EPISODE, season=0, episodes=[1],
+            raw=raw, matched_pattern=f"season_{s_num}_special",
         )
 
     # 1ж. Префиксные сезоны с сериями: "2nd Season - 01", "2nd Season [01-12]", "2-й сезон - 02", "1st Season 05"
