@@ -873,12 +873,24 @@ def sync_show_disk(
             db.rollback()
         return {"imported_count": 0, "path": show.path, "message": f"Видеофайлы не найдены в {show.path}. Статусы сброшены."}
 
+    show_hints = [show.title, os.path.basename(show.path or "")]
+    try:
+        from app.models.db import DownloadHistory, TrackedRelease
+        hist = db.query(DownloadHistory).filter_by(show_id=show.id).order_by(DownloadHistory.id.desc()).first()
+        if hist and hist.release_title:
+            show_hints.append(hist.release_title)
+        tr = db.query(TrackedRelease).filter_by(show_id=show.id).order_by(TrackedRelease.id.desc()).first()
+        if tr and tr.topic_guid:
+            show_hints.append(tr.topic_guid)
+    except Exception:
+        pass
+
     if show.content_type == "movie":
         non_samples = [f for f in video_files if not _SAMPLE_RE.search(os.path.basename(f))]
         target_files = non_samples if non_samples else video_files
         if target_files:
             main_file = max(target_files, key=lambda f: os.path.getsize(f) if os.path.exists(f) else 0)
-            q_info = detect_file_quality(main_file, [show.title, os.path.basename(show.path or "")])
+            q_info = detect_file_quality(main_file, show_hints)
             episode = next((e for e in episodes if e.season_number == 1 and e.episode_number == 1), None)
             if not episode and episodes:
                 episode = episodes[0]
@@ -900,7 +912,7 @@ def sync_show_disk(
         for file_path in video_files:
             filename = os.path.basename(file_path)
             parsed = parse_episode(filename)
-            q_info = detect_file_quality(file_path, [show.title, os.path.basename(show.path or "")])
+            q_info = detect_file_quality(file_path, show_hints)
 
             matched_ep = None
             if show.content_type == "anime" and parsed.kind == ReleaseKind.ABSOLUTE and parsed.episodes:
