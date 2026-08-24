@@ -2124,23 +2124,77 @@ def execute_rename_show(
             dest_dir = os.path.dirname(new_full_path)
             os.makedirs(dest_dir, exist_ok=True)
 
-            # Переименовываем сопутствующие файлы (субтитры, nfo)
+            # Переименовываем и переносим сопутствующие файлы (субтитры, озвучки .mka, nfo)
             old_dir = os.path.dirname(old_full_path)
             old_stem = os.path.splitext(os.path.basename(old_full_path))[0]
             new_stem = os.path.splitext(os.path.basename(new_full_path))[0]
 
+            COMPANION_EXTS = {
+                ".srt", ".ass", ".ssa", ".sub", ".idx", ".vtt",
+                ".mka", ".ac3", ".dts", ".eac3", ".aac", ".flac", ".mp3", ".wav",
+                ".nfo", ".txt"
+            }
+
+            moved_companions = set()
+
+            # 1. Файлы в той же директории, начинающиеся с old_stem
             if os.path.exists(old_dir):
                 for f_name in os.listdir(old_dir):
-                    if f_name.startswith(old_stem) and f_name != os.path.basename(old_full_path):
-                        src_companion = os.path.join(old_dir, f_name)
-                        if os.path.isfile(src_companion):
-                            suffix = f_name[len(old_stem):]
-                            dst_companion = os.path.join(dest_dir, f"{new_stem}{suffix}")
-                            try:
-                                shutil.move(src_companion, dst_companion)
-                                apply_media_permissions(dst_companion, is_dir=False)
-                            except Exception as c_err:
-                                errors.append(f"Ошибка переноса {f_name}: {c_err}")
+                    src_companion = os.path.join(old_dir, f_name)
+                    if not os.path.isfile(src_companion) or src_companion == old_full_path:
+                        continue
+                    ext_c = os.path.splitext(f_name)[1].lower()
+                    if f_name.startswith(old_stem) and ext_c in COMPANION_EXTS:
+                        suffix = f_name[len(old_stem):]
+                        dst_companion = os.path.join(dest_dir, f"{new_stem}{suffix}")
+                        try:
+                            shutil.move(src_companion, dst_companion)
+                            apply_media_permissions(dst_companion, is_dir=False)
+                            moved_companions.add(src_companion)
+                        except Exception as c_err:
+                            errors.append(f"Ошибка переноса {f_name}: {c_err}")
+
+            # 2. Файлы в подпапках (Subs, Subtitles, Audio, Audios, Sound, Tracks) или по номеру серии
+            potential_dirs = []
+            if os.path.exists(old_dir):
+                for sub_d in ["subs", "subtitles", "sub", "субтитры", "audio", "audios", "sound", "звук", "озвучка", "tracks", "rus", "eng", "jap"]:
+                    d_p = os.path.join(old_dir, sub_d)
+                    if os.path.isdir(d_p):
+                        potential_dirs.append(d_p)
+
+            ep_nums = {ep.episode_number}
+            if ep.absolute_number is not None:
+                ep_nums.add(ep.absolute_number)
+
+            for p_dir in potential_dirs:
+                if not os.path.exists(p_dir):
+                    continue
+                for f_name in os.listdir(p_dir):
+                    src_companion = os.path.join(p_dir, f_name)
+                    if not os.path.isfile(src_companion) or src_companion in moved_companions or src_companion == old_full_path:
+                        continue
+                    ext_c = os.path.splitext(f_name)[1].lower()
+                    if ext_c not in COMPANION_EXTS:
+                        continue
+
+                    parsed_c = parse_episode(f_name)
+                    is_match = False
+                    if parsed_c and parsed_c.episodes and any(e in ep_nums for e in parsed_c.episodes):
+                        if parsed_c.season is None or parsed_c.season == ep.season_number:
+                            is_match = True
+                    elif any(f"{n:02d}" in f_name or f"e{n:02d}" in f_name.lower() or f"- {n}" in f_name for n in ep_nums if n is not None):
+                        is_match = True
+
+                    if is_match:
+                        tag = extract_companion_tag(src_companion, old_full_path, ep.episode_number or 1)
+                        dst_name = f"{new_stem}.{tag}{ext_c}" if tag else f"{new_stem}{ext_c}"
+                        dst_companion = os.path.join(dest_dir, dst_name)
+                        try:
+                            shutil.move(src_companion, dst_companion)
+                            apply_media_permissions(dst_companion, is_dir=False)
+                            moved_companions.add(src_companion)
+                        except Exception as c_err:
+                            errors.append(f"Ошибка переноса {f_name}: {c_err}")
 
             # Перемещаем основной видеофайл
             shutil.move(old_full_path, new_full_path)
