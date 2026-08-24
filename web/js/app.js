@@ -3913,6 +3913,8 @@ function renderShowOverviewRow(show) {
 
 let CURRENT_SHOW_ID = null;
 let SHOW_MODAL_POLL_INTERVAL = null;
+let SHOW_EXPANDED_SEASONS = window._SHOW_EXPANDED_SEASONS || {};
+window._SHOW_EXPANDED_SEASONS = SHOW_EXPANDED_SEASONS;
 
 async function openShowModal(showId) {
   CURRENT_SHOW_ID = showId;
@@ -3975,6 +3977,25 @@ async function openShowModal(showId) {
 
 async function refreshShowModal() {
   const showId = CURRENT_SHOW_ID;
+  if (!showId) return;
+
+  // Сохраняем текущее состояние развернутых сезонов и спецвыпусков перед обновлением DOM
+  const existingBlocks = document.querySelectorAll("#seasons-container .season-block");
+  if (existingBlocks.length > 0) {
+    const currentSet = SHOW_EXPANDED_SEASONS[showId] || new Set();
+    existingBlocks.forEach(b => {
+      const sn = parseInt(b.id.replace("season-block-", ""), 10);
+      if (!isNaN(sn)) {
+        if (!b.classList.contains("collapsed")) {
+          currentSet.add(sn);
+        } else {
+          currentSet.delete(sn);
+        }
+      }
+    });
+    SHOW_EXPANDED_SEASONS[showId] = currentSet;
+  }
+
   const content = document.getElementById("show-modal-content");
   try {
     const [show, episodes, queue] = await Promise.all([
@@ -4393,8 +4414,16 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
     : `${t("show.season")} ${seasonNumber}`;
   const targetShowId = show ? show.id : CURRENT_SHOW_ID;
 
+  let isCollapsed = true;
+  const expandedSet = SHOW_EXPANDED_SEASONS[targetShowId];
+  if (expandedSet !== undefined) {
+    isCollapsed = !expandedSet.has(seasonNumber);
+  } else {
+    isCollapsed = (seasonNumber !== 1);
+  }
+
   return `
-    <div class="season-block collapsed" id="season-block-${seasonNumber}">
+    <div class="season-block ${isCollapsed ? "collapsed" : ""}" id="season-block-${seasonNumber}">
       <div class="season-header" onclick="toggleSeasonCollapse(${seasonNumber})">
         <div class="season-header-left">
           <i data-lucide="chevron-down" class="season-caret ico-sm"></i>
@@ -4636,15 +4665,43 @@ async function searchSelectedEpisodes(button, seasonNumber = null) {
 
 function toggleSeasonCollapse(seasonNumber) {
   const el = document.getElementById(`season-block-${seasonNumber}`);
-  if (el) el.classList.toggle("collapsed");
+  if (el) {
+    el.classList.toggle("collapsed");
+    const isExpanded = !el.classList.contains("collapsed");
+    const targetShowId = CURRENT_SHOW_ID;
+    if (targetShowId) {
+      if (!SHOW_EXPANDED_SEASONS[targetShowId]) {
+        SHOW_EXPANDED_SEASONS[targetShowId] = new Set();
+      }
+      if (isExpanded) {
+        SHOW_EXPANDED_SEASONS[targetShowId].add(seasonNumber);
+      } else {
+        SHOW_EXPANDED_SEASONS[targetShowId].delete(seasonNumber);
+      }
+    }
+  }
 }
 
 function expandAllSeasons() {
-  document.querySelectorAll("#seasons-container .season-block").forEach(el => el.classList.remove("collapsed"));
+  document.querySelectorAll("#seasons-container .season-block").forEach(el => {
+    el.classList.remove("collapsed");
+    const sn = parseInt(el.id.replace("season-block-", ""), 10);
+    if (!isNaN(sn) && CURRENT_SHOW_ID) {
+      if (!SHOW_EXPANDED_SEASONS[CURRENT_SHOW_ID]) {
+        SHOW_EXPANDED_SEASONS[CURRENT_SHOW_ID] = new Set();
+      }
+      SHOW_EXPANDED_SEASONS[CURRENT_SHOW_ID].add(sn);
+    }
+  });
 }
 
 function collapseAllSeasons() {
-  document.querySelectorAll("#seasons-container .season-block").forEach(el => el.classList.add("collapsed"));
+  document.querySelectorAll("#seasons-container .season-block").forEach(el => {
+    el.classList.add("collapsed");
+  });
+  if (CURRENT_SHOW_ID) {
+    SHOW_EXPANDED_SEASONS[CURRENT_SHOW_ID] = new Set();
+  }
 }
 
 async function changeQualityProfile(showId, value) {
