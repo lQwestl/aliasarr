@@ -815,6 +815,8 @@ const TRANSLATIONS = {
     "show.preview_rename_title": "Упорядочить и переименовать",
     "show.btn_preview_rename": "Переименовать файлы",
     "show.btn_preview_rename_season": "Переименовать сезон",
+    "show.expand_all_seasons": "Развернуть все",
+    "show.collapse_all_seasons": "Свернуть все",
     "show.rename_relative_hint": "Все пути указаны относительно:",
     "show.rename_template_label": "Шаблон именования:",
     "show.rename_select_all": "Выбрать все",
@@ -1802,6 +1804,8 @@ const TRANSLATIONS = {
     "show.preview_rename_title": "Preview Rename & Organize",
     "show.btn_preview_rename": "Rename Files",
     "show.btn_preview_rename_season": "Rename Season",
+    "show.expand_all_seasons": "Expand All",
+    "show.collapse_all_seasons": "Collapse All",
     "show.rename_relative_hint": "All paths are relative to:",
     "show.rename_template_label": "Naming pattern:",
     "show.rename_select_all": "Select all",
@@ -4112,7 +4116,18 @@ async function refreshShowModal() {
         ${show.content_type === "movie"
           ? (episodes.length ? renderMovieBlock(show, episodes[0], canManageLib) :
              `<p style="color:var(--text-muted)">${t("show.no_overview")}</p>`)
-          : `${seasonNumbers.length ? `` : ""}
+          : `${seasonNumbers.length > 1 ? `
+            <div class="seasons-toolbar" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px; padding: 2px 4px;">
+              <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">${t("show.seasons_count")}: ${seasonNumbers.length}</span>
+              <div style="display:flex; gap: 6px;">
+                <button class="btn btn-secondary btn-small" onclick="expandAllSeasons()" style="padding: 4px 9px; font-size: 12px;" title="${t("show.expand_all_seasons")}">
+                  <i data-lucide="chevrons-up-down" class="ico-xs"></i> <span>${t("show.expand_all_seasons")}</span>
+                </button>
+                <button class="btn btn-secondary btn-small" onclick="collapseAllSeasons()" style="padding: 4px 9px; font-size: 12px;" title="${t("show.collapse_all_seasons")}">
+                  <i data-lucide="chevrons-down-up" class="ico-xs"></i> <span>${t("show.collapse_all_seasons")}</span>
+                </button>
+              </div>
+            </div>` : ""}
             ${seasonNumbers.map(sn => renderSeasonBlock(sn, seasons[sn], canManageLib, canSearch, show)).join("") ||
              `<p style="color:var(--text-muted)">${t("show.no_overview")}</p>`}`}
       </div>`;
@@ -4369,7 +4384,7 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
   const targetShowId = show ? show.id : CURRENT_SHOW_ID;
 
   return `
-    <div class="season-block" id="season-block-${seasonNumber}">
+    <div class="season-block collapsed" id="season-block-${seasonNumber}">
       <div class="season-header" onclick="toggleSeasonCollapse(${seasonNumber})">
         <div class="season-header-left">
           <i data-lucide="chevron-down" class="season-caret ico-sm"></i>
@@ -4610,7 +4625,16 @@ async function searchSelectedEpisodes(button, seasonNumber = null) {
 }
 
 function toggleSeasonCollapse(seasonNumber) {
-  document.getElementById(`season-block-${seasonNumber}`).classList.toggle("collapsed");
+  const el = document.getElementById(`season-block-${seasonNumber}`);
+  if (el) el.classList.toggle("collapsed");
+}
+
+function expandAllSeasons() {
+  document.querySelectorAll("#seasons-container .season-block").forEach(el => el.classList.remove("collapsed"));
+}
+
+function collapseAllSeasons() {
+  document.querySelectorAll("#seasons-container .season-block").forEach(el => el.classList.add("collapsed"));
 }
 
 async function changeQualityProfile(showId, value) {
