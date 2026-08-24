@@ -241,3 +241,11 @@ class RenameExecuteOut(BaseModel):
     success: bool = True
     renamed_count: int = 0
     errors: list[str] = []
+
+
+class SpecialsImportStatusOut(BaseModel):
+    has_pending_specials: bool = False
+    pending_folder: Optional[str] = None
+    pending_count: int = 0
+    torrent_hash: Optional[str] = None
+

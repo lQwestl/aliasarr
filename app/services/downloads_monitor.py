@@ -376,6 +376,30 @@ async def check_downloads(db: Session) -> list[dict]:
         if not show:
             continue
 
+        is_specials_only = bool(eps and all(ep.season_number == 0 for ep in eps))
+        if is_specials_only:
+            # Спецвыпуски (Сезон 0) скачаны на 100%.
+            # Чтобы исключить ошибки нумерации нестандартных OVA/SP, не выполняем автоматический
+            # перенос файлов, а переводим прогресс в 100% и ожидаем подтверждения сопоставления
+            # пользователем через кнопку «Импорт спецвыпусков».
+            for ep in eps:
+                if ep.download_progress != 1.0:
+                    ep.download_progress = 1.0
+                    db.add(ep)
+            db.commit()
+
+            log_release_event(
+                stage="download",
+                level="info",
+                show_title=show.title,
+                show_id=show.id,
+                release_title=getattr(t, "name", torrent_hash),
+                message=f"Спецвыпуски для «{show.title}» скачаны на 100% и ожидают ручного импорта.",
+                details={"torrent_hash": torrent_hash, "is_specials_pending": True},
+                db=db,
+            )
+            continue
+
         root_folder, template, season_template = _folder_and_template(settings, show.content_type)
         from app.services.task_manager import task_manager
         async with task_manager.track(

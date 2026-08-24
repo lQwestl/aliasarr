@@ -4307,4 +4307,18 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: var(--panel-alt, rgba(255, 255, 255, 0.05));
 }
 
+.btn-specials-ready {
+  background-color: var(--teal, #10b981) !important;
+  color: #fff !important;
+  border-color: rgba(16, 185, 129, 0.6) !important;
+  font-weight: 600;
+  animation: pulse-specials 2s infinite ease-in-out;
+}
+@keyframes pulse-specials {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+
 

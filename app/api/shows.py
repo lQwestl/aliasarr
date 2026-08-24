@@ -14,8 +14,17 @@ from sqlalchemy.orm import Session
 import re
 
 from app.database import get_db
-from app.models.db import Alias, Episode, EpisodeStatus, MonitorStatus, Show, User
-from app.schemas import AliasCreate, AliasOut, AliasUpdate, EpisodeOut, ShowCreate, ShowOut, ShowUpdate
+from app.models.db import Alias, Episode, EpisodeStatus, MonitorStatus, Show, User, DownloadClient
+from app.schemas import (
+    AliasCreate,
+    AliasOut,
+    AliasUpdate,
+    EpisodeOut,
+    ShowCreate,
+    ShowOut,
+    ShowUpdate,
+    SpecialsImportStatusOut,
+)
 from app.services.audit_service import log_audit
 from app.services.parser import ReleaseKind, parse_episode
 from app.services.postprocess import (
@@ -1077,6 +1086,80 @@ class GlobalManualImportExecuteIn(BaseModel):
     items: list[GlobalManualImportItemIn]
 
 
+@router.get("/{show_id}/specials-import-status", response_model=SpecialsImportStatusOut)
+async def get_specials_import_status(
+    show_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_db),
+):
+    """
+    Проверяет, есть ли завершенные или ожидающие ручного импорта спецвыпуски для данного шоу.
+    """
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Show not found")
+
+    # Ищем спецвыпуски со статусом downloading / прогресс >= 0.99 или с torrent_hash
+    specials = (
+        db.query(Episode)
+        .filter(Episode.show_id == show.id, Episode.season_number == 0)
+        .all()
+    )
+
+    pending_specials = [
+        ep for ep in specials
+        if ep.status == EpisodeStatus.DOWNLOADING or (ep.torrent_hash and (ep.download_progress or 0) >= 0.99)
+    ]
+
+    if not pending_specials:
+        return SpecialsImportStatusOut(has_pending_specials=False, pending_folder=None, pending_count=0)
+
+    # Определяем torrent_hash и ищем путь к папке загрузки
+    target_hash = None
+    client_id = None
+    for ep in pending_specials:
+        if ep.torrent_hash:
+            target_hash = ep.torrent_hash
+            client_id = ep.download_client_id
+            break
+
+    pending_folder = None
+    if target_hash:
+        settings = get_or_create_settings(db)
+        clients = db.query(DownloadClient).filter_by(enabled=True).all()
+        for dc in clients:
+            if client_id and dc.id != client_id:
+                continue
+            try:
+                from app.services.download_client import get_client
+                cl = get_client(dc)
+                t = await cl.get_torrent(target_hash)
+                if t:
+                    from app.services.downloads_monitor import _resolve_torrent_files_and_path
+                    p, _ = _resolve_torrent_files_and_path(t, settings, show)
+                    if p:
+                        pending_folder = p
+                        break
+            except Exception:
+                pass
+
+    if not pending_folder:
+        settings = get_or_create_settings(db)
+        cat_folder = (
+            getattr(settings, "download_folder_anime", "")
+            if show.content_type == "anime"
+            else (getattr(settings, "download_folder_movies", "") if show.content_type == "movie" else getattr(settings, "download_folder_series", ""))
+        ) or settings.download_folder
+        pending_folder = cat_folder or show.path
+
+    return SpecialsImportStatusOut(
+        has_pending_specials=True,
+        pending_folder=pending_folder,
+        pending_count=len(pending_specials),
+        torrent_hash=target_hash,
+    )
+
+
 @router.post("/{show_id}/manual-import/scan", response_model=ManualImportScanOut)
 def scan_for_manual_import(
     show_id: int,
@@ -1275,6 +1358,8 @@ def execute_manual_import(
     valid_items = [it for it in payload.items if os.path.exists(it.file_path)]
     total_bytes = sum(os.path.getsize(it.file_path) for it in valid_items) or 1
     overall_bytes_copied = 0
+    used_dest_paths = set()
+    just_written_files = set()
 
     with task_manager.track_sync(
         name="manual_import",
@@ -1334,6 +1419,13 @@ def execute_manual_import(
                     year=show.year,
                 )
             dest_video_path = os.path.join(target_dir, target_stem + ext)
+            dest_abs = os.path.abspath(dest_video_path)
+
+            if dest_abs in used_dest_paths:
+                target_stem_unique = f"{target_stem}_part{idx}"
+                dest_video_path = os.path.join(target_dir, target_stem_unique + ext)
+                dest_abs = os.path.abspath(dest_video_path)
+                errors.append(f"Внимание: файл {file_name} сопоставлен с дублирующейся серией и сохранен как {target_stem_unique}{ext}")
 
             def _progress_cb(copied_in_file, total_in_file):
                 current_total = overall_bytes_copied + copied_in_file
@@ -1352,18 +1444,21 @@ def execute_manual_import(
 
             try:
                 # Если перезаписываем старый файл с другим именем
-                if episode.file_path and os.path.exists(episode.file_path) and os.path.abspath(episode.file_path) != os.path.abspath(dest_video_path):
+                if episode.file_path and os.path.exists(episode.file_path) and os.path.abspath(episode.file_path) not in just_written_files and os.path.abspath(episode.file_path) != dest_abs:
                     try:
                         os.remove(episode.file_path)
                     except Exception:
                         pass
 
                 if payload.import_mode == "move":
-                    if os.path.abspath(item.file_path) != os.path.abspath(dest_video_path):
+                    if os.path.abspath(item.file_path) != dest_abs:
                         move_file_with_progress(item.file_path, dest_video_path, callback=_progress_cb)
                 else:
-                    if os.path.abspath(item.file_path) != os.path.abspath(dest_video_path):
+                    if os.path.abspath(item.file_path) != dest_abs:
                         copy_file_with_progress(item.file_path, dest_video_path, callback=_progress_cb)
+
+                used_dest_paths.add(dest_abs)
+                just_written_files.add(dest_abs)
 
                 overall_bytes_copied += file_size
                 _progress_cb(file_size, file_size)
@@ -1729,6 +1824,13 @@ def execute_global_manual_import(
                     year=show.year,
                 )
             dest_video_path = os.path.join(target_dir, target_stem + ext)
+            dest_abs = os.path.abspath(dest_video_path)
+
+            if dest_abs in used_dest_paths:
+                target_stem_unique = f"{target_stem}_part{idx}"
+                dest_video_path = os.path.join(target_dir, target_stem_unique + ext)
+                dest_abs = os.path.abspath(dest_video_path)
+                errors.append(f"Внимание: файл {file_name} сопоставлен с дублирующейся серией и сохранен как {target_stem_unique}{ext}")
 
             def _progress_cb(copied_in_file, total_in_file):
                 current_total = overall_bytes_copied + copied_in_file
@@ -1746,18 +1848,21 @@ def execute_global_manual_import(
             _progress_cb(0, file_size)
 
             try:
-                if episode.file_path and os.path.exists(episode.file_path) and os.path.abspath(episode.file_path) != os.path.abspath(dest_video_path):
+                if episode.file_path and os.path.exists(episode.file_path) and os.path.abspath(episode.file_path) not in just_written_files and os.path.abspath(episode.file_path) != dest_abs:
                     try:
                         os.remove(episode.file_path)
                     except Exception:
                         pass
 
                 if payload.import_mode == "move":
-                    if os.path.abspath(item.file_path) != os.path.abspath(dest_video_path):
+                    if os.path.abspath(item.file_path) != dest_abs:
                         move_file_with_progress(item.file_path, dest_video_path, callback=_progress_cb)
                 else:
-                    if os.path.abspath(item.file_path) != os.path.abspath(dest_video_path):
+                    if os.path.abspath(item.file_path) != dest_abs:
                         copy_file_with_progress(item.file_path, dest_video_path, callback=_progress_cb)
+
+                used_dest_paths.add(dest_abs)
+                just_written_files.add(dest_abs)
 
                 overall_bytes_copied += file_size
                 _progress_cb(file_size, file_size)

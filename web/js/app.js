@@ -824,8 +824,13 @@ const TRANSLATIONS = {
     "show.btn_organize": "Организовать",
     "show.rename_no_files": "Все файлы уже переименованы в соответствии с шаблоном.",
     "show.rename_success": "Успешно переименовано {count} файл(ов)",
+    "show.import_specials": "Импорт спецвыпусков",
+    "show.import_specials_tooltip": "Ручное сопоставление и импорт скачанных спецвыпусков",
+    "show.import_specials_ready": "Спецвыпуски скачаны и готовы к импорту!",
     "manual_import.global_btn": "Ручной импорт",
     "manual_import.title": "Ручной импорт файлов",
+    "manual_import.title_specials": "Ручной импорт спецвыпусков (Сезон 0)",
+    "manual_import.warn_duplicate": "Внимание: эта серия выбрана в нескольких строках!",
     "manual_import.col_show": "Тайтл (сериал / фильм)",
     "manual_import.select_show": "— Выберите тайтл —",
     "manual_import.scan": "Сканировать",
@@ -1813,8 +1818,13 @@ const TRANSLATIONS = {
     "show.btn_organize": "Organize",
     "show.rename_no_files": "All files are already named according to the template.",
     "show.rename_success": "Successfully renamed {count} file(s)",
+    "show.import_specials": "Import Specials",
+    "show.import_specials_tooltip": "Manual mapping and import of downloaded specials",
+    "show.import_specials_ready": "Specials downloaded and ready for import!",
     "manual_import.global_btn": "Manual Import",
     "manual_import.title": "Manual File Import",
+    "manual_import.title_specials": "Manual Specials Import (Season 0)",
+    "manual_import.warn_duplicate": "Warning: this episode is selected in multiple rows!",
     "manual_import.col_show": "Series / Movie",
     "manual_import.select_show": "— Select show —",
     "manual_import.scan": "Scan Folder",
@@ -4131,6 +4141,10 @@ async function refreshShowModal() {
     if (typeof lucide !== "undefined" && lucide.createIcons) {
       lucide.createIcons();
     }
+
+    if (show && show.content_type !== "movie") {
+      checkSpecialsImportStatus(show.id);
+    }
   } catch (e) {
     if (e.message !== "unauthorized") content.innerHTML = `<p style="color:var(--danger)">${CURRENT_LANG === "en" ? "Error:" : "Ошибка:"} ${escapeHtml(formatToastMessage(e.message))}</p>`;
   }
@@ -4388,6 +4402,10 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
           <span class="season-progress">${downloaded}/${episodes.length} ${t("status.downloaded")}</span>
         </div>
         <div class="row-actions" onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:8px;">
+          ${canManageLib && seasonNumber === 0 ? `
+          <button class="btn btn-secondary btn-small btn-specials-import" id="btn-specials-import-${targetShowId}" onclick="openSpecialsImportModal(${targetShowId})" title="${t("show.import_specials_tooltip")}">
+            <i data-lucide="sparkles" class="ico-xs"></i> <span>${t("show.import_specials")}</span>
+          </button>` : ""}
           ${canSearch ? `
           <button class="btn btn-primary btn-small" title="${CURRENT_LANG === "en" ? `Auto search and download season ${seasonNumber}` : `Автоматический поиск и скачивание всех серий сезона ${seasonNumber}`}" onclick="searchSeasonAuto(this, ${targetShowId}, ${seasonNumber})">
             <i data-lucide="zap" class="ico-xs"></i> <span>${CURRENT_LANG === "en" ? "Auto Search Season" : "Автопоиск сезона"}</span>
@@ -4932,9 +4950,38 @@ async function executeRename(btn) {
 
 let CURRENT_MANUAL_IMPORT_SHOW_ID = null;
 let CURRENT_MANUAL_IMPORT_DATA = null;
+let CURRENT_MANUAL_IMPORT_SEASON_FILTER = null;
 
-async function openManualImportModal(showId, customFolder = null) {
+async function checkSpecialsImportStatus(showId) {
+  try {
+    const res = await api(`/api/v1/shows/${showId}/specials-import-status`);
+    const btn = document.getElementById(`btn-specials-import-${showId}`);
+    if (btn) {
+      if (res && res.has_pending_specials) {
+        btn.classList.remove("btn-secondary");
+        btn.classList.add("btn-success", "btn-specials-ready");
+        btn.title = t("show.import_specials_ready");
+        btn.setAttribute("data-pending-folder", res.pending_folder || "");
+      } else {
+        btn.classList.remove("btn-success", "btn-specials-ready");
+        btn.classList.add("btn-secondary");
+        btn.removeAttribute("data-pending-folder");
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
+async function openSpecialsImportModal(showId) {
+  const btn = document.getElementById(`btn-specials-import-${showId}`);
+  const pendingFolder = btn ? btn.getAttribute("data-pending-folder") : null;
+  await openManualImportModal(showId, pendingFolder, 0);
+}
+
+async function openManualImportModal(showId, customFolder = null, seasonFilter = null) {
   CURRENT_MANUAL_IMPORT_SHOW_ID = showId;
+  CURRENT_MANUAL_IMPORT_SEASON_FILTER = seasonFilter;
   openModal("manual-import-modal");
   const content = document.getElementById("manual-import-modal-content");
   content.innerHTML = `<div style="padding: 30px; text-align: center;"><p>${t("common.loading")}</p></div>`;
@@ -4956,12 +5003,16 @@ async function scanManualImportFolder(showId, folderPath = null) {
   const content = document.getElementById("manual-import-modal-content");
   const pathInputVal = document.getElementById("manual-import-path-input")?.value;
   const targetPath = (folderPath !== null ? folderPath : (pathInputVal || "")).trim();
+  const isSpecialsOnly = (CURRENT_MANUAL_IMPORT_SEASON_FILTER === 0);
+  const modalTitle = isSpecialsOnly ? t("manual_import.title_specials") : t("manual_import.title");
+  const modalIcon = isSpecialsOnly ? "sparkles" : "hard-drive-download";
+  const iconColor = isSpecialsOnly ? "color:#10b981;" : "";
 
   content.innerHTML = `
     <div class="manual-import-header">
       <div style="font-size: 16px; font-weight: 600; color: var(--text);">
-        <i data-lucide="hard-drive-download" class="ico-sm" style="vertical-align: middle; margin-right: 6px;"></i>
-        ${t("manual_import.title")}
+        <i data-lucide="${modalIcon}" class="ico-sm" style="vertical-align: middle; margin-right: 6px; ${iconColor}"></i>
+        ${modalTitle}
       </div>
       <div class="manual-import-mode-row">
         <label style="font-size: 13px; color: var(--text-muted);">${t("manual_import.mode_label")}</label>
@@ -4998,8 +5049,8 @@ async function scanManualImportFolder(showId, folderPath = null) {
     content.innerHTML = `
       <div class="manual-import-header">
         <div style="font-size: 16px; font-weight: 600; color: var(--text);">
-          <i data-lucide="hard-drive-download" class="ico-sm" style="vertical-align: middle; margin-right: 6px;"></i>
-          ${t("manual_import.title")}
+          <i data-lucide="${modalIcon}" class="ico-sm" style="vertical-align: middle; margin-right: 6px; ${iconColor}"></i>
+          ${modalTitle}
         </div>
       </div>
       <div class="manual-import-path-row" style="margin-bottom: 14px;">
@@ -5020,6 +5071,10 @@ function renderManualImportView(showId, data) {
   const files = data.files || [];
   const episodes = data.episodes || [];
   const currentMode = document.getElementById("manual-import-mode-select")?.value || "move";
+  const isSpecialsOnly = (CURRENT_MANUAL_IMPORT_SEASON_FILTER === 0);
+  const modalTitle = isSpecialsOnly ? t("manual_import.title_specials") : t("manual_import.title");
+  const modalIcon = isSpecialsOnly ? "sparkles" : "hard-drive-download";
+  const iconColor = isSpecialsOnly ? "color:#10b981;" : "";
 
   let showInfo = null;
   try {
@@ -5032,6 +5087,10 @@ function renderManualImportView(showId, data) {
   const showTitle = (data && data.show_title) || showInfo?.title || "";
   const showYear = (data && data.show_year) || showInfo?.year || "";
 
+  const displayEpisodes = isSpecialsOnly
+    ? (episodes.filter(e => e.season_number === 0).length ? episodes.filter(e => e.season_number === 0) : episodes)
+    : episodes;
+
   const qualityOptions = [
     "Bluray-2160p", "WEBDL-2160p", "Bluray-1080p", "WEBDL-1080p", "HDTV-1080p",
     "Bluray-720p", "WEBDL-720p", "HDTV-720p", "WEBDL-480p", "DVD", "SDTV"
@@ -5042,13 +5101,13 @@ function renderManualImportView(showId, data) {
     rowsHtml = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">${t("manual_import.no_files")}</td></tr>`;
   } else {
     rowsHtml = files.map((file, idx) => {
-      const isMatched = file.matched_episode_id != null;
+      const isMatched = file.matched_episode_id != null && (!isSpecialsOnly || displayEpisodes.some(e => e.id === file.matched_episode_id));
       const sizeStr = file.size_bytes ? formatBytes(file.size_bytes) : "";
 
       // Dropdown с сериями тайтла или фильмом
       const epOptions = [
         `<option value="">${t("manual_import.skip")}</option>`,
-        ...episodes.map(ep => {
+        ...displayEpisodes.map(ep => {
           let label = "";
           if (isMovie) {
             label = `${escapeHtml(showTitle || ep.title || (CURRENT_LANG === 'en' ? 'Movie' : 'Фильм'))}${showYear ? ` (${showYear})` : ""}`;
@@ -5109,8 +5168,8 @@ function renderManualImportView(showId, data) {
   content.innerHTML = `
     <div class="manual-import-header">
       <div style="font-size: 16px; font-weight: 600; color: var(--text);">
-        <i data-lucide="hard-drive-download" class="ico-sm" style="vertical-align: middle; margin-right: 6px;"></i>
-        ${t("manual_import.title")}
+        <i data-lucide="${modalIcon}" class="ico-sm" style="vertical-align: middle; margin-right: 6px; ${iconColor}"></i>
+        ${modalTitle}
       </div>
       <div class="manual-import-mode-row">
         <label style="font-size: 13px; color: var(--text-muted);">${t("manual_import.mode_label")}</label>
@@ -5142,7 +5201,7 @@ function renderManualImportView(showId, data) {
             </th>
             <th>${t("manual_import.col_file")}</th>
             <th>${t("manual_import.col_quality")}</th>
-            <th>${isMovie ? (CURRENT_LANG === 'en' ? 'Movie' : 'Фильм') : t("manual_import.col_episode")}</th>
+            <th>${isMovie ? (CURRENT_LANG === 'en' ? 'Movie' : 'Фильм') : (isSpecialsOnly ? (CURRENT_LANG === 'en' ? 'Special Episode' : 'Спецвыпуск') : t("manual_import.col_episode"))}</th>
             <th style="text-align: right;">${t("manual_import.col_status")}</th>
           </tr>
         </thead>
@@ -5196,6 +5255,8 @@ function onManualImportItemChange() {
   const checkboxes = document.querySelectorAll(".manual-import-item-check");
   let selectedCount = 0;
   let validSelectedCount = 0;
+  const usedEpIds = new Set();
+  const duplicateEpIds = new Set();
 
   checkboxes.forEach(cb => {
     if (cb.checked) {
@@ -5203,10 +5264,50 @@ function onManualImportItemChange() {
       const idx = cb.getAttribute("data-idx");
       const epSelect = document.querySelector(`.manual-import-episode-select[data-idx="${idx}"]`);
       if (epSelect && epSelect.value) {
+        const val = epSelect.value;
+        if (usedEpIds.has(val)) {
+          duplicateEpIds.add(val);
+        }
+        usedEpIds.add(val);
         validSelectedCount++;
       }
     }
   });
+
+  // Подсветка дублирующихся выбранных серий
+  checkboxes.forEach(cb => {
+    const idx = cb.getAttribute("data-idx");
+    const epSelect = document.querySelector(`.manual-import-episode-select[data-idx="${idx}"]`);
+    if (epSelect) {
+      if (cb.checked && epSelect.value && duplicateEpIds.has(epSelect.value)) {
+        epSelect.style.borderColor = "var(--danger, #ef4444)";
+        epSelect.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+      } else {
+        epSelect.style.borderColor = "";
+        epSelect.style.backgroundColor = "";
+      }
+    }
+  });
+
+  let warnEl = document.getElementById("manual-import-duplicate-warn");
+  if (duplicateEpIds.size > 0) {
+    if (!warnEl) {
+      const tableWrap = document.querySelector(".manual-import-table-wrap");
+      if (tableWrap) {
+        warnEl = document.createElement("div");
+        warnEl.id = "manual-import-duplicate-warn";
+        warnEl.className = "alert alert-warning";
+        warnEl.style.cssText = "margin: 8px 0; font-size: 12px; display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; border-radius: 6px; color: #f59e0b;";
+        tableWrap.parentNode.insertBefore(warnEl, tableWrap.nextSibling);
+      }
+    }
+    if (warnEl) {
+      warnEl.innerHTML = `<i data-lucide="alert-triangle" class="ico-xs"></i> <span>${t("manual_import.warn_duplicate")}</span>`;
+      if (window.lucide) lucide.createIcons();
+    }
+  } else if (warnEl) {
+    warnEl.remove();
+  }
 
   const total = checkboxes.length;
   const summaryEl = document.getElementById("manual-import-summary-text");
