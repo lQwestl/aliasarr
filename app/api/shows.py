@@ -1528,6 +1528,35 @@ def execute_manual_import(
                 episode.downloaded_quality = quality
                 db.add(episode)
                 imported_count += 1
+
+                # Отправляем уведомление в мессенджеры для каждой импортированной серии
+                try:
+                    from app.services.notifications import notify_all_sync
+                    if episode.season_number == 0:
+                        ep_title = f" — «{episode.title}»" if episode.title else ""
+                        notif_msg = (
+                            f"📥 Импорт спецвыпуска для «{show.title}»:\n"
+                            f"Серия: SP {episode.episode_number:02d}{ep_title}\n"
+                            f"Файл: {file_name}\n"
+                            f"Качество: {quality}"
+                        )
+                    elif show.content_type == "movie":
+                        notif_msg = (
+                            f"📥 Импорт фильма «{show.title}»:\n"
+                            f"Файл: {file_name}\n"
+                            f"Качество: {quality}"
+                        )
+                    else:
+                        ep_title = f" — «{episode.title}»" if episode.title else ""
+                        notif_msg = (
+                            f"📥 Импорт серии для «{show.title}»:\n"
+                            f"Серия: S{episode.season_number:02d}E{episode.episode_number:02d}{ep_title}\n"
+                            f"Файл: {file_name}\n"
+                            f"Качество: {quality}"
+                        )
+                    notify_all_sync(db=None, event_type="import", message=notif_msg)
+                except Exception:
+                    pass
             except Exception as exc:
                 errors.append(f"Ошибка при импорте {item.file_path}: {exc}")
 
@@ -1926,6 +1955,35 @@ def execute_global_manual_import(
                 episode.file_size_bytes = os.path.getsize(dest_video_path) if os.path.exists(dest_video_path) else None
                 db.add(episode)
                 imported_count += 1
+
+                # Отправляем уведомление в мессенджеры для каждой импортированной серии
+                try:
+                    from app.services.notifications import notify_all_sync
+                    if episode.season_number == 0:
+                        ep_title = f" — «{episode.title}»" if episode.title else ""
+                        notif_msg = (
+                            f"📥 Импорт спецвыпуска для «{show.title}»:\n"
+                            f"Серия: SP {episode.episode_number:02d}{ep_title}\n"
+                            f"Файл: {file_name}\n"
+                            f"Качество: {quality}"
+                        )
+                    elif show.content_type == "movie":
+                        notif_msg = (
+                            f"📥 Импорт фильма «{show.title}»:\n"
+                            f"Файл: {file_name}\n"
+                            f"Качество: {quality}"
+                        )
+                    else:
+                        ep_title = f" — «{episode.title}»" if episode.title else ""
+                        notif_msg = (
+                            f"📥 Импорт серии для «{show.title}»:\n"
+                            f"Серия: S{episode.season_number:02d}E{episode.episode_number:02d}{ep_title}\n"
+                            f"Файл: {file_name}\n"
+                            f"Качество: {quality}"
+                        )
+                    notify_all_sync(db=None, event_type="import", message=notif_msg)
+                except Exception:
+                    pass
             except Exception as exc:
                 errors.append(f"Ошибка при импорте {item.file_path}: {exc}")
 

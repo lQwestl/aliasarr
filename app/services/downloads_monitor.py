@@ -42,6 +42,7 @@ logger = logging.getLogger("aliasarr.downloads_monitor")
 
 # Прогресс 100% для завершения раздачи
 _COMPLETE_THRESHOLD = 1.0
+_NOTIFIED_PENDING_SPECIALS: set[str] = set()
 
 
 def _folder_and_template(settings, content_type: str) -> tuple[str, str, str]:
@@ -388,16 +389,30 @@ async def check_downloads(db: Session) -> list[dict]:
                     db.add(ep)
             db.commit()
 
+            release_name = getattr(t, "name", torrent_hash) or torrent_hash
+
             log_release_event(
                 stage="download",
                 level="info",
                 show_title=show.title,
                 show_id=show.id,
-                release_title=getattr(t, "name", torrent_hash),
-                message=f"Спецвыпуски для «{show.title}» скачаны на 100% и ожидают ручного импорта.",
+                release_title=release_name,
+                message=f"Спецвыпуск «{release_name}» для «{show.title}» скачан на 100% и ожидает ручного импорта.",
                 details={"torrent_hash": torrent_hash, "is_specials_pending": True},
                 db=db,
             )
+
+            # Отправка уведомления в мессенджеры о необходимости ручного импорта
+            if torrent_hash not in _NOTIFIED_PENDING_SPECIALS:
+                _NOTIFIED_PENDING_SPECIALS.add(torrent_hash)
+                from app.services.notifications import notify_all
+                msg = (
+                    f"✨ Спецвыпуск «{release_name}» скачан и ожидает ручного импорта!\n"
+                    f"Тайтл: «{show.title}»\n\n"
+                    f"Откройте карточку тайтла в Aliasarr для сопоставления серий и подтверждения переноса."
+                )
+                await notify_all(db=db, event_type="import", message=msg)
+                await notify_all(db=db, event_type="manual_interaction_required", message=msg)
             continue
 
         root_folder, template, season_template = _folder_and_template(settings, show.content_type)
