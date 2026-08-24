@@ -79,6 +79,7 @@ const TRANSLATIONS = {
 
     // Common actions & words
     "common.save": "Сохранить",
+    "common.details": "Подробнее",
     "common.cancel": "Отмена",
     "common.delete": "Удалить",
     "common.add": "Добавить",
@@ -1051,6 +1052,7 @@ const TRANSLATIONS = {
 
     // Common actions & words
     "common.save": "Save",
+    "common.details": "Details",
     "common.cancel": "Cancel",
     "common.delete": "Delete",
     "common.add": "Add",

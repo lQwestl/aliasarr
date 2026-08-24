@@ -3001,20 +3001,19 @@
   </button>
 </nav>
 
-<div id="modal-release-log-detail" class="modal">
-  <div class="modal-backdrop" onclick="closeModal('modal-release-log-detail')"></div>
-  <div class="modal-content" style="max-width:700px;">
-    <div class="modal-header">
+<div id="modal-release-log-detail" class="modal-overlay">
+  <div class="modal modal-medium" style="max-width: 720px; width: 95%;">
+    <button class="modal-close" onclick="closeModal('modal-release-log-detail')"><i data-lucide="x"></i></button>
+    <div class="modal-header" style="margin-bottom: 16px;">
       <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
         <i data-lucide="file-search" class="ico-sm" style="color:var(--teal)"></i>
         <span data-i18n="release_logs.modal_title">Детали обработки релиза</span>
       </h3>
-      <button class="btn-icon-only" onclick="closeModal('modal-release-log-detail')"><i data-lucide="x"></i></button>
     </div>
-    <div class="modal-body" style="padding:16px;">
+    <div class="modal-body" style="padding: 4px 0;">
       <div id="release-log-detail-body" class="form-col" style="gap:12px;"></div>
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
       <button class="btn btn-secondary" onclick="closeModal('modal-release-log-detail')" data-i18n="common.close">Закрыть</button>
     </div>
   </div>
