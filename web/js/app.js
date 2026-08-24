@@ -812,6 +812,16 @@ const TRANSLATIONS = {
     "show.unaired_monitored": "Все невышедшие серии переведены в статус «в поиске»",
     "show.all_seasons_monitored": "Все сезоны переведены в мониторинг (в поиске)",
     "show.all_seasons_unmonitored": "Все сезоны переведены в статус «игнорируется»",
+    "show.preview_rename_title": "Упорядочить и переименовать",
+    "show.btn_preview_rename": "Переименовать файлы",
+    "show.btn_preview_rename_season": "Переименовать сезон",
+    "show.rename_relative_hint": "Все пути указаны относительно:",
+    "show.rename_template_label": "Шаблон именования:",
+    "show.rename_select_all": "Выбрать все",
+    "show.rename_selected_count": "Выбрано: {selected} из {total}",
+    "show.btn_organize": "Организовать",
+    "show.rename_no_files": "Все файлы уже переименованы в соответствии с шаблоном.",
+    "show.rename_success": "Успешно переименовано {count} файл(ов)",
     "manual_import.global_btn": "Ручной импорт",
     "manual_import.title": "Ручной импорт файлов",
     "manual_import.col_show": "Тайтл (сериал / фильм)",
@@ -1789,6 +1799,16 @@ const TRANSLATIONS = {
     "show.unaired_monitored": "All unaired episodes set to 'Wanted' status",
     "show.all_seasons_monitored": "All seasons set to monitoring (Wanted)",
     "show.all_seasons_unmonitored": "All seasons set to Ignored",
+    "show.preview_rename_title": "Preview Rename & Organize",
+    "show.btn_preview_rename": "Rename Files",
+    "show.btn_preview_rename_season": "Rename Season",
+    "show.rename_relative_hint": "All paths are relative to:",
+    "show.rename_template_label": "Naming pattern:",
+    "show.rename_select_all": "Select all",
+    "show.rename_selected_count": "Selected: {selected} of {total}",
+    "show.btn_organize": "Organize",
+    "show.rename_no_files": "All files are already named according to the template.",
+    "show.rename_success": "Successfully renamed {count} file(s)",
     "manual_import.global_btn": "Manual Import",
     "manual_import.title": "Manual File Import",
     "manual_import.col_show": "Series / Movie",
@@ -4020,6 +4040,9 @@ async function refreshShowModal() {
               <button class="btn btn-secondary btn-small" onclick="syncShowPath(${show.id})" title="${t("show.sync_tooltip")}">
                 <i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.btn_sync")}</span>
               </button>
+              <button class="btn btn-secondary btn-small" onclick="openPreviewRenameModal(${show.id})" title="${t("show.btn_preview_rename")}">
+                <i data-lucide="folder-sync" class="ico-sm"></i> <span>${t("show.btn_preview_rename")}</span>
+              </button>
               <button class="btn btn-secondary btn-small" onclick="openManualImportModal(${show.id})" title="${t("show.manual_import")}">
                 <i data-lucide="hard-drive-download" class="ico-sm"></i> <span>${t("show.manual_import")}</span>
               </button>
@@ -4072,6 +4095,10 @@ async function refreshShowModal() {
         <button class="btn btn-secondary btn-small" onclick="setUnairedMonitor(${show.id}, true)" title="${t("show.monitor_unaired_tooltip")}">
           <i data-lucide="calendar-search" class="ico-sm"></i> <span>${t("show.monitor_unaired")}</span>
         </button>` : ""}` : ""}
+        ${canManageLib && show.path ? `
+        <button class="btn btn-secondary btn-small" onclick="openPreviewRenameModal(${show.id})" title="${t("show.btn_preview_rename")}">
+          <i data-lucide="folder-sync" class="ico-sm"></i> <span>${t("show.btn_preview_rename")}</span>
+        </button>` : ""}
         ${canSearch ? `
         <button class="btn btn-primary btn-small" onclick="forceSearchShow(this, ${show.id})"><i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.force_search")}</span></button>
         <button class="btn btn-secondary btn-small" onclick="searchReleasesForShow(this, ${show.id})"><i data-lucide="search" class="ico-sm"></i> <span>${t("show.search_manual")}</span></button>` : ""}
@@ -4356,6 +4383,10 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
           </button>
           <button class="btn btn-secondary btn-small" title="${CURRENT_LANG === "en" ? `Interactive search season ${seasonNumber}` : `Интерактивный поиск сезона ${seasonNumber}`}" onclick="openInteractiveSearch(${targetShowId}, ${seasonNumber}, null)">
             <i data-lucide="search" class="ico-xs"></i> <span>${CURRENT_LANG === "en" ? "Interactive Search" : "Интерактивный поиск"}</span>
+          </button>` : ""}
+          ${canManageLib && show && show.path ? `
+          <button class="btn btn-secondary btn-small" title="${t("show.btn_preview_rename_season")}" onclick="openPreviewRenameModal(${targetShowId}, ${seasonNumber})">
+            <i data-lucide="folder-sync" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Rename' : 'Переименовать'}</span>
           </button>` : ""}
           ${canManageLib ? `
           <button class="btn-icon-only" title="${t("action.monitor_season")}" onclick="setSeasonMonitor(${seasonNumber}, true)"><i data-lucide="bookmark" class="ico-xs"></i></button>
@@ -4730,6 +4761,153 @@ async function syncShowPath(showId) {
   } catch (e) {
     toast("Ошибка: " + e.message, true);
   }
+}
+
+// ---------------------------------------------------------------------------
+// УПОРЯДОЧИТЬ И ПЕРЕИМЕНОВАТЬ (PREVIEW RENAME & ORGANIZE)
+// ---------------------------------------------------------------------------
+
+let RENAME_MODAL_STATE = {
+  showId: null,
+  seasonNumber: null,
+  items: [],
+};
+
+async function openPreviewRenameModal(showId, seasonNumber = null) {
+  RENAME_MODAL_STATE.showId = showId;
+  RENAME_MODAL_STATE.seasonNumber = seasonNumber;
+  RENAME_MODAL_STATE.items = [];
+
+  const container = document.getElementById("rename-items-container");
+  const emptyState = document.getElementById("rename-empty-state");
+  const basePathEl = document.getElementById("rename-base-path");
+  const tplTextEl = document.getElementById("rename-template-text");
+  const counterEl = document.getElementById("rename-counter");
+  const selectAllCb = document.getElementById("rename-select-all-cb");
+  const btnExec = document.getElementById("btn-execute-rename");
+
+  if (container) {
+    container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);"><span class="spin-icon">↻</span> ${t("common.loading")}</div>`;
+  }
+  if (emptyState) emptyState.style.display = "none";
+  if (counterEl) counterEl.textContent = "";
+  if (btnExec) btnExec.disabled = true;
+
+  openModal("modal-preview-rename");
+
+  try {
+    const url = seasonNumber !== null
+      ? `/api/v1/shows/${showId}/rename/preview?season=${seasonNumber}`
+      : `/api/v1/shows/${showId}/rename/preview`;
+    const data = await api(url);
+
+    RENAME_MODAL_STATE.items = data.items || [];
+    if (basePathEl) basePathEl.textContent = data.show_path || "—";
+    if (tplTextEl) tplTextEl.textContent = data.naming_template || "—";
+
+    if (!data.items || data.items.length === 0) {
+      if (container) container.innerHTML = "";
+      if (emptyState) emptyState.style.display = "block";
+      if (btnExec) btnExec.disabled = true;
+      if (counterEl) counterEl.textContent = "";
+      return;
+    }
+
+    if (container) {
+      container.innerHTML = data.items.map(item => `
+        <div class="rename-diff-row" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 6px; border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.06));">
+          <input type="checkbox" class="rename-item-cb" data-ep-id="${item.episode_id}" ${item.needs_rename ? "checked" : ""} onchange="updateRenameCount()" style="margin-top: 4px; cursor: pointer; transform: scale(1.15);">
+          <div style="flex: 1; min-width: 0; font-family: monospace; font-size: 13px; line-height: 1.5;">
+            <div style="display: flex; align-items: baseline; word-break: break-all; margin-bottom: 4px;">
+              <span style="color: #ef4444; font-weight: bold; margin-right: 8px; flex-shrink: 0; font-size: 14px;">—</span>
+              <span style="color: #f87171;">${escapeHtml(item.existing_rel_path)}</span>
+            </div>
+            <div style="display: flex; align-items: baseline; word-break: break-all;">
+              <span style="color: #22c55e; font-weight: bold; margin-right: 8px; flex-shrink: 0; font-size: 14px;">+</span>
+              <span style="color: #4ade80;">${escapeHtml(item.new_rel_path)}</span>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    if (selectAllCb) {
+      const anyRenames = data.items.some(i => i.needs_rename);
+      selectAllCb.checked = anyRenames;
+    }
+
+    updateRenameCount();
+
+    if (typeof lucide !== "undefined" && lucide.createIcons) {
+      lucide.createIcons();
+    }
+  } catch (err) {
+    if (container) {
+      container.innerHTML = `<p style="color:var(--danger); padding:16px;">${CURRENT_LANG === "en" ? "Failed to load rename preview:" : "Ошибка предпросмотра:"} ${escapeHtml(err.message)}</p>`;
+    }
+  }
+}
+
+function toggleRenameSelectAll(checked) {
+  const checkboxes = document.querySelectorAll("#rename-items-container .rename-item-cb");
+  checkboxes.forEach(cb => { cb.checked = checked; });
+  updateRenameCount();
+}
+
+function updateRenameCount() {
+  const checkboxes = document.querySelectorAll("#rename-items-container .rename-item-cb");
+  const total = checkboxes.length;
+  const selected = Array.from(checkboxes).filter(cb => cb.checked).length;
+
+  const counterEl = document.getElementById("rename-counter");
+  if (counterEl) {
+    counterEl.textContent = `(${CURRENT_LANG === "en" ? `Selected: ${selected} of ${total}` : `Выбрано: ${selected} из ${total}`})`;
+  }
+
+  const btnExec = document.getElementById("btn-execute-rename");
+  if (btnExec) {
+    btnExec.disabled = (selected === 0);
+  }
+
+  const selectAllCb = document.getElementById("rename-select-all-cb");
+  if (selectAllCb) {
+    selectAllCb.checked = (selected === total && total > 0);
+    selectAllCb.indeterminate = (selected > 0 && selected < total);
+  }
+}
+
+async function executeRename(btn) {
+  const checkboxes = document.querySelectorAll("#rename-items-container .rename-item-cb:checked");
+  const episodeIds = Array.from(checkboxes).map(cb => Number(cb.getAttribute("data-ep-id"))).filter(Boolean);
+
+  if (!episodeIds.length || !RENAME_MODAL_STATE.showId) return;
+
+  await withLoading(btn, async () => {
+    try {
+      const res = await api(`/api/v1/shows/${RENAME_MODAL_STATE.showId}/rename/execute`, {
+        method: "POST",
+        body: JSON.stringify({ episode_ids: episodeIds }),
+      });
+
+      if (res.errors && res.errors.length > 0) {
+        toast(`Переименовано ${res.renamed_count} файлов, ошибок: ${res.errors.length}`, true);
+      } else {
+        const msg = CURRENT_LANG === "en"
+          ? `Successfully renamed ${res.renamed_count} file(s)`
+          : `Успешно переименовано ${res.renamed_count} файл(ов)`;
+        toast(msg);
+      }
+
+      closeModal("modal-preview-rename");
+
+      // Обновляем карточку тайтла
+      if (typeof openShowDetailModal === "function" && CURRENT_SHOW_ID === RENAME_MODAL_STATE.showId) {
+        openShowDetailModal(RENAME_MODAL_STATE.showId);
+      }
+    } catch (e) {
+      toast("Ошибка: " + e.message, true);
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------

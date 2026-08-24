@@ -1909,3 +1909,276 @@ async def refresh_show_cover(
         "poster_url": show.poster_url,
         "source_name": source_name or ("Radarr SkyHook" if is_movie else "Sonarr SkyHook"),
     }
+
+
+@router.get("/{show_id}/rename/preview", summary="Предпросмотр переименования файлов тайтла")
+def preview_rename_show(
+    show_id: int,
+    season: Optional[int] = Query(None, description="Номер сезона для фильтрации"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    """
+    Формирует diff предпросмотра упорядочивания и переименования файлов в стиле Sonarr/Radarr.
+    """
+    from app.services.organizer import FileNameBuilder
+    from app.models.db import DownloadHistory, TrackedRelease
+
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Карточка не найдена")
+
+    settings = get_or_create_settings(db)
+    show_root = os.path.abspath(show.path) if show.path else ""
+
+    if show.content_type == "movie":
+        template = settings.rename_template_movie or "{Movie Title} ({Release Year}) {Quality Full}"
+    elif show.content_type == "anime":
+        template = settings.rename_template_anime or "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"
+    else:
+        template = settings.rename_template_series or "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"
+
+    show_hints = [show.title, os.path.basename(show.path or "")]
+    try:
+        hist = db.query(DownloadHistory).filter_by(show_id=show.id).order_by(DownloadHistory.id.desc()).first()
+        if hist and hist.release_title:
+            show_hints.append(hist.release_title)
+        tr = db.query(TrackedRelease).filter_by(show_id=show.id).order_by(TrackedRelease.id.desc()).first()
+        if tr and tr.topic_guid:
+            show_hints.append(tr.topic_guid)
+    except Exception:
+        pass
+
+    q = db.query(Episode).filter(Episode.show_id == show.id)
+    if season is not None:
+        q = q.filter(Episode.season_number == season)
+    episodes = q.order_by(Episode.season_number.asc(), Episode.episode_number.asc()).all()
+
+    items = []
+
+    for ep in episodes:
+        if not ep.file_path or not os.path.exists(ep.file_path):
+            continue
+
+        old_full_path = os.path.abspath(ep.file_path)
+        if show_root and old_full_path.startswith(show_root):
+            try:
+                old_rel_path = os.path.relpath(old_full_path, show_root)
+            except Exception:
+                old_rel_path = os.path.basename(old_full_path)
+        else:
+            old_rel_path = os.path.basename(old_full_path)
+
+        q_info = detect_file_quality(old_full_path, show_hints)
+        ext = os.path.splitext(old_full_path)[1]
+
+        new_filename = FileNameBuilder.build_file_name(
+            template=template,
+            title=show.title,
+            year=show.year,
+            season_number=ep.season_number or 1,
+            episode_number=ep.episode_number or 1,
+            absolute_number=ep.absolute_number,
+            episode_title=ep.title or f"Серия {ep.episode_number}",
+            quality=q_info,
+            content_type=show.content_type,
+            extension=ext,
+        )
+
+        if show.content_type == "movie":
+            new_rel_path = new_filename
+        else:
+            old_rel_dir = os.path.dirname(old_rel_path)
+            if old_rel_dir and old_rel_dir not in (".", ""):
+                season_folder = old_rel_dir
+            else:
+                season_tpl = (
+                    settings.season_folder_template_anime
+                    if show.content_type == "anime"
+                    else settings.season_folder_template_series
+                ) or "Сезон {season}"
+                season_folder = FileNameBuilder.build_season_folder_name(season_tpl, ep.season_number or 1)
+            new_rel_path = os.path.normpath(os.path.join(season_folder, new_filename))
+
+        new_full_path = os.path.abspath(os.path.join(show_root, new_rel_path)) if show_root else new_filename
+        needs_rename = (old_full_path != new_full_path)
+
+        items.append({
+            "episode_id": ep.id,
+            "season_number": ep.season_number or 1,
+            "episode_number": ep.episode_number or 1,
+            "absolute_number": ep.absolute_number,
+            "episode_title": ep.title,
+            "existing_path": old_full_path,
+            "existing_rel_path": old_rel_path,
+            "new_path": new_full_path,
+            "new_rel_path": new_rel_path,
+            "needs_rename": needs_rename,
+        })
+
+    return {
+        "show_id": show.id,
+        "show_title": show.title,
+        "show_path": show.path or "",
+        "naming_template": template,
+        "items": items,
+    }
+
+
+@router.post("/{show_id}/rename/execute", summary="Выполнить переименование выбранных файлов тайтла")
+def execute_rename_show(
+    show_id: int,
+    payload: Dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    """
+    Переименовывает и перемещает файлы на диске, обновляя пути в базе данных.
+    """
+    from app.services.organizer import FileNameBuilder
+    from app.models.db import DownloadHistory, TrackedRelease
+
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Карточка не найдена")
+
+    settings = get_or_create_settings(db)
+    show_root = os.path.abspath(show.path) if show.path else ""
+    if not show_root or not os.path.exists(show_root):
+        raise HTTPException(400, f"Директория тайтла не существует на диске: {show.path}")
+
+    if show.content_type == "movie":
+        template = settings.rename_template_movie or "{Movie Title} ({Release Year}) {Quality Full}"
+    elif show.content_type == "anime":
+        template = settings.rename_template_anime or "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"
+    else:
+        template = settings.rename_template_series or "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"
+
+    show_hints = [show.title, os.path.basename(show.path or "")]
+    try:
+        hist = db.query(DownloadHistory).filter_by(show_id=show.id).order_by(DownloadHistory.id.desc()).first()
+        if hist and hist.release_title:
+            show_hints.append(hist.release_title)
+        tr = db.query(TrackedRelease).filter_by(show_id=show.id).order_by(TrackedRelease.id.desc()).first()
+        if tr and tr.topic_guid:
+            show_hints.append(tr.topic_guid)
+    except Exception:
+        pass
+
+    ep_ids = payload.get("episode_ids", [])
+    target_ep_ids = set(ep_ids)
+    if not target_ep_ids:
+        return {"success": True, "renamed_count": 0, "errors": []}
+
+    episodes = db.query(Episode).filter(Episode.show_id == show.id, Episode.id.in_(target_ep_ids)).all()
+
+    renamed_count = 0
+    errors: list[str] = []
+
+    for ep in episodes:
+        if not ep.file_path or not os.path.exists(ep.file_path):
+            continue
+
+        old_full_path = os.path.abspath(ep.file_path)
+        try:
+            old_rel_path = os.path.relpath(old_full_path, show_root)
+        except Exception:
+            old_rel_path = os.path.basename(old_full_path)
+
+        q_info = detect_file_quality(old_full_path, show_hints)
+        ext = os.path.splitext(old_full_path)[1]
+
+        new_filename = FileNameBuilder.build_file_name(
+            template=template,
+            title=show.title,
+            year=show.year,
+            season_number=ep.season_number or 1,
+            episode_number=ep.episode_number or 1,
+            absolute_number=ep.absolute_number,
+            episode_title=ep.title or f"Серия {ep.episode_number}",
+            quality=q_info,
+            content_type=show.content_type,
+            extension=ext,
+        )
+
+        if show.content_type == "movie":
+            new_rel_path = new_filename
+        else:
+            old_rel_dir = os.path.dirname(old_rel_path)
+            if old_rel_dir and old_rel_dir not in (".", ""):
+                season_folder = old_rel_dir
+            else:
+                season_tpl = (
+                    settings.season_folder_template_anime
+                    if show.content_type == "anime"
+                    else settings.season_folder_template_series
+                ) or "Сезон {season}"
+                season_folder = FileNameBuilder.build_season_folder_name(season_tpl, ep.season_number or 1)
+            new_rel_path = os.path.normpath(os.path.join(season_folder, new_filename))
+
+        new_full_path = os.path.abspath(os.path.join(show_root, new_rel_path))
+        if old_full_path == new_full_path:
+            continue
+
+        try:
+            dest_dir = os.path.dirname(new_full_path)
+            os.makedirs(dest_dir, exist_ok=True)
+
+            # Переименовываем сопутствующие файлы (субтитры, nfo)
+            old_dir = os.path.dirname(old_full_path)
+            old_stem = os.path.splitext(os.path.basename(old_full_path))[0]
+            new_stem = os.path.splitext(os.path.basename(new_full_path))[0]
+
+            if os.path.exists(old_dir):
+                for f_name in os.listdir(old_dir):
+                    if f_name.startswith(old_stem) and f_name != os.path.basename(old_full_path):
+                        src_companion = os.path.join(old_dir, f_name)
+                        if os.path.isfile(src_companion):
+                            suffix = f_name[len(old_stem):]
+                            dst_companion = os.path.join(dest_dir, f"{new_stem}{suffix}")
+                            try:
+                                shutil.move(src_companion, dst_companion)
+                                apply_media_permissions(dst_companion, is_dir=False)
+                            except Exception as c_err:
+                                errors.append(f"Ошибка переноса {f_name}: {c_err}")
+
+            # Перемещаем основной видеофайл
+            shutil.move(old_full_path, new_full_path)
+            apply_media_permissions(new_full_path, is_dir=False)
+
+            ep.file_path = new_full_path
+            ep.downloaded_quality = q_info.name
+            ep.video_codec = q_info.video_codec
+            ep.audio_codec = q_info.audio_codec
+            ep.audio_channels = q_info.audio_channels
+            ep.dynamic_range = q_info.dynamic_range
+
+            renamed_count += 1
+
+            # Очищаем старую пустую папку, если она внутри show_root и не является самим show_root
+            if old_dir != show_root and old_dir.startswith(show_root) and os.path.exists(old_dir):
+                try:
+                    if not os.listdir(old_dir):
+                        os.rmdir(old_dir)
+                except Exception:
+                    pass
+
+        except Exception as exc:
+            errors.append(f"Ошибка переименования {os.path.basename(old_full_path)}: {exc}")
+
+    db.commit()
+
+    if renamed_count > 0:
+        log_audit(
+            db,
+            "show.rename_files",
+            f"Переименовано {renamed_count} файлов для «{show.title}»",
+            username=current_user.username,
+            user=current_user,
+        )
+
+    return {
+        "success": len(errors) == 0,
+        "renamed_count": renamed_count,
+        "errors": errors,
+    }

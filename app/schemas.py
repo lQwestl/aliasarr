@@ -210,3 +210,34 @@ class SearchResultOut(BaseModel):
     rejections: list[str] = []
     publish_date: Optional[str] = None
     age_days: Optional[float] = None
+
+
+class RenamePreviewItem(BaseModel):
+    episode_id: int
+    season_number: int
+    episode_number: int
+    absolute_number: Optional[int] = None
+    episode_title: Optional[str] = None
+    existing_path: str
+    existing_rel_path: str
+    new_path: str
+    new_rel_path: str
+    needs_rename: bool
+
+
+class RenamePreviewOut(BaseModel):
+    show_id: int
+    show_title: str
+    show_path: str
+    naming_template: str
+    items: list[RenamePreviewItem] = []
+
+
+class RenameExecuteRequest(BaseModel):
+    episode_ids: list[int] = []
+
+
+class RenameExecuteOut(BaseModel):
+    success: bool = True
+    renamed_count: int = 0
+    errors: list[str] = []

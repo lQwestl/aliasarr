@@ -3028,6 +3028,48 @@
   </div>
 </div>
 
+<div id="modal-preview-rename" class="modal-overlay">
+  <div class="modal modal-large" style="max-width: 880px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+    <button class="modal-close" onclick="closeModal('modal-preview-rename')"><i data-lucide="x"></i></button>
+    <div class="modal-header" style="margin-bottom: 14px;">
+      <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+        <i data-lucide="folder-sync" class="ico-sm" style="color:var(--teal)"></i>
+        <span data-i18n="show.preview_rename_title">Упорядочить и переименовать</span>
+      </h3>
+    </div>
+    <div class="modal-body" style="padding: 4px 0; overflow-y: auto; flex: 1; min-height: 200px;">
+      <!-- Info banner -->
+      <div id="rename-banner" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.6;">
+        <div style="color: var(--text);">
+          <span style="color: var(--text-muted);" data-i18n="show.rename_relative_hint">Все пути указаны относительно:</span>
+          <strong id="rename-base-path" class="mono" style="color: #60a5fa; margin-left: 4px;"></strong>
+        </div>
+        <div style="color: var(--text); margin-top: 4px;">
+          <span style="color: var(--text-muted);" data-i18n="show.rename_template_label">Шаблон именования:</span>
+          <span id="rename-template-text" class="mono" style="color: var(--text-muted); margin-left: 4px;"></span>
+        </div>
+      </div>
+
+      <!-- Items List / Diff -->
+      <div id="rename-items-container" style="display: flex; flex-direction: column; gap: 0;"></div>
+      <div id="rename-empty-state" style="display:none; text-align:center; padding: 30px; color:var(--text-muted);" data-i18n="show.rename_no_files">
+        Все файлы уже переименованы в соответствии с шаблоном.
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:16px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+      <label class="checkbox-row" style="margin:0; font-size: 13px; cursor: pointer;">
+        <input type="checkbox" id="rename-select-all-cb" checked onchange="toggleRenameSelectAll(this.checked)">
+        <span id="rename-select-all-label" data-i18n="show.rename_select_all">Выбрать все</span>
+        <span id="rename-counter" class="hint" style="margin-left: 8px;"></span>
+      </label>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-preview-rename')" data-i18n="common.cancel">Отмена</button>
+        <button class="btn btn-primary" id="btn-execute-rename" onclick="executeRename(this)" data-i18n="show.btn_organize">Организовать</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script src="https://unpkg.com/lucide@latest"></script>
