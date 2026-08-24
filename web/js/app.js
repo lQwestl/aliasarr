@@ -4099,10 +4099,6 @@ async function refreshShowModal() {
         <button class="btn btn-secondary btn-small" onclick="setUnairedMonitor(${show.id}, true)" title="${t("show.monitor_unaired_tooltip")}">
           <i data-lucide="calendar-search" class="ico-sm"></i> <span>${t("show.monitor_unaired")}</span>
         </button>` : ""}` : ""}
-        ${canManageLib && show.path ? `
-        <button class="btn btn-secondary btn-small" onclick="openPreviewRenameModal(${show.id})" title="${t("show.btn_preview_rename")}">
-          <i data-lucide="folder-sync" class="ico-sm"></i> <span>${t("show.btn_preview_rename")}</span>
-        </button>` : ""}
         ${canSearch ? `
         <button class="btn btn-primary btn-small" onclick="forceSearchShow(this, ${show.id})"><i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.force_search")}</span></button>
         <button class="btn btn-secondary btn-small" onclick="searchReleasesForShow(this, ${show.id})"><i data-lucide="search" class="ico-sm"></i> <span>${t("show.search_manual")}</span></button>` : ""}
@@ -4398,10 +4394,6 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
           </button>
           <button class="btn btn-secondary btn-small" title="${CURRENT_LANG === "en" ? `Interactive search season ${seasonNumber}` : `Интерактивный поиск сезона ${seasonNumber}`}" onclick="openInteractiveSearch(${targetShowId}, ${seasonNumber}, null)">
             <i data-lucide="search" class="ico-xs"></i> <span>${CURRENT_LANG === "en" ? "Interactive Search" : "Интерактивный поиск"}</span>
-          </button>` : ""}
-          ${canManageLib && show && show.path ? `
-          <button class="btn btn-secondary btn-small" title="${t("show.btn_preview_rename_season")}" onclick="openPreviewRenameModal(${targetShowId}, ${seasonNumber})">
-            <i data-lucide="folder-sync" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Rename' : 'Переименовать'}</span>
           </button>` : ""}
           ${canManageLib ? `
           <button class="btn-icon-only" title="${t("action.monitor_season")}" onclick="setSeasonMonitor(${seasonNumber}, true)"><i data-lucide="bookmark" class="ico-xs"></i></button>
