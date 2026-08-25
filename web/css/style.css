@@ -740,6 +740,18 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   border-color: var(--border-hover, rgba(255,255,255,0.18)); 
   transform: none; 
 }
+.btn.active, .btn-secondary.active { 
+  background: rgba(0, 240, 255, 0.16); 
+  color: var(--teal, #00F0FF); 
+  border-color: rgba(0, 240, 255, 0.45); 
+  font-weight: 600; 
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.15); 
+}
+.btn-group {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
 .btn-danger { 
   background: rgba(255, 42, 77, 0.12); 
   color: var(--danger, #FF2A4D); 

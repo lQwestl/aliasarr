@@ -183,7 +183,10 @@ const TRANSLATIONS = {
 
     // Library
     "library.search_placeholder": "Найти в библиотеке…",
-    "library.filter_all": "Все видео",
+    "library.filter_all": "Все",
+    "library.filter_movies": "Фильмы",
+    "library.filter_series": "Сериалы",
+    "library.filter_anime": "Аниме",
     "library.filter_monitored": "Мониторится",
     "library.filter_unmonitored": "Не мониторится",
     "library.view_posters": "Постеры",
@@ -1177,7 +1180,10 @@ const TRANSLATIONS = {
 
     // Library
     "library.search_placeholder": "Search library…",
-    "library.filter_all": "All videos",
+    "library.filter_all": "All",
+    "library.filter_movies": "Movies",
+    "library.filter_series": "Series",
+    "library.filter_anime": "Anime",
     "library.filter_monitored": "Monitored",
     "library.filter_unmonitored": "Unmonitored",
     "library.view_posters": "Posters",
@@ -3546,6 +3552,40 @@ async function loadHealthCheck() {
 let LIBRARY_VIEW_MODE = localStorage.getItem("aliasarr_library_view") || "posters";
 const VIEW_MODE_LABELS = { posters: "library.view_posters", table: "library.view_table", overview: "library.view_overview" };
 
+let LIBRARY_CATEGORY_FILTER = localStorage.getItem("aliasarr_library_cat") || "all";
+let LIBRARY_MONITOR_FILTER = localStorage.getItem("aliasarr_library_mon") || "all";
+
+function setLibraryCategory(category) {
+  if (LIBRARY_CATEGORY_FILTER === category && category !== "all") {
+    LIBRARY_CATEGORY_FILTER = "all";
+  } else {
+    LIBRARY_CATEGORY_FILTER = category;
+  }
+  try { localStorage.setItem("aliasarr_library_cat", LIBRARY_CATEGORY_FILTER); } catch (e) {}
+  updateLibraryFilterButtons();
+  renderLibrary();
+}
+
+function setLibraryMonitor(status) {
+  if (LIBRARY_MONITOR_FILTER === status && status !== "all") {
+    LIBRARY_MONITOR_FILTER = "all";
+  } else {
+    LIBRARY_MONITOR_FILTER = status;
+  }
+  try { localStorage.setItem("aliasarr_library_mon", LIBRARY_MONITOR_FILTER); } catch (e) {}
+  updateLibraryFilterButtons();
+  renderLibrary();
+}
+
+function updateLibraryFilterButtons() {
+  document.querySelectorAll("#library-category-btns button").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.category === LIBRARY_CATEGORY_FILTER);
+  });
+  document.querySelectorAll("#library-monitor-btns button").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.monitor === LIBRARY_MONITOR_FILTER);
+  });
+}
+
 let POSTER_OPTIONS = {
   size: "large",
   progressText: true,
@@ -3618,62 +3658,93 @@ function qualityProfileName(id) {
 }
 
 function renderLibrary() {
-  document.getElementById("view-switcher-label").textContent = t(VIEW_MODE_LABELS[LIBRARY_VIEW_MODE]);
+  const viewLabel = document.getElementById("view-switcher-label");
+  if (viewLabel) viewLabel.textContent = t(VIEW_MODE_LABELS[LIBRARY_VIEW_MODE]);
+
+  updateLibraryFilterButtons();
 
   const grid = document.getElementById("shows-grid");
   const tableWrap = document.getElementById("shows-table-wrap");
   const overviewWrap = document.getElementById("shows-overview-wrap");
   const empty = document.getElementById("shows-empty");
 
-  grid.style.display = LIBRARY_VIEW_MODE === "posters" ? "grid" : "none";
-  tableWrap.style.display = LIBRARY_VIEW_MODE === "table" ? "block" : "none";
-  overviewWrap.style.display = LIBRARY_VIEW_MODE === "overview" ? "flex" : "none";
+  if (grid) grid.style.display = LIBRARY_VIEW_MODE === "posters" ? "grid" : "none";
+  if (tableWrap) tableWrap.style.display = LIBRARY_VIEW_MODE === "table" ? "block" : "none";
+  if (overviewWrap) overviewWrap.style.display = LIBRARY_VIEW_MODE === "overview" ? "flex" : "none";
 
-  const query = (document.getElementById("library-search").value || "").toLowerCase();
-  const filter = document.getElementById("library-filter").value;
+  const searchInput = document.getElementById("library-search");
+  const query = (searchInput ? searchInput.value : "").toLowerCase().trim();
 
-  let shows = CACHED_SHOWS;
-  if (filter === "monitored") shows = shows.filter(s => s.monitored);
-  if (filter === "unmonitored") shows = shows.filter(s => !s.monitored);
+  let shows = CACHED_SHOWS || [];
+
+  // Category filter
+  if (LIBRARY_CATEGORY_FILTER && LIBRARY_CATEGORY_FILTER !== "all") {
+    shows = shows.filter(s => (s.content_type || "series") === LIBRARY_CATEGORY_FILTER);
+  }
+
+  // Monitor filter
+  if (LIBRARY_MONITOR_FILTER === "monitored") {
+    shows = shows.filter(s => s.monitored === true);
+  } else if (LIBRARY_MONITOR_FILTER === "unmonitored") {
+    shows = shows.filter(s => !s.monitored);
+  }
+
+  // Search query filter
   if (query) {
     shows = shows.filter(s =>
-      s.title.toLowerCase().includes(query) ||
-      (s.aliases || []).some(a => a.text.toLowerCase().includes(query))
+      (s.title && s.title.toLowerCase().includes(query)) ||
+      (s.aliases || []).some(a => a.text && a.text.toLowerCase().includes(query))
     );
   }
 
   if (!CACHED_SHOWS.length) {
-    grid.innerHTML = ""; tableWrap.querySelector("tbody").innerHTML = ""; overviewWrap.innerHTML = "";
-    empty.style.display = "block";
+    if (grid) grid.innerHTML = "";
+    if (tableWrap && tableWrap.querySelector("tbody")) tableWrap.querySelector("tbody").innerHTML = "";
+    if (overviewWrap) overviewWrap.innerHTML = "";
+    if (empty) empty.style.display = "block";
+    const dashContainer = document.getElementById("library-dashboard-container");
+    if (dashContainer) dashContainer.innerHTML = "";
     return;
   }
-  empty.style.display = "none";
+  if (empty) empty.style.display = "none";
 
   if (!shows.length) {
     const emptyMsg = `<div class="simple-list-empty">${t("library.no_results")}</div>`;
-    grid.innerHTML = emptyMsg;
-    document.getElementById("shows-table-body").innerHTML = "";
-    overviewWrap.innerHTML = emptyMsg;
-    document.getElementById("library-dashboard-container").innerHTML = "";
+    if (grid) grid.innerHTML = emptyMsg;
+    const tbody = document.getElementById("shows-table-body");
+    if (tbody) tbody.innerHTML = "";
+    if (overviewWrap) overviewWrap.innerHTML = emptyMsg;
+    const dashContainer = document.getElementById("library-dashboard-container");
+    if (dashContainer) dashContainer.innerHTML = "";
+    const alphaIndex = document.getElementById("alphabet-index");
+    if (alphaIndex) alphaIndex.style.display = "none";
     return;
   }
 
-  document.getElementById("library-dashboard-container").innerHTML = renderLibraryDashboard(shows);
+  const dashContainer = document.getElementById("library-dashboard-container");
+  if (dashContainer) dashContainer.innerHTML = renderLibraryDashboard(shows);
 
   if (LIBRARY_VIEW_MODE === "posters") {
-    grid.className = "shows-grid size-" + POSTER_OPTIONS.size;
-    grid.innerHTML = shows.map(renderShowCard).join("");
-    shows.forEach(s => document.getElementById("show-card-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+    if (grid) {
+      grid.className = "shows-grid size-" + POSTER_OPTIONS.size;
+      grid.innerHTML = shows.map(renderShowCard).join("");
+      shows.forEach(s => document.getElementById("show-card-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+    }
     buildAlphabetIndex(shows);
   } else {
-    document.getElementById("alphabet-index").style.display = "none";
+    const alphaIndex = document.getElementById("alphabet-index");
+    if (alphaIndex) alphaIndex.style.display = "none";
     if (LIBRARY_VIEW_MODE === "table") {
       const tbody = document.getElementById("shows-table-body");
-      tbody.innerHTML = shows.map(renderShowTableRow).join("");
-      shows.forEach(s => document.getElementById("show-row-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+      if (tbody) {
+        tbody.innerHTML = shows.map(renderShowTableRow).join("");
+        shows.forEach(s => document.getElementById("show-row-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+      }
     } else {
-      overviewWrap.innerHTML = shows.map(renderShowOverviewRow).join("");
-      shows.forEach(s => document.getElementById("show-overview-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+      if (overviewWrap) {
+        overviewWrap.innerHTML = shows.map(renderShowOverviewRow).join("");
+        shows.forEach(s => document.getElementById("show-overview-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+      }
     }
   }
 }

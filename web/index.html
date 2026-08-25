@@ -331,13 +331,19 @@
         </div>
       </header>
 
-      <div class="toolbar">
+      <div class="toolbar" style="flex-wrap: wrap; gap: 8px;">
         <input id="library-search" class="input input-grow" type="text" placeholder="Найти в библиотеке…" data-i18n-placeholder="library.search_placeholder" oninput="renderLibrary()">
-        <select id="library-filter" class="input" onchange="renderLibrary()">
-          <option value="all" data-i18n="library.filter_all">Все видео</option>
-          <option value="monitored" data-i18n="library.filter_monitored">Мониторится</option>
-          <option value="unmonitored" data-i18n="library.filter_unmonitored">Не мониторится</option>
-        </select>
+        <div class="btn-group" id="library-category-btns" style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="btn btn-secondary btn-small active" data-category="all" onclick="setLibraryCategory('all')" data-i18n="library.filter_all">Все</button>
+          <button class="btn btn-secondary btn-small" data-category="movie" onclick="setLibraryCategory('movie')" data-i18n="library.filter_movies">Фильмы</button>
+          <button class="btn btn-secondary btn-small" data-category="series" onclick="setLibraryCategory('series')" data-i18n="library.filter_series">Сериалы</button>
+          <button class="btn btn-secondary btn-small" data-category="anime" onclick="setLibraryCategory('anime')" data-i18n="library.filter_anime">Аниме</button>
+        </div>
+        <div class="btn-group" id="library-monitor-btns" style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="btn btn-secondary btn-small active" data-monitor="all" onclick="setLibraryMonitor('all')" data-i18n="library.filter_all">Все</button>
+          <button class="btn btn-secondary btn-small" data-monitor="monitored" onclick="setLibraryMonitor('monitored')" data-i18n="library.filter_monitored">Мониторится</button>
+          <button class="btn btn-secondary btn-small" data-monitor="unmonitored" onclick="setLibraryMonitor('unmonitored')" data-i18n="library.filter_unmonitored">Не мониторится</button>
+        </div>
         <div class="view-switcher">
           <button class="btn btn-secondary view-switcher-btn" id="view-switcher-btn" onclick="toggleViewMenu()">
             <span class="nav-ico" style="margin-right:4px"><i data-lucide="library"></i></span><span data-i18n="library.view_label">Просмотр:</span> <span id="view-switcher-label" data-i18n="library.view_posters">Постеры</span> ▾
