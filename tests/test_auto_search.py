@@ -421,8 +421,9 @@ class TestAutoSearch(unittest.TestCase):
             res = asyncio.run(auto_search._do_search_and_grab(self.session, show))
 
         grabbed = res.get("grabbed", [])
-        self.assertEqual(len(grabbed), 2, "Должно быть захвачено ровно 2 релиза: по одному лучшему на S01 и S02")
-        grabbed_titles = [g["release_title"] for g in grabbed]
-        self.assertIn("Arcane.S01.2021.2160p.BDRemux-Rutracker", grabbed_titles)
-        self.assertIn("Arcane.S02.2024.2160p.WEB-DL.DDP5.1.Atmos", grabbed_titles)
-        self.assertNotIn("Arcane (Сезоны 1-2) WEB-DLRip 1080p", grabbed_titles)
+        self.assertEqual(len(grabbed), 18, "Должно быть закрыто 18 серий (9 серий S01 и 9 серий S02)")
+        grabbed_releases = {g["release"] for g in grabbed}
+        self.assertEqual(len(grabbed_releases), 2, "Должно быть использовано ровно 2 релиза: по одному на S01 и S02")
+        self.assertIn("Arcane.S01.2021.2160p.BDRemux-Rutracker", grabbed_releases)
+        self.assertIn("Arcane.S02.2024.2160p.WEB-DL.DDP5.1.Atmos", grabbed_releases)
+        self.assertNotIn("Arcane (Сезоны 1-2) WEB-DLRip 1080p", grabbed_releases)

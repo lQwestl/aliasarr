@@ -17,6 +17,7 @@ from typing import Optional, List, Dict, Any
 import asyncio
 import datetime as dt
 import logging
+import uuid
 
 try:
     from sqlalchemy import and_, or_
