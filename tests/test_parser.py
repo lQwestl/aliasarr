@@ -232,6 +232,83 @@ class TestParser(unittest.TestCase):
         self.assertEqual(p5.season, 0)
         self.assertEqual(p5.episodes, [1])
 
+    def test_e_of_n_formats_and_vermeil(self):
+        # 1. Exact user example: Vermeil in Gold [E12 of 12]
+        title = "Вермейл в золотом / Kinsou no Vermeil: Gakeppuchi Majutsushi wa Saikyou no Yakusai to Mahou Sekai o (wo) Tsukisusumu / Vermeil in Gold (Наоя Такаси) [TV] [E12 of 12] [RUS(ext), ENG, JAP+Sub] [2022, комедия, романтика, этти, фэнтези, BDRip] [1080p]"
+        p = parse_episode(title)
+        self.assertEqual(p.kind, ReleaseKind.EPISODE)
+        self.assertEqual(p.episodes, list(range(1, 13)))
+        self.assertTrue(p.is_range)
+
+        # 2. [E12 of E12], [12 of 12], [E12 из 12], [12 из 12], [E12 из E12]
+        for t in [
+            "Anime Title [E12 of E12]",
+            "Anime Title [12 of 12]",
+            "Anime Title [E12 из 12]",
+            "Anime Title [12 из 12]",
+            "Anime Title [E12 из E12]",
+            "Anime Title [EP12 of 12]",
+            "Anime Title [Ep.12 of 12]",
+            "Anime Title [Эп.12 из 12]",
+            "Anime Title [E12/12]",
+            "Anime Title [12/12]",
+            "Anime Title [E12/E12]",
+            "Anime Title (E12 of 12)",
+            "Anime Title (12 of 12)",
+            "Anime Title (12 из 12)",
+            "Anime Title E12 of 12",
+            "Anime Title 12 of 12",
+            "Anime Title E12 из 12",
+            "Anime Title 12 из 12",
+        ]:
+            res = parse_episode(t)
+            self.assertEqual(res.episodes, list(range(1, 13)), f"Failed for title: {t}")
+            self.assertTrue(res.is_range, f"Expected range for title: {t}")
+
+        # 3. Partial batches: [E06 of 12], [06 of 12], [6 из 12]
+        for t in ["Anime Title [E06 of 12]", "Anime Title [06 of 12]", "Anime Title [6 из 12]"]:
+            res = parse_episode(t)
+            self.assertEqual(res.episodes, list(range(1, 7)), f"Failed for partial batch: {t}")
+            self.assertTrue(res.is_range)
+
+        # 4. Explicit ranges with of/из: [E01-E12 of 12], [01-12 of 12], [E07-E12 of 12]
+        r_full = parse_episode("Anime Title [E01-E12 of 12]")
+        self.assertEqual(r_full.episodes, list(range(1, 13)))
+        self.assertTrue(r_full.is_range)
+
+        r_part = parse_episode("Anime Title [E07-E12 of 12]")
+        self.assertEqual(r_part.episodes, list(range(7, 13)))
+        self.assertTrue(r_part.is_range)
+
+        # 5. Long series up to 9999 episodes (e.g. E0012 of E0012, E100 of 100, E1234 of 1234)
+        r_lead_zero = parse_episode("Anime Title [E0012 of E0012]")
+        self.assertEqual(r_lead_zero.episodes, list(range(1, 13)))
+
+        r_100 = parse_episode("Anime Title [E100 of 100]")
+        self.assertEqual(r_100.episodes, list(range(1, 101)))
+        self.assertEqual(len(r_100.episodes), 100)
+
+        r_9999 = parse_episode("Anime Title [E9999 of 9999]")
+        self.assertEqual(r_9999.episodes, list(range(1, 10000)))
+        self.assertEqual(len(r_9999.episodes), 9999)
+
+        # 6. With season prefix: S02 [E12 of 12], Season 2 [E12 of 12], 2nd Season [E12 of 12]
+        r_s2_1 = parse_episode("Anime Title S02 [E12 of 12]")
+        self.assertEqual(r_s2_1.season, 2)
+        self.assertEqual(r_s2_1.episodes, list(range(1, 13)))
+
+        r_s2_2 = parse_episode("Anime Title Season 2 [E12 of 12]")
+        self.assertEqual(r_s2_2.season, 2)
+        self.assertEqual(r_s2_2.episodes, list(range(1, 13)))
+
+        r_s2_3 = parse_episode("Anime Title 2nd Season [E12 of 12]")
+        self.assertEqual(r_s2_3.season, 2)
+        self.assertEqual(r_s2_3.episodes, list(range(1, 13)))
+
+        r_s2_4 = parse_episode("Anime Title II сезон [12 из 12]")
+        self.assertEqual(r_s2_4.season, 2)
+        self.assertEqual(r_s2_4.episodes, list(range(1, 13)))
+
 
 if __name__ == "__main__":
     unittest.main()

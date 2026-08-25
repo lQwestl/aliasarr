@@ -85,6 +85,18 @@ class TestQualityAndMatcher(unittest.TestCase):
         m2 = match_release("Naruto.S01.1080p", show_id=1, aliases=aliases, content_type="anime")
         self.assertTrue(m2.matched)
 
+    def test_vermeil_in_gold_matching(self):
+        aliases = [
+            AliasCandidate(0, "Vermeil in Gold", "en", 0),
+            AliasCandidate(1, "Вермейл в золотом", "ru", 1),
+            AliasCandidate(2, "Kinsou no Vermeil", "romaji", 2),
+        ]
+        title = "Вермейл в золотом / Kinsou no Vermeil: Gakeppuchi Majutsushi wa Saikyou no Yakusai to Mahou Sekai o (wo) Tsukisusumu / Vermeil in Gold (Наоя Такаси) [TV] [E12 of 12] [RUS(ext), ENG, JAP+Sub] [2022, комедия, романтика, этти, фэнтези, BDRip] [1080p]"
+        m = match_release(title, show_id=10, aliases=aliases, content_type="anime")
+        self.assertTrue(m.matched)
+        self.assertEqual(m.parsed.episodes, list(range(1, 13)))
+        self.assertTrue(m.parsed.is_range)
+
     def test_no_match_openings_and_endings(self):
         aliases = [AliasCandidate(0, "Naruto", "en", 0), AliasCandidate(1, "Наруто", "ru", 1)]
         for rel_name in [
