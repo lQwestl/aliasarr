@@ -4102,7 +4102,7 @@ function renderShowCard(show) {
     `;
   }
   if (POSTER_OPTIONS.quality) {
-    infoHtml += `<div class="show-quality-text">${escapeHtml(qualityProfileName(show.quality_profile_id))}</div>`;
+    infoHtml += `<div class="show-quality-badge-wrap"><span class="show-quality-badge">${escapeHtml(qualityProfileName(show.quality_profile_id))}</span></div>`;
   }
   if (POSTER_OPTIONS.tags && aliases) {
     infoHtml += `<div class="alias-cluster">${aliases}</div>`;
@@ -4162,7 +4162,7 @@ function renderShowOverviewRow(show) {
       </div>`;
   }
 
-  const qualityBadge = POSTER_OPTIONS.quality ? `<span class="meta-badge">${escapeHtml(qualityProfileName(show.quality_profile_id))}</span>` : "";
+  const qualityBadge = POSTER_OPTIONS.quality ? `<span class="meta-badge meta-badge-quality">${escapeHtml(qualityProfileName(show.quality_profile_id))}</span>` : "";
   const seasonsBadge = show.seasons_count ? `<span class="meta-badge">${t("show.seasons_count")}: ${show.seasons_count}</span>` : "";
   const ratingBadge = show.rating ? `<span class="meta-badge meta-badge-rating"><i data-lucide="star" class="ico-xs" style="color:var(--warning); vertical-align:middle; margin-right:3px;"></i>${Number(show.rating).toFixed(1)}</span>` : "";
   const genreBadge = show.genre ? `<span class="meta-badge">${escapeHtml(show.genre)}</span>` : "";

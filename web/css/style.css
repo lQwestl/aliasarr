@@ -1134,8 +1134,47 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 .table-task-progress { display: none !important; }
 
+/* Quality Profile Badge */
+.show-quality-badge-wrap {
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.show-quality-badge,
+.show-quality-text,
+.meta-badge.meta-badge-quality {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2.5px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.38);
+  line-height: 1.25;
+}
+
+[data-theme="dracula"] .show-quality-badge,
+[data-theme="dracula"] .show-quality-text,
+[data-theme="dracula"] .meta-badge.meta-badge-quality {
+  background: rgba(189, 147, 249, 0.16);
+  color: #bd93f9;
+  border-color: rgba(189, 147, 249, 0.45);
+}
+
+[data-theme="light"] .show-quality-badge,
+[data-theme="light"] .show-quality-text,
+[data-theme="light"] .meta-badge.meta-badge-quality {
+  background: #f3e8ff;
+  color: #7e22ce;
+  border-color: #d8b4fe;
+}
+
 .show-monitored-text { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-family: var(--font-mono); }
-.show-quality-text { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-family: var(--font-mono); }
 .show-next-air-text { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
 
 /* signature: alias cluster — small chips converging visually */
@@ -1146,13 +1185,19 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 4px;
-  background: var(--panel-alt);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
+  background: rgba(0, 240, 255, 0.08);
+  color: var(--teal);
+  border: 1px solid rgba(0, 240, 255, 0.35);
 }
-.alias-chip.lang-ru { border-color: rgba(0, 240, 255, 0.4); color: var(--teal); background: rgba(0, 240, 255, 0.08); }
+.alias-chip.lang-ru,
+.alias-chip.lang-en,
 .alias-chip.lang-jp,
-.alias-chip.lang-romaji { border-color: rgba(99, 102, 241, 0.4); color: var(--violet); background: rgba(99, 102, 241, 0.08); }
+.alias-chip.lang-romaji,
+.alias-chip.lang-other {
+  border-color: rgba(0, 240, 255, 0.35);
+  color: var(--teal);
+  background: rgba(0, 240, 255, 0.08);
+}
 
 /* Show Card Tags - Full width block chips matching card boundaries */
 .show-card .alias-cluster {
@@ -1172,6 +1217,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   word-break: break-word;
   white-space: normal;
   text-align: left;
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  color: var(--teal);
+  background: rgba(0, 240, 255, 0.08);
 }
 
 /* ---------- ALIAS MANAGER (в карточке шоу) ---------- */
