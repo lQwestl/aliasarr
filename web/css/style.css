@@ -900,17 +900,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   position: relative;
 }
 
-/* Red ribbon top right */
+/* Red ribbon removed by user request */
 .poster-ribbon {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 0 40px 40px 0;
-  border-color: transparent var(--danger) transparent transparent;
-  z-index: 2;
+  display: none;
 }
 
 /* Progress bar immediately below poster */
@@ -974,6 +966,74 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 .show-info { padding: 12px; text-align: left; border-top: 2px solid var(--border); }
 .show-title { font-family: var(--font-display); font-weight: 700; font-size: 15px; margin-bottom: 6px; text-transform: uppercase; }
+
+/* Card Monitored Status Pill */
+.show-monitored-badge-wrap {
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.show-monitored-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  box-sizing: border-box;
+  vertical-align: middle;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.show-monitored-pill .ico-xs {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.show-monitored-pill.monitored {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10b981;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.15);
+}
+
+[data-theme="light"] .show-monitored-pill.monitored {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #065f46;
+}
+
+[data-theme="dracula"] .show-monitored-pill.monitored {
+  background: rgba(80, 250, 123, 0.15);
+  border-color: rgba(80, 250, 123, 0.4);
+  color: #50fa7b;
+}
+
+.show-monitored-pill.unmonitored {
+  background: rgba(139, 144, 160, 0.15);
+  border: 1px solid rgba(139, 144, 160, 0.35);
+  color: var(--text-muted);
+}
+
+[data-theme="light"] .show-monitored-pill.unmonitored {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+[data-theme="dracula"] .show-monitored-pill.unmonitored {
+  background: rgba(98, 114, 164, 0.18);
+  border-color: rgba(98, 114, 164, 0.4);
+  color: #6272a4;
+}
+
 .show-monitored-text { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-family: var(--font-mono); }
 .show-quality-text { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-family: var(--font-mono); }
 .show-next-air-text { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }

@@ -3847,6 +3847,7 @@ function renderLibrary() {
       grid.className = "shows-grid size-" + POSTER_OPTIONS.size;
       grid.innerHTML = shows.map(renderShowCard).join("");
       shows.forEach(s => document.getElementById("show-card-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+      if (window.lucide) lucide.createIcons();
     }
     buildAlphabetIndex(shows);
   } else {
@@ -3923,10 +3924,6 @@ function renderShowCard(show) {
     a => `<span class="alias-chip lang-${a.language}">${escapeHtml(a.text)}</span>`
   ).join("");
   
-  // Ribbon
-  let ribbonHtml = "";
-  if (show.monitored) ribbonHtml = `<div class="poster-ribbon"></div>`;
-
   // Active Task overlay check
   const activeTask = (typeof CURRENT_ACTIVE_TASKS !== "undefined" && CURRENT_ACTIVE_TASKS) ? CURRENT_ACTIVE_TASKS.find(t => 
     (t.show_id && t.show_id === show.id) ||
@@ -4003,7 +4000,16 @@ function renderShowCard(show) {
   }
   if (POSTER_OPTIONS.monitored) {
     const mtext = show.monitored ? t("dash.monitored") : t("dash.unmonitored");
-    infoHtml += `<div class="show-monitored-text">${mtext}</div>`;
+    const mClass = show.monitored ? "monitored" : "unmonitored";
+    const mIcon = show.monitored ? "bookmark-check" : "bookmark-x";
+    infoHtml += `
+      <div class="show-monitored-badge-wrap">
+        <span class="show-monitored-pill ${mClass}">
+          <i data-lucide="${mIcon}" class="ico-xs"></i>
+          <span>${escapeHtml(mtext)}</span>
+        </span>
+      </div>
+    `;
   }
   if (POSTER_OPTIONS.quality) {
     infoHtml += `<div class="show-quality-text">${escapeHtml(qualityProfileName(show.quality_profile_id))}</div>`;
@@ -4016,7 +4022,6 @@ function renderShowCard(show) {
     <div class="show-card" id="show-card-${show.id}" data-alpha="${initial}">
       <div class="show-poster" ${posterStyle}>
         ${show.poster_url ? "" : initial}
-        ${ribbonHtml}
         ${importOverlayHtml}
       </div>
       ${progressHtml}
