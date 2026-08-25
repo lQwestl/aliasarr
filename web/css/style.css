@@ -1065,6 +1065,98 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   white-space: nowrap;
 }
 
+/* Events, Journal and Release Logs Table Layouts */
+#events-table,
+#journal-table,
+#release-logs-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+#events-table th:nth-child(1),
+#events-table td:nth-child(1) {
+  width: 140px;
+  white-space: nowrap;
+}
+#events-table th:nth-child(2),
+#events-table td:nth-child(2) {
+  width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#events-table th:nth-child(3),
+#events-table td:nth-child(3) {
+  width: auto;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.45;
+}
+
+#journal-table th:nth-child(1),
+#journal-table td:nth-child(1) {
+  width: 140px;
+  white-space: nowrap;
+}
+#journal-table th:nth-child(2),
+#journal-table td:nth-child(2) {
+  width: 90px;
+  white-space: nowrap;
+}
+#journal-table th:nth-child(3),
+#journal-table td:nth-child(3) {
+  width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#journal-table th:nth-child(4),
+#journal-table td:nth-child(4) {
+  width: auto;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.45;
+}
+
+#release-logs-table th:nth-child(1),
+#release-logs-table td:nth-child(1) {
+  width: 130px;
+  white-space: nowrap;
+}
+#release-logs-table th:nth-child(2),
+#release-logs-table td:nth-child(2) {
+  width: 100px;
+  white-space: nowrap;
+}
+#release-logs-table th:nth-child(3),
+#release-logs-table td:nth-child(3) {
+  width: 90px;
+  white-space: nowrap;
+}
+#release-logs-table th:nth-child(4),
+#release-logs-table td:nth-child(4) {
+  width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#release-logs-table th:nth-child(5),
+#release-logs-table td:nth-child(5) {
+  width: auto;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.45;
+}
+#release-logs-table th:nth-child(6),
+#release-logs-table td:nth-child(6) {
+  width: 70px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .mono { font-family: var(--font-mono); }
 .release-link { color: var(--teal); text-decoration: none; }
 .release-link:hover { text-decoration: underline; }
@@ -3461,6 +3553,14 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     min-width: 820px !important;
   }
   #journal-table td.col-msg {
+    min-width: 280px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+  #release-logs-table {
+    min-width: 840px !important;
+  }
+  #release-logs-table td:nth-child(5) {
     min-width: 280px !important;
     white-space: normal !important;
     word-break: break-word !important;

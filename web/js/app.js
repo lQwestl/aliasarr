@@ -10748,9 +10748,9 @@ async function loadEvents(page) {
     const data = await api(`/api/v1/events?level=${level}&page=${EVENTS_STATE.page}&page_size=${pageSize}&sort=${EVENTS_STATE.sort}`);
     tbody.innerHTML = data.items.map(ev => `
       <tr>
-        <td class="mono col-time">${formatDateTZ(ev.created_at)}</td>
-        <td class="col-comp"><strong>${escapeHtml(ev.component)}</strong></td>
-        <td class="col-msg"><span class="status-pill status-${ev.level === "error" ? "missing" : ev.level === "warning" ? "unaired" : "downloaded"}" style="margin-right:8px;">${eventLevelLabel(ev.level)}</span>${escapeHtml(translateLogMessage(ev.message))}</td>
+        <td class="mono col-time" style="font-size:11.5px; white-space:nowrap;">${formatDateTZ(ev.created_at)}</td>
+        <td class="col-comp" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><strong>${escapeHtml(ev.component)}</strong></td>
+        <td class="col-msg" style="word-break:break-word; overflow-wrap:anywhere; white-space:normal; line-height:1.45;"><span class="status-pill status-${ev.level === "error" ? "missing" : ev.level === "warning" ? "unaired" : "downloaded"}" style="margin-right:8px; vertical-align:middle;">${eventLevelLabel(ev.level)}</span><span style="vertical-align:middle;">${escapeHtml(translateLogMessage(ev.message))}</span></td>
       </tr>`).join("") || `<tr><td colspan="3" style="color:var(--text-muted)">—</td></tr>`;
     renderPagination("events-pagination", EVENTS_STATE.page, pageSize, data.total, loadEvents);
   } catch (e) {
