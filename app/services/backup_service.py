@@ -97,7 +97,7 @@ def _get_sqlite_db_path() -> Optional[str]:
     # sqlite:////config/aliasarr.db -> /config/aliasarr.db
     # sqlite:///config/aliasarr.db -> config/aliasarr.db
     # sqlite:///aliasarr.db -> aliasarr.db
-    raw_path = db_url.replace("sqlite:////", "/").replace("sqlite:///\Target", "/Target").replace("sqlite:///", "")
+    raw_path = db_url.replace("sqlite:////", "/").replace("sqlite:///", "")
     if os.path.isabs(raw_path):
         return raw_path if os.path.exists(raw_path) else None
     

@@ -551,8 +551,8 @@ def set_show_monitored(
         raise HTTPException(404, "Show not found")
     show.monitored = monitored
     db.add(show)
-    if show.content_type == "movie":
-        for ep in show.episodes:
+    if getattr(show, "content_type", None) == "movie":
+        for ep in (getattr(show, "episodes", None) or []):
             ep.monitored = monitored
             db.add(ep)
     db.commit()
@@ -580,16 +580,18 @@ def set_all_seasons_monitored(
     affected = 0
     for ep in episodes:
         ep.monitored = monitored
+        file_path = getattr(ep, "file_path", None)
         has_file = False
-        if ep.file_path:
+        if file_path:
             try:
-                has_file = os.path.exists(ep.file_path)
+                has_file = os.path.exists(file_path)
             except Exception:
                 has_file = False
 
-        if ep.status in (EpisodeStatus.DOWNLOADED, EpisodeStatus.DOWNLOADING) or has_file:
+        status = getattr(ep, "status", None)
+        if status in (EpisodeStatus.DOWNLOADED, EpisodeStatus.DOWNLOADING, "downloaded", "downloading") or has_file:
             # Скачанные или скачивающиеся серии сохраняют свой статус, обновляется только флаг monitored
-            if has_file and ep.status != EpisodeStatus.DOWNLOADING:
+            if has_file and status not in (EpisodeStatus.DOWNLOADING, "downloading"):
                 ep.status = EpisodeStatus.DOWNLOADED
         else:
             if monitored:
@@ -602,8 +604,8 @@ def set_all_seasons_monitored(
                     ep.status = EpisodeStatus.WANTED
             else:
                 ep.status = EpisodeStatus.IGNORED
+            affected += 1
         db.add(ep)
-        affected += 1
 
     db.commit()
     return {"show_id": show_id, "monitored": monitored, "affected": affected}
@@ -629,12 +631,14 @@ def set_unaired_monitored(
     episodes = db.query(Episode).filter(Episode.show_id == show_id).all()
     affected = 0
     for ep in episodes:
-        if ep.status in (EpisodeStatus.DOWNLOADED, EpisodeStatus.DOWNLOADING) or (ep.file_path and os.path.exists(ep.file_path)):
+        status = getattr(ep, "status", None)
+        file_path = getattr(ep, "file_path", None)
+        if status in (EpisodeStatus.DOWNLOADED, EpisodeStatus.DOWNLOADING, "downloaded", "downloading") or (file_path and os.path.exists(file_path)):
             continue
         air_d = getattr(ep, "air_date", None)
         if isinstance(air_d, dt.datetime):
             air_d = air_d.date()
-        is_unaired = (air_d and air_d > today) or ep.status == EpisodeStatus.UNAIRED
+        is_unaired = (air_d and air_d > today) or status in (EpisodeStatus.UNAIRED, "unaired")
         if is_unaired:
             ep.monitored = monitored
             ep.status = EpisodeStatus.WANTED if monitored else EpisodeStatus.IGNORED
@@ -664,17 +668,20 @@ def set_season_monitored(
         raise HTTPException(404, "Season not found")
 
     today = dt.date.today()
+    affected = 0
     for ep in episodes:
         ep.monitored = monitored
+        file_path = getattr(ep, "file_path", None)
         has_file = False
-        if ep.file_path:
+        if file_path:
             try:
-                has_file = os.path.exists(ep.file_path)
+                has_file = os.path.exists(file_path)
             except Exception:
                 has_file = False
 
-        if ep.status in (EpisodeStatus.DOWNLOADED, EpisodeStatus.DOWNLOADING) or has_file:
-            if has_file and ep.status != EpisodeStatus.DOWNLOADING:
+        status = getattr(ep, "status", None)
+        if status in (EpisodeStatus.DOWNLOADED, EpisodeStatus.DOWNLOADING, "downloaded", "downloading") or has_file:
+            if has_file and status not in (EpisodeStatus.DOWNLOADING, "downloading"):
                 ep.status = EpisodeStatus.DOWNLOADED
         else:
             if monitored:
@@ -687,9 +694,10 @@ def set_season_monitored(
                     ep.status = EpisodeStatus.WANTED
             else:
                 ep.status = EpisodeStatus.IGNORED
+            affected += 1
         db.add(ep)
     db.commit()
-    return {"show_id": show_id, "season": season_number, "monitored": monitored, "affected": len(episodes)}
+    return {"show_id": show_id, "season": season_number, "monitored": monitored, "affected": affected}
 
 
 @router.post("/{show_id}/search")

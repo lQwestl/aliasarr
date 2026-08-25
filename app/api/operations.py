@@ -1270,16 +1270,18 @@ def set_episode_status(
 
     episode.monitored = target_monitored
 
+    file_path = getattr(episode, "file_path", None)
     has_file = False
-    if episode.file_path:
+    if file_path:
         try:
-            has_file = os.path.exists(episode.file_path)
+            has_file = os.path.exists(file_path)
         except Exception:
             has_file = False
 
-    if episode.status in (EpisodeStatus.DOWNLOADED, EpisodeStatus.DOWNLOADING) or has_file:
+    status = getattr(episode, "status", None)
+    if status in (EpisodeStatus.DOWNLOADED, EpisodeStatus.DOWNLOADING, "downloaded", "downloading") or has_file:
         # Статус уже скачанной или скачивающейся серии сохраняется, меняется только флаг мониторинга (для апгрейдов)
-        if has_file and episode.status != EpisodeStatus.DOWNLOADING:
+        if has_file and status not in (EpisodeStatus.DOWNLOADING, "downloading"):
             episode.status = EpisodeStatus.DOWNLOADED
     else:
         today = dt.date.today()
