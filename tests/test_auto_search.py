@@ -376,3 +376,57 @@ class TestAutoSearch(unittest.TestCase):
         self.assertEqual(auto_search.evaluate_torrent_file_priority(f_p2_12, 2, target_eps, True, content_type="anime"), 1)
         self.assertEqual(auto_search.evaluate_torrent_file_priority(f_s2_p2_23, 3, target_eps, True, content_type="anime"), 1)
         self.assertEqual(auto_search.evaluate_torrent_file_priority(f_s2_p2_24, 4, target_eps, True, content_type="anime"), 1)
+
+    def test_quality_preference_over_multiseason_pack(self):
+        """Проверяет, что релизы высокого качества из профиля побеждают низкокачественные мультисезонные паки."""
+        if not HAS_DEPS:
+            self.skipTest("sqlalchemy is missing")
+        from app.models.db import QualityProfile
+
+        qp = QualityProfile(
+            name="Ultra-Remux",
+            allowed_qualities=[
+                "Remux-2160p", "Bluray-2160p", "WEBDL-2160p", "WEBRip-2160p",
+                "Remux-1080p", "Bluray-1080p", "WEBDL-1080p", "WEBRip-1080p"
+            ],
+            upgrade_allowed=True,
+        )
+        self.session.add(qp)
+        self.session.commit()
+        self.session.refresh(qp)
+
+        show = make_show(self.session, "Arcane")
+        show.quality_profile_id = qp.id
+        self.session.add(show)
+        self.session.commit()
+
+        # Создаём серии S01 (9 серий) и S02 (9 серий)
+        s1_eps = [make_episode(self.session, show, season=1, episode=i) for i in range(1, 10)]
+        s2_eps = [make_episode(self.session, show, season=2, episode=i) for i in range(1, 10)]
+
+        make_download_client(self.session)
+        idx = make_indexer(self.session, "Rutracker")
+
+        releases = [
+            _release("g1", "Arcane (Сезоны 1-2) WEB-DLRip 1080p", seeders=50),
+            _release("g2", "Arcane.S01.2021.2160p.BDRemux-Rutracker", seeders=60),
+            _release("g3", "Arcane.S02.2024.2160p.WEB-DL.DDP5.1.Atmos", seeders=70),
+            _release("g4", "Arcane BDRemux", seeders=40),
+        ]
+
+        fake_dc = FakeDownloadClient()
+        with patch.object(auto_search, "get_indexer_client") as mock_idx, \
+             patch.object(auto_search, "get_client", return_value=fake_dc):
+            class FakeIndexerClient:
+                async def search(self, q):
+                    return releases
+            mock_idx.return_value = FakeIndexerClient()
+
+            res = asyncio.run(auto_search.search_and_grab_show(self.session, show))
+
+        grabbed = res.get("grabbed", [])
+        self.assertEqual(len(grabbed), 2, "Должно быть захвачено ровно 2 релиза: по одному лучшему на S01 и S02")
+        grabbed_titles = [g["release_title"] for g in grabbed]
+        self.assertIn("Arcane.S01.2021.2160p.BDRemux-Rutracker", grabbed_titles)
+        self.assertIn("Arcane.S02.2024.2160p.WEB-DL.DDP5.1.Atmos", grabbed_titles)
+        self.assertNotIn("Arcane (Сезоны 1-2) WEB-DLRip 1080p", grabbed_titles)

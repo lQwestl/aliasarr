@@ -655,7 +655,7 @@ async def _do_search_and_grab(
                 return False
             if parsed.episodes:
                 return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
-            return parsed.kind == ReleaseKind.SEASON_PACK
+            return parsed.kind in (ReleaseKind.SEASON_PACK, ReleaseKind.UNKNOWN, ReleaseKind.EPISODE)
 
         # --- Случай 2: «Final Season» ---
         if label_type == "final":
@@ -668,6 +668,11 @@ async def _do_search_and_grab(
 
         # --- Случай 3: «Complete Series» / «Все сезоны» ---
         if label_type == "complete":
+            # Проверка года премьеры: релиз более раннего года не может закрывать сезон, вышедший позже
+            if ep.air_date:
+                rel_year_m = re.search(r"\b(19\d\d|20\d\d)\b", rel.title)
+                if rel_year_m and int(rel_year_m.group(1)) < ep.air_date.year:
+                    return False
             if parsed.episodes:
                 return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
             return True
@@ -687,22 +692,37 @@ async def _do_search_and_grab(
                 return False
             if parsed.episodes:
                 return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
-            return parsed.kind == ReleaseKind.SEASON_PACK
+            return parsed.kind in (ReleaseKind.SEASON_PACK, ReleaseKind.UNKNOWN, ReleaseKind.EPISODE)
 
-        # --- Случай 6: сезон в названии релиза не указан (аниме absolute / lone number) ---
-        if parsed.episodes:
-            if ep.absolute_number is not None:
-                return ep.absolute_number in parsed.episodes
-            return ep.episode_number in parsed.episodes and ep.season_number in (0, 1)
+        # --- Случай 6: сезон в названии релиза не указан ---
+        # Для сериалов/аниме релизы без указания сезона (например, "Arcane BDRemux", "Death Note 1080p")
+        # относятся только к Сезону 1 (или спецвыпускам), но НИКОГДА к Сезону 2+!
+        if ep.season_number in (0, 1):
+            if parsed.episodes:
+                if ep.absolute_number is not None:
+                    return ep.absolute_number in parsed.episodes
+                return ep.episode_number in parsed.episodes
+            return True
 
         return False
 
     # Строим для каждого кандидата множество wanted-серий, которые он закрывает,
-    # и скор (сиды + качество + совпадение имени).
-    from app.services.quality import parse_quality, is_upgrade
+    # вычисляем Custom Formats score и скор соответствия.
+    from app.services.quality import parse_quality, is_upgrade, QUALITY_ALIASES
+    from app.services.custom_formats import calculate_custom_formats_for_release
+    from app.services.language_parser import parse_languages
+    from app.services.release_group_parser import parse_release_group
+    
     quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
     allowed_qualities = quality_profile.allowed_qualities if quality_profile else []
-    
+
+    def get_quality_preference(q_info, allowed):
+        norm_name = QUALITY_ALIASES.get(q_info.name.upper(), q_info.name)
+        for idx, a in enumerate(allowed):
+            if a == q_info.name or a == norm_name or QUALITY_ALIASES.get(a.upper(), a) == norm_name:
+                return len(allowed) - idx
+        return q_info.rank
+
     scored_candidates = []
     for c in candidates:
         covered = [ep for ep in wanted_episodes if covers(c, ep)]
@@ -740,21 +760,41 @@ async def _do_search_and_grab(
             
         if not final_covered:
             continue
-            
+
+        # Вычисляем кастомные форматы (CF score)
+        rel_langs = parse_languages(c["rel"].title)
+        rel_group = parse_release_group(c["rel"].title)
+        cf_score, _ = calculate_custom_formats_for_release(
+            db=db,
+            title=c["rel"].title,
+            quality=c["quality"],
+            languages=rel_langs,
+            release_group=rel_group,
+            quality_profile=quality_profile,
+        )
+
         score = score_candidate(c["match"], seeders=c["rel"].seeders, quality_rank=c["quality"].rank)
-        scored_candidates.append({**c, "covered": final_covered, "score": score})
+        scored_candidates.append({
+            **c,
+            "covered": final_covered,
+            "score": score,
+            "cf_score": cf_score,
+        })
 
     if not scored_candidates:
         return {"show_id": show.id, "grabbed": [], "criteria": search_terms}
 
     # Многоуровневая сортировка кандидатов:
-    # 1. Флаг Full/Complete (1 если полный пак / закрывает все нужные серии, 0 если частичный)
-    # 2. Количество закрываемых нужных серий (coverage_count: чем больше закрывает, тем выше приоритет)
-    # 3. Ранг качества и кастомных форматов
-    # 4. Приоритет индексатора (0 — высший приоритет, 100 — низший)
-    # 5. Число сидеров (seeders)
-    # 6. Скор соответствия названия (match.score)
+    # 1. Приоритет качества из профиля (Quality Preference: наивысшее качество из профиля побеждает всегда!)
+    # 2. Очки кастомных форматов (CF Score)
+    # 3. Флаг Full/Complete (1 если полный пак / закрывает все нужные серии на этом уровне качества)
+    # 4. Количество закрываемых серий (coverage_count)
+    # 5. Приоритет индексатора (0 — высший приоритет, 100 — низший)
+    # 6. Число сидеров (seeders)
+    # 7. Скор соответствия названия (match.score)
     def candidate_sort_key(c):
+        quality_pref = get_quality_preference(c["quality"], allowed_qualities)
+        cf_score = c.get("cf_score", 0)
         season_lbl = detect_season_label(c["rel"].title)
         is_full = 1 if (
             season_lbl["type"] == "complete" or
@@ -762,11 +802,10 @@ async def _do_search_and_grab(
             len(c["covered"]) >= len(wanted_episodes)
         ) else 0
         coverage_count = len(c["covered"])
-        quality_rank = c["quality"].rank
         indexer_priority = getattr(c["indexer"], "priority", 100) or 100
         seeders = c["rel"].seeders or 0
         match_score = c["score"]
-        return (is_full, coverage_count, quality_rank, -indexer_priority, seeders, match_score)
+        return (quality_pref, cf_score, is_full, coverage_count, -indexer_priority, seeders, match_score)
 
     scored_candidates.sort(key=candidate_sort_key, reverse=True)
 

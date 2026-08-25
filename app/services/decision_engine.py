@@ -141,6 +141,14 @@ class DecisionEngine:
                             max_rel = max(rel_seasons) if rel_seasons else 0
                             min_tgt = min(target_seasons) if target_seasons else 0
                             rejections.append(f"Пак сезонов (S{min_rel:02d}-S{max_rel:02d}) не содержит разыскиваемый сезон S{min_tgt:02d}")
+                    elif lbl_type == "complete":
+                        if episodes:
+                            min_ep_air = min((ep.air_date for ep in episodes if ep.air_date), default=None)
+                            if min_ep_air:
+                                import re
+                                rel_year_m = re.search(r"\b(19\d\d|20\d\d)\b", title)
+                                if rel_year_m and int(rel_year_m.group(1)) < min_ep_air.year:
+                                    rejections.append(f"Релиз ({rel_year_m.group(1)} г.) вышел раньше премьеры разыскиваемого сезона ({min_ep_air.year} г.)")
                     elif lbl_type == "numbered":
                         rel_s = s_lbl["season"]
                         if rel_s not in target_seasons:
@@ -151,6 +159,11 @@ class DecisionEngine:
                         if rel_s not in target_seasons:
                             min_tgt = min(target_seasons) if target_seasons else 0
                             rejections.append(f"Релиз относится к сезону S{rel_s:02d}, а разыскивается S{min_tgt:02d}")
+                    elif lbl_type == "none" and match.parsed.season is None:
+                        # Релиз без указания сезона относится к сезону 1
+                        if 1 not in target_seasons and 0 not in target_seasons:
+                            min_tgt = min(target_seasons) if target_seasons else 0
+                            rejections.append(f"Релиз без указания номера сезона относится к S01, а разыскивается S{min_tgt:02d}")
 
                     # Проверка конкретных серий
                     if match.parsed.episodes and match.parsed.kind not in (ReleaseKind.SEASON_PACK, ReleaseKind.UNKNOWN):
