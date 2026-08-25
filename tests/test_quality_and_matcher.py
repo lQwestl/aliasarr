@@ -442,7 +442,14 @@ class TestQualityAndMatcher(unittest.TestCase):
         TestSession = sessionmaker(bind=test_engine)
         db = TestSession()
 
-        dummy_user = User(username="admin", role="admin", is_active=True)
+        dummy_user = User(
+            username="admin",
+            password_hash="dummy_hash",
+            is_admin=True,
+            is_owner=True,
+            enabled=True,
+            permissions={"manage_settings": True},
+        )
 
         # 1. Create format with only name and score (no regex specified)
         payload1 = CustomFormatCreate(name="LostFilm", score=200)
