@@ -5117,8 +5117,19 @@ async function checkSpecialsImportStatus(showId) {
 }
 
 async function openSpecialsImportModal(showId) {
+  let pendingFolder = null;
   const btn = document.getElementById(`btn-specials-import-${showId}`);
-  const pendingFolder = btn ? btn.getAttribute("data-pending-folder") : null;
+  if (btn) {
+    pendingFolder = btn.getAttribute("data-pending-folder") || null;
+  }
+  if (!pendingFolder) {
+    try {
+      const res = await api(`/api/v1/shows/${showId}/specials-import-status`);
+      if (res && res.pending_folder) {
+        pendingFolder = res.pending_folder;
+      }
+    } catch (e) {}
+  }
   await openManualImportModal(showId, pendingFolder, 0);
 }
 

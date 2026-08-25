@@ -1129,7 +1129,7 @@ class GlobalManualImportExecuteIn(BaseModel):
 async def get_specials_import_status(
     show_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_db),
+    current_user: User = Depends(require_permission("view_library")),
 ):
     """
     Проверяет, есть ли завершенные или ожидающие ручного импорта спецвыпуски для данного шоу.
@@ -1214,6 +1214,13 @@ def scan_for_manual_import(
     if not show:
         raise HTTPException(404, "Show not found")
 
+    episodes = (
+        db.query(Episode)
+        .filter(Episode.show_id == show.id)
+        .order_by(Episode.season_number, Episode.episode_number)
+        .all()
+    )
+
     settings = get_or_create_settings(db)
     folder_path = (payload.folder_path if payload and payload.folder_path else "").strip()
     if not folder_path:
@@ -1225,7 +1232,18 @@ def scan_for_manual_import(
         raise HTTPException(400, "Укажите папку для сканирования")
 
     if not os.path.exists(folder_path):
-        raise HTTPException(404, f"Папка «{folder_path}» не существует на диске")
+        if payload and payload.folder_path:
+            raise HTTPException(404, f"Папка «{folder_path}» не существует на диске")
+        episodes_out = [EpisodeOut.model_validate(e) for e in episodes]
+        return ManualImportScanOut(
+            show_id=show.id,
+            show_title=show.title,
+            show_year=show.year,
+            content_type=show.content_type,
+            folder_path=folder_path,
+            files=[],
+            episodes=episodes_out,
+        )
 
     release_files = find_release_files(folder_path)
     seen_paths = set()

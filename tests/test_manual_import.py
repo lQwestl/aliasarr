@@ -352,6 +352,36 @@ class TestManualImportLogic(unittest.TestCase):
         self.assertEqual(ep_past.status, "downloaded")
         self.assertEqual(res["affected"], 1)
 
+    def test_get_specials_import_status_and_scan_fallback(self):
+        """Проверяет эндпоинты specials-import-status и scan-for-manual-import."""
+        try:
+            from app.api.shows import get_specials_import_status, scan_for_manual_import
+            import asyncio
+        except ImportError:
+            self.skipTest("FastAPI not installed in test runner")
+            return
+
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+
+        show = SimpleNamespace(id=1, title="Test Show", year=2024, content_type="anime", path="/non/existent/path/for/test/show")
+        ep_special = SimpleNamespace(id=201, show_id=1, season_number=0, episode_number=1, status="downloading", torrent_hash="abcd1234efgh", download_progress=1.0, download_client_id=1, file_path=None, absolute_number=None, title="Special 1")
+        
+        db_mock = MagicMock()
+        db_mock.get.return_value = show
+        db_mock.query.return_value.filter.return_value.all.return_value = [ep_special]
+        db_mock.query.return_value.filter_by.return_value.all.return_value = []
+        db_mock.query.return_value.filter.return_value.order_by.return_value.all.return_value = [ep_special]
+        current_user = SimpleNamespace(id=1, username="admin", is_admin=True, is_owner=True, permissions={})
+
+        status_out = asyncio.run(get_specials_import_status(1, db=db_mock, current_user=current_user))
+        self.assertTrue(status_out.has_pending_specials)
+        self.assertEqual(status_out.pending_count, 1)
+
+        scan_out = scan_for_manual_import(1, payload=None, db=db_mock, current_user=current_user)
+        self.assertEqual(scan_out.show_id, 1)
+        self.assertEqual(scan_out.files, [])
+
 
 if __name__ == "__main__":
     unittest.main()
