@@ -1188,7 +1188,7 @@ async def get_specials_import_status(
             getattr(settings, "download_folder_anime", "")
             if show.content_type == "anime"
             else (getattr(settings, "download_folder_movies", "") if show.content_type == "movie" else getattr(settings, "download_folder_series", ""))
-        ) or settings.download_folder
+        ) or getattr(settings, "download_folder", "") or ""
         pending_folder = cat_folder or show.path
 
     return SpecialsImportStatusOut(
