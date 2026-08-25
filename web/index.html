@@ -350,6 +350,7 @@
             <div class="header-actions" style="display:flex;gap:8px;">
               <button class="btn btn-secondary" onclick="triggerManualMetadataRefresh(this)" title="Обновить метаданные всех тайтлов из сети" data-i18n-title="library.btn_refresh_all_title"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="library.btn_refresh_all">Обновить метаданные</span></button>
               <button class="btn btn-secondary" onclick="openGlobalManualImportModal()" title="Ручной импорт файлов в библиотеку" data-i18n-title="manual_import.global_btn"><i data-lucide="hard-drive-download" class="ico-sm"></i> <span data-i18n="manual_import.global_btn">Ручной импорт</span></button>
+              <button id="btn-library-bulk-toggle" class="btn btn-secondary" onclick="toggleLibraryBulkMode()" title="Выбрать тайтлы и массово редактировать"><i data-lucide="check-square" class="ico-sm"></i> <span>Выбрать тайтлы</span></button>
               <button class="btn btn-primary" onclick="openAddShowWizard()" data-i18n="nav.add_video">+ Добавить видео</button>
             </div>
           </div>
@@ -381,6 +382,60 @@
           <button class="btn btn-secondary btn-icon-only" id="poster-options-btn" onclick="openPosterOptionsModal()" title="Опции постера" data-i18n-title="poster_opt.btn_title">
             <i data-lucide="sliders-horizontal"></i>
           </button>
+        </div>
+
+        <!-- Bulk Action Bar -->
+        <div id="library-bulk-bar" class="library-bulk-bar" style="display:none;">
+          <div class="bulk-bar-left">
+            <span class="bulk-count-badge">
+              <i data-lucide="check-square" class="ico-xs"></i>
+              <span id="library-bulk-count-text">Выбрано: 0 из 0</span>
+            </span>
+            <button class="btn btn-secondary btn-small" id="btn-library-bulk-select-all" onclick="toggleLibraryBulkSelectAll()">
+              <i data-lucide="check" class="ico-xs"></i> <span>Выбрать все</span>
+            </button>
+          </div>
+          <div class="bulk-bar-actions">
+            <!-- Quality Profile dropdown & apply -->
+            <div class="bulk-action-item">
+              <select id="library-bulk-quality-select" class="input input-small" style="max-width: 170px;">
+                <option value="">— Профиль качества —</option>
+              </select>
+              <button class="btn btn-secondary btn-small" onclick="applyBulkQualityToShows()" title="Применить профиль качества">
+                <i data-lucide="check" class="ico-xs"></i> <span>Применить</span>
+              </button>
+            </div>
+            <!-- Category dropdown & apply -->
+            <div class="bulk-action-item">
+              <select id="library-bulk-category-select" class="input input-small" style="max-width: 140px;">
+                <option value="">— Категория —</option>
+                <option value="movie">Фильмы</option>
+                <option value="series">Сериалы</option>
+                <option value="anime">Аниме</option>
+              </select>
+              <button class="btn btn-secondary btn-small" onclick="applyBulkCategoryToShows()" title="Сменить категорию">
+                <i data-lucide="folder-sync" class="ico-xs"></i> <span>Сменить</span>
+              </button>
+            </div>
+            <!-- Monitored buttons -->
+            <div class="bulk-action-item">
+              <button class="btn btn-secondary btn-small" onclick="applyBulkMonitoringToShows(true)" title="Включить мониторинг">
+                <i data-lucide="bookmark-check" class="ico-xs" style="color:var(--success)"></i> <span>Мониторить</span>
+              </button>
+              <button class="btn btn-secondary btn-small" onclick="applyBulkMonitoringToShows(false)" title="Выключить мониторинг">
+                <i data-lucide="bookmark-x" class="ico-xs" style="color:var(--text-muted)"></i> <span>Снять</span>
+              </button>
+            </div>
+            <!-- Delete -->
+            <button class="btn btn-danger btn-small" onclick="applyBulkDeleteShows()" title="Удалить выбранные тайтлы">
+              <i data-lucide="trash-2" class="ico-xs"></i> <span>Удалить</span>
+            </button>
+          </div>
+          <div class="bulk-bar-right">
+            <button class="btn btn-secondary btn-small" onclick="toggleLibraryBulkMode(false)">
+              <i data-lucide="x" class="ico-xs"></i> <span>Готово</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -3148,6 +3203,6 @@
 <div id="toast" class="toast"></div>
 
 <script src="https://unpkg.com/lucide@latest"></script>
-<script src="/ui/static/js/app.js?v=20260825-19"></script>
+<script src="/ui/static/js/app.js?v=20260825-20"></script>
 </body>
 </html>

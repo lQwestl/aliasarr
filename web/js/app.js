@@ -12,6 +12,8 @@ if (window.__ALIASARR_BOOTSTRAP_KEY__) {
 let CACHED_SHOWS = [];
 let CACHED_QUALITY_PROFILES = [];
 let CACHED_METADATA_SOURCES = [];
+let LIBRARY_BULK_MODE = false;
+let SELECTED_SHOW_IDS = new Set();
 const QUALITY_OPTIONS = [
   "CAM-480p", "Telesync-480p", "Telecine-480p", "Workprint-480p",
   "SDTV-480p", "TVRip-480p", "DVD-480p", "DVDRip-480p",
@@ -3854,27 +3856,29 @@ function renderLibrary() {
 
   if (LIBRARY_VIEW_MODE === "posters") {
     if (grid) {
-      grid.className = "shows-grid size-" + POSTER_OPTIONS.size;
+      grid.className = "shows-grid size-" + POSTER_OPTIONS.size + (LIBRARY_BULK_MODE ? " bulk-mode-active" : "");
       grid.innerHTML = shows.map(renderShowCard).join("");
-      shows.forEach(s => document.getElementById("show-card-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+      shows.forEach(s => document.getElementById("show-card-" + s.id)?.addEventListener("click", (e) => onShowCardClick(s.id, e)));
       if (window.lucide) lucide.createIcons();
     }
   } else if (LIBRARY_VIEW_MODE === "table") {
     const tbody = document.getElementById("shows-table-body");
     if (tbody) {
+      if (tableWrap) tableWrap.classList.toggle("bulk-mode-active", LIBRARY_BULK_MODE);
       tbody.innerHTML = shows.map(renderShowTableRow).join("");
-      shows.forEach(s => document.getElementById("show-row-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+      shows.forEach(s => document.getElementById("show-row-" + s.id)?.addEventListener("click", (e) => onShowRowClick(s.id, e)));
       if (window.lucide) lucide.createIcons();
     }
   } else {
     if (overviewWrap) {
-      overviewWrap.className = "shows-overview size-" + (POSTER_OPTIONS.size || "medium");
+      overviewWrap.className = "shows-overview size-" + (POSTER_OPTIONS.size || "medium") + (LIBRARY_BULK_MODE ? " bulk-mode-active" : "");
       overviewWrap.innerHTML = shows.map(renderShowOverviewRow).join("");
-      shows.forEach(s => document.getElementById("show-overview-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+      shows.forEach(s => document.getElementById("show-overview-" + s.id)?.addEventListener("click", (e) => onShowOverviewClick(s.id, e)));
       if (window.lucide) lucide.createIcons();
     }
   }
   buildAlphabetIndex(shows);
+  updateLibraryBulkUI(shows);
 }
 
 function renderLibraryDashboard(shows) {
@@ -4083,6 +4087,15 @@ function renderShowCard(show) {
 
   // Индикатор прогресса
   const progressHtml = computeShowProgressHtml(show, activeTask);
+  const isSelected = SELECTED_SHOW_IDS.has(show.id);
+  const selectedClass = isSelected ? "is-selected" : "";
+  const checkedAttr = isSelected ? "checked" : "";
+
+  const checkboxHtml = `
+    <div class="show-card-checkbox-wrap" onclick="event.stopPropagation(); toggleShowSelection(${show.id}, event)">
+      <input type="checkbox" class="show-card-checkbox" ${checkedAttr} onclick="event.stopPropagation();" onchange="toggleShowSelection(${show.id}, event)">
+    </div>
+  `;
 
   let infoHtml = "";
   if (POSTER_OPTIONS.title) {
@@ -4109,8 +4122,9 @@ function renderShowCard(show) {
   }
 
   return `
-    <div class="show-card" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}">
+    <div class="show-card ${selectedClass}" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}">
       <div class="show-poster" ${posterStyle}>
+        ${checkboxHtml}
         ${show.poster_url ? "" : initial}
         ${importOverlayHtml}
       </div>
@@ -4124,12 +4138,20 @@ function renderShowTableRow(show) {
   const mTitle = show.monitored ? t("dash.monitored") : t("dash.unmonitored");
   const mIcon = show.monitored ? "bookmark-check" : "bookmark-x";
   const mClass = show.monitored ? "monitored" : "unmonitored";
+  const isSelected = SELECTED_SHOW_IDS.has(show.id);
+  const selectedClass = isSelected ? "is-selected" : "";
+  const checkedAttr = isSelected ? "checked" : "";
+
   return `
-    <tr id="show-row-${show.id}" data-alpha="${getShowAlpha(show)}" style="cursor:pointer">
+    <tr id="show-row-${show.id}" class="${selectedClass}" data-alpha="${getShowAlpha(show)}" style="cursor:pointer">
       <td style="text-align: center; width: 44px;">
-        <span class="show-table-monitored ${mClass}" title="${escapeHtml(mTitle)}">
-          <i data-lucide="${mIcon}" class="ico-xs"></i>
-        </span>
+        ${LIBRARY_BULK_MODE ? `
+          <input type="checkbox" class="show-row-checkbox" ${checkedAttr} onclick="event.stopPropagation();" onchange="toggleShowSelection(${show.id}, event)">
+        ` : `
+          <span class="show-table-monitored ${mClass}" title="${escapeHtml(mTitle)}">
+            <i data-lucide="${mIcon}" class="ico-xs"></i>
+          </span>
+        `}
       </td>
       <td>${escapeHtml(show.title)}${show.year ? ` <span class="hint">(${show.year})</span>` : ""}</td>
       <td>${show.network ? escapeHtml(show.network) : "—"}</td>
@@ -4148,6 +4170,15 @@ function renderShowOverviewRow(show) {
   const mClass = show.monitored ? "monitored" : "unmonitored";
   const mIcon = show.monitored ? "bookmark-check" : "bookmark-x";
   const progressHtml = computeShowProgressHtml(show);
+  const isSelected = SELECTED_SHOW_IDS.has(show.id);
+  const selectedClass = isSelected ? "is-selected" : "";
+  const checkedAttr = isSelected ? "checked" : "";
+
+  const checkboxHtml = `
+    <div class="show-card-checkbox-wrap" onclick="event.stopPropagation(); toggleShowSelection(${show.id}, event)">
+      <input type="checkbox" class="show-card-checkbox" ${checkedAttr} onclick="event.stopPropagation();" onchange="toggleShowSelection(${show.id}, event)">
+    </div>
+  `;
 
   const aliases = (show.aliases || []).slice(0, 6).map(
     a => `<span class="alias-chip lang-${a.language}">${escapeHtml(a.text)}</span>`
@@ -4173,9 +4204,12 @@ function renderShowOverviewRow(show) {
   const tagsHtml = (POSTER_OPTIONS.tags && aliases) ? `<div class="alias-cluster" style="margin-top:6px;">${aliases}</div>` : "";
 
   return `
-    <div class="overview-row" id="show-overview-${show.id}" data-alpha="${getShowAlpha(show)}">
+    <div class="overview-row ${selectedClass}" id="show-overview-${show.id}" data-alpha="${getShowAlpha(show)}">
       <div class="overview-poster-col">
-        <div class="overview-poster" ${posterStyle}>${show.poster_url ? "" : initial}</div>
+        <div class="overview-poster" ${posterStyle}>
+          ${checkboxHtml}
+          ${show.poster_url ? "" : initial}
+        </div>
         ${progressHtml}
       </div>
       <div class="overview-info">
@@ -4193,6 +4227,300 @@ function renderShowOverviewRow(show) {
         ${tagsHtml}
       </div>
     </div>`;
+}
+
+function onShowCardClick(showId, event) {
+  if (LIBRARY_BULK_MODE) {
+    toggleShowSelection(showId, event);
+  } else {
+    openShowModal(showId);
+  }
+}
+
+function onShowRowClick(showId, event) {
+  if (LIBRARY_BULK_MODE) {
+    toggleShowSelection(showId, event);
+  } else {
+    openShowModal(showId);
+  }
+}
+
+function onShowOverviewClick(showId, event) {
+  if (LIBRARY_BULK_MODE) {
+    toggleShowSelection(showId, event);
+  } else {
+    openShowModal(showId);
+  }
+}
+
+function getCurrentlyFilteredShows() {
+  const searchInput = document.getElementById("library-search");
+  const query = (searchInput ? searchInput.value : "").toLowerCase().trim();
+  let shows = CACHED_SHOWS || [];
+
+  if (LIBRARY_CATEGORY_FILTER && LIBRARY_CATEGORY_FILTER !== "all") {
+    shows = shows.filter(s => (s.content_type || "series") === LIBRARY_CATEGORY_FILTER);
+  }
+  if (LIBRARY_MONITOR_FILTER === "monitored") {
+    shows = shows.filter(s => s.monitored === true);
+  } else if (LIBRARY_MONITOR_FILTER === "unmonitored") {
+    shows = shows.filter(s => !s.monitored);
+  }
+  if (query) {
+    shows = shows.filter(s =>
+      (s.title && s.title.toLowerCase().includes(query)) ||
+      (s.aliases || []).some(a => a.text && a.text.toLowerCase().includes(query))
+    );
+  }
+  return shows;
+}
+
+function toggleShowSelection(showId, event) {
+  if (event) {
+    if (event.target && (event.target.tagName === 'A' || event.target.closest('a'))) return;
+  }
+  if (SELECTED_SHOW_IDS.has(showId)) {
+    SELECTED_SHOW_IDS.delete(showId);
+  } else {
+    SELECTED_SHOW_IDS.add(showId);
+  }
+
+  const cardEl = document.getElementById("show-card-" + showId);
+  const rowEl = document.getElementById("show-row-" + showId);
+  const ovEl = document.getElementById("show-overview-" + showId);
+  const isSelected = SELECTED_SHOW_IDS.has(showId);
+
+  [cardEl, rowEl, ovEl].forEach(el => {
+    if (!el) return;
+    el.classList.toggle("is-selected", isSelected);
+    const cb = el.querySelector("input[type=checkbox]");
+    if (cb) cb.checked = isSelected;
+  });
+
+  updateLibraryBulkUI();
+}
+
+function toggleLibraryBulkSelectAll() {
+  const currentShows = getCurrentlyFilteredShows();
+  const allSelected = currentShows.length > 0 && currentShows.every(s => SELECTED_SHOW_IDS.has(s.id));
+
+  if (allSelected) {
+    currentShows.forEach(s => SELECTED_SHOW_IDS.delete(s.id));
+  } else {
+    currentShows.forEach(s => SELECTED_SHOW_IDS.add(s.id));
+  }
+  renderLibrary();
+}
+
+function toggleLibraryBulkMode(forceState) {
+  LIBRARY_BULK_MODE = (forceState !== undefined) ? forceState : !LIBRARY_BULK_MODE;
+  if (!LIBRARY_BULK_MODE) {
+    SELECTED_SHOW_IDS.clear();
+  }
+  const btnToggle = document.getElementById("btn-library-bulk-toggle");
+  if (btnToggle) {
+    btnToggle.classList.toggle("active", LIBRARY_BULK_MODE);
+  }
+  const bulkBar = document.getElementById("library-bulk-bar");
+  if (bulkBar) {
+    bulkBar.style.display = LIBRARY_BULK_MODE ? "flex" : "none";
+  }
+
+  const qSelect = document.getElementById("library-bulk-quality-select");
+  if (qSelect) {
+    qSelect.innerHTML = [
+      `<option value="">— ${t("library.col_profile") || "Профиль качества"} —</option>`,
+      ...CACHED_QUALITY_PROFILES.map(qp => `<option value="${qp.id}">${escapeHtml(qp.name)}</option>`)
+    ].join("");
+  }
+
+  renderLibrary();
+}
+
+function updateLibraryBulkUI(shows) {
+  const currentShows = shows || getCurrentlyFilteredShows();
+  const total = currentShows.length;
+  const count = currentShows.filter(s => SELECTED_SHOW_IDS.has(s.id)).length;
+
+  const countEl = document.getElementById("library-bulk-count-text");
+  if (countEl) {
+    countEl.textContent = `${CURRENT_LANG === "en" ? "Selected:" : "Выбрано:"} ${count} ${CURRENT_LANG === "en" ? "of" : "из"} ${total}`;
+  }
+
+  const btnSelectAll = document.getElementById("btn-library-bulk-select-all");
+  if (btnSelectAll) {
+    const span = btnSelectAll.querySelector("span");
+    if (span) {
+      span.textContent = (total > 0 && count === total)
+        ? (CURRENT_LANG === "en" ? "Deselect all" : "Снять выбор")
+        : (CURRENT_LANG === "en" ? "Select all" : "Выбрать все");
+    }
+  }
+}
+
+async function applyBulkQualityToShows() {
+  const qSelect = document.getElementById("library-bulk-quality-select");
+  if (!qSelect || !qSelect.value) {
+    toast(CURRENT_LANG === "en" ? "Please select a quality profile" : "Выберите профиль качества", true);
+    return;
+  }
+  const qpId = Number(qSelect.value);
+  const selectedIds = Array.from(SELECTED_SHOW_IDS);
+  if (!selectedIds.length) {
+    toast(CURRENT_LANG === "en" ? "No shows selected" : "Не выбрано ни одного тайтла", true);
+    return;
+  }
+
+  const qpName = qualityProfileName(qpId);
+  const confirmed = await confirmModal(
+    CURRENT_LANG === "en"
+      ? `Assign quality profile «${qpName}» to ${selectedIds.length} selected show(s)?`
+      : `Применить профиль «${qpName}» для ${selectedIds.length} выбранных тайтлов?`,
+    { danger: false }
+  );
+  if (!confirmed) return;
+
+  try {
+    let successCount = 0;
+    for (const showId of selectedIds) {
+      try {
+        await api(`/api/v1/shows/${showId}`, {
+          method: "PUT",
+          body: JSON.stringify({ quality_profile_id: qpId }),
+        });
+        const s = (CACHED_SHOWS || []).find(x => x.id === showId);
+        if (s) s.quality_profile_id = qpId;
+        if (typeof ALL_SHOWS !== "undefined" && ALL_SHOWS) {
+          const sAll = ALL_SHOWS.find(x => x.id === showId);
+          if (sAll) sAll.quality_profile_id = qpId;
+        }
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to update show ${showId}:`, err);
+      }
+    }
+    toast(CURRENT_LANG === "en" ? `Quality profile updated for ${successCount} show(s)` : `Профиль качества обновлён для ${successCount} тайтлов`);
+    renderLibrary();
+  } catch (e) {
+    toast("Ошибка: " + e.message, true);
+  }
+}
+
+async function applyBulkCategoryToShows() {
+  const catSelect = document.getElementById("library-bulk-category-select");
+  if (!catSelect || !catSelect.value) {
+    toast(CURRENT_LANG === "en" ? "Please select a category" : "Выберите категорию", true);
+    return;
+  }
+  const cat = catSelect.value;
+  const selectedIds = Array.from(SELECTED_SHOW_IDS);
+  if (!selectedIds.length) {
+    toast(CURRENT_LANG === "en" ? "No shows selected" : "Не выбрано ни одного тайтла", true);
+    return;
+  }
+
+  const catName = cat === 'movie' ? (CURRENT_LANG === 'en' ? 'Movies' : 'Фильмы') : (cat === 'anime' ? (CURRENT_LANG === 'en' ? 'Anime' : 'Аниме') : (CURRENT_LANG === 'en' ? 'Series' : 'Сериалы'));
+  const confirmed = await confirmModal(
+    CURRENT_LANG === "en"
+      ? `Change category to «${catName}» for ${selectedIds.length} selected show(s)?`
+      : `Сменить категорию на «${catName}» для ${selectedIds.length} выбранных тайтлов?`,
+    { danger: false }
+  );
+  if (!confirmed) return;
+
+  try {
+    let successCount = 0;
+    for (const showId of selectedIds) {
+      try {
+        await api(`/api/v1/shows/${showId}`, {
+          method: "PUT",
+          body: JSON.stringify({ content_type: cat }),
+        });
+        const s = (CACHED_SHOWS || []).find(x => x.id === showId);
+        if (s) s.content_type = cat;
+        if (typeof ALL_SHOWS !== "undefined" && ALL_SHOWS) {
+          const sAll = ALL_SHOWS.find(x => x.id === showId);
+          if (sAll) sAll.content_type = cat;
+        }
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to update show ${showId}:`, err);
+      }
+    }
+    toast(CURRENT_LANG === "en" ? `Category updated for ${successCount} show(s)` : `Категория обновлена для ${successCount} тайтлов`);
+    renderLibrary();
+  } catch (e) {
+    toast("Ошибка: " + e.message, true);
+  }
+}
+
+async function applyBulkMonitoringToShows(monitored) {
+  const selectedIds = Array.from(SELECTED_SHOW_IDS);
+  if (!selectedIds.length) {
+    toast(CURRENT_LANG === "en" ? "No shows selected" : "Не выбрано ни одного тайтла", true);
+    return;
+  }
+
+  try {
+    let successCount = 0;
+    for (const showId of selectedIds) {
+      try {
+        await api(`/api/v1/shows/${showId}/monitor?monitored=${monitored}`, { method: "PUT" });
+        const s = (CACHED_SHOWS || []).find(x => x.id === showId);
+        if (s) s.monitored = monitored;
+        if (typeof ALL_SHOWS !== "undefined" && ALL_SHOWS) {
+          const sAll = ALL_SHOWS.find(x => x.id === showId);
+          if (sAll) sAll.monitored = monitored;
+        }
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to monitor show ${showId}:`, err);
+      }
+    }
+    toast(monitored
+      ? (CURRENT_LANG === "en" ? `Monitoring enabled for ${successCount} show(s)` : `Включен мониторинг для ${successCount} тайтлов`)
+      : (CURRENT_LANG === "en" ? `Monitoring disabled for ${successCount} show(s)` : `Отключен мониторинг для ${successCount} тайтлов`));
+    renderLibrary();
+  } catch (e) {
+    toast("Ошибка: " + e.message, true);
+  }
+}
+
+async function applyBulkDeleteShows() {
+  const selectedIds = Array.from(SELECTED_SHOW_IDS);
+  if (!selectedIds.length) {
+    toast(CURRENT_LANG === "en" ? "No shows selected" : "Не выбрано ни одного тайтла", true);
+    return;
+  }
+
+  const confirmed = await confirmModal(
+    CURRENT_LANG === "en"
+      ? `Are you sure you want to delete ${selectedIds.length} selected show(s)? Files on disk will NOT be deleted.`
+      : `Вы действительно хотите удалить ${selectedIds.length} выбранных тайтлов из библиотеки? Файлы на диске затронуты не будут.`,
+    { danger: true }
+  );
+  if (!confirmed) return;
+
+  try {
+    let successCount = 0;
+    for (const showId of selectedIds) {
+      try {
+        await api(`/api/v1/shows/${showId}`, { method: "DELETE" });
+        CACHED_SHOWS = (CACHED_SHOWS || []).filter(x => x.id !== showId);
+        if (typeof ALL_SHOWS !== "undefined" && ALL_SHOWS) {
+          ALL_SHOWS = ALL_SHOWS.filter(x => x.id !== showId);
+        }
+        SELECTED_SHOW_IDS.delete(showId);
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to delete show ${showId}:`, err);
+      }
+    }
+    toast(CURRENT_LANG === "en" ? `Deleted ${successCount} show(s)` : `Удалено ${successCount} тайтлов`);
+    renderLibrary();
+  } catch (e) {
+    toast("Ошибка: " + e.message, true);
+  }
 }
 
 // =============================================================================
