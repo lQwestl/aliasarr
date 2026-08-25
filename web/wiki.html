@@ -7,8 +7,8 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366F1'/%3E%3Cstop offset='1' stop-color='%2300F0FF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ctext x='32' y='45' font-family='Arial,Helvetica,sans-serif' font-size='36' font-weight='800' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/ui/static/css/style.css?v=20260825-03">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260825-04">
 <script>
   (function () {
     try {
@@ -23,11 +23,14 @@
   :root {
     --wiki-max-width: 1460px;
     --wiki-sidebar-width: 320px;
+    --font-display: 'Outfit', sans-serif;
+    --font-body: 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
   }
   body {
     background-color: var(--bg);
     color: var(--text);
-    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-family: var(--font-body);
     line-height: 1.65;
     margin: 0;
     padding: 0;
@@ -47,9 +50,6 @@
     -webkit-backdrop-filter: blur(16px);
     transition: background 0.2s ease, border-color 0.2s ease;
   }
-  [data-theme="light"] .wiki-header {
-    background: rgba(248, 249, 252, 0.92);
-  }
   .wiki-header-inner {
     max-width: var(--wiki-max-width);
     margin: 0 auto;
@@ -64,29 +64,42 @@
     gap: 14px;
     min-width: 0;
   }
-  .wiki-brand-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--font-heading, 'Syne', sans-serif);
-    font-weight: 800;
-    font-size: 16px;
-    letter-spacing: -0.02em;
-    color: var(--text);
+
+  /* Brand Styling Matching App Exactly */
+  .brand { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
     text-decoration: none;
+    color: inherit;
   }
-  .wiki-brand-logo {
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    background: linear-gradient(135deg, #6366f1, #00f0ff);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
+  .brand-mark {
+    font-family: var(--font-display);
     font-weight: 800;
-    box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+    font-size: 20px;
+  }
+  .brand-mark-logo {
+    width: 34px; 
+    height: 34px; 
+    border-radius: var(--radius-sm, 8px);
+    background: linear-gradient(135deg, var(--teal, #00F0FF), var(--violet, #FF2A4D));
+    color: #ffffff;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    flex-shrink: 0;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 240, 255, 0.25);
+  }
+  .brand-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--text);
+    margin-top: 0;
+    letter-spacing: -0.3px;
   }
   .wiki-doc-tag {
     font-size: 10.5px;
@@ -99,6 +112,7 @@
     border-radius: 4px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    margin-left: 4px;
   }
 
   /* Header Search & Actions */
@@ -247,10 +261,11 @@
     pointer-events: none;
   }
   .wiki-hero h1 {
-    font-family: var(--font-heading, 'Syne', sans-serif);
-    font-size: 30px;
+    font-family: var(--font-display);
+    font-size: 28px;
     font-weight: 800;
     margin: 0 0 10px 0;
+    color: var(--text);
     background: linear-gradient(135deg, #ffffff 30%, var(--teal, #00F0FF) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -324,7 +339,7 @@
     flex-shrink: 0;
   }
   .wiki-section-title {
-    font-family: var(--font-heading, 'Syne', sans-serif);
+    font-family: var(--font-display);
     font-size: 21px;
     font-weight: 700;
     margin: 0;
@@ -347,6 +362,7 @@
   .wiki-h3 {
     font-size: 16px;
     font-weight: 700;
+    font-family: var(--font-display);
     color: var(--text);
     margin: 26px 0 12px 0;
     display: flex;
@@ -425,6 +441,7 @@
   .wiki-subcard-title {
     font-size: 14.5px;
     font-weight: 700;
+    font-family: var(--font-display);
     color: var(--text);
     margin: 0 0 8px 0;
     display: flex;
@@ -472,6 +489,7 @@
   .wiki-step-title {
     font-size: 15px;
     font-weight: 700;
+    font-family: var(--font-display);
     color: var(--text);
     margin-bottom: 4px;
   }
@@ -529,7 +547,7 @@
     gap: 6px;
     white-space: nowrap;
     transition: all 0.15s ease;
-    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-family: var(--font-body);
     flex-shrink: 0;
   }
   .btn-copy:hover {
@@ -634,6 +652,192 @@
     color: var(--text);
   }
 
+  /* ------------------------------------------------------------- */
+  /* LIGHT THEME EXPLICIT CONTRAST & VISIBILITY OVERRIDES          */
+  /* ------------------------------------------------------------- */
+  [data-theme="light"] body {
+    background-color: var(--bg);
+    color: var(--text);
+  }
+  [data-theme="light"] .wiki-header {
+    background: rgba(248, 250, 252, 0.94);
+    border-color: #e2e8f0;
+  }
+  [data-theme="light"] .wiki-hero {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(2, 132, 199, 0.06) 50%, rgba(241, 245, 249, 0.95) 100%);
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  }
+  [data-theme="light"] .wiki-hero h1 {
+    color: #0f172a;
+    background: linear-gradient(135deg, #0f172a 30%, #0284c7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  [data-theme="light"] .wiki-hero p {
+    color: #475569;
+  }
+  [data-theme="light"] .wiki-quick-pill {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #0f172a;
+  }
+  [data-theme="light"] .wiki-quick-pill:hover {
+    background: #e0f2fe;
+    border-color: #0284c7;
+    color: #0369a1;
+  }
+  [data-theme="light"] .wiki-section {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+  [data-theme="light"] .wiki-section:hover {
+    border-color: #0284c7;
+  }
+  [data-theme="light"] .wiki-section-header {
+    border-bottom-color: #e2e8f0;
+  }
+  [data-theme="light"] .wiki-section-icon {
+    background: rgba(2, 132, 199, 0.1);
+    border-color: rgba(2, 132, 199, 0.25);
+    color: #0284c7;
+  }
+  [data-theme="light"] .wiki-section-title {
+    color: #0f172a;
+  }
+  [data-theme="light"] .wiki-h3 {
+    color: #0f172a;
+  }
+  [data-theme="light"] .wiki-p {
+    color: #334155;
+  }
+  [data-theme="light"] .wiki-subcard {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+  }
+  [data-theme="light"] .wiki-subcard:hover {
+    border-color: #0284c7;
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+  }
+  [data-theme="light"] .wiki-subcard-title {
+    color: #0f172a;
+  }
+  [data-theme="light"] .wiki-subcard-text {
+    color: #475569;
+  }
+  [data-theme="light"] .wiki-step-title {
+    color: #0f172a;
+  }
+  [data-theme="light"] .wiki-step-desc {
+    color: #475569;
+  }
+  [data-theme="light"] .wiki-code-block {
+    background: #0f172a;
+    color: #38bdf8;
+    border-color: #1e293b;
+  }
+  [data-theme="light"] .regex-box {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+  }
+  [data-theme="light"] .regex-code {
+    color: #0369a1;
+  }
+  [data-theme="light"] .btn-copy {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #334155;
+  }
+  [data-theme="light"] .btn-copy:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+  [data-theme="light"] .wiki-table {
+    border-color: #e2e8f0;
+  }
+  [data-theme="light"] .table-responsive {
+    border-color: #e2e8f0;
+  }
+  [data-theme="light"] .wiki-table th {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-bottom-color: #e2e8f0;
+  }
+  [data-theme="light"] .wiki-table td {
+    border-bottom-color: #e2e8f0;
+    color: #334155;
+  }
+  [data-theme="light"] .wiki-table tr:hover td {
+    background: #f8fafc;
+    color: #0f172a;
+  }
+  [data-theme="light"] .wiki-callout-tip {
+    background: #f0f9ff;
+    border-color: #bae6fd;
+    color: #0369a1;
+  }
+  [data-theme="light"] .wiki-callout-note {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    color: #3730a3;
+  }
+  [data-theme="light"] .wiki-callout-warn {
+    background: #fff7ed;
+    border-color: #fed7aa;
+    color: #9a3412;
+  }
+  [data-theme="light"] .wiki-callout-best {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #166534;
+  }
+  [data-theme="light"] .wiki-toc-link {
+    color: #64748b;
+  }
+  [data-theme="light"] .wiki-toc-link:hover {
+    color: #0f172a;
+    background: #f1f5f9;
+  }
+  [data-theme="light"] .wiki-toc-link.active {
+    color: #0284c7;
+    background: #e0f2fe;
+    border-left-color: #0284c7;
+  }
+  [data-theme="light"] .wiki-search-input {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #0f172a;
+  }
+  [data-theme="light"] .wiki-search-input:focus {
+    background: #ffffff;
+    border-color: #0284c7;
+    box-shadow: 0 0 10px rgba(2, 132, 199, 0.2);
+  }
+  [data-theme="light"] .wiki-doc-tag {
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+    border-color: rgba(99, 102, 241, 0.25);
+  }
+  [data-theme="light"] .wiki-section-badge {
+    background: rgba(2, 132, 199, 0.1);
+    color: #0284c7;
+    border-color: rgba(2, 132, 199, 0.25);
+  }
+  [data-theme="light"] .badge-builtin {
+    background: rgba(99, 102, 241, 0.12);
+    color: #4338ca;
+  }
+  [data-theme="light"] .badge-score-pos {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+  }
+  [data-theme="light"] .badge-score-neg {
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
+  }
+
   /* Auth Error Overlay */
   #auth-overlay {
     position: fixed;
@@ -674,8 +878,8 @@
 
 <!-- AUTH GUARD OVERLAY -->
 <div id="auth-overlay">
-  <div class="wiki-brand-logo" style="width:54px; height:54px; font-size:26px; border-radius:14px; margin-bottom:16px;">A</div>
-  <h2 style="font-family:var(--font-heading); margin:0 0 8px 0;">
+  <div class="brand-mark brand-mark-logo" style="width:54px; height:54px; font-size:26px; border-radius:14px; margin-bottom:16px;">A</div>
+  <h2 style="font-family:var(--font-display); margin:0 0 8px 0;">
     <span class="lang-ru">Требуется авторизация</span>
     <span class="lang-en">Authentication Required</span>
   </h2>
@@ -693,9 +897,9 @@
 <header class="wiki-header">
   <div class="wiki-header-inner">
     <div class="wiki-header-left">
-      <a href="/" class="wiki-brand-badge" title="Aliasarr">
-        <div class="wiki-brand-logo">A</div>
-        <span>Aliasarr</span>
+      <a href="/" class="brand" style="margin-bottom:0; text-decoration:none; color:inherit;" title="Aliasarr">
+        <div class="brand-mark brand-mark-logo">A</div>
+        <div class="brand-name">Aliasarr</div>
         <span class="wiki-doc-tag">Wiki &amp; Docs</span>
       </a>
     </div>
