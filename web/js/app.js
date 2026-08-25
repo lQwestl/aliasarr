@@ -3859,26 +3859,22 @@ function renderLibrary() {
       shows.forEach(s => document.getElementById("show-card-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
       if (window.lucide) lucide.createIcons();
     }
-    buildAlphabetIndex(shows);
+  } else if (LIBRARY_VIEW_MODE === "table") {
+    const tbody = document.getElementById("shows-table-body");
+    if (tbody) {
+      tbody.innerHTML = shows.map(renderShowTableRow).join("");
+      shows.forEach(s => document.getElementById("show-row-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+      if (window.lucide) lucide.createIcons();
+    }
   } else {
-    const alphaIndex = document.getElementById("alphabet-index");
-    if (alphaIndex) alphaIndex.style.display = "none";
-    if (LIBRARY_VIEW_MODE === "table") {
-      const tbody = document.getElementById("shows-table-body");
-      if (tbody) {
-        tbody.innerHTML = shows.map(renderShowTableRow).join("");
-        shows.forEach(s => document.getElementById("show-row-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
-        if (window.lucide) lucide.createIcons();
-      }
-    } else {
-      if (overviewWrap) {
-        overviewWrap.className = "shows-overview size-" + (POSTER_OPTIONS.size || "medium");
-        overviewWrap.innerHTML = shows.map(renderShowOverviewRow).join("");
-        shows.forEach(s => document.getElementById("show-overview-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
-        if (window.lucide) lucide.createIcons();
-      }
+    if (overviewWrap) {
+      overviewWrap.className = "shows-overview size-" + (POSTER_OPTIONS.size || "medium");
+      overviewWrap.innerHTML = shows.map(renderShowOverviewRow).join("");
+      shows.forEach(s => document.getElementById("show-overview-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+      if (window.lucide) lucide.createIcons();
     }
   }
+  buildAlphabetIndex(shows);
 }
 
 function renderLibraryDashboard(shows) {
@@ -3984,6 +3980,76 @@ function computeShowProgressHtml(show, activeTask) {
   }
 }
 
+function getShowAlpha(show) {
+  const title = (show.title || "").trim();
+  const firstChar = title[0]?.toUpperCase() || "#";
+  if (/[A-Z]/.test(firstChar)) {
+    return firstChar;
+  }
+  if (/[А-ЯЁ]/.test(firstChar)) {
+    return firstChar === "Ё" ? "Е" : firstChar;
+  }
+  return "#";
+}
+
+function buildAlphabetIndex(shows) {
+  const container = document.getElementById("alphabet-index");
+  if (!container) return;
+  if (!shows || shows.length === 0) {
+    container.style.display = "none";
+    return;
+  }
+
+  const existingLetters = new Set();
+  let hasCyrillic = false;
+
+  shows.forEach(s => {
+    const alpha = getShowAlpha(s);
+    existingLetters.add(alpha);
+    if (/[А-Я]/.test(alpha)) {
+      hasCyrillic = true;
+    }
+  });
+
+  const alphabet = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")];
+  if (hasCyrillic) {
+    alphabet.push(..."АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ".split(""));
+  }
+
+  container.innerHTML = alphabet.map(char => {
+    const exists = existingLetters.has(char);
+    if (exists) {
+      return `<a class="alphabet-link active" onclick="scrollToLetter('${char}')" title="${char}">${char}</a>`;
+    } else {
+      return `<span class="alphabet-link disabled" title="${char}">${char}</span>`;
+    }
+  }).join("");
+
+  container.style.display = "flex";
+}
+
+function scrollToLetter(char) {
+  let target = null;
+  if (LIBRARY_VIEW_MODE === "posters") {
+    target = document.querySelector(`.show-card[data-alpha="${char}"]`);
+  } else if (LIBRARY_VIEW_MODE === "table") {
+    target = document.querySelector(`#shows-table-body tr[data-alpha="${char}"]`);
+  } else {
+    target = document.querySelector(`.overview-row[data-alpha="${char}"]`);
+  }
+
+  if (target) {
+    const stickyHeader = document.querySelector("#tab-library .panel-sticky-header");
+    const headerOffset = (stickyHeader ? stickyHeader.offsetHeight : 0) + 16;
+    const elementPosition = target.getBoundingClientRect().top;
+    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+    window.scrollTo({
+      top: Math.max(0, offsetPosition),
+      behavior: "smooth"
+    });
+  }
+}
+
 function renderShowCard(show) {
   const initial = (show.title || "?").trim()[0]?.toUpperCase() || "?";
   const posterStyle = show.poster_url ? `style="background-image:url('${show.poster_url}')"` : "";
@@ -4043,7 +4109,7 @@ function renderShowCard(show) {
   }
 
   return `
-    <div class="show-card" id="show-card-${show.id}" data-alpha="${initial}">
+    <div class="show-card" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}">
       <div class="show-poster" ${posterStyle}>
         ${show.poster_url ? "" : initial}
         ${importOverlayHtml}
@@ -4053,47 +4119,13 @@ function renderShowCard(show) {
     </div>`;
 }
 
-function buildAlphabetIndex(shows) {
-  const container = document.getElementById("alphabet-index");
-  if (!container) return;
-  const letters = new Set();
-  shows.forEach(s => {
-    const initial = (s.title || "?").trim()[0]?.toUpperCase() || "?";
-    if (/[A-ZА-ЯЁ0-9]/.test(initial)) letters.add(initial);
-    else letters.add("#");
-  });
-  
-  if (letters.size === 0) {
-    container.style.display = "none";
-    return;
-  }
-  
-  const sorted = Array.from(letters).sort();
-  container.innerHTML = sorted.map(char => 
-    `<a class="alphabet-link" onclick="scrollToLetter('${char}')">${char}</a>`
-  ).join("");
-  container.style.display = "flex";
-}
-
-function scrollToLetter(char) {
-  const cards = document.querySelectorAll(".show-card");
-  for (const card of cards) {
-    let cardAlpha = card.getAttribute("data-alpha");
-    if (!/[A-ZА-ЯЁ0-9]/.test(cardAlpha)) cardAlpha = "#";
-    if (cardAlpha === char) {
-      card.scrollIntoView({ behavior: "smooth", block: "start" });
-      break;
-    }
-  }
-}
-
 function renderShowTableRow(show) {
   const nextAiring = show.next_airing ? formatDateOnly(show.next_airing) : "—";
   const mTitle = show.monitored ? t("dash.monitored") : t("dash.unmonitored");
   const mIcon = show.monitored ? "bookmark-check" : "bookmark-x";
   const mClass = show.monitored ? "monitored" : "unmonitored";
   return `
-    <tr id="show-row-${show.id}" style="cursor:pointer">
+    <tr id="show-row-${show.id}" data-alpha="${getShowAlpha(show)}" style="cursor:pointer">
       <td style="text-align: center; width: 44px;">
         <span class="show-table-monitored ${mClass}" title="${escapeHtml(mTitle)}">
           <i data-lucide="${mIcon}" class="ico-xs"></i>
@@ -4141,7 +4173,7 @@ function renderShowOverviewRow(show) {
   const tagsHtml = (POSTER_OPTIONS.tags && aliases) ? `<div class="alias-cluster" style="margin-top:6px;">${aliases}</div>` : "";
 
   return `
-    <div class="overview-row" id="show-overview-${show.id}">
+    <div class="overview-row" id="show-overview-${show.id}" data-alpha="${getShowAlpha(show)}">
       <div class="overview-poster-col">
         <div class="overview-poster" ${posterStyle}>${show.poster_url ? "" : initial}</div>
         ${progressHtml}
