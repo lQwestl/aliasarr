@@ -3930,39 +3930,15 @@ function getTaskDisplayTitle(task) {
   return task.title || (CURRENT_LANG === "en" ? "Processing" : "Обработка");
 }
 
-function renderShowCard(show) {
-  const initial = (show.title || "?").trim()[0]?.toUpperCase() || "?";
-  const posterStyle = show.poster_url ? `style="background-image:url('${show.poster_url}')"` : "";
-  const aliases = (show.aliases || []).slice(0, 4).map(
-    a => `<span class="alias-chip lang-${a.language}">${escapeHtml(a.text)}</span>`
-  ).join("");
-  
-  // Active Task overlay check
-  const activeTask = (typeof CURRENT_ACTIVE_TASKS !== "undefined" && CURRENT_ACTIVE_TASKS) ? CURRENT_ACTIVE_TASKS.find(t => 
-    (t.show_id && t.show_id === show.id) ||
-    (t.title && t.title.toLowerCase().includes((show.title || "").toLowerCase())) ||
-    (t.message && t.message.toLowerCase().includes((show.title || "").toLowerCase()))
-  ) : null;
-
-  const taskTitle = activeTask ? getTaskDisplayTitle(activeTask) : "";
-
-  let importOverlayHtml = "";
-  if (activeTask) {
-    const pct = Math.min(100, Math.max(0, Math.round((activeTask.progress || 0) * 100)));
-    importOverlayHtml = `
-      <div class="poster-import-overlay">
-        <div class="poster-import-spinner"></div>
-        <div class="poster-import-title">${escapeHtml(taskTitle)}</div>
-        <div class="poster-import-pct">${pct}%</div>
-        <div class="poster-import-bar-track">
-          <div class="poster-import-bar-fill" style="width: ${pct}%;"></div>
-        </div>
-      </div>
-    `;
+function computeShowProgressHtml(show, activeTask) {
+  if (!activeTask && typeof CURRENT_ACTIVE_TASKS !== "undefined" && CURRENT_ACTIVE_TASKS) {
+    activeTask = CURRENT_ACTIVE_TASKS.find(t => 
+      (t.show_id && t.show_id === show.id) ||
+      (t.title && t.title.toLowerCase().includes((show.title || "").toLowerCase())) ||
+      (t.message && t.message.toLowerCase().includes((show.title || "").toLowerCase()))
+    );
   }
 
-  // Индикатор прогресса
-  let progressHtml = "";
   if (show.episodes_count > 0 || show.content_type === "movie") {
     const total = show.episodes_count || 1;
     const downloaded = show.downloaded_episodes_count || 0;
@@ -3995,17 +3971,52 @@ function renderShowCard(show) {
     }
     
     if (activeTask) {
+      const taskTitle = getTaskDisplayTitle(activeTask);
       const pct = Math.min(100, Math.max(0, Math.round((activeTask.progress || 0) * 100)));
       statusClass = "status-importing";
       textHtml = `<div class="poster-progress-text">${escapeHtml(taskTitle)}: ${pct}%</div>`;
     }
 
-    progressHtml = `
-      <div class="poster-progress ${statusClass}">${textHtml}</div>
-    `;
+    return `<div class="poster-progress ${statusClass}">${textHtml}</div>`;
   } else {
     show._computed_status = show.monitored ? "status-missing-mon" : "status-missing-unmon";
+    return "";
   }
+}
+
+function renderShowCard(show) {
+  const initial = (show.title || "?").trim()[0]?.toUpperCase() || "?";
+  const posterStyle = show.poster_url ? `style="background-image:url('${show.poster_url}')"` : "";
+  const aliases = (show.aliases || []).slice(0, 4).map(
+    a => `<span class="alias-chip lang-${a.language}">${escapeHtml(a.text)}</span>`
+  ).join("");
+  
+  // Active Task overlay check
+  const activeTask = (typeof CURRENT_ACTIVE_TASKS !== "undefined" && CURRENT_ACTIVE_TASKS) ? CURRENT_ACTIVE_TASKS.find(t => 
+    (t.show_id && t.show_id === show.id) ||
+    (t.title && t.title.toLowerCase().includes((show.title || "").toLowerCase())) ||
+    (t.message && t.message.toLowerCase().includes((show.title || "").toLowerCase()))
+  ) : null;
+
+  const taskTitle = activeTask ? getTaskDisplayTitle(activeTask) : "";
+
+  let importOverlayHtml = "";
+  if (activeTask) {
+    const pct = Math.min(100, Math.max(0, Math.round((activeTask.progress || 0) * 100)));
+    importOverlayHtml = `
+      <div class="poster-import-overlay">
+        <div class="poster-import-spinner"></div>
+        <div class="poster-import-title">${escapeHtml(taskTitle)}</div>
+        <div class="poster-import-pct">${pct}%</div>
+        <div class="poster-import-bar-track">
+          <div class="poster-import-bar-fill" style="width: ${pct}%;"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Индикатор прогресса
+  const progressHtml = computeShowProgressHtml(show, activeTask);
 
   let infoHtml = "";
   if (POSTER_OPTIONS.title) {
@@ -4104,9 +4115,13 @@ function renderShowOverviewRow(show) {
   const mtext = show.monitored ? t("dash.monitored") : t("dash.unmonitored");
   const mClass = show.monitored ? "monitored" : "unmonitored";
   const mIcon = show.monitored ? "bookmark-check" : "bookmark-x";
+  const progressHtml = computeShowProgressHtml(show);
   return `
     <div class="overview-row" id="show-overview-${show.id}">
-      <div class="overview-poster" ${posterStyle}>${show.poster_url ? "" : initial}</div>
+      <div class="overview-poster-col">
+        <div class="overview-poster" ${posterStyle}>${show.poster_url ? "" : initial}</div>
+        ${progressHtml}
+      </div>
       <div class="overview-info">
         <div class="overview-title-row">
           <span class="overview-title">${escapeHtml(show.title)}${show.year ? ` (${show.year})` : ""}</span>
@@ -11979,6 +11994,33 @@ function updateLibraryTasksProgress(data) {
               } else if (POSTER_OPTIONS.progressText && show.content_type === "movie") {
                 progressText.textContent = (show.downloaded_episodes_count || 0) > 0 ? "1 / 1" : "0 / 1";
               }
+            }
+          }
+        }
+      }
+
+      // Режим Обзор (Overview view)
+      const overviewRow = document.getElementById(`show-overview-${show.id}`);
+      if (overviewRow) {
+        const overviewProgress = overviewRow.querySelector(".poster-progress");
+        const progressText = overviewProgress ? overviewProgress.querySelector(".poster-progress-text") : null;
+        if (activeTask) {
+          const pct = Math.min(100, Math.max(0, Math.round((activeTask.progress || 0) * 100)));
+          if (overviewProgress) {
+            overviewProgress.className = "poster-progress status-importing";
+            if (progressText) {
+              progressText.textContent = `${taskLabel}: ${pct}%`;
+            }
+          }
+        } else if (overviewProgress) {
+          if (show._computed_status) {
+            overviewProgress.className = `poster-progress ${show._computed_status}`;
+          }
+          if (progressText) {
+            if (POSTER_OPTIONS.progressText && show.content_type !== "movie") {
+              progressText.textContent = `${show.downloaded_episodes_count || 0} / ${show.episodes_count || 1}`;
+            } else if (POSTER_OPTIONS.progressText && show.content_type === "movie") {
+              progressText.textContent = (show.downloaded_episodes_count || 0) > 0 ? "1 / 1" : "0 / 1";
             }
           }
         }
