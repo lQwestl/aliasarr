@@ -773,17 +773,19 @@ _SEASON_LABEL_FINAL_RE = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-# «Complete Series / Collection / Box Set», «Full Series», «Все сезоны», «Полный сериал», «Антология / Anthology»
+# «Complete Series / Collection / Pack», «Full Series», «Полная коллекция / серия», «Full», «Complete»
 _SEASON_LABEL_COMPLETE_RE = re.compile(
     r"""
     (?:
-        \bComplete(?!\s*(?:edition|remix|version))\s+(?:Series|Collection|Box[\s_\-]?Set)\b
-    |   \bFull\s+(?:Series|Collection)\b
-    |   \bПолн\w+\s+(?:коллекц\w+|сери\w+)\b
-    |   \bВесь\s+сериал\b
-    |   \bПолный\s+сериал\b
-    |   \bВсе\s+сезоны\b
+        \bComplete(?!\s*(?:edition|remix|version))\b  [\s_\-]*  (?:Series|Collection|Box[\s_\-]?Set|Pack|Season)?
+    |   \bFull\b(?!\s*(?:HD|High|Speed|SBS|OU))        [\s_\-]*  (?:Series|Collection|Pack|Season|Set)?
+    |   \bПолн\w+                                     [\s_\-]+  (?:коллекц\w+|сери\w+|сезон\w*|пак\w*)
+    |   \bВесь                                        [\s_\-]+  сериал
+    |   \bПолный                                      [\s_\-]+  (?:сезон|сериал)
+    |   \bВсе                                         [\s_\-]+  сезоны
     |   \b(?:Антология|Anthology)\b
+    |   \[Full\]
+    |   \(Full\)
     )
     """,
     re.IGNORECASE | re.VERBOSE,

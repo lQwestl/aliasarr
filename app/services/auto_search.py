@@ -655,7 +655,7 @@ async def _do_search_and_grab(
                 return False
             if parsed.episodes:
                 return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
-            return parsed.kind in (ReleaseKind.SEASON_PACK, ReleaseKind.UNKNOWN, ReleaseKind.EPISODE)
+            return parsed.kind == ReleaseKind.SEASON_PACK
 
         # --- Случай 2: «Final Season» ---
         if label_type == "final":
@@ -668,11 +668,6 @@ async def _do_search_and_grab(
 
         # --- Случай 3: «Complete Series» / «Все сезоны» ---
         if label_type == "complete":
-            # Проверка года премьеры: релиз более раннего года не может закрывать сезон, вышедший позже
-            if ep.air_date:
-                rel_year_m = re.search(r"\b(19\d\d|20\d\d)\b", rel.title)
-                if rel_year_m and int(rel_year_m.group(1)) < ep.air_date.year:
-                    return False
             if parsed.episodes:
                 return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
             return True
@@ -692,17 +687,13 @@ async def _do_search_and_grab(
                 return False
             if parsed.episodes:
                 return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
-            return parsed.kind in (ReleaseKind.SEASON_PACK, ReleaseKind.UNKNOWN, ReleaseKind.EPISODE)
+            return parsed.kind == ReleaseKind.SEASON_PACK
 
-        # --- Случай 6: сезон в названии релиза не указан ---
-        # Для сериалов/аниме релизы без указания сезона (например, "Arcane BDRemux", "Death Note 1080p")
-        # относятся только к Сезону 1 (или спецвыпускам), но НИКОГДА к Сезону 2+!
-        if ep.season_number in (0, 1):
-            if parsed.episodes:
-                if ep.absolute_number is not None:
-                    return ep.absolute_number in parsed.episodes
-                return ep.episode_number in parsed.episodes
-            return True
+        # --- Случай 6: сезон в названии релиза не указан (аниме absolute / lone number) ---
+        if parsed.episodes:
+            if ep.absolute_number is not None:
+                return ep.absolute_number in parsed.episodes
+            return ep.episode_number in parsed.episodes and ep.season_number in (0, 1)
 
         return False
 
