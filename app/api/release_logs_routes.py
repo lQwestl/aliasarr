@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.db import ReleaseLog, User
-from app.services.user_service import require_permission, get_current_user
+from app.services.user_service import require_permission, require_any_permission, get_current_user
 
 router = APIRouter(prefix="/api/v1/release-logs", tags=["release-logs"])
 
@@ -37,13 +37,6 @@ class ReleaseLogsPageOut(BaseModel):
     page_size: int
 
 
-def _require_admin_or_owner(current_user: User = Depends(get_current_user)) -> User:
-    # Доступ только главному админу (is_owner) или пользователю с правами manage_settings
-    if not current_user.is_owner and not getattr(current_user, "perm_manage_settings", False):
-        raise HTTPException(403, "Доступ к логам релизов разрешён только главному администратору")
-    return current_user
-
-
 @router.get("", response_model=ReleaseLogsPageOut)
 def list_release_logs(
     stage: Optional[str] = None,
@@ -54,7 +47,7 @@ def list_release_logs(
     page_size: int = 50,
     sort: str = "desc",
     db: Session = Depends(get_db),
-    current_user: User = Depends(_require_admin_or_owner),
+    current_user: User = Depends(require_any_permission("view_release_logs", "manage_release_logs")),
 ):
     """Получение журнала логики релизов с пагинацией и фильтрацией."""
     q = db.query(ReleaseLog)
@@ -87,7 +80,7 @@ def list_release_logs(
 @router.delete("")
 def clear_release_logs(
     db: Session = Depends(get_db),
-    current_user: User = Depends(_require_admin_or_owner),
+    current_user: User = Depends(require_permission("manage_release_logs")),
 ):
     """Очистить журнал релизов."""
     count = db.query(ReleaseLog).delete()
@@ -98,7 +91,7 @@ def clear_release_logs(
 @router.get("/export")
 def export_release_logs(
     db: Session = Depends(get_db),
-    current_user: User = Depends(_require_admin_or_owner),
+    current_user: User = Depends(require_any_permission("view_release_logs", "manage_release_logs")),
 ):
     """Выгрузить все логи релизов в текстовый файл (.txt) для анализа и отладки."""
     logs = db.query(ReleaseLog).order_by(ReleaseLog.created_at.asc()).limit(5000).all()

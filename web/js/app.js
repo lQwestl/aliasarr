@@ -460,6 +460,8 @@ const TRANSLATIONS = {
     "perm.view_events": "Просмотр событий",
     "perm.view_journal": "Просмотр журнала",
     "perm.manage_journal": "Очистка и скачивание журнала",
+    "perm.view_release_logs": "Просмотр логов релизов",
+    "perm.manage_release_logs": "Управление логами релизов",
     "perm.view_audit": "Просмотр аудита",
     "perm.manage_settings": "Настройки приложения",
     "perm.manage_indexers": "Индексаторы / Трекеры",
@@ -1457,6 +1459,8 @@ const TRANSLATIONS = {
     "perm.view_events": "View events",
     "perm.view_journal": "View journal",
     "perm.manage_journal": "Clear & download journal",
+    "perm.view_release_logs": "View release logs",
+    "perm.manage_release_logs": "Manage release logs",
     "perm.view_audit": "View audit log",
     "perm.manage_settings": "Manage app settings",
     "perm.manage_indexers": "Manage indexers",
@@ -2245,9 +2249,15 @@ function applyUserPermissionsToUI() {
 
   const navReleaseLogs = document.querySelector('.sidebar nav [data-tab="release-logs"]');
   if (navReleaseLogs) {
-    const canSeeRelLogs = CURRENT_USER && (CURRENT_USER.is_owner || hasPermission("manage_settings"));
+    const canSeeRelLogs = hasPermission("view_release_logs") || hasPermission("manage_release_logs");
     navReleaseLogs.style.display = canSeeRelLogs ? "" : "none";
   }
+
+  const btnRelLogsClear = document.getElementById("release-logs-clear-btn");
+  if (btnRelLogsClear) btnRelLogsClear.style.display = hasPermission("manage_release_logs") ? "" : "none";
+
+  const btnRelLogsDl = document.getElementById("release-logs-download-btn");
+  if (btnRelLogsDl) btnRelLogsDl.style.display = (hasPermission("view_release_logs") || hasPermission("manage_release_logs")) ? "" : "none";
 
   const navBackup = document.querySelector('.sidebar nav [data-tab="backup"]');
   if (navBackup) navBackup.style.display = hasPermission("manage_backups") ? "" : "none";
@@ -2304,18 +2314,21 @@ function applyUserPermissionsToUI() {
     history: "view_history",
     events: "view_events",
     journal: "view_journal",
+    "release-logs": "view_release_logs",
     audit: "view_audit",
     backup: "manage_backups",
   };
 
   const isCurrentTabAllowed = currentActiveTab === "settings"
     ? canSeeSettings
+    : currentActiveTab === "release-logs"
+    ? (hasPermission("view_release_logs") || hasPermission("manage_release_logs"))
     : (tabPermMap[currentActiveTab] ? hasPermission(tabPermMap[currentActiveTab]) : true);
 
   if (!isCurrentTabAllowed) {
-    const candidateTabs = ["dashboard", "library", "calendar", "activity", "history", "events", "journal", "audit", "backup", "settings"];
+    const candidateTabs = ["dashboard", "library", "calendar", "activity", "history", "events", "journal", "release-logs", "audit", "backup", "settings"];
     for (const t of candidateTabs) {
-      const allowed = t === "settings" ? canSeeSettings : hasPermission(tabPermMap[t]);
+      const allowed = t === "settings" ? canSeeSettings : (t === "release-logs" ? (hasPermission("view_release_logs") || hasPermission("manage_release_logs")) : hasPermission(tabPermMap[t]));
       if (allowed) {
         switchTab(t);
         break;
@@ -2425,6 +2438,8 @@ function openProfileModal() {
       { key: "view_events", label: t("perm.view_events") },
       { key: "view_journal", label: t("perm.view_journal") },
       { key: "manage_journal", label: t("perm.manage_journal") },
+      { key: "view_release_logs", label: t("perm.view_release_logs") },
+      { key: "manage_release_logs", label: t("perm.manage_release_logs") },
       { key: "view_audit", label: t("perm.view_audit") },
       { key: "manage_settings", label: t("perm.manage_settings") },
       { key: "manage_indexers", label: t("perm.manage_indexers") },

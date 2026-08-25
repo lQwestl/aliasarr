@@ -1563,6 +1563,8 @@
                 <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="view_events" checked> <span data-i18n="perm.view_events">Просмотр событий</span></label>
                 <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="view_journal" checked> <span data-i18n="perm.view_journal">Просмотр журнала</span></label>
                 <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_journal"> <span data-i18n="perm.manage_journal">Очистка и скачивание журнала</span></label>
+                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="view_release_logs" checked> <span data-i18n="perm.view_release_logs">Просмотр логов релизов</span></label>
+                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_release_logs"> <span data-i18n="perm.manage_release_logs">Управление логами релизов</span></label>
                 <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="view_audit" checked> <span data-i18n="perm.view_audit">Просмотр аудита</span></label>
                 <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_settings"> <span data-i18n="perm.manage_settings">Настройки приложения</span></label>
                 <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_indexers"> <span data-i18n="perm.manage_indexers">Индексаторы / Трекеры</span></label>
@@ -2168,8 +2170,8 @@
 
         <div style="flex:1"></div>
 
-        <button class="btn btn-secondary btn-small" onclick="downloadReleaseLogs()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
-        <button class="btn btn-danger btn-small" onclick="clearReleaseLogs()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
+        <button class="btn btn-secondary btn-small" id="release-logs-download-btn" onclick="downloadReleaseLogs()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
+        <button class="btn btn-danger btn-small" id="release-logs-clear-btn" onclick="clearReleaseLogs()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
       </div>
 
       <div class="table-responsive">
