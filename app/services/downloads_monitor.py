@@ -413,6 +413,24 @@ async def check_downloads(db: Session) -> list[dict]:
                 )
                 await notify_all(db=db, event_type="import", message=msg)
                 await notify_all(db=db, event_type="manual_interaction_required", message=msg)
+
+            # Если часть серий из этой же группы уже импортирована вручную (статус DOWNLOADED),
+            # а оставшиеся зависли на 100% downloading без файла — сбрасываем их в WANTED/UNAIRED
+            import datetime as dt
+            today = dt.date.today()
+            partially_imported = any(ep.status == EpisodeStatus.DOWNLOADED for ep in eps)
+            if partially_imported:
+                for ep in eps:
+                    if ep.status == EpisodeStatus.DOWNLOADING and not ep.file_path:
+                        air_d = ep.air_date
+                        if isinstance(air_d, dt.datetime):
+                            air_d = air_d.date()
+                        ep.status = EpisodeStatus.UNAIRED if (air_d and air_d > today) else EpisodeStatus.WANTED
+                        ep.download_progress = 0.0
+                        ep.torrent_hash = None
+                        ep.download_client_id = None
+                        db.add(ep)
+                db.commit()
             continue
 
         root_folder, template, season_template = _folder_and_template(settings, show.content_type)
