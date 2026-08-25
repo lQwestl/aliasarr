@@ -653,9 +653,9 @@ async def search_missing_calendar(
             message=f"Подготовка к поиску для {len(targets)} тайтлов...",
         ) as t_task:
             total_grabbed = 0
-            with SessionLocal() as bg_db:
-                from app.services.auto_search import search_and_grab_show
-                for idx, (s_id, ep_ids) in enumerate(targets.items(), 1):
+            from app.services.auto_search import search_and_grab_show
+            for idx, (s_id, ep_ids) in enumerate(targets.items(), 1):
+                with SessionLocal() as bg_db:
                     s_obj = bg_db.get(Show, s_id)
                     if not s_obj:
                         continue

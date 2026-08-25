@@ -231,6 +231,8 @@ async def on_startup():
     _downloads_lock = asyncio.Lock()
     _indexer_lock = asyncio.Lock()
     _metadata_refresh_lock = asyncio.Lock()
+    _calendar_lock = asyncio.Lock()
+    _backup_lock = asyncio.Lock()
 
     async def _tracker_job():
         if _tracker_lock.locked():
@@ -357,47 +359,65 @@ async def on_startup():
 
     async def _calendar_poll_job():
         """Периодический опрос источников метаданных для обновления дат выхода невышедших релизов."""
-        from app.models.db import Episode, EpisodeStatus, Show
-        from app.services.metadata import refresh_show_release_dates
+        if _calendar_lock.locked():
+            return
+        async with _calendar_lock:
+            from app.models.db import Episode, EpisodeStatus, Show
+            from app.services.metadata import refresh_show_release_dates
 
-        db = SessionLocal()
-        try:
-            settings = get_or_create_settings(db)
-            if not settings.calendar_poll_enabled:
-                return
-            candidates = db.query(Show).filter(Show.metadata_id.isnot(None)).all()
-            updated_count = 0
-            for show in candidates:
-                # Не тратим запросы на уже полностью вышедшее/полностью скачанное видео
-                if show.content_type == "movie":
-                    ep = db.query(Episode).filter(Episode.show_id == show.id).first()
-                    if ep and ep.status == EpisodeStatus.DOWNLOADED:
-                        continue
-                else:
-                    still_unaired = (
-                        db.query(Episode)
-                        .filter(Episode.show_id == show.id, Episode.status.in_(
-                            [EpisodeStatus.UNAIRED, EpisodeStatus.MISSING, EpisodeStatus.WANTED]))
-                        .filter(Episode.air_date.is_(None))
-                        .first()
-                    )
-                    if not still_unaired:
-                        continue
-                try:
+            db = SessionLocal()
+            try:
+                settings = get_or_create_settings(db)
+                if not settings.calendar_poll_enabled:
+                    return
+                candidates = db.query(Show).filter(Show.metadata_id.isnot(None)).all()
+                shows_to_check = []
+                for show in candidates:
                     if show.content_type == "movie":
-                        src_movie = getattr(settings, "calendar_metadata_source_movie", "radarr") or "radarr"
+                        ep = db.query(Episode).filter(Episode.show_id == show.id).first()
+                        if ep and ep.status == EpisodeStatus.DOWNLOADED:
+                            continue
+                    else:
+                        still_unaired = (
+                            db.query(Episode)
+                            .filter(Episode.show_id == show.id, Episode.status.in_(
+                                [EpisodeStatus.UNAIRED, EpisodeStatus.MISSING, EpisodeStatus.WANTED]))
+                            .filter(Episode.air_date.is_(None))
+                            .first()
+                        )
+                        if not still_unaired:
+                            continue
+                    shows_to_check.append(show.id)
+            finally:
+                db.close()
+
+            if not shows_to_check:
+                return
+
+            updated_count = 0
+            # Опрашиваем по очереди с обновлением в изолированной сессии
+            for s_id in shows_to_check:
+                s_db = SessionLocal()
+                try:
+                    s_settings = get_or_create_settings(s_db)
+                    s_show = s_db.get(Show, s_id)
+                    if not s_show:
+                        continue
+                    if s_show.content_type == "movie":
+                        src_movie = getattr(s_settings, "calendar_metadata_source_movie", "radarr") or "radarr"
                         override = "radarr" if src_movie in ("auto", None) else src_movie
                     else:
-                        src_series = getattr(settings, "calendar_metadata_source_series", "skyhook") or "skyhook"
+                        src_series = getattr(s_settings, "calendar_metadata_source_series", "skyhook") or "skyhook"
                         override = "skyhook" if src_series in ("auto", None) else src_series
-                    if await refresh_show_release_dates(db, show, override_source_type=override):
+                    if await refresh_show_release_dates(s_db, s_show, override_source_type=override):
                         updated_count += 1
                 except Exception as e:
-                    logger.debug("Не удалось обновить дату выхода для видео %s: %s", show.id, e)
+                    logger.debug("Не удалось обновить дату выхода для видео %s: %s", s_id, e)
+                finally:
+                    s_db.close()
+
             if updated_count:
                 logger.info("Опрос дат выхода: обновлено видео — %d", updated_count)
-        finally:
-            db.close()
 
     async def _ssl_renew_job():
         db = SessionLocal()
@@ -411,19 +431,29 @@ async def on_startup():
         finally:
             db.close()
 
-    async def _auto_backup_job():
-        db = SessionLocal()
+    def _sync_create_backup(b_type: str) -> None:
+        b_db = SessionLocal()
         try:
-            settings = get_or_create_settings(db)
-            interval_days = getattr(settings, "backup_interval_days", 7) or 7
-            if interval_days > 0:
-                from app.services.backup_service import create_backup
-                b_type = getattr(settings, "backup_default_type", "full") or "full"
-                create_backup(db, backup_type=b_type)
-        except Exception as exc:
-            logger.warning("Ошибка автоматического создания бэкапа: %s", exc)
+            from app.services.backup_service import create_backup
+            create_backup(b_db, backup_type=b_type)
         finally:
-            db.close()
+            b_db.close()
+
+    async def _auto_backup_job():
+        if _backup_lock.locked():
+            return
+        async with _backup_lock:
+            db = SessionLocal()
+            try:
+                settings = get_or_create_settings(db)
+                interval_days = getattr(settings, "backup_interval_days", 7) or 7
+                if interval_days > 0:
+                    b_type = getattr(settings, "backup_default_type", "full") or "full"
+                    await asyncio.to_thread(_sync_create_backup, b_type)
+            except Exception as exc:
+                logger.warning("Ошибка автоматического создания бэкапа: %s", exc)
+            finally:
+                db.close()
 
     async def _refresh_metadata_job():
         """Автоматическое регулярное обновление метаданных библиотеки (Sonarr/Radarr Refresh Series/Movies)."""

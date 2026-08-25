@@ -471,38 +471,55 @@ async def _collect_candidates(
     seen_guids: set[str] = set()
     candidates: list[dict] = []
 
-    # Опрашиваем индексаторы по приоритету (меньшее число = опрашивается раньше)
-    for indexer in sorted(indexers, key=lambda i: i.priority):
-        client = get_indexer_client(indexer)
-        for term in query_terms:
+    # Опрашиваем индексаторы параллельно с ограничением конкурентных запросов (Semaphore)
+    sem = asyncio.Semaphore(6)
+
+    async def _fetch_indexer_term(idx: Indexer, q_term: str):
+        async with sem:
             try:
-                releases = await client.search(term)
+                client = get_indexer_client(idx)
+                # Таймаут на единичный запрос к трекеру 12 секунд
+                rels = await asyncio.wait_for(client.search(q_term), timeout=12.0)
+                return (idx, rels)
             except Exception as exc:
-                logger.warning("Индексатор %s недоступен: %s", indexer.name, exc)
+                logger.debug("Индексатор %s запрос «%s»: %s", idx.name, q_term, exc)
+                return (idx, [])
+
+    tasks = []
+    for indexer in sorted(indexers, key=lambda i: i.priority):
+        for term in query_terms:
+            tasks.append(_fetch_indexer_term(indexer, term))
+
+    fetched_batches = await asyncio.gather(*tasks, return_exceptions=True)
+
+    for item in fetched_batches:
+        if not isinstance(item, tuple):
+            continue
+        indexer, releases = item
+        for rel in releases:
+            if not rel or not getattr(rel, "guid", None):
+                continue
+            if rel.guid in seen_guids:
+                continue
+            seen_guids.add(rel.guid)
+
+            match = match_release(
+                rel.title,
+                show.id,
+                alias_candidates,
+                content_type=show.content_type,
+                categories=getattr(rel, "categories", None),
+            )
+            if not match.matched:
                 continue
 
-            for rel in releases:
-                if rel.guid in seen_guids:
-                    continue
-                seen_guids.add(rel.guid)
+            quality = parse_quality(rel.title)
+            if not is_allowed(quality, allowed_qualities):
+                continue
 
-                match = match_release(
-                    rel.title,
-                    show.id,
-                    alias_candidates,
-                    content_type=show.content_type,
-                    categories=getattr(rel, "categories", None),
-                )
-                if not match.matched:
-                    continue
-
-                quality = parse_quality(rel.title)
-                if not is_allowed(quality, allowed_qualities):
-                    continue
-
-                candidates.append({
-                    "rel": rel, "match": match, "quality": quality, "indexer": indexer,
-                })
+            candidates.append({
+                "rel": rel, "match": match, "quality": quality, "indexer": indexer,
+            })
 
     return candidates
 
@@ -982,10 +999,13 @@ async def run_wanted_search(db: Session) -> list[dict]:
                 message=f"Обработка ({idx}/{len(shows)}): «{show.title}»...",
                 progress=round(idx / max(1, len(shows)), 2),
             )
-            result = await search_and_grab_show(db, show, wanted_only=True)
-            if result.get("grabbed"):
-                results.append(result)
-                total_grabbed += len(result["grabbed"])
+            try:
+                result = await search_and_grab_show(db, show, wanted_only=True)
+                if result.get("grabbed"):
+                    results.append(result)
+                    total_grabbed += len(result["grabbed"])
+            except Exception as exc:
+                logger.warning("Ошибка при поиске шоу %s (%s) в wanted_search: %s", show.id, show.title, exc)
         if total_grabbed > 0:
             w_task.complete(f"Завершено: захвачено {total_grabbed} релиз(ов)")
         else:

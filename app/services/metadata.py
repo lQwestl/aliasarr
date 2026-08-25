@@ -2121,7 +2121,7 @@ async def refresh_all_shows_metadata(db, force: bool = False, username: str = "s
         if errors_count:
             summary_msg += f" (ошибок: {errors_count})"
 
-        task_manager.finish_task(task.id, status="completed", message=summary_msg)
+        task_manager.finish_task(task.id, message=summary_msg)
         log_audit(
             db,
             "metadata.refresh_all",
@@ -2131,7 +2131,7 @@ async def refresh_all_shows_metadata(db, force: bool = False, username: str = "s
 
         return {"total": len(shows), "updated": updated_count, "errors": errors_count, "message": summary_msg}
     except Exception as exc:
-        task_manager.finish_task(task.id, status="failed", error=str(exc))
+        task_manager.fail_task(task.id, error=str(exc))
         raise
 
 

@@ -252,14 +252,27 @@ async def search_custom_releases(
     seen_guids: set[str] = set()
     results: list[SearchResultOut] = []
 
-    for indexer in sorted(indexers, key=lambda i: i.priority):
-        client = get_indexer_client(indexer)
-        try:
-            releases = await client.search(query.strip())
-        except Exception:
-            continue
+    sem = asyncio.Semaphore(6)
 
+    async def _fetch_custom(idx: Indexer):
+        async with sem:
+            try:
+                client = get_indexer_client(idx)
+                rels = await asyncio.wait_for(client.search(query.strip()), timeout=12.0)
+                return (idx, rels)
+            except Exception:
+                return (idx, [])
+
+    tasks = [_fetch_custom(idx) for idx in sorted(indexers, key=lambda i: i.priority)]
+    fetched_batches = await asyncio.gather(*tasks, return_exceptions=True)
+
+    for item in fetched_batches:
+        if not isinstance(item, tuple):
+            continue
+        indexer, releases = item
         for rel in releases:
+            if not rel or not getattr(rel, "guid", None):
+                continue
             if rel.guid in seen_guids:
                 continue
             seen_guids.add(rel.guid)
@@ -372,19 +385,35 @@ async def search_releases_for_show(
     seen_guids: set[str] = set()
     results: list[SearchResultOut] = []
 
-    # Опрашиваем индексаторы по приоритету (меньшее число = опрашивается раньше)
-    for indexer in sorted(indexers, key=lambda i: i.priority):
-        client = get_indexer_client(indexer)
-        for term in query_terms:
-            try:
-                releases = await client.search(term)
-            except Exception:
-                continue
+    # Опрашиваем индексаторы параллельно с ограничением конкурентных запросов (Semaphore)
+    sem = asyncio.Semaphore(6)
 
-            for rel in releases:
-                if rel.guid in seen_guids:
-                    continue
-                seen_guids.add(rel.guid)
+    async def _fetch_term(idx: Indexer, q_term: str):
+        async with sem:
+            try:
+                client = get_indexer_client(idx)
+                rels = await asyncio.wait_for(client.search(q_term), timeout=12.0)
+                return (idx, rels)
+            except Exception:
+                return (idx, [])
+
+    tasks = []
+    for indexer in sorted(indexers, key=lambda i: i.priority):
+        for term in query_terms:
+            tasks.append(_fetch_term(indexer, term))
+
+    fetched_batches = await asyncio.gather(*tasks, return_exceptions=True)
+
+    for item in fetched_batches:
+        if not isinstance(item, tuple):
+            continue
+        indexer, releases = item
+        for rel in releases:
+            if not rel or not getattr(rel, "guid", None):
+                continue
+            if rel.guid in seen_guids:
+                continue
+            seen_guids.add(rel.guid)
 
                 match = match_release(
                     rel.title,
