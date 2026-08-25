@@ -3297,7 +3297,14 @@ function switchTab(tabId) {
   const targetPanel = document.getElementById("tab-" + tabId);
   if (!targetPanel) return;
 
+  const initStyle = document.getElementById("initial-tab-style");
+  if (initStyle) initStyle.remove();
+
   window.history.replaceState(null, null, "#" + tabId);
+  try {
+    localStorage.setItem("aliasarr_last_tab", tabId);
+  } catch (e) {}
+
   document.querySelectorAll(".nav-item[data-tab]").forEach(el => el.classList.toggle("active", el.dataset.tab === tabId));
   document.querySelectorAll(".mobile-bottom-item[data-tab]").forEach(el => el.classList.toggle("active", el.dataset.tab === tabId));
   document.querySelectorAll(".tab-panel").forEach(el => el.classList.toggle("active", el.id === "tab-" + tabId));
@@ -12031,8 +12038,9 @@ async function startApp() {
   } catch (e) {}
 
   const initialHash = window.location.hash.slice(1);
-  if (initialHash && document.getElementById("tab-" + initialHash)) {
-    switchTab(initialHash);
+  const targetTab = initialHash || localStorage.getItem("aliasarr_last_tab") || "dashboard";
+  if (targetTab && document.getElementById("tab-" + targetTab)) {
+    switchTab(targetTab);
   } else {
     switchTab("dashboard");
   }

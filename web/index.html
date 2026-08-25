@@ -10,11 +10,27 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/ui/static/css/style.css?v=20260816-05">
 <script>
-  // Применяем тему сразу, до отрисовки основного контента, чтобы не было "мигания" тёмной темой.
+  // Применяем тему, язык и целевую вкладку сразу, до отрисовки основного контента, чтобы исключить мерцание Дашбордом при перезагрузке
   (function () {
     try {
       var theme = localStorage.getItem("vbeacon_theme") || "dark";
       document.documentElement.setAttribute("data-theme", theme);
+      var lang = localStorage.getItem("aliasarr_lang") || localStorage.getItem("vbeacon_lang") || "ru";
+      document.documentElement.setAttribute("lang", lang);
+
+      var hash = (window.location.hash || "").replace("#", "");
+      var targetTab = hash || localStorage.getItem("aliasarr_last_tab") || "dashboard";
+      if (targetTab && targetTab !== "dashboard") {
+        var style = document.createElement("style");
+        style.id = "initial-tab-style";
+        style.textContent = 
+          ".tab-panel { display: none !important; }\n" +
+          "#tab-" + targetTab + " { display: block !important; }\n" +
+          ".nav-item[data-tab] { background: transparent !important; color: var(--text-muted) !important; border-color: transparent !important; font-weight: 500 !important; box-shadow: none !important; }\n" +
+          ".nav-item[data-tab=\"" + targetTab + "\"] { background: var(--panel-alt, rgba(255, 255, 255, 0.07)) !important; color: var(--teal, #00F0FF) !important; border-color: rgba(0, 240, 255, 0.25) !important; font-weight: 600 !important; box-shadow: 0 0 12px rgba(0, 240, 255, 0.08) !important; }\n" +
+          ".nav-item[data-tab=\"" + targetTab + "\"] .nav-ico { opacity: 1 !important; }";
+        document.head.appendChild(style);
+      }
     } catch (e) {}
   })();
 </script>
