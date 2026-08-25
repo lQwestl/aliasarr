@@ -396,6 +396,7 @@ class TestAutoSearch(unittest.TestCase):
         self.session.refresh(qp)
 
         show = make_show(self.session, "Arcane")
+        self.session.add(Alias(show_id=show.id, text="Arcane"))
         show.quality_profile_id = qp.id
         self.session.add(show)
         self.session.commit()
@@ -415,14 +416,9 @@ class TestAutoSearch(unittest.TestCase):
         ]
 
         fake_dc = FakeDownloadClient()
-        with patch.object(auto_search, "get_indexer_client") as mock_idx, \
-             patch.object(auto_search, "get_client", return_value=fake_dc):
-            class FakeIndexerClient:
-                async def search(self, q):
-                    return releases
-            mock_idx.return_value = FakeIndexerClient()
-
-            res = asyncio.run(auto_search.search_and_grab_show(self.session, show))
+        with patch("app.services.indexer_service.TorznabIndexerClient.search", lambda self_c, query, categories=None: _async_return(releases)), \
+             patch("app.services.auto_search.get_client", lambda row: fake_dc):
+            res = asyncio.run(auto_search._do_search_and_grab(self.session, show))
 
         grabbed = res.get("grabbed", [])
         self.assertEqual(len(grabbed), 2, "Должно быть захвачено ровно 2 релиза: по одному лучшему на S01 и S02")

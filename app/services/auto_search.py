@@ -784,19 +784,19 @@ async def _do_search_and_grab(
     # 6. Число сидеров (seeders)
     # 7. Скор соответствия названия (match.score)
     def candidate_sort_key(c):
-        quality_pref = get_quality_preference(c["quality"], allowed_qualities)
-        cf_score = c.get("cf_score", 0)
-        season_lbl = detect_season_label(c["rel"].title)
+        quality_pref = get_quality_preference(c["quality"], allowed_qualities) if c.get("quality") else 0
+        cf_score = c.get("cf_score") or 0
+        season_lbl = detect_season_label(c["rel"].title) if c.get("rel") else {"type": "none"}
         is_full = 1 if (
             season_lbl["type"] == "complete" or
             c["match"].parsed.matched_pattern in ("season_pack:complete", "season_pack:multi_range") or
-            len(c["covered"]) >= len(wanted_episodes)
+            len(c.get("covered", [])) >= len(wanted_episodes)
         ) else 0
-        coverage_count = len(c["covered"])
-        indexer_priority = getattr(c["indexer"], "priority", 100) or 100
-        seeders = c["rel"].seeders or 0
-        match_score = c["score"]
-        return (quality_pref, cf_score, is_full, coverage_count, -indexer_priority, seeders, match_score)
+        coverage_count = len(c.get("covered", []))
+        indexer_priority = getattr(c.get("indexer"), "priority", 100) or 100
+        seeders = getattr(c.get("rel"), "seeders", 0) or 0
+        match_score = c.get("score") or 0
+        return (quality_pref or 0, cf_score, is_full, coverage_count, -indexer_priority, seeders, match_score)
 
     scored_candidates.sort(key=candidate_sort_key, reverse=True)
 
