@@ -133,7 +133,12 @@ class ApiKeyMiddleware(BaseHTTPMiddleware):
         unauthorized_response = None
 
         is_docs_request = path in ("/docs", "/redoc", "/openapi.json") or path.startswith(("/docs", "/redoc"))
-        is_page_request = is_docs_request or path in ("/quality-guide", "/quality-guide.html") or path.startswith("/quality-guide") or path.endswith(".html")
+        is_page_request = (
+            is_docs_request
+            or path in ("/quality-guide", "/quality-guide.html", "/wiki", "/wiki.html")
+            or path.startswith(("/quality-guide", "/wiki"))
+            or path.endswith(".html")
+        )
 
         db = SessionLocal()
         try:

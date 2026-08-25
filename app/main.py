@@ -17,7 +17,7 @@ except ImportError:
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.api import (
@@ -43,7 +43,7 @@ from app.services.downloads_monitor import check_downloads
 from app.services.log_service import install_db_log_handler, purge_old_logs
 from app.services.settings_service import get_or_create_settings, hash_password, write_api_key_file
 from app.services.tracker import recheck_all_active
-from app.services.user_service import ensure_master_admin
+from app.services.user_service import ensure_master_admin, get_current_user_optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("aliasarr.main")
@@ -509,6 +509,36 @@ def quality_guide():
     with open(guide_path, encoding="utf-8") as f:
         html = f.read()
     return HTMLResponse(html)
+
+
+@app.get("/wiki")
+@app.get("/wiki.html")
+def wiki_page(request: Request):
+    db = SessionLocal()
+    try:
+        settings = get_or_create_settings(db)
+        if settings.login_enabled:
+            user = get_current_user_optional(request, db)
+            if not user:
+                # Если включён вход по логину/паролю и пользователь не авторизован — перенаправляем на авторизацию
+                return RedirectResponse(url="/?redirect=/wiki", status_code=302)
+
+        wiki_path = os.path.join(_WEB_DIR, "wiki.html")
+        if not os.path.isfile(wiki_path):
+            raise HTTPException(404, "Wiki page not found")
+        with open(wiki_path, encoding="utf-8") as f:
+            html = f.read()
+
+        if not settings.login_enabled:
+            import json
+            bootstrap_script = (
+                f'<script>window.__ALIASARR_BOOTSTRAP_KEY__ = {json.dumps(settings.api_key)};</script>'
+            )
+            html = html.replace("</head>", bootstrap_script + "</head>")
+
+        return HTMLResponse(html)
+    finally:
+        db.close()
 
 
 @app.get("/")

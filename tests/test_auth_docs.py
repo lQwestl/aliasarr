@@ -161,6 +161,34 @@ class TestAuthDocsSecurity(unittest.TestCase):
 
         asyncio.run(run())
 
+    def test_unauthenticated_wiki_request_redirects_to_login(self):
+        import asyncio
+
+        middleware = ApiKeyMiddleware(app=MagicMock())
+
+        mock_request = MagicMock()
+        mock_request.url.path = "/wiki"
+        mock_request.cookies = {}
+        mock_request.headers = {}
+        mock_request.query_params = {}
+
+        mock_db = MagicMock()
+        mock_settings = MagicMock()
+        mock_settings.login_enabled = True
+        mock_settings.api_key = "secret_key"
+
+        async def run():
+            with patch("app.auth.SessionLocal", return_value=mock_db), \
+                 patch("app.auth.get_or_create_settings", return_value=mock_settings), \
+                 patch("app.auth._get_valid_session_user", return_value=(False, None)):
+                call_next = AsyncMock()
+                resp = await middleware.dispatch(mock_request, call_next)
+                self.assertEqual(resp.status_code, 303)
+                self.assertEqual(resp.headers.get("location"), "/")
+                call_next.assert_not_called()
+
+        asyncio.run(run())
+
     def test_new_user_creation_and_authentication(self):
         from app.services.settings_service import hash_password, verify_password
 

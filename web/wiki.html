@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Wiki &amp; Руководство пользователя — Aliasarr</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366F1'/%3E%3Cstop offset='1' stop-color='%2300F0FF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ctext x='32' y='45' font-family='Arial,Helvetica,sans-serif' font-size='36' font-weight='800' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260825-01">
+<script>
+  (function () {
+    try {
+      var theme = localStorage.getItem("vbeacon_theme") || "dark";
+      document.documentElement.setAttribute("data-theme", theme);
+    } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    --wiki-max-width: 1440px;
+    --wiki-sidebar-width: 290px;
+  }
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    line-height: 1.65;
+    margin: 0;
+    padding: 0;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    overflow-x: hidden;
+  }
+  
+  /* Top Header */
+  .wiki-header {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    background: rgba(15, 20, 32, 0.85);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  [data-theme="light"] .wiki-header {
+    background: rgba(248, 249, 252, 0.9);
+  }
+  .wiki-header-inner {
+    max-width: var(--wiki-max-width);
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+  .wiki-header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+  .wiki-brand-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-heading, 'Syne', sans-serif);
+    font-weight: 800;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .wiki-brand-logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #6366f1, #00f0ff);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 800;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+  }
+  .wiki-doc-tag {
+    font-size: 10.5px;
+    font-weight: 700;
+    font-family: var(--font-mono, monospace);
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Header Search & Actions */
+  .wiki-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .wiki-search-wrap {
+    position: relative;
+    width: 320px;
+  }
+  .wiki-search-input {
+    width: 100%;
+    height: 38px;
+    box-sizing: border-box;
+    padding: 0 14px 0 36px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13.5px;
+    font-family: var(--font-body);
+    transition: all 0.2s ease;
+  }
+  .wiki-search-input:focus {
+    outline: none;
+    border-color: var(--teal, #00F0FF);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+    background: var(--panel-alt);
+  }
+  .wiki-search-ico {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 15px;
+    height: 15px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  /* Layout Container */
+  .wiki-layout {
+    max-width: var(--wiki-max-width);
+    margin: 0 auto;
+    display: flex;
+    gap: 32px;
+    padding: 28px 24px 80px 24px;
+    min-height: calc(100vh - 65px);
+    box-sizing: border-box;
+  }
+
+  /* Left Table of Contents */
+  .wiki-sidebar {
+    width: var(--wiki-sidebar-width);
+    flex-shrink: 0;
+    position: sticky;
+    top: 80px;
+    height: calc(100vh - 100px);
+    overflow-y: auto;
+    padding-right: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .wiki-toc-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    padding-left: 10px;
+  }
+  .wiki-toc-group {
+    margin-bottom: 18px;
+  }
+  .wiki-toc-group-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #818cf8;
+    margin: 10px 0 6px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .wiki-toc-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-radius: 6px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    border-left: 2px solid transparent;
+  }
+  .wiki-toc-link:hover {
+    color: var(--text);
+    background: var(--panel-alt, rgba(255, 255, 255, 0.04));
+    transform: translateX(2px);
+  }
+  .wiki-toc-link.active {
+    color: var(--teal, #00F0FF);
+    background: rgba(0, 240, 255, 0.08);
+    border-left-color: var(--teal, #00F0FF);
+    font-weight: 600;
+  }
+  .wiki-toc-ico {
+    width: 14px;
+    height: 14px;
+    opacity: 0.75;
+    flex-shrink: 0;
+  }
+
+  /* Main Content Area */
+  .wiki-main {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  /* Hero Banner */
+  .wiki-hero {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(0, 240, 255, 0.08) 50%, rgba(255, 42, 77, 0.05) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 16px;
+    padding: 32px 36px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+  .wiki-hero::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(0, 240, 255, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .wiki-hero h1 {
+    font-family: var(--font-heading, 'Syne', sans-serif);
+    font-size: 32px;
+    font-weight: 800;
+    margin: 0 0 10px 0;
+    background: linear-gradient(135deg, #ffffff 30%, var(--teal, #00F0FF) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.03em;
+  }
+  .wiki-hero p {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin: 0 0 20px 0;
+    max-width: 800px;
+    line-height: 1.6;
+  }
+  .wiki-quick-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .wiki-quick-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+  .wiki-quick-pill:hover {
+    border-color: var(--teal);
+    background: rgba(0, 240, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 240, 255, 0.15);
+  }
+
+  /* Section Styling */
+  .wiki-section {
+    scroll-margin-top: 90px;
+    margin-bottom: 50px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 30px 32px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    transition: border-color 0.2s ease;
+  }
+  .wiki-section:hover {
+    border-color: rgba(99, 102, 241, 0.35);
+  }
+  .wiki-section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .wiki-section-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(0, 240, 255, 0.15));
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    color: var(--teal, #00F0FF);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .wiki-section-title {
+    font-family: var(--font-heading, 'Syne', sans-serif);
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .wiki-section-badge {
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(0, 240, 255, 0.12);
+    color: var(--teal);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    margin-left: auto;
+  }
+
+  /* Subheadings & Content */
+  .wiki-h3 {
+    font-size: 16.5px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 26px 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .wiki-h3::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 16px;
+    background: var(--teal);
+    border-radius: 2px;
+  }
+  .wiki-p {
+    font-size: 14.5px;
+    color: var(--text);
+    line-height: 1.7;
+    margin: 0 0 14px 0;
+  }
+
+  /* Callout Alert Boxes */
+  .wiki-callout {
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 18px 0;
+    display: flex;
+    gap: 14px;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .wiki-callout-tip {
+    background: rgba(0, 240, 255, 0.07);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    color: var(--text);
+  }
+  .wiki-callout-tip .callout-ico { color: var(--teal); }
+  .wiki-callout-note {
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: var(--text);
+  }
+  .wiki-callout-note .callout-ico { color: #818cf8; }
+  .wiki-callout-warn {
+    background: rgba(251, 146, 60, 0.08);
+    border: 1px solid rgba(251, 146, 60, 0.3);
+    color: var(--text);
+  }
+  .wiki-callout-warn .callout-ico { color: #fb923c; }
+  .wiki-callout-best {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(0, 240, 255, 0.06));
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: var(--text);
+  }
+  .wiki-callout-best .callout-ico { color: #10b981; }
+
+  /* Feature Grid Cards */
+  .wiki-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .wiki-subcard {
+    background: var(--panel-alt, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    transition: all 0.2s ease;
+  }
+  .wiki-subcard:hover {
+    border-color: rgba(0, 240, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  }
+  .wiki-subcard-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .wiki-subcard-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.55;
+  }
+
+  /* Step by Step List */
+  .wiki-steps {
+    counter-reset: step-counter;
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+  }
+  .wiki-step-item {
+    position: relative;
+    padding-left: 48px;
+    margin-bottom: 20px;
+  }
+  .wiki-step-item::before {
+    counter-increment: step-counter;
+    content: counter(step-counter);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #00f0ff);
+    color: #0b0f19;
+    font-weight: 800;
+    font-size: 14px;
+    font-family: var(--font-mono);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+  }
+  .wiki-step-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .wiki-step-desc {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* Code & Syntax Table */
+  .wiki-code-block {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: var(--font-mono, monospace);
+    font-size: 12.5px;
+    color: #38bdf8;
+    position: relative;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+
+  /* Tables in Wiki */
+  .wiki-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 18px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .wiki-table th {
+    background: var(--panel-alt, rgba(255, 255, 255, 0.04));
+    color: var(--text);
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .wiki-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  .wiki-table tr:last-child td {
+    border-bottom: none;
+  }
+  .wiki-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text);
+  }
+
+  /* Auth Error Overlay */
+  #auth-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+  }
+
+  @media (max-width: 980px) {
+    .wiki-layout {
+      flex-direction: column;
+      padding: 16px;
+    }
+    .wiki-sidebar {
+      width: 100%;
+      position: static;
+      height: auto;
+      margin-bottom: 24px;
+      max-height: 240px;
+    }
+    .wiki-search-wrap {
+      width: 200px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- AUTH GUARD OVERLAY -->
+<div id="auth-overlay">
+  <div class="wiki-brand-logo" style="width:54px; height:54px; font-size:26px; border-radius:14px; margin-bottom:16px;">A</div>
+  <h2 style="font-family:var(--font-heading); margin:0 0 8px 0;">Требуется авторизация</h2>
+  <p style="color:var(--text-muted); max-width:400px; font-size:14px; margin:0 0 20px 0;">В Aliasarr включена защита паролем. Пожалуйста, войдите в систему, чтобы получить доступ к документации.</p>
+  <a href="/?redirect=/wiki" class="btn btn-primary" style="padding:10px 24px;">Войти в Aliasarr</a>
+</div>
+
+<!-- TOP STICKY HEADER -->
+<header class="wiki-header">
+  <div class="wiki-header-inner">
+    <div class="wiki-header-left">
+      <a href="/" class="wiki-brand-badge" title="На главную Aliasarr">
+        <div class="wiki-brand-logo">A</div>
+        <span>Aliasarr</span>
+        <span class="wiki-doc-tag">Wiki &amp; Docs</span>
+      </a>
+    </div>
+
+    <div class="wiki-header-right">
+      <div class="wiki-search-wrap">
+        <i data-lucide="search" class="wiki-search-ico"></i>
+        <input type="text" id="wiki-search" class="wiki-search-input" placeholder="Поиск по документации..." oninput="filterWiki(this.value)">
+      </div>
+      
+      <!-- Theme Selector -->
+      <button class="btn btn-secondary btn-small" onclick="cycleWikiTheme()" title="Переключить тему" style="padding:7px 10px;">
+        <i data-lucide="moon" class="ico-xs"></i>
+      </button>
+
+      <!-- Back to App -->
+      <a href="/" class="btn btn-primary btn-small" style="display:flex; align-items:center; gap:6px;">
+        <i data-lucide="arrow-left" class="ico-xs"></i>
+        <span>В Aliasarr</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN LAYOUT -->
+<div class="wiki-layout">
+  
+  <!-- LEFT SIDEBAR TOC -->
+  <aside class="wiki-sidebar" id="wiki-sidebar">
+    <div class="wiki-toc-title">Содержание</div>
+
+    <div class="wiki-toc-group">
+      <div class="wiki-toc-group-label"><i data-lucide="compass" class="ico-xs"></i> <span>Введение</span></div>
+      <a href="#section-intro" class="wiki-toc-link active"><i data-lucide="sparkles" class="wiki-toc-ico"></i> <span>Что такое Aliasarr</span></a>
+      <a href="#section-quickstart" class="wiki-toc-link"><i data-lucide="zap" class="wiki-toc-ico"></i> <span>Быстрый старт (5 мин)</span></a>
+    </div>
+
+    <div class="wiki-toc-group">
+      <div class="wiki-toc-group-label"><i data-lucide="layers" class="ico-xs"></i> <span>Основные разделы</span></div>
+      <a href="#section-library" class="wiki-toc-link"><i data-lucide="library" class="wiki-toc-ico"></i> <span>Медиатека и Тайтлы</span></a>
+      <a href="#section-aliases" class="wiki-toc-link"><i data-lucide="languages" class="wiki-toc-ico"></i> <span>Алиасы и Парсер</span></a>
+      <a href="#section-qualities" class="wiki-toc-link"><i data-lucide="sliders" class="wiki-toc-ico"></i> <span>Качества и Cutoff</span></a>
+      <a href="#section-indexers" class="wiki-toc-link"><i data-lucide="search" class="wiki-toc-ico"></i> <span>Индексаторы (Трекеры)</span></a>
+      <a href="#section-downloaders" class="wiki-toc-link"><i data-lucide="download-cloud" class="wiki-toc-ico"></i> <span>Клиенты загрузки</span></a>
+      <a href="#section-specials" class="wiki-toc-link"><i data-lucide="film" class="wiki-toc-ico"></i> <span>Спецвыпуски и Импорт</span></a>
+      <a href="#section-renaming" class="wiki-toc-link"><i data-lucide="file-text" class="wiki-toc-ico"></i> <span>Шаблоны переименования</span></a>
+    </div>
+
+    <div class="wiki-toc-group">
+      <div class="wiki-toc-group-label"><i data-lucide="settings-2" class="ico-xs"></i> <span>Система и Настройки</span></div>
+      <a href="#section-scheduler" class="wiki-toc-link"><i data-lucide="clock" class="wiki-toc-ico"></i> <span>Планировщик и Задачи</span></a>
+      <a href="#section-security" class="wiki-toc-link"><i data-lucide="shield" class="wiki-toc-ico"></i> <span>Безопасность и 2FA</span></a>
+      <a href="#section-backups" class="wiki-toc-link"><i data-lucide="archive" class="wiki-toc-ico"></i> <span>Резервные копии</span></a>
+      <a href="#section-notifications" class="wiki-toc-link"><i data-lucide="bell" class="wiki-toc-ico"></i> <span>Уведомления (Telegram и др.)</span></a>
+      <a href="#section-recipes" class="wiki-toc-link"><i data-lucide="award" class="wiki-toc-ico"></i> <span>Готовые пресеты (Рецепты)</span></a>
+      <a href="#section-faq" class="wiki-toc-link"><i data-lucide="help-circle" class="wiki-toc-ico"></i> <span>Частые вопросы (FAQ)</span></a>
+    </div>
+  </aside>
+
+  <!-- MAIN DOCUMENTATION CONTENT -->
+  <main class="wiki-main" id="wiki-main-content">
+    
+    <!-- HERO HEADER -->
+    <div class="wiki-hero">
+      <h1>Документация и База знаний Aliasarr</h1>
+      <p>Полное руководство по работе с комбайном управления фильмами, сериалами и аниме: настройка трекеров, загрузчиков, алиасов, порогов качества и автоматического слежения за релизами.</p>
+      <div class="wiki-quick-pills">
+        <a href="#section-quickstart" class="wiki-quick-pill"><i data-lucide="zap" class="ico-xs" style="color:var(--teal)"></i> Быстрый старт</a>
+        <a href="#section-qualities" class="wiki-quick-pill"><i data-lucide="sliders" class="ico-xs" style="color:#818cf8"></i> Настройка Cutoff Quality</a>
+        <a href="#section-aliases" class="wiki-quick-pill"><i data-lucide="languages" class="ico-xs" style="color:#f472b6"></i> Как работают алиасы</a>
+        <a href="#section-recipes" class="wiki-quick-pill"><i data-lucide="award" class="ico-xs" style="color:#34d399"></i> Лучшие пресеты</a>
+      </div>
+    </div>
+
+    <!-- 1. ВВЕДЕНИЕ И АРХИТЕКТУРА -->
+    <section id="section-intro" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="sparkles"></i></div>
+        <h2 class="wiki-section-title">1. Что такое Aliasarr</h2>
+        <span class="wiki-section-badge">OVERVIEW</span>
+      </div>
+      <p class="wiki-p"><strong>Aliasarr</strong> — это современный self-hosted медиа-менеджер нового поколения, объединяющий возможности <em>Sonarr</em> и <em>Radarr</em> в едином удобном интерфейсе с глубокой поддержкой российских и международных трекеров, многоязычных названий (алиасов) и расширенным слежением за раздачами.</p>
+      
+      <div class="wiki-card-grid">
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="check-circle" class="ico-xs" style="color:var(--teal)"></i> Единый комбайн для всего</div>
+          <p class="wiki-subcard-text">Больше не нужно держать два отдельных сервиса для фильмов и сериалов. Фильмы, многосезонные сериалы, аниме и спецвыпуски управляются в одной базе.</p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="languages" class="ico-xs" style="color:#818cf8"></i> Умная система алиасов</div>
+          <p class="wiki-subcard-text">Ищет раздачи сразу по десяткам вариантов названий: на русском, английском, языке оригинала (японский/корейский), с транслитерацией и годами.</p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="refresh-cw" class="ico-xs" style="color:#34d399"></i> Слежение за раздачей (Tracker)</div>
+          <p class="wiki-subcard-text">Если релиз-группа обновляет торрент (добавляет новые серии в онгоинг), Aliasarr сам обнаруживает обновление, перезаливает торрент и скачивает только новые серии.</p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="shield-check" class="ico-xs" style="color:#f472b6"></i> Автономия и безопасность</div>
+          <p class="wiki-subcard-text">Встроенная поддержка HTTPS/SSL, двухфакторная аутентификация (2FA / TOTP), роли пользователей (RBAC) и автоматические бэкапы всей медиатеки.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. БЫСТРЫЙ СТАРТ -->
+    <section id="section-quickstart" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="zap"></i></div>
+        <h2 class="wiki-section-title">2. Быстрый старт за 5 минут</h2>
+        <span class="wiki-section-badge">QUICKSTART</span>
+      </div>
+      <p class="wiki-p">Для первого запуска и полноценной автоматизации достаточно выполнить 4 простых шага:</p>
+
+      <ol class="wiki-steps">
+        <li class="wiki-step-item">
+          <div class="wiki-step-title">Шаг 1: Настройте корневые папки медиатеки</div>
+          <div class="wiki-step-desc">Перейдите в <strong>Настройки → Папки</strong> и добавьте пути, где хранятся ваши видеофайлы (например, <code>/media/movies</code> для фильмов, <code>/media/shows</code> для сериалов, <code>/media/anime</code> для аниме).</div>
+        </li>
+        <li class="wiki-step-item">
+          <div class="wiki-step-title">Шаг 2: Добавьте Торрент-клиент (Download Client)</div>
+          <div class="wiki-step-desc">Перейдите в <strong>Настройки → Клиенты загрузки</strong>, выберите qBittorrent, Transmission или Deluge, укажите хост, порт, логин и пароль. Нажмите кнопку <em>«Тест»</em> для проверки связи.</div>
+        </li>
+        <li class="wiki-step-item">
+          <div class="wiki-step-title">Шаг 3: Подключите Индексаторы (Prowlarr / Jackett / Torznab)</div>
+          <div class="wiki-step-desc">В разделе <strong>Настройки → Индексаторы</strong> добавьте ваши трекеры (или Torznab-ссылки из Prowlarr/Jackett). Рекомендуется включить категории <em>Movies</em>, <em>TV</em> и <em>Anime</em>.</div>
+        </li>
+        <li class="wiki-step-item">
+          <div class="wiki-step-title">Шаг 4: Добавьте первый фильм или сериал</div>
+          <div class="wiki-step-desc">Нажмите кнопку <strong>«+ Добавить видео»</strong> в левом меню, найдите тайтл по названию, выберите профиль качества и корневую папку, затем нажмите <em>«Добавить»</em> (с автопоиском или без).</div>
+        </li>
+      </ol>
+
+      <div class="wiki-callout wiki-callout-best">
+        <i data-lucide="check-check" class="callout-ico ico-sm"></i>
+        <div><strong>Совет:</strong> После добавления первого тайтла перейдите в его карточку и нажмите кнопку <em>«Поиск релизов»</em> (лупа), чтобы наглядно увидеть, как система сопоставляет алиасы и оценивает найденные раздачи.</div>
+      </div>
+    </section>
+
+    <!-- 3. МЕДИАТЕКА И ТАЙТЛЫ -->
+    <section id="section-library" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="library"></i></div>
+        <h2 class="wiki-section-title">3. Медиатека и Управление тайтлами</h2>
+        <span class="wiki-section-badge">LIBRARY</span>
+      </div>
+      <p class="wiki-p">Раздел <strong>Библиотека</strong> отображает все добавленные тайтлы с удобной фильтрацией по типам (Фильмы, Сериалы, Аниме), статусу мониторинга и сортировкой по алфавиту или дате добавления.</p>
+
+      <div class="wiki-h3">Статусы эпизодов и фильмов</div>
+      <table class="wiki-table">
+        <thead>
+          <tr>
+            <th style="width:130px;">Статус</th>
+            <th style="width:100px;">Цвет</th>
+            <th>Описание и поведение системы</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Downloaded</strong></td>
+            <td><span class="badge badge-teal">Зеленый</span></td>
+            <td>Файл успешно скачан и находится на диске в медиатеке. Участвует в автопоиске только если разрешен апгрейд до Cutoff.</td>
+          </tr>
+          <tr>
+            <td><strong>Wanted</strong></td>
+            <td><span class="badge badge-danger">Красный</span></td>
+            <td>Эпизод уже вышел, но файла еще нет. Планировщик Wanted Search автоматически ищет и захватывает подходящие релизы.</td>
+          </tr>
+          <tr>
+            <td><strong>Unaired</strong></td>
+            <td><span class="badge badge-warning">Желтый</span></td>
+            <td>Эпизод еще не вышел в эфир (дата премьеры в будущем). При наступлении даты премьеры автоматически переходит в Wanted.</td>
+          </tr>
+          <tr>
+            <td><strong>Unmonitored</strong></td>
+            <td><span class="badge" style="background:#4b5563; color:#fff;">Серый</span></td>
+            <td>Эпизод снят с отслеживания. Автопоиск для него отключен, но доступен ручной интерактивный поиск.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 4. АЛИАСЫ И ПАРСЕР -->
+    <section id="section-aliases" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="languages"></i></div>
+        <h2 class="wiki-section-title">4. Алиасы и Универсальный Парсер</h2>
+        <span class="wiki-section-badge">PARSER</span>
+      </div>
+      <p class="wiki-p">Главное преимущество Aliasarr — универсальный парсер, специально обученный понимать названия релизов как зарубежных трекеров (Scene, P2P), так и отечественных (RuTracker, NNMClub, Rutor, AniLibria, Kinozal).</p>
+
+      <div class="wiki-card-grid">
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="file-code" class="ico-xs" style="color:var(--teal)"></i> Распознавание серий и паков</div>
+          <p class="wiki-subcard-text">Поддерживает шаблоны <code>S01E05</code>, <code>[E12 of 12]</code>, <code>Сезон 1 Серии 1-12 из 12</code>, <code>12 из 12</code>, <code>1-24 эп.</code>, <code>OVA-1</code>, <code>SP01-SP03</code> и пакетные сезоны до 9999 серий.</p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="tag" class="ico-xs" style="color:#818cf8"></i> Авто-генерация алиасов</div>
+          <p class="wiki-subcard-text">При добавлении тайтла метаданные автоматически наполняют список алиасов (русский перевод, оригинальное название, ромадзи, английское название).</p>
+        </div>
+      </div>
+
+      <div class="wiki-callout wiki-callout-tip">
+        <i data-lucide="lightbulb" class="callout-ico ico-sm"></i>
+        <div><strong>Пользовательские алиасы:</strong> Вы можете в любой момент добавить собственный алиас в карточке тайтла (например, редкое народное название или имя переводчика). Поиск сразу начнет учитывать его во всех трекерах!</div>
+      </div>
+    </section>
+
+    <!-- 5. КАЧЕСТВА И CUTOFF -->
+    <section id="section-qualities" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="sliders"></i></div>
+        <h2 class="wiki-section-title">5. Качества, Профили и Cutoff Quality</h2>
+        <span class="wiki-section-badge">QUALITY &amp; CUTOFF</span>
+      </div>
+      <p class="wiki-p">Качество релизов в Aliasarr оценивается двухуровневой системой: <strong>Базовое качество (Quality Rank)</strong> и <strong>Форматы качества (Quality Formats Score)</strong>.</p>
+
+      <div class="wiki-h3">Иерархия базовых качеств (от низшего к высшему):</div>
+      <div class="wiki-code-block">
+CAM / TS &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt; BDRip-480p &lt; HDTV-720p &lt; WEBRip-720p &lt; WEBDL-720p &lt; Bluray-720p &lt; HDTV-1080p &lt; WEBRip-1080p &lt; WEBDL-1080p &lt; Bluray-1080p &lt; Remux-1080p &lt; WEBDL-2160p &lt; Bluray-2160p &lt; Remux-2160p
+      </div>
+
+      <div class="wiki-h3">Как работает Cutoff Quality (Порог отсечки) и апгрейд:</div>
+      <p class="wiki-p"><strong>Cutoff Quality</strong> — это целевое качество, при котором файл считается идеальным. Если файл скачан в более низком качестве, система продолжит искать улучшения, пока не достигнет Cutoff.</p>
+
+      <div class="wiki-card-grid">
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title">1. Разрешить апгрейд (Upgrade Allowed)</div>
+          <p class="wiki-subcard-text">В профиле качества включите чекбокс <em>«Разрешить апгрейд»</em>.</p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title">2. Установите Cutoff Quality</div>
+          <p class="wiki-subcard-text">Выберите целевой уровень, например <strong>Bluray-1080p</strong> или <strong>WEBDL-1080p</strong>.</p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title">3. Очки форматов (Cutoff Score)</div>
+          <p class="wiki-subcard-text">Если вам важен конкретный релизер или HDR10+/Dolby Vision, задайте порог очков.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. ИНДЕКСАТОРЫ -->
+    <section id="section-indexers" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="search"></i></div>
+        <h2 class="wiki-section-title">6. Индексаторы и Трекеры</h2>
+        <span class="wiki-section-badge">INDEXERS</span>
+      </div>
+      <p class="wiki-p">Aliasarr поддерживает работу с любыми Torznab и Newznab провайдерами (Prowlarr, Jackett), а также прямые интеграции с трекерами.</p>
+
+      <div class="wiki-h3">Рекомендуемые параметры индексатора:</div>
+      <table class="wiki-table">
+        <thead>
+          <tr>
+            <th>Параметр</th>
+            <th>Рекомендуемое значение</th>
+            <th>Для чего нужен</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Минимум сидов (Min Seeds)</strong></td>
+            <td><code>1</code> – <code>3</code></td>
+            <td>Отсекает мертвые раздачи без раздающих, экономя время загрузчика.</td>
+          </tr>
+          <tr>
+            <td><strong>Приоритет (Priority)</strong></td>
+            <td><code>1</code> (высший) – <code>50</code></td>
+            <td>При наличии одинаковых раздач на разных трекерах релиз будет взят с более приоритетного трекера.</td>
+          </tr>
+          <tr>
+            <td><strong>Интервал повторов при сбое</strong></td>
+            <td><code>15 мин</code></td>
+            <td>При временной недоступности трекера Aliasarr автоматически перепроверит его и восстановит статус.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 7. КЛИЕНТЫ ЗАГРУЗКИ -->
+    <section id="section-downloaders" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="download-cloud"></i></div>
+        <h2 class="wiki-section-title">7. Клиенты загрузки</h2>
+        <span class="wiki-section-badge">DOWNLOADERS</span>
+      </div>
+      <p class="wiki-p">Поддерживаются популярные торрент-клиенты: <strong>qBittorrent</strong>, <strong>Transmission</strong>, <strong>Deluge</strong>, <strong>rTorrent</strong>, <strong>Aria2</strong>, <strong>SABnzbd</strong>.</p>
+
+      <div class="wiki-callout wiki-callout-note">
+        <i data-lucide="check" class="callout-ico ico-sm"></i>
+        <div><strong>Фильтрация файлов раздачи:</strong> При захвате релиза для одной или нескольких конкретных серий Aliasarr автоматически отключает лишние файлы раздачи в торрент-клиенте, загружая только нужные вам серии и экономя гигабайты диска!</div>
+      </div>
+    </section>
+
+    <!-- 8. СПЕЦВЫПУСКИ И ИМПОРТ -->
+    <section id="section-specials" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="film"></i></div>
+        <h2 class="wiki-section-title">8. Спецвыпуски (Specials, OVA) и Ручной импорт</h2>
+        <span class="wiki-section-badge">SPECIALS &amp; IMPORT</span>
+      </div>
+      <p class="wiki-p">Спецвыпуски (OVA, фильмовые вставки, SP01, рекапы) часто имеют нестандартную нумерацию на трекерах. Aliasarr предоставляет удобный интерактивный мастер:</p>
+
+      <ul style="color:var(--text); font-size:14px; line-height:1.7;">
+        <li><strong>Индикатор готовности спешлов:</strong> Если скачан спецвыпуск, в карточке тайтла загорается кнопка <em>«Спецвыпуски (готов к импорту)»</em>.</li>
+        <li><strong>Выбор целевого сезона/серии:</strong> Вы сами решаете, поместить спецвыпуск в <code>Season 00 (Specials)</code> или привязать к конкретному номеру эпизода.</li>
+        <li><strong>Защита шрифтов:</strong> При импорте аниме создаются файлы <code>.ignore</code> в папках шрифтов, чтобы Jellyfin и Emby не засоряли медиатеку лишними файлами.</li>
+      </ul>
+    </section>
+
+    <!-- 9. ШАБЛОНЫ ПЕРЕИМЕНОВАНИЯ -->
+    <section id="section-renaming" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="file-text"></i></div>
+        <h2 class="wiki-section-title">9. Шаблоны переименования</h2>
+        <span class="wiki-section-badge">RENAMING</span>
+      </div>
+      <p class="wiki-p">Настройка шаблонов находится в <strong>Настройки → Шаблоны</strong>. Вы можете использовать удобный предпросмотр (Preview Rename &amp; Organize) с визуальным diff перед применением изменений.</p>
+
+      <div class="wiki-h3">Рекомендуемые шаблоны:</div>
+      <div class="wiki-code-block">
+Сериалы / Аниме:
+Папка сериала:  {Show Title} ({Release Year})
+Папка сезона:   Season {Season:00}
+Файл серии:     {Show Title} - S{Season:00}E{Episode:00} - {Episode Title} [{Quality Full}] [{Release Group}]
+
+Фильмы:
+Папка фильма:   {Show Title} ({Release Year})
+Файл фильма:    {Show Title} ({Release Year}) [{Quality Full}] [{Release Group}]
+      </div>
+    </section>
+
+    <!-- 10. ПЛАНИРОВЩИК -->
+    <section id="section-scheduler" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="clock"></i></div>
+        <h2 class="wiki-section-title">10. Планировщик и Фоновые задачи</h2>
+        <span class="wiki-section-badge">SCHEDULER</span>
+      </div>
+      <p class="wiki-p">Aliasarr выполняет фоновые операции асинхронно без зависаний интерфейса:</p>
+      <ul style="color:var(--text); font-size:14px; line-height:1.7;">
+        <li><strong>Wanted Search (каждые 15 мин):</strong> Поиск отсутствующих серий и фильмов.</li>
+        <li><strong>Downloads Check (каждые 15 сек):</strong> Проверка 100% завершения загрузок и их авто-импорт.</li>
+        <li><strong>Release Tracker (каждые 15 мин):</strong> Проверка обновлений в отслеживаемых раздачах (онгоинги).</li>
+        <li><strong>Auto Backups (каждые 7 дней):</strong> Создание полной резервной копии базы данных.</li>
+      </ul>
+    </section>
+
+    <!-- 11. БЕЗОПАСНОСТЬ И 2FA -->
+    <section id="section-security" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="shield"></i></div>
+        <h2 class="wiki-section-title">11. Безопасность, 2FA и Доступ</h2>
+        <span class="wiki-section-badge">SECURITY</span>
+      </div>
+      <p class="wiki-p">Для защиты от несанкционированного доступа поддерживается:</p>
+      <div class="wiki-card-grid">
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="lock" class="ico-xs" style="color:var(--teal)"></i> Вход по паролю</div>
+          <p class="wiki-subcard-text">Включение авторизации блокирует доступ к веб-интерфейсу, Wiki и REST API для неавторизованных пользователей.</p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="smartphone" class="ico-xs" style="color:#818cf8"></i> 2FA / TOTP</div>
+          <p class="wiki-subcard-text">Двухфакторная защита через стандартные приложения Google Authenticator, Bitwarden, Aegis, 2FAS.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. РЕЗЕРВНЫЕ КОПИИ -->
+    <section id="section-backups" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="archive"></i></div>
+        <h2 class="wiki-section-title">12. Резервное копирование и Восстановление</h2>
+        <span class="wiki-section-badge">BACKUPS</span>
+      </div>
+      <p class="wiki-p">Раздел <strong>Бэкап</strong> позволяет создавать zip-архивы в один клик:</p>
+      <ul style="color:var(--text); font-size:14px; line-height:1.7;">
+        <li><strong>Полный бэкап (Full):</strong> Сохраняет всю медиатеку, историю, алиасы, профили качества, настройки и пользователей.</li>
+        <li><strong>Только конфигурация (Config):</strong> Сохраняет только настройки индексаторов, загрузчиков и профилей качества без списка фильмов.</li>
+        <li><strong>Восстановление с предпросмотром:</strong> Перед восстановлением система показывает точный состав архива и дату его создания.</li>
+      </ul>
+    </section>
+
+    <!-- 13. УВЕДОМЛЕНИЯ -->
+    <section id="section-notifications" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="bell"></i></div>
+        <h2 class="wiki-section-title">13. Уведомления (Telegram, Discord, Webhooks)</h2>
+        <span class="wiki-section-badge">NOTIFICATIONS</span>
+      </div>
+      <p class="wiki-p">В разделе <strong>Настройки → Уведомления</strong> настройте отправку сообщений в Telegram-бот или Discord канал при событиях: <em>Захват релиза</em>, <em>Успешный импорт</em>, <em>Готовность спецвыпуска</em>, <em>Создание бэкапа</em>.</p>
+    </section>
+
+    <!-- 14. ГОТОВЫЕ ПРЕСЕТЫ -->
+    <section id="section-recipes" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="award"></i></div>
+        <h2 class="wiki-section-title">14. Рекомендуемые пресеты настройки</h2>
+        <span class="wiki-section-badge">BEST PRACTICES</span>
+      </div>
+
+      <div class="wiki-card-grid">
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title">🎬 Фильмы и Сериалы (1080p Web-DL)</div>
+          <p class="wiki-subcard-text">
+            <strong>Профиль:</strong> HD - 720p/1080p<br>
+            <strong>Cutoff:</strong> WEBDL-1080p<br>
+            <strong>Форматы качества:</strong> +100 за LostFilm / HDRezka, -500 за CAM/TS.
+          </p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title">🌟 Максимальное качество (4K Remux)</div>
+          <p class="wiki-subcard-text">
+            <strong>Профиль:</strong> Ultra-HD - 2160p<br>
+            <strong>Cutoff:</strong> Remux-2160p<br>
+            <strong>Форматы качества:</strong> +150 за Dolby Vision / HDR10+, +50 за DTS-HD MA / TrueHD.
+          </p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title">🌸 Аниме (1080p Dual Audio)</div>
+          <p class="wiki-subcard-text">
+            <strong>Профиль:</strong> Anime - 1080p<br>
+            <strong>Cutoff:</strong> Bluray-1080p<br>
+            <strong>Форматы качества:</strong> +100 за AniLibria / Studio Band, +50 за Субтитры.
+          </p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title">💾 Экономия места (x265 / HEVC)</div>
+          <p class="wiki-subcard-text">
+            <strong>Профиль:</strong> Space Saver 720p/1080p<br>
+            <strong>Cutoff:</strong> WEBDL-1080p<br>
+            <strong>Форматы качества:</strong> +100 за HEVC / x265 / 10bit.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 15. FAQ -->
+    <section id="section-faq" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="help-circle"></i></div>
+        <h2 class="wiki-section-title">15. Частые вопросы (FAQ)</h2>
+        <span class="wiki-section-badge">FAQ</span>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title">❓ Почему Aliasarr находит релиз на трекере, но не скачивает его автоматически?</div>
+        <p class="wiki-subcard-text">Проверьте в карточке тайтла кнопку <em>«Поиск релизов»</em> (интерактивный поиск). В столбце <em>«Решение»</em> DecisionEngine покажет точную причину отклонения (например: меньше требуемых сидов, уже скачано лучшее качество, или качество не входит в профиль).</p>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title">❓ Как принудительно запустить повторный автопоиск для всей библиотеки?</div>
+        <p class="wiki-subcard-text">В правом нижнем углу интерфейса кликните на виджет фоновых задач и выберите <em>«Запустить автопоиск Wanted»</em>, либо перейдите во вкладку <strong>Календарь</strong> и нажмите <em>«Поиск отсутствующих»</em>.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  // Initialize Lucide Icons
+  if (typeof lucide !== "undefined" && lucide.createIcons) {
+    lucide.createIcons();
+  }
+
+  // Active Link Scroll Spy
+  window.addEventListener('scroll', () => {
+    const sections = document.querySelectorAll('.wiki-section');
+    const scrollPos = window.scrollY + 120;
+    
+    sections.forEach(section => {
+      const top = section.offsetTop;
+      const height = section.offsetHeight;
+      const id = section.getAttribute('id');
+      if (scrollPos >= top && scrollPos < top + height) {
+        document.querySelectorAll('.wiki-toc-link').forEach(link => {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === '#' + id) {
+            link.classList.add('active');
+          }
+        });
+      }
+    });
+  });
+
+  // Client Search in Wiki Content
+  function filterWiki(query) {
+    query = (query || "").trim().toLowerCase();
+    const sections = document.querySelectorAll('.wiki-section');
+    sections.forEach(sec => {
+      if (!query) {
+        sec.style.display = 'block';
+        return;
+      }
+      const text = sec.innerText.toLowerCase();
+      sec.style.display = text.includes(query) ? 'block' : 'none';
+    });
+  }
+
+  // Theme Toggler
+  function cycleWikiTheme() {
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    const next = current === "dark" ? "light" : (current === "light" ? "dracula" : "dark");
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("vbeacon_theme", next); } catch (e) {}
+  }
+
+  // Authentication check on page load
+  async function checkWikiAuth() {
+    // If bootstrap key is set, login is disabled
+    if (window.__ALIASARR_BOOTSTRAP_KEY__) {
+      return;
+    }
+    try {
+      const resp = await fetch("/api/v1/auth/me");
+      if (resp.status === 401 || resp.status === 403) {
+        document.getElementById("auth-overlay").style.display = "flex";
+      }
+    } catch (e) {
+      // Network error or offline
+    }
+  }
+  checkWikiAuth();
+</script>
+</body>
+</html>
