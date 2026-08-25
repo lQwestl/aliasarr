@@ -503,7 +503,7 @@ def health():
 
 @app.get("/quality-guide")
 def quality_guide():
-    return RedirectResponse(url="/wiki#section-quality-guide", status_code=302)
+    return RedirectResponse(url="/wiki#section-qualities", status_code=302)
 
 
 @app.get("/wiki")

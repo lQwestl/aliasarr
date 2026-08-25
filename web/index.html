@@ -1712,7 +1712,7 @@
             <h2 style="margin:0; font-size:18px; font-weight:600;"><i data-lucide="award" class="ico-sm" style="vertical-align:middle; margin-right:6px; color:var(--accent);"></i><span data-i18n="quality.settings_title">Профили и форматы качества</span></h2>
             <p class="subtitle" style="margin:4px 0 0 0;" data-i18n="quality.settings_subtitle">Настройка предпочтительного качества, порогов апгрейда и скоринга релизов</p>
           </div>
-          <a href="/quality-guide" target="_blank" onclick="openQualityGuide(event)" class="btn btn-secondary" style="display:inline-flex; align-items:center; gap:8px;" title="Открыть полное руководство по профилям качества, форматам качества и Release Title Regex в новой вкладке" data-i18n-title="cf.guide_btn_title">
+          <a href="/wiki#section-qualities" target="_blank" onclick="openQualityGuide(event, 'section-qualities')" class="btn btn-secondary" style="display:inline-flex; align-items:center; gap:8px;" title="Открыть полное руководство по профилям качества, форматам качества и Release Title Regex в новой вкладке" data-i18n-title="cf.guide_btn_title">
             <i data-lucide="book-open" class="ico-sm"></i> <span data-i18n="cf.guide_btn">Справочник качества</span>
           </a>
         </div>
@@ -1763,7 +1763,7 @@
               <p class="hint" style="margin:4px 0 0 0;" data-i18n="cf.subtitle">Правила распознавания и приоритезации релизов (HDR, TrueHD, Proper, Preferred Groups)</p>
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
-              <a href="/quality-guide#custom-formats" target="_blank" onclick="openQualityGuide(event, 'custom-formats')" class="btn btn-secondary btn-small" style="gap:6px;" title="Справочник по Regex и форматам качества" data-i18n-title="cf.guide_btn_title">
+              <a href="/wiki#section-qualities" target="_blank" onclick="openQualityGuide(event, 'section-qualities')" class="btn btn-secondary btn-small" style="gap:6px;" title="Справочник по Regex и форматам качества" data-i18n-title="cf.guide_btn_title">
                 <i data-lucide="book-open" class="ico-xs"></i> <span data-i18n="cf.guide_btn">Справочник</span>
               </a>
               <button class="btn btn-primary btn-small" onclick="openAddCustomFormatModal()"><i data-lucide="plus" class="ico-sm"></i> <span data-i18n="cf.add_btn">Добавить формат</span></button>
@@ -2442,7 +2442,7 @@
     <button class="modal-close" onclick="closeModal('custom-format-modal')">×</button>
     <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
       <h3 id="cf-modal-title" style="margin:0;"><i data-lucide="sparkles" class="ico-sm"></i> <span data-i18n="cf.modal_title">Формат качества</span></h3>
-      <a href="/quality-guide#custom-formats" target="_blank" onclick="openQualityGuide(event, 'custom-formats')" class="btn btn-secondary btn-small" style="font-size:12px; gap:4px;" title="Справочник по Regex и форматам качества" data-i18n-title="cf.guide_btn_title">
+      <a href="/wiki#section-qualities" target="_blank" onclick="openQualityGuide(event, 'section-qualities')" class="btn btn-secondary btn-small" style="font-size:12px; gap:4px;" title="Справочник по Regex и форматам качества" data-i18n-title="cf.guide_btn_title">
         <i data-lucide="book-open" class="ico-xs"></i> <span data-i18n="cf.guide_btn">Справочник</span>
       </a>
     </div>

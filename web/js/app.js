@@ -2095,8 +2095,8 @@ function episodeStatusLabel(status) {
 
 function openQualityGuide(event, hash) {
   if (event) event.preventDefault();
-  const targetHash = hash ? (hash.startsWith("#") ? hash : "#" + hash) : "";
-  const url = "/quality-guide?lang=" + encodeURIComponent(CURRENT_LANG) + targetHash;
+  const targetHash = hash ? (hash.startsWith("#") ? hash : "#" + hash) : "#section-qualities";
+  const url = "/wiki" + targetHash;
   window.open(url, "_blank");
 }
 
