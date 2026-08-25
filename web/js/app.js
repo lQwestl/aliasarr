@@ -10394,7 +10394,6 @@ async function submitMetadataSource() {
   const api_key = isSkyhookOrRadarr ? null : document.getElementById("md-key").value.trim();
   const pin = (document.getElementById("md-pin")?.value || "").trim();
   
-  const isSkyhookOrRadarr = (type === "skyhook" || type === "radarr");
   const selectedCountries = isSkyhookOrRadarr
     ? []
     : Array.from(document.querySelectorAll('#md-alias-countries input[type="checkbox"]:checked')).map(cb => cb.value);
