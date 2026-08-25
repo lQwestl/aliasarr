@@ -11,36 +11,68 @@ from typing import List, Optional
 
 # Порядок от худшего к лучшему — индекс используется как ранг (0-N)
 QUALITY_ORDER = [
+    # Low / Telesync / CAM
+    "CAM",
+    "Telesync",
+    "Telecine",
+    "Workprint",
+    # SD / TV / DVD / Rips
     "SDTV",
+    "TVRip",
     "DVD",
     "DVDRip",
+    "BDRip",
+    "BRRip",
+    "HDTV-480p",
+    "HDTV-576p",
+    "WEBRip-480p",
+    "WEBRip-576p",
+    "WEBDL-480p",
+    "WEBDL-576p",
+    "BDRip-480p",
+    "BDRip-576p",
+    "Bluray-480p",
+    "Bluray-576p",
+    # 720p
     "HDTV-720p",
     "WEBRip-720p",
     "WEBDL-720p",
+    "BDRip-720p",
     "Bluray-720p",
+    # 1080p
     "HDTV-1080p",
     "WEBRip-1080p",
     "WEBDL-1080p",
+    "BDRip-1080p",
     "Bluray-1080p",
     "Remux-1080p",
+    # 2160p (4K UHD)
     "HDTV-2160p",
     "WEBRip-2160p",
     "WEBDL-2160p",
+    "BDRip-2160p",
     "Bluray-2160p",
     "Remux-2160p",
 ]
 
 # Регулярные выражения источников (Sources)
-_REMUX_RE = re.compile(r"\b(remux|bdremux|uhd[-_. ]?remux)\b", re.IGNORECASE)
-_BLURAY_RE = re.compile(r"\b(bluray|blu-ray|bdrip|brrip|bdmux|bd(?!$)|hd-?dvd|bdmv|uhd[-_. ]?disc|uhd[-_. ]?blu[-_. ]?ray|uhd[-_. ]?bd|4k[-_. ]?bluray|4k[-_. ]?blu-ray|bdiso|blurayiso)\b", re.IGNORECASE)
+_REMUX_RE = re.compile(r"\b(remux|bdremux|bd[-_. ]?remux|uhd[-_. ]?remux|4k[-_. ]?remux)\b", re.IGNORECASE)
+_BDRIP_RE = re.compile(r"\b(bdrip|bd[-_. ]?rip)\b", re.IGNORECASE)
+_BRRIP_RE = re.compile(r"\b(brrip|br[-_. ]?rip)\b", re.IGNORECASE)
+_BLURAY_RE = re.compile(r"\b(bluray|blu-ray|bdmux|bd(?!$)|hd-?dvd|bdmv|uhd[-_. ]?disc|uhd[-_. ]?blu[-_. ]?ray|uhd[-_. ]?bd|4k[-_. ]?bluray|4k[-_. ]?blu-ray|bdiso|blurayiso)\b", re.IGNORECASE)
 _WEBDL_RE = re.compile(r"\b(web[-_. ]?dl(?:mux)?|webdl|amazonhd|ituneshd|netflixu?hd|webhd|hbomaxhd|disneyhd|[. ]web[. ](?:[xh][ .]?26[456]|avc|hevc|ddp?[ .]?5[. ]1))\b", re.IGNORECASE)
 _WEBRIP_RE = re.compile(r"\b(webrip|web-rip|web\b)", re.IGNORECASE)
-_HDTV_RE = re.compile(r"\b(hdtv|pdtv|dsr|tvrip)\b", re.IGNORECASE)
+_HDTV_RE = re.compile(r"\b(hdtv|pdtv|dsr)\b", re.IGNORECASE)
+_TVRIP_RE = re.compile(r"\b(tvrip|satrip|dtvrip)\b", re.IGNORECASE)
 _DVDRIP_RE = re.compile(r"\b(dvdrip|dvd-rip)\b", re.IGNORECASE)
-_DVD_RE = re.compile(r"\b(dvd|dvd9|dvd5|ntsc|pal|xvidvd)\b", re.IGNORECASE)
+_DVD_RE = re.compile(r"\b(dvd|dvd9|dvd5|dvd-r|ntsc|pal|xvidvd)\b", re.IGNORECASE)
+_CAM_RE = re.compile(r"\b(camrip|cam|hdcam)\b", re.IGNORECASE)
+_TELESYNC_RE = re.compile(r"\b(telesync|hdts|hd-ts|tsrip|telesync-rip)\b", re.IGNORECASE)
+_TELECINE_RE = re.compile(r"\b(telecine|tc|hdtc)\b", re.IGNORECASE)
+_WORKPRINT_RE = re.compile(r"\b(workprint|wp)\b", re.IGNORECASE)
 
 # Разрешения
-_RES_RE = re.compile(r"\b(?P<res>2160p|1080p|1080i|720p|576p|480p|480i|360p|4k|uhd|fhd)\b", re.IGNORECASE)
+_RES_RE = re.compile(r"\b(?P<res>2160p|1080p|1080i|720p|576p|576i|480p|480i|360p|4k|uhd|fhd)\b", re.IGNORECASE)
 
 # Кодеки видео
 _VCODEC_RE = re.compile(r"\b(?P<vcodec>x265|h265|hevc|x264|h264|avc|av1|xvid|divx|vc-?1|mpeg2|mpeg-h)\b", re.IGNORECASE)
@@ -87,10 +119,11 @@ def parse_quality(release_name: str) -> QualityInfo:
     Разбирает строку названия релиза на качество, кодеки, HDR и модификаторы.
     """
     if not release_name:
-        return QualityInfo(name="SDTV", rank=0, source="SDTV", resolution="480p")
+        return QualityInfo(name="SDTV", rank=QUALITY_ORDER.index("SDTV"), source="SDTV", resolution="480p")
 
     # 1. Разрешение
     res_match = _RES_RE.search(release_name)
+    has_explicit_res = res_match is not None
     raw_res = res_match.group("res").lower() if res_match else ""
     if raw_res in ("2160p", "4k", "uhd"):
         resolution = "2160p"
@@ -98,7 +131,9 @@ def parse_quality(release_name: str) -> QualityInfo:
         resolution = "1080p"
     elif raw_res == "720p":
         resolution = "720p"
-    elif raw_res in ("576p", "480p", "480i"):
+    elif raw_res in ("576p", "576i"):
+        resolution = "576p"
+    elif raw_res in ("480p", "480i"):
         resolution = "480p"
     elif raw_res == "360p":
         resolution = "360p"
@@ -108,6 +143,10 @@ def parse_quality(release_name: str) -> QualityInfo:
     # 2. Источник
     if _REMUX_RE.search(release_name):
         source = "Remux"
+    elif _BDRIP_RE.search(release_name):
+        source = "BDRip"
+    elif _BRRIP_RE.search(release_name):
+        source = "BRRip"
     elif _BLURAY_RE.search(release_name):
         source = "Bluray"
     elif _WEBDL_RE.search(release_name):
@@ -116,15 +155,47 @@ def parse_quality(release_name: str) -> QualityInfo:
         source = "WEBRip"
     elif _HDTV_RE.search(release_name):
         source = "HDTV"
+    elif _TVRIP_RE.search(release_name):
+        source = "TVRip"
     elif _DVDRIP_RE.search(release_name):
         source = "DVDRip"
     elif _DVD_RE.search(release_name):
         source = "DVD"
+    elif _CAM_RE.search(release_name):
+        source = "CAM"
+    elif _TELESYNC_RE.search(release_name):
+        source = "Telesync"
+    elif _TELECINE_RE.search(release_name):
+        source = "Telecine"
+    elif _WORKPRINT_RE.search(release_name):
+        source = "Workprint"
     else:
-        source = "HDTV" if resolution in ("720p", "1080p", "2160p") else "SDTV"
+        source = "HDTV" if (has_explicit_res and resolution in ("720p", "1080p", "2160p")) else "SDTV"
 
     # 3. Формирование канонического имени качества
-    if source in ("DVDRip", "DVD", "SDTV"):
+    if source == "Remux":
+        canonical_name = "Remux-2160p" if resolution == "2160p" else "Remux-1080p"
+    elif source == "BDRip":
+        if has_explicit_res and resolution in ("720p", "1080p", "2160p", "480p", "576p"):
+            canonical_name = f"BDRip-{resolution}"
+        else:
+            canonical_name = "BDRip"
+    elif source == "BRRip":
+        if has_explicit_res and resolution in ("720p", "1080p", "2160p", "480p", "576p"):
+            canonical_name = f"BDRip-{resolution}"
+        else:
+            canonical_name = "BRRip"
+    elif source == "Bluray":
+        if has_explicit_res and resolution in ("720p", "1080p", "2160p", "480p", "576p"):
+            canonical_name = f"Bluray-{resolution}"
+        else:
+            canonical_name = "Bluray-1080p"
+    elif source in ("WEBDL", "WEBRip", "HDTV"):
+        if has_explicit_res:
+            canonical_name = f"{source}-{resolution}"
+        else:
+            canonical_name = f"{source}-1080p" if source != "HDTV" else "HDTV-720p"
+    elif source in ("DVDRip", "DVD", "TVRip", "SDTV", "CAM", "Telesync", "Telecine", "Workprint"):
         canonical_name = source
     else:
         canonical_name = f"{source}-{resolution}"
@@ -137,6 +208,10 @@ def parse_quality(release_name: str) -> QualityInfo:
             canonical_name = "WEBDL-1080p"
         elif resolution == "720p":
             canonical_name = "WEBDL-720p"
+        elif resolution == "576p":
+            canonical_name = "WEBDL-576p"
+        elif resolution == "480p":
+            canonical_name = "WEBDL-480p"
         else:
             canonical_name = "SDTV"
 
