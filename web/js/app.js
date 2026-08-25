@@ -2138,10 +2138,11 @@ function applyLanguage(lang) {
     if (val) el.setAttribute("title", val);
   });
 
-  // Обновляем текущий активный вид, если документ уже загружен
+  // Обновляем текущий активный вид, только если панель уже активна в DOM
   const activeNav = document.querySelector(".nav-item.active");
-  if (activeNav && activeNav.dataset.tab) {
-    const tabId = activeNav.dataset.tab;
+  const hashTab = (window.location.hash || "").replace("#", "");
+  const tabId = activeNav?.dataset?.tab || hashTab || localStorage.getItem("aliasarr_last_tab");
+  if (tabId && document.getElementById("tab-" + tabId)?.classList.contains("active")) {
     if (tabId === "dashboard") loadDashboard();
     else if (tabId === "library") renderLibrary();
     else if (tabId === "calendar") loadCalendar();
@@ -2319,7 +2320,8 @@ function applyUserPermissionsToUI() {
 
   // 5. Active tab fallback if currently on forbidden tab
   const activeNav = document.querySelector('.sidebar nav .nav-item.active');
-  const currentActiveTab = activeNav?.dataset?.tab;
+  const hashTab = (window.location.hash || "").replace("#", "");
+  const currentActiveTab = activeNav?.dataset?.tab || hashTab || localStorage.getItem("aliasarr_last_tab") || "dashboard";
 
   const tabPermMap = {
     dashboard: "view_dashboard",
@@ -2344,7 +2346,7 @@ function applyUserPermissionsToUI() {
     const candidateTabs = ["dashboard", "library", "calendar", "activity", "history", "events", "journal", "release-logs", "audit", "backup", "settings"];
     for (const t of candidateTabs) {
       const allowed = t === "settings" ? canSeeSettings : (t === "release-logs" ? (hasPermission("view_release_logs") || hasPermission("manage_release_logs")) : hasPermission(tabPermMap[t]));
-      if (allowed) {
+      if (allowed && t !== currentActiveTab) {
         switchTab(t);
         break;
       }
