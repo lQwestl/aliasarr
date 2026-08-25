@@ -2100,6 +2100,15 @@ function openQualityGuide(event, hash) {
   window.open(url, "_blank");
 }
 
+function openWiki(event, hash) {
+  if (event) {
+    event.stopPropagation();
+  }
+  const targetHash = hash ? (hash.startsWith("#") ? hash : "#" + hash) : "";
+  window.open("/wiki" + targetHash, "_blank");
+  if (event) event.preventDefault();
+}
+
 function applyLanguage(lang) {
   CURRENT_LANG = (lang === "en") ? "en" : "ru";
   document.documentElement.setAttribute("lang", CURRENT_LANG);
@@ -3284,8 +3293,12 @@ window.addEventListener("resize", updateMobileState);
 window.addEventListener("orientationchange", updateMobileState);
 
 function switchTab(tabId) {
+  if (!tabId || typeof tabId !== "string" || tabId === "undefined") return;
+  const targetPanel = document.getElementById("tab-" + tabId);
+  if (!targetPanel) return;
+
   window.history.replaceState(null, null, "#" + tabId);
-  document.querySelectorAll(".nav-item").forEach(el => el.classList.toggle("active", el.dataset.tab === tabId));
+  document.querySelectorAll(".nav-item[data-tab]").forEach(el => el.classList.toggle("active", el.dataset.tab === tabId));
   document.querySelectorAll(".mobile-bottom-item[data-tab]").forEach(el => el.classList.toggle("active", el.dataset.tab === tabId));
   document.querySelectorAll(".tab-panel").forEach(el => el.classList.toggle("active", el.id === "tab-" + tabId));
   
@@ -3321,7 +3334,7 @@ function switchTab(tabId) {
   }
 }
 
-document.querySelectorAll(".nav-item").forEach(btn => {
+document.querySelectorAll(".nav-item[data-tab]").forEach(btn => {
   btn.addEventListener("click", () => switchTab(btn.dataset.tab));
 });
 

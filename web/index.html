@@ -77,7 +77,7 @@
       <button class="nav-item" data-tab="journal"><i data-lucide="scroll-text" class="nav-ico"></i><span data-i18n="nav.journal">Журнал</span></button>
       <button class="nav-item" data-tab="release-logs" id="nav-release-logs" style="display:none;"><i data-lucide="file-search" class="nav-ico"></i><span data-i18n="nav.release_logs">Релиз логи</span></button>
       <button class="nav-item" data-tab="backup"><i data-lucide="archive" class="nav-ico"></i><span data-i18n="nav.backup">Бэкап</span></button>
-      <a href="/wiki" target="_blank" rel="noopener noreferrer" class="nav-item nav-item-wiki" id="nav-wiki" title="База знаний и документация" data-i18n-title="nav.wiki_tooltip">
+      <a href="/wiki" target="_blank" rel="noopener noreferrer" class="nav-item-wiki" id="nav-wiki" title="База знаний и документация" data-i18n-title="nav.wiki_tooltip" onclick="openWiki(event)">
         <i data-lucide="book-open" class="nav-ico"></i>
         <span data-i18n="nav.wiki">Wiki</span>
         <span class="nav-wiki-badge">DOCS</span>
@@ -2288,6 +2288,20 @@
           <tbody></tbody>
         </table>
       </div>
+    </section>
+
+    <!-- WIKI (Встроенная база знаний) -->
+    <section id="tab-wiki" class="tab-panel">
+      <header class="panel-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+        <div>
+          <h1 style="margin:0; font-size:20px; font-weight:700;"><i data-lucide="book-open" class="ico-sm" style="color:var(--teal); margin-right:8px; vertical-align:middle;"></i><span data-i18n="nav.wiki">Wiki &amp; Документация</span></h1>
+          <p class="subtitle" style="margin:4px 0 0 0;" data-i18n="nav.wiki_tooltip">База знаний, правила настройки и справочник Aliasarr</p>
+        </div>
+        <a href="/wiki" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="display:inline-flex; align-items:center; gap:8px;">
+          <i data-lucide="external-link" class="ico-xs"></i> <span>Открыть в новой вкладке</span>
+        </a>
+      </header>
+      <iframe src="/wiki" title="Aliasarr Documentation &amp; Wiki" style="width:100%; height:calc(100vh - 170px); min-height:600px; border:1px solid var(--border); border-radius:var(--radius, 12px); background:var(--panel);"></iframe>
     </section>
 
 
