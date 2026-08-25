@@ -4282,26 +4282,26 @@ async function refreshShowModal() {
             ${show.country ? `<span class="meta-badge">${escapeHtml(show.country)}</span>` : ""}
             ${show.network ? `<span class="meta-badge">${escapeHtml(show.network)}</span>` : ""}
           </div>
-          <div class="show-detail-path" style="margin-top: 10px; font-size: 13px; color: var(--text-muted); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px; background: var(--panel-alt); border-radius: 6px;">
-            <div style="min-width: 0; flex: 1;">
-              <div style="font-weight: 600; margin-bottom: 4px; color: var(--text);">${t("show.directory")}</div>
-              <code style="word-break: break-all;">${show.path || t("show.not_set")}</code>
-            </div>
+          <div class="show-detail-path">
             ${show.path && canManageLib ? `
-            <div style="display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;">
-              <button class="btn btn-secondary btn-small" onclick="syncShowPath(${show.id})" title="${t("show.sync_tooltip")}">
+            <div class="show-detail-path-actions">
+              <button type="button" class="btn btn-secondary btn-small" onclick="syncShowPath(${show.id})" title="${t("show.sync_tooltip")}">
                 <i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.btn_sync")}</span>
               </button>
-              <button class="btn btn-secondary btn-small" onclick="openPreviewRenameModal(${show.id})" title="${t("show.btn_preview_rename")}">
+              <button type="button" class="btn btn-secondary btn-small" onclick="openPreviewRenameModal(${show.id})" title="${t("show.btn_preview_rename")}">
                 <i data-lucide="folder-sync" class="ico-sm"></i> <span>${t("show.btn_preview_rename")}</span>
               </button>
-              <button class="btn btn-secondary btn-small" onclick="openManualImportModal(${show.id})" title="${t("show.manual_import")}">
+              <button type="button" class="btn btn-secondary btn-small" onclick="openManualImportModal(${show.id})" title="${t("show.manual_import")}">
                 <i data-lucide="hard-drive-download" class="ico-sm"></i> <span>${t("show.manual_import")}</span>
               </button>
-              <button class="btn btn-secondary btn-small" onclick="fixShowPermissions(this, ${show.id})" title="${CURRENT_LANG === 'en' ? 'Fix permissions (chmod 777/666 for Jellyfin/Plex)' : 'Исправить права доступа (chmod 777/666 для Jellyfin/Plex)'}">
+              <button type="button" class="btn btn-secondary btn-small" onclick="fixShowPermissions(this, ${show.id})" title="${CURRENT_LANG === 'en' ? 'Fix permissions (chmod 777/666 for Jellyfin/Plex)' : 'Исправить права доступа (chmod 777/666 для Jellyfin/Plex)'}">
                 <i data-lucide="shield-check" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Permissions' : 'Права доступа'}</span>
               </button>
             </div>` : ""}
+            <div class="show-detail-path-info">
+              <div class="show-detail-path-label">${t("show.directory")}</div>
+              <code class="show-detail-path-code">${show.path || t("show.not_set")}</code>
+            </div>
           </div>
         </div>
       </div>

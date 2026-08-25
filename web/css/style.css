@@ -2218,6 +2218,48 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .show-detail-meta h2 { font-family: var(--font-display); margin: 0 0 8px 0; }
 .show-detail-overview { color: var(--text-muted); font-size: 13px; margin-bottom: 10px; max-height: 60px; overflow-y: auto; }
 
+/* Show Detail Modal - Directory & Action Bar */
+.show-detail-path {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.show-detail-path-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.show-detail-path-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.show-detail-path-label {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.show-detail-path-code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-muted);
+  word-break: break-all;
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+
 .show-actions-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
 
 .season-block {
