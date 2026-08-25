@@ -704,6 +704,50 @@ body::before {
 }
 .subtitle { color: var(--text-muted); margin: 0; font-size: 14px; }
 
+/* ---------- STICKY TOP TOOLBARS & HEADERS ---------- */
+.panel-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  background: var(--bg);
+  padding: 0 0 14px 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.panel-sticky-header .panel-header {
+  margin-bottom: 10px;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.panel-sticky-header .toolbar {
+  margin-top: 6px;
+}
+
+.panel-sticky-header .settings-tabs {
+  margin-top: 6px;
+  margin-bottom: 0;
+}
+
+.panel-sticky-header .card {
+  margin-bottom: 0;
+}
+
+.panel-sticky-header .form-row {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1024px) {
+  .panel-sticky-header {
+    top: calc(56px + env(safe-area-inset-top, 0px));
+    padding-top: 6px;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+}
+
 .card {
   background: var(--panel);
   border: 1px solid var(--border);

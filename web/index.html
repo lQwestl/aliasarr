@@ -338,47 +338,50 @@
     </section>
 
     <!-- БИБЛИОТЕКА -->
+    <!-- БИБЛИОТЕКА -->
     <section id="tab-library" class="tab-panel">
-      <header class="panel-header">
-        <div class="header-row">
-          <div>
-            <h1 data-i18n="tab.library">Библиотека</h1>
-            <p class="subtitle" data-i18n="subtitle.library">Все ваши фильмы, сериалы и аниме, с алиасами на всех языках</p>
+      <div class="panel-sticky-header">
+        <header class="panel-header">
+          <div class="header-row">
+            <div>
+              <h1 data-i18n="tab.library">Библиотека</h1>
+              <p class="subtitle" data-i18n="subtitle.library">Все ваши фильмы, сериалы и аниме, с алиасами на всех языках</p>
+            </div>
+            <div class="header-actions" style="display:flex;gap:8px;">
+              <button class="btn btn-secondary" onclick="triggerManualMetadataRefresh(this)" title="Обновить метаданные всех тайтлов из сети" data-i18n-title="library.btn_refresh_all_title"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="library.btn_refresh_all">Обновить метаданные</span></button>
+              <button class="btn btn-secondary" onclick="openGlobalManualImportModal()" title="Ручной импорт файлов в библиотеку" data-i18n-title="manual_import.global_btn"><i data-lucide="hard-drive-download" class="ico-sm"></i> <span data-i18n="manual_import.global_btn">Ручной импорт</span></button>
+              <button class="btn btn-primary" onclick="openAddShowWizard()" data-i18n="nav.add_video">+ Добавить видео</button>
+            </div>
           </div>
-          <div class="header-actions" style="display:flex;gap:8px;">
-            <button class="btn btn-secondary" onclick="triggerManualMetadataRefresh(this)" title="Обновить метаданные всех тайтлов из сети" data-i18n-title="library.btn_refresh_all_title"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="library.btn_refresh_all">Обновить метаданные</span></button>
-            <button class="btn btn-secondary" onclick="openGlobalManualImportModal()" title="Ручной импорт файлов в библиотеку" data-i18n-title="manual_import.global_btn"><i data-lucide="hard-drive-download" class="ico-sm"></i> <span data-i18n="manual_import.global_btn">Ручной импорт</span></button>
-            <button class="btn btn-primary" onclick="openAddShowWizard()" data-i18n="nav.add_video">+ Добавить видео</button>
-          </div>
-        </div>
-      </header>
+        </header>
 
-      <div class="toolbar" style="flex-wrap: wrap; gap: 8px;">
-        <input id="library-search" class="input input-grow" type="text" placeholder="Найти в библиотеке…" data-i18n-placeholder="library.search_placeholder" oninput="renderLibrary()">
-        <div class="btn-group" id="library-category-btns" style="display:flex;gap:4px;flex-shrink:0;">
-          <button class="btn btn-secondary btn-small active" data-category="all" onclick="setLibraryCategory('all')" data-i18n="library.filter_all">Все</button>
-          <button class="btn btn-secondary btn-small" data-category="movie" onclick="setLibraryCategory('movie')" data-i18n="library.filter_movies">Фильмы</button>
-          <button class="btn btn-secondary btn-small" data-category="series" onclick="setLibraryCategory('series')" data-i18n="library.filter_series">Сериалы</button>
-          <button class="btn btn-secondary btn-small" data-category="anime" onclick="setLibraryCategory('anime')" data-i18n="library.filter_anime">Аниме</button>
-        </div>
-        <div class="btn-group" id="library-monitor-btns" style="display:flex;gap:4px;flex-shrink:0;">
-          <button class="btn btn-secondary btn-small active" data-monitor="all" onclick="setLibraryMonitor('all')" data-i18n="library.filter_all">Все</button>
-          <button class="btn btn-secondary btn-small" data-monitor="monitored" onclick="setLibraryMonitor('monitored')" data-i18n="library.filter_monitored">Мониторится</button>
-          <button class="btn btn-secondary btn-small" data-monitor="unmonitored" onclick="setLibraryMonitor('unmonitored')" data-i18n="library.filter_unmonitored">Не мониторится</button>
-        </div>
-        <div class="view-switcher">
-          <button class="btn btn-secondary view-switcher-btn" id="view-switcher-btn" onclick="toggleViewMenu()">
-            <span class="nav-ico" style="margin-right:4px"><i data-lucide="library"></i></span><span data-i18n="library.view_label">Просмотр:</span> <span id="view-switcher-label" data-i18n="library.view_posters">Постеры</span> ▾
-          </button>
-          <div class="view-switcher-menu" id="view-switcher-menu">
-            <button onclick="setLibraryView('posters')" data-i18n="library.view_posters">Постеры</button>
-            <button onclick="setLibraryView('table')" data-i18n="library.view_table">Таблица</button>
-            <button onclick="setLibraryView('overview')" data-i18n="library.view_overview">Обзор</button>
+        <div class="toolbar" style="flex-wrap: wrap; gap: 8px;">
+          <input id="library-search" class="input input-grow" type="text" placeholder="Найти в библиотеке…" data-i18n-placeholder="library.search_placeholder" oninput="renderLibrary()">
+          <div class="btn-group" id="library-category-btns" style="display:flex;gap:4px;flex-shrink:0;">
+            <button class="btn btn-secondary btn-small active" data-category="all" onclick="setLibraryCategory('all')" data-i18n="library.filter_all">Все</button>
+            <button class="btn btn-secondary btn-small" data-category="movie" onclick="setLibraryCategory('movie')" data-i18n="library.filter_movies">Фильмы</button>
+            <button class="btn btn-secondary btn-small" data-category="series" onclick="setLibraryCategory('series')" data-i18n="library.filter_series">Сериалы</button>
+            <button class="btn btn-secondary btn-small" data-category="anime" onclick="setLibraryCategory('anime')" data-i18n="library.filter_anime">Аниме</button>
           </div>
+          <div class="btn-group" id="library-monitor-btns" style="display:flex;gap:4px;flex-shrink:0;">
+            <button class="btn btn-secondary btn-small active" data-monitor="all" onclick="setLibraryMonitor('all')" data-i18n="library.filter_all">Все</button>
+            <button class="btn btn-secondary btn-small" data-monitor="monitored" onclick="setLibraryMonitor('monitored')" data-i18n="library.filter_monitored">Мониторится</button>
+            <button class="btn btn-secondary btn-small" data-monitor="unmonitored" onclick="setLibraryMonitor('unmonitored')" data-i18n="library.filter_unmonitored">Не мониторится</button>
+          </div>
+          <div class="view-switcher">
+            <button class="btn btn-secondary view-switcher-btn" id="view-switcher-btn" onclick="toggleViewMenu()">
+              <span class="nav-ico" style="margin-right:4px"><i data-lucide="library"></i></span><span data-i18n="library.view_label">Просмотр:</span> <span id="view-switcher-label" data-i18n="library.view_posters">Постеры</span> ▾
+            </button>
+            <div class="view-switcher-menu" id="view-switcher-menu">
+              <button onclick="setLibraryView('posters')" data-i18n="library.view_posters">Постеры</button>
+              <button onclick="setLibraryView('table')" data-i18n="library.view_table">Таблица</button>
+              <button onclick="setLibraryView('overview')" data-i18n="library.view_overview">Обзор</button>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-icon-only" id="poster-options-btn" onclick="openPosterOptionsModal()" title="Опции постера" data-i18n-title="poster_opt.btn_title">
+            <i data-lucide="sliders-horizontal"></i>
+          </button>
         </div>
-        <button class="btn btn-secondary btn-icon-only" id="poster-options-btn" onclick="openPosterOptionsModal()" title="Опции постера" data-i18n-title="poster_opt.btn_title">
-          <i data-lucide="sliders-horizontal"></i>
-        </button>
       </div>
 
       <div id="library-layout" style="display: flex; gap: 16px; align-items: flex-start; position: relative;">
@@ -403,7 +406,7 @@
           </div>
           <div id="library-dashboard-container"></div>
         </div> <!-- #library-content -->
-        <div id="alphabet-index" style="display: none; width: 32px; position: sticky; top: 16px; align-self: flex-start; flex-direction: column; align-items: center; gap: 4px; background: var(--panel-alt); border: 1px solid var(--border); border-radius: 4px; padding: 8px 0; font-size: 12px; font-weight: 500; font-family: var(--font-display);">
+        <div id="alphabet-index" style="display: none; width: 32px; position: sticky; top: 150px; align-self: flex-start; flex-direction: column; align-items: center; gap: 4px; background: var(--panel-alt); border: 1px solid var(--border); border-radius: 4px; padding: 8px 0; font-size: 12px; font-weight: 500; font-family: var(--font-display);">
           <!-- Alphabet links generated via JS -->
         </div>
       </div> <!-- #library-layout -->
@@ -411,18 +414,20 @@
 
     <!-- АКТИВНОСТЬ / ОЧЕРЕДЬ -->
     <section id="tab-activity" class="tab-panel">
-      <header class="panel-header">
-        <div class="header-row">
-          <div>
-            <h1 data-i18n="tab.activity">Активность</h1>
-            <p class="subtitle" data-i18n="subtitle.activity">Текущие загрузки во всех download clients</p>
+      <div class="panel-sticky-header">
+        <header class="panel-header">
+          <div class="header-row">
+            <div>
+              <h1 data-i18n="tab.activity">Активность</h1>
+              <p class="subtitle" data-i18n="subtitle.activity">Текущие загрузки во всех download clients</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn btn-secondary" onclick="loadQueue()"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
+              <button class="btn btn-primary" onclick="triggerManualCheckDownloads()"><i data-lucide="folder-check" class="ico-sm"></i> <span data-i18n="activity.check_and_import">Проверить и перенести</span></button>
+            </div>
           </div>
-          <div class="header-actions">
-            <button class="btn btn-secondary" onclick="loadQueue()"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
-            <button class="btn btn-primary" onclick="triggerManualCheckDownloads()"><i data-lucide="folder-check" class="ico-sm"></i> <span data-i18n="activity.check_and_import">Проверить и перенести</span></button>
-          </div>
-        </div>
-      </header>
+        </header>
+      </div>
       <div class="table-responsive">
         <table class="data-table" id="queue-table">
           <thead><tr><th data-i18n="activity.col_name">Заголовок / Серии</th><th data-i18n="activity.col_client">Клиент</th><th data-i18n="activity.col_size">Размер</th><th data-i18n="activity.col_speed">Скорость / ETA</th><th data-i18n="activity.col_progress">Прогресс</th><th data-i18n="activity.col_status">Статус</th><th></th></tr></thead>
@@ -433,51 +438,53 @@
 
     <!-- КАЛЕНДАРЬ -->
     <section id="tab-calendar" class="tab-panel">
-      <header class="panel-header">
-        <h1 data-i18n="tab.calendar">Календарь</h1>
-        <p class="subtitle" data-i18n="subtitle.calendar">Даты выхода серий и премьер фильмов</p>
-      </header>
+      <div class="panel-sticky-header">
+        <header class="panel-header">
+          <h1 data-i18n="tab.calendar">Календарь</h1>
+          <p class="subtitle" data-i18n="subtitle.calendar">Даты выхода серий и премьер фильмов</p>
+        </header>
 
-      <div class="calendar-toolbar">
-        <div class="calendar-toolbar-group">
-          <button class="btn btn-secondary btn-small" onclick="calendarNav(-1)">‹</button>
-          <button class="btn btn-secondary btn-small" onclick="calendarGoToday()" data-i18n="calendar.today">Сегодня</button>
-          <button class="btn btn-secondary btn-small" onclick="calendarNav(1)">›</button>
-          <span class="calendar-period-label" id="calendar-period-label"></span>
-        </div>
-        <div class="calendar-toolbar-group">
-          <select id="calendar-view-select" class="input input-small" onchange="setCalendarView(this.value)">
-            <option value="month" data-i18n="calendar.view_month">Месяц</option>
-            <option value="week" data-i18n="calendar.view_week">Неделя</option>
-            <option value="forecast" data-i18n="calendar.view_forecast">Прогноз</option>
-            <option value="day" data-i18n="calendar.view_day">День</option>
-            <option value="agenda" data-i18n="calendar.view_agenda">Повестка</option>
-          </select>
-          <select id="calendar-cat-select" class="input input-small" onchange="setCalendarCategoryFilter(this.value)">
-            <option value="all" data-i18n="calendar.cat_all">Все категории</option>
-            <option value="series" data-i18n="calendar.cat_series">Сериалы</option>
-            <option value="movie" data-i18n="calendar.cat_movies">Фильмы</option>
-            <option value="anime" data-i18n="calendar.cat_anime">Аниме</option>
-          </select>
-          <select id="calendar-status-select" class="input input-small" onchange="setCalendarStatusFilter(this.value)">
-            <option value="all" data-i18n="calendar.status_all">Все статусы</option>
-            <option value="unaired" data-i18n="calendar.status_unaired">Не вышло</option>
-            <option value="on_air" data-i18n="calendar.status_on_air">Сегодня в эфире</option>
-            <option value="downloading" data-i18n="calendar.status_downloading">Скачивается</option>
-            <option value="missing" data-i18n="calendar.status_missing">Отсутствует</option>
-            <option value="downloaded" data-i18n="calendar.status_downloaded">Скачано</option>
-          </select>
-          <select id="calendar-filter-select" class="input input-small" onchange="setCalendarFilter(this.value)">
-            <option value="all" data-i18n="calendar.filter_all">Все видео</option>
-            <option value="monitored" data-i18n="calendar.filter_monitored">Только отслеживаемые</option>
-          </select>
-          <button id="calendar-search-missing-btn" class="btn btn-secondary btn-small" onclick="searchCalendarMissing()" title="Поиск отсутствующих в календаре" data-i18n-title="calendar.search_missing_title">
-            <i data-lucide="search" class="ico-sm"></i> <span data-i18n="calendar.btn_search_missing">Поиск</span>
-          </button>
-          <button id="calendar-ical-btn" class="btn btn-secondary btn-small" onclick="openCalendarIcalModal()" title="Календарная подписка iCal (.ics)" data-i18n-title="calendar.ical_title">
-            <i data-lucide="calendar" class="ico-sm"></i> <span>iCal</span>
-          </button>
-          <button class="btn btn-secondary btn-small" onclick="openCalendarSettingsModal()" title="Настройки календаря" data-i18n-title="calendar.settings_title"><i data-lucide="settings" class="ico-sm"></i></button>
+        <div class="calendar-toolbar">
+          <div class="calendar-toolbar-group">
+            <button class="btn btn-secondary btn-small" onclick="calendarNav(-1)">‹</button>
+            <button class="btn btn-secondary btn-small" onclick="calendarGoToday()" data-i18n="calendar.today">Сегодня</button>
+            <button class="btn btn-secondary btn-small" onclick="calendarNav(1)">›</button>
+            <span class="calendar-period-label" id="calendar-period-label"></span>
+          </div>
+          <div class="calendar-toolbar-group">
+            <select id="calendar-view-select" class="input input-small" onchange="setCalendarView(this.value)">
+              <option value="month" data-i18n="calendar.view_month">Месяц</option>
+              <option value="week" data-i18n="calendar.view_week">Неделя</option>
+              <option value="forecast" data-i18n="calendar.view_forecast">Прогноз</option>
+              <option value="day" data-i18n="calendar.view_day">День</option>
+              <option value="agenda" data-i18n="calendar.view_agenda">Повестка</option>
+            </select>
+            <select id="calendar-cat-select" class="input input-small" onchange="setCalendarCategoryFilter(this.value)">
+              <option value="all" data-i18n="calendar.cat_all">Все категории</option>
+              <option value="series" data-i18n="calendar.cat_series">Сериалы</option>
+              <option value="movie" data-i18n="calendar.cat_movies">Фильмы</option>
+              <option value="anime" data-i18n="calendar.cat_anime">Аниме</option>
+            </select>
+            <select id="calendar-status-select" class="input input-small" onchange="setCalendarStatusFilter(this.value)">
+              <option value="all" data-i18n="calendar.status_all">Все статусы</option>
+              <option value="unaired" data-i18n="calendar.status_unaired">Не вышло</option>
+              <option value="on_air" data-i18n="calendar.status_on_air">Сегодня в эфире</option>
+              <option value="downloading" data-i18n="calendar.status_downloading">Скачивается</option>
+              <option value="missing" data-i18n="calendar.status_missing">Отсутствует</option>
+              <option value="downloaded" data-i18n="calendar.status_downloaded">Скачано</option>
+            </select>
+            <select id="calendar-filter-select" class="input input-small" onchange="setCalendarFilter(this.value)">
+              <option value="all" data-i18n="calendar.filter_all">Все видео</option>
+              <option value="monitored" data-i18n="calendar.filter_monitored">Только отслеживаемые</option>
+            </select>
+            <button id="calendar-search-missing-btn" class="btn btn-secondary btn-small" onclick="searchCalendarMissing()" title="Поиск отсутствующих в календаре" data-i18n-title="calendar.search_missing_title">
+              <i data-lucide="search" class="ico-sm"></i> <span data-i18n="calendar.btn_search_missing">Поиск</span>
+            </button>
+            <button id="calendar-ical-btn" class="btn btn-secondary btn-small" onclick="openCalendarIcalModal()" title="Календарная подписка iCal (.ics)" data-i18n-title="calendar.ical_title">
+              <i data-lucide="calendar" class="ico-sm"></i> <span>iCal</span>
+            </button>
+            <button class="btn btn-secondary btn-small" onclick="openCalendarSettingsModal()" title="Настройки календаря" data-i18n-title="calendar.settings_title"><i data-lucide="settings" class="ico-sm"></i></button>
+          </div>
         </div>
       </div>
 
@@ -649,10 +656,12 @@
 
     <!-- ИСТОРИЯ -->
     <section id="tab-history" class="tab-panel">
-      <header class="panel-header">
-        <h1 data-i18n="tab.history">История</h1>
-        <p class="subtitle" data-i18n="subtitle.history">Журнал захваченных релизов</p>
-      </header>
+      <div class="panel-sticky-header">
+        <header class="panel-header">
+          <h1 data-i18n="tab.history">История</h1>
+          <p class="subtitle" data-i18n="subtitle.history">Журнал захваченных релизов</p>
+        </header>
+      </div>
       <div class="table-responsive">
         <table class="data-table" id="history-table">
           <thead><tr><th data-i18n="history.col_date">Дата</th><th data-i18n="history.col_show">Видео</th><th data-i18n="history.col_release">Релиз</th><th data-i18n="history.col_event">Событие</th></tr></thead>
@@ -663,35 +672,37 @@
 
     <!-- АУДИТ -->
     <section id="tab-audit" class="tab-panel">
-      <header class="panel-header">
-        <div class="header-row">
-          <div>
-            <h1 data-i18n="nav.audit">Аудит</h1>
-            <p class="subtitle" data-i18n="audit.subtitle">Журнал всех действий пользователей и событий безопасности</p>
+      <div class="panel-sticky-header">
+        <header class="panel-header">
+          <div class="header-row">
+            <div>
+              <h1 data-i18n="nav.audit">Аудит</h1>
+              <p class="subtitle" data-i18n="audit.subtitle">Журнал всех действий пользователей и событий безопасности</p>
+            </div>
+            <button class="btn btn-secondary" onclick="loadAuditLogs()" data-i18n="common.refresh"><i data-lucide="refresh-cw"></i> Обновить</button>
           </div>
-          <button class="btn btn-secondary" onclick="loadAuditLogs()" data-i18n="common.refresh"><i data-lucide="refresh-cw"></i> Обновить</button>
-        </div>
-      </header>
+        </header>
 
-      <div class="card" style="margin-bottom:16px;">
-        <div class="form-row" style="flex-wrap:wrap; gap:12px; align-items:center;">
-          <input id="audit-search" class="input" placeholder="Поиск по описанию/действию..." style="max-width:320px;" oninput="debounceAuditSearch()" data-i18n-placeholder="audit.search_placeholder">
-          <select id="audit-filter-action" class="input" style="max-width:240px;" onchange="loadAuditLogs(1)">
-            <option value="" data-i18n="audit.all_actions">Все действия</option>
-            <option value="auth.login" data-i18n="audit.action_login">Вход (Login)</option>
-            <option value="auth.logout" data-i18n="audit.action_logout">Выход (Logout)</option>
-            <option value="auth.password_change" data-i18n="audit.action_password_change">Смена пароля</option>
-            <option value="auth.login_failed" data-i18n="audit.action_login_failed">Неудачный вход</option>
-            <option value="user.create" data-i18n="audit.action_user_create">Создание пользователя</option>
-            <option value="user.update" data-i18n="audit.action_user_update">Изменение пользователя</option>
-            <option value="user.delete" data-i18n="audit.action_user_delete">Удаление пользователя</option>
-            <option value="user.password_reset" data-i18n="audit.action_password_reset">Сброс пароля</option>
-            <option value="settings.update" data-i18n="audit.action_settings_update">Настройки системы</option>
-            <option value="settings.security_update" data-i18n="audit.action_security_update">Настройки безопасности</option>
-            <option value="show.add" data-i18n="audit.action_show_create">Добавление шоу</option>
-            <option value="show.delete" data-i18n="audit.action_show_delete">Удаление шоу</option>
-            <option value="release.grab" data-i18n="audit.action_release_grab">Захват релиза</option>
-          </select>
+        <div class="card" style="margin-bottom:0; padding: 12px 16px;">
+          <div class="form-row" style="flex-wrap:wrap; gap:12px; align-items:center;">
+            <input id="audit-search" class="input" placeholder="Поиск по описанию/действию..." style="max-width:320px;" oninput="debounceAuditSearch()" data-i18n-placeholder="audit.search_placeholder">
+            <select id="audit-filter-action" class="input" style="max-width:240px;" onchange="loadAuditLogs(1)">
+              <option value="" data-i18n="audit.all_actions">Все действия</option>
+              <option value="auth.login" data-i18n="audit.action_login">Вход (Login)</option>
+              <option value="auth.logout" data-i18n="audit.action_logout">Выход (Logout)</option>
+              <option value="auth.password_change" data-i18n="audit.action_password_change">Смена пароля</option>
+              <option value="auth.login_failed" data-i18n="audit.action_login_failed">Неудачный вход</option>
+              <option value="user.create" data-i18n="audit.action_user_create">Создание пользователя</option>
+              <option value="user.update" data-i18n="audit.action_user_update">Изменение пользователя</option>
+              <option value="user.delete" data-i18n="audit.action_user_delete">Удаление пользователя</option>
+              <option value="user.password_reset" data-i18n="audit.action_password_reset">Сброс пароля</option>
+              <option value="settings.update" data-i18n="audit.action_settings_update">Настройки системы</option>
+              <option value="settings.security_update" data-i18n="audit.action_security_update">Настройки безопасности</option>
+              <option value="show.add" data-i18n="audit.action_show_create">Добавление шоу</option>
+              <option value="show.delete" data-i18n="audit.action_show_delete">Удаление шоу</option>
+              <option value="release.grab" data-i18n="audit.action_release_grab">Захват релиза</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -714,19 +725,21 @@
 
     <!-- НАСТРОЙКИ -->
     <section id="tab-settings" class="tab-panel">
-      <header class="panel-header">
-        <h1 data-i18n="tab.settings">Настройки</h1>
-      </header>
+      <div class="panel-sticky-header">
+        <header class="panel-header">
+          <h1 data-i18n="tab.settings">Настройки</h1>
+        </header>
 
-      <div class="settings-tabs">
-        <button class="settings-tab-btn active" data-settings-tab="general"><i data-lucide="sliders" class="ico-xs"></i><span data-i18n="settingsnav.general">Общие</span></button>
-        <button class="settings-tab-btn" data-settings-tab="security"><i data-lucide="shield" class="ico-xs"></i><span data-i18n="settingsnav.security">Безопасность</span></button>
-        <button class="settings-tab-btn" data-settings-tab="users"><i data-lucide="users" class="ico-xs"></i><span data-i18n="settingsnav.users">Пользователи</span></button>
-        <button class="settings-tab-btn" data-settings-tab="indexers"><i data-lucide="search" class="ico-xs"></i><span data-i18n="settingsnav.indexers">Индексаторы</span></button>
-        <button class="settings-tab-btn" data-settings-tab="download-clients"><i data-lucide="download-cloud" class="ico-xs"></i><span data-i18n="settingsnav.download_clients">Загрузчики</span></button>
-        <button class="settings-tab-btn" data-settings-tab="quality"><i data-lucide="award" class="ico-xs"></i><span data-i18n="settingsnav.quality_profiles">Качество</span></button>
-        <button class="settings-tab-btn" data-settings-tab="metadata"><i data-lucide="database" class="ico-xs"></i><span data-i18n="settingsnav.metadata">Метаданные</span></button>
-        <button class="settings-tab-btn" data-settings-tab="notifications"><i data-lucide="bell" class="ico-xs"></i><span data-i18n="settingsnav.notifications">Уведомления</span></button>
+        <div class="settings-tabs">
+          <button class="settings-tab-btn active" data-settings-tab="general"><i data-lucide="sliders" class="ico-xs"></i><span data-i18n="settingsnav.general">Общие</span></button>
+          <button class="settings-tab-btn" data-settings-tab="security"><i data-lucide="shield" class="ico-xs"></i><span data-i18n="settingsnav.security">Безопасность</span></button>
+          <button class="settings-tab-btn" data-settings-tab="users"><i data-lucide="users" class="ico-xs"></i><span data-i18n="settingsnav.users">Пользователи</span></button>
+          <button class="settings-tab-btn" data-settings-tab="indexers"><i data-lucide="search" class="ico-xs"></i><span data-i18n="settingsnav.indexers">Индексаторы</span></button>
+          <button class="settings-tab-btn" data-settings-tab="download-clients"><i data-lucide="download-cloud" class="ico-xs"></i><span data-i18n="settingsnav.download_clients">Загрузчики</span></button>
+          <button class="settings-tab-btn" data-settings-tab="quality"><i data-lucide="award" class="ico-xs"></i><span data-i18n="settingsnav.quality_profiles">Качество</span></button>
+          <button class="settings-tab-btn" data-settings-tab="metadata"><i data-lucide="database" class="ico-xs"></i><span data-i18n="settingsnav.metadata">Метаданные</span></button>
+          <button class="settings-tab-btn" data-settings-tab="notifications"><i data-lucide="bell" class="ico-xs"></i><span data-i18n="settingsnav.notifications">Уведомления</span></button>
+        </div>
       </div>
 
       <div id="settings-general" class="settings-panel active">
@@ -2093,23 +2106,25 @@
 
     <!-- СОБЫТИЯ -->
     <section id="tab-events" class="tab-panel">
-      <header class="panel-header">
-        <h1 data-i18n="tab.events">События</h1>
-        <p class="subtitle" data-i18n="subtitle.events">Информация, предупреждения и ошибки приложения</p>
-      </header>
+      <div class="panel-sticky-header">
+        <header class="panel-header">
+          <h1 data-i18n="tab.events">События</h1>
+          <p class="subtitle" data-i18n="subtitle.events">Информация, предупреждения и ошибки приложения</p>
+        </header>
 
-      <div class="form-row" style="margin-bottom:14px; flex-wrap:wrap;">
-        <select id="events-level-filter" class="input" style="max-width:220px" onchange="loadEvents(1)">
-          <option value="all" data-i18n="events.filter_all">Все события</option>
-          <option value="info" data-i18n="events.filter_info">Информация</option>
-          <option value="warning" data-i18n="events.filter_warning">Предупреждения</option>
-          <option value="error" data-i18n="events.filter_error">Ошибки</option>
-        </select>
-        <label class="hint" style="margin:0;" data-i18n="events.page_size">Размер страницы:</label>
-        <input id="events-page-size" class="input" type="number" min="5" value="50" style="max-width:110px" onchange="loadEvents(1)">
-        <button class="btn btn-secondary btn-small" onclick="toggleEventsSort()" id="events-sort-btn" data-i18n="events.sort_time">Время ↓</button>
-        <div style="flex:1"></div>
-        <button class="btn btn-secondary btn-small" onclick="loadEvents(EVENTS_STATE.page)" data-i18n="common.refresh">↻ Обновить</button>
+        <div class="form-row" style="margin-bottom:0; flex-wrap:wrap;">
+          <select id="events-level-filter" class="input" style="max-width:220px" onchange="loadEvents(1)">
+            <option value="all" data-i18n="events.filter_all">Все события</option>
+            <option value="info" data-i18n="events.filter_info">Информация</option>
+            <option value="warning" data-i18n="events.filter_warning">Предупреждения</option>
+            <option value="error" data-i18n="events.filter_error">Ошибки</option>
+          </select>
+          <label class="hint" style="margin:0;" data-i18n="events.page_size">Размер страницы:</label>
+          <input id="events-page-size" class="input" type="number" min="5" value="50" style="max-width:110px" onchange="loadEvents(1)">
+          <button class="btn btn-secondary btn-small" onclick="toggleEventsSort()" id="events-sort-btn" data-i18n="events.sort_time">Время ↓</button>
+          <div style="flex:1"></div>
+          <button class="btn btn-secondary btn-small" onclick="loadEvents(EVENTS_STATE.page)" data-i18n="common.refresh">↻ Обновить</button>
+        </div>
       </div>
 
       <div class="table-responsive">
@@ -2123,22 +2138,24 @@
 
     <!-- ЖУРНАЛ -->
     <section id="tab-journal" class="tab-panel">
-      <header class="panel-header">
-        <h1 data-i18n="tab.journal">Журнал</h1>
-        <p class="subtitle" data-i18n="subtitle.journal">Логи приложения (info / warn / debug). Записи старше срока хранения удаляются автоматически.</p>
-      </header>
+      <div class="panel-sticky-header">
+        <header class="panel-header">
+          <h1 data-i18n="tab.journal">Журнал</h1>
+          <p class="subtitle" data-i18n="subtitle.journal">Логи приложения (info / warn / debug). Записи старше срока хранения удаляются автоматически.</p>
+        </header>
 
-      <div class="form-row" style="margin-bottom:14px; flex-wrap:wrap;">
-        <select id="journal-level-filter" class="input" style="max-width:220px" onchange="loadJournal(1)">
-          <option value="all" data-i18n="journal.filter_all">Все уровни</option>
-          <option value="debug">Debug</option>
-          <option value="info">Info</option>
-          <option value="warning">Warn</option>
-          <option value="error">Error</option>
-        </select>
-        <div style="flex:1"></div>
-        <button class="btn btn-secondary btn-small" onclick="downloadJournal()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
-        <button class="btn btn-danger btn-small" onclick="clearJournal()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
+        <div class="form-row" style="margin-bottom:0; flex-wrap:wrap;">
+          <select id="journal-level-filter" class="input" style="max-width:220px" onchange="loadJournal(1)">
+            <option value="all" data-i18n="journal.filter_all">Все уровни</option>
+            <option value="debug">Debug</option>
+            <option value="info">Info</option>
+            <option value="warning">Warn</option>
+            <option value="error">Error</option>
+          </select>
+          <div style="flex:1"></div>
+          <button class="btn btn-secondary btn-small" onclick="downloadJournal()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
+          <button class="btn btn-danger btn-small" onclick="clearJournal()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
+        </div>
       </div>
 
       <div class="table-responsive">
@@ -2161,40 +2178,42 @@
 
     <!-- РЕЛИЗ ЛОГИ (Логирование логики релизов - только для Главного Админа) -->
     <section id="tab-release-logs" class="tab-panel">
-      <header class="panel-header">
-        <div>
-          <h1 data-i18n="tab.release_logs">Релиз логи</h1>
-          <p class="subtitle" data-i18n="subtitle.release_logs">Диагностический журнал работы движка релизов: поиск, сопоставление, парсинг серий, принятие решений, вызовы загрузчика и импорт.</p>
+      <div class="panel-sticky-header">
+        <header class="panel-header">
+          <div>
+            <h1 data-i18n="tab.release_logs">Релиз логи</h1>
+            <p class="subtitle" data-i18n="subtitle.release_logs">Диагностический журнал работы движка релизов: поиск, сопоставление, парсинг серий, принятие решений, вызовы загрузчика и импорт.</p>
+          </div>
+        </header>
+
+        <div class="form-row" style="margin-bottom:0; flex-wrap:wrap; gap:10px;">
+          <select id="release-logs-stage-filter" class="input" style="max-width:180px" onchange="loadReleaseLogs(1)">
+            <option value="all" data-i18n="release_logs.filter_all_stages">Все этапы</option>
+            <option value="search">Поиск (Search)</option>
+            <option value="match">Сопоставление (Match)</option>
+            <option value="filter">Фильтрация (Filter)</option>
+            <option value="grab">Захват / Клиент (Grab)</option>
+            <option value="download">Мониторинг (Download)</option>
+            <option value="import">Импорт (Import)</option>
+          </select>
+
+          <select id="release-logs-level-filter" class="input" style="max-width:170px" onchange="loadReleaseLogs(1)">
+            <option value="all" data-i18n="release_logs.filter_all_levels">Все статусы</option>
+            <option value="success">Успех (Success)</option>
+            <option value="info">Инфо (Info)</option>
+            <option value="warning">Внимание (Warning)</option>
+            <option value="error">Ошибка (Error)</option>
+          </select>
+
+          <input type="text" id="release-logs-search" class="input" style="max-width:260px" placeholder="Поиск по тайтлу или раздаче…" data-i18n-placeholder="release_logs.search_placeholder" onkeydown="if(event.key==='Enter') loadReleaseLogs(1)">
+          
+          <button class="btn btn-secondary btn-small" onclick="loadReleaseLogs(1)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
+
+          <div style="flex:1"></div>
+
+          <button class="btn btn-secondary btn-small" id="release-logs-download-btn" onclick="downloadReleaseLogs()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
+          <button class="btn btn-danger btn-small" id="release-logs-clear-btn" onclick="clearReleaseLogs()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
         </div>
-      </header>
-
-      <div class="form-row" style="margin-bottom:14px; flex-wrap:wrap; gap:10px;">
-        <select id="release-logs-stage-filter" class="input" style="max-width:180px" onchange="loadReleaseLogs(1)">
-          <option value="all" data-i18n="release_logs.filter_all_stages">Все этапы</option>
-          <option value="search">Поиск (Search)</option>
-          <option value="match">Сопоставление (Match)</option>
-          <option value="filter">Фильтрация (Filter)</option>
-          <option value="grab">Захват / Клиент (Grab)</option>
-          <option value="download">Мониторинг (Download)</option>
-          <option value="import">Импорт (Import)</option>
-        </select>
-
-        <select id="release-logs-level-filter" class="input" style="max-width:170px" onchange="loadReleaseLogs(1)">
-          <option value="all" data-i18n="release_logs.filter_all_levels">Все статусы</option>
-          <option value="success">Успех (Success)</option>
-          <option value="info">Инфо (Info)</option>
-          <option value="warning">Внимание (Warning)</option>
-          <option value="error">Ошибка (Error)</option>
-        </select>
-
-        <input type="text" id="release-logs-search" class="input" style="max-width:260px" placeholder="Поиск по тайтлу или раздаче…" data-i18n-placeholder="release_logs.search_placeholder" onkeydown="if(event.key==='Enter') loadReleaseLogs(1)">
-        
-        <button class="btn btn-secondary btn-small" onclick="loadReleaseLogs(1)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
-
-        <div style="flex:1"></div>
-
-        <button class="btn btn-secondary btn-small" id="release-logs-download-btn" onclick="downloadReleaseLogs()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
-        <button class="btn btn-danger btn-small" id="release-logs-clear-btn" onclick="clearReleaseLogs()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
       </div>
 
       <div class="table-responsive">
@@ -2217,12 +2236,14 @@
 
     <!-- BACKUP (Резервное копирование и восстановление) -->
     <section id="tab-backup" class="tab-panel">
-      <header class="panel-header">
-        <div>
-          <h1 data-i18n="tab.backup">Резервное копирование и восстановление</h1>
-          <p class="subtitle" data-i18n="subtitle.backup">Управление резервными копиями библиотеки (фильмы, сериалы, аниме, эпизоды) и конфигурации Aliasarr</p>
-        </div>
-      </header>
+      <div class="panel-sticky-header">
+        <header class="panel-header">
+          <div>
+            <h1 data-i18n="tab.backup">Резервное копирование и восстановление</h1>
+            <p class="subtitle" data-i18n="subtitle.backup">Управление резервными копиями библиотеки (фильмы, сериалы, аниме, эпизоды) и конфигурации Aliasarr</p>
+          </div>
+        </header>
+      </div>
 
       <!-- Карточки статистики бэкапов -->
       <div class="backup-stats-grid" id="backup-stats-container" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px;">
@@ -3127,6 +3148,6 @@
 <div id="toast" class="toast"></div>
 
 <script src="https://unpkg.com/lucide@latest"></script>
-<script src="/ui/static/js/app.js?v=20260825-10"></script>
+<script src="/ui/static/js/app.js?v=20260825-11"></script>
 </body>
 </html>
