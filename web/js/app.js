@@ -9856,12 +9856,50 @@ const CF_PRESETS = {
 };
 
 function onCustomFormatPresetSelect(presetKey) {
-  if (!presetKey || !CF_PRESETS[presetKey]) return;
-  const p = CF_PRESETS[presetKey];
+  if (!presetKey) return;
+  const p = CF_PRESETS[presetKey] || {};
+  const existing = (CACHED_CUSTOM_FORMATS || []).find(item => item.name.toLowerCase() === presetKey.toLowerCase());
+  
   document.getElementById("cf-name").value = presetKey;
-  document.getElementById("cf-score").value = p.score;
-  document.getElementById("cf-regex").value = p.regex;
-  document.getElementById("cf-include-renaming").checked = p.rename;
+  if (existing) {
+    document.getElementById("cf-id").value = existing.id;
+    document.getElementById("cf-score").value = existing.score;
+    document.getElementById("cf-include-renaming").checked = Boolean(existing.include_custom_format_when_renaming);
+    let pattern = "";
+    if (existing.specifications && existing.specifications.length) {
+      pattern = existing.specifications[0]?.fields?.value || "";
+    }
+    document.getElementById("cf-regex").value = pattern || p.regex || "";
+    const banner = document.getElementById("cf-builtin-banner");
+    if (banner) banner.style.display = (existing.is_builtin || presetKey in CF_PRESETS) ? "block" : "none";
+    const resetBtn = document.getElementById("cf-reset-btn");
+    if (resetBtn) resetBtn.style.display = (existing.is_builtin || presetKey in CF_PRESETS) ? "inline-flex" : "none";
+  } else {
+    document.getElementById("cf-id").value = "";
+    document.getElementById("cf-score").value = p.score ?? 100;
+    document.getElementById("cf-regex").value = p.regex || "";
+    document.getElementById("cf-include-renaming").checked = Boolean(p.rename);
+    const banner = document.getElementById("cf-builtin-banner");
+    if (banner) banner.style.display = (presetKey in CF_PRESETS) ? "block" : "none";
+    const resetBtn = document.getElementById("cf-reset-btn");
+    if (resetBtn) resetBtn.style.display = (presetKey in CF_PRESETS) ? "inline-flex" : "none";
+  }
+}
+
+function onCustomFormatNameInput(val) {
+  const name = (val || "").trim();
+  if (!name) return;
+  const existing = (CACHED_CUSTOM_FORMATS || []).find(item => item.name.toLowerCase() === name.toLowerCase());
+  const banner = document.getElementById("cf-builtin-banner");
+  const resetBtn = document.getElementById("cf-reset-btn");
+  if (existing) {
+    document.getElementById("cf-id").value = existing.id;
+    if (banner) banner.style.display = (existing.is_builtin || name in CF_PRESETS) ? "block" : "none";
+    if (resetBtn) resetBtn.style.display = (existing.is_builtin || name in CF_PRESETS) ? "inline-flex" : "none";
+  } else {
+    if (banner) banner.style.display = (name in CF_PRESETS) ? "block" : "none";
+    if (resetBtn) resetBtn.style.display = (name in CF_PRESETS) ? "inline-flex" : "none";
+  }
 }
 
 function openAddCustomFormatModal() {
@@ -9917,20 +9955,30 @@ async function resetCurrentCustomFormat() {
     await api(`/api/v1/custom-formats/${id}/reset`, { method: "POST" });
     toast(t("cf.reset_success"));
     closeModal("custom-format-modal");
-    loadCustomFormats();
+    await loadCustomFormats();
   } catch (e) {
     toast("Ошибка: " + e.message, true);
   }
 }
 
 async function submitCustomFormat() {
-  const id = document.getElementById("cf-id").value;
+  let id = document.getElementById("cf-id").value;
   const name = document.getElementById("cf-name").value.trim();
   const score = parseInt(document.getElementById("cf-score").value || "0", 10);
   const includeRenaming = document.getElementById("cf-include-renaming").checked;
-  const regexVal = document.getElementById("cf-regex").value.trim();
+  let regexVal = document.getElementById("cf-regex").value.trim();
 
   if (!name) { toast("Укажите название формата", true); return; }
+
+  // If regex is empty, try preset regex or auto-generate safe regex from name
+  if (!regexVal) {
+    if (CF_PRESETS[name]) {
+      regexVal = CF_PRESETS[name].regex;
+    } else {
+      const safeEscaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      regexVal = `\\b${safeEscaped}\\b`;
+    }
+  }
 
   const specs = [];
   if (regexVal) {
@@ -9941,6 +9989,14 @@ async function submitCustomFormat() {
       required: true,
       fields: { value: regexVal },
     });
+  }
+
+  // If ID was empty, check if format already exists in cache
+  if (!id && CACHED_CUSTOM_FORMATS && CACHED_CUSTOM_FORMATS.length) {
+    const existing = CACHED_CUSTOM_FORMATS.find(item => item.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      id = existing.id;
+    }
   }
 
   const payload = {
@@ -9959,7 +10015,7 @@ async function submitCustomFormat() {
       toast("Формат качества добавлен");
     }
     closeModal("custom-format-modal");
-    loadCustomFormats();
+    await loadCustomFormats();
   } catch (e) { toast("Ошибка: " + e.message, true); }
 }
 

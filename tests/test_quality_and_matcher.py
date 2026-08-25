@@ -427,6 +427,44 @@ class TestQualityAndMatcher(unittest.TestCase):
         )
         self.assertTrue(dec_movie.approved, f"Expected movie release to be approved, got: {dec_movie.rejections}")
 
+    def test_create_custom_format_auto_regex_and_update(self):
+        try:
+            from sqlalchemy import create_engine
+            from sqlalchemy.orm import sessionmaker
+            from app.models.db import Base, CustomFormat, User
+            from app.schemas import CustomFormatCreate, CustomFormatUpdate
+            from app.api.custom_formats_routes import create_custom_format, update_custom_format
+        except ImportError:
+            self.skipTest("sqlalchemy or app dependencies not installed in current test environment")
+
+        test_engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(test_engine)
+        TestSession = sessionmaker(bind=test_engine)
+        db = TestSession()
+
+        dummy_user = User(username="admin", role="admin", is_active=True)
+
+        # 1. Create format with only name and score (no regex specified)
+        payload1 = CustomFormatCreate(name="LostFilm", score=200)
+        cf1 = create_custom_format(payload1, db=db, current_user=dummy_user)
+        self.assertEqual(cf1.name, "LostFilm")
+        self.assertEqual(cf1.score, 200)
+        self.assertTrue(len(cf1.specifications) > 0)
+        self.assertIn(r"\bLostFilm\b", cf1.specifications[0]["fields"]["value"])
+
+        # 2. Resubmitting with same name (case-insensitive) should update score instead of raising 400
+        payload2 = CustomFormatCreate(name="lostfilm", score=350)
+        cf2 = create_custom_format(payload2, db=db, current_user=dummy_user)
+        self.assertEqual(cf2.id, cf1.id)
+        self.assertEqual(cf2.score, 350)
+
+        # 3. Update format via PUT
+        update_payload = CustomFormatUpdate(score=500)
+        cf3 = update_custom_format(cf1.id, update_payload, db=db, current_user=dummy_user)
+        self.assertEqual(cf3.score, 500)
+
+        db.close()
+
 
 if __name__ == "__main__":
     unittest.main()

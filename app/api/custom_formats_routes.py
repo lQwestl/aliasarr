@@ -34,11 +34,37 @@ def create_custom_format(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_settings")),
 ):
-    existing = db.query(CustomFormat).filter(CustomFormat.name == payload.name).first()
+    from sqlalchemy import func
+    existing = db.query(CustomFormat).filter(func.lower(CustomFormat.name) == payload.name.strip().lower()).first()
     if existing:
-        raise HTTPException(400, "Custom format with this name already exists")
+        existing.score = payload.score
+        existing.include_custom_format_when_renaming = payload.include_custom_format_when_renaming
+        if payload.specifications:
+            existing.specifications = payload.specifications
+        db.add(existing)
+        db.commit()
+        db.refresh(existing)
+        return existing
 
-    cf = CustomFormat(**payload.model_dump())
+    specs = payload.specifications
+    if not specs and payload.name:
+        import re
+        escaped = re.escape(payload.name.strip())
+        specs = [{
+            "name": f"{payload.name.strip()} Pattern",
+            "implementation": "ReleaseTitleSpecification",
+            "negate": False,
+            "required": True,
+            "fields": {"value": rf"\b{escaped}\b"},
+        }]
+
+    cf = CustomFormat(
+        name=payload.name.strip(),
+        score=payload.score,
+        include_custom_format_when_renaming=payload.include_custom_format_when_renaming,
+        is_builtin=payload.is_builtin,
+        specifications=specs,
+    )
     db.add(cf)
     db.commit()
     db.refresh(cf)
@@ -69,12 +95,24 @@ def update_custom_format(
         raise HTTPException(404, "Custom format not found")
 
     data = payload.model_dump(exclude_unset=True)
-    if "name" in data and data["name"] != cf.name:
-        existing = db.query(CustomFormat).filter(CustomFormat.name == data["name"]).first()
-        if existing:
-            raise HTTPException(400, "Custom format with this name already exists")
+    if "name" in data and data["name"] and data["name"].strip().lower() != cf.name.lower():
+        from sqlalchemy import func
+        existing = db.query(CustomFormat).filter(func.lower(CustomFormat.name) == data["name"].strip().lower()).first()
+        if existing and existing.id != cf.id:
+            raise HTTPException(400, "Формат качества с таким названием уже существует")
 
     for k, v in data.items():
+        if k == "specifications" and not v and ("name" in data or cf.name):
+            target_name = (data.get("name") or cf.name).strip()
+            import re
+            escaped = re.escape(target_name)
+            v = [{
+                "name": f"{target_name} Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": rf"\b{escaped}\b"},
+            }]
         setattr(cf, k, v)
 
     db.add(cf)
