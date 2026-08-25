@@ -3743,7 +3743,15 @@ function applyPosterOptions() {
 async function loadShows() {
   const empty = document.getElementById("shows-empty");
   try {
-    CACHED_SHOWS = await api("/api/v1/shows");
+    const promises = [api("/api/v1/shows")];
+    if (!CACHED_QUALITY_PROFILES.length) {
+      promises.push(api("/api/v1/quality-profiles").catch(() => []));
+    }
+    const results = await Promise.all(promises);
+    CACHED_SHOWS = results[0] || [];
+    if (results[1] && results[1].length) {
+      CACHED_QUALITY_PROFILES = results[1];
+    }
     renderLibrary();
   } catch (e) {
     if (e.message !== "unauthorized") toast("Ошибка загрузки: " + e.message, true);
@@ -3770,9 +3778,9 @@ document.addEventListener("click", (e) => {
 });
 
 function qualityProfileName(id) {
-  if (!id) return t("common.any_quality");
-  const qp = CACHED_QUALITY_PROFILES.find(p => p.id === id);
-  return qp ? qp.name : "—";
+  if (id === null || id === undefined || id === "") return t("common.any_quality");
+  const qp = CACHED_QUALITY_PROFILES.find(p => String(p.id) === String(id));
+  return qp ? qp.name : (id ? `Профиль #${id}` : t("common.any_quality"));
 }
 
 function renderLibrary() {
