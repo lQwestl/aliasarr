@@ -4104,8 +4104,8 @@ function renderShowCard(show) {
   if (POSTER_OPTIONS.quality) {
     infoHtml += `<div class="show-quality-text">${escapeHtml(qualityProfileName(show.quality_profile_id))}</div>`;
   }
-  if (POSTER_OPTIONS.tags) {
-    infoHtml += `<div class="alias-cluster" style="justify-content:center;margin-top:4px;">${aliases}</div>`;
+  if (POSTER_OPTIONS.tags && aliases) {
+    infoHtml += `<div class="alias-cluster">${aliases}</div>`;
   }
 
   return `

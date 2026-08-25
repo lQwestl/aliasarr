@@ -1154,9 +1154,29 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .alias-chip.lang-jp,
 .alias-chip.lang-romaji { border-color: rgba(99, 102, 241, 0.4); color: var(--violet); background: rgba(99, 102, 241, 0.08); }
 
+/* Show Card Tags - Full width block chips matching card boundaries */
+.show-card .alias-cluster {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-top: 6px;
+}
+.show-card .alias-chip {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  font-size: 11px;
+  line-height: 1.35;
+  word-break: break-word;
+  white-space: normal;
+  text-align: left;
+}
+
 /* ---------- ALIAS MANAGER (в карточке шоу) ---------- */
 .alias-manager { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-.alias-chip { padding-right: 4px; display: inline-flex; align-items: center; gap: 4px; }
+.alias-manager .alias-chip { padding-right: 4px; display: inline-flex; width: auto; align-items: center; gap: 4px; }
 
 /* ---------- ALPHABET INDEX (Sonarr-style Jump Bar) ---------- */
 .alphabet-index-container {
