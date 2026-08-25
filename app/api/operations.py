@@ -1277,9 +1277,10 @@ def set_episode_status(
         except Exception:
             has_file = False
 
-    if episode.status == EpisodeStatus.DOWNLOADED or has_file:
-        # Статус уже скачанной серии остаётся DOWNLOADED, меняется только флаг мониторинга (для апгрейдов)
-        episode.status = EpisodeStatus.DOWNLOADED
+    if episode.status in (EpisodeStatus.DOWNLOADED, EpisodeStatus.DOWNLOADING) or has_file:
+        # Статус уже скачанной или скачивающейся серии сохраняется, меняется только флаг мониторинга (для апгрейдов)
+        if has_file and episode.status != EpisodeStatus.DOWNLOADING:
+            episode.status = EpisodeStatus.DOWNLOADED
     else:
         today = dt.date.today()
         air_d = getattr(episode, "air_date", None)

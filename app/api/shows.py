@@ -587,9 +587,10 @@ def set_all_seasons_monitored(
             except Exception:
                 has_file = False
 
-        if ep.status == EpisodeStatus.DOWNLOADED or has_file:
-            # Скачанные серии сохраняют статус DOWNLOADED, но обновляют флаг мониторинга
-            ep.status = EpisodeStatus.DOWNLOADED
+        if ep.status in (EpisodeStatus.DOWNLOADED, EpisodeStatus.DOWNLOADING) or has_file:
+            # Скачанные или скачивающиеся серии сохраняют свой статус, обновляется только флаг monitored
+            if has_file and ep.status != EpisodeStatus.DOWNLOADING:
+                ep.status = EpisodeStatus.DOWNLOADED
         else:
             if monitored:
                 air_d = getattr(ep, "air_date", None)
@@ -628,7 +629,7 @@ def set_unaired_monitored(
     episodes = db.query(Episode).filter(Episode.show_id == show_id).all()
     affected = 0
     for ep in episodes:
-        if ep.status == EpisodeStatus.DOWNLOADED or (ep.file_path and os.path.exists(ep.file_path)):
+        if ep.status in (EpisodeStatus.DOWNLOADED, EpisodeStatus.DOWNLOADING) or (ep.file_path and os.path.exists(ep.file_path)):
             continue
         air_d = getattr(ep, "air_date", None)
         if isinstance(air_d, dt.datetime):
@@ -672,8 +673,9 @@ def set_season_monitored(
             except Exception:
                 has_file = False
 
-        if ep.status == EpisodeStatus.DOWNLOADED or has_file:
-            ep.status = EpisodeStatus.DOWNLOADED
+        if ep.status in (EpisodeStatus.DOWNLOADED, EpisodeStatus.DOWNLOADING) or has_file:
+            if has_file and ep.status != EpisodeStatus.DOWNLOADING:
+                ep.status = EpisodeStatus.DOWNLOADED
         else:
             if monitored:
                 air_d = getattr(ep, "air_date", None)

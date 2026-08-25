@@ -485,6 +485,10 @@ class TestAutoSearch(unittest.TestCase):
             self.assertEqual(len(search_res.get("grabbed", [])), 1, "Мониторящаяся скачанная серия должна апгрейдиться")
 
         # 5. Проверяем, что "Игнорировать все сезоны" снимает мониторинг, но оставляет статус DOWNLOADED
+        ep1.status = EpisodeStatus.DOWNLOADED
+        self.session.add(ep1)
+        self.session.commit()
+
         set_all_seasons_monitored(show.id, monitored=False, db=self.session)
         self.session.refresh(ep1)
         self.assertEqual(ep1.status, EpisodeStatus.DOWNLOADED)
