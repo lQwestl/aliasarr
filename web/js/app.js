@@ -10190,19 +10190,34 @@ function toggleCustomMetadataFields() {
   const mdKey = document.getElementById("md-key");
   const mdPin = document.getElementById("md-pin");
   if (type === "skyhook" || type === "radarr") {
-    if (mdKey) mdKey.placeholder = CURRENT_LANG === "en" ? "API key (not required, works out of the box)" : "API key (не требуется, работает из коробки)";
+    if (mdKey) {
+      mdKey.style.display = "none";
+      mdKey.value = "";
+    }
     if (mdPin) mdPin.style.display = "none";
   } else if (type === "thetvdb") {
-    if (mdKey) mdKey.placeholder = "TheTVDB API Key v4";
+    if (mdKey) {
+      mdKey.style.display = "block";
+      mdKey.placeholder = "TheTVDB API Key v4";
+    }
     if (mdPin) mdPin.style.display = "block";
   } else if (type === "tvmaze") {
-    if (mdKey) mdKey.placeholder = "API key (optional)";
+    if (mdKey) {
+      mdKey.style.display = "block";
+      mdKey.placeholder = "API key (optional)";
+    }
     if (mdPin) mdPin.style.display = "none";
   } else if (type === "tmdb") {
-    if (mdKey) mdKey.placeholder = "Read Access Token (eyJ...)";
+    if (mdKey) {
+      mdKey.style.display = "block";
+      mdKey.placeholder = "Read Access Token (eyJ...)";
+    }
     if (mdPin) mdPin.style.display = "none";
   } else {
-    if (mdKey) mdKey.placeholder = "API key";
+    if (mdKey) {
+      mdKey.style.display = "block";
+      mdKey.placeholder = "API key";
+    }
     if (mdPin) mdPin.style.display = "none";
   }
   
@@ -10340,7 +10355,8 @@ function resetMetadataSourceForm() {
 async function testMetadataSource(btn) {
   const name = document.getElementById("md-name").value.trim() || "TheTVDB / TMDB / Radarr";
   const type = document.getElementById("md-type").value;
-  const api_key = document.getElementById("md-key").value.trim();
+  const isSkyhookOrRadarr = (type === "skyhook" || type === "radarr");
+  const api_key = isSkyhookOrRadarr ? null : document.getElementById("md-key").value.trim();
   const pin = (document.getElementById("md-pin")?.value || "").trim();
   let field_mapping = {};
   if (pin) field_mapping.pin = pin;
@@ -10369,7 +10385,8 @@ async function testMetadataSource(btn) {
 async function submitMetadataSource() {
   const name = document.getElementById("md-name").value.trim();
   const type = document.getElementById("md-type").value;
-  const api_key = document.getElementById("md-key").value.trim();
+  const isSkyhookOrRadarr = (type === "skyhook" || type === "radarr");
+  const api_key = isSkyhookOrRadarr ? null : document.getElementById("md-key").value.trim();
   const pin = (document.getElementById("md-pin")?.value || "").trim();
   
   const isSkyhookOrRadarr = (type === "skyhook" || type === "radarr");
