@@ -5023,10 +5023,20 @@ function collapseAllSeasons() {
 
 async function changeQualityProfile(showId, value) {
   try {
+    const qpId = value ? Number(value) : null;
     await api(`/api/v1/shows/${showId}`, {
       method: "PUT",
-      body: JSON.stringify({ quality_profile_id: value ? Number(value) : null }),
+      body: JSON.stringify({ quality_profile_id: qpId }),
     });
+    if (typeof CACHED_SHOWS !== "undefined" && CACHED_SHOWS) {
+      const s = CACHED_SHOWS.find(x => x.id === showId);
+      if (s) s.quality_profile_id = qpId;
+    }
+    if (typeof ALL_SHOWS !== "undefined" && ALL_SHOWS) {
+      const sAll = ALL_SHOWS.find(x => x.id === showId);
+      if (sAll) sAll.quality_profile_id = qpId;
+    }
+    renderLibrary();
     toast(t("settings.toast_saved"));
   } catch (e) { toast("Ошибка: " + e.message, true); }
 }
@@ -5550,6 +5560,8 @@ function renderManualImportView(showId, data) {
     }).join("");
   }
 
+  const seasonsList = Array.from(new Set(displayEpisodes.map(e => e.season_number))).sort((a, b) => a - b);
+
   content.innerHTML = `
     <div class="manual-import-header">
       <div style="font-size: 16px; font-weight: 600; color: var(--text);">
@@ -5576,6 +5588,37 @@ function renderManualImportView(showId, data) {
         ${t("manual_import.summary").replace("{total}", files.length).replace("{selected}", files.filter(f => f.matched_episode_id != null).length)}
       </div>
     </div>
+
+    ${files.length ? `
+    <div class="manual-import-bulk-toolbar">
+      <div class="bulk-group">
+        <span class="bulk-label"><i data-lucide="sliders" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Quality:' : 'Качество:'}</span></span>
+        <select id="bulk-manual-import-quality" class="input input-small" style="width: 140px;">
+          <option value="">— ${CURRENT_LANG === 'en' ? 'Quality' : 'Качество'} —</option>
+          ${qualityOptions.map(q => `<option value="${q}">${q}</option>`).join("")}
+        </select>
+        <button type="button" class="btn btn-secondary btn-small" onclick="applyBulkManualImportQuality()">
+          <i data-lucide="check" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Apply to selected' : 'Применить к выбранным'}</span>
+        </button>
+      </div>
+      ${!isMovie ? `
+      <div class="bulk-group">
+        <span class="bulk-label"><i data-lucide="list-ordered" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Episodes:' : 'Серии:'}</span></span>
+        <select id="bulk-manual-import-season" class="input input-small" style="width: 160px;">
+          ${seasonsList.map(sn => `<option value="${sn}">${sn === 0 ? (CURRENT_LANG === 'en' ? 'Specials (Season 0)' : 'Спецвыпуски (Сезон 0)') : (CURRENT_LANG === 'en' ? `Season ${sn}` : `Сезон ${sn}`)}</option>`).join("")}
+        </select>
+        <span style="font-size:12px; color:var(--text-muted);">${CURRENT_LANG === 'en' ? 'from №:' : 'с серии:'}</span>
+        <input type="number" id="bulk-manual-import-start-ep" class="input input-small" style="width: 58px;" min="0" value="1">
+        <button type="button" class="btn btn-secondary btn-small" onclick="applyBulkManualImportEpisodes()">
+          <i data-lucide="arrow-down-narrow-wide" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Assign sequentially' : 'Задать по порядку'}</span>
+        </button>
+      </div>` : `
+      <div class="bulk-group">
+        <button type="button" class="btn btn-secondary btn-small" onclick="applyBulkManualImportMovie()">
+          <i data-lucide="film" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Assign movie to selected' : 'Сопоставить фильм для выбранных'}</span>
+        </button>
+      </div>`}
+    </div>` : ""}
 
     <div class="manual-import-table-wrap">
       <table class="manual-import-table">
@@ -5606,6 +5649,108 @@ function renderManualImportView(showId, data) {
 
   if (window.lucide) lucide.createIcons();
   onManualImportItemChange();
+}
+
+function applyBulkManualImportQuality() {
+  const bulkSelect = document.getElementById("bulk-manual-import-quality");
+  if (!bulkSelect || !bulkSelect.value) {
+    toast(CURRENT_LANG === "en" ? "Select a quality first" : "Сначала выберите качество в списке", true);
+    return;
+  }
+  const quality = bulkSelect.value;
+  const checkboxes = Array.from(document.querySelectorAll(".manual-import-item-check"));
+  const checkedBoxes = checkboxes.filter(cb => cb.checked);
+  const targetBoxes = checkedBoxes.length > 0 ? checkedBoxes : checkboxes;
+
+  targetBoxes.forEach(cb => {
+    const idx = cb.getAttribute("data-idx");
+    const qSelect = document.querySelector(`.manual-import-quality-select[data-idx="${idx}"]`);
+    if (qSelect) {
+      qSelect.value = quality;
+    }
+  });
+  toast(CURRENT_LANG === "en" ? `Quality set to ${quality} for ${targetBoxes.length} files` : `Качество «${quality}» задано для ${targetBoxes.length} файлов`);
+}
+
+function applyBulkManualImportEpisodes() {
+  const seasonSelect = document.getElementById("bulk-manual-import-season");
+  const startEpInput = document.getElementById("bulk-manual-import-start-ep");
+  if (!seasonSelect || seasonSelect.value === "") {
+    toast(CURRENT_LANG === "en" ? "Select a season first" : "Сначала выберите сезон", true);
+    return;
+  }
+
+  const seasonNum = parseInt(seasonSelect.value, 10);
+  let startEpNum = parseInt(startEpInput?.value || "1", 10);
+  if (isNaN(startEpNum) || startEpNum < 0) startEpNum = 1;
+
+  if (!CURRENT_MANUAL_IMPORT_DATA || !CURRENT_MANUAL_IMPORT_DATA.episodes) return;
+  const episodes = CURRENT_MANUAL_IMPORT_DATA.episodes;
+
+  const seasonEpisodes = episodes
+    .filter(e => e.season_number === seasonNum)
+    .sort((a, b) => (a.episode_number || 0) - (b.episode_number || 0));
+
+  if (!seasonEpisodes.length) {
+    toast(CURRENT_LANG === "en" ? "No episodes found for this season" : "В этом сезоне нет серий", true);
+    return;
+  }
+
+  const checkboxes = Array.from(document.querySelectorAll(".manual-import-item-check"));
+  const checkedBoxes = checkboxes.filter(cb => cb.checked);
+  const targetBoxes = checkedBoxes.length > 0 ? checkedBoxes : checkboxes;
+
+  let currentEpIdx = seasonEpisodes.findIndex(e => e.episode_number >= startEpNum);
+  if (currentEpIdx === -1) currentEpIdx = 0;
+
+  let matchedCount = 0;
+  targetBoxes.forEach(cb => {
+    if (currentEpIdx < seasonEpisodes.length) {
+      const targetEp = seasonEpisodes[currentEpIdx];
+      const idx = cb.getAttribute("data-idx");
+      const epSelect = document.querySelector(`.manual-import-episode-select[data-idx="${idx}"]`);
+      const statusEl = document.getElementById(`manual-import-status-${idx}`);
+
+      if (epSelect && targetEp) {
+        epSelect.value = targetEp.id;
+        cb.checked = true;
+        if (statusEl) {
+          statusEl.innerHTML = `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">${t("manual_import.ready")}</span>`;
+        }
+        matchedCount++;
+        currentEpIdx++;
+      }
+    }
+  });
+
+  onManualImportItemChange();
+  toast(CURRENT_LANG === "en" ? `Assigned ${matchedCount} episodes sequentially` : `Сопоставлено ${matchedCount} серий по порядку`);
+}
+
+function applyBulkManualImportMovie() {
+  if (!CURRENT_MANUAL_IMPORT_DATA || !CURRENT_MANUAL_IMPORT_DATA.episodes) return;
+  const ep = CURRENT_MANUAL_IMPORT_DATA.episodes[0];
+  if (!ep) return;
+
+  const checkboxes = Array.from(document.querySelectorAll(".manual-import-item-check"));
+  const checkedBoxes = checkboxes.filter(cb => cb.checked);
+  const targetBoxes = checkedBoxes.length > 0 ? checkedBoxes : checkboxes;
+
+  targetBoxes.forEach(cb => {
+    const idx = cb.getAttribute("data-idx");
+    const epSelect = document.querySelector(`.manual-import-episode-select[data-idx="${idx}"]`);
+    const statusEl = document.getElementById(`manual-import-status-${idx}`);
+    if (epSelect) {
+      epSelect.value = ep.id;
+      cb.checked = true;
+      if (statusEl) {
+        statusEl.innerHTML = `<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">${t("manual_import.ready")}</span>`;
+      }
+    }
+  });
+
+  onManualImportItemChange();
+  toast(CURRENT_LANG === "en" ? "Movie assigned to selected files" : "Фильм сопоставлен для выбранных файлов");
 }
 
 function onManualImportSelectAll(checked) {
@@ -5993,6 +6138,30 @@ function renderGlobalManualImportView(data) {
       </div>
     </div>
 
+    ${files.length ? `
+    <div class="manual-import-bulk-toolbar">
+      <div class="bulk-group">
+        <span class="bulk-label"><i data-lucide="sliders" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Quality:' : 'Качество:'}</span></span>
+        <select id="global-bulk-quality-select" class="input input-small" style="width: 140px;">
+          <option value="">— ${CURRENT_LANG === 'en' ? 'Quality' : 'Качество'} —</option>
+          ${qualityOptions.map(q => `<option value="${q}">${q}</option>`).join("")}
+        </select>
+        <button type="button" class="btn btn-secondary btn-small" onclick="applyGlobalBulkQuality()">
+          <i data-lucide="check" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Apply to selected' : 'Применить к выбранным'}</span>
+        </button>
+      </div>
+      <div class="bulk-group">
+        <span class="bulk-label"><i data-lucide="tv" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Show:' : 'Тайтл:'}</span></span>
+        <select id="global-bulk-show-select" class="input input-small" style="max-width: 220px;">
+          <option value="">— ${CURRENT_LANG === 'en' ? 'Select show' : 'Выберите тайтл'} —</option>
+          ${shows.map(s => `<option value="${s.id}">${escapeHtml(s.title)}${s.year ? ` (${s.year})` : ""}</option>`).join("")}
+        </select>
+        <button type="button" class="btn btn-secondary btn-small" onclick="applyGlobalBulkShow()">
+          <i data-lucide="check" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Assign to selected' : 'Назначить для выбранных'}</span>
+        </button>
+      </div>
+    </div>` : ""}
+
     <div class="manual-import-table-wrap">
       <table class="manual-import-table">
         <thead>
@@ -6130,6 +6299,47 @@ function onGlobalManualImportSelectAll(checked) {
     cb.checked = checked;
   });
   onGlobalManualImportItemChange();
+}
+
+function applyGlobalBulkQuality() {
+  const bulkSelect = document.getElementById("global-bulk-quality-select");
+  if (!bulkSelect || !bulkSelect.value) {
+    toast(CURRENT_LANG === "en" ? "Select a quality first" : "Сначала выберите качество в списке", true);
+    return;
+  }
+  const quality = bulkSelect.value;
+  const checkboxes = Array.from(document.querySelectorAll(".global-manual-import-item-check"));
+  const checkedBoxes = checkboxes.filter(cb => cb.checked);
+  const targetBoxes = checkedBoxes.length > 0 ? checkedBoxes : checkboxes;
+
+  targetBoxes.forEach(cb => {
+    const idx = cb.getAttribute("data-idx");
+    const qSelect = document.querySelector(`.global-manual-import-quality-select[data-idx="${idx}"]`);
+    if (qSelect) qSelect.value = quality;
+  });
+  toast(CURRENT_LANG === "en" ? `Quality set to ${quality} for ${targetBoxes.length} files` : `Качество «${quality}» задано для ${targetBoxes.length} файлов`);
+}
+
+function applyGlobalBulkShow() {
+  const bulkSelect = document.getElementById("global-bulk-show-select");
+  if (!bulkSelect || !bulkSelect.value) {
+    toast(CURRENT_LANG === "en" ? "Select a show first" : "Сначала выберите тайтл в списке", true);
+    return;
+  }
+  const showId = parseInt(bulkSelect.value, 10);
+  const checkboxes = Array.from(document.querySelectorAll(".global-manual-import-item-check"));
+  const checkedBoxes = checkboxes.filter(cb => cb.checked);
+  const targetBoxes = checkedBoxes.length > 0 ? checkedBoxes : checkboxes;
+
+  targetBoxes.forEach(cb => {
+    const idx = cb.getAttribute("data-idx");
+    const showSelect = document.querySelector(`.global-manual-import-show-select[data-idx="${idx}"]`);
+    if (showSelect) {
+      showSelect.value = showId;
+      onGlobalManualImportShowChange(idx);
+    }
+  });
+  toast(CURRENT_LANG === "en" ? `Show assigned to ${targetBoxes.length} files` : `Тайтл назначен для ${targetBoxes.length} файлов`);
 }
 
 async function executeGlobalManualImport() {

@@ -4608,6 +4608,35 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   font-size: 13px;
 }
 
+/* Manual Import Bulk Toolbar */
+.manual-import-bulk-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.manual-import-bulk-toolbar .bulk-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.manual-import-bulk-toolbar .bulk-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .manual-import-table-wrap {
   max-height: 520px;
   overflow-y: auto;
