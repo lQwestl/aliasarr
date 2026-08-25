@@ -92,9 +92,9 @@ class TestManualImportLogic(unittest.TestCase):
         
         # Test each format evaluates
         test_cases = [
-            ("SDTV", "My.Show.S01E01.SDTV.x264.mkv"),
-            ("DVD", "My.Show.S01E01.DVD.PAL.mkv"),
-            ("DVDRip", "My.Show.S01E01.DVDRip.xvid.mkv"),
+            ("SDTV-480p", "My.Show.S01E01.SDTV.x264.mkv"),
+            ("DVD-480p", "My.Show.S01E01.DVD.PAL.mkv"),
+            ("DVDRip-480p", "My.Show.S01E01.DVDRip.xvid.mkv"),
             ("HDTV-720p", "My.Show.S01E01.720p.HDTV.x264.mkv"),
             ("WEBRip-720p", "My.Show.S01E01.720p.WEBRip.x264.mkv"),
             ("WEBDL-720p", "My.Show.S01E01.720p.WEB-DL.x264.mkv"),

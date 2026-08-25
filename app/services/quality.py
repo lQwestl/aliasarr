@@ -11,49 +11,60 @@ from typing import List, Optional
 
 # Порядок от худшего к лучшему — индекс используется как ранг (0-N)
 QUALITY_ORDER = [
-    # Low / Telesync / CAM
-    "CAM",
-    "Telesync",
-    "Telecine",
-    "Workprint",
-    # SD / TV / DVD / Rips
-    "SDTV",
-    "TVRip",
-    "DVD",
-    "DVDRip",
-    "BDRip",
-    "BRRip",
+    # Low / CAM / Telesync
+    "CAM-480p",
+    "Telesync-480p",
+    "Telecine-480p",
+    "Workprint-480p",
+    # SD (480p)
+    "SDTV-480p",
+    "TVRip-480p",
+    "DVD-480p",
+    "DVDRip-480p",
     "HDTV-480p",
-    "HDTV-576p",
     "WEBRip-480p",
-    "WEBRip-576p",
     "WEBDL-480p",
-    "WEBDL-576p",
-    "BDRip-480p",
-    "BDRip-576p",
     "Bluray-480p",
-    "Bluray-576p",
     # 720p
     "HDTV-720p",
     "WEBRip-720p",
     "WEBDL-720p",
-    "BDRip-720p",
     "Bluray-720p",
     # 1080p
     "HDTV-1080p",
     "WEBRip-1080p",
     "WEBDL-1080p",
-    "BDRip-1080p",
     "Bluray-1080p",
     "Remux-1080p",
     # 2160p (4K UHD)
     "HDTV-2160p",
     "WEBRip-2160p",
     "WEBDL-2160p",
-    "BDRip-2160p",
     "Bluray-2160p",
     "Remux-2160p",
 ]
+
+QUALITY_ALIASES = {
+    "CAM": "CAM-480p",
+    "TELESYNC": "Telesync-480p",
+    "TELECINE": "Telecine-480p",
+    "WORKPRINT": "Workprint-480p",
+    "SDTV": "SDTV-480p",
+    "TVRIP": "TVRip-480p",
+    "DVD": "DVD-480p",
+    "DVDRIP": "DVDRip-480p",
+    "BDRIP": "Bluray-480p",
+    "BRRIP": "Bluray-480p",
+    "BDRIP-480P": "Bluray-480p",
+    "BDRIP-576P": "Bluray-480p",
+    "BDRIP-720P": "Bluray-720p",
+    "BDRIP-1080P": "Bluray-1080p",
+    "BDRIP-2160P": "Bluray-2160p",
+    "BLURAY-576P": "Bluray-480p",
+    "HDTV-576P": "HDTV-480p",
+    "WEBRIP-576P": "WEBRip-480p",
+    "WEBDL-576P": "WEBDL-480p",
+}
 
 # Регулярные выражения источников (Sources)
 _REMUX_RE = re.compile(r"\b(remux|bdremux|bd[-_. ]?remux|uhd[-_. ]?remux|4k[-_. ]?remux)\b", re.IGNORECASE)
@@ -119,7 +130,7 @@ def parse_quality(release_name: str) -> QualityInfo:
     Разбирает строку названия релиза на качество, кодеки, HDR и модификаторы.
     """
     if not release_name:
-        return QualityInfo(name="SDTV", rank=QUALITY_ORDER.index("SDTV"), source="SDTV", resolution="480p")
+        return QualityInfo(name="SDTV-480p", rank=QUALITY_ORDER.index("SDTV-480p"), source="SDTV", resolution="480p")
 
     # 1. Разрешение
     res_match = _RES_RE.search(release_name)
@@ -131,23 +142,15 @@ def parse_quality(release_name: str) -> QualityInfo:
         resolution = "1080p"
     elif raw_res == "720p":
         resolution = "720p"
-    elif raw_res in ("576p", "576i"):
-        resolution = "576p"
-    elif raw_res in ("480p", "480i"):
+    elif raw_res in ("576p", "576i", "480p", "480i", "360p"):
         resolution = "480p"
-    elif raw_res == "360p":
-        resolution = "360p"
     else:
         resolution = "480p"
 
     # 2. Источник
     if _REMUX_RE.search(release_name):
         source = "Remux"
-    elif _BDRIP_RE.search(release_name):
-        source = "BDRip"
-    elif _BRRIP_RE.search(release_name):
-        source = "BRRip"
-    elif _BLURAY_RE.search(release_name):
+    elif _BDRIP_RE.search(release_name) or _BRRIP_RE.search(release_name) or _BLURAY_RE.search(release_name):
         source = "Bluray"
     elif _WEBDL_RE.search(release_name):
         source = "WEBDL"
@@ -175,30 +178,24 @@ def parse_quality(release_name: str) -> QualityInfo:
     # 3. Формирование канонического имени качества
     if source == "Remux":
         canonical_name = "Remux-2160p" if resolution == "2160p" else "Remux-1080p"
-    elif source == "BDRip":
-        if has_explicit_res and resolution in ("720p", "1080p", "2160p", "480p", "576p"):
-            canonical_name = f"BDRip-{resolution}"
-        else:
-            canonical_name = "BDRip"
-    elif source == "BRRip":
-        if has_explicit_res and resolution in ("720p", "1080p", "2160p", "480p", "576p"):
-            canonical_name = f"BDRip-{resolution}"
-        else:
-            canonical_name = "BRRip"
     elif source == "Bluray":
-        if has_explicit_res and resolution in ("720p", "1080p", "2160p", "480p", "576p"):
+        if has_explicit_res and resolution in ("720p", "1080p", "2160p", "480p"):
             canonical_name = f"Bluray-{resolution}"
+        elif not has_explicit_res:
+            canonical_name = "Bluray-480p"
         else:
-            canonical_name = "Bluray-1080p"
+            canonical_name = f"Bluray-{resolution}"
     elif source in ("WEBDL", "WEBRip", "HDTV"):
         if has_explicit_res:
             canonical_name = f"{source}-{resolution}"
         else:
             canonical_name = f"{source}-1080p" if source != "HDTV" else "HDTV-720p"
     elif source in ("DVDRip", "DVD", "TVRip", "SDTV", "CAM", "Telesync", "Telecine", "Workprint"):
-        canonical_name = source
+        canonical_name = f"{source}-480p"
     else:
         canonical_name = f"{source}-{resolution}"
+
+    canonical_name = QUALITY_ALIASES.get(canonical_name.upper(), canonical_name)
 
     # Если такого качества нет в QUALITY_ORDER, подбираем ближайшее
     if canonical_name not in QUALITY_ORDER:
@@ -208,12 +205,8 @@ def parse_quality(release_name: str) -> QualityInfo:
             canonical_name = "WEBDL-1080p"
         elif resolution == "720p":
             canonical_name = "WEBDL-720p"
-        elif resolution == "576p":
-            canonical_name = "WEBDL-576p"
-        elif resolution == "480p":
-            canonical_name = "WEBDL-480p"
         else:
-            canonical_name = "SDTV"
+            canonical_name = "SDTV-480p"
 
     try:
         rank = QUALITY_ORDER.index(canonical_name)
@@ -284,7 +277,9 @@ def is_allowed(quality: QualityInfo, allowed_qualities: List[str]) -> bool:
     """Пусто в allowed_qualities = разрешено всё."""
     if not allowed_qualities:
         return True
-    return quality.name in allowed_qualities
+    norm_q = QUALITY_ALIASES.get(quality.name.upper(), quality.name)
+    norm_allowed = {QUALITY_ALIASES.get(a.upper(), a) for a in allowed_qualities}
+    return norm_q in norm_allowed or quality.name in allowed_qualities or quality.name in norm_allowed
 
 
 def is_upgrade(current: QualityInfo, candidate: QualityInfo, allowed_qualities: Optional[List[str]] = None) -> bool:
@@ -334,7 +329,7 @@ def detect_file_quality(file_path: str, context_hints: Optional[List[str]] = Non
     # Ищем качество с наивысшим рангом (не-SDTV)
     best_q = None
     for q in parsed_list:
-        if q.name != "SDTV":
+        if q.name not in ("SDTV", "SDTV-480p"):
             if best_q is None or q.rank > best_q.rank:
                 best_q = q
 
@@ -381,8 +376,8 @@ def detect_file_quality(file_path: str, context_hints: Optional[List[str]] = Non
 
     if ".iso" in raw_full or "video_ts" in raw_full:
         return QualityInfo(
-            name="DVD",
-            rank=1,
+            name="DVD-480p",
+            rank=QUALITY_ORDER.index("DVD-480p"),
             source="DVD",
             resolution="480p",
             modifier=mod,
@@ -393,7 +388,7 @@ def detect_file_quality(file_path: str, context_hints: Optional[List[str]] = Non
         )
 
     # Крайний fallback
-    base_q = parsed_list[0] if parsed_list else QualityInfo(name="SDTV", rank=0, source="SDTV", resolution="480p")
+    base_q = parsed_list[0] if parsed_list else QualityInfo(name="SDTV-480p", rank=QUALITY_ORDER.index("SDTV-480p"), source="SDTV", resolution="480p")
     return QualityInfo(
         name=base_q.name,
         rank=base_q.rank,

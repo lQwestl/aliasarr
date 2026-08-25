@@ -49,23 +49,23 @@ class TestQualityAndMatcher(unittest.TestCase):
         # 4. BDRip folder detection (e.g. Vermeil in Gold [BDRip] [1080p])
         path4 = "/downloads/Vermeil in Gold [BDRip] [1080p]/01.mkv"
         q4 = detect_file_quality(path4)
-        self.assertEqual(q4.name, "BDRip-1080p")
-        self.assertEqual(q4.source, "BDRip")
+        self.assertEqual(q4.name, "Bluray-1080p")
+        self.assertEqual(q4.source, "Bluray")
         self.assertEqual(q4.resolution, "1080p")
 
         # 5. Standalone BDRip without resolution
         path5 = "/downloads/Kinsou no Vermeil BDRip AVC/01.mkv"
         q5 = detect_file_quality(path5)
-        self.assertEqual(q5.name, "BDRip")
-        self.assertEqual(q5.source, "BDRip")
+        self.assertEqual(q5.name, "Bluray-480p")
+        self.assertEqual(q5.source, "Bluray")
 
     def test_parse_quality_all_formats(self):
         cases = [
-            ("Show.S01E01.BDRip.x264.mkv", "BDRip", "BDRip", "480p"),
-            ("Show.S01E01.BRRip.x264.mkv", "BRRip", "BRRip", "480p"),
-            ("Show.S01E01.BDRip.720p.mkv", "BDRip-720p", "BDRip", "720p"),
-            ("Show.S01E01.BDRip.1080p.mkv", "BDRip-1080p", "BDRip", "1080p"),
-            ("Show.S01E01.BDRip.2160p.mkv", "BDRip-2160p", "BDRip", "2160p"),
+            ("Show.S01E01.BDRip.x264.mkv", "Bluray-480p", "Bluray", "480p"),
+            ("Show.S01E01.BRRip.x264.mkv", "Bluray-480p", "Bluray", "480p"),
+            ("Show.S01E01.BDRip.720p.mkv", "Bluray-720p", "Bluray", "720p"),
+            ("Show.S01E01.BDRip.1080p.mkv", "Bluray-1080p", "Bluray", "1080p"),
+            ("Show.S01E01.BDRip.2160p.mkv", "Bluray-2160p", "Bluray", "2160p"),
             ("Show.S01E01.Bluray.480p.mkv", "Bluray-480p", "Bluray", "480p"),
             ("Show.S01E01.Bluray.720p.mkv", "Bluray-720p", "Bluray", "720p"),
             ("Show.S01E01.Bluray.1080p.mkv", "Bluray-1080p", "Bluray", "1080p"),
@@ -84,11 +84,11 @@ class TestQualityAndMatcher(unittest.TestCase):
             ("Show.S01E01.HDTV.720p.mkv", "HDTV-720p", "HDTV", "720p"),
             ("Show.S01E01.HDTV.1080p.mkv", "HDTV-1080p", "HDTV", "1080p"),
             ("Show.S01E01.HDTV.2160p.mkv", "HDTV-2160p", "HDTV", "2160p"),
-            ("Show.S01E01.TVRip.avi", "TVRip", "TVRip", "480p"),
-            ("Show.S01E01.DVDRip.avi", "DVDRip", "DVDRip", "480p"),
-            ("Show.S01E01.DVD.iso", "DVD", "DVD", "480p"),
-            ("Movie.CAM.avi", "CAM", "CAM", "480p"),
-            ("Movie.Telesync.avi", "Telesync", "Telesync", "480p"),
+            ("Show.S01E01.TVRip.avi", "TVRip-480p", "TVRip", "480p"),
+            ("Show.S01E01.DVDRip.avi", "DVDRip-480p", "DVDRip", "480p"),
+            ("Show.S01E01.DVD.iso", "DVD-480p", "DVD", "480p"),
+            ("Movie.CAM.avi", "CAM-480p", "CAM", "480p"),
+            ("Movie.Telesync.avi", "Telesync-480p", "Telesync", "480p"),
         ]
         for name, exp_qname, exp_source, exp_res in cases:
             q = parse_quality(name)
@@ -258,8 +258,8 @@ class TestQualityAndMatcher(unittest.TestCase):
         )
 
         self.assertEqual(len(DEFAULT_CUSTOM_FORMATS), len(DEFAULT_FORMAT_NAMES))
-        self.assertIn("BDRip", DEFAULT_FORMAT_NAMES)
-        self.assertIn("BDRip-1080p", DEFAULT_FORMAT_NAMES)
+        self.assertIn("SDTV-480p", DEFAULT_FORMAT_NAMES)
+        self.assertIn("Bluray-480p", DEFAULT_FORMAT_NAMES)
         self.assertIn("Bluray-1080p", DEFAULT_FORMAT_NAMES)
         self.assertIn("Remux-2160p", DEFAULT_FORMAT_NAMES)
 

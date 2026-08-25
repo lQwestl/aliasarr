@@ -33,7 +33,7 @@ class MatchedCustomFormat:
 # Стандартные преднастроенные кастомные форматы (Sonarr v4/v5 default formats & Qualities)
 DEFAULT_CUSTOM_FORMATS = [
     {
-        "name": "CAM",
+        "name": "CAM-480p",
         "score": 1,
         "include_custom_format_when_renaming": False,
         "specifications": [
@@ -47,7 +47,7 @@ DEFAULT_CUSTOM_FORMATS = [
         ],
     },
     {
-        "name": "Telesync",
+        "name": "Telesync-480p",
         "score": 2,
         "include_custom_format_when_renaming": False,
         "specifications": [
@@ -56,12 +56,12 @@ DEFAULT_CUSTOM_FORMATS = [
                 "implementation": "ReleaseTitleSpecification",
                 "negate": False,
                 "required": True,
-                "fields": {"value": r"\b(telesync|ts|hdts|hd-ts)\b"},
+                "fields": {"value": r"\b(telesync|hdts|hd-ts|tsrip|telesync-rip)\b"},
             }
         ],
     },
     {
-        "name": "Telecine",
+        "name": "Telecine-480p",
         "score": 3,
         "include_custom_format_when_renaming": False,
         "specifications": [
@@ -75,7 +75,7 @@ DEFAULT_CUSTOM_FORMATS = [
         ],
     },
     {
-        "name": "Workprint",
+        "name": "Workprint-480p",
         "score": 4,
         "include_custom_format_when_renaming": False,
         "specifications": [
@@ -89,7 +89,7 @@ DEFAULT_CUSTOM_FORMATS = [
         ],
     },
     {
-        "name": "SDTV",
+        "name": "SDTV-480p",
         "score": 10,
         "include_custom_format_when_renaming": False,
         "specifications": [
@@ -103,7 +103,7 @@ DEFAULT_CUSTOM_FORMATS = [
         ],
     },
     {
-        "name": "TVRip",
+        "name": "TVRip-480p",
         "score": 12,
         "include_custom_format_when_renaming": False,
         "specifications": [
@@ -117,7 +117,7 @@ DEFAULT_CUSTOM_FORMATS = [
         ],
     },
     {
-        "name": "DVD",
+        "name": "DVD-480p",
         "score": 15,
         "include_custom_format_when_renaming": False,
         "specifications": [
@@ -131,7 +131,7 @@ DEFAULT_CUSTOM_FORMATS = [
         ],
     },
     {
-        "name": "DVDRip",
+        "name": "DVDRip-480p",
         "score": 20,
         "include_custom_format_when_renaming": False,
         "specifications": [
@@ -141,34 +141,6 @@ DEFAULT_CUSTOM_FORMATS = [
                 "negate": False,
                 "required": True,
                 "fields": {"value": r"\b(dvdrip|dvd-rip)\b"},
-            }
-        ],
-    },
-    {
-        "name": "BDRip",
-        "score": 25,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "BDRip Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(bdrip|brrip|bd[-_. ]?rip|br[-_. ]?rip)\b"},
-            }
-        ],
-    },
-    {
-        "name": "BRRip",
-        "score": 24,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "BRRip Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(brrip|br[-_. ]?rip)\b"},
             }
         ],
     },
@@ -215,20 +187,6 @@ DEFAULT_CUSTOM_FORMATS = [
         ],
     },
     {
-        "name": "BDRip-480p",
-        "score": 27,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "BDRip-480p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(bdrip[._\-\s]?(?:480p|576p)|(?:480p|576p)[._\-\s]?bdrip|brrip[._\-\s]?(?:480p|576p))\b"},
-            }
-        ],
-    },
-    {
         "name": "Bluray-480p",
         "score": 28,
         "include_custom_format_when_renaming": False,
@@ -238,7 +196,7 @@ DEFAULT_CUSTOM_FORMATS = [
                 "implementation": "ReleaseTitleSpecification",
                 "negate": False,
                 "required": True,
-                "fields": {"value": r"\b(bluray[._\-\s]?(?:480p|576p)|(?:480p|576p)[._\-\s]?bluray|blu-ray[._\-\s]?(?:480p|576p))\b"},
+                "fields": {"value": r"\b(bluray[._\-\s]?(?:480p|576p)|(?:480p|576p)[._\-\s]?bluray|blu-ray[._\-\s]?(?:480p|576p)|bdrip|brrip|bd[-_. ]?rip|br[-_. ]?rip)\b"},
             }
         ],
     },
@@ -285,20 +243,6 @@ DEFAULT_CUSTOM_FORMATS = [
         ],
     },
     {
-        "name": "BDRip-720p",
-        "score": 44,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "BDRip-720p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(bdrip[._\-\s]?(?:720p)|720p[._\-\s]?bdrip|brrip[._\-\s]?720p)\b"},
-            }
-        ],
-    },
-    {
         "name": "Bluray-720p",
         "score": 45,
         "include_custom_format_when_renaming": False,
@@ -308,7 +252,7 @@ DEFAULT_CUSTOM_FORMATS = [
                 "implementation": "ReleaseTitleSpecification",
                 "negate": False,
                 "required": True,
-                "fields": {"value": r"\b(bluray[._\-\s]?(?:720p)|720p[._\-\s]?bluray|blu-ray[._\-\s]?720p)\b"},
+                "fields": {"value": r"\b(bluray[._\-\s]?(?:720p)|720p[._\-\s]?bluray|blu-ray[._\-\s]?720p|bdrip[._\-\s]?720p|brrip[._\-\s]?720p)\b"},
             }
         ],
     },
@@ -355,20 +299,6 @@ DEFAULT_CUSTOM_FORMATS = [
         ],
     },
     {
-        "name": "BDRip-1080p",
-        "score": 68,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "BDRip-1080p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(bdrip[._\-\s]?(?:1080p)|1080p[._\-\s]?bdrip|brrip[._\-\s]?1080p)\b"},
-            }
-        ],
-    },
-    {
         "name": "Bluray-1080p",
         "score": 70,
         "include_custom_format_when_renaming": False,
@@ -378,7 +308,7 @@ DEFAULT_CUSTOM_FORMATS = [
                 "implementation": "ReleaseTitleSpecification",
                 "negate": False,
                 "required": True,
-                "fields": {"value": r"\b(bluray[._\-\s]?(?:1080p)|1080p[._\-\s]?bluray|blu-ray[._\-\s]?1080p)\b"},
+                "fields": {"value": r"\b(bluray[._\-\s]?(?:1080p)|1080p[._\-\s]?bluray|blu-ray[._\-\s]?1080p|bdrip[._\-\s]?1080p|brrip[._\-\s]?1080p)\b"},
             }
         ],
     },
@@ -439,20 +369,6 @@ DEFAULT_CUSTOM_FORMATS = [
         ],
     },
     {
-        "name": "BDRip-2160p",
-        "score": 98,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "BDRip-2160p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(bdrip[._\-\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\-\s]?bdrip|brrip[._\-\s]?(?:2160p|4k|uhd))\b"},
-            }
-        ],
-    },
-    {
         "name": "Bluray-2160p",
         "score": 100,
         "include_custom_format_when_renaming": False,
@@ -462,7 +378,7 @@ DEFAULT_CUSTOM_FORMATS = [
                 "implementation": "ReleaseTitleSpecification",
                 "negate": False,
                 "required": True,
-                "fields": {"value": r"\b(bluray[._\-\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\-\s]?bluray|blu-ray[._\-\s]?(?:2160p|4k|uhd)|uhd[-_. ]?bluray)\b"},
+                "fields": {"value": r"\b(bluray[._\-\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\-\s]?bluray|blu-ray[._\-\s]?(?:2160p|4k|uhd)|uhd[-_. ]?bluray|bdrip[._\-\s]?(?:2160p|4k|uhd)|brrip[._\-\s]?(?:2160p|4k|uhd))\b"},
             }
         ],
     },
