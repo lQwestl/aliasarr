@@ -1273,6 +1273,89 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .status-on_air { background: rgba(34,211,238,0.18); color: #22d3ee; }
 .status-premiere { background: rgba(251,191,36,0.18); color: #fbbf24; }
 
+/* Upgrading status badge with smooth purple progress fill */
+.status-pill.status-upgrading {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 3px 12px;
+  min-height: 22px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  background: rgba(139, 92, 246, 0.16);
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  color: #f3e8ff;
+  white-space: nowrap;
+  vertical-align: middle;
+  box-shadow: 0 1px 8px rgba(139, 92, 246, 0.25);
+  user-select: none;
+}
+
+[data-theme="light"] .status-pill.status-upgrading {
+  background: #f5f3ff;
+  border-color: #c084fc;
+  color: #581c87;
+  box-shadow: 0 1px 4px rgba(147, 51, 234, 0.15);
+}
+
+[data-theme="dracula"] .status-pill.status-upgrading {
+  background: rgba(189, 147, 249, 0.18);
+  border-color: rgba(189, 147, 249, 0.5);
+  color: #f8f8f2;
+}
+
+.status-pill.status-upgrading .status-pill-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #7c3aed 0%, #a855f7 70%, #c084fc 100%);
+  border-radius: inherit;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.92;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+}
+
+[data-theme="light"] .status-pill.status-upgrading .status-pill-fill {
+  background: linear-gradient(90deg, #a855f7 0%, #c084fc 100%);
+  opacity: 0.38;
+}
+
+.status-pill.status-upgrading .status-pill-text {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.02em;
+}
+
+[data-theme="light"] .status-pill.status-upgrading .status-pill-text {
+  text-shadow: none;
+  font-weight: 700;
+}
+
+.status-pill.status-upgrading .status-pill-ico {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.status-pill-spin {
+  animation: spin 2.2s linear infinite;
+}
+
 /* ---------- ШАБЛОНЫ ПЕРЕИМЕНОВАНИЯ ---------- */
 .template-row {
   display: grid;

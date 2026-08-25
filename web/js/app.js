@@ -133,6 +133,8 @@ const TRANSLATIONS = {
     "status.missing": "отсутствует",
     "status.wanted": "в поиске",
     "status.downloading": "скачивается",
+    "status.upgrading": "ожидает обновление",
+    "status.upgrading_title": "Скачивается обновление качества",
     "status.downloaded": "скачано",
     "status.ignored": "игнорируется",
     "status.unaired": "ещё не вышло",
@@ -1134,6 +1136,8 @@ const TRANSLATIONS = {
     "status.missing": "missing",
     "status.wanted": "wanted",
     "status.downloading": "downloading",
+    "status.upgrading": "upgrading",
+    "status.upgrading_title": "Downloading quality upgrade",
     "status.downloaded": "downloaded",
     "status.ignored": "ignored",
     "status.unaired": "unaired",
@@ -4140,10 +4144,16 @@ async function openShowModal(showId) {
               ep.download_progress = liveProgress;
             }
           }
+          const pct = Math.min(100, Math.max(0, (ep.download_progress || 0) * 100)).toFixed(1);
+          
+          const upgradingFill = row.querySelector('.status-pill.status-upgrading .status-pill-fill');
+          if (upgradingFill) {
+            upgradingFill.style.width = `${pct}%`;
+          }
+
           const progressFill = row.querySelector('.ep-progress > div > div');
           const progressText = row.querySelector('.ep-progress > span');
           if (progressFill && progressText) {
-            const pct = Math.min(100, Math.max(0, (ep.download_progress || 0) * 100)).toFixed(1);
             progressFill.style.width = `${pct}%`;
             progressText.textContent = `${pct}%`;
           }
@@ -4536,9 +4546,24 @@ async function searchPosterForShow(showId) {
 
 function renderMovieBlock(show, ep, canManageLib = true) {
   const monitored = ep.status !== "ignored";
+  const hasFile = Boolean(ep.has_file || ep.file_path);
+  const isUpgrading = Boolean(ep.status === "downloading" && hasFile);
+  const isFreshDownloading = Boolean(ep.status === "downloading" && !hasFile);
+
   let statusHtml = "";
-  if (ep.status === "downloading") {
-    const pct = Math.min(100, Math.max(0, (ep.download_progress || 0) * 100)).toFixed(1);
+  const pct = Math.min(100, Math.max(0, (ep.download_progress || 0) * 100)).toFixed(1);
+
+  if (isUpgrading) {
+    statusHtml = `
+      <div class="status-pill status-upgrading" title="${t("status.upgrading_title")}">
+        <div class="status-pill-fill" style="width:${pct}%;"></div>
+        <span class="status-pill-text">
+          <i data-lucide="refresh-cw" class="status-pill-ico status-pill-spin"></i>
+          <span>${t("status.upgrading")}</span>
+        </span>
+      </div>
+    `;
+  } else if (isFreshDownloading) {
     statusHtml = `
       <div class="ep-progress" style="display:flex;align-items:center;gap:8px;margin-left:auto;margin-right:16px;">
         <span style="font-size:0.8em;color:var(--text-muted);">${pct}%</span>
@@ -4551,7 +4576,6 @@ function renderMovieBlock(show, ep, canManageLib = true) {
     statusHtml = `<span class="status-pill status-${ep.status}">${escapeHtml(episodeStatusLabel(ep.status))}</span>`;
   }
 
-  const hasFile = Boolean(ep.has_file || (ep.file_path && ep.status === "downloaded"));
   const hasFileBadge = hasFile
     ? `<span class="badge-file-present" title="${ep.file_path ? t("show.present_on_disk") + ': ' + escapeHtml(ep.file_path) : t("show.present_on_disk")}"><i data-lucide="hard-drive"></i> ${ep.downloaded_quality ? escapeHtml(ep.downloaded_quality) : t("show.on_disk")}</span>`
     : "";
@@ -4569,7 +4593,7 @@ function renderMovieBlock(show, ep, canManageLib = true) {
       <div class="season-header">
         <div class="season-header-left">
           <span>${t("settings.cat_movies")}</span>
-          <span class="season-progress">${ep.status === "downloaded" ? t("status.downloaded") : episodeStatusLabel(ep.status)}</span>
+          <span class="season-progress">${(ep.status === "downloaded" || hasFile) ? t("status.downloaded") : episodeStatusLabel(ep.status)}</span>
         </div>
       </div>
       <div class="season-episodes">
@@ -4593,7 +4617,7 @@ function renderMovieBlock(show, ep, canManageLib = true) {
 }
 
 function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearch = true, show = null) {
-  const downloaded = episodes.filter(e => e.status === "downloaded").length;
+  const downloaded = episodes.filter(e => e.status === "downloaded" || (e.file_path && e.status === "downloading")).length;
   const seasonTitle = seasonNumber === 0
     ? (CURRENT_LANG === "en" ? "Specials" : "Спецвыпуски")
     : `${t("show.season")} ${seasonNumber}`;
@@ -4653,9 +4677,24 @@ function renderEpisodeRow(ep, canManageLib = true, show = null) {
   const monitored = ep.status !== "ignored";
   const canSearch = hasPermission("manual_search");
   
+  const hasFile = Boolean(ep.has_file || ep.file_path);
+  const isUpgrading = Boolean(ep.status === "downloading" && hasFile);
+  const isFreshDownloading = Boolean(ep.status === "downloading" && !hasFile);
+
   let statusHtml = "";
-  if (ep.status === "downloading") {
-    const pct = Math.min(100, Math.max(0, (ep.download_progress || 0) * 100)).toFixed(1);
+  const pct = Math.min(100, Math.max(0, (ep.download_progress || 0) * 100)).toFixed(1);
+
+  if (isUpgrading) {
+    statusHtml = `
+      <div class="status-pill status-upgrading" title="${t("status.upgrading_title")}">
+        <div class="status-pill-fill" style="width:${pct}%;"></div>
+        <span class="status-pill-text">
+          <i data-lucide="refresh-cw" class="status-pill-ico status-pill-spin"></i>
+          <span>${t("status.upgrading")}</span>
+        </span>
+      </div>
+    `;
+  } else if (isFreshDownloading) {
     statusHtml = `
       <div class="ep-progress" style="display:flex;align-items:center;gap:8px;margin-left:auto;margin-right:16px;">
         <span style="font-size:0.8em;color:var(--text-muted);">${pct}%</span>
@@ -4668,7 +4707,6 @@ function renderEpisodeRow(ep, canManageLib = true, show = null) {
     statusHtml = `<span class="status-pill status-${ep.status}">${escapeHtml(episodeStatusLabel(ep.status))}</span>`;
   }
 
-  const hasFile = Boolean(ep.has_file || (ep.file_path && ep.status === "downloaded"));
   const hasFileBadge = hasFile
     ? `<span class="badge-file-present" title="${ep.file_path ? t("show.present_on_disk") + ': ' + escapeHtml(ep.file_path) : t("show.present_on_disk")}"><i data-lucide="hard-drive"></i> ${ep.downloaded_quality ? escapeHtml(ep.downloaded_quality) : t("show.on_disk")}</span>`
     : "";

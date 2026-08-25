@@ -244,7 +244,7 @@ def get_show(show_id: int, db: Session = Depends(get_db), current_user: User = D
                     file_exists = False
 
                 if file_exists:
-                    if ep.status != EpisodeStatus.DOWNLOADED:
+                    if ep.status != EpisodeStatus.DOWNLOADED and not (ep.status == EpisodeStatus.DOWNLOADING and getattr(ep, "torrent_hash", None)):
                         ep.status = EpisodeStatus.DOWNLOADED
                         ep.download_progress = 1.0
                         needs_commit = True
