@@ -129,6 +129,7 @@ const TRANSLATIONS = {
 
     // Statuses
     "status.monitored": "мониторится",
+    "status.monitored_title": "Статус отслеживания",
     "status.unmonitored": "не мониторится",
     "status.missing": "отсутствует",
     "status.wanted": "в поиске",
@@ -1132,6 +1133,7 @@ const TRANSLATIONS = {
 
     // Statuses
     "status.monitored": "monitored",
+    "status.monitored_title": "Monitoring Status",
     "status.unmonitored": "unmonitored",
     "status.missing": "missing",
     "status.wanted": "wanted",
@@ -3866,11 +3868,14 @@ function renderLibrary() {
       if (tbody) {
         tbody.innerHTML = shows.map(renderShowTableRow).join("");
         shows.forEach(s => document.getElementById("show-row-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+        if (window.lucide) lucide.createIcons();
       }
     } else {
       if (overviewWrap) {
+        overviewWrap.className = "shows-overview size-" + (POSTER_OPTIONS.size || "medium");
         overviewWrap.innerHTML = shows.map(renderShowOverviewRow).join("");
         shows.forEach(s => document.getElementById("show-overview-" + s.id)?.addEventListener("click", () => openShowModal(s.id)));
+        if (window.lucide) lucide.createIcons();
       }
     }
   }
@@ -4073,8 +4078,16 @@ function scrollToLetter(char) {
 
 function renderShowTableRow(show) {
   const nextAiring = show.next_airing ? formatDateOnly(show.next_airing) : "—";
+  const mTitle = show.monitored ? t("dash.monitored") : t("dash.unmonitored");
+  const mIcon = show.monitored ? "bookmark-check" : "bookmark-x";
+  const mClass = show.monitored ? "monitored" : "unmonitored";
   return `
     <tr id="show-row-${show.id}" style="cursor:pointer">
+      <td style="text-align: center; width: 44px;">
+        <span class="show-table-monitored ${mClass}" title="${escapeHtml(mTitle)}">
+          <i data-lucide="${mIcon}" class="ico-xs"></i>
+        </span>
+      </td>
       <td>${escapeHtml(show.title)}${show.year ? ` <span class="hint">(${show.year})</span>` : ""}</td>
       <td>${show.network ? escapeHtml(show.network) : "—"}</td>
       <td>${escapeHtml(qualityProfileName(show.quality_profile_id))}</td>
@@ -4088,13 +4101,16 @@ function renderShowOverviewRow(show) {
   const initial = (show.title || "?").trim()[0]?.toUpperCase() || "?";
   const posterStyle = show.poster_url ? `style="background-image:url('${show.poster_url}')"` : "";
   const nextAiring = show.next_airing ? formatDateOnly(show.next_airing) : null;
+  const mtext = show.monitored ? t("dash.monitored") : t("dash.unmonitored");
+  const mClass = show.monitored ? "monitored" : "unmonitored";
+  const mIcon = show.monitored ? "bookmark-check" : "bookmark-x";
   return `
     <div class="overview-row" id="show-overview-${show.id}">
       <div class="overview-poster" ${posterStyle}>${show.poster_url ? "" : initial}</div>
       <div class="overview-info">
         <div class="overview-title-row">
           <span class="overview-title">${escapeHtml(show.title)}${show.year ? ` (${show.year})` : ""}</span>
-          <span class="show-monitored-badge"><i data-lucide="${show.monitored ? 'eye' : 'eye-off'}" class="ico-xs" style="margin-right:4px;"></i>${show.monitored ? t("status.monitored") : t("status.unmonitored")}</span>
+          <span class="show-monitored-pill ${mClass}"><i data-lucide="${mIcon}" class="ico-xs"></i><span>${escapeHtml(mtext)}</span></span>
         </div>
         <p class="overview-desc">${escapeHtml(show.overview || t("show.no_overview"))}</p>
         <div class="overview-meta-row">
