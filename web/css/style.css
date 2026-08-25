@@ -1668,6 +1668,21 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .btn-icon-only.danger:hover { border-color: var(--danger); color: var(--danger); }
 .btn-icon-only.btn-small { width: 26px; height: 26px; min-height: 26px; }
 
+#poster-options-btn {
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  border-radius: var(--radius-sm, 8px);
+  color: var(--text);
+}
+#poster-options-btn svg,
+#poster-options-btn i,
+#poster-options-btn .lucide {
+  width: 20px !important;
+  height: 20px !important;
+  stroke-width: 2.2px;
+}
+
 /* ---------- SHOW DETAIL MODAL: seasons accordion (+30% wider for manual search) ---------- */
 .modal-wide { max-width: 1180px; width: 95%; }
 .modal-small { max-width: 420px; }
