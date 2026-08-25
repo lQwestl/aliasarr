@@ -1034,6 +1034,18 @@ def sync_show_disk(
         db.commit()
     except Exception:
         db.rollback()
+
+    # После синхронизации проверяем все папки fonts в директории шоу и добавляем .ignore
+    # (нужно для тайтлов, импортированных вручную до появления этого функционала)
+    try:
+        from app.services.postprocess import ensure_fonts_ignore
+        for dirpath, dirnames, _ in os.walk(show.path):
+            for dirname in dirnames:
+                if dirname.lower() == "fonts":
+                    ensure_fonts_ignore(os.path.join(dirpath, dirname))
+    except Exception:
+        pass
+
     return {"imported_count": imported_count, "path": show.path, "message": f"Синхронизировано серий: {imported_count}"}
 
 
@@ -1549,8 +1561,23 @@ def execute_manual_import(
                                 apply_media_permissions(dest_ff, is_dir=False)
                             except Exception:
                                 pass
+                        # Скрываем папку fonts из библиотеки Jellyfin через .ignore
+                        from app.services.postprocess import ensure_fonts_ignore
+                        ensure_fonts_ignore(season_fonts_dir)
+
+                # Проверяем наличие .ignore в уже существующих fonts-папках тайтла
+                try:
+                    from app.services.postprocess import ensure_fonts_ignore
+                    for fonts_candidate in [
+                        os.path.join(target_dir, "fonts"),
+                        os.path.join(show_root, "fonts"),
+                    ]:
+                        ensure_fonts_ignore(fonts_candidate)
+                except Exception:
+                    pass
 
                 episode.status = EpisodeStatus.DOWNLOADED
+
                 episode.file_path = dest_video_path
                 episode.download_progress = 1.0
                 episode.downloaded_quality = quality

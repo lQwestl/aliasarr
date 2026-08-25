@@ -80,6 +80,32 @@ def is_extra_or_sample(file_path: str, release_root: str = "") -> bool:
     return False
 
 
+def ensure_fonts_ignore(fonts_dir: str) -> bool:
+    """
+    Создаёт файл '.ignore' внутри папки fonts, если:
+    - папка fonts существует (уже создана)
+    - файл '.ignore' ещё не существует в ней
+
+    Этот файл скрывает папку fonts из библиотеки Jellyfin.
+    Возвращает True, если файл был создан, False — если уже существовал или папка не найдена.
+    """
+    if not fonts_dir or not os.path.isdir(fonts_dir):
+        return False
+    ignore_path = os.path.join(fonts_dir, ".ignore")
+    if os.path.exists(ignore_path):
+        return False
+    try:
+        with open(ignore_path, "w") as f:
+            f.write("")
+        try:
+            os.chmod(ignore_path, 0o666)
+        except Exception:
+            pass
+        return True
+    except Exception:
+        return False
+
+
 def apply_media_permissions(
     path: str,
     is_dir: bool = False,
@@ -838,6 +864,8 @@ def process_download(
                 apply_media_permissions(dest_ff, is_dir=False)
             except Exception:
                 pass
+        # Скрываем папку fonts из библиотеки Jellyfin через .ignore
+        ensure_fonts_ignore(show_fonts_dir)
 
     # Копируем NFO / текстовые описания в корень шоу
     if import_extras:
@@ -1019,6 +1047,8 @@ def process_download(
                         apply_media_permissions(dest_ff, is_dir=False)
                     except Exception:
                         pass
+                # Скрываем папку fonts из библиотеки Jellyfin через .ignore
+                ensure_fonts_ignore(season_fonts_dir)
 
             target_stem = render_episode_template(
                 rename_template,
@@ -1369,6 +1399,8 @@ def process_movie_download(
                 apply_media_permissions(dest_ff, is_dir=False)
             except Exception:
                 pass
+        # Скрываем папку fonts из библиотеки Jellyfin через .ignore
+        ensure_fonts_ignore(fonts_dir)
 
     # Переносим субтитры к фильму
     for idx, sf in enumerate(release_files["subtitle"]):
