@@ -7626,7 +7626,7 @@ async function loadHistory() {
     const entries = await api("/api/v1/history");
     tbody.innerHTML = entries.map(e => `
       <tr>
-        <td class="mono">${new Date(e.created_at).toLocaleString(CURRENT_LANG === "en" ? "en-US" : "ru-RU")}</td>
+        <td class="mono col-time" style="font-size:11.5px; white-space:nowrap;">${formatDateTZ(e.created_at)}</td>
         <td>
           ${escapeHtml(e.show_title)}
           ${e.matched_alias ? `<div class="hint">${CURRENT_LANG === "en" ? "by alias" : "по алиасу"} «${escapeHtml(e.matched_alias)}»</div>` : ""}

@@ -1068,14 +1068,23 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 /* Events, Journal and Release Logs Table Layouts */
 #events-table,
 #journal-table,
-#release-logs-table {
+#release-logs-table,
+#history-table,
+#audit-table {
   width: 100%;
   table-layout: fixed;
 }
 
+.col-time {
+  width: 180px !important;
+  min-width: 180px !important;
+  white-space: nowrap !important;
+}
+
 #events-table th:nth-child(1),
 #events-table td:nth-child(1) {
-  width: 140px;
+  width: 180px;
+  min-width: 180px;
   white-space: nowrap;
 }
 #events-table th:nth-child(2),
@@ -1096,12 +1105,14 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 #journal-table th:nth-child(1),
 #journal-table td:nth-child(1) {
-  width: 140px;
+  width: 180px;
+  min-width: 180px;
   white-space: nowrap;
 }
 #journal-table th:nth-child(2),
 #journal-table td:nth-child(2) {
   width: 90px;
+  min-width: 90px;
   white-space: nowrap;
 }
 #journal-table th:nth-child(3),
@@ -1122,22 +1133,25 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 #release-logs-table th:nth-child(1),
 #release-logs-table td:nth-child(1) {
-  width: 130px;
+  width: 180px;
+  min-width: 180px;
   white-space: nowrap;
 }
 #release-logs-table th:nth-child(2),
 #release-logs-table td:nth-child(2) {
   width: 100px;
+  min-width: 100px;
   white-space: nowrap;
 }
 #release-logs-table th:nth-child(3),
 #release-logs-table td:nth-child(3) {
   width: 90px;
+  min-width: 90px;
   white-space: nowrap;
 }
 #release-logs-table th:nth-child(4),
 #release-logs-table td:nth-child(4) {
-  width: 160px;
+  width: 170px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1154,6 +1168,20 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 #release-logs-table td:nth-child(6) {
   width: 70px;
   text-align: center;
+  white-space: nowrap;
+}
+
+#history-table th:nth-child(1),
+#history-table td:nth-child(1) {
+  width: 180px;
+  min-width: 180px;
+  white-space: nowrap;
+}
+
+#audit-table th:nth-child(1),
+#audit-table td:nth-child(1) {
+  width: 180px;
+  min-width: 180px;
   white-space: nowrap;
 }
 
@@ -3531,10 +3559,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     max-width: 340px !important;
   }
   #history-table {
-    min-width: 720px !important;
+    min-width: 760px !important;
   }
   #audit-table {
-    min-width: 800px !important;
+    min-width: 840px !important;
   }
   #audit-table td.col-desc {
     min-width: 260px !important;
@@ -3542,7 +3570,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     word-break: break-word !important;
   }
   #events-table {
-    min-width: 720px !important;
+    min-width: 760px !important;
   }
   #events-table td.col-msg {
     min-width: 260px !important;
@@ -3550,7 +3578,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     word-break: break-word !important;
   }
   #journal-table {
-    min-width: 820px !important;
+    min-width: 860px !important;
   }
   #journal-table td.col-msg {
     min-width: 280px !important;
@@ -3558,7 +3586,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     word-break: break-word !important;
   }
   #release-logs-table {
-    min-width: 840px !important;
+    min-width: 890px !important;
   }
   #release-logs-table td:nth-child(5) {
     min-width: 280px !important;
