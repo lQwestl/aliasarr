@@ -4146,16 +4146,9 @@ async function openShowModal(showId) {
           }
           const pct = Math.min(100, Math.max(0, (ep.download_progress || 0) * 100)).toFixed(1);
           
-          const upgradingFill = row.querySelector('.status-pill.status-upgrading .status-pill-fill');
-          if (upgradingFill) {
-            upgradingFill.style.width = `${pct}%`;
-          }
-
-          const progressFill = row.querySelector('.ep-progress > div > div');
-          const progressText = row.querySelector('.ep-progress > span');
-          if (progressFill && progressText) {
-            progressFill.style.width = `${pct}%`;
-            progressText.textContent = `${pct}%`;
+          const progressFillEl = row.querySelector('.status-pill.status-upgrading .status-pill-fill, .status-pill.status-downloading-progress .status-pill-fill, .ep-progress > div > div');
+          if (progressFillEl) {
+            progressFillEl.style.width = `${pct}%`;
           }
         }
       });
@@ -4565,11 +4558,12 @@ function renderMovieBlock(show, ep, canManageLib = true) {
     `;
   } else if (isFreshDownloading) {
     statusHtml = `
-      <div class="ep-progress" style="display:flex;align-items:center;gap:8px;margin-left:auto;margin-right:16px;">
-        <span style="font-size:0.8em;color:var(--text-muted);">${pct}%</span>
-        <div style="width:80px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
-          <div style="width:${pct}%;height:100%;background:var(--teal);transition:width 0.3s ease;"></div>
-        </div>
+      <div class="status-pill status-downloading-progress" title="${t("status.downloading")}">
+        <div class="status-pill-fill" style="width:${pct}%;"></div>
+        <span class="status-pill-text">
+          <i data-lucide="download" class="status-pill-ico"></i>
+          <span>${t("status.downloading")}</span>
+        </span>
       </div>
     `;
   } else {
@@ -4696,11 +4690,12 @@ function renderEpisodeRow(ep, canManageLib = true, show = null) {
     `;
   } else if (isFreshDownloading) {
     statusHtml = `
-      <div class="ep-progress" style="display:flex;align-items:center;gap:8px;margin-left:auto;margin-right:16px;">
-        <span style="font-size:0.8em;color:var(--text-muted);">${pct}%</span>
-        <div style="width:80px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
-          <div style="width:${pct}%;height:100%;background:var(--teal);transition:width 0.3s ease;"></div>
-        </div>
+      <div class="status-pill status-downloading-progress" title="${t("status.downloading")}">
+        <div class="status-pill-fill" style="width:${pct}%;"></div>
+        <span class="status-pill-text">
+          <i data-lucide="download" class="status-pill-ico"></i>
+          <span>${t("status.downloading")}</span>
+        </span>
       </div>
     `;
   } else {
