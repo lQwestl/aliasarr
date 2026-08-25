@@ -415,56 +415,56 @@ async def search_releases_for_show(
                 continue
             seen_guids.add(rel.guid)
 
-                match = match_release(
-                    rel.title,
-                    show_id,
-                    alias_candidates,
-                    content_type=show.content_type,
-                    categories=getattr(rel, "categories", None),
-                )
+            match = match_release(
+                rel.title,
+                show_id,
+                alias_candidates,
+                content_type=show.content_type,
+                categories=getattr(rel, "categories", None),
+            )
 
-                # Оценка через DecisionEngine
-                decision = DecisionEngine.evaluate_release(
-                    db=db,
+            # Оценка через DecisionEngine
+            decision = DecisionEngine.evaluate_release(
+                db=db,
+                title=rel.title,
+                show=show,
+                episodes=all_episodes,
+                size_bytes=rel.size_bytes or 0,
+                seeders=rel.seeders or 0,
+                settings=settings,
+                categories=getattr(rel, "categories", None),
+            )
+
+            pub_iso, age_days = _parse_release_age_and_date(getattr(rel, "pub_date", None))
+
+            results.append(
+                SearchResultOut(
                     title=rel.title,
-                    show=show,
-                    episodes=all_episodes,
-                    size_bytes=rel.size_bytes or 0,
-                    seeders=rel.seeders or 0,
-                    settings=settings,
-                    categories=getattr(rel, "categories", None),
+                    indexer=indexer.name,
+                    guid=rel.guid,
+                    download_url=rel.download_url,
+                    page_url=rel.page_url,
+                    seeders=rel.seeders,
+                    size_bytes=rel.size_bytes,
+                    matched=match.matched,
+                    matched_alias=match.alias_text,
+                    match_score=match.score,
+                    parsed_season=match.parsed.season,
+                    parsed_episodes=match.parsed.episodes,
+                    parsed_kind=match.parsed.kind.value,
+                    quality=decision.quality.name,
+                    quality_rank=decision.quality.rank,
+                    quality_details=decision.quality.to_dict(),
+                    languages=decision.language_badges,
+                    release_group=decision.release_group,
+                    custom_formats=[{"id": cf.id, "name": cf.name, "score": cf.score} for cf in decision.custom_formats],
+                    custom_format_score=decision.custom_format_score,
+                    approved=decision.approved,
+                    rejections=decision.rejections,
+                    publish_date=pub_iso,
+                    age_days=age_days,
                 )
-
-                pub_iso, age_days = _parse_release_age_and_date(getattr(rel, "pub_date", None))
-
-                results.append(
-                    SearchResultOut(
-                        title=rel.title,
-                        indexer=indexer.name,
-                        guid=rel.guid,
-                        download_url=rel.download_url,
-                        page_url=rel.page_url,
-                        seeders=rel.seeders,
-                        size_bytes=rel.size_bytes,
-                        matched=match.matched,
-                        matched_alias=match.alias_text,
-                        match_score=match.score,
-                        parsed_season=match.parsed.season,
-                        parsed_episodes=match.parsed.episodes,
-                        parsed_kind=match.parsed.kind.value,
-                        quality=decision.quality.name,
-                        quality_rank=decision.quality.rank,
-                        quality_details=decision.quality.to_dict(),
-                        languages=decision.language_badges,
-                        release_group=decision.release_group,
-                        custom_formats=[{"id": cf.id, "name": cf.name, "score": cf.score} for cf in decision.custom_formats],
-                        custom_format_score=decision.custom_format_score,
-                        approved=decision.approved,
-                        rejections=decision.rejections,
-                        publish_date=pub_iso,
-                        age_days=age_days,
-                    )
-                )
+            )
 
     results.sort(key=lambda r: (r.approved, r.matched, r.custom_format_score, r.quality_rank, r.seeders), reverse=True)
     return results
