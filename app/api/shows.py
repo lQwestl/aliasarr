@@ -122,7 +122,7 @@ def _attach_computed_fields(db: Session, shows: list[Show]) -> list[ShowOut]:
 
 @router.get("", response_model=list[ShowOut])
 def list_shows(db: Session = Depends(get_db), current_user: User = Depends(require_permission("view_library"))):
-    shows = db.query(Show).all()
+    shows = db.query(Show).order_by(func.lower(Show.title)).all()
     return _attach_computed_fields(db, shows)
 
 
