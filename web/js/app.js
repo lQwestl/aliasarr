@@ -4545,7 +4545,7 @@ async function searchPosterForShow(showId) {
 }
 
 function renderMovieBlock(show, ep, canManageLib = true) {
-  const monitored = ep.status !== "ignored";
+  const monitored = ep.monitored !== undefined ? Boolean(ep.monitored) : ep.status !== "ignored";
   const hasFile = Boolean(ep.has_file || ep.file_path);
   const isUpgrading = Boolean(ep.status === "downloading" && hasFile);
   const isFreshDownloading = Boolean(ep.status === "downloading" && !hasFile);
@@ -4674,7 +4674,7 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
 }
 
 function renderEpisodeRow(ep, canManageLib = true, show = null) {
-  const monitored = ep.status !== "ignored";
+  const monitored = ep.monitored !== undefined ? Boolean(ep.monitored) : ep.status !== "ignored";
   const canSearch = hasPermission("manual_search");
   
   const hasFile = Boolean(ep.has_file || ep.file_path);
@@ -5050,10 +5050,13 @@ async function setSeasonMonitor(seasonNumber, value) {
 }
 
 async function toggleEpisodeMonitor(episodeId, currentlyMonitored) {
-  const newStatus = currentlyMonitored ? "ignored" : "wanted";
+  const newMonitored = !currentlyMonitored;
   try {
-    await api(`/api/v1/episodes/${episodeId}/monitor?status=${newStatus}`, { method: "PUT" });
+    await api(`/api/v1/episodes/${episodeId}/monitor?monitored=${newMonitored}`, { method: "PUT" });
     await refreshShowModal();
+    if (typeof loadShows === "function") {
+      loadShows().catch(() => {});
+    }
   } catch (e) { toast("Ошибка: " + e.message, true); }
 }
 

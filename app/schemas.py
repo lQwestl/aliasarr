@@ -99,6 +99,7 @@ class EpisodeOut(BaseModel):
     title: Optional[str]
     air_date: Optional[dt.datetime] = None
     status: str
+    monitored: bool = True
     download_progress: float = 0.0
     torrent_hash: Optional[str] = None
     file_path: Optional[str] = None

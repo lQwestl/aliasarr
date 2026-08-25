@@ -158,6 +158,7 @@ class Episode(Base):
     title: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     air_date: Mapped[Optional[dt.date]] = mapped_column(DateTime, nullable=True)
     status: Mapped[EpisodeStatus] = mapped_column(SAEnum(EpisodeStatus), default=EpisodeStatus.MISSING)
+    monitored: Mapped[bool] = mapped_column(Boolean, default=True)
     file_path: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
 
     # Привязка к активной загрузке в клиенте

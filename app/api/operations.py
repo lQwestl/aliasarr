@@ -1252,20 +1252,47 @@ async def trigger_wanted_search(
 @router.put("/episodes/{episode_id}/monitor")
 def set_episode_status(
     episode_id: int,
-    status: str,
+    status: Optional[str] = None,
+    monitored: Optional[bool] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_library")),
 ):
     episode = db.get(Episode, episode_id)
     if not episode:
         raise HTTPException(404, "Episode not found")
-    try:
-        episode.status = EpisodeStatus(status)
-    except ValueError:
-        raise HTTPException(400, f"Invalid status: {status}")
+
+    if monitored is not None:
+        target_monitored = monitored
+    elif status is not None:
+        target_monitored = (status != "ignored")
+    else:
+        target_monitored = True
+
+    episode.monitored = target_monitored
+
+    has_file = False
+    if episode.file_path:
+        try:
+            has_file = os.path.exists(episode.file_path)
+        except Exception:
+            has_file = False
+
+    if episode.status == EpisodeStatus.DOWNLOADED or has_file:
+        # Статус уже скачанной серии остаётся DOWNLOADED, меняется только флаг мониторинга (для апгрейдов)
+        episode.status = EpisodeStatus.DOWNLOADED
+    else:
+        today = dt.date.today()
+        air_d = getattr(episode, "air_date", None)
+        if isinstance(air_d, dt.datetime):
+            air_d = air_d.date()
+        if target_monitored:
+            episode.status = EpisodeStatus.UNAIRED if (air_d and air_d > today) else EpisodeStatus.WANTED
+        else:
+            episode.status = EpisodeStatus.IGNORED
+
     db.add(episode)
     db.commit()
-    return {"episode_id": episode_id, "status": episode.status.value}
+    return {"episode_id": episode_id, "status": episode.status.value, "monitored": episode.monitored}
 
 
 @router.post("/episodes/{episode_id}/search")

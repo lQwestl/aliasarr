@@ -541,7 +541,10 @@ async def _do_search_and_grab(
             upgrade_allowed = getattr(quality_profile, "upgrade_allowed", False) if quality_profile else False
             if show.monitored:
                 if upgrade_allowed:
-                    status_filter = Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.UNAIRED, EpisodeStatus.DOWNLOADED])
+                    status_filter = or_(
+                        Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.UNAIRED]),
+                        and_(Episode.status == EpisodeStatus.DOWNLOADED, Episode.monitored == True),
+                    )
                 else:
                     status_filter = Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.UNAIRED])
             else:
@@ -552,7 +555,10 @@ async def _do_search_and_grab(
             quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
             upgrade_allowed = getattr(quality_profile, "upgrade_allowed", False) if quality_profile else False
             if show.monitored and upgrade_allowed:
-                status_filter = or_(Episode.status == EpisodeStatus.WANTED, Episode.status == EpisodeStatus.DOWNLOADED)
+                status_filter = or_(
+                    Episode.status == EpisodeStatus.WANTED,
+                    and_(Episode.status == EpisodeStatus.DOWNLOADED, Episode.monitored == True),
+                )
             else:
                 status_filter = Episode.status == EpisodeStatus.WANTED
         wanted_episodes = db.query(Episode).filter(Episode.show_id == show.id, status_filter).all()
@@ -723,6 +729,8 @@ async def _do_search_and_grab(
         for ep in covered:
             if ep.status == EpisodeStatus.DOWNLOADED:
                 if wanted_only:
+                    continue
+                if not getattr(ep, "monitored", True):
                     continue
                 if not quality_profile or not getattr(quality_profile, "upgrade_allowed", False):
                     continue

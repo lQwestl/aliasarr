@@ -551,6 +551,10 @@ def set_show_monitored(
         raise HTTPException(404, "Show not found")
     show.monitored = monitored
     db.add(show)
+    if show.content_type == "movie":
+        for ep in show.episodes:
+            ep.monitored = monitored
+            db.add(ep)
     db.commit()
     return {"show_id": show_id, "monitored": monitored}
 
@@ -575,18 +579,28 @@ def set_all_seasons_monitored(
     today = dt.date.today()
     affected = 0
     for ep in episodes:
-        if ep.status == EpisodeStatus.DOWNLOADED:
-            continue  # уже скачанные серии не трогаем
-        if monitored:
-            air_d = getattr(ep, "air_date", None)
-            if isinstance(air_d, dt.datetime):
-                air_d = air_d.date()
-            if not include_unaired and air_d and air_d > today:
-                ep.status = EpisodeStatus.UNAIRED
-            else:
-                ep.status = EpisodeStatus.WANTED
+        ep.monitored = monitored
+        has_file = False
+        if ep.file_path:
+            try:
+                has_file = os.path.exists(ep.file_path)
+            except Exception:
+                has_file = False
+
+        if ep.status == EpisodeStatus.DOWNLOADED or has_file:
+            # Скачанные серии сохраняют статус DOWNLOADED, но обновляют флаг мониторинга
+            ep.status = EpisodeStatus.DOWNLOADED
         else:
-            ep.status = EpisodeStatus.IGNORED
+            if monitored:
+                air_d = getattr(ep, "air_date", None)
+                if isinstance(air_d, dt.datetime):
+                    air_d = air_d.date()
+                if not include_unaired and air_d and air_d > today:
+                    ep.status = EpisodeStatus.UNAIRED
+                else:
+                    ep.status = EpisodeStatus.WANTED
+            else:
+                ep.status = EpisodeStatus.IGNORED
         db.add(ep)
         affected += 1
 
@@ -614,13 +628,14 @@ def set_unaired_monitored(
     episodes = db.query(Episode).filter(Episode.show_id == show_id).all()
     affected = 0
     for ep in episodes:
-        if ep.status == EpisodeStatus.DOWNLOADED:
+        if ep.status == EpisodeStatus.DOWNLOADED or (ep.file_path and os.path.exists(ep.file_path)):
             continue
         air_d = getattr(ep, "air_date", None)
         if isinstance(air_d, dt.datetime):
             air_d = air_d.date()
         is_unaired = (air_d and air_d > today) or ep.status == EpisodeStatus.UNAIRED
         if is_unaired:
+            ep.monitored = monitored
             ep.status = EpisodeStatus.WANTED if monitored else EpisodeStatus.IGNORED
             db.add(ep)
             affected += 1
@@ -649,18 +664,27 @@ def set_season_monitored(
 
     today = dt.date.today()
     for ep in episodes:
-        if ep.status == EpisodeStatus.DOWNLOADED:
-            continue  # уже скачанные серии не трогаем
-        if monitored:
-            air_d = getattr(ep, "air_date", None)
-            if isinstance(air_d, dt.datetime):
-                air_d = air_d.date()
-            if not include_unaired and air_d and air_d > today:
-                ep.status = EpisodeStatus.UNAIRED
-            else:
-                ep.status = EpisodeStatus.WANTED
+        ep.monitored = monitored
+        has_file = False
+        if ep.file_path:
+            try:
+                has_file = os.path.exists(ep.file_path)
+            except Exception:
+                has_file = False
+
+        if ep.status == EpisodeStatus.DOWNLOADED or has_file:
+            ep.status = EpisodeStatus.DOWNLOADED
         else:
-            ep.status = EpisodeStatus.IGNORED
+            if monitored:
+                air_d = getattr(ep, "air_date", None)
+                if isinstance(air_d, dt.datetime):
+                    air_d = air_d.date()
+                if not include_unaired and air_d and air_d > today:
+                    ep.status = EpisodeStatus.UNAIRED
+                else:
+                    ep.status = EpisodeStatus.WANTED
+            else:
+                ep.status = EpisodeStatus.IGNORED
         db.add(ep)
     db.commit()
     return {"show_id": show_id, "season": season_number, "monitored": monitored, "affected": len(episodes)}
@@ -737,9 +761,10 @@ async def search_selected_episodes(
     # Автопоиск ищет только серии в статусе "разыскивается" — выбранные вручную серии,
     # которые ещё не в этом статусе (например, были проигнорированы), переводим в него.
     for ep in episodes:
+        ep.monitored = True
         if ep.status in (EpisodeStatus.IGNORED, EpisodeStatus.MISSING, EpisodeStatus.UNAIRED):
             ep.status = EpisodeStatus.WANTED
-            db.add(ep)
+        db.add(ep)
     db.commit()
 
     try:
@@ -802,11 +827,12 @@ async def search_season_episodes(
     # Переводим неотслеживаемые/пропущенные серии сезона в WANTED
     now = dt.datetime.utcnow()
     for ep in season_episodes:
+        ep.monitored = True
         if ep.status in (EpisodeStatus.IGNORED, EpisodeStatus.MISSING) or (
             ep.status == EpisodeStatus.UNAIRED and (ep.air_date is None or ep.air_date <= now)
         ):
             ep.status = EpisodeStatus.WANTED
-            db.add(ep)
+        db.add(ep)
     db.commit()
 
     try:

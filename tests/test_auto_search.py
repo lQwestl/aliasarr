@@ -427,3 +427,65 @@ class TestAutoSearch(unittest.TestCase):
         self.assertIn("Arcane.S01.2021.2160p.BDRemux-Rutracker", grabbed_releases)
         self.assertIn("Arcane.S02.2024.2160p.WEB-DL.DDP5.1.Atmos", grabbed_releases)
         self.assertNotIn("Arcane (Сезоны 1-2) WEB-DLRip 1080p", grabbed_releases)
+
+    def test_unmonitored_downloaded_episode_preserves_status_and_skips_upgrades(self):
+        """Проверяет, что снятие мониторинга со скачанной серии сохраняет статус DOWNLOADED и исключает её из апгрейдов."""
+        if not HAS_DEPS:
+            self.skipTest("sqlalchemy is missing")
+        from app.models.db import QualityProfile
+        from app.api.operations import set_episode_status
+        from app.api.shows import set_all_seasons_monitored
+
+        qp = QualityProfile(
+            name="UpgradeProfile",
+            allowed_qualities=["Remux-1080p", "WEBDL-1080p", "SDTV"],
+            upgrade_allowed=True,
+        )
+        self.session.add(qp)
+        self.session.commit()
+
+        show = make_show(self.session, "Test Upgrade Show")
+        self.session.add(Alias(show_id=show.id, text="Test Upgrade Show"))
+        show.quality_profile_id = qp.id
+        self.session.add(show)
+        self.session.commit()
+
+        ep1 = make_episode(self.session, show, season=1, episode=1, status=EpisodeStatus.DOWNLOADED)
+        ep1.downloaded_quality = "SDTV"
+        ep1.monitored = True
+        self.session.add(ep1)
+        self.session.commit()
+
+        # 1. Снимаем мониторинг вручную через API endpoint: статус должен остаться DOWNLOADED
+        res = set_episode_status(ep1.id, monitored=False, db=self.session)
+        self.session.refresh(ep1)
+        self.assertEqual(ep1.status, EpisodeStatus.DOWNLOADED, "Статус скачанной серии должен оставаться DOWNLOADED")
+        self.assertFalse(ep1.monitored, "Флаг monitored должен стать False")
+
+        # 2. Проверяем, что автопоиск апгрейдов игнорирует немониторящуюся скачанную серию
+        make_indexer(self.session)
+        make_download_client(self.session)
+        upgrade_rel = _release("g-up", "Test.Upgrade.Show.S01E01.1080p.Remux", seeders=50)
+        fake_dc = FakeDownloadClient()
+        with patch("app.services.indexer_service.TorznabIndexerClient.search", lambda self_c, query, categories=None: _async_return([upgrade_rel])), \
+             patch("app.services.auto_search.get_client", lambda row: fake_dc):
+            search_res = asyncio.run(auto_search._do_search_and_grab(self.session, show))
+            self.assertEqual(search_res.get("grabbed", []), [], "Немониторящаяся скачанная серия не должна апгрейдиться")
+
+        # 3. Включаем мониторинг обратно
+        res = set_episode_status(ep1.id, monitored=True, db=self.session)
+        self.session.refresh(ep1)
+        self.assertEqual(ep1.status, EpisodeStatus.DOWNLOADED)
+        self.assertTrue(ep1.monitored)
+
+        # 4. Проверяем, что теперь апгрейд находится и захватывается
+        with patch("app.services.indexer_service.TorznabIndexerClient.search", lambda self_c, query, categories=None: _async_return([upgrade_rel])), \
+             patch("app.services.auto_search.get_client", lambda row: fake_dc):
+            search_res = asyncio.run(auto_search._do_search_and_grab(self.session, show))
+            self.assertEqual(len(search_res.get("grabbed", [])), 1, "Мониторящаяся скачанная серия должна апгрейдиться")
+
+        # 5. Проверяем, что "Игнорировать все сезоны" снимает мониторинг, но оставляет статус DOWNLOADED
+        set_all_seasons_monitored(show.id, monitored=False, db=self.session)
+        self.session.refresh(ep1)
+        self.assertEqual(ep1.status, EpisodeStatus.DOWNLOADED)
+        self.assertFalse(ep1.monitored)
