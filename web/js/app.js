@@ -11984,23 +11984,11 @@ function updateLibraryTasksProgress(data) {
         }
       }
 
-      // Табличный вид (Table view)
+      // Табличный вид (Table view) — статус импорта в таблице скрыт
       const row = document.getElementById(`show-row-${show.id}`);
       if (row) {
-        const titleCell = row.cells[0];
-        let progBadge = row.querySelector(".table-task-progress");
-        if (activeTask) {
-          const pct = Math.min(100, Math.max(0, Math.round((activeTask.progress || 0) * 100)));
-          if (!progBadge && titleCell) {
-            progBadge = document.createElement("span");
-            progBadge.className = "table-task-progress tasks-item-pct";
-            progBadge.style.marginLeft = "8px";
-            titleCell.appendChild(progBadge);
-          }
-          if (progBadge) {
-            progBadge.textContent = `${taskLabel}: ${pct}%`;
-          }
-        } else if (progBadge) {
+        const progBadge = row.querySelector(".table-task-progress");
+        if (progBadge) {
           progBadge.remove();
         }
       }
