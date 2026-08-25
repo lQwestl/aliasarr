@@ -3034,15 +3034,84 @@ function formatToastMessage(message) {
   let text = String(message);
   if (CURRENT_LANG !== "en") return text;
 
-  // General error prefixes
+  // General error and action prefixes
   text = text
     .replace(/^Ошибка:\s*/i, "Error: ")
     .replace(/^Ошибка загрузки:\s*/i, "Loading error: ")
+    .replace(/^Ошибка загрузки настроек:\s*/i, "Settings load error: ")
     .replace(/^Ошибка автопоиска:\s*/i, "Auto-search error: ")
     .replace(/^Ошибка скачивания:\s*/i, "Download error: ")
     .replace(/^Ошибка сохранения настроек опроса:\s*/i, "Poll settings save error: ")
+    .replace(/^Ошибка сохранения настроек:\s*/i, "Settings save error: ")
     .replace(/^Ошибка сохранения:\s*/i, "Save error: ")
-    .replace(/^Ошибка восстановления:\s*/i, "Restore error: ");
+    .replace(/^Ошибка восстановления:\s*/i, "Restore error: ")
+    .replace(/^Ошибка удаления:\s*/i, "Deletion error: ")
+    .replace(/^Ошибка обновления:\s*/i, "Update error: ")
+    .replace(/^Ошибка обновления прав:\s*/i, "Error updating permissions: ")
+    .replace(/^Ошибка анализа файла архива:\s*/i, "Archive analysis error: ")
+    .replace(/^Постер обновлён из\s*/i, "Cover updated from ")
+    .replace(/^Постер обновлен из\s*/i, "Cover updated from ")
+    .replace(/^Подтверждено:\s*/i, "Confirmed: ");
+
+  // Standalone success & info messages
+  const exactTranslations = {
+    "Настройки сохранены": "Settings saved",
+    "Настройки успешно сохранены": "Settings saved successfully",
+    "Журнал очищен": "Journal cleared",
+    "Логи релизов очищены": "Release logs cleared",
+    "События очищены": "Events cleared",
+    "Резервная копия создана": "Backup created",
+    "Резервная копия удалена": "Backup deleted",
+    "Настройки восстановлены": "Settings restored",
+    "Алиас добавлен": "Alias added",
+    "Алиас удален": "Alias deleted",
+    "Алиас удалён": "Alias deleted",
+    "Индексатор добавлен": "Indexer added",
+    "Индексатор сохранен": "Indexer saved",
+    "Индексатор сохранён": "Indexer saved",
+    "Индексатор удален": "Indexer deleted",
+    "Индексатор удалён": "Indexer deleted",
+    "Клиент загрузки добавлен": "Download client added",
+    "Клиент загрузки сохранен": "Download client saved",
+    "Клиент загрузки сохранён": "Download client saved",
+    "Клиент загрузки удален": "Download client deleted",
+    "Клиент загрузки удалён": "Download client deleted",
+    "Профиль сохранен": "Profile saved",
+    "Профиль сохранён": "Profile saved",
+    "Профиль удален": "Profile deleted",
+    "Профиль удалён": "Profile deleted",
+    "Формат качества добавлен": "Quality format added",
+    "Формат качества сохранен": "Quality format saved",
+    "Формат качества сохранён": "Quality format saved",
+    "Формат удален": "Format deleted",
+    "Формат удалён": "Format deleted",
+    "Укажите название формата": "Enter format name",
+    "Уведомление сохранено": "Notification saved",
+    "Уведомление удалено": "Notification deleted",
+    "Тестовое уведомление отправлено": "Test notification sent",
+    "Постер не найден": "Cover not found",
+    "Пользователь создан": "User created",
+    "Пользователь обновлен": "User updated",
+    "Пользователь обновлён": "User updated",
+    "Пользователь удален": "User deleted",
+    "Пользователь удалён": "User deleted",
+    "Пароль успешно изменен": "Password changed successfully",
+    "Пароль успешно изменён": "Password changed successfully",
+    "Папка добавлена": "Folder added",
+    "Папка удалена": "Folder deleted",
+    "Источник метаданных добавлен": "Metadata source added",
+    "Источник метаданных сохранен": "Metadata source saved",
+    "Источник метаданных сохранён": "Metadata source saved",
+    "Источник метаданных удален": "Metadata source deleted",
+    "Источник метаданных удалён": "Metadata source deleted",
+    "Права доступа обновлены": "Permissions updated",
+    "Права медиатеки обновлены": "Media permissions updated",
+    "Не выбрано ни одной серии": "No episodes selected",
+    "Записи старше указанного срока удалены": "Entries older than specified retention deleted",
+  };
+  if (exactTranslations[text.trim()]) {
+    return exactTranslations[text.trim()];
+  }
 
   // Backend API HTTPException messages & common phrases
   text = text
@@ -3463,8 +3532,8 @@ async function loadSystemAbout() {
 function formatHealthMessage(msg) {
   if (CURRENT_LANG !== "en") return msg;
   return (msg || "")
-    .replace(/^Свободно (.+?) из (.+?) \((\d+)% занято\)/i, "Free $1 of $2 ($3% used)")
-    .replace(/^Свободно (.+?) из (.+?) \((\d+)% свободно\)/i, "Free $1 of $2 ($3% free)")
+    .replace(/^Свободно (.+?) из (.+?) \((\d+(?:\.\d+)?)% занято\)/i, "Free $1 of $2 ($3% used)")
+    .replace(/^Свободно (.+?) из (.+?) \((\d+(?:\.\d+)?)% свободно\)/i, "Free $1 of $2 ($3% free)")
     .replace(/^Включено (\d+) из (\d+) трекеров/i, "Enabled $1 of $2 trackers")
     .replace(/^Нет ни одного включённого индексатора.*/i, "No enabled indexers — release searching will not work")
     .replace(/^Включено (\d+) из (\d+) клиентов загрузки/i, "Enabled $1 of $2 download clients")
@@ -3487,11 +3556,13 @@ function formatHealthTitle(title) {
     "Безопасность": "Security",
   };
   if (map[title]) return map[title];
-  if (title && title.startsWith("Диск: ")) {
-    return title.replace("Диск: ", "Disk: ");
-  }
-  if (title && title.startsWith("Диск ")) {
-    return title.replace("Диск ", "Disk ");
+  if (title && (title.startsWith("Диск: ") || title.startsWith("Диск "))) {
+    let t = title.replace(/^Диск:\s*/, "Disk: ").replace(/^Диск\s+/, "Disk: ");
+    t = t.replace("Медиатека", "Media Library")
+         .replace("Загрузки", "Downloads")
+         .replace("Конфигурация", "Config")
+         .replace("Корень", "Root");
+    return t;
   }
   return title;
 }
@@ -9968,7 +10039,7 @@ async function submitCustomFormat() {
   const includeRenaming = document.getElementById("cf-include-renaming").checked;
   let regexVal = document.getElementById("cf-regex").value.trim();
 
-  if (!name) { toast("Укажите название формата", true); return; }
+  if (!name) { toast(CURRENT_LANG === "en" ? "Enter format name" : "Укажите название формата", true); return; }
 
   // If regex is empty, try preset regex or auto-generate safe regex from name
   if (!regexVal) {
@@ -10012,7 +10083,7 @@ async function submitCustomFormat() {
       toast(t("settings.toast_saved"));
     } else {
       await api("/api/v1/custom-formats", { method: "POST", body: JSON.stringify(payload) });
-      toast("Формат качества добавлен");
+      toast(CURRENT_LANG === "en" ? "Quality format added" : "Формат качества добавлен");
     }
     closeModal("custom-format-modal");
     await loadCustomFormats();
@@ -10029,7 +10100,7 @@ async function deleteCustomFormat(id) {
   if (!confirmed) return;
   try {
     await api(`/api/v1/custom-formats/${id}`, { method: "DELETE" });
-    toast("Формат удален");
+    toast(CURRENT_LANG === "en" ? "Format deleted" : "Формат удален");
     loadCustomFormats();
   } catch (e) { toast("Ошибка: " + e.message, true); }
 }
@@ -10750,12 +10821,87 @@ function translateLogMessage(msg) {
   if (!msg || CURRENT_LANG !== "en") return msg;
   let s = String(msg);
 
-  s = s.replace(/^Проверка индексатора (.*?): доступен/g, 'Indexer check $1: available');
-  s = s.replace(/^Проверка индексатора (.*?): недоступен \(попыток:\s*(\d+),\s*подряд сбоев:\s*(\d+)\)/g, 'Indexer check $1: unavailable (attempts: $2, consecutive failures: $3)');
+  // Exact phrases for tasks & statuses
+  const exactMap = {
+    "Все задачи завершены": "All tasks completed",
+    "Нет активных задач": "No active tasks",
+    "Опрос трекеров и сопоставление алиасов...": "Querying indexers and matching aliases...",
+    "Подходящих релизов не найдено": "No suitable releases found",
+    "Поиск завершён: подходящих релизов не найдено": "Search completed: no suitable releases found",
+    "Поиск завершён: новых релизов не обнаружено": "Search completed: no new releases found",
+    "Проверка библиотеки...": "Checking library...",
+    "Подготовка к импорту...": "Preparing import...",
+    "Поиск локальных файлов на диске...": "Scanning local disk for files...",
+    "Сбор данных и упаковка...": "Collecting data and packing...",
+    "Применение данных...": "Applying data...",
+    "Восстановление успешно завершено": "Restore completed successfully",
+    "Опрос торрент-клиентов...": "Polling torrent clients...",
+    "Нет завершённых загрузок для импорта": "No completed downloads for import",
+    "Обновление метаданных всей библиотеки": "Update metadata for entire library",
+    "Подготовка списка тайтлов...": "Preparing title list...",
+    "Проверка отслеживаемых раздач": "Check tracked releases",
+    "Опрос трекеров...": "Polling indexers...",
+    "Нет активных раздач для проверки": "No active releases to check",
+    "Автопоиск разыскиваемых релизов (Wanted)": "Auto-search wanted releases (Wanted)",
+    "Поиск отсутствующих в календаре": "Search missing in calendar",
+    "Проверка загрузок (Download Client)": "Check downloads (Download Client)",
+  };
+  if (exactMap[s.trim()]) return exactMap[s.trim()];
+
+  // Scheduler startup and cron logs
+  s = s.replace(/^Планировщик запущен:\s*поиск wanted каждые (\d+) мин,\s*загрузки каждые (\d+) сек,\s*слежение за раздачами каждые (\d+) мин,\s*активация премьер каждые (\d+) мин,\s*проверка индексаторов каждые (\d+) мин/g,
+    'Scheduler started: wanted search every $1 min, downloads every $2 sec, tracked releases check every $3 min, premiere activation every $4 min, indexer check every $5 min');
+  s = s.replace(/^Планировщик:\s*регулярное обновление метаданных библиотеки \(каждые (\d+) ч\.\)/g, 'Scheduler: regular library metadata refresh (every $1 h)');
+  s = s.replace(/^Планировщик:\s*опрос дат выхода невышедших релизов \(каждые (\d+) ч\.\)/g, 'Scheduler: poll unreleased release dates (every $1 h)');
+  s = s.replace(/^Планировщик:\s*авто-продление SSL сертификатов \(каждые (\d+) ч\.\)/g, 'Scheduler: auto-renew SSL certificates (every $1 h)');
+  s = s.replace(/^Планировщик:\s*автоматическое создание бэкапов библиотеки \(каждые (\d+) дн\.\)/g, 'Scheduler: automatic library backups (every $1 days)');
+
+  // Release Search & Match Logs
+  s = s.replace(/^Поиск по алиасам \((.*?)\) в (\d+) трекерах:\s*найдено (\d+) подходящих кандидатов/g, 'Search by aliases ($1) across $2 trackers: found $3 matching candidates');
+  s = s.replace(/^Релиз успешно захвачен для фильма «(.*?)»(.*?) и передан в '(.*?)' \(хэш:\s*(.*?), сиды:\s*(\d+), качество:\s*(.*?)\)/g, 'Release successfully grabbed for movie "$1"$2 and sent to \'$3\' (hash: $4, seeders: $5, quality: $6)');
+  s = s.replace(/^Релиз успешно захвачен и передан в '(.*?)' \(хэш:\s*(.*?)\)\.\s*Закрывает серии:\s*(.*)/g, 'Release successfully grabbed and sent to \'$1\' (hash: $2). Covers episodes: $3');
+  s = s.replace(/^Спецвыпуск «(.*?)» для «(.*?)» скачан на 100% и ожидает ручного импорта\./g, 'Special episode "$1" for "$2" is 100% downloaded and awaiting manual import.');
+  s = s.replace(/^Импорт завершен:\s*обработано (\d+) файл\(ов\) для «(.*?)»/g, 'Import completed: processed $1 file(s) for "$2"');
+  s = s.replace(/^Импорт завершён:\s*обработано (\d+) файл\(ов\) для «(.*?)»/g, 'Import completed: processed $1 file(s) for "$2"');
+  s = s.replace(/^Ошибка отправки релиза в загрузчик '(.*?)':\s*(.*)/g, 'Error sending release to download client \'$1\': $2');
+
+  // Background Task Titles & dynamic progress messages
+  s = s.replace(/^Поиск релизов:\s*(.*)/g, 'Release search: $1');
+  s = s.replace(/^Ручной импорт:\s*(.*)/g, 'Manual import: $1');
+  s = s.replace(/^Импорт и перенос:\s*(.*)/g, 'Import and transfer: $1');
+  s = s.replace(/^Пересканирование файлов:\s*(.*)/g, 'Rescanning files: $1');
+  s = s.replace(/^Создание бэкапа \((.*?)\)/g, 'Backup creation ($1)');
+  s = s.replace(/^Восстановление бэкапа:\s*(.*)/g, 'Backup restore: $1');
+  s = s.replace(/^Подготовка к поиску для (\d+) тайтлов\.\.\./g, 'Preparing search for $1 titles...');
+  s = s.replace(/^Поиск \((\d+)\/(\d+)\):\s*«(.*?)»\.\.\./g, 'Searching ($1/$2): "$3"...');
+  s = s.replace(/^Обработка \((\d+)\/(\d+)\):\s*«(.*?)»\.\.\./g, 'Processing ($1/$2): "$3"...');
+  s = s.replace(/^Поиск для (\d+) тайтлов с разыскиваемыми сериями\.\.\./g, 'Searching for $1 titles with wanted episodes...');
+  s = s.replace(/^Подготовка к импорту (\d+) файлов\.\.\./g, 'Preparing import of $1 files...');
+  s = s.replace(/^Завершено:\s*захвачено (\d+) релиз\(ов\)/g, 'Completed: grabbed $1 release(s)');
+  s = s.replace(/^Захвачено (\d+) релиз\(ов\)/g, 'Grabbed $1 release(s)');
+  s = s.replace(/^Успешно импортировано:\s*(\d+)\s*файл\(ов\)/g, 'Successfully imported: $1 file(s)');
+  s = s.replace(/^Импортировано:\s*(\d+)\s*файл\(ов\)/g, 'Imported: $1 file(s)');
+  s = s.replace(/^Импортировано:\s*(\d+)\s*из\s*(\d+)\s*\(ошибок:\s*(\d+)\)/g, 'Imported $1 of $2 (errors: $3)');
+  s = s.replace(/^Сканирование завершено:\s*найдено (\d+) файл\(ов\)/g, 'Scan completed: found $1 file(s)');
+  s = s.replace(/^Резервная копия создана:\s*(.*)/g, 'Backup created: $1');
+  s = s.replace(/^Обработано завершённых релизов:\s*(\d+)/g, 'Processed completed releases: $1');
+  s = s.replace(/^Обновление \[(\d+)\/(\d+)\]:\s*«(.*?)»/g, 'Updating [$1/$2]: "$3"');
+  s = s.replace(/^Метаданные обновлены для (\d+) из (\d+) тайтлов/g, 'Metadata updated for $1 of $2 titles');
+  s = s.replace(/^Проверено раздач:\s*(\d+),\s*обновлено:\s*(\d+)/g, 'Checked releases: $1, updated: $2');
+  s = s.replace(/^Перемещение и переименование файлов для «(.*?)»\.\.\./g, 'Moving and renaming files for "$1"...');
+
+  // Torrent files filtering & indexer checks
+  s = s.replace(/^Раздача (.*?):\s*скачивание ограничено выбранными сериями \((\d+) шт\),\s*отключено файлов:\s*(\d+),\s*включено:\s*(\d+)/g, 'Torrent $1: download filtered to selected episodes ($2 items), disabled files: $3, enabled: $4');
+  s = s.replace(/^Раздача (.*?):\s*выбрано серий (\d+) из (\d+) файлов \(остальные (\d+) файлов отключены\)/g, 'Torrent $1: selected episodes $2 of $3 files (remaining $4 files disabled)');
+  s = s.replace(/^Раздача (.*?):\s*скачивание ограничено выбранными сериями,\s*отключено файлов:\s*(\d+),\s*включено:\s*(\d+)/g, 'Torrent $1: download filtered to selected episodes, disabled files: $2, enabled: $3');
+  s = s.replace(/^Проверка индексатора (.*?):\s*доступен/g, 'Indexer check $1: available');
+  s = s.replace(/^Проверка индексатора (.*?):\s*недоступен \(попыток:\s*(\d+),\s*подряд сбоев:\s*(\d+)\)/g, 'Indexer check $1: unavailable (attempts: $2, consecutive failures: $3)');
   s = s.replace(/^Индексатор «(.*?)» доступен \(проверка вручную, попыток:\s*(\d+)\)/g, 'Indexer "$1" is available (manual check, attempts: $2)');
   s = s.replace(/^Индексатор «(.*?)» недоступен после (\d+) попыток.*/g, 'Indexer "$1" is unavailable after $2 attempts');
   s = s.replace(/^Индексатор «(.*?)» снова доступен/g, 'Indexer "$1" is available again');
   s = s.replace(/^Индексатор (.*?) недоступен:\s*(.*)/g, 'Indexer $1 is unavailable: $2');
+
+  // Backups, migrations, auth, system
   s = s.replace(/^Создана резервная копия настроек:\s*(.*)/g, 'Settings backup created: $1');
   s = s.replace(/^Настройки восстановлены из резервной копии\s*(.*)/g, 'Settings restored from backup $1');
   s = s.replace(/^DB-миграция: добавлена колонка\s*(.*)/g, 'DB migration: added column $1');
@@ -10770,16 +10916,17 @@ function translateLogMessage(msg) {
   s = s.replace(/^Системный API-ключ инициализирован \(секрет скрыт\)/g, 'System API key initialized (secret hidden)');
   s = s.replace(/^API-ключ \(из (.*?)\):\s*(.*)/g, 'API key (from $1): $2');
   s = s.replace(/^Заголовок для запросов к \/api\/v1\/\*:\s*(.*)/g, 'Header for requests to /api/v1/*: $1');
-  s = s.replace(/^Проверка отслеживаемых раздач:\s*(.*)/g, 'Tracked torrents check: $1');
-  s = s.replace(/^Авто-поиск wanted-серий: захвачено для (\d+) видео/g, 'Auto-search wanted episodes: grabbed for $1 video(s)');
+  s = s.replace(/^Проверка отслеживаемых раздач:\s*обнаружено (\d+) обновлений/g, 'Tracked releases check: found $1 updates');
+  s = s.replace(/^Проверка отслеживаемых раздач:\s*проверено (\d+), обновлений нет/g, 'Tracked releases check: checked $1, no updates');
+  s = s.replace(/^Проверка отслеживаемых раздач:\s*(.*)/g, 'Tracked releases check: $1');
+  s = s.replace(/^Авто-поиск wanted-серий:\s*захвачено для (\d+) видео/g, 'Auto-search wanted episodes: grabbed for $1 video(s)');
   s = s.replace(/^Переведено в 'разыскивается' серий\/фильмов:\s*(\d+)/g, 'Moved to "wanted" status (episodes/movies): $1');
-  s = s.replace(/^Проверка загрузок: обработано завершённых торрентов —\s*(\d+)/g, 'Downloads check: processed completed torrents — $1');
-  s = s.replace(/^Журнал: удалено устаревших записей \(старше (\d+) дн\.\):\s*(\d+)/g, 'Journal: purged old entries (older than $1 days): $2');
+  s = s.replace(/^Проверка загрузок:\s*обработано завершённых торрентов —\s*(\d+)/g, 'Downloads check: processed completed torrents — $1');
+  s = s.replace(/^Журнал:\s*удалено устаревших записей \(старше (\d+) дн\.\):\s*(\d+)/g, 'Journal: purged old entries (older than $1 days): $2');
   s = s.replace(/^Не удалось обновить дату выхода для видео (.*?):\s*(.*)/g, 'Failed to update release date for video $1: $2');
-  s = s.replace(/^Опрос дат выхода: обновлено видео —\s*(\d+)/g, 'Release dates poll: updated videos — $1');
+  s = s.replace(/^Опрос дат выхода:\s*обновлено видео —\s*(\d+)/g, 'Release dates poll: updated videos — $1');
   s = s.replace(/^Ошибка авто-продления SSL сертификата:\s*(.*)/g, 'Error auto-renewing SSL certificate: $1');
   s = s.replace(/^Не удалось возобновить раздачу (.*?):\s*(.*)/g, 'Failed to resume torrent $1: $2');
-  s = s.replace(/^Раздача (.*?): скачивание ограничено выбранными сериями, отключено файлов:\s*(\d+),\s*включено:\s*(\d+)/g, 'Torrent $1: download filtered to selected episodes, disabled files: $2, enabled: $3');
   s = s.replace(/^Нет доступного download client для видео\s*(.*)/g, 'No available download client for video $1');
   s = s.replace(/^Не удалось отправить релиз в download client:\s*(.*)/g, 'Failed to send release to download client: $1');
   s = s.replace(/^Не удалось ограничить файлы раздачи по сериям:\s*(.*)/g, 'Failed to filter torrent files by episode: $1');
@@ -10794,21 +10941,17 @@ function translateLogMessage(msg) {
   s = s.replace(/^Не удалось распарсить сертификат через cryptography:\s*(.*)/g, 'Failed to parse certificate via cryptography: $1');
   s = s.replace(/^Ошибка чтения SSL сертификата (.*?):\s*(.*)/g, 'Error reading SSL certificate $1: $2');
   s = s.replace(/^Выпуск нового самоподписанного SSL-сертификата Aliasarr\.\.\./g, 'Issuing new Aliasarr self-signed SSL certificate...');
-  s = s.replace(/^SSL-сертификат протухает \(осталось (\d+) дней\)\. Автоматический самовыпуск\.\.\./g, 'SSL certificate expiring in $1 days. Auto-renewing...');
+  s = s.replace(/^SSL-сертификат протухает \(осталось (\d+) дней\)\.\s*Автоматический самовыпуск\.\.\./g, 'SSL certificate expiring in $1 days. Auto-renewing...');
   s = s.replace(/^Запущена задача \[([^\]]+)\] (.*?):\s*(.*)/g, 'Started task [$1] $2: $3');
   s = s.replace(/^Завершена задача \[([^\]]+)\] (.*?):\s*(.*)/g, 'Finished task [$1] $2: $3');
   s = s.replace(/^Ошибка в задаче \[([^\]]+)\] (.*?):\s*(.*)/g, 'Error in task [$1] $2: $3');
-  s = s.replace(/^Ручной импорт:\s*(.*)/g, 'Manual import: $1');
   s = s.replace(/^Глобальный ручной импорт/g, 'Global manual import');
   s = s.replace(/^Импорт (\d+) файлов\.\.\./g, 'Importing $1 files...');
-  s = s.replace(/^Обработка \((\d+)\/(\d+)\):\s*(.*)/g, 'Processing ($1/$2): $3');
-  s = s.replace(/^Успешно импортировано:\s*(\d+)\s*файл\(ов\)/g, 'Successfully imported: $1 file(s)');
-  s = s.replace(/^Импортировано:\s*(\d+)\s*из\s*(\d+)\s*\(ошибок:\s*(\d+)\)/g, 'Imported $1 of $2 (errors: $3)');
   s = s.replace(/^Ошибка при импорте шоу \(external_id=(.*?)\):\s*(.*)/g, 'Error importing show (external_id=$1): $2');
   s = s.replace(/^Ошибка автопоиска для видео\s*(.*?):\s*(.*)/g, 'Auto-search error for video $1: $2');
   s = s.replace(/^Ошибка постобработки для видео\s*(.*?):\s*(.*)/g, 'Post-processing error for video $1: $2');
 
-  // Sub-strings / Task titles
+  // Sub-strings / keywords replacement
   s = s.replace(/Автопоиск wanted-серий/g, 'Wanted auto-search');
   s = s.replace(/поиск новых серий/g, 'searching new episodes');
   s = s.replace(/успешно выполнено/g, 'completed successfully');
@@ -10978,7 +11121,7 @@ async function loadReleaseLogs(page) {
             ${item.indexer ? `<span class="hint mono" style="font-size:11px; color:#818cf8;">[${escapeHtml(item.indexer)}]</span>` : ""}
           </td>
           <td>
-            <div style="font-size:12.5px; color:var(--text); line-height:1.4;">${escapeHtml(item.message)}</div>
+            <div style="font-size:12.5px; color:var(--text); line-height:1.4;">${escapeHtml(translateLogMessage(item.message))}</div>
             ${item.release_title ? `<div class="hint mono" style="font-size:11px; margin-top:3px; word-break:break-all; color:var(--text-muted);">${escapeHtml(item.release_title)}</div>` : ""}
           </td>
           <td>
@@ -11045,7 +11188,7 @@ function openReleaseLogDetail(index) {
       <div style="margin-top:6px;">
         <span class="hint">${isRu ? "Сообщение движка:" : "Engine Message:"}</span>
         <div style="font-size:13px; background:var(--panel-alt); padding:8px 10px; border-radius:6px; border:1px solid var(--border); margin-top:4px; line-height:1.4;">
-          ${escapeHtml(item.message)}
+          ${escapeHtml(translateLogMessage(item.message))}
         </div>
       </div>
       ${item.details ? `
