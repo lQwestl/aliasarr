@@ -1703,10 +1703,10 @@
       <div id="settings-quality" class="settings-panel">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
           <div>
-            <h2 style="margin:0; font-size:18px; font-weight:600;"><i data-lucide="award" class="ico-sm" style="vertical-align:middle; margin-right:6px; color:var(--accent);"></i><span data-i18n="quality.settings_title">Профили качества и кастомные форматы</span></h2>
+            <h2 style="margin:0; font-size:18px; font-weight:600;"><i data-lucide="award" class="ico-sm" style="vertical-align:middle; margin-right:6px; color:var(--accent);"></i><span data-i18n="quality.settings_title">Профили и форматы качества</span></h2>
             <p class="subtitle" style="margin:4px 0 0 0;" data-i18n="quality.settings_subtitle">Настройка предпочтительного качества, порогов апгрейда и скоринга релизов</p>
           </div>
-          <a href="/quality-guide" target="_blank" onclick="openQualityGuide(event)" class="btn btn-secondary" style="display:inline-flex; align-items:center; gap:8px;" title="Открыть полное руководство по профилям качества, кастомным форматам и Release Title Regex в новой вкладке" data-i18n-title="cf.guide_btn_title">
+          <a href="/quality-guide" target="_blank" onclick="openQualityGuide(event)" class="btn btn-secondary" style="display:inline-flex; align-items:center; gap:8px;" title="Открыть полное руководство по профилям качества, форматам качества и Release Title Regex в новой вкладке" data-i18n-title="cf.guide_btn_title">
             <i data-lucide="book-open" class="ico-sm"></i> <span data-i18n="cf.guide_btn">Справочник качества</span>
           </a>
         </div>
@@ -1749,15 +1749,15 @@
           </table>
         </div>
 
-        <!-- Кастомные форматы -->
+        <!-- Форматы качества -->
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
             <div>
-              <h3 style="margin:0;"><i data-lucide="sparkles" class="ico-sm"></i> <span data-i18n="cf.title">Кастомные форматы (Custom Formats)</span></h3>
+              <h3 style="margin:0;"><i data-lucide="sparkles" class="ico-sm"></i> <span data-i18n="cf.title">Форматы качества</span></h3>
               <p class="hint" style="margin:4px 0 0 0;" data-i18n="cf.subtitle">Правила распознавания и приоритезации релизов (HDR, TrueHD, Proper, Preferred Groups)</p>
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
-              <a href="/quality-guide#custom-formats" target="_blank" onclick="openQualityGuide(event, 'custom-formats')" class="btn btn-secondary btn-small" style="gap:6px;" title="Справочник по Regex и кастомным форматам" data-i18n-title="cf.guide_btn_title">
+              <a href="/quality-guide#custom-formats" target="_blank" onclick="openQualityGuide(event, 'custom-formats')" class="btn btn-secondary btn-small" style="gap:6px;" title="Справочник по Regex и форматам качества" data-i18n-title="cf.guide_btn_title">
                 <i data-lucide="book-open" class="ico-xs"></i> <span data-i18n="cf.guide_btn">Справочник</span>
               </a>
               <button class="btn btn-primary btn-small" onclick="openAddCustomFormatModal()"><i data-lucide="plus" class="ico-sm"></i> <span data-i18n="cf.add_btn">Добавить формат</span></button>
@@ -2430,13 +2430,13 @@
   </div>
 </div>
 
-<!-- Модалка добавления/редактирования кастомного формата -->
+<!-- Модалка добавления/редактирования формата качества -->
 <div id="custom-format-modal" class="modal-overlay">
   <div class="modal modal-medium" style="max-width: 600px;">
     <button class="modal-close" onclick="closeModal('custom-format-modal')">×</button>
     <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
-      <h3 id="cf-modal-title" style="margin:0;"><i data-lucide="sparkles" class="ico-sm"></i> <span data-i18n="cf.modal_title">Кастомный формат</span></h3>
-      <a href="/quality-guide#custom-formats" target="_blank" onclick="openQualityGuide(event, 'custom-formats')" class="btn btn-secondary btn-small" style="font-size:12px; gap:4px;" title="Справочник по Regex и кастомным форматам" data-i18n-title="cf.guide_btn_title">
+      <h3 id="cf-modal-title" style="margin:0;"><i data-lucide="sparkles" class="ico-sm"></i> <span data-i18n="cf.modal_title">Формат качества</span></h3>
+      <a href="/quality-guide#custom-formats" target="_blank" onclick="openQualityGuide(event, 'custom-formats')" class="btn btn-secondary btn-small" style="font-size:12px; gap:4px;" title="Справочник по Regex и форматам качества" data-i18n-title="cf.guide_btn_title">
         <i data-lucide="book-open" class="ico-xs"></i> <span data-i18n="cf.guide_btn">Справочник</span>
       </a>
     </div>
@@ -2444,7 +2444,7 @@
       <input type="hidden" id="cf-id">
       <div id="cf-builtin-banner" class="hint-box" style="display:none; background:rgba(99,102,241,0.08); border-color:var(--accent); margin-bottom:12px;">
         <i data-lucide="shield-check" class="ico-sm" style="vertical-align:middle; color:var(--accent); margin-right:4px;"></i>
-        <span data-i18n="cf.builtin_notice"><strong>Штатный кастомный формат.</strong> Вы можете изменять параметры или при необходимости сбросить их к заводским значениям.</span>
+        <span data-i18n="cf.builtin_notice"><strong>Штатный формат качества.</strong> Вы можете изменять параметры или при необходимости сбросить их к заводским значениям.</span>
       </div>
       <label id="cf-preset-label" data-i18n="cf.preset_label">Готовый пресет / Шаблон</label>
       <select id="cf-preset" class="input" onchange="onCustomFormatPresetSelect(this.value)">
@@ -2875,7 +2875,7 @@
         <input type="radio" name="backup-type-select" value="full" checked style="margin-top:3px;">
         <div>
           <strong style="color:var(--text); display:block; font-size:14px;" data-i18n="backup.type_full_title">Полный бэкап (Рекомендуется)</strong>
-          <span class="hint" style="font-size:12px; line-height:1.4;" data-i18n="backup.type_full_desc">Включает всю медиатеку (карточки фильмов, сериалов, аниме, эпизоды, историю, алиасы) + все профили качества, кастомные форматы, индексаторы, загрузчики и настройки.</span>
+          <span class="hint" style="font-size:12px; line-height:1.4;" data-i18n="backup.type_full_desc">Включает всю медиатеку (карточки фильмов, сериалов, аниме, эпизоды, историю, алиасы) + все профили качества, форматы качества, индексаторы, загрузчики и настройки.</span>
         </div>
       </label>
 
@@ -2883,7 +2883,7 @@
         <input type="radio" name="backup-type-select" value="config" style="margin-top:3px;">
         <div>
           <strong style="color:var(--text); display:block; font-size:14px;" data-i18n="backup.type_config_title">Только настройки (Конфигурация)</strong>
-          <span class="hint" style="font-size:12px; line-height:1.4;" data-i18n="backup.type_config_desc">Сохраняет только настройки системы, индексаторы, клиенты загрузки, профили качества, кастомные форматы, шаблоны переименования и уведомления (без карточек медиатеки).</span>
+          <span class="hint" style="font-size:12px; line-height:1.4;" data-i18n="backup.type_config_desc">Сохраняет только настройки системы, индексаторы, клиенты загрузки, профили качества, форматы качества, шаблоны переименования и уведомления (без карточек медиатеки).</span>
         </div>
       </label>
     </div>

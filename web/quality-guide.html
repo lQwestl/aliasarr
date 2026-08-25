@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title data-i18n="qg.page_title">Справочник по качеству и Custom Formats — Aliasarr</title>
+<title data-i18n="qg.page_title">Справочник по качеству и форматам — Aliasarr</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2300F0FF'/%3E%3Cstop offset='1' stop-color='%23FF2A4D'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ctext x='32' y='45' font-family='Arial,Helvetica,sans-serif' font-size='36' font-weight='800' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -485,7 +485,7 @@
       </a>
       <div style="height:20px; width:1px; background:var(--border);"></div>
       <span class="guide-header-title">
-        <span data-i18n="qg.header_title">Справочник по качеству</span> <span class="guide-header-title-extra" data-i18n="qg.header_title_extra">и Custom Formats</span>
+        <span data-i18n="qg.header_title">Справочник по качеству</span> <span class="guide-header-title-extra" data-i18n="qg.header_title_extra">и форматам</span>
       </span>
     </div>
     <div class="guide-header-right">
@@ -539,11 +539,11 @@
       <p data-i18n="qg.s1_intro">В <strong>Aliasarr</strong> система выбора релизов построена на двухуровневой модели:</p>
       <ol style="padding-left: 20px; margin: 8px 0;">
         <li data-i18n="qg.s1_li1"><strong>Профиль качества (Quality Profile)</strong> — задаёт список разрешённых качеств и источников (например: <code>1080p</code>, <code>2160p</code>, <code>Remux-1080p</code>) в порядке возрастания приоритета.</li>
-        <li data-i18n="qg.s1_li2"><strong>Кастомные форматы (Custom Formats)</strong> — начисляют релизу дополнительные <strong>очки (Score)</strong> за конкретные свойства: нужная студия озвучки (LostFilm, HDRezka, Дубляж), формат HDR/Dolby Vision, многоканальный звук Dolby Atmos или видеокодек HEVC/AV1.</li>
+        <li data-i18n="qg.s1_li2"><strong>Форматы качества (Quality Formats)</strong> — начисляют релизу дополнительные <strong>очки (Score)</strong> за конкретные свойства: нужная студия озвучки (LostFilm, HDRezka, Дубляж), формат HDR/Dolby Vision, многоканальный звук Dolby Atmos или видеокодек HEVC/AV1.</li>
       </ol>
       <div class="hint-box" style="background:rgba(0, 240, 255, 0.05); border-color:var(--teal, #00F0FF); margin-top:16px;">
         <i data-lucide="info" class="ico-sm icon-title" style="vertical-align:middle; margin-right:4px;"></i>
-        <strong data-i18n="qg.s1_formula_title">Формула выбора релиза:</strong> <span data-i18n="qg.s1_formula_text">Из всех найденных раздач Aliasarr сначала оставляет только те, чьё качество разрешено в профиле. Затем раздачи сортируются: <code>Сумма очков Custom Formats &gt; Ранг качества &gt; Количество сидов</code>.</span>
+        <strong data-i18n="qg.s1_formula_title">Формула выбора релиза:</strong> <span data-i18n="qg.s1_formula_text">Из всех найденных раздач Aliasarr сначала оставляет только те, чьё качество разрешено в профиле. Затем раздачи сортируются: <code>Сумма очков форматов качества &gt; Ранг качества &gt; Количество сидов</code>.</span>
       </div>
     </section>
 
@@ -566,7 +566,7 @@
             </tr>
             <tr>
               <td><strong data-i18n="qg.s2_cutoff_s_label">Cutoff Score</strong><br><span class="hint" data-i18n="qg.s2_cutoff_s_hint">Порог очков</span></td>
-              <td data-i18n="qg.s2_cutoff_s_desc">Минимальная сумма очков кастомных форматов (например, <code>100</code>), при которой релиз считается полностью удовлетворительным.</td>
+              <td data-i18n="qg.s2_cutoff_s_desc">Минимальная сумма очков форматов качества (например, <code>100</code>), при которой релиз считается полностью удовлетворительным.</td>
             </tr>
             <tr>
               <td><strong data-i18n="qg.s2_upgrade_label">Upgrade Allowed</strong><br><span class="hint" data-i18n="qg.s2_upgrade_hint">Разрешить апгрейд</span></td>
@@ -580,8 +580,8 @@
     <!-- 3. BUILTIN FORMATS -->
     <section class="guide-card" id="builtin-formats">
       <div id="custom-formats" style="scroll-margin-top:86px;"></div>
-      <h2><i data-lucide="shield-check" class="icon-title"></i> <span data-i18n="qg.s3_title">3. Штатные кастомные форматы</span></h2>
-      <p data-i18n="qg.s3_intro">В Aliasarr предустановлены <strong>17 штатных (системных) кастомных форматов</strong>. Они обеспечивают точную градацию релизов по разрешению и источнику:</p>
+      <h2><i data-lucide="shield-check" class="icon-title"></i> <span data-i18n="qg.s3_title">3. Штатные форматы качества</span></h2>
+      <p data-i18n="qg.s3_intro">В Aliasarr предустановлены <strong>штатные (системные) форматы качества</strong>. Они обеспечивают точную градацию релизов по разрешению и источнику:</p>
       
       <div class="hint-box" style="margin-bottom:16px;">
         <strong data-i18n="qg.s3_protection_title">Защита и сброс штатных форматов:</strong>
@@ -613,9 +613,18 @@
             <tr><td><strong>WEBDL-720p</strong></td><td><span class="badge-tag badge-score-pos">+40</span></td><td><code>\b(web[-_. ]?dl.*720p|720p.*web[-_. ]?dl)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
             <tr><td><strong>WEBRip-720p</strong></td><td><span class="badge-tag badge-score-pos">+35</span></td><td><code>\b(webrip.*720p|720p.*webrip)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
             <tr><td><strong>HDTV-720p</strong></td><td><span class="badge-tag badge-score-pos">+30</span></td><td><code>\b(hdtv.*720p|720p.*hdtv)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
-            <tr><td><strong>DVDRip</strong></td><td><span class="badge-tag badge-score-pos">+20</span></td><td><code>\b(dvdrip|dvd-rip)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
-            <tr><td><strong>DVD</strong></td><td><span class="badge-tag badge-score-pos">+15</span></td><td><code>\b(dvd|dvd9|dvd5|ntsc|pal)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
-            <tr><td><strong>SDTV</strong></td><td><span class="badge-tag badge-score-pos">+10</span></td><td><code>\b(sdtv|tvrip|pdtv|dsr|480p|576p)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>Bluray-480p</strong></td><td><span class="badge-tag badge-score-pos">+28</span></td><td><code>\b(bluray.*480p|480p.*bluray|bdrip|brrip)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBDL-480p</strong></td><td><span class="badge-tag badge-score-pos">+26</span></td><td><code>\b(web[-_. ]?dl.*480p|480p.*web[-_. ]?dl)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBRip-480p</strong></td><td><span class="badge-tag badge-score-pos">+24</span></td><td><code>\b(webrip.*480p|480p.*webrip)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>HDTV-480p</strong></td><td><span class="badge-tag badge-score-pos">+22</span></td><td><code>\b(hdtv.*480p|480p.*hdtv)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>DVDRip-480p</strong></td><td><span class="badge-tag badge-score-pos">+20</span></td><td><code>\b(dvdrip|dvd-rip)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>DVD-480p</strong></td><td><span class="badge-tag badge-score-pos">+15</span></td><td><code>\b(dvd|dvd9|dvd5|ntsc|pal)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>TVRip-480p</strong></td><td><span class="badge-tag badge-score-pos">+12</span></td><td><code>\b(tvrip|satrip|dtvrip)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>SDTV-480p</strong></td><td><span class="badge-tag badge-score-pos">+10</span></td><td><code>\b(sdtv|pdtv|dsr|360p)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>Workprint-480p</strong></td><td><span class="badge-tag badge-score-pos">+4</span></td><td><code>\b(workprint|wp)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>Telecine-480p</strong></td><td><span class="badge-tag badge-score-pos">+3</span></td><td><code>\b(telecine|tc|hdtc)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>Telesync-480p</strong></td><td><span class="badge-tag badge-score-pos">+2</span></td><td><code>\b(telesync|hdts|hd-ts|tsrip)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
+            <tr><td><strong>CAM-480p</strong></td><td><span class="badge-tag badge-score-pos">+1</span></td><td><code>\b(camrip|cam|hdcam)\b</code></td><td><span class="badge-tag badge-builtin" data-i18n="qg.badge_builtin">Штатный</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -624,7 +633,7 @@
     <!-- 4. REGEX SYNTAX -->
     <section class="guide-card" id="regex-syntax">
       <h2><i data-lucide="code-2" class="icon-title"></i> <span data-i18n="qg.s4_title">4. Синтаксис Release Title Regex в Aliasarr</span></h2>
-      <p data-i18n="qg.s4_intro">Кастомные форматы используют регулярные выражения (Python <code>re.search</code> с флагом <code>re.IGNORECASE</code>). Регистр букв (большие или маленькие) не имеет значения.</p>
+      <p data-i18n="qg.s4_intro">Форматы качества используют регулярные выражения (Python <code>re.search</code> с флагом <code>re.IGNORECASE</code>). Регистр букв (большие или маленькие) не имеет значения.</p>
       
       <h3 data-i18n="qg.s4_chars_title">Основные спецсимволы:</h3>
       <div class="table-responsive">
@@ -675,7 +684,7 @@
     <!-- 5. VOICEOVERS CATALOG -->
     <section class="guide-card" id="voiceovers">
       <h2><i data-lucide="mic" class="icon-title"></i> <span data-i18n="qg.s5_title">5. Каталог готовых Regex: Озвучки и Студии перевода</span></h2>
-      <p data-i18n="qg.s5_intro">Скопируйте нужный шаблон и создайте новый кастомный формат (например, с очками <code>+200</code>), чтобы Aliasarr отдавал предпочтение вашей любимой озвучке.</p>
+      <p data-i18n="qg.s5_intro">Скопируйте нужный шаблон и создайте новый формат качества (например, с очками <code>+200</code>), чтобы Aliasarr отдавал предпочтение вашей любимой озвучке.</p>
 
       <div class="template-item">
         <h3><i data-lucide="volume-2" class="ico-xs icon-title"></i> <span data-i18n="qg.v_dub_title">Полный дубляж / Лицензия / iTunes (Dubbing)</span></h3>
@@ -1019,9 +1028,9 @@
 
   const GUIDE_TRANSLATIONS = {
     ru: {
-    "qg.page_title": "Справочник по качеству и Custom Formats — Aliasarr",
+    "qg.page_title": "Справочник по качеству и форматам — Aliasarr",
     "qg.header_title": "Справочник по качеству",
-    "qg.header_title_extra": "и Custom Formats",
+    "qg.header_title_extra": "и форматам",
     "qg.search_placeholder": "Поиск (LostFilm, 4K, HDR)...",
     "qg.sections_btn": "Разделы",
     "qg.back_to_app": "В приложение",
@@ -1040,9 +1049,9 @@
     "qg.s1_title": "1. Как Aliasarr выбирает лучшее качество",
     "qg.s1_intro": "В <strong>Aliasarr</strong> система выбора релизов построена на двухуровневой модели:",
     "qg.s1_li1": "<strong>Профиль качества (Quality Profile)</strong> — задаёт список разрешённых качеств и источников (например: <code>1080p</code>, <code>2160p</code>, <code>Remux-1080p</code>) в порядке возрастания приоритета.",
-    "qg.s1_li2": "<strong>Кастомные форматы (Custom Formats)</strong> — начисляют релизу дополнительные <strong>очки (Score)</strong> за конкретные свойства: нужная студия озвучки (LostFilm, HDRezka, Дубляж), формат HDR/Dolby Vision, многоканальный звук Dolby Atmos или видеокодек HEVC/AV1.",
+    "qg.s1_li2": "<strong>Форматы качества (Quality Formats)</strong> — начисляют релизу дополнительные <strong>очки (Score)</strong> за конкретные свойства: нужная студия озвучки (LostFilm, HDRezka, Дубляж), формат HDR/Dolby Vision, многоканальный звук Dolby Atmos или видеокодек HEVC/AV1.",
     "qg.s1_formula_title": "Формула выбора релиза:",
-    "qg.s1_formula_text": "Из всех найденных раздач Aliasarr сначала оставляет только те, чьё качество разрешено в профиле. Затем раздачи сортируются: <code>Сумма очков Custom Formats &gt; Ранг качества &gt; Количество сидов</code>.",
+    "qg.s1_formula_text": "Из всех найденных раздач Aliasarr сначала оставляет только те, чьё качество разрешено в профиле. Затем раздачи сортируются: <code>Сумма очков форматов качества &gt; Ранг качества &gt; Количество сидов</code>.",
     "qg.s2_title": "2. Скоринг, Cutoff (Порог) и Авто-апгрейд",
     "qg.s2_intro": "В настройках каждого профиля качества задаются ключевые правила автоматизации:",
     "qg.s2_th_param": "Параметр",
@@ -1052,12 +1061,12 @@
     "qg.s2_cutoff_q_desc": "Минимальное базовое качество (например, <code>Bluray-1080p</code>), после достижения которого Aliasarr перестаёт искать более качественные релизы. Если качество скачанного файла ниже порога — система продолжит отслеживать раздачи.",
     "qg.s2_cutoff_s_label": "Cutoff Score",
     "qg.s2_cutoff_s_hint": "Порог очков",
-    "qg.s2_cutoff_s_desc": "Минимальная сумма очков кастомных форматов (например, <code>100</code>), при которой релиз считается полностью удовлетворительным.",
+    "qg.s2_cutoff_s_desc": "Минимальная сумма очков форматов качества (например, <code>100</code>), при которой релиз считается полностью удовлетворительным.",
     "qg.s2_upgrade_label": "Upgrade Allowed",
     "qg.s2_upgrade_hint": "Разрешить апгрейд",
     "qg.s2_upgrade_desc": "Если включено — Aliasarr автоматически скачает более качественную версию при её появлении (например, заменит WEBRip на BDRip или озвучку ColdFilm на LostFilm/Дубляж). Если выключено — останется первый скачанный релиз.",
-    "qg.s3_title": "3. Штатные кастомные форматы",
-    "qg.s3_intro": "В Aliasarr предустановлены <strong>17 штатных (системных) кастомных форматов</strong>. Они обеспечивают точную градацию релизов по разрешению и источнику:",
+    "qg.s3_title": "3. Штатные форматы качества",
+    "qg.s3_intro": "В Aliasarr предустановлены <strong>штатные (системные) форматы качества</strong>. Они обеспечивают точную градацию релизов по разрешению и источнику:",
     "qg.s3_protection_title": "Защита и сброс штатных форматов:",
     "qg.s3_protection_text": "Штатные форматы <strong>нельзя случайно удалить</strong>. Вы можете свободно менять их Score (очки), включать/выключать добавление в имя файла или модифицировать Regex. Если потребуется вернуть исходные настройки — нажмите кнопку <strong>«Изменить»</strong> на нужном формате и воспользуйтесь кнопкой <strong>«Сбросить до заводских настроек»</strong>.",
     "qg.s3_th_format": "Формат",
@@ -1066,7 +1075,7 @@
     "qg.s3_th_status": "Статус",
     "qg.badge_builtin": "Штатный",
     "qg.s4_title": "4. Синтаксис Release Title Regex в Aliasarr",
-    "qg.s4_intro": "Кастомные форматы используют регулярные выражения (Python <code>re.search</code> с флагом <code>re.IGNORECASE</code>). Регистр букв (большие или маленькие) не имеет значения.",
+    "qg.s4_intro": "Форматы качества используют регулярные выражения (Python <code>re.search</code> с флагом <code>re.IGNORECASE</code>). Регистр букв (большие или маленькие) не имеет значения.",
     "qg.s4_chars_title": "Основные спецсимволы:",
     "qg.s4_th_symbol": "Символ",
     "qg.s4_th_desc": "Описание",
@@ -1081,7 +1090,7 @@
     "qg.s4_esc_ex": "<code>\\bhdr10\\+\\b</code> найдёт &laquo;HDR10+&raquo;.",
     "qg.s4_dotstar_desc": "Любые символы между словами (в любом количестве).",
     "qg.s5_title": "5. Каталог готовых Regex: Озвучки и Студии перевода",
-    "qg.s5_intro": "Скопируйте нужный шаблон и создайте новый кастомный формат (например, с очками <code>+200</code>), чтобы Aliasarr отдавал предпочтение вашей любимой озвучке.",
+    "qg.s5_intro": "Скопируйте нужный шаблон и создайте новый формат качества (например, с очками <code>+200</code>), чтобы Aliasarr отдавал предпочтение вашей любимой озвучке.",
     "qg.v_dub_title": "Полный дубляж / Лицензия / iTunes (Dubbing)",
     "qg.v_dub_hint": "Профессиональный полный дубляж фильма или сериала.",
     "qg.v_lostfilm_title": "LostFilm (Лостфильм)",
@@ -1126,7 +1135,7 @@
     "qg.ed_proper_title": "Proper / Repack / Rerip",
     "qg.ed_proper_hint": "Исправленная версия релиза от релиз-группы (устранены рассинхрон звука, битые кадры или ошибки склейки).",
     "qg.s9_title": "9. Фильтрация мусора (Отрицательный скоринг)",
-    "qg.s9_intro": "Вы можете отсекать некачественные релизы, задав кастомному формату <strong>отрицательные очки</strong> (например, <code>-10000</code>). Релизы с отрицательным итоговым баллом не будут захватываться автоматически.",
+    "qg.s9_intro": "Вы можете отсекать некачественные релизы, задав формату качества <strong>отрицательные очки</strong> (например, <code>-10000</code>). Релизы с отрицательным итоговым баллом не будут захватываться автоматически.",
     "qg.neg_casino_title": "Казино и Реклама (1xBet, JoyCasino, Advert)",
     "qg.neg_casino_hint": "Релизы с навязчивой аудио/видео-рекламой ставок и букмекеров. Задайте Score: <span class=\"badge-tag badge-score-neg\">-10000</span>",
     "qg.neg_cam_title": "Экранки и ранние записи (CAMRip / Telesync / TS)",
@@ -1149,9 +1158,9 @@
     "qg.btn_copied": "Скопировано!"
 },
     en: {
-    "qg.page_title": "Quality Profiles & Custom Formats Reference — Aliasarr",
+    "qg.page_title": "Quality Profiles & Formats Reference — Aliasarr",
     "qg.header_title": "Quality Guide",
-    "qg.header_title_extra": "& Custom Formats",
+    "qg.header_title_extra": "& Formats",
     "qg.search_placeholder": "Search (LostFilm, 4K, HDR)...",
     "qg.sections_btn": "Sections",
     "qg.back_to_app": "Back to App",
@@ -1170,9 +1179,9 @@
     "qg.s1_title": "1. How Aliasarr Chooses the Best Quality",
     "qg.s1_intro": "In <strong>Aliasarr</strong>, release selection operates on a two-tier evaluation model:",
     "qg.s1_li1": "<strong>Quality Profile</strong> — defines the allowed resolutions and source qualities (e.g. <code>1080p</code>, <code>2160p</code>, <code>Remux-1080p</code>) in ascending priority order.",
-    "qg.s1_li2": "<strong>Custom Formats</strong> — award additional <strong>Score points</strong> for specific release traits: preferred translation studio (LostFilm, HDRezka, Dubbing), HDR/Dolby Vision format, Dolby Atmos audio, or HEVC/AV1 codec.",
+    "qg.s1_li2": "<strong>Quality Formats</strong> — award additional <strong>Score points</strong> for specific release traits: preferred translation studio (LostFilm, HDRezka, Dubbing), HDR/Dolby Vision format, Dolby Atmos audio, or HEVC/AV1 codec.",
     "qg.s1_formula_title": "Release Selection Formula:",
-    "qg.s1_formula_text": "From all search results, Aliasarr first filters out items not matching the profile's allowed qualities. Releases are then sorted by: <code>Custom Formats Total Score &gt; Quality Rank &gt; Seeders Count</code>.",
+    "qg.s1_formula_text": "From all search results, Aliasarr first filters out items not matching the profile's allowed qualities. Releases are then sorted by: <code>Quality Formats Total Score &gt; Quality Rank &gt; Seeders Count</code>.",
     "qg.s2_title": "2. Scoring, Cutoff & Auto-Upgrade",
     "qg.s2_intro": "Key automation rules configured within each Quality Profile:",
     "qg.s2_th_param": "Parameter",
@@ -1182,12 +1191,12 @@
     "qg.s2_cutoff_q_desc": "The target base quality (e.g. <code>Bluray-1080p</code>) upon reaching which Aliasarr stops seeking higher tier releases. If downloaded media is below cutoff, monitoring remains active.",
     "qg.s2_cutoff_s_label": "Cutoff Score",
     "qg.s2_cutoff_s_hint": "Score Threshold",
-    "qg.s2_cutoff_s_desc": "The minimum sum of Custom Format score points (e.g. <code>100</code>) at which the release is deemed fully satisfactory.",
+    "qg.s2_cutoff_s_desc": "The minimum sum of Quality Format score points (e.g. <code>100</code>) at which the release is deemed fully satisfactory.",
     "qg.s2_upgrade_label": "Upgrade Allowed",
     "qg.s2_upgrade_hint": "Allow Upgrades",
     "qg.s2_upgrade_desc": "When enabled, Aliasarr will automatically download superior releases as they appear (e.g. replacing WEBRip with BDRip or upgrading audio tracks). When disabled, the first acquired release is retained.",
-    "qg.s3_title": "3. Built-in Custom Formats",
-    "qg.s3_intro": "Aliasarr comes with <strong>17 pre-configured built-in custom formats</strong> providing precise resolution and source grading:",
+    "qg.s3_title": "3. Built-in Quality Formats",
+    "qg.s3_intro": "Aliasarr comes with <strong>pre-configured built-in quality formats</strong> providing precise resolution and source grading:",
     "qg.s3_protection_title": "Built-in Formats Protection & Reset:",
     "qg.s3_protection_text": "System formats <strong>cannot be deleted</strong>. You can freely adjust their Score, toggle rename template inclusion, or tweak Regex patterns. To restore defaults, click <strong>«Edit»</strong> and use the <strong>«Reset to factory defaults»</strong> button.",
     "qg.s3_th_format": "Format",
@@ -1196,7 +1205,7 @@
     "qg.s3_th_status": "Status",
     "qg.badge_builtin": "Built-in",
     "qg.s4_title": "4. Release Title Regex Syntax in Aliasarr",
-    "qg.s4_intro": "Custom formats match against release names using regular expressions (Python <code>re.search</code> with <code>re.IGNORECASE</code>). Matches are case-insensitive.",
+    "qg.s4_intro": "Quality formats match against release names using regular expressions (Python <code>re.search</code> with <code>re.IGNORECASE</code>). Matches are case-insensitive.",
     "qg.s4_chars_title": "Essential Special Characters:",
     "qg.s4_th_symbol": "Symbol",
     "qg.s4_th_desc": "Description",
@@ -1211,7 +1220,7 @@
     "qg.s4_esc_ex": "<code>\\bhdr10\\+\\b</code> matches &laquo;HDR10+&raquo;.",
     "qg.s4_dotstar_desc": "Wildcard matching any characters between words (any length).",
     "qg.s5_title": "5. Regex Catalog: Voiceovers & Translation Studios",
-    "qg.s5_intro": "Copy any template below and create a new custom format (e.g. with score <code>+200</code>) to prioritize your favorite studio or audio track.",
+    "qg.s5_intro": "Copy any template below and create a new quality format (e.g. with score <code>+200</code>) to prioritize your favorite studio or audio track.",
     "qg.v_dub_title": "Full Dubbing / Official License / iTunes (Dubbing)",
     "qg.v_dub_hint": "Professional full theatrical or digital dubbing.",
     "qg.v_lostfilm_title": "LostFilm",

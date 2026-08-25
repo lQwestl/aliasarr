@@ -112,6 +112,6 @@ def delete_custom_format(
     if not cf:
         raise HTTPException(404, "Custom format not found")
     if getattr(cf, "is_builtin", False) or cf.name in DEFAULT_FORMAT_NAMES:
-        raise HTTPException(400, "Штатный кастомный формат нельзя удалить")
+        raise HTTPException(400, "Штатный формат качества нельзя удалить")
     db.delete(cf)
     db.commit()

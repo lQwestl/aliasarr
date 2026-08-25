@@ -548,8 +548,8 @@ const TRANSLATIONS = {
     "dc.status_untested": "Не проверено",
     "dc.empty": "Загрузчики не добавлены",
 
-    // Quality Profiles & Custom Formats
-    "quality.settings_title": "Профили качества и кастомные форматы",
+    // Quality Profiles & Quality Formats
+    "quality.settings_title": "Профили и форматы качества",
     "quality.settings_subtitle": "Настройка предпочтительного качества, порогов апгрейда и скоринга релизов",
     "qp.add_title": "Добавить профиль качества",
     "quality.add_title": "Добавить профиль качества",
@@ -563,22 +563,22 @@ const TRANSLATIONS = {
     "qp.col_allowed": "Разрешено",
     "qp.col_cutoff": "Порог (Cutoff)",
     "qp.empty": "Профили не созданы",
-    "cf.title": "Кастомные форматы (Custom Formats)",
+    "cf.title": "Форматы качества",
     "cf.subtitle": "Правила распознавания и приоритезации релизов (HDR, TrueHD, Proper, Preferred Groups)",
     "cf.add_btn": "Добавить формат",
     "cf.guide_btn": "Справочник качества",
-    "cf.guide_btn_title": "Открыть полное руководство по профилям качества, кастомным форматам и Release Title Regex в новой вкладке",
+    "cf.guide_btn_title": "Открыть полное руководство по профилям качества, форматам качества и Release Title Regex в новой вкладке",
     "cf.col_score": "Очки (Score)",
     "cf.col_renaming": "В имени файла",
-    "cf.modal_title": "Кастомный формат",
+    "cf.modal_title": "Формат качества",
     "cf.score_label": "Очки (Score)",
     "cf.include_renaming": "Включать в имя файла при переименовании ({Custom Formats})",
     "cf.regex_pattern": "Regex шаблон названия (Release Title Regex)",
     "cf.builtin_badge": "Штатный",
     "cf.reset_btn": "Сбросить до заводских настроек",
-    "cf.reset_confirm": "Сбросить этот кастомный формат до заводских настроек по умолчанию?",
-    "cf.cannot_delete_builtin": "Штатные кастомные форматы нельзя удалять",
-    "cf.reset_success": "Формат успешно сброшен до заводских настроек",
+    "cf.reset_confirm": "Сбросить этот формат качества до заводских настроек по умолчанию?",
+    "cf.cannot_delete_builtin": "Штатные форматы качества нельзя удалять",
+    "cf.reset_success": "Формат качества успешно сброшен до заводских настроек",
 
     // Metadata
     "md.add_title": "Добавить источник метаданных",
@@ -742,9 +742,9 @@ const TRANSLATIONS = {
     "backup.create_title": "Создание резервной копии",
     "backup.create_subtitle": "Выберите тип архива для сохранения данных Aliasarr",
     "backup.type_full_title": "Полный бэкап (Рекомендуется)",
-    "backup.type_full_desc": "Включает всю медиатеку (карточки фильмов, сериалов, аниме, эпизоды, историю, алиасы) + все профили качества, кастомные форматы, индексаторы, загрузчики и настройки.",
+    "backup.type_full_desc": "Включает всю медиатеку (карточки фильмов, сериалов, аниме, эпизоды, историю, алиасы) + все профили качества, форматы качества, индексаторы, загрузчики и настройки.",
     "backup.type_config_title": "Только настройки (Конфигурация)",
-    "backup.type_config_desc": "Сохраняет только настройки системы, индексаторы, клиенты загрузки, профили качества, кастомные форматы, шаблоны переименования и уведомления (без карточек медиатеки).",
+    "backup.type_config_desc": "Сохраняет только настройки системы, индексаторы, клиенты загрузки, профили качества, форматы качества, шаблоны переименования и уведомления (без карточек медиатеки).",
     "backup.restore_title": "Восстановление из резервной копии",
     "backup.restore_subtitle": "Проверка содержимого архива и выбор режима восстановления",
     "backup.restore_items_label": "Обнаруженные компоненты в архиве:",
@@ -1010,7 +1010,7 @@ const TRANSLATIONS = {
     "cf.preset_label": "Готовый пресет / Шаблон",
     "cf.preset_placeholder": "— Выберите пресет или настройте вручную —",
     "cf.preset_group_quality": "Качество / Источник",
-    "cf.builtin_notice": "Штатный кастомный формат. Вы можете изменять параметры или при необходимости сбросить их к заводским значениям.",
+    "cf.builtin_notice": "Штатный формат качества. Вы можете изменять параметры или при необходимости сбросить их к заводским значениям.",
     "timeout.15m": "15 минут",
     "timeout.30m": "30 минут",
     "timeout.1h": "1 час",
@@ -1547,8 +1547,8 @@ const TRANSLATIONS = {
     "dc.status_untested": "Not checked",
     "dc.empty": "No download clients added",
 
-    // Quality Profiles & Custom Formats
-    "quality.settings_title": "Quality Profiles & Custom Formats",
+    // Quality Profiles & Quality Formats
+    "quality.settings_title": "Quality Profiles & Formats",
     "quality.settings_subtitle": "Configure preferred quality, upgrade cutoffs and release scoring",
     "qp.add_title": "Add Quality Profile",
     "quality.add_title": "Add Quality Profile",
@@ -1562,22 +1562,22 @@ const TRANSLATIONS = {
     "qp.col_allowed": "Allowed",
     "qp.col_cutoff": "Cutoff",
     "qp.empty": "No quality profiles created",
-    "cf.title": "Custom Formats",
+    "cf.title": "Quality Formats",
     "cf.subtitle": "Rules for recognizing and prioritizing releases (HDR, TrueHD, Proper, Preferred Groups)",
     "cf.add_btn": "Add Format",
     "cf.guide_btn": "Quality Guide",
-    "cf.guide_btn_title": "Open quality profiles, custom formats and regex guide in a new tab",
+    "cf.guide_btn_title": "Open quality profiles, quality formats and regex guide in a new tab",
     "cf.col_score": "Score",
     "cf.col_renaming": "In Filename",
-    "cf.modal_title": "Custom Format",
+    "cf.modal_title": "Quality Format",
     "cf.score_label": "Score",
     "cf.include_renaming": "Include in filename when renaming ({Custom Formats})",
     "cf.regex_pattern": "Release Title Regex",
     "cf.builtin_badge": "Built-in",
     "cf.reset_btn": "Reset to Default",
-    "cf.reset_confirm": "Reset this custom format to default factory settings?",
-    "cf.cannot_delete_builtin": "Built-in custom formats cannot be deleted",
-    "cf.reset_success": "Custom format reset to default settings",
+    "cf.reset_confirm": "Reset this quality format to default factory settings?",
+    "cf.cannot_delete_builtin": "Built-in quality formats cannot be deleted",
+    "cf.reset_success": "Quality format reset to default settings",
 
     // Metadata
     "md.add_title": "Add Metadata Source",
@@ -9789,7 +9789,7 @@ async function removeQualityProfile(id) {
 }
 
 // =============================================================================
-// НАСТРОЙКИ: КАСТОМНЫЕ ФОРМАТЫ
+// НАСТРОЙКИ: ФОРМАТЫ КАЧЕСТВА
 // =============================================================================
 
 async function loadCustomFormats() {
@@ -9821,7 +9821,7 @@ async function loadCustomFormats() {
           </div>
         </td>
       </tr>`;
-    }).join("") || `<tr><td colspan="4" style="color:var(--text-muted); text-align:center; padding:20px;">${CURRENT_LANG === "en" ? "No custom formats" : "Нет кастомных форматов"}</td></tr>`;
+    }).join("") || `<tr><td colspan="4" style="color:var(--text-muted); text-align:center; padding:20px;">${CURRENT_LANG === "en" ? "No quality formats" : "Нет форматов качества"}</td></tr>`;
     if (window.lucide) lucide.createIcons();
   } catch (e) {}
 }
@@ -9866,7 +9866,7 @@ function onCustomFormatPresetSelect(presetKey) {
 
 function openAddCustomFormatModal() {
   document.getElementById("cf-id").value = "";
-  document.getElementById("cf-modal-title").innerHTML = `<i data-lucide="sparkles" class="ico-sm"></i> <span>${CURRENT_LANG === "en" ? "Add Custom Format" : "Добавить кастомный формат"}</span>`;
+  document.getElementById("cf-modal-title").innerHTML = `<i data-lucide="sparkles" class="ico-sm"></i> <span>${CURRENT_LANG === "en" ? "Add Quality Format" : "Добавить формат качества"}</span>`;
   const banner = document.getElementById("cf-builtin-banner");
   if (banner) banner.style.display = "none";
   const resetBtn = document.getElementById("cf-reset-btn");
@@ -9956,7 +9956,7 @@ async function submitCustomFormat() {
       toast(t("settings.toast_saved"));
     } else {
       await api("/api/v1/custom-formats", { method: "POST", body: JSON.stringify(payload) });
-      toast("Кастомный формат добавлен");
+      toast("Формат качества добавлен");
     }
     closeModal("custom-format-modal");
     loadCustomFormats();
