@@ -10213,7 +10213,7 @@ function toggleCustomMetadataFields() {
   
   const aliasFilterWrap = document.getElementById("md-alias-filter-wrap");
   if (aliasFilterWrap) {
-    aliasFilterWrap.style.display = (type === "tmdb" || type === "thetvdb" || type === "skyhook" || type === "radarr") ? "block" : "none";
+    aliasFilterWrap.style.display = (type === "skyhook" || type === "radarr") ? "none" : "block";
   }
 }
 
@@ -10377,8 +10377,10 @@ async function submitMetadataSource() {
   const api_key = document.getElementById("md-key").value.trim();
   const pin = (document.getElementById("md-pin")?.value || "").trim();
   
-  const selectedCountries = Array.from(document.querySelectorAll('#md-alias-countries input[type="checkbox"]:checked'))
-                                 .map(cb => cb.value);
+  const isSkyhookOrRadarr = (type === "skyhook" || type === "radarr");
+  const selectedCountries = isSkyhookOrRadarr
+    ? []
+    : Array.from(document.querySelectorAll('#md-alias-countries input[type="checkbox"]:checked')).map(cb => cb.value);
   let field_mapping = {};
   if (selectedCountries.length > 0) {
     field_mapping.alias_countries = selectedCountries;
