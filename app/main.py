@@ -503,12 +503,7 @@ def health():
 
 @app.get("/quality-guide")
 def quality_guide():
-    guide_path = os.path.join(_WEB_DIR, "quality-guide.html")
-    if not os.path.isfile(guide_path):
-        raise HTTPException(404, "Quality guide page not found")
-    with open(guide_path, encoding="utf-8") as f:
-        html = f.read()
-    return HTMLResponse(html)
+    return RedirectResponse(url="/wiki#section-quality-guide", status_code=302)
 
 
 @app.get("/wiki")
@@ -529,12 +524,18 @@ def wiki_page(request: Request):
         with open(wiki_path, encoding="utf-8") as f:
             html = f.read()
 
+        import json
+        lang = getattr(settings, "language", "ru") or "ru"
+        theme = getattr(settings, "theme", "dark") or "dark"
+        inject_script = (
+            f'<script>'
+            f'window.__ALIASARR_SETTINGS_LANG__ = {json.dumps(lang)};'
+            f'window.__ALIASARR_SETTINGS_THEME__ = {json.dumps(theme)};'
+        )
         if not settings.login_enabled:
-            import json
-            bootstrap_script = (
-                f'<script>window.__ALIASARR_BOOTSTRAP_KEY__ = {json.dumps(settings.api_key)};</script>'
-            )
-            html = html.replace("</head>", bootstrap_script + "</head>")
+            inject_script += f'window.__ALIASARR_BOOTSTRAP_KEY__ = {json.dumps(settings.api_key)};'
+        inject_script += '</script>'
+        html = html.replace("</head>", inject_script + "</head>")
 
         return HTMLResponse(html)
     finally:

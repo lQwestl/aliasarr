@@ -3,24 +3,26 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Wiki &amp; Руководство пользователя — Aliasarr</title>
+<title id="wiki-page-title">Wiki &amp; Руководство пользователя — Aliasarr</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366F1'/%3E%3Cstop offset='1' stop-color='%2300F0FF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ctext x='32' y='45' font-family='Arial,Helvetica,sans-serif' font-size='36' font-weight='800' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/ui/static/css/style.css?v=20260825-01">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260825-02">
 <script>
   (function () {
     try {
       var theme = localStorage.getItem("vbeacon_theme") || "dark";
       document.documentElement.setAttribute("data-theme", theme);
+      var lang = localStorage.getItem("aliasarr_lang") || "ru";
+      document.documentElement.setAttribute("lang", lang);
     } catch (e) {}
   })();
 </script>
 <style>
   :root {
-    --wiki-max-width: 1440px;
-    --wiki-sidebar-width: 290px;
+    --wiki-max-width: 1460px;
+    --wiki-sidebar-width: 300px;
   }
   body {
     background-color: var(--bg);
@@ -33,11 +35,11 @@
     overflow-x: hidden;
   }
   
-  /* Top Header */
+  /* Top Sticky Header */
   .wiki-header {
     border-bottom: 1px solid var(--border);
     padding: 12px 24px;
-    background: rgba(15, 20, 32, 0.85);
+    background: rgba(15, 20, 32, 0.88);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -46,7 +48,7 @@
     transition: background 0.2s ease, border-color 0.2s ease;
   }
   [data-theme="light"] .wiki-header {
-    background: rgba(248, 249, 252, 0.9);
+    background: rgba(248, 249, 252, 0.92);
   }
   .wiki-header-inner {
     max-width: var(--wiki-max-width);
@@ -156,8 +158,8 @@
     width: var(--wiki-sidebar-width);
     flex-shrink: 0;
     position: sticky;
-    top: 80px;
-    height: calc(100vh - 100px);
+    top: 76px;
+    height: calc(100vh - 96px);
     overflow-y: auto;
     padding-right: 12px;
     scrollbar-width: thin;
@@ -287,8 +289,8 @@
 
   /* Section Styling */
   .wiki-section {
-    scroll-margin-top: 90px;
-    margin-bottom: 50px;
+    scroll-margin-top: 86px;
+    margin-bottom: 44px;
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -478,7 +480,7 @@
     line-height: 1.6;
   }
 
-  /* Code & Syntax Table */
+  /* Code & Regex Blocks */
   .wiki-code-block {
     background: rgba(0, 0, 0, 0.4);
     border: 1px solid var(--border);
@@ -490,17 +492,100 @@
     position: relative;
     overflow-x: auto;
     margin: 14px 0;
+    line-height: 1.5;
+  }
+  .regex-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 10px 0 16px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 13px;
+    box-sizing: border-box;
+  }
+  .regex-code {
+    color: var(--teal, #00F0FF);
+    word-break: break-all;
+    user-select: all;
+    line-height: 1.45;
+  }
+  .btn-copy {
+    background: var(--panel-alt, rgba(255,255,255,0.06));
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    flex-shrink: 0;
+  }
+  .btn-copy:hover {
+    color: var(--text);
+    background: var(--border);
+  }
+  .btn-copy.copied {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border-color: #10b981;
+  }
+
+  /* Status Pills matching app */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .status-downloaded {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .status-missing {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+  }
+  .status-unaired {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+  }
+  .status-unmonitored {
+    background: rgba(107, 114, 128, 0.15);
+    color: #9ca3af;
+    border: 1px solid rgba(107, 114, 128, 0.35);
   }
 
   /* Tables in Wiki */
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 16px 0;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
   .wiki-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    margin: 18px 0;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid var(--border);
+    margin: 0;
     font-size: 13px;
   }
   .wiki-table th {
@@ -515,7 +600,7 @@
     padding: 10px 14px;
     border-bottom: 1px solid var(--border);
     color: var(--text-muted);
-    vertical-align: top;
+    vertical-align: middle;
   }
   .wiki-table tr:last-child td {
     border-bottom: none;
@@ -539,6 +624,10 @@
     text-align: center;
   }
 
+  /* Multilingual Support Helpers */
+  [data-lang="en"] .lang-ru { display: none !important; }
+  [data-lang="ru"] .lang-en { display: none !important; }
+
   @media (max-width: 980px) {
     .wiki-layout {
       flex-direction: column;
@@ -557,21 +646,30 @@
   }
 </style>
 </head>
-<body>
+<body data-lang="ru">
 
 <!-- AUTH GUARD OVERLAY -->
 <div id="auth-overlay">
   <div class="wiki-brand-logo" style="width:54px; height:54px; font-size:26px; border-radius:14px; margin-bottom:16px;">A</div>
-  <h2 style="font-family:var(--font-heading); margin:0 0 8px 0;">Требуется авторизация</h2>
-  <p style="color:var(--text-muted); max-width:400px; font-size:14px; margin:0 0 20px 0;">В Aliasarr включена защита паролем. Пожалуйста, войдите в систему, чтобы получить доступ к документации.</p>
-  <a href="/?redirect=/wiki" class="btn btn-primary" style="padding:10px 24px;">Войти в Aliasarr</a>
+  <h2 style="font-family:var(--font-heading); margin:0 0 8px 0;">
+    <span class="lang-ru">Требуется авторизация</span>
+    <span class="lang-en">Authentication Required</span>
+  </h2>
+  <p style="color:var(--text-muted); max-width:400px; font-size:14px; margin:0 0 20px 0;">
+    <span class="lang-ru">В Aliasarr включена защита паролем. Пожалуйста, войдите в систему, чтобы получить доступ к документации.</span>
+    <span class="lang-en">Password protection is enabled in Aliasarr. Please log in to access the documentation.</span>
+  </p>
+  <a href="/?redirect=/wiki" class="btn btn-primary" style="padding:10px 24px;">
+    <span class="lang-ru">Войти в Aliasarr</span>
+    <span class="lang-en">Login to Aliasarr</span>
+  </a>
 </div>
 
 <!-- TOP STICKY HEADER -->
 <header class="wiki-header">
   <div class="wiki-header-inner">
     <div class="wiki-header-left">
-      <a href="/" class="wiki-brand-badge" title="На главную Aliasarr">
+      <a href="/" class="wiki-brand-badge" title="Aliasarr">
         <div class="wiki-brand-logo">A</div>
         <span>Aliasarr</span>
         <span class="wiki-doc-tag">Wiki &amp; Docs</span>
@@ -584,15 +682,22 @@
         <input type="text" id="wiki-search" class="wiki-search-input" placeholder="Поиск по документации..." oninput="filterWiki(this.value)">
       </div>
       
-      <!-- Theme Selector -->
-      <button class="btn btn-secondary btn-small" onclick="cycleWikiTheme()" title="Переключить тему" style="padding:7px 10px;">
+      <!-- Language Switcher -->
+      <button class="btn btn-secondary btn-small" id="wiki-lang-btn" onclick="toggleWikiLang()" title="Сменить язык / Switch Language" style="display:flex; align-items:center; gap:6px;">
+        <i data-lucide="globe" class="ico-xs"></i>
+        <span id="wiki-lang-label">RU</span>
+      </button>
+
+      <!-- Theme Switcher -->
+      <button class="btn btn-secondary btn-small" onclick="cycleWikiTheme()" title="Переключить тему / Cycle Theme" style="padding:7px 10px;">
         <i data-lucide="moon" class="ico-xs"></i>
       </button>
 
       <!-- Back to App -->
       <a href="/" class="btn btn-primary btn-small" style="display:flex; align-items:center; gap:6px;">
         <i data-lucide="arrow-left" class="ico-xs"></i>
-        <span>В Aliasarr</span>
+        <span class="lang-ru">В Aliasarr</span>
+        <span class="lang-en">Back to App</span>
       </a>
     </div>
   </div>
@@ -603,33 +708,37 @@
   
   <!-- LEFT SIDEBAR TOC -->
   <aside class="wiki-sidebar" id="wiki-sidebar">
-    <div class="wiki-toc-title">Содержание</div>
-
-    <div class="wiki-toc-group">
-      <div class="wiki-toc-group-label"><i data-lucide="compass" class="ico-xs"></i> <span>Введение</span></div>
-      <a href="#section-intro" class="wiki-toc-link active"><i data-lucide="sparkles" class="wiki-toc-ico"></i> <span>Что такое Aliasarr</span></a>
-      <a href="#section-quickstart" class="wiki-toc-link"><i data-lucide="zap" class="wiki-toc-ico"></i> <span>Быстрый старт (5 мин)</span></a>
+    <div class="wiki-toc-title">
+      <span class="lang-ru">Содержание</span>
+      <span class="lang-en">Table of Contents</span>
     </div>
 
     <div class="wiki-toc-group">
-      <div class="wiki-toc-group-label"><i data-lucide="layers" class="ico-xs"></i> <span>Основные разделы</span></div>
-      <a href="#section-library" class="wiki-toc-link"><i data-lucide="library" class="wiki-toc-ico"></i> <span>Медиатека и Тайтлы</span></a>
-      <a href="#section-aliases" class="wiki-toc-link"><i data-lucide="languages" class="wiki-toc-ico"></i> <span>Алиасы и Парсер</span></a>
-      <a href="#section-qualities" class="wiki-toc-link"><i data-lucide="sliders" class="wiki-toc-ico"></i> <span>Качества и Cutoff</span></a>
-      <a href="#section-indexers" class="wiki-toc-link"><i data-lucide="search" class="wiki-toc-ico"></i> <span>Индексаторы (Трекеры)</span></a>
-      <a href="#section-downloaders" class="wiki-toc-link"><i data-lucide="download-cloud" class="wiki-toc-ico"></i> <span>Клиенты загрузки</span></a>
-      <a href="#section-specials" class="wiki-toc-link"><i data-lucide="film" class="wiki-toc-ico"></i> <span>Спецвыпуски и Импорт</span></a>
-      <a href="#section-renaming" class="wiki-toc-link"><i data-lucide="file-text" class="wiki-toc-ico"></i> <span>Шаблоны переименования</span></a>
+      <div class="wiki-toc-group-label"><i data-lucide="compass" class="ico-xs"></i> <span class="lang-ru">Введение</span><span class="lang-en">Introduction</span></div>
+      <a href="#section-intro" class="wiki-toc-link active"><i data-lucide="sparkles" class="wiki-toc-ico"></i> <span class="lang-ru">1. Что такое Aliasarr</span><span class="lang-en">1. What is Aliasarr</span></a>
+      <a href="#section-quickstart" class="wiki-toc-link"><i data-lucide="zap" class="wiki-toc-ico"></i> <span class="lang-ru">2. Быстрый старт (5 мин)</span><span class="lang-en">2. Quick Start Guide</span></a>
     </div>
 
     <div class="wiki-toc-group">
-      <div class="wiki-toc-group-label"><i data-lucide="settings-2" class="ico-xs"></i> <span>Система и Настройки</span></div>
-      <a href="#section-scheduler" class="wiki-toc-link"><i data-lucide="clock" class="wiki-toc-ico"></i> <span>Планировщик и Задачи</span></a>
-      <a href="#section-security" class="wiki-toc-link"><i data-lucide="shield" class="wiki-toc-ico"></i> <span>Безопасность и 2FA</span></a>
-      <a href="#section-backups" class="wiki-toc-link"><i data-lucide="archive" class="wiki-toc-ico"></i> <span>Резервные копии</span></a>
-      <a href="#section-notifications" class="wiki-toc-link"><i data-lucide="bell" class="wiki-toc-ico"></i> <span>Уведомления (Telegram и др.)</span></a>
-      <a href="#section-recipes" class="wiki-toc-link"><i data-lucide="award" class="wiki-toc-ico"></i> <span>Готовые пресеты (Рецепты)</span></a>
-      <a href="#section-faq" class="wiki-toc-link"><i data-lucide="help-circle" class="wiki-toc-ico"></i> <span>Частые вопросы (FAQ)</span></a>
+      <div class="wiki-toc-group-label"><i data-lucide="layers" class="ico-xs"></i> <span class="lang-ru">Медиа и Поиск</span><span class="lang-en">Media &amp; Search</span></div>
+      <a href="#section-library" class="wiki-toc-link"><i data-lucide="library" class="wiki-toc-ico"></i> <span class="lang-ru">3. Медиатека и Тайтлы</span><span class="lang-en">3. Library &amp; Titles</span></a>
+      <a href="#section-aliases" class="wiki-toc-link"><i data-lucide="languages" class="wiki-toc-ico"></i> <span class="lang-ru">4. Алиасы и Парсер</span><span class="lang-en">4. Aliases &amp; Parser</span></a>
+      <a href="#section-qualities" class="wiki-toc-link"><i data-lucide="sliders" class="wiki-toc-ico"></i> <span class="lang-ru">5. Качества и Cutoff</span><span class="lang-en">5. Quality &amp; Cutoff</span></a>
+      <a href="#section-quality-guide" class="wiki-toc-link"><i data-lucide="award" class="wiki-toc-ico"></i> <span class="lang-ru">6. Справочник форматов</span><span class="lang-en">6. Format &amp; Regex Guide</span></a>
+      <a href="#section-indexers" class="wiki-toc-link"><i data-lucide="search" class="wiki-toc-ico"></i> <span class="lang-ru">7. Индексаторы (Трекеры)</span><span class="lang-en">7. Indexers (Trackers)</span></a>
+      <a href="#section-downloaders" class="wiki-toc-link"><i data-lucide="download-cloud" class="wiki-toc-ico"></i> <span class="lang-ru">8. Клиенты загрузки</span><span class="lang-en">8. Download Clients</span></a>
+      <a href="#section-specials" class="wiki-toc-link"><i data-lucide="film" class="wiki-toc-ico"></i> <span class="lang-ru">9. Спецвыпуски и Импорт</span><span class="lang-en">9. Specials &amp; Import</span></a>
+      <a href="#section-renaming" class="wiki-toc-link"><i data-lucide="file-text" class="wiki-toc-ico"></i> <span class="lang-ru">10. Шаблоны имён</span><span class="lang-en">10. Naming Patterns</span></a>
+    </div>
+
+    <div class="wiki-toc-group">
+      <div class="wiki-toc-group-label"><i data-lucide="settings-2" class="ico-xs"></i> <span class="lang-ru">Система и Безопасность</span><span class="lang-en">System &amp; Security</span></div>
+      <a href="#section-scheduler" class="wiki-toc-link"><i data-lucide="clock" class="wiki-toc-ico"></i> <span class="lang-ru">11. Планировщик задач</span><span class="lang-en">11. Task Scheduler</span></a>
+      <a href="#section-security" class="wiki-toc-link"><i data-lucide="shield" class="wiki-toc-ico"></i> <span class="lang-ru">12. Безопасность и 2FA</span><span class="lang-en">12. Security &amp; 2FA</span></a>
+      <a href="#section-backups" class="wiki-toc-link"><i data-lucide="archive" class="wiki-toc-ico"></i> <span class="lang-ru">13. Резервные копии</span><span class="lang-en">13. Backups &amp; Restore</span></a>
+      <a href="#section-notifications" class="wiki-toc-link"><i data-lucide="bell" class="wiki-toc-ico"></i> <span class="lang-ru">14. Уведомления</span><span class="lang-en">14. Notifications</span></a>
+      <a href="#section-recipes" class="wiki-toc-link"><i data-lucide="check-circle" class="wiki-toc-ico"></i> <span class="lang-ru">15. Готовые пресеты</span><span class="lang-en">15. Recommended Presets</span></a>
+      <a href="#section-faq" class="wiki-toc-link"><i data-lucide="help-circle" class="wiki-toc-ico"></i> <span class="lang-ru">16. Вопросы и Ответы (FAQ)</span><span class="lang-en">16. FAQ &amp; Troubleshooting</span></a>
     </div>
   </aside>
 
@@ -638,13 +747,19 @@
     
     <!-- HERO HEADER -->
     <div class="wiki-hero">
-      <h1>Документация и База знаний Aliasarr</h1>
-      <p>Полное руководство по работе с комбайном управления фильмами, сериалами и аниме: настройка трекеров, загрузчиков, алиасов, порогов качества и автоматического слежения за релизами.</p>
+      <h1>
+        <span class="lang-ru">Документация и База знаний Aliasarr</span>
+        <span class="lang-en">Aliasarr Documentation &amp; Knowledge Base</span>
+      </h1>
+      <p>
+        <span class="lang-ru">Полное интерактивное руководство по работе с комбайном управления фильмами, сериалами и аниме: трекеры, загрузчики, алиасы, пороги качества Cutoff, регулярные выражения и автоматизация.</span>
+        <span class="lang-en">Comprehensive interactive guide for managing movies, series, and anime: indexers, downloaders, aliases, Cutoff quality thresholds, regex patterns, and automation.</span>
+      </p>
       <div class="wiki-quick-pills">
-        <a href="#section-quickstart" class="wiki-quick-pill"><i data-lucide="zap" class="ico-xs" style="color:var(--teal)"></i> Быстрый старт</a>
-        <a href="#section-qualities" class="wiki-quick-pill"><i data-lucide="sliders" class="ico-xs" style="color:#818cf8"></i> Настройка Cutoff Quality</a>
-        <a href="#section-aliases" class="wiki-quick-pill"><i data-lucide="languages" class="ico-xs" style="color:#f472b6"></i> Как работают алиасы</a>
-        <a href="#section-recipes" class="wiki-quick-pill"><i data-lucide="award" class="ico-xs" style="color:#34d399"></i> Лучшие пресеты</a>
+        <a href="#section-quickstart" class="wiki-quick-pill"><i data-lucide="zap" class="ico-xs" style="color:var(--teal)"></i> <span class="lang-ru">Быстрый старт</span><span class="lang-en">Quick Start</span></a>
+        <a href="#section-qualities" class="wiki-quick-pill"><i data-lucide="sliders" class="ico-xs" style="color:#818cf8"></i> <span class="lang-ru">Настройка Cutoff Quality</span><span class="lang-en">Cutoff Quality Setup</span></a>
+        <a href="#section-quality-guide" class="wiki-quick-pill"><i data-lucide="award" class="ico-xs" style="color:#f472b6"></i> <span class="lang-ru">Справочник форматов</span><span class="lang-en">Quality Format Guide</span></a>
+        <a href="#section-aliases" class="wiki-quick-pill"><i data-lucide="languages" class="ico-xs" style="color:#34d399"></i> <span class="lang-ru">Как работают алиасы</span><span class="lang-en">How Aliases Work</span></a>
       </div>
     </div>
 
@@ -652,27 +767,45 @@
     <section id="section-intro" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="sparkles"></i></div>
-        <h2 class="wiki-section-title">1. Что такое Aliasarr</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">1. Что такое Aliasarr</span>
+          <span class="lang-en">1. What is Aliasarr</span>
+        </h2>
         <span class="wiki-section-badge">OVERVIEW</span>
       </div>
-      <p class="wiki-p"><strong>Aliasarr</strong> — это современный self-hosted медиа-менеджер нового поколения, объединяющий возможности <em>Sonarr</em> и <em>Radarr</em> в едином удобном интерфейсе с глубокой поддержкой российских и международных трекеров, многоязычных названий (алиасов) и расширенным слежением за раздачами.</p>
+      <p class="wiki-p">
+        <span class="lang-ru"><strong>Aliasarr</strong> — это современный self-hosted медиа-менеджер нового поколения, объединяющий возможности <em>Sonarr</em> и <em>Radarr</em> в едином удобном интерфейсе с глубокой поддержкой российских и международных трекеров, многоязычных названий (алиасов), спецвыпусков и автоматического слежения за обновлением раздач.</span>
+        <span class="lang-en"><strong>Aliasarr</strong> is a modern next-generation self-hosted media manager that unifies the capabilities of <em>Sonarr</em> and <em>Radarr</em> in a single sleek interface with deep support for Russian and international trackers, multilingual aliases, specials, and automatic release tracking.</span>
+      </p>
       
       <div class="wiki-card-grid">
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title"><i data-lucide="check-circle" class="ico-xs" style="color:var(--teal)"></i> Единый комбайн для всего</div>
-          <p class="wiki-subcard-text">Больше не нужно держать два отдельных сервиса для фильмов и сериалов. Фильмы, многосезонные сериалы, аниме и спецвыпуски управляются в одной базе.</p>
+          <div class="wiki-subcard-title"><i data-lucide="check-circle" class="ico-xs" style="color:var(--teal)"></i> <span class="lang-ru">Единый комбайн для всего</span><span class="lang-en">All-in-One Media Hub</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Больше не нужно держать два отдельных сервиса для фильмов и сериалов. Фильмы, многосезонные сериалы, аниме и спецвыпуски управляются в одной базе.</span>
+            <span class="lang-en">No need to maintain separate apps for movies and TV shows. Movies, multi-season series, anime, and specials are all managed in a single database.</span>
+          </p>
         </div>
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title"><i data-lucide="languages" class="ico-xs" style="color:#818cf8"></i> Умная система алиасов</div>
-          <p class="wiki-subcard-text">Ищет раздачи сразу по десяткам вариантов названий: на русском, английском, языке оригинала (японский/корейский), с транслитерацией и годами.</p>
+          <div class="wiki-subcard-title"><i data-lucide="languages" class="ico-xs" style="color:#818cf8"></i> <span class="lang-ru">Умная система алиасов</span><span class="lang-en">Intelligent Alias Matching</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Ищет раздачи сразу по десяткам вариантов названий: на русском, английском, языке оригинала (японский/корейский), с транслитерацией и годами.</span>
+            <span class="lang-en">Searches across dozens of title variations simultaneously: Russian, English, original languages (Japanese/Korean), transliterations, and years.</span>
+          </p>
         </div>
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title"><i data-lucide="refresh-cw" class="ico-xs" style="color:#34d399"></i> Слежение за раздачей (Tracker)</div>
-          <p class="wiki-subcard-text">Если релиз-группа обновляет торрент (добавляет новые серии в онгоинг), Aliasarr сам обнаруживает обновление, перезаливает торрент и скачивает только новые серии.</p>
+          <div class="wiki-subcard-title"><i data-lucide="refresh-cw" class="ico-xs" style="color:#34d399"></i> <span class="lang-ru">Слежение за раздачей (Tracker)</span><span class="lang-en">Release Tracker &amp; Updates</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Если релиз-группа обновляет торрент (добавляет новые серии в онгоинг), Aliasarr сам обнаруживает обновление, перезаливает торрент и скачивает только новые серии.</span>
+            <span class="lang-en">When a release group updates a torrent with new episodes, Aliasarr detects the update, replaces the torrent, and downloads only the newly added episodes.</span>
+          </p>
         </div>
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title"><i data-lucide="shield-check" class="ico-xs" style="color:#f472b6"></i> Автономия и безопасность</div>
-          <p class="wiki-subcard-text">Встроенная поддержка HTTPS/SSL, двухфакторная аутентификация (2FA / TOTP), роли пользователей (RBAC) и автоматические бэкапы всей медиатеки.</p>
+          <div class="wiki-subcard-title"><i data-lucide="shield-check" class="ico-xs" style="color:#f472b6"></i> <span class="lang-ru">Автономия и безопасность</span><span class="lang-en">Security &amp; Autonomy</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Встроенная поддержка HTTPS/SSL, двухфакторная аутентификация (2FA / TOTP), роли пользователей (RBAC) и автоматические бэкапы всей медиатеки.</span>
+            <span class="lang-en">Built-in HTTPS/SSL, two-factor authentication (2FA / TOTP), role-based access control (RBAC), and automated library backups.</span>
+          </p>
         </div>
       </div>
     </section>
@@ -681,33 +814,67 @@
     <section id="section-quickstart" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="zap"></i></div>
-        <h2 class="wiki-section-title">2. Быстрый старт за 5 минут</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">2. Быстрый старт за 5 минут</span>
+          <span class="lang-en">2. Quick Start Guide (5 Minutes)</span>
+        </h2>
         <span class="wiki-section-badge">QUICKSTART</span>
       </div>
-      <p class="wiki-p">Для первого запуска и полноценной автоматизации достаточно выполнить 4 простых шага:</p>
+      <p class="wiki-p">
+        <span class="lang-ru">Для первого запуска и полноценной автоматизации достаточно выполнить 4 простых шага:</span>
+        <span class="lang-en">Follow these 4 simple steps to set up full automation for your library:</span>
+      </p>
 
       <ol class="wiki-steps">
         <li class="wiki-step-item">
-          <div class="wiki-step-title">Шаг 1: Настройте корневые папки медиатеки</div>
-          <div class="wiki-step-desc">Перейдите в <strong>Настройки → Папки</strong> и добавьте пути, где хранятся ваши видеофайлы (например, <code>/media/movies</code> для фильмов, <code>/media/shows</code> для сериалов, <code>/media/anime</code> для аниме).</div>
+          <div class="wiki-step-title">
+            <span class="lang-ru">Шаг 1: Настройте корневые папки медиатеки</span>
+            <span class="lang-en">Step 1: Configure Root Media Folders</span>
+          </div>
+          <div class="wiki-step-desc">
+            <span class="lang-ru">Перейдите в <strong>Настройки → Папки</strong> и добавьте пути, где хранятся ваши видеофайлы (например, <code>/media/movies</code> для фильмов, <code>/media/shows</code> для сериалов, <code>/media/anime</code> для аниме).</span>
+            <span class="lang-en">Navigate to <strong>Settings → Folders</strong> and add root paths where media is stored (e.g. <code>/media/movies</code>, <code>/media/shows</code>, <code>/media/anime</code>).</span>
+          </div>
         </li>
         <li class="wiki-step-item">
-          <div class="wiki-step-title">Шаг 2: Добавьте Торрент-клиент (Download Client)</div>
-          <div class="wiki-step-desc">Перейдите в <strong>Настройки → Клиенты загрузки</strong>, выберите qBittorrent, Transmission или Deluge, укажите хост, порт, логин и пароль. Нажмите кнопку <em>«Тест»</em> для проверки связи.</div>
+          <div class="wiki-step-title">
+            <span class="lang-ru">Шаг 2: Добавьте Торрент-клиент (Download Client)</span>
+            <span class="lang-en">Step 2: Add Download Client</span>
+          </div>
+          <div class="wiki-step-desc">
+            <span class="lang-ru">Перейдите в <strong>Настройки → Клиенты загрузки</strong>, выберите qBittorrent, Transmission или Deluge, укажите хост, порт, логин и пароль. Нажмите кнопку <em>«Тест»</em> для проверки связи.</span>
+            <span class="lang-en">Navigate to <strong>Settings → Download Clients</strong>, select qBittorrent, Transmission, or Deluge, enter credentials, and test connection.</span>
+          </div>
         </li>
         <li class="wiki-step-item">
-          <div class="wiki-step-title">Шаг 3: Подключите Индексаторы (Prowlarr / Jackett / Torznab)</div>
-          <div class="wiki-step-desc">В разделе <strong>Настройки → Индексаторы</strong> добавьте ваши трекеры (или Torznab-ссылки из Prowlarr/Jackett). Рекомендуется включить категории <em>Movies</em>, <em>TV</em> и <em>Anime</em>.</div>
+          <div class="wiki-step-title">
+            <span class="lang-ru">Шаг 3: Подключите Индексаторы (Prowlarr / Jackett / Torznab)</span>
+            <span class="lang-en">Step 3: Connect Indexers (Prowlarr / Jackett / Torznab)</span>
+          </div>
+          <div class="wiki-step-desc">
+            <span class="lang-ru">В разделе <strong>Настройки → Индексаторы</strong> добавьте ваши трекеры (или Torznab-ссылки из Prowlarr/Jackett). Рекомендуется включить категории <em>Movies</em>, <em>TV</em> и <em>Anime</em>.</span>
+            <span class="lang-en">In <strong>Settings → Indexers</strong>, add your trackers or Torznab feeds from Prowlarr/Jackett. Enable Movies, TV, and Anime categories.</span>
+          </div>
         </li>
         <li class="wiki-step-item">
-          <div class="wiki-step-title">Шаг 4: Добавьте первый фильм или сериал</div>
-          <div class="wiki-step-desc">Нажмите кнопку <strong>«+ Добавить видео»</strong> в левом меню, найдите тайтл по названию, выберите профиль качества и корневую папку, затем нажмите <em>«Добавить»</em> (с автопоиском или без).</div>
+          <div class="wiki-step-title">
+            <span class="lang-ru">Шаг 4: Добавьте первый фильм или сериал</span>
+            <span class="lang-en">Step 4: Add Your First Show or Movie</span>
+          </div>
+          <div class="wiki-step-desc">
+            <span class="lang-ru">Нажмите кнопку <strong>«+ Добавить видео»</strong> в левом меню, найдите тайтл по названию, выберите профиль качества и корневую папку, затем нажмите <em>«Добавить»</em> (с автопоиском или без).</span>
+            <span class="lang-en">Click <strong>«+ Add Video»</strong> in the sidebar, search for your title, select Quality Profile and root folder, then click <em>Add</em>.</span>
+          </div>
         </li>
       </ol>
 
       <div class="wiki-callout wiki-callout-best">
         <i data-lucide="check-check" class="callout-ico ico-sm"></i>
-        <div><strong>Совет:</strong> После добавления первого тайтла перейдите в его карточку и нажмите кнопку <em>«Поиск релизов»</em> (лупа), чтобы наглядно увидеть, как система сопоставляет алиасы и оценивает найденные раздачи.</div>
+        <div>
+          <strong class="lang-ru">Совет:</strong><strong class="lang-en">Tip:</strong>
+          <span class="lang-ru"> После добавления первого тайтла перейдите в его карточку и нажмите кнопку <em>«Поиск релизов»</em> (лупа), чтобы наглядно увидеть, как система сопоставляет алиасы и оценивает найденные раздачи.</span>
+          <span class="lang-en"> After adding your first title, open its card and click <em>Search Releases</em> (magnifying glass) to see live alias matching and DecisionEngine scoring.</span>
+        </div>
       </div>
     </section>
 
@@ -715,68 +882,124 @@
     <section id="section-library" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="library"></i></div>
-        <h2 class="wiki-section-title">3. Медиатека и Управление тайтлами</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">3. Медиатека и Управление тайтлами</span>
+          <span class="lang-en">3. Library &amp; Media Management</span>
+        </h2>
         <span class="wiki-section-badge">LIBRARY</span>
       </div>
-      <p class="wiki-p">Раздел <strong>Библиотека</strong> отображает все добавленные тайтлы с удобной фильтрацией по типам (Фильмы, Сериалы, Аниме), статусу мониторинга и сортировкой по алфавиту или дате добавления.</p>
+      <p class="wiki-p">
+        <span class="lang-ru">Раздел <strong>Библиотека</strong> отображает все добавленные тайтлы с удобной фильтрацией по типам (Фильмы, Сериалы, Аниме), статусу мониторинга и сортировкой по алфавиту или дате добавления.</span>
+        <span class="lang-en">The <strong>Library</strong> displays all added titles with quick filtering by content type (Movies, Series, Anime), monitoring status, and alphabetical or date sorting.</span>
+      </p>
 
-      <div class="wiki-h3">Статусы эпизодов и фильмов</div>
-      <table class="wiki-table">
-        <thead>
-          <tr>
-            <th style="width:130px;">Статус</th>
-            <th style="width:100px;">Цвет</th>
-            <th>Описание и поведение системы</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>Downloaded</strong></td>
-            <td><span class="badge badge-teal">Зеленый</span></td>
-            <td>Файл успешно скачан и находится на диске в медиатеке. Участвует в автопоиске только если разрешен апгрейд до Cutoff.</td>
-          </tr>
-          <tr>
-            <td><strong>Wanted</strong></td>
-            <td><span class="badge badge-danger">Красный</span></td>
-            <td>Эпизод уже вышел, но файла еще нет. Планировщик Wanted Search автоматически ищет и захватывает подходящие релизы.</td>
-          </tr>
-          <tr>
-            <td><strong>Unaired</strong></td>
-            <td><span class="badge badge-warning">Желтый</span></td>
-            <td>Эпизод еще не вышел в эфир (дата премьеры в будущем). При наступлении даты премьеры автоматически переходит в Wanted.</td>
-          </tr>
-          <tr>
-            <td><strong>Unmonitored</strong></td>
-            <td><span class="badge" style="background:#4b5563; color:#fff;">Серый</span></td>
-            <td>Эпизод снят с отслеживания. Автопоиск для него отключен, но доступен ручной интерактивный поиск.</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="wiki-h3">
+        <span class="lang-ru">Статусы эпизодов и фильмов</span>
+        <span class="lang-en">Episode and Movie Statuses</span>
+      </div>
+      
+      <div class="table-responsive">
+        <table class="wiki-table">
+          <thead>
+            <tr>
+              <th style="width:220px;"><span class="lang-ru">Статус</span><span class="lang-en">Status</span></th>
+              <th style="width:160px;"><span class="lang-ru">Бейдж / Цвет</span><span class="lang-en">Badge / Color</span></th>
+              <th><span class="lang-ru">Описание и поведение системы</span><span class="lang-en">Description &amp; Behavior</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <strong><span class="lang-ru">Скачан (Downloaded)</span><span class="lang-en">Downloaded</span></strong>
+              </td>
+              <td>
+                <span class="status-pill status-downloaded"><i data-lucide="check" class="ico-xs" style="margin-right:4px;"></i> <span class="lang-ru">Скачан</span><span class="lang-en">Downloaded</span></span>
+              </td>
+              <td>
+                <span class="lang-ru">Файл успешно скачан и находится на диске в медиатеке. Участвует в автопоиске только если разрешен апгрейд до Cutoff.</span>
+                <span class="lang-en">File is downloaded and present in library disk storage. Participates in search only if upgrade to Cutoff is enabled.</span>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <strong><span class="lang-ru">Разыскивается (Wanted)</span><span class="lang-en">Wanted</span></strong>
+              </td>
+              <td>
+                <span class="status-pill status-missing"><i data-lucide="alert-circle" class="ico-xs" style="margin-right:4px;"></i> <span class="lang-ru">Разыскивается</span><span class="lang-en">Wanted</span></span>
+              </td>
+              <td>
+                <span class="lang-ru">Эпизод уже вышел, но файла еще нет. Планировщик Wanted Search автоматически ищет и захватывает подходящие релизы.</span>
+                <span class="lang-en">Episode has aired, but no file exists. Wanted Search scheduler automatically queries trackers and grabs matching releases.</span>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <strong><span class="lang-ru">Не вышел (Unaired)</span><span class="lang-en">Unaired</span></strong>
+              </td>
+              <td>
+                <span class="status-pill status-unaired"><i data-lucide="clock" class="ico-xs" style="margin-right:4px;"></i> <span class="lang-ru">Не вышел</span><span class="lang-en">Unaired</span></span>
+              </td>
+              <td>
+                <span class="lang-ru">Эпизод еще не вышел в эфир (дата премьеры в будущем). При наступлении даты премьеры автоматически переходит в Wanted.</span>
+                <span class="lang-en">Episode has not aired yet (air date in the future). Automatically transitions to Wanted on premiere air date.</span>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <strong><span class="lang-ru">Не отслеживается (Unmonitored)</span><span class="lang-en">Unmonitored</span></strong>
+              </td>
+              <td>
+                <span class="status-pill status-unmonitored"><i data-lucide="bookmark-x" class="ico-xs" style="margin-right:4px;"></i> <span class="lang-ru">Отключен</span><span class="lang-en">Unmonitored</span></span>
+              </td>
+              <td>
+                <span class="lang-ru">Эпизод снят с отслеживания. Фоновый автопоиск для него отключен, но доступен ручной интерактивный поиск.</span>
+                <span class="lang-en">Episode is unmonitored. Background search is disabled, though manual interactive search remains available.</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <!-- 4. АЛИАСЫ И ПАРСЕР -->
     <section id="section-aliases" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="languages"></i></div>
-        <h2 class="wiki-section-title">4. Алиасы и Универсальный Парсер</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">4. Алиасы и Универсальный Парсер</span>
+          <span class="lang-en">4. Aliases &amp; Release Parser</span>
+        </h2>
         <span class="wiki-section-badge">PARSER</span>
       </div>
-      <p class="wiki-p">Главное преимущество Aliasarr — универсальный парсер, специально обученный понимать названия релизов как зарубежных трекеров (Scene, P2P), так и отечественных (RuTracker, NNMClub, Rutor, AniLibria, Kinozal).</p>
+      <p class="wiki-p">
+        <span class="lang-ru">Главное преимущество Aliasarr — универсальный парсер, специально обученный понимать названия релизов как зарубежных трекеров (Scene, P2P), так и отечественных (RuTracker, NNMClub, Rutor, AniLibria, Kinozal).</span>
+        <span class="lang-en">Aliasarr's flagship engine: a universal parser trained to understand release titles from both international scene trackers and domestic Russian/Anime trackers seamlessly.</span>
+      </p>
 
       <div class="wiki-card-grid">
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title"><i data-lucide="file-code" class="ico-xs" style="color:var(--teal)"></i> Распознавание серий и паков</div>
-          <p class="wiki-subcard-text">Поддерживает шаблоны <code>S01E05</code>, <code>[E12 of 12]</code>, <code>Сезон 1 Серии 1-12 из 12</code>, <code>12 из 12</code>, <code>1-24 эп.</code>, <code>OVA-1</code>, <code>SP01-SP03</code> и пакетные сезоны до 9999 серий.</p>
+          <div class="wiki-subcard-title"><i data-lucide="file-code" class="ico-xs" style="color:var(--teal)"></i> <span class="lang-ru">Распознавание серий и паков</span><span class="lang-en">Episode &amp; Batch Matching</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Поддерживает шаблоны <code>S01E05</code>, <code>[E12 of 12]</code>, <code>Сезон 1 Серии 1-12 из 12</code>, <code>12 из 12</code>, <code>1-24 эп.</code>, <code>OVA-1</code>, <code>SP01-SP03</code> и пакетные сезоны до 9999 серий.</span>
+            <span class="lang-en">Handles <code>S01E05</code>, <code>[E12 of 12]</code>, <code>Season 1 Ep 1-12 of 12</code>, <code>OVA-1</code>, <code>SP01-SP03</code>, and batch seasons up to 9999 episodes.</span>
+          </p>
         </div>
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title"><i data-lucide="tag" class="ico-xs" style="color:#818cf8"></i> Авто-генерация алиасов</div>
-          <p class="wiki-subcard-text">При добавлении тайтла метаданные автоматически наполняют список алиасов (русский перевод, оригинальное название, ромадзи, английское название).</p>
+          <div class="wiki-subcard-title"><i data-lucide="tag" class="ico-xs" style="color:#818cf8"></i> <span class="lang-ru">Авто-генерация алиасов</span><span class="lang-en">Automatic Alias Enrichment</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">При добавлении тайтла метаданные автоматически наполняют список алиасов (русский перевод, оригинальное название, ромадзи, английское название).</span>
+            <span class="lang-en">Metadata sources automatically populate alias candidates (Russian translation, original title, Romaji, English title, transliterations).</span>
+          </p>
         </div>
       </div>
 
       <div class="wiki-callout wiki-callout-tip">
         <i data-lucide="lightbulb" class="callout-ico ico-sm"></i>
-        <div><strong>Пользовательские алиасы:</strong> Вы можете в любой момент добавить собственный алиас в карточке тайтла (например, редкое народное название или имя переводчика). Поиск сразу начнет учитывать его во всех трекерах!</div>
+        <div>
+          <strong class="lang-ru">Пользовательские алиасы:</strong><strong class="lang-en">Custom Aliases:</strong>
+          <span class="lang-ru"> Вы можете в любой момент добавить собственный алиас в карточке тайтла (например, редкое народное название или имя переводчика). Поиск сразу начнет учитывать его во всех трекерах!</span>
+          <span class="lang-en"> You can add custom aliases anytime in the show details card. All indexers immediately incorporate the new alias in searches!</span>
+        </div>
       </div>
     </section>
 
@@ -784,247 +1007,414 @@
     <section id="section-qualities" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="sliders"></i></div>
-        <h2 class="wiki-section-title">5. Качества, Профили и Cutoff Quality</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">5. Качества, Профили и Cutoff Quality</span>
+          <span class="lang-en">5. Quality Profiles, Scoring &amp; Cutoff</span>
+        </h2>
         <span class="wiki-section-badge">QUALITY &amp; CUTOFF</span>
       </div>
-      <p class="wiki-p">Качество релизов в Aliasarr оценивается двухуровневой системой: <strong>Базовое качество (Quality Rank)</strong> и <strong>Форматы качества (Quality Formats Score)</strong>.</p>
+      <p class="wiki-p">
+        <span class="lang-ru">Качество релизов в Aliasarr оценивается двухуровневой системой: <strong>Базовое качество (Quality Rank)</strong> и <strong>Форматы качества (Quality Formats Score)</strong>.</span>
+        <span class="lang-en">Release quality evaluation is governed by a two-tier model: <strong>Base Quality Rank</strong> and <strong>Quality Formats Score</strong>.</span>
+      </p>
 
-      <div class="wiki-h3">Иерархия базовых качеств (от низшего к высшему):</div>
+      <div class="wiki-h3"><span class="lang-ru">Иерархия базовых качеств (от низшего к высшему):</span><span class="lang-en">Base Quality Hierarchy (Lowest to Highest):</span></div>
       <div class="wiki-code-block">
-CAM / TS &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt; BDRip-480p &lt; HDTV-720p &lt; WEBRip-720p &lt; WEBDL-720p &lt; Bluray-720p &lt; HDTV-1080p &lt; WEBRip-1080p &lt; WEBDL-1080p &lt; Bluray-1080p &lt; Remux-1080p &lt; WEBDL-2160p &lt; Bluray-2160p &lt; Remux-2160p
+CAM-480p &lt; Telesync-480p &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt; BDRip-480p &lt; HDTV-720p &lt; WEBRip-720p &lt; WEBDL-720p &lt; Bluray-720p &lt; HDTV-1080p &lt; WEBRip-1080p &lt; WEBDL-1080p &lt; Bluray-1080p &lt; Remux-1080p &lt; WEBDL-2160p &lt; Bluray-2160p &lt; Remux-2160p
       </div>
 
-      <div class="wiki-h3">Как работает Cutoff Quality (Порог отсечки) и апгрейд:</div>
-      <p class="wiki-p"><strong>Cutoff Quality</strong> — это целевое качество, при котором файл считается идеальным. Если файл скачан в более низком качестве, система продолжит искать улучшения, пока не достигнет Cutoff.</p>
+      <div class="wiki-h3"><span class="lang-ru">Как работает Cutoff Quality (Порог отсечки) и автоматический апгрейд:</span><span class="lang-en">How Cutoff Quality and Auto-Upgrades Work:</span></div>
+      <p class="wiki-p">
+        <span class="lang-ru"><strong>Cutoff Quality</strong> — это целевой уровень качества, при достижении которого файл считается идеальным. Если текущий скачанный файл имеет качество ниже Cutoff (и включен флаг «Разрешить апгрейд»), Aliasarr продолжит искать лучшие релизы и автоматически заменит старый файл при появлении лучшей версии.</span>
+        <span class="lang-en"><strong>Cutoff Quality</strong> is the target threshold where a file is considered optimal. If current file quality is below Cutoff (and Upgrades Allowed is on), Aliasarr automatically grabs higher-quality releases as they appear and replaces the older file.</span>
+      </p>
 
       <div class="wiki-card-grid">
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">1. Разрешить апгрейд (Upgrade Allowed)</div>
-          <p class="wiki-subcard-text">В профиле качества включите чекбокс <em>«Разрешить апгрейд»</em>.</p>
+          <div class="wiki-subcard-title"><span class="lang-ru">1. Разрешить апгрейд (Upgrade Allowed)</span><span class="lang-en">1. Upgrade Allowed Flag</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">В профиле качества включите чекбокс <em>«Разрешить апгрейд»</em>.</span>
+            <span class="lang-en">Enable <em>Upgrades Allowed</em> checkbox in the Quality Profile.</span>
+          </p>
         </div>
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">2. Установите Cutoff Quality</div>
-          <p class="wiki-subcard-text">Выберите целевой уровень, например <strong>Bluray-1080p</strong> или <strong>WEBDL-1080p</strong>.</p>
+          <div class="wiki-subcard-title"><span class="lang-ru">2. Установите Cutoff Quality</span><span class="lang-en">2. Set Cutoff Quality</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Выберите целевой уровень, например <strong>Bluray-1080p</strong> или <strong>WEBDL-1080p</strong>.</span>
+            <span class="lang-en">Select target quality, e.g. <strong>Bluray-1080p</strong> or <strong>WEBDL-1080p</strong>.</span>
+          </p>
         </div>
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">3. Очки форматов (Cutoff Score)</div>
-          <p class="wiki-subcard-text">Если вам важен конкретный релизер или HDR10+/Dolby Vision, задайте порог очков.</p>
+          <div class="wiki-subcard-title"><span class="lang-ru">3. Очки форматов (Cutoff Score)</span><span class="lang-en">3. Target Cutoff Score</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Если вам важен конкретный релизер или HDR10+/Dolby Vision, задайте порог очков.</span>
+            <span class="lang-en">Set a minimum score threshold for favorite voiceovers, HDR, or release groups.</span>
+          </p>
         </div>
       </div>
     </section>
 
-    <!-- 6. ИНДЕКСАТОРЫ -->
+    <!-- 6. СПРАВОЧНИК ФОРМАТОВ КАЧЕСТВА И РЕГУЛЯРНЫХ ВЫРАЖЕНИЙ -->
+    <section id="section-quality-guide" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="award"></i></div>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">6. Справочник форматов качества и готовых Regex</span>
+          <span class="lang-en">6. Quality Formats &amp; Regex Catalog</span>
+        </h2>
+        <span class="wiki-section-badge">REGEX CATALOG</span>
+      </div>
+      <p class="wiki-p">
+        <span class="lang-ru">Форматы качества используют регулярные выражения (Python <code>re.search</code> с флагом <code>IGNORECASE</code>). Ниже представлены готовые шаблоны, которые можно скопировать в один клик:</span>
+        <span class="lang-en">Quality formats evaluate release titles using regular expressions (Python <code>re.search</code> with <code>IGNORECASE</code>). Below is the comprehensive catalog of copy-ready regex presets:</span>
+      </p>
+
+      <div class="wiki-h3"><span class="lang-ru">Озвучки, Дубляж и Студии перевода:</span><span class="lang-en">Voiceovers, Dubbing &amp; Translators:</span></div>
+      
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="volume-2" class="ico-xs" style="color:var(--teal)"></i> <span class="lang-ru">Полный дубляж / Лицензия / iTunes (Dubbing)</span><span class="lang-en">Official Dubbing / iTunes / License</span></div>
+        <div class="regex-box">
+          <span class="regex-code">\b(дублир|дубляж|itunes|dbe|звук\s*d\b|line\s*d\b)</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="film" class="ico-xs" style="color:#818cf8"></i> LostFilm (Лостфильм)</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(lostfilm|лостфильм|lost[-_ ]?film)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="film" class="ico-xs" style="color:#f472b6"></i> HDRezka / Резка</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(hdrezka|rezka|хдрезка|хд\s*резка)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="film" class="ico-xs" style="color:#34d399"></i> AniLibria / Studio Band (Аниме)</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(anilibria|анилибрия|studio[-_. ]?band|студийная\s*банда)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-h3"><span class="lang-ru">Видеокодеки, HDR, Dolby Vision:</span><span class="lang-en">Video Codecs, HDR, Dolby Vision:</span></div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="clapperboard" class="ico-xs" style="color:#fb923c"></i> Dolby Vision / DV / DoVi</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(dovi|dolby[-_. ]?vision|dv\b|p7|p8|profile\s*[78])\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="clapperboard" class="ico-xs" style="color:#38bdf8"></i> HDR10+ / HDR10 / HDR</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(hdr10\+|hdr10|hdr|uhd[-_. ]?hdr)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-h3"><span class="lang-ru">Анти-мусор (Отрицательный Score):</span><span class="lang-en">Anti-Trash Filters (Negative Score):</span></div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="shield-x" class="ico-xs" style="color:#ef4444"></i> <span class="lang-ru">CAM / TS / Реклама (Score: -500)</span><span class="lang-en">CAM / TS / Casino Ads (Score: -500)</span></div>
+        <div class="regex-box">
+          <span class="regex-code">\b(camrip|hdcam|telesync|hdts|tsrip|1xbet|joycasino|parimatch|реклама)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. ИНДЕКСАТОРЫ -->
     <section id="section-indexers" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="search"></i></div>
-        <h2 class="wiki-section-title">6. Индексаторы и Трекеры</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">7. Индексаторы и Трекеры</span>
+          <span class="lang-en">7. Indexers &amp; Trackers</span>
+        </h2>
         <span class="wiki-section-badge">INDEXERS</span>
       </div>
-      <p class="wiki-p">Aliasarr поддерживает работу с любыми Torznab и Newznab провайдерами (Prowlarr, Jackett), а также прямые интеграции с трекерами.</p>
+      <p class="wiki-p">
+        <span class="lang-ru">Aliasarr поддерживает работу с любыми Torznab и Newznab провайдерами (Prowlarr, Jackett), а также прямые интеграции с трекерами. Поиск выполняется параллельно с пулом воркеров.</span>
+        <span class="lang-en">Aliasarr supports all Torznab and Newznab providers (Prowlarr, Jackett) as well as direct tracker indexers. Searches execute concurrently across all active indexers.</span>
+      </p>
 
-      <div class="wiki-h3">Рекомендуемые параметры индексатора:</div>
-      <table class="wiki-table">
-        <thead>
-          <tr>
-            <th>Параметр</th>
-            <th>Рекомендуемое значение</th>
-            <th>Для чего нужен</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>Минимум сидов (Min Seeds)</strong></td>
-            <td><code>1</code> – <code>3</code></td>
-            <td>Отсекает мертвые раздачи без раздающих, экономя время загрузчика.</td>
-          </tr>
-          <tr>
-            <td><strong>Приоритет (Priority)</strong></td>
-            <td><code>1</code> (высший) – <code>50</code></td>
-            <td>При наличии одинаковых раздач на разных трекерах релиз будет взят с более приоритетного трекера.</td>
-          </tr>
-          <tr>
-            <td><strong>Интервал повторов при сбое</strong></td>
-            <td><code>15 мин</code></td>
-            <td>При временной недоступности трекера Aliasarr автоматически перепроверит его и восстановит статус.</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="wiki-table">
+          <thead>
+            <tr>
+              <th><span class="lang-ru">Параметр</span><span class="lang-en">Parameter</span></th>
+              <th><span class="lang-ru">Рекомендуемое значение</span><span class="lang-en">Recommended Value</span></th>
+              <th><span class="lang-ru">Назначение</span><span class="lang-en">Purpose</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Min Seeds</strong></td>
+              <td><code>1</code> – <code>3</code></td>
+              <td><span class="lang-ru">Отсекает мертвые раздачи без сидеров</span><span class="lang-en">Filters out dead torrents with 0 seeders</span></td>
+            </tr>
+            <tr>
+              <td><strong>Priority</strong></td>
+              <td><code>1</code> (высший) – <code>50</code></td>
+              <td><span class="lang-ru">Приоритет трекера при одинаковом качестве релизов</span><span class="lang-en">Tracker priority when identical quality matches are found</span></td>
+            </tr>
+            <tr>
+              <td><strong>Timeout</strong></td>
+              <td><code>12 сек</code></td>
+              <td><span class="lang-ru">Защита от зависания поиска при сбое трекера</span><span class="lang-en">Prevents search stalling on slow indexers</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
-    <!-- 7. КЛИЕНТЫ ЗАГРУЗКИ -->
+    <!-- 8. КЛИЕНТЫ ЗАГРУЗКИ -->
     <section id="section-downloaders" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="download-cloud"></i></div>
-        <h2 class="wiki-section-title">7. Клиенты загрузки</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">8. Клиенты загрузки</span>
+          <span class="lang-en">8. Download Clients</span>
+        </h2>
         <span class="wiki-section-badge">DOWNLOADERS</span>
       </div>
-      <p class="wiki-p">Поддерживаются популярные торрент-клиенты: <strong>qBittorrent</strong>, <strong>Transmission</strong>, <strong>Deluge</strong>, <strong>rTorrent</strong>, <strong>Aria2</strong>, <strong>SABnzbd</strong>.</p>
+      <p class="wiki-p">
+        <span class="lang-ru">Поддерживаются популярные торрент-клиенты: <strong>qBittorrent</strong>, <strong>Transmission</strong>, <strong>Deluge</strong>, <strong>rTorrent</strong>, <strong>Aria2</strong>, <strong>SABnzbd</strong>.</span>
+        <span class="lang-en">Supported clients include: <strong>qBittorrent</strong>, <strong>Transmission</strong>, <strong>Deluge</strong>, <strong>rTorrent</strong>, <strong>Aria2</strong>, and <strong>SABnzbd</strong>.</span>
+      </p>
 
       <div class="wiki-callout wiki-callout-note">
         <i data-lucide="check" class="callout-ico ico-sm"></i>
-        <div><strong>Фильтрация файлов раздачи:</strong> При захвате релиза для одной или нескольких конкретных серий Aliasarr автоматически отключает лишние файлы раздачи в торрент-клиенте, загружая только нужные вам серии и экономя гигабайты диска!</div>
+        <div>
+          <strong class="lang-ru">Выборочное скачивание:</strong><strong class="lang-en">Selective Episode Downloading:</strong>
+          <span class="lang-ru"> При захвате релиза для конкретных серий Aliasarr автоматически выключает лишние файлы раздачи в клиенте, загружая только нужные вам серии.</span>
+          <span class="lang-en"> When grabbing releases for specific episodes, Aliasarr automatically disables unneeded files in the torrent client to save disk space.</span>
+        </div>
       </div>
     </section>
 
-    <!-- 8. СПЕЦВЫПУСКИ И ИМПОРТ -->
+    <!-- 9. СПЕЦВЫПУСКИ И ИМПОРТ -->
     <section id="section-specials" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="film"></i></div>
-        <h2 class="wiki-section-title">8. Спецвыпуски (Specials, OVA) и Ручной импорт</h2>
-        <span class="wiki-section-badge">SPECIALS &amp; IMPORT</span>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">9. Спецвыпуски (Specials, OVA) и Ручной импорт</span>
+          <span class="lang-en">9. Specials, OVA &amp; Manual Import</span>
+        </h2>
+        <span class="wiki-section-badge">SPECIALS</span>
       </div>
-      <p class="wiki-p">Спецвыпуски (OVA, фильмовые вставки, SP01, рекапы) часто имеют нестандартную нумерацию на трекерах. Aliasarr предоставляет удобный интерактивный мастер:</p>
+      <p class="wiki-p">
+        <span class="lang-ru">Спецвыпуски (OVA, фильмовые вставки, SP01, рекапы) часто имеют нестандартную нумерацию. Aliasarr предоставляет интерактивный мастер ручного сопоставления:</span>
+        <span class="lang-en">Specials (OVA, side stories, SP01, recaps) often have non-standard naming. Aliasarr provides an interactive mapping wizard:</span>
+      </p>
 
       <ul style="color:var(--text); font-size:14px; line-height:1.7;">
-        <li><strong>Индикатор готовности спешлов:</strong> Если скачан спецвыпуск, в карточке тайтла загорается кнопка <em>«Спецвыпуски (готов к импорту)»</em>.</li>
-        <li><strong>Выбор целевого сезона/серии:</strong> Вы сами решаете, поместить спецвыпуск в <code>Season 00 (Specials)</code> или привязать к конкретному номеру эпизода.</li>
-        <li><strong>Защита шрифтов:</strong> При импорте аниме создаются файлы <code>.ignore</code> в папках шрифтов, чтобы Jellyfin и Emby не засоряли медиатеку лишними файлами.</li>
+        <li><strong class="lang-ru">Индикатор готовности:</strong><strong class="lang-en">Ready Indicator:</strong> <span class="lang-ru">В карточке тайтла подсвечивается кнопка «Спецвыпуски (готов к импорту)» при завершении скачивания.</span><span class="lang-en">Show card displays highlighted «Specials (ready to import)» badge upon download completion.</span></li>
+        <li><strong class="lang-ru">Привязка к S00 или сезону:</strong><strong class="lang-en">Mapping to S00 or Season:</strong> <span class="lang-ru">Интерактивный выбор целевой серии или сезона Specials.</span><span class="lang-en">Interactive assignment to Season 00 or specific season episode.</span></li>
+        <li><strong class="lang-ru">Изоляция шрифтов:</strong><strong class="lang-en">Font Isolation:</strong> <span class="lang-ru">Автоматическое создание <code>.ignore</code> файлов в папках <code>fonts/</code> для Jellyfin/Emby/Plex.</span><span class="lang-en">Automatic generation of <code>.ignore</code> files in <code>fonts/</code> directories for clean Jellyfin/Emby libraries.</span></li>
       </ul>
     </section>
 
-    <!-- 9. ШАБЛОНЫ ПЕРЕИМЕНОВАНИЯ -->
+    <!-- 10. ШАБЛОНЫ ПЕРЕИМЕНОВАНИЯ -->
     <section id="section-renaming" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="file-text"></i></div>
-        <h2 class="wiki-section-title">9. Шаблоны переименования</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">10. Шаблоны переименования</span>
+          <span class="lang-en">10. Renaming &amp; Organizing Patterns</span>
+        </h2>
         <span class="wiki-section-badge">RENAMING</span>
       </div>
-      <p class="wiki-p">Настройка шаблонов находится в <strong>Настройки → Шаблоны</strong>. Вы можете использовать удобный предпросмотр (Preview Rename &amp; Organize) с визуальным diff перед применением изменений.</p>
+      <p class="wiki-p">
+        <span class="lang-ru">Настройка шаблонов находится в <strong>Настройки → Шаблоны</strong>. Функция <strong>Preview Rename &amp; Organize</strong> позволяет проверить изменения перед записью на диск:</span>
+        <span class="lang-en">Configure patterns in <strong>Settings → Patterns</strong>. Use <strong>Preview Rename &amp; Organize</strong> for interactive diff verification before applying disk changes:</span>
+      </p>
 
-      <div class="wiki-h3">Рекомендуемые шаблоны:</div>
       <div class="wiki-code-block">
 Сериалы / Аниме:
-Папка сериала:  {Show Title} ({Release Year})
-Папка сезона:   Season {Season:00}
-Файл серии:     {Show Title} - S{Season:00}E{Episode:00} - {Episode Title} [{Quality Full}] [{Release Group}]
+Папка:  {Show Title} ({Release Year})
+Сезон:  Season {Season:00}
+Файл:   {Show Title} - S{Season:00}E{Episode:00} - {Episode Title} [{Quality Full}] [{Release Group}]
 
 Фильмы:
-Папка фильма:   {Show Title} ({Release Year})
-Файл фильма:    {Show Title} ({Release Year}) [{Quality Full}] [{Release Group}]
+Папка:  {Show Title} ({Release Year})
+Файл:   {Show Title} ({Release Year}) [{Quality Full}] [{Release Group}]
       </div>
     </section>
 
-    <!-- 10. ПЛАНИРОВЩИК -->
+    <!-- 11. ПЛАНИРОВЩИК -->
     <section id="section-scheduler" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="clock"></i></div>
-        <h2 class="wiki-section-title">10. Планировщик и Фоновые задачи</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">11. Планировщик и Фоновые задачи</span>
+          <span class="lang-en">11. Task Scheduler &amp; Concurrency</span>
+        </h2>
         <span class="wiki-section-badge">SCHEDULER</span>
       </div>
-      <p class="wiki-p">Aliasarr выполняет фоновые операции асинхронно без зависаний интерфейса:</p>
+      <p class="wiki-p">
+        <span class="lang-ru">Aliasarr выполняет задачи неблокирующим образом через асинхронный планировщик:</span>
+        <span class="lang-en">Aliasarr executes background jobs non-blockingly via asynchronous scheduler:</span>
+      </p>
       <ul style="color:var(--text); font-size:14px; line-height:1.7;">
-        <li><strong>Wanted Search (каждые 15 мин):</strong> Поиск отсутствующих серий и фильмов.</li>
-        <li><strong>Downloads Check (каждые 15 сек):</strong> Проверка 100% завершения загрузок и их авто-импорт.</li>
-        <li><strong>Release Tracker (каждые 15 мин):</strong> Проверка обновлений в отслеживаемых раздачах (онгоинги).</li>
-        <li><strong>Auto Backups (каждые 7 дней):</strong> Создание полной резервной копии базы данных.</li>
+        <li><strong>Wanted Search (каждые 15 мин):</strong> <span class="lang-ru">Автопоиск разыскиваемых серий</span><span class="lang-en">Auto-search for wanted episodes</span></li>
+        <li><strong>Downloads Check (каждые 15 сек):</strong> <span class="lang-ru">Проверка завершенных торрентов и авто-импорт</span><span class="lang-en">Completed download verification and auto-import</span></li>
+        <li><strong>Release Tracker (каждые 15 мин):</strong> <span class="lang-ru">Проверка обновлений торрентов онгоингов</span><span class="lang-en">Ongoing torrent update checks</span></li>
+        <li><strong>Auto Backups (каждые 7 дней):</strong> <span class="lang-ru">Автоматический бэкап базы данных</span><span class="lang-en">Automated database backup</span></li>
       </ul>
     </section>
 
-    <!-- 11. БЕЗОПАСНОСТЬ И 2FA -->
+    <!-- 12. БЕЗОПАСНОСТЬ И 2FA -->
     <section id="section-security" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="shield"></i></div>
-        <h2 class="wiki-section-title">11. Безопасность, 2FA и Доступ</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">12. Безопасность, 2FA и Доступ</span>
+          <span class="lang-en">12. Security, 2FA &amp; Access Control</span>
+        </h2>
         <span class="wiki-section-badge">SECURITY</span>
       </div>
-      <p class="wiki-p">Для защиты от несанкционированного доступа поддерживается:</p>
       <div class="wiki-card-grid">
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title"><i data-lucide="lock" class="ico-xs" style="color:var(--teal)"></i> Вход по паролю</div>
-          <p class="wiki-subcard-text">Включение авторизации блокирует доступ к веб-интерфейсу, Wiki и REST API для неавторизованных пользователей.</p>
+          <div class="wiki-subcard-title"><i data-lucide="lock" class="ico-xs" style="color:var(--teal)"></i> <span class="lang-ru">Вход по паролю</span><span class="lang-en">Password Authentication</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Защищает веб-интерфейс, Wiki и API от неавторизованных посетителей.</span>
+            <span class="lang-en">Guards web UI, Wiki, and API from unauthorized visitors.</span>
+          </p>
         </div>
         <div class="wiki-subcard">
           <div class="wiki-subcard-title"><i data-lucide="smartphone" class="ico-xs" style="color:#818cf8"></i> 2FA / TOTP</div>
-          <p class="wiki-subcard-text">Двухфакторная защита через стандартные приложения Google Authenticator, Bitwarden, Aegis, 2FAS.</p>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Поддержка Google Authenticator, Bitwarden, Aegis, 2FAS.</span>
+            <span class="lang-en">Two-factor protection via Google Authenticator, Bitwarden, Aegis, 2FAS.</span>
+          </p>
         </div>
       </div>
     </section>
 
-    <!-- 12. РЕЗЕРВНЫЕ КОПИИ -->
+    <!-- 13. РЕЗЕРВНЫЕ КОПИИ -->
     <section id="section-backups" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="archive"></i></div>
-        <h2 class="wiki-section-title">12. Резервное копирование и Восстановление</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">13. Резервные копии и Восстановление</span>
+          <span class="lang-en">13. Backups &amp; Disaster Recovery</span>
+        </h2>
         <span class="wiki-section-badge">BACKUPS</span>
       </div>
-      <p class="wiki-p">Раздел <strong>Бэкап</strong> позволяет создавать zip-архивы в один клик:</p>
+      <p class="wiki-p">
+        <span class="lang-ru">Раздел <strong>Бэкап</strong> позволяет создавать и восстанавливать zip-архивы в один клик:</span>
+        <span class="lang-en">The <strong>Backup</strong> section enables single-click backup creation and restoration:</span>
+      </p>
       <ul style="color:var(--text); font-size:14px; line-height:1.7;">
-        <li><strong>Полный бэкап (Full):</strong> Сохраняет всю медиатеку, историю, алиасы, профили качества, настройки и пользователей.</li>
-        <li><strong>Только конфигурация (Config):</strong> Сохраняет только настройки индексаторов, загрузчиков и профилей качества без списка фильмов.</li>
-        <li><strong>Восстановление с предпросмотром:</strong> Перед восстановлением система показывает точный состав архива и дату его создания.</li>
+        <li><strong class="lang-ru">Полный бэкап (Full):</strong><strong class="lang-en">Full Backup:</strong> <span class="lang-ru">Медиатека, история, алиасы, профили качества, настройки.</span><span class="lang-en">Entire library, history, aliases, quality profiles, settings.</span></li>
+        <li><strong class="lang-ru">Только конфигурация (Config):</strong><strong class="lang-en">Config Only:</strong> <span class="lang-ru">Настройки индексаторов, клиентов загрузки и профилей без карточек медиатеки.</span><span class="lang-en">Indexers, downloaders, and profiles configuration without library cards.</span></li>
       </ul>
     </section>
 
-    <!-- 13. УВЕДОМЛЕНИЯ -->
+    <!-- 14. УВЕДОМЛЕНИЯ -->
     <section id="section-notifications" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="bell"></i></div>
-        <h2 class="wiki-section-title">13. Уведомления (Telegram, Discord, Webhooks)</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">14. Уведомления (Telegram, Discord, Webhooks)</span>
+          <span class="lang-en">14. Notifications (Telegram, Discord, Webhooks)</span>
+        </h2>
         <span class="wiki-section-badge">NOTIFICATIONS</span>
       </div>
-      <p class="wiki-p">В разделе <strong>Настройки → Уведомления</strong> настройте отправку сообщений в Telegram-бот или Discord канал при событиях: <em>Захват релиза</em>, <em>Успешный импорт</em>, <em>Готовность спецвыпуска</em>, <em>Создание бэкапа</em>.</p>
+      <p class="wiki-p">
+        <span class="lang-ru">В разделе <strong>Настройки → Уведомления</strong> настройте мгновенные оповещения в мессенджеры при захвате релиза, импорте файла, спецвыпуске или создании бэкапа.</span>
+        <span class="lang-en">In <strong>Settings → Notifications</strong>, configure instant alerts for grabbed releases, imported episodes, specials, and backups.</span>
+      </p>
     </section>
 
-    <!-- 14. ГОТОВЫЕ ПРЕСЕТЫ -->
+    <!-- 15. ГОТОВЫЕ ПРЕСЕТЫ -->
     <section id="section-recipes" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="award"></i></div>
-        <h2 class="wiki-section-title">14. Рекомендуемые пресеты настройки</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">15. Рекомендуемые пресеты настройки</span>
+          <span class="lang-en">15. Recommended Setup Presets</span>
+        </h2>
         <span class="wiki-section-badge">BEST PRACTICES</span>
       </div>
 
       <div class="wiki-card-grid">
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🎬 Фильмы и Сериалы (1080p Web-DL)</div>
+          <div class="wiki-subcard-title">🎬 <span class="lang-ru">Фильмы и Сериалы (1080p Web-DL)</span><span class="lang-en">Movies &amp; Series (1080p Web-DL)</span></div>
           <p class="wiki-subcard-text">
-            <strong>Профиль:</strong> HD - 720p/1080p<br>
+            <strong>Profile:</strong> HD - 720p/1080p<br>
             <strong>Cutoff:</strong> WEBDL-1080p<br>
-            <strong>Форматы качества:</strong> +100 за LostFilm / HDRezka, -500 за CAM/TS.
+            <strong>Score:</strong> +100 for LostFilm / HDRezka, -500 for CAM/TS.
           </p>
         </div>
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🌟 Максимальное качество (4K Remux)</div>
+          <div class="wiki-subcard-title">🌟 <span class="lang-ru">Максимальное качество (4K Remux)</span><span class="lang-en">Ultra High Quality (4K Remux)</span></div>
           <p class="wiki-subcard-text">
-            <strong>Профиль:</strong> Ultra-HD - 2160p<br>
+            <strong>Profile:</strong> Ultra-HD - 2160p<br>
             <strong>Cutoff:</strong> Remux-2160p<br>
-            <strong>Форматы качества:</strong> +150 за Dolby Vision / HDR10+, +50 за DTS-HD MA / TrueHD.
+            <strong>Score:</strong> +150 for Dolby Vision / HDR10+, +50 for TrueHD/Atmos.
           </p>
         </div>
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🌸 Аниме (1080p Dual Audio)</div>
+          <div class="wiki-subcard-title">🌸 <span class="lang-ru">Аниме (1080p Dual Audio)</span><span class="lang-en">Anime (1080p Dual Audio)</span></div>
           <p class="wiki-subcard-text">
-            <strong>Профиль:</strong> Anime - 1080p<br>
+            <strong>Profile:</strong> Anime - 1080p<br>
             <strong>Cutoff:</strong> Bluray-1080p<br>
-            <strong>Форматы качества:</strong> +100 за AniLibria / Studio Band, +50 за Субтитры.
+            <strong>Score:</strong> +100 for AniLibria / Studio Band, +50 for Subs.
           </p>
         </div>
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">💾 Экономия места (x265 / HEVC)</div>
+          <div class="wiki-subcard-title">💾 <span class="lang-ru">Экономия места (x265 / HEVC)</span><span class="lang-en">Space Saver (x265 / HEVC)</span></div>
           <p class="wiki-subcard-text">
-            <strong>Профиль:</strong> Space Saver 720p/1080p<br>
+            <strong>Profile:</strong> Space Saver 720p/1080p<br>
             <strong>Cutoff:</strong> WEBDL-1080p<br>
-            <strong>Форматы качества:</strong> +100 за HEVC / x265 / 10bit.
+            <strong>Score:</strong> +100 for HEVC / x265 / 10bit.
           </p>
         </div>
       </div>
     </section>
 
-    <!-- 15. FAQ -->
+    <!-- 16. FAQ -->
     <section id="section-faq" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="help-circle"></i></div>
-        <h2 class="wiki-section-title">15. Частые вопросы (FAQ)</h2>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">16. Частые вопросы (FAQ)</span>
+          <span class="lang-en">16. FAQ &amp; Troubleshooting</span>
+        </h2>
         <span class="wiki-section-badge">FAQ</span>
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:14px;">
-        <div class="wiki-subcard-title">❓ Почему Aliasarr находит релиз на трекере, но не скачивает его автоматически?</div>
-        <p class="wiki-subcard-text">Проверьте в карточке тайтла кнопку <em>«Поиск релизов»</em> (интерактивный поиск). В столбце <em>«Решение»</em> DecisionEngine покажет точную причину отклонения (например: меньше требуемых сидов, уже скачано лучшее качество, или качество не входит в профиль).</p>
+        <div class="wiki-subcard-title">
+          ❓ <span class="lang-ru">Почему Aliasarr находит релиз на трекере, но не скачивает его автоматически?</span>
+          <span class="lang-en">Why does Aliasarr find a release on tracker but not grab it automatically?</span>
+        </div>
+        <p class="wiki-subcard-text">
+          <span class="lang-ru">Проверьте в карточке тайтла кнопку <em>«Поиск релизов»</em> (интерактивный поиск). В столбце <em>«Решение»</em> DecisionEngine покажет точную причину отклонения (например: меньше требуемых сидов, уже скачано лучшее качество, или качество не входит в профиль).</span>
+          <span class="lang-en">Open interactive <em>Search Releases</em> in the title card. The DecisionEngine column provides the exact rejection reason (e.g. insufficient seeders, existing file already equals or exceeds quality, or format not allowed in profile).</span>
+        </p>
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:14px;">
-        <div class="wiki-subcard-title">❓ Как принудительно запустить повторный автопоиск для всей библиотеки?</div>
-        <p class="wiki-subcard-text">В правом нижнем углу интерфейса кликните на виджет фоновых задач и выберите <em>«Запустить автопоиск Wanted»</em>, либо перейдите во вкладку <strong>Календарь</strong> и нажмите <em>«Поиск отсутствующих»</em>.</p>
+        <div class="wiki-subcard-title">
+          ❓ <span class="lang-ru">Как принудительно запустить повторный автопоиск для всей библиотеки?</span>
+          <span class="lang-en">How to trigger a force re-search for the entire library?</span>
+        </div>
+        <p class="wiki-subcard-text">
+          <span class="lang-ru">В правом нижнем углу интерфейса кликните на виджет фоновых задач и выберите <em>«Запустить автопоиск Wanted»</em>, либо перейдите во вкладку <strong>Календарь</strong> и нажмите <em>«Поиск отсутствующих»</em>.</span>
+          <span class="lang-en">Click the background tasks widget in bottom-right corner and select <em>Run Wanted Search</em>, or open <strong>Calendar</strong> and click <em>Search Missing</em>.</span>
+        </p>
       </div>
     </section>
 
@@ -1072,6 +1462,26 @@ CAM / TS &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt; BDRip-480p &lt; HD
     });
   }
 
+  // Copy Regex with visual feedback
+  function copyRegex(btn) {
+    const box = btn.closest('.regex-box');
+    if (!box) return;
+    const code = box.querySelector('.regex-code');
+    if (!code) return;
+    const text = code.innerText.trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      const origHtml = btn.innerHTML;
+      btn.innerHTML = '<i data-lucide="check" class="ico-xs"></i> <span>OK!</span>';
+      if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = origHtml;
+        if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+      }, 1800);
+    });
+  }
+
   // Theme Toggler
   function cycleWikiTheme() {
     const current = document.documentElement.getAttribute("data-theme") || "dark";
@@ -1080,9 +1490,34 @@ CAM / TS &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt; BDRip-480p &lt; HD
     try { localStorage.setItem("vbeacon_theme", next); } catch (e) {}
   }
 
+  // Language state & switcher
+  let CURRENT_WIKI_LANG = "ru";
+  try {
+    CURRENT_WIKI_LANG = localStorage.getItem("aliasarr_lang") || (window.__ALIASARR_SETTINGS_LANG__ || "ru");
+  } catch (e) {}
+
+  function applyWikiLanguage(lang) {
+    CURRENT_WIKI_LANG = lang === "en" ? "en" : "ru";
+    document.body.setAttribute("data-lang", CURRENT_WIKI_LANG);
+    document.documentElement.setAttribute("lang", CURRENT_WIKI_LANG);
+    const label = document.getElementById("wiki-lang-label");
+    if (label) label.innerText = CURRENT_WIKI_LANG.toUpperCase();
+    const search = document.getElementById("wiki-search");
+    if (search) search.placeholder = CURRENT_WIKI_LANG === "en" ? "Search documentation..." : "Поиск по документации...";
+    const title = document.getElementById("wiki-page-title");
+    if (title) title.innerText = CURRENT_WIKI_LANG === "en" ? "Wiki & Documentation — Aliasarr" : "Wiki & Руководство пользователя — Aliasarr";
+  }
+
+  function toggleWikiLang() {
+    const next = CURRENT_WIKI_LANG === "ru" ? "en" : "ru";
+    try { localStorage.setItem("aliasarr_lang", next); } catch (e) {}
+    applyWikiLanguage(next);
+  }
+
+  applyWikiLanguage(CURRENT_WIKI_LANG);
+
   // Authentication check on page load
   async function checkWikiAuth() {
-    // If bootstrap key is set, login is disabled
     if (window.__ALIASARR_BOOTSTRAP_KEY__) {
       return;
     }
@@ -1092,7 +1527,7 @@ CAM / TS &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt; BDRip-480p &lt; HD
         document.getElementById("auth-overlay").style.display = "flex";
       }
     } catch (e) {
-      // Network error or offline
+      // Network error / offline
     }
   }
   checkWikiAuth();
