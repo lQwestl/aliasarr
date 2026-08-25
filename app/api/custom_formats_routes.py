@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/v1/custom-formats", tags=["custom_formats"])
 @router.get("", response_model=list[CustomFormatOut])
 def list_custom_formats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     seed_default_custom_formats(db)
-    return db.query(CustomFormat).all()
+    return db.query(CustomFormat).order_by(CustomFormat.score.desc(), CustomFormat.id.desc()).all()
 
 
 @router.post("", response_model=CustomFormatOut, status_code=201)

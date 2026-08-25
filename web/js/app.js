@@ -9797,7 +9797,7 @@ async function loadCustomFormats() {
   if (!tbody) return;
   try {
     const items = await api("/api/v1/custom-formats");
-    CACHED_CUSTOM_FORMATS = items || [];
+    CACHED_CUSTOM_FORMATS = (items || []).sort((a, b) => (b.score || 0) - (a.score || 0));
     tbody.innerHTML = CACHED_CUSTOM_FORMATS.map(cf => {
       const isBuiltin = Boolean(cf.is_builtin || (cf.name in CF_PRESETS));
       const builtinBadge = isBuiltin
@@ -9827,32 +9827,32 @@ async function loadCustomFormats() {
 }
 
 const CF_PRESETS = {
-  "CAM-480p": { score: 1, regex: "\\b(camrip|cam|hdcam)\\b", rename: false },
-  "Telesync-480p": { score: 2, regex: "\\b(telesync|hdts|hd-ts|tsrip|telesync-rip)\\b", rename: false },
-  "Telecine-480p": { score: 3, regex: "\\b(telecine|tc|hdtc)\\b", rename: false },
-  "Workprint-480p": { score: 4, regex: "\\b(workprint|wp)\\b", rename: false },
-  "SDTV-480p": { score: 10, regex: "\\b(sdtv|pdtv|dsr|360p)\\b", rename: false },
-  "TVRip-480p": { score: 12, regex: "\\b(tvrip|satrip|dtvrip)\\b", rename: false },
-  "DVD-480p": { score: 15, regex: "\\b(dvd|dvd9|dvd5|dvd-r|ntsc|pal|xvidvd)\\b", rename: false },
-  "DVDRip-480p": { score: 20, regex: "\\b(dvdrip|dvd-rip)\\b", rename: false },
-  "HDTV-480p": { score: 22, regex: "\\b(hdtv[._\\-\\s]?(?:480p|576p)|(?:480p|576p)[._\\-\\s]?hdtv)\\b", rename: false },
-  "WEBRip-480p": { score: 24, regex: "\\b(webrip[._\\-\\s]?(?:480p|576p)|(?:480p|576p)[._\\-\\s]?webrip)\\b", rename: false },
-  "WEBDL-480p": { score: 26, regex: "\\b(web[-_. ]?dl[._\\-\\s]?(?:480p|576p)|(?:480p|576p)[._\\-\\s]?web[-_. ]?dl)\\b", rename: false },
-  "Bluray-480p": { score: 28, regex: "\\b(bluray[._\\-\\s]?(?:480p|576p)|(?:480p|576p)[._\\-\\s]?bluray|blu-ray[._\\-\\s]?(?:480p|576p)|bdrip|brrip|bd[-_. ]?rip|br[-_. ]?rip)\\b", rename: false },
-  "HDTV-720p": { score: 30, regex: "\\b(hdtv[._\\-\\s]?(?:720p)|720p[._\\-\\s]?hdtv)\\b", rename: false },
-  "WEBRip-720p": { score: 35, regex: "\\b(webrip[._\\-\\s]?(?:720p)|720p[._\\-\\s]?webrip|web-rip[._\\-\\s]?720p)\\b", rename: false },
-  "WEBDL-720p": { score: 40, regex: "\\b(web[-_. ]?dl[._\\-\\s]?(?:720p)|720p[._\\-\\s]?web[-_. ]?dl|webhd[._\\-\\s]?720p)\\b", rename: false },
-  "Bluray-720p": { score: 45, regex: "\\b(bluray[._\\-\\s]?(?:720p)|720p[._\\-\\s]?bluray|blu-ray[._\\-\\s]?720p|bdrip[._\\-\\s]?720p|brrip[._\\-\\s]?720p)\\b", rename: false },
-  "HDTV-1080p": { score: 50, regex: "\\b(hdtv[._\\-\\s]?(?:1080p|1080i)|1080[pi][._\\-\\s]?hdtv)\\b", rename: false },
-  "WEBRip-1080p": { score: 55, regex: "\\b(webrip[._\\-\\s]?(?:1080p)|1080p[._\\-\\s]?webrip|web-rip[._\\-\\s]?1080p)\\b", rename: false },
-  "WEBDL-1080p": { score: 60, regex: "\\b(web[-_. ]?dl[._\\-\\s]?(?:1080p)|1080p[._\\-\\s]?web[-_. ]?dl|webhd[._\\-\\s]?1080p)\\b", rename: false },
-  "Bluray-1080p": { score: 70, regex: "\\b(bluray[._\\-\\s]?(?:1080p)|1080p[._\\-\\s]?bluray|blu-ray[._\\-\\s]?1080p|bdrip[._\\-\\s]?1080p|brrip[._\\-\\s]?1080p)\\b", rename: false },
-  "Remux-1080p": { score: 80, regex: "\\b(remux[._\\-\\s]?(?:1080p)|1080p[._\\-\\s]?remux|bdremux[._\\-\\s]?1080p)\\b", rename: false },
-  "HDTV-2160p": { score: 85, regex: "\\b(hdtv[._\\-\\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\\-\\s]?hdtv)\\b", rename: false },
-  "WEBRip-2160p": { score: 90, regex: "\\b(webrip[._\\-\\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\\-\\s]?webrip|web-rip[._\\-\\s]?(?:2160p|4k|uhd))\\b", rename: false },
-  "WEBDL-2160p": { score: 95, regex: "\\b(web[-_. ]?dl[._\\-\\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\\-\\s]?web[-_. ]?dl|webhd[._\\-\\s]?(?:2160p|4k|uhd))\\b", rename: false },
+  "Remux-2160p": { score: 110, regex: "\\b(remux[._\\-\\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\\-\\s]?remux|uhd[-_. ]?remux|bdremux[._\\-\\s]?(?:2160p|4k|uhd))\\b", rename: false },
   "Bluray-2160p": { score: 100, regex: "\\b(bluray[._\\-\\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\\-\\s]?bluray|blu-ray[._\\-\\s]?(?:2160p|4k|uhd)|uhd[-_. ]?bluray|bdrip[._\\-\\s]?(?:2160p|4k|uhd)|brrip[._\\-\\s]?(?:2160p|4k|uhd))\b", rename: false },
-  "Remux-2160p": { score: 110, regex: "\\b(remux[._\\-\\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\\-\\s]?remux|uhd[-_. ]?remux|bdremux[._\\-\\s]?(?:2160p|4k|uhd))\\b", rename: false }
+  "WEBDL-2160p": { score: 95, regex: "\\b(web[-_. ]?dl[._\\-\\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\\-\\s]?web[-_. ]?dl|webhd[._\\-\\s]?(?:2160p|4k|uhd))\\b", rename: false },
+  "WEBRip-2160p": { score: 90, regex: "\\b(webrip[._\\-\\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\\-\\s]?webrip|web-rip[._\\-\\s]?(?:2160p|4k|uhd))\\b", rename: false },
+  "HDTV-2160p": { score: 85, regex: "\\b(hdtv[._\\-\\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\\-\\s]?hdtv)\\b", rename: false },
+  "Remux-1080p": { score: 80, regex: "\\b(remux[._\\-\\s]?(?:1080p)|1080p[._\\-\\s]?remux|bdremux[._\\-\\s]?1080p)\\b", rename: false },
+  "Bluray-1080p": { score: 70, regex: "\\b(bluray[._\\-\\s]?(?:1080p)|1080p[._\\-\\s]?bluray|blu-ray[._\\-\\s]?1080p|bdrip[._\\-\\s]?1080p|brrip[._\\-\\s]?1080p)\\b", rename: false },
+  "WEBDL-1080p": { score: 60, regex: "\\b(web[-_. ]?dl[._\\-\\s]?(?:1080p)|1080p[._\\-\\s]?web[-_. ]?dl|webhd[._\\-\\s]?1080p)\\b", rename: false },
+  "WEBRip-1080p": { score: 55, regex: "\\b(webrip[._\\-\\s]?(?:1080p)|1080p[._\\-\\s]?webrip|web-rip[._\\-\\s]?1080p)\\b", rename: false },
+  "HDTV-1080p": { score: 50, regex: "\\b(hdtv[._\\-\\s]?(?:1080p|1080i)|1080[pi][._\\-\\s]?hdtv)\\b", rename: false },
+  "Bluray-720p": { score: 45, regex: "\\b(bluray[._\\-\\s]?(?:720p)|720p[._\\-\\s]?bluray|blu-ray[._\\-\\s]?720p|bdrip[._\\-\\s]?720p|brrip[._\\-\\s]?720p)\\b", rename: false },
+  "WEBDL-720p": { score: 40, regex: "\\b(web[-_. ]?dl[._\\-\\s]?(?:720p)|720p[._\\-\\s]?web[-_. ]?dl|webhd[._\\-\\s]?720p)\\b", rename: false },
+  "WEBRip-720p": { score: 35, regex: "\\b(webrip[._\\-\\s]?(?:720p)|720p[._\\-\\s]?webrip|web-rip[._\\-\\s]?720p)\\b", rename: false },
+  "HDTV-720p": { score: 30, regex: "\\b(hdtv[._\\-\\s]?(?:720p)|720p[._\\-\\s]?hdtv)\\b", rename: false },
+  "Bluray-480p": { score: 28, regex: "\\b(bluray[._\\-\\s]?(?:480p|576p)|(?:480p|576p)[._\\-\\s]?bluray|blu-ray[._\\-\\s]?(?:480p|576p)|bdrip|brrip|bd[-_. ]?rip|br[-_. ]?rip)\\b", rename: false },
+  "WEBDL-480p": { score: 26, regex: "\\b(web[-_. ]?dl[._\\-\\s]?(?:480p|576p)|(?:480p|576p)[._\\-\\s]?web[-_. ]?dl)\\b", rename: false },
+  "WEBRip-480p": { score: 24, regex: "\\b(webrip[._\\-\\s]?(?:480p|576p)|(?:480p|576p)[._\\-\\s]?webrip)\\b", rename: false },
+  "HDTV-480p": { score: 22, regex: "\\b(hdtv[._\\-\\s]?(?:480p|576p)|(?:480p|576p)[._\\-\\s]?hdtv)\\b", rename: false },
+  "DVDRip-480p": { score: 20, regex: "\\b(dvdrip|dvd-rip)\\b", rename: false },
+  "DVD-480p": { score: 15, regex: "\\b(dvd|dvd9|dvd5|dvd-r|ntsc|pal|xvidvd)\\b", rename: false },
+  "TVRip-480p": { score: 12, regex: "\\b(tvrip|satrip|dtvrip)\\b", rename: false },
+  "SDTV-480p": { score: 10, regex: "\\b(sdtv|pdtv|dsr|360p)\\b", rename: false },
+  "Workprint-480p": { score: 4, regex: "\\b(workprint|wp)\\b", rename: false },
+  "Telecine-480p": { score: 3, regex: "\\b(telecine|tc|hdtc)\\b", rename: false },
+  "Telesync-480p": { score: 2, regex: "\\b(telesync|hdts|hd-ts|tsrip|telesync-rip)\\b", rename: false },
+  "CAM-480p": { score: 1, regex: "\\b(camrip|cam|hdcam)\\b", rename: false }
 };
 
 function onCustomFormatPresetSelect(presetKey) {

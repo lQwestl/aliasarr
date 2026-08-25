@@ -33,338 +33,16 @@ class MatchedCustomFormat:
 # Стандартные преднастроенные кастомные форматы (Sonarr v4/v5 default formats & Qualities)
 DEFAULT_CUSTOM_FORMATS = [
     {
-        "name": "CAM-480p",
-        "score": 1,
+        "name": "Remux-2160p",
+        "score": 110,
         "include_custom_format_when_renaming": False,
         "specifications": [
             {
-                "name": "CAM Pattern",
+                "name": "Remux-2160p Pattern",
                 "implementation": "ReleaseTitleSpecification",
                 "negate": False,
                 "required": True,
-                "fields": {"value": r"\b(camrip|cam|hdcam)\b"},
-            }
-        ],
-    },
-    {
-        "name": "Telesync-480p",
-        "score": 2,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "Telesync Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(telesync|hdts|hd-ts|tsrip|telesync-rip)\b"},
-            }
-        ],
-    },
-    {
-        "name": "Telecine-480p",
-        "score": 3,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "Telecine Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(telecine|tc|hdtc)\b"},
-            }
-        ],
-    },
-    {
-        "name": "Workprint-480p",
-        "score": 4,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "Workprint Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(workprint|wp)\b"},
-            }
-        ],
-    },
-    {
-        "name": "SDTV-480p",
-        "score": 10,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "SDTV Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(sdtv|pdtv|dsr|360p)\b"},
-            }
-        ],
-    },
-    {
-        "name": "TVRip-480p",
-        "score": 12,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "TVRip Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(tvrip|satrip|dtvrip)\b"},
-            }
-        ],
-    },
-    {
-        "name": "DVD-480p",
-        "score": 15,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "DVD Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(dvd|dvd9|dvd5|dvd-r|ntsc|pal|xvidvd)\b"},
-            }
-        ],
-    },
-    {
-        "name": "DVDRip-480p",
-        "score": 20,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "DVDRip Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(dvdrip|dvd-rip)\b"},
-            }
-        ],
-    },
-    {
-        "name": "HDTV-480p",
-        "score": 22,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "HDTV-480p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(hdtv[._\-\s]?(?:480p|576p)|(?:480p|576p)[._\-\s]?hdtv)\b"},
-            }
-        ],
-    },
-    {
-        "name": "WEBRip-480p",
-        "score": 24,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "WEBRip-480p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(webrip[._\-\s]?(?:480p|576p)|(?:480p|576p)[._\-\s]?webrip)\b"},
-            }
-        ],
-    },
-    {
-        "name": "WEBDL-480p",
-        "score": 26,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "WEBDL-480p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(web[-_. ]?dl[._\-\s]?(?:480p|576p)|(?:480p|576p)[._\-\s]?web[-_. ]?dl)\b"},
-            }
-        ],
-    },
-    {
-        "name": "Bluray-480p",
-        "score": 28,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "Bluray-480p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(bluray[._\-\s]?(?:480p|576p)|(?:480p|576p)[._\-\s]?bluray|blu-ray[._\-\s]?(?:480p|576p)|bdrip|brrip|bd[-_. ]?rip|br[-_. ]?rip)\b"},
-            }
-        ],
-    },
-    {
-        "name": "HDTV-720p",
-        "score": 30,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "HDTV-720p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(hdtv[._\-\s]?(?:720p)|720p[._\-\s]?hdtv)\b"},
-            }
-        ],
-    },
-    {
-        "name": "WEBRip-720p",
-        "score": 35,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "WEBRip-720p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(webrip[._\-\s]?(?:720p)|720p[._\-\s]?webrip|web-rip[._\-\s]?720p)\b"},
-            }
-        ],
-    },
-    {
-        "name": "WEBDL-720p",
-        "score": 40,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "WEBDL-720p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(web[-_. ]?dl[._\-\s]?(?:720p)|720p[._\-\s]?web[-_. ]?dl|webhd[._\-\s]?720p)\b"},
-            }
-        ],
-    },
-    {
-        "name": "Bluray-720p",
-        "score": 45,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "Bluray-720p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(bluray[._\-\s]?(?:720p)|720p[._\-\s]?bluray|blu-ray[._\-\s]?720p|bdrip[._\-\s]?720p|brrip[._\-\s]?720p)\b"},
-            }
-        ],
-    },
-    {
-        "name": "HDTV-1080p",
-        "score": 50,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "HDTV-1080p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(hdtv[._\-\s]?(?:1080p|1080i)|1080[pi][._\-\s]?hdtv)\b"},
-            }
-        ],
-    },
-    {
-        "name": "WEBRip-1080p",
-        "score": 55,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "WEBRip-1080p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(webrip[._\-\s]?(?:1080p)|1080p[._\-\s]?webrip|web-rip[._\-\s]?1080p)\b"},
-            }
-        ],
-    },
-    {
-        "name": "WEBDL-1080p",
-        "score": 60,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "WEBDL-1080p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(web[-_. ]?dl[._\-\s]?(?:1080p)|1080p[._\-\s]?web[-_. ]?dl|webhd[._\-\s]?1080p)\b"},
-            }
-        ],
-    },
-    {
-        "name": "Bluray-1080p",
-        "score": 70,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "Bluray-1080p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(bluray[._\-\s]?(?:1080p)|1080p[._\-\s]?bluray|blu-ray[._\-\s]?1080p|bdrip[._\-\s]?1080p|brrip[._\-\s]?1080p)\b"},
-            }
-        ],
-    },
-    {
-        "name": "Remux-1080p",
-        "score": 80,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "Remux-1080p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(remux[._\-\s]?(?:1080p)|1080p[._\-\s]?remux|bdremux[._\-\s]?1080p)\b"},
-            }
-        ],
-    },
-    {
-        "name": "HDTV-2160p",
-        "score": 85,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "HDTV-2160p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(hdtv[._\-\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\-\s]?hdtv)\b"},
-            }
-        ],
-    },
-    {
-        "name": "WEBRip-2160p",
-        "score": 90,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "WEBRip-2160p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(webrip[._\-\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\-\s]?webrip|web-rip[._\-\s]?(?:2160p|4k|uhd))\b"},
-            }
-        ],
-    },
-    {
-        "name": "WEBDL-2160p",
-        "score": 95,
-        "include_custom_format_when_renaming": False,
-        "specifications": [
-            {
-                "name": "WEBDL-2160p Pattern",
-                "implementation": "ReleaseTitleSpecification",
-                "negate": False,
-                "required": True,
-                "fields": {"value": r"\b(web[-_. ]?dl[._\-\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\-\s]?web[-_. ]?dl|webhd[._\-\s]?(?:2160p|4k|uhd))\b"},
+                "fields": {"value": r"\b(remux[._\-\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\-\s]?remux|uhd[-_. ]?remux|bdremux[._\-\s]?(?:2160p|4k|uhd))\b"},
             }
         ],
     },
@@ -383,16 +61,338 @@ DEFAULT_CUSTOM_FORMATS = [
         ],
     },
     {
-        "name": "Remux-2160p",
-        "score": 110,
+        "name": "WEBDL-2160p",
+        "score": 95,
         "include_custom_format_when_renaming": False,
         "specifications": [
             {
-                "name": "Remux-2160p Pattern",
+                "name": "WEBDL-2160p Pattern",
                 "implementation": "ReleaseTitleSpecification",
                 "negate": False,
                 "required": True,
-                "fields": {"value": r"\b(remux[._\-\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\-\s]?remux|uhd[-_. ]?remux|bdremux[._\-\s]?(?:2160p|4k|uhd))\b"},
+                "fields": {"value": r"\b(web[-_. ]?dl[._\-\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\-\s]?web[-_. ]?dl|webhd[._\-\s]?(?:2160p|4k|uhd))\b"},
+            }
+        ],
+    },
+    {
+        "name": "WEBRip-2160p",
+        "score": 90,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "WEBRip-2160p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(webrip[._\-\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\-\s]?webrip|web-rip[._\-\s]?(?:2160p|4k|uhd))\b"},
+            }
+        ],
+    },
+    {
+        "name": "HDTV-2160p",
+        "score": 85,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "HDTV-2160p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(hdtv[._\-\s]?(?:2160p|4k|uhd)|(?:2160p|4k|uhd)[._\-\s]?hdtv)\b"},
+            }
+        ],
+    },
+    {
+        "name": "Remux-1080p",
+        "score": 80,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "Remux-1080p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(remux[._\-\s]?(?:1080p)|1080p[._\-\s]?remux|bdremux[._\-\s]?1080p)\b"},
+            }
+        ],
+    },
+    {
+        "name": "Bluray-1080p",
+        "score": 70,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "Bluray-1080p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(bluray[._\-\s]?(?:1080p)|1080p[._\-\s]?bluray|blu-ray[._\-\s]?1080p|bdrip[._\-\s]?1080p|brrip[._\-\s]?1080p)\b"},
+            }
+        ],
+    },
+    {
+        "name": "WEBDL-1080p",
+        "score": 60,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "WEBDL-1080p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(web[-_. ]?dl[._\-\s]?(?:1080p)|1080p[._\-\s]?web[-_. ]?dl|webhd[._\-\s]?1080p)\b"},
+            }
+        ],
+    },
+    {
+        "name": "WEBRip-1080p",
+        "score": 55,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "WEBRip-1080p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(webrip[._\-\s]?(?:1080p)|1080p[._\-\s]?webrip|web-rip[._\-\s]?1080p)\b"},
+            }
+        ],
+    },
+    {
+        "name": "HDTV-1080p",
+        "score": 50,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "HDTV-1080p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(hdtv[._\-\s]?(?:1080p|1080i)|1080[pi][._\-\s]?hdtv)\b"},
+            }
+        ],
+    },
+    {
+        "name": "Bluray-720p",
+        "score": 45,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "Bluray-720p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(bluray[._\-\s]?(?:720p)|720p[._\-\s]?bluray|blu-ray[._\-\s]?720p|bdrip[._\-\s]?720p|brrip[._\-\s]?720p)\b"},
+            }
+        ],
+    },
+    {
+        "name": "WEBDL-720p",
+        "score": 40,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "WEBDL-720p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(web[-_. ]?dl[._\-\s]?(?:720p)|720p[._\-\s]?web[-_. ]?dl|webhd[._\-\s]?720p)\b"},
+            }
+        ],
+    },
+    {
+        "name": "WEBRip-720p",
+        "score": 35,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "WEBRip-720p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(webrip[._\-\s]?(?:720p)|720p[._\-\s]?webrip|web-rip[._\-\s]?720p)\b"},
+            }
+        ],
+    },
+    {
+        "name": "HDTV-720p",
+        "score": 30,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "HDTV-720p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(hdtv[._\-\s]?(?:720p)|720p[._\-\s]?hdtv)\b"},
+            }
+        ],
+    },
+    {
+        "name": "Bluray-480p",
+        "score": 28,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "Bluray-480p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(bluray[._\-\s]?(?:480p|576p)|(?:480p|576p)[._\-\s]?bluray|blu-ray[._\-\s]?(?:480p|576p)|bdrip|brrip|bd[-_. ]?rip|br[-_. ]?rip)\b"},
+            }
+        ],
+    },
+    {
+        "name": "WEBDL-480p",
+        "score": 26,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "WEBDL-480p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(web[-_. ]?dl[._\-\s]?(?:480p|576p)|(?:480p|576p)[._\-\s]?web[-_. ]?dl)\b"},
+            }
+        ],
+    },
+    {
+        "name": "WEBRip-480p",
+        "score": 24,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "WEBRip-480p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(webrip[._\-\s]?(?:480p|576p)|(?:480p|576p)[._\-\s]?webrip)\b"},
+            }
+        ],
+    },
+    {
+        "name": "HDTV-480p",
+        "score": 22,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "HDTV-480p Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(hdtv[._\-\s]?(?:480p|576p)|(?:480p|576p)[._\-\s]?hdtv)\b"},
+            }
+        ],
+    },
+    {
+        "name": "DVDRip-480p",
+        "score": 20,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "DVDRip Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(dvdrip|dvd-rip)\b"},
+            }
+        ],
+    },
+    {
+        "name": "DVD-480p",
+        "score": 15,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "DVD Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(dvd|dvd9|dvd5|dvd-r|ntsc|pal|xvidvd)\b"},
+            }
+        ],
+    },
+    {
+        "name": "TVRip-480p",
+        "score": 12,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "TVRip Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(tvrip|satrip|dtvrip)\b"},
+            }
+        ],
+    },
+    {
+        "name": "SDTV-480p",
+        "score": 10,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "SDTV Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(sdtv|pdtv|dsr|360p)\b"},
+            }
+        ],
+    },
+    {
+        "name": "Workprint-480p",
+        "score": 4,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "Workprint Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(workprint|wp)\b"},
+            }
+        ],
+    },
+    {
+        "name": "Telecine-480p",
+        "score": 3,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "Telecine Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(telecine|tc|hdtc)\b"},
+            }
+        ],
+    },
+    {
+        "name": "Telesync-480p",
+        "score": 2,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "Telesync Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(telesync|hdts|hd-ts|tsrip|telesync-rip)\b"},
+            }
+        ],
+    },
+    {
+        "name": "CAM-480p",
+        "score": 1,
+        "include_custom_format_when_renaming": False,
+        "specifications": [
+            {
+                "name": "CAM Pattern",
+                "implementation": "ReleaseTitleSpecification",
+                "negate": False,
+                "required": True,
+                "fields": {"value": r"\b(camrip|cam|hdcam)\b"},
             }
         ],
     },
