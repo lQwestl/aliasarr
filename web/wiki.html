@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/ui/static/css/style.css?v=20260825-02">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260825-03">
 <script>
   (function () {
     try {
@@ -22,7 +22,7 @@
 <style>
   :root {
     --wiki-max-width: 1460px;
-    --wiki-sidebar-width: 300px;
+    --wiki-sidebar-width: 320px;
   }
   body {
     background-color: var(--bg);
@@ -178,23 +178,25 @@
     margin-bottom: 18px;
   }
   .wiki-toc-group-label {
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 700;
     color: #818cf8;
     margin: 10px 0 6px 10px;
     display: flex;
     align-items: center;
     gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
   .wiki-toc-link {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 7px 12px;
+    padding: 6px 12px;
     border-radius: 6px;
     color: var(--text-muted);
     text-decoration: none;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 500;
     transition: all 0.15s ease;
     border-left: 2px solid transparent;
@@ -246,7 +248,7 @@
   }
   .wiki-hero h1 {
     font-family: var(--font-heading, 'Syne', sans-serif);
-    font-size: 32px;
+    font-size: 30px;
     font-weight: 800;
     margin: 0 0 10px 0;
     background: linear-gradient(135deg, #ffffff 30%, var(--teal, #00F0FF) 100%);
@@ -255,10 +257,10 @@
     letter-spacing: -0.03em;
   }
   .wiki-hero p {
-    font-size: 15px;
+    font-size: 14.5px;
     color: var(--text-muted);
     margin: 0 0 20px 0;
-    max-width: 800px;
+    max-width: 840px;
     line-height: 1.6;
   }
   .wiki-quick-pills {
@@ -323,7 +325,7 @@
   }
   .wiki-section-title {
     font-family: var(--font-heading, 'Syne', sans-serif);
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 700;
     margin: 0;
     color: var(--text);
@@ -343,7 +345,7 @@
 
   /* Subheadings & Content */
   .wiki-h3 {
-    font-size: 16.5px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--text);
     margin: 26px 0 12px 0;
@@ -572,6 +574,28 @@
     border: 1px solid rgba(107, 114, 128, 0.35);
   }
 
+  /* Score Badges */
+  .badge-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-score-pos {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+  }
+  .badge-score-neg {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+  .badge-builtin {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--teal, #00F0FF);
+  }
+
   /* Tables in Wiki */
   .table-responsive {
     width: 100%;
@@ -638,7 +662,7 @@
       position: static;
       height: auto;
       margin-bottom: 24px;
-      max-height: 240px;
+      max-height: 260px;
     }
     .wiki-search-wrap {
       width: 200px;
@@ -717,28 +741,34 @@
       <div class="wiki-toc-group-label"><i data-lucide="compass" class="ico-xs"></i> <span class="lang-ru">Введение</span><span class="lang-en">Introduction</span></div>
       <a href="#section-intro" class="wiki-toc-link active"><i data-lucide="sparkles" class="wiki-toc-ico"></i> <span class="lang-ru">1. Что такое Aliasarr</span><span class="lang-en">1. What is Aliasarr</span></a>
       <a href="#section-quickstart" class="wiki-toc-link"><i data-lucide="zap" class="wiki-toc-ico"></i> <span class="lang-ru">2. Быстрый старт (5 мин)</span><span class="lang-en">2. Quick Start Guide</span></a>
-    </div>
-
-    <div class="wiki-toc-group">
-      <div class="wiki-toc-group-label"><i data-lucide="layers" class="ico-xs"></i> <span class="lang-ru">Медиа и Поиск</span><span class="lang-en">Media &amp; Search</span></div>
       <a href="#section-library" class="wiki-toc-link"><i data-lucide="library" class="wiki-toc-ico"></i> <span class="lang-ru">3. Медиатека и Тайтлы</span><span class="lang-en">3. Library &amp; Titles</span></a>
       <a href="#section-aliases" class="wiki-toc-link"><i data-lucide="languages" class="wiki-toc-ico"></i> <span class="lang-ru">4. Алиасы и Парсер</span><span class="lang-en">4. Aliases &amp; Parser</span></a>
-      <a href="#section-qualities" class="wiki-toc-link"><i data-lucide="sliders" class="wiki-toc-ico"></i> <span class="lang-ru">5. Качества и Cutoff</span><span class="lang-en">5. Quality &amp; Cutoff</span></a>
-      <a href="#section-quality-guide" class="wiki-toc-link"><i data-lucide="award" class="wiki-toc-ico"></i> <span class="lang-ru">6. Справочник форматов</span><span class="lang-en">6. Format &amp; Regex Guide</span></a>
-      <a href="#section-indexers" class="wiki-toc-link"><i data-lucide="search" class="wiki-toc-ico"></i> <span class="lang-ru">7. Индексаторы (Трекеры)</span><span class="lang-en">7. Indexers (Trackers)</span></a>
-      <a href="#section-downloaders" class="wiki-toc-link"><i data-lucide="download-cloud" class="wiki-toc-ico"></i> <span class="lang-ru">8. Клиенты загрузки</span><span class="lang-en">8. Download Clients</span></a>
-      <a href="#section-specials" class="wiki-toc-link"><i data-lucide="film" class="wiki-toc-ico"></i> <span class="lang-ru">9. Спецвыпуски и Импорт</span><span class="lang-en">9. Specials &amp; Import</span></a>
-      <a href="#section-renaming" class="wiki-toc-link"><i data-lucide="file-text" class="wiki-toc-ico"></i> <span class="lang-ru">10. Шаблоны имён</span><span class="lang-en">10. Naming Patterns</span></a>
     </div>
 
     <div class="wiki-toc-group">
-      <div class="wiki-toc-group-label"><i data-lucide="settings-2" class="ico-xs"></i> <span class="lang-ru">Система и Безопасность</span><span class="lang-en">System &amp; Security</span></div>
-      <a href="#section-scheduler" class="wiki-toc-link"><i data-lucide="clock" class="wiki-toc-ico"></i> <span class="lang-ru">11. Планировщик задач</span><span class="lang-en">11. Task Scheduler</span></a>
-      <a href="#section-security" class="wiki-toc-link"><i data-lucide="shield" class="wiki-toc-ico"></i> <span class="lang-ru">12. Безопасность и 2FA</span><span class="lang-en">12. Security &amp; 2FA</span></a>
-      <a href="#section-backups" class="wiki-toc-link"><i data-lucide="archive" class="wiki-toc-ico"></i> <span class="lang-ru">13. Резервные копии</span><span class="lang-en">13. Backups &amp; Restore</span></a>
-      <a href="#section-notifications" class="wiki-toc-link"><i data-lucide="bell" class="wiki-toc-ico"></i> <span class="lang-ru">14. Уведомления</span><span class="lang-en">14. Notifications</span></a>
-      <a href="#section-recipes" class="wiki-toc-link"><i data-lucide="check-circle" class="wiki-toc-ico"></i> <span class="lang-ru">15. Готовые пресеты</span><span class="lang-en">15. Recommended Presets</span></a>
-      <a href="#section-faq" class="wiki-toc-link"><i data-lucide="help-circle" class="wiki-toc-ico"></i> <span class="lang-ru">16. Вопросы и Ответы (FAQ)</span><span class="lang-en">16. FAQ &amp; Troubleshooting</span></a>
+      <div class="wiki-toc-group-label"><i data-lucide="sliders" class="ico-xs"></i> <span class="lang-ru">Качество и Форматы</span><span class="lang-en">Quality &amp; Formats</span></div>
+      <a href="#section-qualities" class="wiki-toc-link"><i data-lucide="award" class="wiki-toc-ico"></i> <span class="lang-ru">5. Качества, Cutoff и Скоринг</span><span class="lang-en">5. Quality, Cutoff &amp; Scoring</span></a>
+      <a href="#section-builtin-formats" class="wiki-toc-link"><i data-lucide="shield-check" class="wiki-toc-ico"></i> <span class="lang-ru">6. Таблица 26 штатных форматов</span><span class="lang-en">6. 26 Built-in Formats Table</span></a>
+      <a href="#section-regex-syntax" class="wiki-toc-link"><i data-lucide="code-2" class="wiki-toc-ico"></i> <span class="lang-ru">7. Синтаксис Regex в Aliasarr</span><span class="lang-en">7. Regex Syntax in Aliasarr</span></a>
+      <a href="#section-voiceovers" class="wiki-toc-link"><i data-lucide="mic" class="wiki-toc-ico"></i> <span class="lang-ru">8. Озвучки и Студии перевода</span><span class="lang-en">8. Voiceovers &amp; Studios</span></a>
+      <a href="#section-video-hdr" class="wiki-toc-link"><i data-lucide="clapperboard" class="wiki-toc-ico"></i> <span class="lang-ru">9. Кодеки, HDR, IMAX</span><span class="lang-en">9. Codecs, HDR, IMAX</span></a>
+      <a href="#section-audio-codecs" class="wiki-toc-link"><i data-lucide="speaker" class="wiki-toc-ico"></i> <span class="lang-ru">10. Аудио: Atmos, 5.1/7.1</span><span class="lang-en">10. Audio: Atmos, 5.1/7.1</span></a>
+      <a href="#section-editions" class="wiki-toc-link"><i data-lucide="layers" class="wiki-toc-ico"></i> <span class="lang-ru">11. Издания: Remux, Hybrid</span><span class="lang-en">11. Editions: Remux, Hybrid</span></a>
+      <a href="#section-negative-filters" class="wiki-toc-link"><i data-lucide="shield-x" class="wiki-toc-ico"></i> <span class="lang-ru">12. Фильтрация мусора</span><span class="lang-en">12. Junk &amp; Spam Filters</span></a>
+      <a href="#section-profiles-examples" class="wiki-toc-link"><i data-lucide="sliders-horizontal" class="wiki-toc-ico"></i> <span class="lang-ru">13. Примеры настройки профилей</span><span class="lang-en">13. Profile Setup Examples</span></a>
+    </div>
+
+    <div class="wiki-toc-group">
+      <div class="wiki-toc-group-label"><i data-lucide="settings-2" class="ico-xs"></i> <span class="lang-ru">Сервисы и Автоматизация</span><span class="lang-en">Services &amp; Automation</span></div>
+      <a href="#section-indexers" class="wiki-toc-link"><i data-lucide="search" class="wiki-toc-ico"></i> <span class="lang-ru">14. Индексаторы (Трекеры)</span><span class="lang-en">14. Indexers (Trackers)</span></a>
+      <a href="#section-downloaders" class="wiki-toc-link"><i data-lucide="download-cloud" class="wiki-toc-ico"></i> <span class="lang-ru">15. Клиенты загрузки</span><span class="lang-en">15. Download Clients</span></a>
+      <a href="#section-specials" class="wiki-toc-link"><i data-lucide="film" class="wiki-toc-ico"></i> <span class="lang-ru">16. Спецвыпуски и Импорт</span><span class="lang-en">16. Specials &amp; Import</span></a>
+      <a href="#section-renaming" class="wiki-toc-link"><i data-lucide="file-text" class="wiki-toc-ico"></i> <span class="lang-ru">17. Шаблоны имён файлов</span><span class="lang-en">17. Naming Patterns</span></a>
+      <a href="#section-scheduler" class="wiki-toc-link"><i data-lucide="clock" class="wiki-toc-ico"></i> <span class="lang-ru">18. Планировщик задач</span><span class="lang-en">18. Task Scheduler</span></a>
+      <a href="#section-security" class="wiki-toc-link"><i data-lucide="shield" class="wiki-toc-ico"></i> <span class="lang-ru">19. Безопасность и 2FA</span><span class="lang-en">19. Security &amp; 2FA</span></a>
+      <a href="#section-backups" class="wiki-toc-link"><i data-lucide="archive" class="wiki-toc-ico"></i> <span class="lang-ru">20. Резервные копии</span><span class="lang-en">20. Backups &amp; Restore</span></a>
+      <a href="#section-notifications" class="wiki-toc-link"><i data-lucide="bell" class="wiki-toc-ico"></i> <span class="lang-ru">21. Уведомления</span><span class="lang-en">21. Notifications</span></a>
+      <a href="#section-faq" class="wiki-toc-link"><i data-lucide="help-circle" class="wiki-toc-ico"></i> <span class="lang-ru">22. Вопросы и Ответы (FAQ)</span><span class="lang-en">22. FAQ &amp; Troubleshooting</span></a>
     </div>
   </aside>
 
@@ -752,14 +782,15 @@
         <span class="lang-en">Aliasarr Documentation &amp; Knowledge Base</span>
       </h1>
       <p>
-        <span class="lang-ru">Полное интерактивное руководство по работе с комбайном управления фильмами, сериалами и аниме: трекеры, загрузчики, алиасы, пороги качества Cutoff, регулярные выражения и автоматизация.</span>
-        <span class="lang-en">Comprehensive interactive guide for managing movies, series, and anime: indexers, downloaders, aliases, Cutoff quality thresholds, regex patterns, and automation.</span>
+        <span class="lang-ru">Полное исчерпывающее руководство по работе с комбайном Aliasarr: профили качества, Cutoff, шкала форматов, система очков (Score), регулярные выражения (Regex), алиасы, трекеры и автоматизация.</span>
+        <span class="lang-en">Comprehensive guide for Aliasarr: quality profiles, Cutoff thresholds, format rank ladder, custom format scoring, regex catalog, aliases, indexers, and media automation.</span>
       </p>
       <div class="wiki-quick-pills">
-        <a href="#section-quickstart" class="wiki-quick-pill"><i data-lucide="zap" class="ico-xs" style="color:var(--teal)"></i> <span class="lang-ru">Быстрый старт</span><span class="lang-en">Quick Start</span></a>
-        <a href="#section-qualities" class="wiki-quick-pill"><i data-lucide="sliders" class="ico-xs" style="color:#818cf8"></i> <span class="lang-ru">Настройка Cutoff Quality</span><span class="lang-en">Cutoff Quality Setup</span></a>
-        <a href="#section-quality-guide" class="wiki-quick-pill"><i data-lucide="award" class="ico-xs" style="color:#f472b6"></i> <span class="lang-ru">Справочник форматов</span><span class="lang-en">Quality Format Guide</span></a>
-        <a href="#section-aliases" class="wiki-quick-pill"><i data-lucide="languages" class="ico-xs" style="color:#34d399"></i> <span class="lang-ru">Как работают алиасы</span><span class="lang-en">How Aliases Work</span></a>
+        <a href="#section-qualities" class="wiki-quick-pill"><i data-lucide="sliders" class="ico-xs" style="color:var(--teal)"></i> <span class="lang-ru">Качества и Cutoff</span><span class="lang-en">Quality &amp; Cutoff</span></a>
+        <a href="#section-builtin-formats" class="wiki-quick-pill"><i data-lucide="shield-check" class="ico-xs" style="color:#818cf8"></i> <span class="lang-ru">26 штатных форматов</span><span class="lang-en">26 Built-in Formats</span></a>
+        <a href="#section-voiceovers" class="wiki-quick-pill"><i data-lucide="mic" class="ico-xs" style="color:#f472b6"></i> <span class="lang-ru">Озвучки и Студии</span><span class="lang-en">Voiceover Catalog</span></a>
+        <a href="#section-video-hdr" class="wiki-quick-pill"><i data-lucide="clapperboard" class="ico-xs" style="color:#fb923c"></i> <span class="lang-ru">Dolby Vision &amp; HDR</span><span class="lang-en">Dolby Vision &amp; HDR</span></a>
+        <a href="#section-negative-filters" class="wiki-quick-pill"><i data-lucide="shield-x" class="ico-xs" style="color:#ef4444"></i> <span class="lang-ru">Фильтры мусора (-Score)</span><span class="lang-en">Anti-Trash Filters</span></a>
       </div>
     </div>
 
@@ -867,15 +898,6 @@
           </div>
         </li>
       </ol>
-
-      <div class="wiki-callout wiki-callout-best">
-        <i data-lucide="check-check" class="callout-ico ico-sm"></i>
-        <div>
-          <strong class="lang-ru">Совет:</strong><strong class="lang-en">Tip:</strong>
-          <span class="lang-ru"> После добавления первого тайтла перейдите в его карточку и нажмите кнопку <em>«Поиск релизов»</em> (лупа), чтобы наглядно увидеть, как система сопоставляет алиасы и оценивает найденные раздачи.</span>
-          <span class="lang-en"> After adding your first title, open its card and click <em>Search Releases</em> (magnifying glass) to see live alias matching and DecisionEngine scoring.</span>
-        </div>
-      </div>
     </section>
 
     <!-- 3. МЕДИАТЕКА И ТАЙТЛЫ -->
@@ -992,85 +1014,208 @@
           </p>
         </div>
       </div>
-
-      <div class="wiki-callout wiki-callout-tip">
-        <i data-lucide="lightbulb" class="callout-ico ico-sm"></i>
-        <div>
-          <strong class="lang-ru">Пользовательские алиасы:</strong><strong class="lang-en">Custom Aliases:</strong>
-          <span class="lang-ru"> Вы можете в любой момент добавить собственный алиас в карточке тайтла (например, редкое народное название или имя переводчика). Поиск сразу начнет учитывать его во всех трекерах!</span>
-          <span class="lang-en"> You can add custom aliases anytime in the show details card. All indexers immediately incorporate the new alias in searches!</span>
-        </div>
-      </div>
     </section>
 
-    <!-- 5. КАЧЕСТВА И CUTOFF -->
+    <!-- 5. КАЧЕСТВА, CUTOFF И СКОРИНГ -->
     <section id="section-qualities" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="sliders"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">5. Качества, Профили и Cutoff Quality</span>
-          <span class="lang-en">5. Quality Profiles, Scoring &amp; Cutoff</span>
+          <span class="lang-ru">5. Качества, Cutoff (Порог) и Скоринг</span>
+          <span class="lang-en">5. Quality, Cutoff &amp; Scoring System</span>
         </h2>
-        <span class="wiki-section-badge">QUALITY &amp; CUTOFF</span>
+        <span class="wiki-section-badge">DECISION ENGINE</span>
       </div>
       <p class="wiki-p">
-        <span class="lang-ru">Качество релизов в Aliasarr оценивается двухуровневой системой: <strong>Базовое качество (Quality Rank)</strong> и <strong>Форматы качества (Quality Formats Score)</strong>.</span>
-        <span class="lang-en">Release quality evaluation is governed by a two-tier model: <strong>Base Quality Rank</strong> and <strong>Quality Formats Score</strong>.</span>
+        <span class="lang-ru">В <strong>Aliasarr</strong> выбор релизов и автоматический апгрейд файлов управляются двухуровневой системой оценки:</span>
+        <span class="lang-en">In <strong>Aliasarr</strong>, release selection and automatic file upgrades are driven by a dual-tier evaluation engine:</span>
       </p>
 
-      <div class="wiki-h3"><span class="lang-ru">Иерархия базовых качеств (от низшего к высшему):</span><span class="lang-en">Base Quality Hierarchy (Lowest to Highest):</span></div>
-      <div class="wiki-code-block">
-CAM-480p &lt; Telesync-480p &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt; BDRip-480p &lt; HDTV-720p &lt; WEBRip-720p &lt; WEBDL-720p &lt; Bluray-720p &lt; HDTV-1080p &lt; WEBRip-1080p &lt; WEBDL-1080p &lt; Bluray-1080p &lt; Remux-1080p &lt; WEBDL-2160p &lt; Bluray-2160p &lt; Remux-2160p
+      <ol style="padding-left: 22px; margin: 12px 0; color:var(--text); font-size:14px; line-height:1.7;">
+        <li><strong class="lang-ru">1. Профиль качества (Quality Profile)</strong><strong class="lang-en">1. Quality Profile</strong> — <span class="lang-ru">определяет список разрешенных базовых качеств (например: <code>WEBDL-1080p</code>, <code>Bluray-1080p</code>, <code>Remux-1080p</code>) и целевой порог (Cutoff Quality).</span><span class="lang-en">defines the permitted base resolutions/sources and the cutoff target.</span></li>
+        <li><strong class="lang-ru">2. Форматы качества (Quality Formats)</strong><strong class="lang-en">2. Quality Formats</strong> — <span class="lang-ru">начисляют релизу дополнительные <strong>очки (Score)</strong> за конкретные свойства: предпочтительную озвучку (LostFilm +250, Дубляж +200), формат Dolby Vision (+150), звук Atmos (+100) или штрафуют (-10000) за рекламу казино и экранки.</span><span class="lang-en">award additional <strong>Score points</strong> for specific traits: favorite studio (LostFilm +250, Dubbing +200), Dolby Vision (+150), Atmos (+100) or penalize (-10000) casino ads and CAM recordings.</span></li>
+      </ol>
+
+      <div class="wiki-callout wiki-callout-best">
+        <i data-lucide="info" class="callout-ico ico-sm"></i>
+        <div>
+          <strong class="lang-ru">Формула выбора релиза DecisionEngine:</strong><strong class="lang-en">DecisionEngine Selection Formula:</strong>
+          <div style="margin-top:4px;">
+            <span class="lang-ru">Из всех найденных раздач Aliasarr сначала оставляет только те, чьё качество разрешено в профиле тайтла. Затем раздачи сортируются: <code>Сумма очков форматов качества &gt; Ранг базового качества &gt; Количество сидов</code>.</span>
+            <span class="lang-en">From all tracker results, Aliasarr filters out items not matching allowed qualities. Releases are then sorted: <code>Total Quality Formats Score &gt; Base Quality Rank &gt; Seeders Count</code>.</span>
+          </div>
+        </div>
       </div>
 
-      <div class="wiki-h3"><span class="lang-ru">Как работает Cutoff Quality (Порог отсечки) и автоматический апгрейд:</span><span class="lang-en">How Cutoff Quality and Auto-Upgrades Work:</span></div>
-      <p class="wiki-p">
-        <span class="lang-ru"><strong>Cutoff Quality</strong> — это целевой уровень качества, при достижении которого файл считается идеальным. Если текущий скачанный файл имеет качество ниже Cutoff (и включен флаг «Разрешить апгрейд»), Aliasarr продолжит искать лучшие релизы и автоматически заменит старый файл при появлении лучшей версии.</span>
-        <span class="lang-en"><strong>Cutoff Quality</strong> is the target threshold where a file is considered optimal. If current file quality is below Cutoff (and Upgrades Allowed is on), Aliasarr automatically grabs higher-quality releases as they appear and replaces the older file.</span>
-      </p>
-
-      <div class="wiki-card-grid">
-        <div class="wiki-subcard">
-          <div class="wiki-subcard-title"><span class="lang-ru">1. Разрешить апгрейд (Upgrade Allowed)</span><span class="lang-en">1. Upgrade Allowed Flag</span></div>
-          <p class="wiki-subcard-text">
-            <span class="lang-ru">В профиле качества включите чекбокс <em>«Разрешить апгрейд»</em>.</span>
-            <span class="lang-en">Enable <em>Upgrades Allowed</em> checkbox in the Quality Profile.</span>
-          </p>
-        </div>
-        <div class="wiki-subcard">
-          <div class="wiki-subcard-title"><span class="lang-ru">2. Установите Cutoff Quality</span><span class="lang-en">2. Set Cutoff Quality</span></div>
-          <p class="wiki-subcard-text">
-            <span class="lang-ru">Выберите целевой уровень, например <strong>Bluray-1080p</strong> или <strong>WEBDL-1080p</strong>.</span>
-            <span class="lang-en">Select target quality, e.g. <strong>Bluray-1080p</strong> or <strong>WEBDL-1080p</strong>.</span>
-          </p>
-        </div>
-        <div class="wiki-subcard">
-          <div class="wiki-subcard-title"><span class="lang-ru">3. Очки форматов (Cutoff Score)</span><span class="lang-en">3. Target Cutoff Score</span></div>
-          <p class="wiki-subcard-text">
-            <span class="lang-ru">Если вам важен конкретный релизер или HDR10+/Dolby Vision, задайте порог очков.</span>
-            <span class="lang-en">Set a minimum score threshold for favorite voiceovers, HDR, or release groups.</span>
-          </p>
-        </div>
+      <div class="wiki-h3"><span class="lang-ru">Ключевые параметры профиля качества:</span><span class="lang-en">Key Quality Profile Parameters:</span></div>
+      
+      <div class="table-responsive">
+        <table class="wiki-table">
+          <thead>
+            <tr>
+              <th style="width:220px;"><span class="lang-ru">Параметр</span><span class="lang-en">Parameter</span></th>
+              <th><span class="lang-ru">Назначение и принцип работы</span><span class="lang-en">Purpose and Behavior</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Cutoff Quality</strong><br><span style="font-size:11.5px; color:var(--text-muted);"><span class="lang-ru">Порог качества</span><span class="lang-en">Quality Threshold</span></span></td>
+              <td><span class="lang-ru">Минимальное базовое качество (например, <code>Bluray-1080p</code>), после достижения которого Aliasarr перестаёт искать более качественные релизы. Если качество скачанного файла ниже порога — система продолжит отслеживать раздачи.</span><span class="lang-en">The target base quality (e.g. <code>Bluray-1080p</code>) upon reaching which Aliasarr stops seeking higher tier releases. If downloaded media is below cutoff, monitoring remains active.</span></td>
+            </tr>
+            <tr>
+              <td><strong>Cutoff Score</strong><br><span style="font-size:11.5px; color:var(--text-muted);"><span class="lang-ru">Порог очков</span><span class="lang-en">Score Threshold</span></span></td>
+              <td><span class="lang-ru">Минимальная сумма очков форматов качества (например, <code>100</code>), при которой релиз считается полностью удовлетворительным. Если сумма очков ниже — поиск продолжается.</span><span class="lang-en">The minimum sum of Quality Format score points (e.g. <code>100</code>) at which the release is deemed fully satisfactory.</span></td>
+            </tr>
+            <tr>
+              <td><strong>Upgrade Allowed</strong><br><span style="font-size:11.5px; color:var(--text-muted);"><span class="lang-ru">Разрешить апгрейд</span><span class="lang-en">Allow Upgrades</span></span></td>
+              <td><span class="lang-ru">Если включено — Aliasarr автоматически скачает более качественную версию при её появлении (например, заменит WEBRip на BDRip или озвучку ColdFilm на LostFilm/Дубляж). Если выключено — останется первый скачанный релиз.</span><span class="lang-en">When enabled, Aliasarr will automatically download superior releases as they appear (e.g. replacing WEBRip with BDRip or upgrading audio tracks). When disabled, the first acquired release is retained.</span></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
-    <!-- 6. СПРАВОЧНИК ФОРМАТОВ КАЧЕСТВА И РЕГУЛЯРНЫХ ВЫРАЖЕНИЙ -->
-    <section id="section-quality-guide" class="wiki-section">
+    <!-- 6. ТАБЛИЦА 26 ШТАТНЫХ ФОРМАТОВ -->
+    <section id="section-builtin-formats" class="wiki-section">
       <div class="wiki-section-header">
-        <div class="wiki-section-icon"><i data-lucide="award"></i></div>
+        <div class="wiki-section-icon"><i data-lucide="shield-check"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">6. Справочник форматов качества и готовых Regex</span>
-          <span class="lang-en">6. Quality Formats &amp; Regex Catalog</span>
+          <span class="lang-ru">6. Таблица 26 штатных форматов качества</span>
+          <span class="lang-en">6. 26 Built-in Quality Formats Ladder</span>
         </h2>
-        <span class="wiki-section-badge">REGEX CATALOG</span>
+        <span class="wiki-section-badge">BUILT-IN FORMATS</span>
       </div>
       <p class="wiki-p">
-        <span class="lang-ru">Форматы качества используют регулярные выражения (Python <code>re.search</code> с флагом <code>IGNORECASE</code>). Ниже представлены готовые шаблоны, которые можно скопировать в один клик:</span>
-        <span class="lang-en">Quality formats evaluate release titles using regular expressions (Python <code>re.search</code> with <code>IGNORECASE</code>). Below is the comprehensive catalog of copy-ready regex presets:</span>
+        <span class="lang-ru">В Aliasarr предустановлены <strong>26 штатных (системных) форматов качества</strong>, отсортированных по старшинству от наивысшего (2160p Remux) до наинизшего (CAM-480p):</span>
+        <span class="lang-en">Aliasarr comes with <strong>26 pre-configured built-in quality formats</strong>, sorted by priority from highest (2160p Remux) to lowest (CAM-480p):</span>
       </p>
 
-      <div class="wiki-h3"><span class="lang-ru">Озвучки, Дубляж и Студии перевода:</span><span class="lang-en">Voiceovers, Dubbing &amp; Translators:</span></div>
-      
+      <div class="wiki-callout wiki-callout-note">
+        <i data-lucide="lock" class="callout-ico ico-sm"></i>
+        <div>
+          <strong class="lang-ru">Защита штатных форматов:</strong><strong class="lang-en">Built-in Formats Protection:</strong>
+          <span class="lang-ru"> Штатные форматы нельзя случайно удалить. Вы можете свободно менять их Score (очки), включать/выключать добавление в имя файла или модифицировать Regex. В любой момент можно вернуть заводские настройки кнопкой <em>«Сбросить до заводских настроек»</em>.</span>
+          <span class="lang-en"> Built-in formats cannot be accidentally deleted. You can adjust scores, regexes, and rename inclusion, or restore factory defaults anytime.</span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="wiki-table">
+          <thead>
+            <tr>
+              <th style="width:160px;"><span class="lang-ru">Формат</span><span class="lang-en">Format</span></th>
+              <th style="width:110px;"><span class="lang-ru">Очки (Score)</span><span class="lang-en">Score</span></th>
+              <th><span class="lang-ru">Регулярное выражение (Regex)</span><span class="lang-en">Regular Expression (Regex)</span></th>
+              <th style="width:100px;"><span class="lang-ru">Статус</span><span class="lang-en">Status</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Remux-2160p</strong></td><td><span class="badge-tag badge-score-pos">+110</span></td><td><code>\b(remux.*2160p|2160p.*remux|uhd.*remux)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>Bluray-2160p</strong></td><td><span class="badge-tag badge-score-pos">+100</span></td><td><code>\b(bluray.*2160p|2160p.*bluray|uhd.*bluray)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBDL-2160p</strong></td><td><span class="badge-tag badge-score-pos">+95</span></td><td><code>\b(web[-_. ]?dl.*2160p|2160p.*web[-_. ]?dl)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBRip-2160p</strong></td><td><span class="badge-tag badge-score-pos">+90</span></td><td><code>\b(webrip.*2160p|2160p.*webrip)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>HDTV-2160p</strong></td><td><span class="badge-tag badge-score-pos">+85</span></td><td><code>\b(hdtv.*2160p|2160p.*hdtv)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>Remux-1080p</strong></td><td><span class="badge-tag badge-score-pos">+80</span></td><td><code>\b(remux.*1080p|1080p.*remux|bdremux.*1080p)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>Bluray-1080p</strong></td><td><span class="badge-tag badge-score-pos">+70</span></td><td><code>\b(bluray.*1080p|1080p.*bluray|bdrip.*1080p)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBDL-1080p</strong></td><td><span class="badge-tag badge-score-pos">+60</span></td><td><code>\b(web[-_. ]?dl.*1080p|1080p.*web[-_. ]?dl)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBRip-1080p</strong></td><td><span class="badge-tag badge-score-pos">+55</span></td><td><code>\b(webrip.*1080p|1080p.*webrip)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>HDTV-1080p</strong></td><td><span class="badge-tag badge-score-pos">+50</span></td><td><code>\b(hdtv.*1080p|1080p.*hdtv)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>Bluray-720p</strong></td><td><span class="badge-tag badge-score-pos">+45</span></td><td><code>\b(bluray.*720p|720p.*bluray|bdrip.*720p)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBDL-720p</strong></td><td><span class="badge-tag badge-score-pos">+40</span></td><td><code>\b(web[-_. ]?dl.*720p|720p.*web[-_. ]?dl)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBRip-720p</strong></td><td><span class="badge-tag badge-score-pos">+35</span></td><td><code>\b(webrip.*720p|720p.*webrip)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>HDTV-720p</strong></td><td><span class="badge-tag badge-score-pos">+30</span></td><td><code>\b(hdtv.*720p|720p.*hdtv)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>Bluray-480p</strong></td><td><span class="badge-tag badge-score-pos">+28</span></td><td><code>\b(bluray.*480p|480p.*bluray|bdrip|brrip)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBDL-480p</strong></td><td><span class="badge-tag badge-score-pos">+26</span></td><td><code>\b(web[-_. ]?dl.*480p|480p.*web[-_. ]?dl)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>WEBRip-480p</strong></td><td><span class="badge-tag badge-score-pos">+24</span></td><td><code>\b(webrip.*480p|480p.*webrip)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>HDTV-480p</strong></td><td><span class="badge-tag badge-score-pos">+22</span></td><td><code>\b(hdtv.*480p|480p.*hdtv)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>DVDRip-480p</strong></td><td><span class="badge-tag badge-score-pos">+20</span></td><td><code>\b(dvdrip|dvd-rip)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>DVD-480p</strong></td><td><span class="badge-tag badge-score-pos">+15</span></td><td><code>\b(dvd|dvd9|dvd5|ntsc|pal)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>TVRip-480p</strong></td><td><span class="badge-tag badge-score-pos">+12</span></td><td><code>\b(tvrip|satrip|dtvrip)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>SDTV-480p</strong></td><td><span class="badge-tag badge-score-pos">+10</span></td><td><code>\b(sdtv|pdtv|dsr|360p)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>Workprint-480p</strong></td><td><span class="badge-tag badge-score-pos">+4</span></td><td><code>\b(workprint|wp)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>Telecine-480p</strong></td><td><span class="badge-tag badge-score-pos">+3</span></td><td><code>\b(telecine|tc|hdtc)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>Telesync-480p</strong></td><td><span class="badge-tag badge-score-pos">+2</span></td><td><code>\b(telesync|hdts|hd-ts|tsrip)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+            <tr><td><strong>CAM-480p</strong></td><td><span class="badge-tag badge-score-pos">+1</span></td><td><code>\b(camrip|cam|hdcam)\b</code></td><td><span class="badge-tag badge-builtin">Штатный</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 7. СИНТАКСИС REGEX -->
+    <section id="section-regex-syntax" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="code-2"></i></div>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">7. Синтаксис Release Title Regex в Aliasarr</span>
+          <span class="lang-en">7. Release Title Regex Syntax in Aliasarr</span>
+        </h2>
+        <span class="wiki-section-badge">REGEX SPEC</span>
+      </div>
+      <p class="wiki-p">
+        <span class="lang-ru">Форматы качества сопоставляются с названиями релизов с помощью Python <code>re.search</code> с флагом <code>re.IGNORECASE</code>. Регистр букв (заглавные или строчные) роли не играет.</span>
+        <span class="lang-en">Quality formats match against release names using regular expressions (Python <code>re.search</code> with <code>re.IGNORECASE</code>). Matching is fully case-insensitive.</span>
+      </p>
+
+      <div class="table-responsive">
+        <table class="wiki-table">
+          <thead>
+            <tr>
+              <th style="width:140px;"><span class="lang-ru">Символ</span><span class="lang-en">Symbol</span></th>
+              <th><span class="lang-ru">Описание</span><span class="lang-en">Description</span></th>
+              <th><span class="lang-ru">Пример шаблона</span><span class="lang-en">Example Pattern</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>\b</code></td>
+              <td><span class="lang-ru">Граница слова. Предотвращает ложные совпадения внутри других слов.</span><span class="lang-en">Word boundary. Prevents accidental substring matching inside other words.</span></td>
+              <td><code>\bhd\b</code> <span class="lang-ru">(найдет «HD», но пропустит «HDRezka»)</span><span class="lang-en">(matches «HD», ignores «HDRezka»)</span></td>
+            </tr>
+            <tr>
+              <td><code>|</code></td>
+              <td><span class="lang-ru">Логическое <strong>ИЛИ</strong>. Позволяет перечислять варианты студий или названий.</span><span class="lang-en">Logical <strong>OR</strong>. Separates multiple alternative keywords.</span></td>
+              <td><code>(lostfilm|лостфильм)</code></td>
+            </tr>
+            <tr>
+              <td><code>(?:...)</code> / <code>(...)</code></td>
+              <td><span class="lang-ru">Группировка условий и вариантов.</span><span class="lang-en">Condition and alternative grouping.</span></td>
+              <td><code>\b(dovi|dolby[-._ ]?vision)\b</code></td>
+            </tr>
+            <tr>
+              <td><code>[-._ ]?</code></td>
+              <td><span class="lang-ru">Опциональный разделитель (дефис, точка, подчеркивание или пробел).</span><span class="lang-en">Optional separator (dash, dot, underscore, or space).</span></td>
+              <td><code>\bhdr[-._ ]?10\b</code></td>
+            </tr>
+            <tr>
+              <td><code>\+</code>, <code>\.</code></td>
+              <td><span class="lang-ru">Экранирование спецсимволов обратным слэшем.</span><span class="lang-en">Escaped special characters with backslash.</span></td>
+              <td><code>\bhdr10\+\b</code> <span class="lang-ru">(найдет «HDR10+»)</span><span class="lang-en">(matches «HDR10+»)</span></td>
+            </tr>
+            <tr>
+              <td><code>.*</code></td>
+              <td><span class="lang-ru">Любые символы между ключевыми словами в любом количестве.</span><span class="lang-en">Wildcard matching any intervening characters.</span></td>
+              <td><code>\b(remux.*2160p)\b</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 8. ОЗВУЧКИ И СТУДИИ -->
+    <section id="section-voiceovers" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="mic"></i></div>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">8. Каталог Regex: Озвучки и Студии перевода</span>
+          <span class="lang-en">8. Regex Catalog: Voiceovers &amp; Translation Studios</span>
+        </h2>
+        <span class="wiki-section-badge">VOICEOVERS</span>
+      </div>
+      <p class="wiki-p">
+        <span class="lang-ru">Скопируйте нужный шаблон и создайте новый формат качества в <strong>Настройки → Форматы качества</strong> (например, с очками <code>+200</code>), чтобы отдавать предпочтение вашей любимой озвучке:</span>
+        <span class="lang-en">Copy any regex template below and create a custom quality format in <strong>Settings → Quality Formats</strong> (e.g. with Score <code>+200</code>) to prioritize your favorite studio:</span>
+      </p>
+
       <div class="wiki-subcard" style="margin-bottom:14px;">
         <div class="wiki-subcard-title"><i data-lucide="volume-2" class="ico-xs" style="color:var(--teal)"></i> <span class="lang-ru">Полный дубляж / Лицензия / iTunes (Dubbing)</span><span class="lang-en">Official Dubbing / iTunes / License</span></div>
         <div class="regex-box">
@@ -1082,63 +1227,283 @@ CAM-480p &lt; Telesync-480p &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt;
       <div class="wiki-subcard" style="margin-bottom:14px;">
         <div class="wiki-subcard-title"><i data-lucide="film" class="ico-xs" style="color:#818cf8"></i> LostFilm (Лостфильм)</div>
         <div class="regex-box">
-          <span class="regex-code">\b(lostfilm|лостфильм|lost[-_ ]?film)\b</span>
+          <span class="regex-code">\b(lostfilm|лостфильм)\b</span>
           <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
         </div>
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:14px;">
-        <div class="wiki-subcard-title"><i data-lucide="film" class="ico-xs" style="color:#f472b6"></i> HDRezka / Резка</div>
+        <div class="wiki-subcard-title"><i data-lucide="video" class="ico-xs" style="color:#f472b6"></i> HDRezka / Резка (Rezka Studio)</div>
         <div class="regex-box">
-          <span class="regex-code">\b(hdrezka|rezka|хдрезка|хд\s*резка)\b</span>
+          <span class="regex-code">\b(hdrezka|rezka|хдрезка|резка)\b</span>
           <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
         </div>
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:14px;">
-        <div class="wiki-subcard-title"><i data-lucide="film" class="ico-xs" style="color:#34d399"></i> AniLibria / Studio Band (Аниме)</div>
+        <div class="wiki-subcard-title"><i data-lucide="box" class="ico-xs" style="color:#fb923c"></i> Кубик в Кубе (Kubik v Kube)</div>
         <div class="regex-box">
-          <span class="regex-code">\b(anilibria|анилибрия|studio[-_. ]?band|студийная\s*банда)\b</span>
-          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
-        </div>
-      </div>
-
-      <div class="wiki-h3"><span class="lang-ru">Видеокодеки, HDR, Dolby Vision:</span><span class="lang-en">Video Codecs, HDR, Dolby Vision:</span></div>
-
-      <div class="wiki-subcard" style="margin-bottom:14px;">
-        <div class="wiki-subcard-title"><i data-lucide="clapperboard" class="ico-xs" style="color:#fb923c"></i> Dolby Vision / DV / DoVi</div>
-        <div class="regex-box">
-          <span class="regex-code">\b(dovi|dolby[-_. ]?vision|dv\b|p7|p8|profile\s*[78])\b</span>
+          <span class="regex-code">\b(kubik|кубик\s*в\s*кубе)\b</span>
           <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
         </div>
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:14px;">
-        <div class="wiki-subcard-title"><i data-lucide="clapperboard" class="ico-xs" style="color:#38bdf8"></i> HDR10+ / HDR10 / HDR</div>
+        <div class="wiki-subcard-title"><i data-lucide="headphones" class="ico-xs" style="color:#ef4444"></i> Red Head Sound (RHS)</div>
         <div class="regex-box">
-          <span class="regex-code">\b(hdr10\+|hdr10|hdr|uhd[-_. ]?hdr)\b</span>
+          <span class="regex-code">\b(red\s*head\s*sound|rhs|ред\s*хед\s*саунд)\b</span>
           <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
         </div>
       </div>
 
-      <div class="wiki-h3"><span class="lang-ru">Анти-мусор (Отрицательный Score):</span><span class="lang-en">Anti-Trash Filters (Negative Score):</span></div>
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="sparkles" class="ico-xs" style="color:#a855f7"></i> Пифагор / Мосфильм / Невафильм</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(пифагор|мосфильм|невафильм|кириллица)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
 
       <div class="wiki-subcard" style="margin-bottom:14px;">
-        <div class="wiki-subcard-title"><i data-lucide="shield-x" class="ico-xs" style="color:#ef4444"></i> <span class="lang-ru">CAM / TS / Реклама (Score: -500)</span><span class="lang-en">CAM / TS / Casino Ads (Score: -500)</span></div>
+        <div class="wiki-subcard-title"><i data-lucide="tv" class="ico-xs" style="color:#38bdf8"></i> NewStudio / AlexFilm / TVShows</div>
         <div class="regex-box">
-          <span class="regex-code">\b(camrip|hdcam|telesync|hdts|tsrip|1xbet|joycasino|parimatch|реклама)\b</span>
+          <span class="regex-code">\b(newstudio|alexfilm|tvshows|jaskier|ньюстудио|алексфильм)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="flame" class="ico-xs" style="color:#34d399"></i> Аниме: AniLibria / AniDUB / Studio Band</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(anilibria|anidub|studio\s*band|aniplay|shiza\s*project|анилибрия|анидаб)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="globe" class="ico-xs" style="color:#cbd5e1"></i> Оригинальный звук (Original Audio / English)</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(original\s*audio|eng\s*audio|en\+ru|multi|dual\s*audio)\b</span>
           <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
         </div>
       </div>
     </section>
 
-    <!-- 7. ИНДЕКСАТОРЫ -->
+    <!-- 9. КОДЕКИ, HDR, IMAX -->
+    <section id="section-video-hdr" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="clapperboard"></i></div>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">9. Каталог Regex: Видеокодеки, HDR, Dolby Vision и IMAX</span>
+          <span class="lang-en">9. Regex Catalog: Video Codecs, HDR, Dolby Vision &amp; IMAX</span>
+        </h2>
+        <span class="wiki-section-badge">VIDEO HDR</span>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="sun-medium" class="ico-xs" style="color:#fb923c"></i> Dolby Vision (DV / DoVi)</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(dv|dovi|dolby[-._ ]?vision)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="sparkle" class="ico-xs" style="color:#38bdf8"></i> HDR10+ / HDR10 / HDR</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(hdr10\+|hdr10plus|hdr10|hdr)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="maximize-2" class="ico-xs" style="color:#a855f7"></i> IMAX Enhanced / Open Matte</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(imax|imax[-._ ]?enhanced|open[-._ ]?matte)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="cpu" class="ico-xs" style="color:var(--teal)"></i> HEVC / x265 (H.265)</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(x265|hevc|h265|h[-._ ]?265)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="zap" class="ico-xs" style="color:#f472b6"></i> AV1 Кодек</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(av1)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="palette" class="ico-xs" style="color:#34d399"></i> 10-Bit Color (Hi10P)</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(10[-._ ]?bit|hi10p)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. АУДИОКОДЕКИ -->
+    <section id="section-audio-codecs" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="speaker"></i></div>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">10. Каталог Regex: Аудиоформаты и Многоканальный звук</span>
+          <span class="lang-en">10. Regex Catalog: Audio Formats &amp; Surround Sound</span>
+        </h2>
+        <span class="wiki-section-badge">AUDIO</span>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="radio" class="ico-xs" style="color:var(--teal)"></i> Dolby Atmos (TrueHD / DDP Atmos)</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(atmos|ddp[._ -]?atmos|truehd[._ -]?atmos)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="disc" class="ico-xs" style="color:#818cf8"></i> TrueHD / DTS-HD Master Audio (Lossless)</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(truehd|dts[-._ ]?hd(?:[-._ ]?ma)?|flac|lossless)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="volume-2" class="ico-xs" style="color:#34d399"></i> 5.1 / 7.1 Surround Sound</div>
+        <div class="regex-box">
+          <span class="regex-code">\b(5[._ -]1|7[._ -]1|6ch|8ch|ddp?5[._ -]1)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11. ИЗДАНИЯ -->
+    <section id="section-editions" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="layers"></i></div>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">11. Издания: Remux, Hybrid, Proper, Repack</span>
+          <span class="lang-en">11. Editions: Remux, Hybrid, Proper, Repack</span>
+        </h2>
+        <span class="wiki-section-badge">EDITIONS</span>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="git-merge" class="ico-xs" style="color:var(--teal)"></i> <span class="lang-ru">Hybrid (Гибридный релиз)</span><span class="lang-en">Hybrid Release</span></div>
+        <div class="regex-box">
+          <span class="regex-code">\b(hybrid)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="rotate-ccw" class="ico-xs" style="color:#38bdf8"></i> <span class="lang-ru">Proper / Repack / Rerip</span><span class="lang-en">Proper / Repack / Rerip</span></div>
+        <div class="regex-box">
+          <span class="regex-code">\b(proper|repack|rerip)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12. ФИЛЬТРАЦИЯ МУСОРА -->
+    <section id="section-negative-filters" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="shield-x" style="color:#ef4444"></i></div>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">12. Фильтрация мусора (Отрицательный скоринг)</span>
+          <span class="lang-en">12. Junk Filtering (Negative Scoring)</span>
+        </h2>
+        <span class="wiki-section-badge" style="color:#ef4444; border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.1);">ANTI-TRASH</span>
+      </div>
+      <p class="wiki-p">
+        <span class="lang-ru">Вы можете отсекать некачественные релизы, задав формату качества <strong>отрицательные очки</strong> (например, <code>-10000</code>). Релизы с отрицательным итоговым баллом не будут захватываться автоматически.</span>
+        <span class="lang-en">Exclude low-quality or unwanted releases by assigning <strong>negative score points</strong> (e.g. <code>-10000</code>). Releases with net negative score will never be auto-grabbed.</span>
+      </p>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="ban" class="ico-xs" style="color:#ef4444"></i> <span class="lang-ru">Казино и Реклама (1xBet, JoyCasino, Advert)</span><span class="lang-en">Casino &amp; Gambling Ads</span> <span class="badge-tag badge-score-neg" style="margin-left:auto;">Score: -10000</span></div>
+        <div class="regex-box">
+          <span class="regex-code">\b(1xbet|joycasino|advert|casino|vavada|melbet|mostbet)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="video-off" class="ico-xs" style="color:#ef4444"></i> <span class="lang-ru">Экранки и ранние записи (CAMRip / Telesync / TS)</span><span class="lang-en">CAMRip &amp; Screeners</span> <span class="badge-tag badge-score-neg" style="margin-left:auto;">Score: -10000</span></div>
+        <div class="regex-box">
+          <span class="regex-code">\b(camrip|hdcam|telesync|ts|telecine|tc|dvdscr|screener)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+
+      <div class="wiki-subcard" style="margin-bottom:14px;">
+        <div class="wiki-subcard-title"><i data-lucide="subtitles" class="ico-xs" style="color:#fb923c"></i> <span class="lang-ru">Вшитые субтитры (Hardcoded Subtitles / Korsub)</span><span class="lang-en">Hardcoded Subtitles</span> <span class="badge-tag badge-score-neg" style="margin-left:auto;">Score: -1000</span></div>
+        <div class="regex-box">
+          <span class="regex-code">\b(hardsub|hc|korsub|chsub)\b</span>
+          <button class="btn-copy" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span class="lang-ru">Скопировать</span><span class="lang-en">Copy</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13. ПРИМЕРЫ НАСТРОЙКИ ПРОФИЛЕЙ -->
+    <section id="section-profiles-examples" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="sliders-horizontal"></i></div>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">13. Примеры настройки профилей под разные задачи</span>
+          <span class="lang-en">13. Profile Setup Examples for Different Scenarios</span>
+        </h2>
+        <span class="wiki-section-badge">RECIPES</span>
+      </div>
+
+      <div class="wiki-card-grid">
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="crown" class="ico-xs" style="color:var(--teal)"></i> <span class="lang-ru">4K Кинотеатр (Max Quality)</span><span class="lang-en">4K Home Cinema</span></div>
+          <ul style="padding-left:18px; margin-bottom:0; font-size:13px; color:var(--text-muted); line-height:1.6;">
+            <li><strong>Качества:</strong> <span>WEBDL-2160p, Bluray-2160p, Remux-2160p</span></li>
+            <li><strong>Cutoff Quality:</strong> <span>Bluray-2160p</span></li>
+            <li><strong>Бонусы:</strong> <span>Dolby Vision (+150), Atmos (+100), Дубляж (+200)</span></li>
+            <li><strong>Штрафы:</strong> <span>Казино (-10000), CAMRip (-10000)</span></li>
+          </ul>
+        </div>
+
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="tv-2" class="ico-xs" style="color:#818cf8"></i> <span class="lang-ru">Сериалы (LostFilm / HDRezka)</span><span class="lang-en">TV Shows (LostFilm / Rezka)</span></div>
+          <ul style="padding-left:18px; margin-bottom:0; font-size:13px; color:var(--text-muted); line-height:1.6;">
+            <li><strong>Качества:</strong> <span>WEBDL-1080p, Bluray-1080p</span></li>
+            <li><strong>Cutoff Quality:</strong> <span>WEBDL-1080p</span></li>
+            <li><strong>Бонусы:</strong> <span>LostFilm (+250), HDRezka (+200), NewStudio (+150)</span></li>
+            <li><strong>Штрафы:</strong> <span>Казино (-10000), Hardsub (-1000)</span></li>
+          </ul>
+        </div>
+
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="sparkles" class="ico-xs" style="color:#34d399"></i> <span class="lang-ru">Аниме (AniLibria + 10-bit)</span><span class="lang-en">Anime (AniLibria + 10-bit)</span></div>
+          <ul style="padding-left:18px; margin-bottom:0; font-size:13px; color:var(--text-muted); line-height:1.6;">
+            <li><strong>Качества:</strong> <span>WEBDL-1080p, Bluray-1080p</span></li>
+            <li><strong>Cutoff Quality:</strong> <span>Bluray-1080p</span></li>
+            <li><strong>Бонусы:</strong> <span>AniLibria (+200), Studio Band (+200), 10-bit (+100)</span></li>
+            <li><strong>Штрафы:</strong> <span>CAMRip (-10000)</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 14. ИНДЕКСАТОРЫ -->
     <section id="section-indexers" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="search"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">7. Индексаторы и Трекеры</span>
-          <span class="lang-en">7. Indexers &amp; Trackers</span>
+          <span class="lang-ru">14. Индексаторы и Трекеры</span>
+          <span class="lang-en">14. Indexers &amp; Trackers</span>
         </h2>
         <span class="wiki-section-badge">INDEXERS</span>
       </div>
@@ -1177,13 +1542,13 @@ CAM-480p &lt; Telesync-480p &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt;
       </div>
     </section>
 
-    <!-- 8. КЛИЕНТЫ ЗАГРУЗКИ -->
+    <!-- 15. КЛИЕНТЫ ЗАГРУЗКИ -->
     <section id="section-downloaders" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="download-cloud"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">8. Клиенты загрузки</span>
-          <span class="lang-en">8. Download Clients</span>
+          <span class="lang-ru">15. Клиенты загрузки</span>
+          <span class="lang-en">15. Download Clients</span>
         </h2>
         <span class="wiki-section-badge">DOWNLOADERS</span>
       </div>
@@ -1202,13 +1567,13 @@ CAM-480p &lt; Telesync-480p &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt;
       </div>
     </section>
 
-    <!-- 9. СПЕЦВЫПУСКИ И ИМПОРТ -->
+    <!-- 16. СПЕЦВЫПУСКИ И ИМПОРТ -->
     <section id="section-specials" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="film"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">9. Спецвыпуски (Specials, OVA) и Ручной импорт</span>
-          <span class="lang-en">9. Specials, OVA &amp; Manual Import</span>
+          <span class="lang-ru">16. Спецвыпуски (Specials, OVA) и Ручной импорт</span>
+          <span class="lang-en">16. Specials, OVA &amp; Manual Import</span>
         </h2>
         <span class="wiki-section-badge">SPECIALS</span>
       </div>
@@ -1224,13 +1589,13 @@ CAM-480p &lt; Telesync-480p &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt;
       </ul>
     </section>
 
-    <!-- 10. ШАБЛОНЫ ПЕРЕИМЕНОВАНИЯ -->
+    <!-- 17. ШАБЛОНЫ ПЕРЕИМЕНОВАНИЯ -->
     <section id="section-renaming" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="file-text"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">10. Шаблоны переименования</span>
-          <span class="lang-en">10. Renaming &amp; Organizing Patterns</span>
+          <span class="lang-ru">17. Шаблоны переименования</span>
+          <span class="lang-en">17. Renaming &amp; Organizing Patterns</span>
         </h2>
         <span class="wiki-section-badge">RENAMING</span>
       </div>
@@ -1251,13 +1616,13 @@ CAM-480p &lt; Telesync-480p &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt;
       </div>
     </section>
 
-    <!-- 11. ПЛАНИРОВЩИК -->
+    <!-- 18. ПЛАНИРОВЩИК -->
     <section id="section-scheduler" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="clock"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">11. Планировщик и Фоновые задачи</span>
-          <span class="lang-en">11. Task Scheduler &amp; Concurrency</span>
+          <span class="lang-ru">18. Планировщик и Фоновые задачи</span>
+          <span class="lang-en">18. Task Scheduler &amp; Concurrency</span>
         </h2>
         <span class="wiki-section-badge">SCHEDULER</span>
       </div>
@@ -1273,13 +1638,13 @@ CAM-480p &lt; Telesync-480p &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt;
       </ul>
     </section>
 
-    <!-- 12. БЕЗОПАСНОСТЬ И 2FA -->
+    <!-- 19. БЕЗОПАСНОСТЬ И 2FA -->
     <section id="section-security" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="shield"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">12. Безопасность, 2FA и Доступ</span>
-          <span class="lang-en">12. Security, 2FA &amp; Access Control</span>
+          <span class="lang-ru">19. Безопасность, 2FA и Доступ</span>
+          <span class="lang-en">19. Security, 2FA &amp; Access Control</span>
         </h2>
         <span class="wiki-section-badge">SECURITY</span>
       </div>
@@ -1301,13 +1666,13 @@ CAM-480p &lt; Telesync-480p &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt;
       </div>
     </section>
 
-    <!-- 13. РЕЗЕРВНЫЕ КОПИИ -->
+    <!-- 20. РЕЗЕРВНЫЕ КОПИИ -->
     <section id="section-backups" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="archive"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">13. Резервные копии и Восстановление</span>
-          <span class="lang-en">13. Backups &amp; Disaster Recovery</span>
+          <span class="lang-ru">20. Резервные копии и Восстановление</span>
+          <span class="lang-en">20. Backups &amp; Disaster Recovery</span>
         </h2>
         <span class="wiki-section-badge">BACKUPS</span>
       </div>
@@ -1321,13 +1686,13 @@ CAM-480p &lt; Telesync-480p &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt;
       </ul>
     </section>
 
-    <!-- 14. УВЕДОМЛЕНИЯ -->
+    <!-- 21. УВЕДОМЛЕНИЯ -->
     <section id="section-notifications" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="bell"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">14. Уведомления (Telegram, Discord, Webhooks)</span>
-          <span class="lang-en">14. Notifications (Telegram, Discord, Webhooks)</span>
+          <span class="lang-ru">21. Уведомления (Telegram, Discord, Webhooks)</span>
+          <span class="lang-en">21. Notifications (Telegram, Discord, Webhooks)</span>
         </h2>
         <span class="wiki-section-badge">NOTIFICATIONS</span>
       </div>
@@ -1337,60 +1702,13 @@ CAM-480p &lt; Telesync-480p &lt; SDTV-480p &lt; TVRip-480p &lt; DVDRip-480p &lt;
       </p>
     </section>
 
-    <!-- 15. ГОТОВЫЕ ПРЕСЕТЫ -->
-    <section id="section-recipes" class="wiki-section">
-      <div class="wiki-section-header">
-        <div class="wiki-section-icon"><i data-lucide="award"></i></div>
-        <h2 class="wiki-section-title">
-          <span class="lang-ru">15. Рекомендуемые пресеты настройки</span>
-          <span class="lang-en">15. Recommended Setup Presets</span>
-        </h2>
-        <span class="wiki-section-badge">BEST PRACTICES</span>
-      </div>
-
-      <div class="wiki-card-grid">
-        <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🎬 <span class="lang-ru">Фильмы и Сериалы (1080p Web-DL)</span><span class="lang-en">Movies &amp; Series (1080p Web-DL)</span></div>
-          <p class="wiki-subcard-text">
-            <strong>Profile:</strong> HD - 720p/1080p<br>
-            <strong>Cutoff:</strong> WEBDL-1080p<br>
-            <strong>Score:</strong> +100 for LostFilm / HDRezka, -500 for CAM/TS.
-          </p>
-        </div>
-        <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🌟 <span class="lang-ru">Максимальное качество (4K Remux)</span><span class="lang-en">Ultra High Quality (4K Remux)</span></div>
-          <p class="wiki-subcard-text">
-            <strong>Profile:</strong> Ultra-HD - 2160p<br>
-            <strong>Cutoff:</strong> Remux-2160p<br>
-            <strong>Score:</strong> +150 for Dolby Vision / HDR10+, +50 for TrueHD/Atmos.
-          </p>
-        </div>
-        <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🌸 <span class="lang-ru">Аниме (1080p Dual Audio)</span><span class="lang-en">Anime (1080p Dual Audio)</span></div>
-          <p class="wiki-subcard-text">
-            <strong>Profile:</strong> Anime - 1080p<br>
-            <strong>Cutoff:</strong> Bluray-1080p<br>
-            <strong>Score:</strong> +100 for AniLibria / Studio Band, +50 for Subs.
-          </p>
-        </div>
-        <div class="wiki-subcard">
-          <div class="wiki-subcard-title">💾 <span class="lang-ru">Экономия места (x265 / HEVC)</span><span class="lang-en">Space Saver (x265 / HEVC)</span></div>
-          <p class="wiki-subcard-text">
-            <strong>Profile:</strong> Space Saver 720p/1080p<br>
-            <strong>Cutoff:</strong> WEBDL-1080p<br>
-            <strong>Score:</strong> +100 for HEVC / x265 / 10bit.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- 16. FAQ -->
+    <!-- 22. FAQ -->
     <section id="section-faq" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="help-circle"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">16. Частые вопросы (FAQ)</span>
-          <span class="lang-en">16. FAQ &amp; Troubleshooting</span>
+          <span class="lang-ru">22. Частые вопросы (FAQ)</span>
+          <span class="lang-en">22. FAQ &amp; Troubleshooting</span>
         </h2>
         <span class="wiki-section-badge">FAQ</span>
       </div>
