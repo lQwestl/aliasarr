@@ -4116,6 +4116,30 @@ function renderShowOverviewRow(show) {
   const mClass = show.monitored ? "monitored" : "unmonitored";
   const mIcon = show.monitored ? "bookmark-check" : "bookmark-x";
   const progressHtml = computeShowProgressHtml(show);
+
+  const aliases = (show.aliases || []).slice(0, 6).map(
+    a => `<span class="alias-chip lang-${a.language}">${escapeHtml(a.text)}</span>`
+  ).join("");
+
+  let titleRowHtml = "";
+  if (POSTER_OPTIONS.title || POSTER_OPTIONS.monitored) {
+    titleRowHtml = `
+      <div class="overview-title-row">
+        ${POSTER_OPTIONS.title ? `<span class="overview-title">${escapeHtml(show.title)}${show.year ? ` (${show.year})` : ""}</span>` : ""}
+        ${POSTER_OPTIONS.monitored ? `<span class="show-monitored-pill ${mClass}"><i data-lucide="${mIcon}" class="ico-xs"></i><span>${escapeHtml(mtext)}</span></span>` : ""}
+      </div>`;
+  }
+
+  const qualityBadge = POSTER_OPTIONS.quality ? `<span class="meta-badge">${escapeHtml(qualityProfileName(show.quality_profile_id))}</span>` : "";
+  const seasonsBadge = show.seasons_count ? `<span class="meta-badge">${t("show.seasons_count")}: ${show.seasons_count}</span>` : "";
+  const ratingBadge = show.rating ? `<span class="meta-badge meta-badge-rating"><i data-lucide="star" class="ico-xs" style="color:var(--warning); vertical-align:middle; margin-right:3px;"></i>${Number(show.rating).toFixed(1)}</span>` : "";
+  const genreBadge = show.genre ? `<span class="meta-badge">${escapeHtml(show.genre)}</span>` : "";
+  const countryBadge = show.country ? `<span class="meta-badge">${escapeHtml(show.country)}</span>` : "";
+  const networkBadge = show.network ? `<span class="meta-badge">${escapeHtml(show.network)}</span>` : "";
+  const nextAirBadge = nextAiring ? `<span class="meta-badge">${t("show.next_airing")}: ${nextAiring}</span>` : "";
+
+  const tagsHtml = (POSTER_OPTIONS.tags && aliases) ? `<div class="alias-cluster" style="margin-top:6px;">${aliases}</div>` : "";
+
   return `
     <div class="overview-row" id="show-overview-${show.id}">
       <div class="overview-poster-col">
@@ -4123,19 +4147,18 @@ function renderShowOverviewRow(show) {
         ${progressHtml}
       </div>
       <div class="overview-info">
-        <div class="overview-title-row">
-          <span class="overview-title">${escapeHtml(show.title)}${show.year ? ` (${show.year})` : ""}</span>
-          <span class="show-monitored-pill ${mClass}"><i data-lucide="${mIcon}" class="ico-xs"></i><span>${escapeHtml(mtext)}</span></span>
-        </div>
+        ${titleRowHtml}
         <p class="overview-desc">${escapeHtml(show.overview || t("show.no_overview"))}</p>
         <div class="overview-meta-row">
-          <span class="meta-badge">${escapeHtml(qualityProfileName(show.quality_profile_id))}</span>
-          ${show.seasons_count ? `<span class="meta-badge">${t("show.seasons_count")}: ${show.seasons_count}</span>` : ""}
-          ${show.rating ? `<span class="meta-badge meta-badge-rating"><i data-lucide="star" class="ico-xs" style="color:var(--warning); vertical-align:middle; margin-right:3px;"></i>${Number(show.rating).toFixed(1)}</span>` : ""}
-          ${show.genre ? `<span class="meta-badge">${escapeHtml(show.genre)}</span>` : ""}
-          ${show.network ? `<span class="meta-badge">${escapeHtml(show.network)}</span>` : ""}
-          ${nextAiring ? `<span class="meta-badge">${t("show.next_airing")}: ${nextAiring}</span>` : ""}
+          ${qualityBadge}
+          ${seasonsBadge}
+          ${ratingBadge}
+          ${genreBadge}
+          ${countryBadge}
+          ${networkBadge}
+          ${nextAirBadge}
         </div>
+        ${tagsHtml}
       </div>
     </div>`;
 }
