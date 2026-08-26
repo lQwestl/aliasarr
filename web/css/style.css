@@ -1306,7 +1306,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .alphabet-index-container {
   width: 24px;
   position: sticky;
-  top: 140px;
+  top: 200px;
   align-self: flex-start;
   display: flex;
   flex-direction: column;
@@ -1319,7 +1319,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   user-select: none;
   z-index: 70;
-  max-height: calc(100vh - 160px);
+  max-height: calc(100vh - 230px);
   overflow-y: auto;
   scrollbar-width: none;
 }
@@ -1370,8 +1370,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 @media (max-width: 1024px) {
   .alphabet-index-container {
-    top: calc(56px + 140px);
-    max-height: calc(100vh - 220px);
+    top: calc(56px + 200px);
+    max-height: calc(100vh - 280px);
   }
 }
 
@@ -1382,7 +1382,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .show-card, .overview-row, #shows-table-body tr {
-  scroll-margin-top: 145px;
+  scroll-margin-top: 200px;
 }
 .alias-chip-priority {
   font-size: 9px; opacity: 0.65; background: rgba(127,127,127,0.15);
@@ -5970,6 +5970,25 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 11px;
+}
+
+/* 7. Alphabet Index Jump Bar in Vanguard */
+[data-design="vanguard"] .alphabet-index-container {
+  top: 210px;
+  max-height: calc(100vh - 240px);
+  border-radius: 14px;
+  background: rgba(14, 19, 32, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  padding: 8px 2px;
+}
+
+[data-theme="light"][data-design="vanguard"] .alphabet-index-container {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 /* 7. Wiki & Documentation High-End Overrides */
