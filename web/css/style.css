@@ -5805,22 +5805,22 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 [data-design="vanguard"] .btn-danger {
   border-radius: 9999px;
-  background: linear-gradient(135deg, #FF3366 0%, #e11d48 100%);
+  background: linear-gradient(135deg, var(--danger, #FF3366) 0%, #e11d48 100%);
   border: none;
   color: #fff;
   box-shadow: 0 4px 18px rgba(255, 51, 102, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.4);
 }
 
-/* 4. Desktop Detached Floating Island Headers & Navigation (Matching width with content) */
+/* 4. Desktop Detached Floating Island Headers & Navigation */
 [data-design="vanguard"] .panel-sticky-header {
   margin: 0 0 20px 0;
   width: 100%;
   box-sizing: border-box;
   border-radius: 20px;
-  background: rgba(14, 19, 32, 0.82);
+  background: rgba(18, 24, 36, 0.84);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.12);
   padding: 18px 22px;
 }
@@ -5841,11 +5841,19 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  color: var(--text-muted);
   transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1) !important;
 }
 
+[data-design="vanguard"] .settings-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
 [data-design="vanguard"] .settings-tab-btn.active {
-  background: linear-gradient(135deg, rgba(0, 240, 255, 0.16) 0%, rgba(139, 92, 246, 0.12) 100%) !important;
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.16) 0%, rgba(99, 102, 241, 0.12) 100%) !important;
   color: var(--teal, #00F0FF) !important;
   border-color: rgba(0, 240, 255, 0.35) !important;
   box-shadow: 0 0 16px rgba(0, 240, 255, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
@@ -5856,7 +5864,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   width: 100%;
   box-sizing: border-box;
   border-radius: 18px;
-  background: rgba(14, 22, 38, 0.92);
+  background: rgba(18, 24, 36, 0.92);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(0, 240, 255, 0.25);
@@ -5888,10 +5896,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 [data-design="vanguard"] .sidebar {
-  background: rgba(10, 14, 24, 0.92);
+  background: rgba(11, 15, 25, 0.94);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid var(--border, rgba(255, 255, 255, 0.07));
 }
 
 [data-design="vanguard"] .sidebar nav .nav-item {
@@ -5908,12 +5916,190 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 [data-design="vanguard"] .sidebar nav .nav-item.active {
-  background: linear-gradient(135deg, rgba(0, 240, 255, 0.15) 0%, rgba(139, 92, 246, 0.08) 100%);
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.15) 0%, rgba(99, 102, 241, 0.08) 100%);
   color: var(--teal, #00F0FF);
   border-left: none;
   box-shadow: 
     inset 0 1px 1px rgba(255, 255, 255, 0.15),
     0 4px 16px rgba(0, 240, 255, 0.15);
+}
+
+/* =============================================================================
+   DRACULA THEME ADAPTATION FOR VANGUARD DESIGN SYSTEM ([data-theme="dracula"][data-design="vanguard"])
+   ============================================================================= */
+
+[data-theme="dracula"][data-design="vanguard"] .card,
+[data-theme="dracula"][data-design="vanguard"] .show-card,
+[data-theme="dracula"][data-design="vanguard"] .panel,
+[data-theme="dracula"][data-design="vanguard"] .modal,
+[data-theme="dracula"][data-design="vanguard"] .tasks-popup,
+[data-theme="dracula"][data-design="vanguard"] .search-release-card,
+[data-theme="dracula"][data-design="vanguard"] .search-item,
+[data-theme="dracula"][data-design="vanguard"] .history-card,
+[data-theme="dracula"][data-design="vanguard"] .wizard-step-card,
+[data-theme="dracula"][data-design="vanguard"] .modal-box {
+  background: linear-gradient(180deg, rgba(189, 147, 249, 0.035) 0%, rgba(0, 0, 0, 0) 100%), #282a36;
+  border: 1px solid #44475a;
+  box-shadow: 
+    0 1px 1px rgba(0, 0, 0, 0.4),
+    0 12px 32px -4px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dracula"][data-design="vanguard"] .show-card:hover {
+  border-color: #8be9fd;
+  box-shadow: 
+    0 20px 48px -8px rgba(0, 0, 0, 0.75),
+    0 0 28px -4px rgba(139, 233, 253, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dracula"][data-design="vanguard"] .panel-sticky-header {
+  background: rgba(40, 42, 54, 0.88);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid #44475a;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dracula"][data-design="vanguard"] .sidebar {
+  background: rgba(30, 31, 41, 0.94);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-right: 1px solid #44475a;
+}
+
+[data-theme="dracula"][data-design="vanguard"] .sidebar nav .nav-item {
+  color: #6272a4;
+}
+
+[data-theme="dracula"][data-design="vanguard"] .sidebar nav .nav-item:hover {
+  background: rgba(98, 114, 164, 0.18);
+  color: #f8f8f2;
+}
+
+[data-theme="dracula"][data-design="vanguard"] .sidebar nav .nav-item.active {
+  background: linear-gradient(135deg, rgba(139, 233, 253, 0.18) 0%, rgba(189, 147, 249, 0.12) 100%);
+  color: #8be9fd;
+  border-left: none;
+  box-shadow: 
+    inset 0 1px 1px rgba(255, 255, 255, 0.12),
+    0 4px 16px rgba(139, 233, 253, 0.2);
+}
+
+[data-theme="dracula"][data-design="vanguard"] .btn-primary {
+  background: linear-gradient(135deg, #8be9fd 0%, #bd93f9 100%);
+  color: #1e1f29;
+  font-weight: 700;
+  box-shadow: 
+    0 4px 18px rgba(139, 233, 253, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dracula"][data-design="vanguard"] .btn-primary:hover {
+  box-shadow: 
+    0 8px 26px rgba(139, 233, 253, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="dracula"][data-design="vanguard"] .btn-secondary {
+  background: #343746;
+  border: 1px solid #44475a;
+  color: #f8f8f2;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dracula"][data-design="vanguard"] .btn-secondary:hover {
+  background: #44475a;
+  border-color: #6272a4;
+  color: #8be9fd;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dracula"][data-design="vanguard"] .settings-tab-btn {
+  background: #343746;
+  border: 1px solid #44475a;
+  color: #6272a4;
+}
+
+[data-theme="dracula"][data-design="vanguard"] .settings-tab-btn:hover {
+  background: #44475a;
+  color: #f8f8f2;
+}
+
+[data-theme="dracula"][data-design="vanguard"] .settings-tab-btn.active {
+  background: linear-gradient(135deg, rgba(139, 233, 253, 0.2) 0%, rgba(189, 147, 249, 0.14) 100%) !important;
+  color: #8be9fd !important;
+  border-color: #8be9fd !important;
+  box-shadow: 0 0 16px rgba(139, 233, 253, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dracula"][data-design="vanguard"] .toolbar .btn-group .btn {
+  background: #343746;
+  border: 1px solid #44475a;
+  color: #f8f8f2;
+}
+
+[data-theme="dracula"][data-design="vanguard"] .toolbar .btn-group .btn:hover {
+  background: #44475a;
+  color: #8be9fd;
+}
+
+[data-theme="dracula"][data-design="vanguard"] .toolbar .btn-group .btn.active {
+  background: #8be9fd;
+  border-color: #8be9fd;
+  color: #1e1f29;
+  box-shadow: 0 2px 10px rgba(139, 233, 253, 0.3);
+}
+
+[data-theme="dracula"][data-design="vanguard"] .library-bulk-bar {
+  background: rgba(40, 42, 54, 0.94);
+  border: 1px solid #6272a4;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dracula"] .design-card {
+  background: #282a36;
+  border-color: #44475a;
+}
+
+[data-theme="dracula"] .design-card:hover {
+  border-color: #8be9fd;
+}
+
+[data-theme="dracula"] .design-card.active {
+  border-color: #8be9fd;
+  background: linear-gradient(180deg, rgba(139, 233, 253, 0.08) 0%, #282a36 100%);
+  box-shadow: 0 0 0 1px #8be9fd, 0 8px 24px rgba(139, 233, 253, 0.2);
+}
+
+[data-theme="dracula"] .design-card-preview {
+  background: #1e1f29;
+  border-color: #44475a;
+}
+
+@media (max-width: 1024px) {
+  [data-theme="dracula"][data-design="vanguard"] .mobile-top-bar {
+    background: rgba(40, 42, 54, 0.92);
+    border: 1px solid #44475a;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  }
+
+  [data-theme="dracula"][data-design="vanguard"] .mobile-bottom-bar {
+    background: rgba(30, 31, 41, 0.95);
+    border: 1px solid #44475a;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7);
+  }
+
+  [data-theme="dracula"][data-design="vanguard"] .mobile-bottom-item {
+    color: #6272a4;
+  }
+
+  [data-theme="dracula"][data-design="vanguard"] .mobile-bottom-item.active {
+    background: rgba(139, 233, 253, 0.16);
+    color: #8be9fd;
+    box-shadow: 0 0 14px rgba(139, 233, 253, 0.25);
+  }
 }
 
 /* 5. Mobile Floating Island Dock & Navigation */
