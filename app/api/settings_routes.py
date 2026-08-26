@@ -271,8 +271,8 @@ def update_settings(
             raise HTTPException(400, "language должен быть 'ru' или 'en'")
         settings.language = payload.language
     if payload.theme is not None:
-        if payload.theme not in ("dark", "light", "dracula"):
-            raise HTTPException(400, "theme должна быть 'dark', 'light' или 'dracula'")
+        if payload.theme not in ("dark", "light", "dracula", "obsidian"):
+            raise HTTPException(400, "theme должна быть 'dark', 'obsidian', 'dracula' или 'light'")
         settings.theme = payload.theme
 
     if payload.min_seeds is not None:

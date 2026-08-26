@@ -381,7 +381,7 @@ class AppSettings(Base):
 
     # Локализация и тема оформления
     language: Mapped[str] = mapped_column(String(5), default="ru")   # ru | en
-    theme: Mapped[str] = mapped_column(String(10), default="dark")   # dark | light
+    theme: Mapped[str] = mapped_column(String(20), default="dark")   # dark | light | dracula | obsidian
 
     # Настройки выбора релиза при автопоиске
     min_seeds: Mapped[int] = mapped_column(Integer, default=0)              # 0 = без ограничения
