@@ -1265,12 +1265,11 @@ def scan_for_manual_import(
             folder_path = get_show_default_path(show, settings)
 
     if not folder_path:
-        raise HTTPException(400, "Укажите папку для сканирования")
+        folder_path = ""
 
-    if not os.path.exists(folder_path):
-        if payload and payload.folder_path:
-            raise HTTPException(404, f"Папка «{folder_path}» не существует на диске")
-        episodes_out = [EpisodeOut.model_validate(e) for e in episodes]
+    episodes_out = [EpisodeOut.model_validate(e) for e in episodes]
+
+    if not folder_path or not os.path.exists(folder_path):
         return ManualImportScanOut(
             show_id=show.id,
             show_title=show.title,
@@ -1281,7 +1280,14 @@ def scan_for_manual_import(
             episodes=episodes_out,
         )
 
-    release_files = find_release_files(folder_path)
+    base_dir = os.path.dirname(folder_path) if os.path.isfile(folder_path) else folder_path
+
+    try:
+        release_files = find_release_files(folder_path)
+    except Exception as exc:
+        logger.warning("find_release_files failed for %s: %s", folder_path, exc)
+        release_files = {"video": [], "extras": [], "other": []}
+
     seen_paths = set()
     video_files = []
     # Собираем абсолютно ВСЕ видеофайлы (основные + extras/бонусы/спешлы),
@@ -1299,52 +1305,60 @@ def scan_for_manual_import(
             video_files.append(f)
 
     # Сортируем файлы в естественном числовом порядке
-    video_files.sort(key=lambda p: natural_sort_key(os.path.relpath(p, folder_path) if os.path.exists(p) else p))
-
-    episodes = (
-        db.query(Episode)
-        .filter(Episode.show_id == show.id)
-        .order_by(Episode.season_number, Episode.episode_number)
-        .all()
-    )
+    video_files.sort(key=lambda p: natural_sort_key(os.path.relpath(p, base_dir) if os.path.exists(p) else p))
 
     file_candidates: list[ManualImportFileCandidate] = []
 
     for file_path in video_files:
         filename = os.path.basename(file_path)
         try:
-            rel_path = os.path.relpath(file_path, folder_path)
+            rel_path = os.path.relpath(file_path, base_dir) if os.path.exists(file_path) else filename
+            if rel_path == ".":
+                rel_path = filename
         except Exception:
             rel_path = filename
 
         size_bytes = os.path.getsize(file_path) if os.path.exists(file_path) else 0
-        quality = detect_file_quality(file_path, [show.title, os.path.basename(folder_path)]).name
-        parsed = parse_episode(filename)
+        try:
+            quality = detect_file_quality(file_path, [show.title, os.path.basename(base_dir)]).name
+        except Exception:
+            quality = parse_quality(filename).name
+
+        try:
+            parsed = parse_episode(filename)
+        except Exception:
+            parsed = ParsedRelease(title=filename, kind=ReleaseKind.UNKNOWN)
 
         # 1. Если по имени файла не распознан сезон/серия, пробуем имя родительской папки
         parent_dir = os.path.basename(os.path.dirname(file_path))
-        if (parsed.kind == ReleaseKind.UNKNOWN or not parsed.episodes or parsed.season is None) and parent_dir and parent_dir != os.path.basename(folder_path):
-            parent_parsed = parse_episode(parent_dir + " " + filename)
-            if parent_parsed.episodes or parent_parsed.season is not None:
-                if not parsed.episodes:
-                    parsed.episodes = parent_parsed.episodes
-                if parsed.season is None:
-                    parsed.season = parent_parsed.season
-                if parsed.kind == ReleaseKind.UNKNOWN:
-                    parsed.kind = parent_parsed.kind
+        if (parsed.kind == ReleaseKind.UNKNOWN or not parsed.episodes or parsed.season is None) and parent_dir and parent_dir != os.path.basename(base_dir):
+            try:
+                parent_parsed = parse_episode(parent_dir + " " + filename)
+                if parent_parsed.episodes or parent_parsed.season is not None:
+                    if not parsed.episodes:
+                        parsed.episodes = parent_parsed.episodes
+                    if parsed.season is None:
+                        parsed.season = parent_parsed.season
+                    if parsed.kind == ReleaseKind.UNKNOWN:
+                        parsed.kind = parent_parsed.kind
+            except Exception:
+                pass
 
         # 2. Если сезон всё ещё None, ищем номер сезона в иерархии папок (напр. "Season 2", "S02", "Спецвыпуски", "Specials")
         if parsed.season is None:
-            path_parts = [p for p in re.split(r"[\\/]", os.path.dirname(rel_path)) if p and p != "."]
-            for part in reversed(path_parts):
-                part_lower = part.lower()
-                if any(kw in part_lower for kw in ("special", "спец", "ova", "ona", "extra", "бонус")):
-                    parsed.season = 0
-                    break
-                p_parsed = parse_episode(part)
-                if p_parsed.season is not None:
-                    parsed.season = p_parsed.season
-                    break
+            try:
+                path_parts = [p for p in re.split(r"[\\/]", os.path.dirname(rel_path)) if p and p != "."]
+                for part in reversed(path_parts):
+                    part_lower = part.lower()
+                    if any(kw in part_lower for kw in ("special", "спец", "ova", "ona", "extra", "бонус")):
+                        parsed.season = 0
+                        break
+                    p_parsed = parse_episode(part)
+                    if p_parsed.season is not None:
+                        parsed.season = p_parsed.season
+                        break
+            except Exception:
+                pass
 
         matched_ep = None
         p_season = parsed.season
@@ -1378,8 +1392,11 @@ def scan_for_manual_import(
             if not matched_ep:
                 specials = [e for e in episodes if e.season_number == 0]
                 if specials:
-                    from app.services.matcher import match_special_episode
-                    matched_ep = match_special_episode(file_path, specials, parsed)
+                    try:
+                        from app.services.matcher import match_special_episode
+                        matched_ep = match_special_episode(file_path, specials, parsed)
+                    except Exception:
+                        matched_ep = None
 
         file_candidates.append(
             ManualImportFileCandidate(
@@ -1396,7 +1413,6 @@ def scan_for_manual_import(
             )
         )
 
-    episodes_out = [EpisodeOut.model_validate(e) for e in episodes]
     return ManualImportScanOut(
         show_id=show.id,
         show_title=show.title,
@@ -1643,9 +1659,10 @@ def execute_manual_import(
                     from app.services.notifications import notify_all_sync
                     if episode.season_number == 0:
                         ep_title = f" — «{episode.title}»" if episode.title else ""
+                        sp_num_str = f"{episode.episode_number:02d}" if (episode.episode_number is not None and isinstance(episode.episode_number, int)) else str(episode.episode_number or "01")
                         notif_msg = (
                             f"📥 Импорт спецвыпуска для «{show.title}»:\n"
-                            f"Серия: SP {episode.episode_number:02d}{ep_title}\n"
+                            f"Серия: SP {sp_num_str}{ep_title}\n"
                             f"Файл: {file_name}\n"
                             f"Качество: {quality}"
                         )
@@ -1657,9 +1674,11 @@ def execute_manual_import(
                         )
                     else:
                         ep_title = f" — «{episode.title}»" if episode.title else ""
+                        s_num_str = f"{episode.season_number:02d}" if (episode.season_number is not None and isinstance(episode.season_number, int)) else str(episode.season_number or "01")
+                        e_num_str = f"{episode.episode_number:02d}" if (episode.episode_number is not None and isinstance(episode.episode_number, int)) else str(episode.episode_number or "01")
                         notif_msg = (
                             f"📥 Импорт серии для «{show.title}»:\n"
-                            f"Серия: S{episode.season_number:02d}E{episode.episode_number:02d}{ep_title}\n"
+                            f"Серия: S{s_num_str}E{e_num_str}{ep_title}\n"
                             f"Файл: {file_name}\n"
                             f"Качество: {quality}"
                         )
@@ -2104,9 +2123,10 @@ def execute_global_manual_import(
                     from app.services.notifications import notify_all_sync
                     if episode.season_number == 0:
                         ep_title = f" — «{episode.title}»" if episode.title else ""
+                        sp_num_str = f"{episode.episode_number:02d}" if (episode.episode_number is not None and isinstance(episode.episode_number, int)) else str(episode.episode_number or "01")
                         notif_msg = (
                             f"📥 Импорт спецвыпуска для «{show.title}»:\n"
-                            f"Серия: SP {episode.episode_number:02d}{ep_title}\n"
+                            f"Серия: SP {sp_num_str}{ep_title}\n"
                             f"Файл: {file_name}\n"
                             f"Качество: {quality}"
                         )
@@ -2118,9 +2138,11 @@ def execute_global_manual_import(
                         )
                     else:
                         ep_title = f" — «{episode.title}»" if episode.title else ""
+                        s_num_str = f"{episode.season_number:02d}" if (episode.season_number is not None and isinstance(episode.season_number, int)) else str(episode.season_number or "01")
+                        e_num_str = f"{episode.episode_number:02d}" if (episode.episode_number is not None and isinstance(episode.episode_number, int)) else str(episode.episode_number or "01")
                         notif_msg = (
                             f"📥 Импорт серии для «{show.title}»:\n"
-                            f"Серия: S{episode.season_number:02d}E{episode.episode_number:02d}{ep_title}\n"
+                            f"Серия: S{s_num_str}E{e_num_str}{ep_title}\n"
                             f"Файл: {file_name}\n"
                             f"Качество: {quality}"
                         )

@@ -395,6 +395,29 @@ class TestManualImportLogic(unittest.TestCase):
             self.assertEqual(scan_out.show_id, 1)
             self.assertEqual(scan_out.files, [])
 
+    def test_match_special_episode_slime_and_robustness(self):
+        from types import SimpleNamespace
+        from app.services.matcher import match_special_episode
+
+        specials = [
+            SimpleNamespace(id=1, season_number=0, episode_number=1, title="Tales: Veldora's Journal 1"),
+            SimpleNamespace(id=2, season_number=0, episode_number=2, title="Tales: Veldora's Journal 2"),
+            SimpleNamespace(id=3, season_number=0, episode_number=3, title="Coleus' Dream - Episode 1"),
+            SimpleNamespace(id=4, season_number=0, episode_number=4, title="Coleus' Dream - Episode 2"),
+            SimpleNamespace(id=5, season_number=0, episode_number=5, title="Coleus' Dream - Episode 3"),
+        ]
+
+        m1 = match_special_episode("[uni][+] Tensei shitara Slime Datta Ken - Coleus no Yume - 01.mkv", specials)
+        self.assertIsNotNone(m1)
+        self.assertEqual(m1.id, 3)
+
+        m2 = match_special_episode("/data/downloads/[uni][+] Tensei shitara Slime Datta Ken/02.mkv", specials)
+        # Should not crash and return None or matched
+        self.assertTrue(m2 is None or isinstance(m2.id, int))
+
+        m_empty = match_special_episode("Some.file.mkv", [])
+        self.assertIsNone(m_empty)
+
 
 if __name__ == "__main__":
     unittest.main()

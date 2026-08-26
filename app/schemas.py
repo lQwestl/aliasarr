@@ -93,14 +93,14 @@ class EpisodeOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     show_id: int
-    season_number: int
-    episode_number: int
-    absolute_number: Optional[int]
-    title: Optional[str]
+    season_number: int = 0
+    episode_number: Optional[int] = 0
+    absolute_number: Optional[int] = None
+    title: Optional[str] = None
     air_date: Optional[dt.datetime] = None
-    status: str
-    monitored: bool = True
-    download_progress: float = 0.0
+    status: Optional[str] = "wanted"
+    monitored: Optional[bool] = True
+    download_progress: Optional[float] = 0.0
     torrent_hash: Optional[str] = None
     file_path: Optional[str] = None
     has_file: bool = False
@@ -111,8 +111,8 @@ class EpisodeOut(BaseModel):
     audio_channels: Optional[str] = None
     dynamic_range: Optional[str] = None
     release_group: Optional[str] = None
-    languages: list[str] = []
-    custom_format_score: int = 0
+    languages: Optional[list[str]] = []
+    custom_format_score: Optional[int] = 0
     file_size_bytes: Optional[int] = None
 
 
