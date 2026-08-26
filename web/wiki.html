@@ -8,12 +8,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/ui/static/css/style.css?v=20260826-01">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260826-02">
 <script>
   (function () {
     try {
       var theme = localStorage.getItem("vbeacon_theme") || "dark";
       document.documentElement.setAttribute("data-theme", theme);
+      var design = localStorage.getItem("aliasarr_design") || "classic";
+      document.documentElement.setAttribute("data-design", design);
       var lang = localStorage.getItem("aliasarr_lang") || "ru";
       document.documentElement.setAttribute("lang", lang);
     } catch (e) {}
@@ -1049,6 +1051,12 @@
       <!-- Theme Switcher -->
       <button class="btn btn-secondary btn-small" onclick="cycleWikiTheme()" title="Переключить тему / Cycle Theme" style="padding:7px 10px;">
         <i data-lucide="moon" class="ico-xs"></i>
+      </button>
+
+      <!-- Design System Switcher -->
+      <button class="btn btn-secondary btn-small" id="wiki-design-btn" onclick="cycleWikiDesign()" title="Переключить стиль дизайна / Switch Design Style" style="display:flex; align-items:center; gap:6px;">
+        <i data-lucide="layout-template" class="ico-xs"></i>
+        <span id="wiki-design-label">Классика</span>
       </button>
 
       <!-- Back to App -->
@@ -2143,6 +2151,27 @@
     try { localStorage.setItem("vbeacon_theme", next); } catch (e) {}
   }
 
+  // Design System Toggler
+  function updateWikiDesignBtn(design) {
+    const d = design || document.documentElement.getAttribute("data-design") || "classic";
+    const label = document.getElementById("wiki-design-label");
+    if (label) {
+      if (CURRENT_WIKI_LANG === "en") {
+        label.innerText = d === "vanguard" ? "Vanguard" : "Classic";
+      } else {
+        label.innerText = d === "vanguard" ? "Авангард" : "Классика";
+      }
+    }
+  }
+
+  function cycleWikiDesign() {
+    const current = document.documentElement.getAttribute("data-design") || "classic";
+    const next = current === "classic" ? "vanguard" : "classic";
+    document.documentElement.setAttribute("data-design", next);
+    try { localStorage.setItem("aliasarr_design", next); } catch (e) {}
+    updateWikiDesignBtn(next);
+  }
+
   // Language state & switcher
   let CURRENT_WIKI_LANG = "ru";
   try {
@@ -2159,6 +2188,7 @@
     if (search) search.placeholder = CURRENT_WIKI_LANG === "en" ? "Search documentation..." : "Поиск по документации...";
     const title = document.getElementById("wiki-page-title");
     if (title) title.innerText = CURRENT_WIKI_LANG === "en" ? "Wiki & Documentation — Aliasarr" : "Wiki & Руководство пользователя — Aliasarr";
+    updateWikiDesignBtn();
   }
 
   function toggleWikiLang() {
@@ -2168,6 +2198,7 @@
   }
 
   applyWikiLanguage(CURRENT_WIKI_LANG);
+  updateWikiDesignBtn();
 
   // Authentication check on page load
   async function checkWikiAuth() {

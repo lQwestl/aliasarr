@@ -23,11 +23,40 @@ const QUALITY_OPTIONS = [
   "HDTV-2160p", "WEBRip-2160p", "WEBDL-2160p", "Bluray-2160p", "Remux-2160p",
 ];
 
-// ---------- ТЕМА (dark/light) ----------
+// ---------- ТЕМА (dark/obsidian/dracula/light) ----------
 function applyTheme(theme) {
   const t = theme || "dark";
   document.documentElement.setAttribute("data-theme", t);
   try { localStorage.setItem("vbeacon_theme", t); } catch (e) {}
+}
+
+// ---------- ДИЗАЙН-СИСТЕМА (classic / vanguard) ----------
+function applyDesign(design, isUserAction = false) {
+  const d = (design === "vanguard") ? "vanguard" : "classic";
+  document.documentElement.setAttribute("data-design", d);
+  try { localStorage.setItem("aliasarr_design", d); } catch (e) {}
+  updateDesignSettingsUI(d);
+  if (isUserAction) {
+    const name = d === "vanguard" ? (CURRENT_LANG === "en" ? "Vanguard Luxe (Awwwards-Tier)" : "Авангард Luxe (Awwwards-Tier)") : (CURRENT_LANG === "en" ? "Classic Neo-Glass" : "Классический Neo-Glass");
+    toast(CURRENT_LANG === "en" ? `Design applied: ${name}` : `Применен дизайн: ${name}`);
+  }
+}
+
+function selectDesignSystem(design) {
+  applyDesign(design, true);
+}
+
+function updateDesignSettingsUI(currentDesign) {
+  const d = currentDesign || document.documentElement.getAttribute("data-design") || localStorage.getItem("aliasarr_design") || "classic";
+  const classicCard = document.getElementById("design-card-classic");
+  const vanguardCard = document.getElementById("design-card-vanguard");
+  if (classicCard) classicCard.classList.toggle("active", d === "classic");
+  if (vanguardCard) vanguardCard.classList.toggle("active", d === "vanguard");
+  if (window.lucide && typeof lucide.createIcons === "function") lucide.createIcons();
+}
+
+function loadDesignSettings() {
+  updateDesignSettingsUI();
 }
 
 // ---------- ЯЗЫК (ru/en) ----------
@@ -358,6 +387,16 @@ const TRANSLATIONS = {
     "settingsnav.quality_profiles": "Качество",
     "settingsnav.metadata": "Метаданные",
     "settingsnav.notifications": "Уведомления",
+    "settingsnav.design": "Дизайн",
+    "settings.design_title": "Дизайн интерфейса",
+    "settings.design_subtitle": "Выберите визуальный стиль и архитектуру компонентов для веб-приложения, Wiki и мобильной версии. Стили можно переключать в любой момент без потери настроек.",
+    "settings.design_classic_title": "Классический Neo-Glass",
+    "settings.design_classic_desc": "Фирменный минималистичный стиль Aliasarr: полупрозрачные стеклянные панели, компактные карточки и традиционная компоновка интерфейса.",
+    "settings.design_vanguard_title": "Авангард Luxe (Awwwards-Tier)",
+    "settings.design_vanguard_desc": "Премиальный кинетический $150k+ дизайн (Linear/Apple-tier): концентрическая архитектура Double-Bezel, парящие островные меню, кнопки-капсулы с пружинной микро-физикой и глубокий блур.",
+    "settings.design_badge_classic": "Классика",
+    "settings.design_badge_vanguard": "Awwwards Luxe",
+    "settings.btn_select_design": "Выбрать стиль",
     "settings.apikey_title": "API-ключ",
     "settings.apikey_label": "API-ключ",
     "settings.apikey_hint": "используется этим интерфейсом и внешними клиентами для запросов к серверу",
@@ -1363,6 +1402,16 @@ const TRANSLATIONS = {
     "settingsnav.quality_profiles": "Quality Profiles",
     "settingsnav.metadata": "Metadata",
     "settingsnav.notifications": "Notifications",
+    "settingsnav.design": "Design",
+    "settings.design_title": "Interface Design",
+    "settings.design_subtitle": "Select the visual style and component architecture for the web app, Wiki, and mobile view. You can switch styles at any time.",
+    "settings.design_classic_title": "Classic Neo-Glass",
+    "settings.design_classic_desc": "Aliasarr's signature minimalist style: translucent glass panels, compact cards, and traditional layout structure.",
+    "settings.design_vanguard_title": "Vanguard Luxe (Awwwards-Tier)",
+    "settings.design_vanguard_desc": "Premium kinetic $150k+ agency experience (Linear/Apple-tier): concentric Double-Bezel architecture, floating island navigation, capsule buttons with spring micro-physics, and deep blur.",
+    "settings.design_badge_classic": "Classic",
+    "settings.design_badge_vanguard": "Awwwards Luxe",
+    "settings.btn_select_design": "Select Style",
     "settings.apikey_title": "API Key",
     "settings.apikey_label": "API Key",
     "settings.apikey_hint": "used by this web UI and external clients to query the server",
@@ -2298,6 +2347,7 @@ function applyUserPermissionsToUI() {
   const tabQuality = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="quality"]');
   const tabMetadata = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="metadata"]');
   const tabNotifications = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="notifications"]');
+  const tabDesign = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="design"]');
   const tabUsers = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="users"]');
   const tabIndexers = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="indexers"]');
   const tabDownloaders = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="download-clients"]');
@@ -2308,6 +2358,7 @@ function applyUserPermissionsToUI() {
   if (tabQuality) tabQuality.style.display = hasSettingsPerm ? "" : "none";
   if (tabMetadata) tabMetadata.style.display = hasSettingsPerm ? "" : "none";
   if (tabNotifications) tabNotifications.style.display = hasSettingsPerm ? "" : "none";
+  if (tabDesign) tabDesign.style.display = hasSettingsPerm ? "" : "none";
   if (tabUsers) tabUsers.style.display = hasPermission("manage_users") ? "" : "none";
   if (tabIndexers) tabIndexers.style.display = hasPermission("manage_indexers") ? "" : "none";
   if (tabDownloaders) tabDownloaders.style.display = hasPermission("manage_downloaders") ? "" : "none";
@@ -3369,6 +3420,7 @@ document.querySelectorAll(".settings-tab-btn").forEach(btn => {
     else if (targetTab === "download-clients") loadDownloadClients();
     else if (targetTab === "quality") loadQualityProfiles();
     else if (targetTab === "notifications") loadNotifications();
+    else if (targetTab === "design") loadDesignSettings();
     else if (targetTab === "general") loadGeneralSettings();
     else if (targetTab === "security") loadSecuritySettings();
     else if (targetTab === "users") loadUsers();
@@ -12764,6 +12816,7 @@ async function startApp() {
 // они всё равно будут перезаписаны актуальными значениями в loadGeneralSettings().
 try {
   applyTheme(localStorage.getItem("vbeacon_theme") || "dark");
+  applyDesign(localStorage.getItem("aliasarr_design") || "classic");
   applyLanguage(localStorage.getItem("vbeacon_lang") || "ru");
   updateMobileState();
 } catch (e) {}

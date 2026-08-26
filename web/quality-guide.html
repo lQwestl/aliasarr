@@ -8,12 +8,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/ui/static/css/style.css?v=20260826-01">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260826-02">
 <script>
   (function () {
     try {
       var theme = localStorage.getItem("vbeacon_theme") || "dark";
       document.documentElement.setAttribute("data-theme", theme);
+      var design = localStorage.getItem("aliasarr_design") || "classic";
+      document.documentElement.setAttribute("data-design", design);
     } catch (e) {}
   })();
 </script>
@@ -502,6 +504,9 @@
       <button class="guide-btn-action guide-theme-btn" id="guide-theme-toggle" onclick="toggleGuideTheme()" title="Переключить тему">
         <i data-lucide="moon" class="ico-xs"></i>
       </button>
+      <button class="guide-btn-action guide-design-btn" id="guide-design-toggle" onclick="toggleGuideDesign()" title="Переключить дизайн / Switch Design">
+        <i data-lucide="layout-template" class="ico-xs"></i> <span id="guide-design-label">Классика</span>
+      </button>
       <a href="/" class="guide-btn-action" title="Вернуться в Aliasarr" data-i18n-title="qg.back_to_app">
         <i data-lucide="arrow-left" class="ico-xs"></i> <span class="guide-btn-text" data-i18n="qg.back_to_app">В приложение</span>
       </a>
@@ -969,6 +974,7 @@
     "sun": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
     "wand-2": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>',
     "languages": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>',
+    "layout-template": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="7" x="3" y="3" rx="1"/><rect width="9" height="7" x="3" y="14" rx="1"/><rect width="5" height="7" x="16" y="14" rx="1"/></svg>',
     "search": '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
     "list": '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>',
     "chevron-down": '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
@@ -1368,6 +1374,26 @@
     updateThemeToggleBtn(next);
   }
 
+  function updateGuideDesignBtn(design) {
+    var d = design || document.documentElement.getAttribute('data-design') || 'classic';
+    var label = document.getElementById('guide-design-label');
+    if (label) {
+      if (CURRENT_LANG === 'en') {
+        label.innerText = d === 'vanguard' ? 'Vanguard' : 'Classic';
+      } else {
+        label.innerText = d === 'vanguard' ? 'Авангард' : 'Классика';
+      }
+    }
+  }
+
+  function toggleGuideDesign() {
+    var current = document.documentElement.getAttribute('data-design') || 'classic';
+    var next = current === 'classic' ? 'vanguard' : 'classic';
+    document.documentElement.setAttribute('data-design', next);
+    try { localStorage.setItem('aliasarr_design', next); } catch (e) {}
+    updateGuideDesignBtn(next);
+  }
+
   function toggleSidebarToc() {
     var sb = document.getElementById('guide-sidebar');
     if (sb) {
@@ -1492,9 +1518,10 @@
 
   // Render built-in SVG icons immediately
   renderGuideIcons();
-  // Initial load language and theme
+  // Initial load language, theme and design
   applyGuideLanguage(getSavedGuideLang());
   updateThemeToggleBtn(document.documentElement.getAttribute('data-theme') || 'dark');
+  updateGuideDesignBtn();
   syncServerGuideSettings();
 </script>
 </body>
