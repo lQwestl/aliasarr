@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/ui/static/css/style.css?v=20260825-04">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260826-01">
 <script>
   (function () {
     try {
@@ -833,9 +833,139 @@
     background: rgba(16, 185, 129, 0.12);
     color: #047857;
   }
-  [data-theme="light"] .badge-score-neg {
-    background: rgba(239, 68, 68, 0.12);
-    color: #b91c1c;
+  /* ------------------------------------------------------------- */
+  /* OBSIDIAN AURORA THEME (Awwwards-Tier High-End Luxury)         */
+  /* ------------------------------------------------------------- */
+  [data-theme="obsidian"] body {
+    background-color: #05070e;
+    color: #f0f7f6;
+  }
+  [data-theme="obsidian"] .wiki-header {
+    background: rgba(10, 14, 26, 0.88);
+    border-color: rgba(0, 245, 212, 0.14);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  }
+  [data-theme="obsidian"] .wiki-hero {
+    background: linear-gradient(135deg, rgba(0, 245, 212, 0.12) 0%, rgba(139, 92, 246, 0.1) 50%, rgba(10, 14, 26, 0.95) 100%);
+    border-color: rgba(0, 245, 212, 0.22);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+  }
+  [data-theme="obsidian"] .wiki-hero h1 {
+    background: linear-gradient(135deg, #ffffff 30%, #00F5D4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  [data-theme="obsidian"] .wiki-quick-pill {
+    background: rgba(16, 22, 38, 0.8);
+    border-color: rgba(0, 245, 212, 0.18);
+    color: #f0f7f6;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  }
+  [data-theme="obsidian"] .wiki-quick-pill:hover {
+    background: rgba(0, 245, 212, 0.14);
+    border-color: #00F5D4;
+    color: #00F5D4;
+    box-shadow: 0 0 16px rgba(0, 245, 212, 0.25);
+  }
+  [data-theme="obsidian"] .wiki-section {
+    background: #0a0e1a;
+    border-color: rgba(0, 245, 212, 0.14);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  }
+  [data-theme="obsidian"] .wiki-section:hover {
+    border-color: rgba(0, 245, 212, 0.38);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 24px rgba(0, 245, 212, 0.15);
+  }
+  [data-theme="obsidian"] .wiki-section-header {
+    border-bottom-color: rgba(0, 245, 212, 0.12);
+  }
+  [data-theme="obsidian"] .wiki-section-icon {
+    background: rgba(0, 245, 212, 0.14);
+    border-color: rgba(0, 245, 212, 0.35);
+    color: #00F5D4;
+    box-shadow: 0 0 12px rgba(0, 245, 212, 0.2);
+  }
+  [data-theme="obsidian"] .wiki-subcard {
+    background: #101626;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.06);
+  }
+  [data-theme="obsidian"] .wiki-subcard:hover {
+    border-color: rgba(0, 245, 212, 0.35);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 245, 212, 0.15);
+  }
+  [data-theme="obsidian"] .wiki-code-block {
+    background: #060913;
+    border-color: rgba(0, 245, 212, 0.18);
+    color: #00F5D4;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
+  }
+  [data-theme="obsidian"] .regex-box {
+    background: #060913;
+    border-color: rgba(139, 92, 246, 0.25);
+  }
+  [data-theme="obsidian"] .regex-code {
+    color: #c4b5fd;
+  }
+  [data-theme="obsidian"] .btn-copy {
+    background: rgba(16, 22, 38, 0.85);
+    border-color: rgba(0, 245, 212, 0.2);
+    color: #f0f7f6;
+  }
+  [data-theme="obsidian"] .btn-copy:hover {
+    background: #00F5D4;
+    color: #05070e;
+    box-shadow: 0 0 14px rgba(0, 245, 212, 0.4);
+  }
+  [data-theme="obsidian"] .wiki-table th {
+    background: #101626;
+    color: #00F5D4;
+    border-bottom-color: rgba(0, 245, 212, 0.16);
+  }
+  [data-theme="obsidian"] .wiki-table tr:hover td {
+    background: rgba(0, 245, 212, 0.04);
+  }
+  [data-theme="obsidian"] .wiki-callout-tip {
+    background: rgba(0, 245, 212, 0.08);
+    border-color: rgba(0, 245, 212, 0.3);
+    color: #00F5D4;
+  }
+  [data-theme="obsidian"] .wiki-callout-note {
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.3);
+    color: #c4b5fd;
+  }
+  [data-theme="obsidian"] .wiki-toc-link.active {
+    color: #00F5D4;
+    background: rgba(0, 245, 212, 0.1);
+    border-left-color: #00F5D4;
+    box-shadow: 0 0 12px rgba(0, 245, 212, 0.15);
+  }
+  [data-theme="obsidian"] .wiki-search-input:focus {
+    border-color: #00F5D4;
+    box-shadow: 0 0 14px rgba(0, 245, 212, 0.25);
+  }
+  [data-theme="obsidian"] .wiki-doc-tag {
+    background: rgba(0, 245, 212, 0.12);
+    color: #00F5D4;
+    border-color: rgba(0, 245, 212, 0.35);
+  }
+  [data-theme="obsidian"] .wiki-section-badge {
+    background: rgba(0, 245, 212, 0.12);
+    color: #00F5D4;
+    border-color: rgba(0, 245, 212, 0.35);
+  }
+  [data-theme="obsidian"] .badge-builtin {
+    background: rgba(139, 92, 246, 0.15);
+    color: #c4b5fd;
+  }
+  [data-theme="obsidian"] .badge-score-pos {
+    background: rgba(0, 245, 212, 0.15);
+    color: #00F5D4;
+  }
+  [data-theme="obsidian"] .badge-score-neg {
+    background: rgba(255, 51, 102, 0.15);
+    color: #FF3366;
   }
 
   /* Auth Error Overlay */
@@ -2008,7 +2138,7 @@
   // Theme Toggler
   function cycleWikiTheme() {
     const current = document.documentElement.getAttribute("data-theme") || "dark";
-    const next = current === "dark" ? "light" : (current === "light" ? "dracula" : "dark");
+    const next = current === "dark" ? "obsidian" : (current === "obsidian" ? "dracula" : (current === "dracula" ? "light" : "dark"));
     document.documentElement.setAttribute("data-theme", next);
     try { localStorage.setItem("vbeacon_theme", next); } catch (e) {}
   }

@@ -22,6 +22,47 @@
   --font-mono: 'JetBrains Mono', monospace;
 }
 
+/* Obsidian Aurora Theme (Awwwards-Tier OLED Obsidian & Ethereal Mint/Violet) */
+[data-theme="obsidian"] {
+  --bg: #05070e;
+  --panel: #0a0e1a;
+  --panel-alt: #101626;
+  --border: rgba(0, 245, 212, 0.14);
+  --border-hover: rgba(0, 245, 212, 0.38);
+  --text: #f0f7f6;
+  --text-muted: #7b8fa3;
+  --teal: #00F5D4;
+  --violet: #8B5CF6;
+  --primary: #00F5D4;
+  --accent: #8B5CF6;
+  --danger: #FF3366;
+  --success: #00F5D4;
+  --warning: #FFB800;
+  --gradient: linear-gradient(135deg, #00F5D4 0%, #8B5CF6 100%);
+  --radius: 14px;
+  --radius-sm: 9px;
+  --radius-lg: 20px;
+}
+
+[data-theme="obsidian"] body::before {
+  background-image: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 245, 212, 0.14), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 80%, rgba(139, 92, 246, 0.1), transparent);
+  opacity: 1;
+}
+
+[data-theme="obsidian"] .brand-mark-logo {
+  background: linear-gradient(135deg, #00F5D4 0%, #8B5CF6 100%);
+  color: #05070e;
+  box-shadow: 0 4px 20px rgba(0, 245, 212, 0.35);
+}
+
+[data-theme="obsidian"] .tasks-popup,
+[data-theme="obsidian"] .modal {
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0, 245, 212, 0.16), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 [data-theme="dracula"] {
   --bg: #1e1f29;
   --panel: #282a36;
@@ -1060,6 +1101,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   color: #50fa7b;
 }
 
+[data-theme="obsidian"] .show-monitored-pill.monitored {
+  background: rgba(0, 245, 212, 0.14);
+  border-color: rgba(0, 245, 212, 0.45);
+  color: #00F5D4;
+  box-shadow: 0 0 10px rgba(0, 245, 212, 0.18);
+}
+
 .show-monitored-pill.unmonitored {
   background: rgba(139, 144, 160, 0.15);
   border: 1px solid rgba(139, 144, 160, 0.35);
@@ -1076,6 +1124,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: rgba(98, 114, 164, 0.18);
   border-color: rgba(98, 114, 164, 0.4);
   color: #6272a4;
+}
+
+[data-theme="obsidian"] .show-monitored-pill.unmonitored {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #7b8fa3;
 }
 
 /* Table Monitored Status Icon */
@@ -1108,6 +1162,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   border-color: rgba(80, 250, 123, 0.4);
 }
 
+[data-theme="obsidian"] .show-table-monitored.monitored {
+  background: rgba(0, 245, 212, 0.14);
+  color: #00F5D4;
+  border-color: rgba(0, 245, 212, 0.45);
+  box-shadow: 0 0 8px rgba(0, 245, 212, 0.2);
+}
+
 .show-table-monitored.unmonitored {
   background: rgba(139, 144, 160, 0.15);
   color: var(--text-muted);
@@ -1124,6 +1185,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: rgba(98, 114, 164, 0.18);
   color: #6272a4;
   border-color: rgba(98, 114, 164, 0.4);
+}
+
+[data-theme="obsidian"] .show-table-monitored.unmonitored {
+  background: rgba(255, 255, 255, 0.04);
+  color: #7b8fa3;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .show-table-monitored .ico-xs {
@@ -1164,6 +1231,15 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: rgba(189, 147, 249, 0.16);
   color: #bd93f9;
   border-color: rgba(189, 147, 249, 0.45);
+}
+
+[data-theme="obsidian"] .show-quality-badge,
+[data-theme="obsidian"] .show-quality-text,
+[data-theme="obsidian"] .meta-badge.meta-badge-quality {
+  background: rgba(139, 92, 246, 0.14);
+  color: #c4b5fd;
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
 }
 
 [data-theme="light"] .show-quality-badge,
@@ -1709,6 +1785,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   color: #f8f8f2;
 }
 
+[data-theme="obsidian"] .status-pill.status-upgrading {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: rgba(139, 92, 246, 0.45);
+  color: #f3e8ff;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.25);
+}
+
 .status-pill.status-upgrading .status-pill-fill {
   position: absolute;
   top: 0;
@@ -1790,6 +1873,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: rgba(139, 233, 253, 0.18);
   border-color: rgba(139, 233, 253, 0.5);
   color: #f8f8f2;
+}
+
+[data-theme="obsidian"] .status-pill.status-downloading-progress {
+  background: rgba(0, 245, 212, 0.14);
+  border-color: rgba(0, 245, 212, 0.45);
+  color: #00F5D4;
+  box-shadow: 0 0 10px rgba(0, 245, 212, 0.2);
 }
 
 .status-pill.status-downloading-progress .status-pill-fill {
@@ -2059,6 +2149,16 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 [data-theme="dracula"] .toast.error {
   border-color: #ff5555;
   box-shadow: 0 16px 40px rgba(255, 85, 85, 0.4);
+}
+[data-theme="obsidian"] .toast {
+  background: rgba(10, 14, 26, 0.94);
+  color: #f0f7f6;
+  border-color: #00F5D4;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(0, 245, 212, 0.22);
+}
+[data-theme="obsidian"] .toast.error {
+  border-color: #FF3366;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 20px rgba(255, 51, 102, 0.22);
 }
 
 /* Inline Test & Check status badges inside forms and cards */
@@ -3584,6 +3684,14 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     background: var(--panel);
   }
 
+  [data-theme="obsidian"] .mobile-top-bar {
+    background: rgba(10, 14, 26, 0.88);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-bottom: 1px solid rgba(0, 245, 212, 0.14);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
   [data-theme="light"] .mobile-top-bar {
     background: var(--panel);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
@@ -3825,6 +3933,14 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
   [data-theme="dracula"] .mobile-bottom-bar {
     background: rgba(40, 42, 54, 0.94);
+  }
+
+  [data-theme="obsidian"] .mobile-bottom-bar {
+    background: rgba(10, 14, 26, 0.88);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(0, 245, 212, 0.14);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.65), 0 -1px 0 rgba(255, 255, 255, 0.06);
   }
 
   [data-theme="light"] .mobile-bottom-bar {

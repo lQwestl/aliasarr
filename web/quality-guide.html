@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/ui/static/css/style.css?v=20260816-05">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260826-01">
 <script>
   (function () {
     try {
@@ -1356,13 +1356,13 @@
   function updateThemeToggleBtn(theme) {
     var btn = document.getElementById('guide-theme-toggle');
     if (!btn) return;
-    var iconName = theme === 'light' ? 'sun' : (theme === 'dracula' ? 'wand-2' : 'moon');
-    btn.innerHTML = (SVG_ICONS[iconName] || '');
+    var iconName = theme === 'light' ? 'sun' : (theme === 'dracula' ? 'wand-2' : (theme === 'obsidian' ? 'sparkles' : 'moon'));
+    btn.innerHTML = (SVG_ICONS[iconName] || SVG_ICONS['moon'] || '');
   }
 
   function toggleGuideTheme() {
     var current = document.documentElement.getAttribute('data-theme') || 'dark';
-    var next = current === 'light' ? 'dark' : (current === 'dark' ? 'dracula' : 'light');
+    var next = current === 'dark' ? 'obsidian' : (current === 'obsidian' ? 'dracula' : (current === 'dracula' ? 'light' : 'dark'));
     document.documentElement.setAttribute('data-theme', next);
     try { localStorage.setItem('vbeacon_theme', next); } catch (e) {}
     updateThemeToggleBtn(next);
