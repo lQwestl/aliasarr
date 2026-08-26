@@ -5633,7 +5633,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* 2. Concentric Double-Bezel Architecture (Doppelrand) */
+/* 2. Concentric Double-Bezel Architecture (Doppelrand) & Width Alignment */
 [data-design="vanguard"] .card,
 [data-design="vanguard"] .show-card,
 [data-design="vanguard"] .panel,
@@ -5652,6 +5652,21 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     0 12px 32px -4px rgba(0, 0, 0, 0.5),
     inset 0 1px 1px rgba(255, 255, 255, 0.16),
     inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  box-sizing: border-box;
+}
+
+[data-design="vanguard"] .panel-sticky-header,
+[data-design="vanguard"] .card,
+[data-design="vanguard"] .table-responsive,
+[data-design="vanguard"] .shows-grid,
+[data-design="vanguard"] .shows-table-wrap,
+[data-design="vanguard"] .shows-overview,
+[data-design="vanguard"] .calendar-container,
+[data-design="vanguard"] .dash-stat-grid {
+  width: 100%;
+  box-sizing: border-box;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 [data-design="vanguard"] .show-card {
@@ -5685,11 +5700,76 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   font-weight: 600;
   letter-spacing: 0.01em;
   padding: 8px 18px;
+  height: 38px;
+  min-height: 38px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 [data-design="vanguard"] .btn:active {
   transform: scale(0.97);
+}
+
+[data-design="vanguard"] .btn-small {
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 4px 14px !important;
+  font-size: 12px !important;
+  border-radius: 9999px !important;
+}
+
+[data-design="vanguard"] .btn-icon-only,
+[data-design="vanguard"] #poster-options-btn {
+  width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+[data-design="vanguard"] .btn-icon-only.btn-small {
+  width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  border-radius: 8px !important;
+}
+
+[data-design="vanguard"] #poster-options-btn svg,
+[data-design="vanguard"] #poster-options-btn i,
+[data-design="vanguard"] #poster-options-btn .lucide {
+  width: 18px !important;
+  height: 18px !important;
+  display: block !important;
+  stroke-width: 2.2px !important;
+}
+
+[data-design="vanguard"] .view-switcher-btn {
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 14px !important;
+  border-radius: 9999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 13px !important;
+}
+
+[data-design="vanguard"] .view-switcher-btn svg,
+[data-design="vanguard"] .view-switcher-btn i {
+  width: 16px !important;
+  height: 16px !important;
 }
 
 [data-design="vanguard"] .btn-primary {
@@ -5731,26 +5811,80 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   box-shadow: 0 4px 18px rgba(255, 51, 102, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.4);
 }
 
-/* 4. Desktop Detached Floating Island Headers & Navigation */
+/* 4. Desktop Detached Floating Island Headers & Navigation (Matching width with content) */
 [data-design="vanguard"] .panel-sticky-header {
-  margin: 12px 18px 22px 18px;
+  margin: 0 0 20px 0;
+  width: 100%;
+  box-sizing: border-box;
   border-radius: 20px;
   background: rgba(14, 19, 32, 0.82);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.12);
-  padding: 16px 22px;
+  padding: 18px 22px;
+}
+
+[data-design="vanguard"] .settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+[data-design="vanguard"] .settings-tab-btn {
+  border-radius: 9999px !important;
+  padding: 7px 16px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1) !important;
+}
+
+[data-design="vanguard"] .settings-tab-btn.active {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.16) 0%, rgba(139, 92, 246, 0.12) 100%) !important;
+  color: var(--teal, #00F0FF) !important;
+  border-color: rgba(0, 240, 255, 0.35) !important;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
 }
 
 [data-design="vanguard"] .library-bulk-bar {
-  margin: 0 18px 20px 18px;
+  margin: 0 0 20px 0;
+  width: 100%;
+  box-sizing: border-box;
   border-radius: 18px;
   background: rgba(14, 22, 38, 0.92);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(0, 240, 255, 0.25);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+[data-design="vanguard"] .toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-design="vanguard"] .toolbar .input {
+  height: 38px;
+  box-sizing: border-box;
+}
+
+[data-design="vanguard"] .toolbar .btn-group {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+[data-design="vanguard"] .toolbar .btn-group .btn {
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 14px !important;
+  border-radius: 9999px !important;
 }
 
 [data-design="vanguard"] .sidebar {

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/ui/static/css/style.css?v=20260826-02">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260826-03">
 <script>
   // Применяем тему, язык и целевую вкладку сразу, до отрисовки основного контента, чтобы исключить мерцание Дашбордом при перезагрузке
   (function () {
@@ -373,7 +373,7 @@
           </div>
           <div class="view-switcher">
             <button class="btn btn-secondary view-switcher-btn" id="view-switcher-btn" onclick="toggleViewMenu()">
-              <span class="nav-ico" style="margin-right:4px"><i data-lucide="library"></i></span><span data-i18n="library.view_label">Просмотр:</span> <span id="view-switcher-label" data-i18n="library.view_posters">Постеры</span> ▾
+              <span class="nav-ico" style="margin-right:4px; display:inline-flex; align-items:center;"><i data-lucide="layout-grid" class="ico-xs"></i></span><span data-i18n="library.view_label">Просмотр:</span> <span id="view-switcher-label" data-i18n="library.view_posters">Постеры</span> ▾
             </button>
             <div class="view-switcher-menu" id="view-switcher-menu">
               <button onclick="setLibraryView('posters')" data-i18n="library.view_posters">Постеры</button>
