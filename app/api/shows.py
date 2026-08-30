@@ -1621,6 +1621,9 @@ def scan_for_manual_import(
                     try:
                         from app.services.matcher import match_special_episode
                         matched_ep = match_special_episode(file_path, specials, parsed)
+                        if matched_ep:
+                            p_season = matched_ep.season_number
+                            p_episode = matched_ep.episode_number
                     except Exception:
                         matched_ep = None
 
@@ -2113,6 +2116,9 @@ def scan_for_global_manual_import(
                     if specials:
                         from app.services.matcher import match_special_episode
                         matched_ep = match_special_episode(file_path, specials, parsed)
+                        if matched_ep:
+                            p_season = matched_ep.season_number
+                            p_episode = matched_ep.episode_number
         else:
             p_season = parsed.season
             p_episode = parsed.episodes[0] if parsed.episodes else None

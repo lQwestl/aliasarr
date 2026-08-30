@@ -500,29 +500,65 @@ def match_special_episode(filepath_or_name: str, specials: list, parsed_ep: Opti
                         return matching_eps[sub_idx - 1]
                     return matching_eps[0]
 
-        # 2. Нечеткое сопоставление по полному названию серии
+        # 2. Нечеткое сопоставление по полному названию серии и ключевым словам спешла
         best_ep = None
         best_score = 0.0
+
+        # Очищаем имя файла от технических тегов качества/кодеков для чистого сравнения названий
+        clean_path = re.sub(r"\b(?:1080p|720p|2160p|4k|web-?dl|bluray|hdtv|hevc|x264|x265|aac|ac3|dts|flac|rus|eng|sub|subs|lostfilm|tvshows|hdrezka|alexfilm)\b", " ", path_lower)
+        clean_path = re.sub(r"[\._\-\(\)\[\]:;!\?']+", " ", clean_path)
+
+        GENERIC_SPECIAL_WORDS = {"special", "specials", "спешл", "спешлы", "спецвыпуск", "спецвыпуски", "ova", "ona", "oad", "episode", "episodes", "season", "сезон", "part", "часть", "фильм", "movie", "film"}
+
         for ep in specials:
             title = (getattr(ep, "title", None) or "").strip().lower()
             if not title:
                 continue
-            # Проверяем вхождение значимых слов названия
-            words = [w for w in re.split(r"[\s:;,\-\.\?!\(\)]+", title) if len(w) > 3]
-            if words and all(w in path_lower for w in words[:2]):
-                score = fuzz.token_set_ratio(title, path_lower)
-                if score > best_score and score >= 60:
-                    best_score = score
-                    best_ep = ep
+            clean_title = re.sub(r"[\._\-\(\)\[\]:;!\?']+", " ", title).strip()
+            
+            words = [w for w in clean_title.split() if len(w) >= 3 and w not in GENERIC_SPECIAL_WORDS]
+            token_score = fuzz.token_set_ratio(clean_title, clean_path)
+            partial_score = fuzz.partial_ratio(clean_title, clean_path) if len(clean_title) >= 6 else 0
+            
+            if words:
+                matching = [w for w in words if w in clean_path]
+                word_ratio = len(matching) / len(words)
+                effective_score = (word_ratio * 70.0) + (max(token_score, partial_score) * 0.3)
+                if word_ratio >= 0.8:
+                    effective_score = max(effective_score, 85.0)
+            else:
+                effective_score = max(token_score, partial_score)
 
-        if best_ep and best_score >= 65:
+            if effective_score > best_score and effective_score >= 60.0:
+                best_score = effective_score
+                best_ep = ep
+
+        if best_ep and best_score >= 60.0:
             return best_ep
 
-        # 3. Сезонный спешл/рекап (Season 1 SP, [1] ... [sp], Season 2 SP, 2 sp)
+        # 3. Сезонный спешл/рекап (Season 1 SP, S11E00, S11 Special, [1] ... [sp], Season 2 SP, 2 sp)
         if "[1]" in path_lower and "sp" in path_lower:
             recaps_s1 = [e for e in specials if "2" not in (getattr(e, "title", None) or "")]
             if recaps_s1:
                 return recaps_s1[0]
+
+        # Распознавание SxxE00 / SxxE0 (например S11E00)
+        m_s_e00 = re.search(r"\bs(\d{1,2})e0{1,2}\b", path_lower)
+        if m_s_e00:
+            s_num = int(m_s_e00.group(1))
+            # Ищем спешл, относящийся к этому сезону
+            s_cand = [
+                e for e in specials
+                if f"season {s_num}" in (getattr(e, "title", None) or "").lower()
+                or f"s{s_num}" in (getattr(e, "title", None) or "").lower()
+                or f"сезон {s_num}" in (getattr(e, "title", None) or "").lower()
+            ]
+            if s_cand:
+                return s_cand[0]
+            # Если среди спешлов есть серия с номером 0
+            ep0 = next((e for e in specials if getattr(e, "episode_number", None) == 0), None)
+            if ep0:
+                return ep0
 
         m_s_sp = re.search(r"(?:\[|\()?\s*(?:season|сезон|s)?\s*(\d{1,2})\s*(?:\]|\))?[\s._–-]+(?:sp|special|спешл)\b|\b(\d{1,2})\s*[-_.\s]+(?:sp|special|спешл)\b", path_lower)
         if m_s_sp:
@@ -558,7 +594,7 @@ def match_special_episode(filepath_or_name: str, specials: list, parsed_ep: Opti
                 return matched
 
         # 6. Если передан parsed_ep с season=0 и номером серии
-        if parsed_ep and parsed_ep.season == 0 and parsed_ep.episodes:
+        if parsed_ep and (parsed_ep.season == 0 or (parsed_ep.episodes and parsed_ep.episodes[0] == 0)) and parsed_ep.episodes:
             target_num = parsed_ep.episodes[0]
             matched = next((e for e in specials if getattr(e, "episode_number", None) == target_num), None)
             if matched:

@@ -1001,19 +1001,21 @@ def process_download(
                             .filter_by(show_id=show.id, season_number=dl_eps[0].season_number, episode_number=ep_num)
                             .first()
                         )
-                    if episode is None:
-                        # Проверяем спецвыпуск / OVA / Movie по ключевым словам
-                        specials_for_show = db.query(Episode).filter_by(show_id=show.id, season_number=0).order_by(Episode.episode_number).all()
-                        if specials_for_show:
-                            from app.services.matcher import match_special_episode
-                            episode = match_special_episode(file_path, specials_for_show, parsed)
 
-                    if episode is None:
-                        episode = (
-                            db.query(Episode)
-                            .filter_by(show_id=show.id, season_number=1, episode_number=ep_num)
-                            .first()
-                        )
+                # Если для серии в основном сезоне запись не найдена (например, S11E00, S11E21 Special, OVA, SP),
+                # проверяем наличие подходящего спецвыпуска в Сезоне 0 (Specials)
+                if episode is None:
+                    specials_for_show = db.query(Episode).filter_by(show_id=show.id, season_number=0).order_by(Episode.episode_number).all()
+                    if specials_for_show:
+                        from app.services.matcher import match_special_episode
+                        episode = match_special_episode(file_path, specials_for_show, parsed)
+
+                if episode is None and parsed.season is None:
+                    episode = (
+                        db.query(Episode)
+                        .filter_by(show_id=show.id, season_number=1, episode_number=ep_num)
+                        .first()
+                    )
 
             if episode:
                 season_num = episode.season_number

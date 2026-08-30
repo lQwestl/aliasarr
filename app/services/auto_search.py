@@ -185,6 +185,18 @@ def evaluate_torrent_file_priority(
                 if is_part_2 and 1 <= ep_num <= 12:
                     if (primary_season, ep_num + 12) in target_keys or (ep_num + 12) in target_abs:
                         return 1
+
+        # Если файл относится к спецвыпускам (E00, Special, OVA, SP) или не подошел к основному сезону
+        has_wanted_specials = any(ep.season_number == 0 for ep in target_episodes)
+        if has_wanted_specials:
+            if (episodes and 0 in episodes) or any(kw in fname_lower for kw in ("special", "specials", "спешл", "ova", "ona", "oad", "sp")):
+                return 1
+            specials_in_target = [ep for ep in target_episodes if ep.season_number == 0]
+            if specials_in_target:
+                from app.services.matcher import match_special_episode
+                if match_special_episode(file_name, specials_in_target, parsed):
+                    return 1
+
         return 0
 
     # Все прочие неизвестные файлы
@@ -451,12 +463,26 @@ async def _collect_candidates(
                             seen_queries.add(fmt.lower())
                             query_terms.append(fmt)
                 elif ep.season_number == 0:
-                    for fmt in (
+                    spec_terms = [
                         f"{base} OVA",
                         f"{base} Special",
+                        f"{base} Specials",
                         f"{base} SP{ep.episode_number:02d}",
                         f"{base} S00E{ep.episode_number:02d}",
-                    ):
+                    ]
+                    # Если у спецвыпуска есть конкретное название (например "The Bleepin' Robot Chicken Archie Comics Special")
+                    if ep.title and ep.title.strip():
+                        clean_t = re.sub(r"[\._\-\(\)\[\]:;!\?']+", " ", ep.title).strip()
+                        if clean_t and clean_t.lower() not in ("special", "specials", "ova", "episode 0", "серия 0", "tba", "none"):
+                            spec_terms.append(f"{base} {clean_t}")
+                            # Проверяем, упоминается ли номер сезона в названии спешла (напр. "Season 11", "S11")
+                            m_s = re.search(r"\b(?:season|сезон|s)\s*(\d{1,2})\b", clean_t, re.IGNORECASE)
+                            if m_s:
+                                sn = int(m_s.group(1))
+                                spec_terms.append(f"{base} S{sn:02d} Special")
+                                spec_terms.append(f"{base} S{sn:02d}E00")
+                                spec_terms.append(f"{base} S{sn:02d}")
+                    for fmt in spec_terms:
                         if fmt.lower() not in seen_queries:
                             seen_queries.add(fmt.lower())
                             query_terms.append(fmt)

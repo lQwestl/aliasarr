@@ -125,43 +125,55 @@ class DecisionEngine:
                     target_ep_keys = {(ep.season_number, ep.episode_number) for ep in episodes}
                     target_abs = {ep.absolute_number for ep in episodes if ep.absolute_number is not None}
                     lbl_type = s_lbl["type"]
+                    has_wanted_specials = (0 in target_seasons)
+                    specials_in_target = [ep for ep in episodes if ep.season_number == 0] if has_wanted_specials else []
 
-                    # Проверка диапазона сезонов пака
-                    if lbl_type == "range":
-                        rel_seasons = set(s_lbl.get("seasons", []))
-                        if not (rel_seasons & target_seasons):
-                            min_rel = min(rel_seasons) if rel_seasons else 0
-                            max_rel = max(rel_seasons) if rel_seasons else 0
-                            min_tgt = min(target_seasons) if target_seasons else 0
-                            rejections.append(f"Пак сезонов (S{min_rel:02d}-S{max_rel:02d}) не содержит разыскиваемый сезон S{min_tgt:02d}")
-                    elif match.parsed.seasons and len(match.parsed.seasons) > 1:
-                        rel_seasons = set(match.parsed.seasons)
-                        if not (rel_seasons & target_seasons):
-                            min_rel = min(rel_seasons) if rel_seasons else 0
-                            max_rel = max(rel_seasons) if rel_seasons else 0
-                            min_tgt = min(target_seasons) if target_seasons else 0
-                            rejections.append(f"Пак сезонов (S{min_rel:02d}-S{max_rel:02d}) не содержит разыскиваемый сезон S{min_tgt:02d}")
-                    elif lbl_type == "numbered":
-                        rel_s = s_lbl["season"]
-                        if rel_s not in target_seasons:
-                            min_tgt = min(target_seasons) if target_seasons else 0
-                            rejections.append(f"Релиз относится к сезону S{rel_s:02d}, а разыскивается S{min_tgt:02d}")
-                    elif match.parsed.season is not None:
-                        rel_s = match.parsed.season
-                        if rel_s not in target_seasons:
-                            min_tgt = min(target_seasons) if target_seasons else 0
-                            rejections.append(f"Релиз относится к сезону S{rel_s:02d}, а разыскивается S{min_tgt:02d}")
+                    # Проверка спецвыпуска по названию, арке или SxxE00
+                    matched_sp_for_release = None
+                    if has_wanted_specials and specials_in_target:
+                        from app.services.matcher import match_special_episode
+                        matched_sp_for_release = match_special_episode(title, specials_in_target, match.parsed)
 
-                    # Проверка конкретных серий
-                    if match.parsed.episodes and match.parsed.kind not in (ReleaseKind.SEASON_PACK, ReleaseKind.UNKNOWN):
-                        rel_s = match.parsed.season if match.parsed.season is not None else (min(target_seasons) if target_seasons else 1)
-                        has_matching_ep = any(
-                            (rel_s, ep_n) in target_ep_keys or ep_n in target_abs
-                            for ep_n in match.parsed.episodes
-                        )
-                        if not has_matching_ep:
-                            eps_str = ", ".join(str(e) for e in match.parsed.episodes[:3])
-                            rejections.append(f"Релиз содержит серии ({eps_str}), которые не выбраны для скачивания")
+                    if matched_sp_for_release:
+                        # Релиз сопоставлен с разыскиваемым спецвыпуском Season 0
+                        pass
+                    else:
+                        # Проверка диапазона сезонов пака
+                        if lbl_type == "range":
+                            rel_seasons = set(s_lbl.get("seasons", []))
+                            if not (rel_seasons & target_seasons):
+                                min_rel = min(rel_seasons) if rel_seasons else 0
+                                max_rel = max(rel_seasons) if rel_seasons else 0
+                                min_tgt = min(target_seasons) if target_seasons else 0
+                                rejections.append(f"Пак сезонов (S{min_rel:02d}-S{max_rel:02d}) не содержит разыскиваемый сезон S{min_tgt:02d}")
+                        elif match.parsed.seasons and len(match.parsed.seasons) > 1:
+                            rel_seasons = set(match.parsed.seasons)
+                            if not (rel_seasons & target_seasons):
+                                min_rel = min(rel_seasons) if rel_seasons else 0
+                                max_rel = max(rel_seasons) if rel_seasons else 0
+                                min_tgt = min(target_seasons) if target_seasons else 0
+                                rejections.append(f"Пак сезонов (S{min_rel:02d}-S{max_rel:02d}) не содержит разыскиваемый сезон S{min_tgt:02d}")
+                        elif lbl_type == "numbered":
+                            rel_s = s_lbl["season"]
+                            if rel_s not in target_seasons:
+                                min_tgt = min(target_seasons) if target_seasons else 0
+                                rejections.append(f"Релиз относится к сезону S{rel_s:02d}, а разыскивается S{min_tgt:02d}")
+                        elif match.parsed.season is not None:
+                            rel_s = match.parsed.season
+                            if rel_s not in target_seasons:
+                                min_tgt = min(target_seasons) if target_seasons else 0
+                                rejections.append(f"Релиз относится к сезону S{rel_s:02d}, а разыскивается S{min_tgt:02d}")
+
+                        # Проверка конкретных серий
+                        if match.parsed.episodes and match.parsed.kind not in (ReleaseKind.SEASON_PACK, ReleaseKind.UNKNOWN):
+                            rel_s = match.parsed.season if match.parsed.season is not None else (min(target_seasons) if target_seasons else 1)
+                            has_matching_ep = any(
+                                (rel_s, ep_n) in target_ep_keys or ep_n in target_abs
+                                for ep_n in match.parsed.episodes
+                            )
+                            if not has_matching_ep:
+                                eps_str = ", ".join(str(e) for e in match.parsed.episodes[:3])
+                                rejections.append(f"Релиз содержит серии ({eps_str}), которые не выбраны для скачивания")
 
         # 5. Проверка качества в профиле (QualityAllowedSpecification)
         if quality_profile:
