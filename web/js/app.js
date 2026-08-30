@@ -5499,12 +5499,11 @@ async function deleteShow(showId, preselectedSeason = null, preselectedEpId = nu
   PENDING_DELETE_SHOW_ID = showId;
   let show = (typeof CACHED_SHOWS !== "undefined" && CACHED_SHOWS) ? CACHED_SHOWS.find(s => s.id === showId) : null;
 
-  try {
-    const fetched = await api(`/api/v1/shows/${showId}`);
-    if (fetched) show = fetched;
-  } catch (e) {}
+  // Если модалка карточки уже открыта для этого шоу, берем его данные
+  if (typeof CURRENT_SHOW_ID !== "undefined" && CURRENT_SHOW_ID === showId && typeof CURRENT_SHOW_DATA !== "undefined" && CURRENT_SHOW_DATA) {
+    show = Object.assign({}, CURRENT_SHOW_DATA);
+  }
 
-  PENDING_DELETE_SHOW_DATA = show;
   const title = show ? show.title : "";
   const path = show ? show.path : "";
 
@@ -5524,8 +5523,10 @@ async function deleteShow(showId, preselectedSeason = null, preselectedEpId = nu
     }
   }
 
-  // Рендерим дерево сезонов и серий для режима 'seasons'
-  renderDeleteSeasonsTree(show, preselectedSeason, preselectedEpId);
+  const container = document.getElementById("delete-seasons-tree-container");
+  if (container) {
+    container.innerHTML = `<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:16px;"><i data-lucide="loader-2" class="ico-spin ico-sm"></i> ${CURRENT_LANG === 'en' ? 'Loading seasons and episodes...' : 'Загрузка сезонов и серий…'}</div>`;
+  }
 
   // Если вызвано для конкретного сезона или серии, переключаем на вкладку 'seasons'
   if (preselectedSeason !== null || preselectedEpId !== null) {
@@ -5535,6 +5536,36 @@ async function deleteShow(showId, preselectedSeason = null, preselectedEpId = nu
   }
 
   openModal("delete-show-modal");
+  if (window.lucide) lucide.createIcons();
+
+  // Загружаем актуальные данные тайтла и серий
+  let episodes = [];
+  try {
+    const [fetchedShow, fetchedEpisodes] = await Promise.all([
+      api(`/api/v1/shows/${showId}`).catch(() => null),
+      api(`/api/v1/shows/${showId}/episodes`).catch(() => []),
+    ]);
+    if (fetchedShow) show = Object.assign({}, show || {}, fetchedShow);
+    if (fetchedEpisodes && Array.isArray(fetchedEpisodes)) episodes = fetchedEpisodes;
+  } catch (e) {
+    console.debug("Failed to fetch show/episodes for deletion:", e);
+  }
+
+  if (show) {
+    show.episodes = episodes;
+  } else {
+    show = { id: showId, title: "", episodes };
+  }
+  PENDING_DELETE_SHOW_DATA = show;
+
+  if (msgEl && show.title) {
+    msgEl.innerHTML = `${CURRENT_LANG === "en" ? "Are you sure you want to delete card" : "Вы действительно хотите удалить карточку"} <strong>«${escapeHtml(show.title)}»</strong>?`;
+  }
+  if (pathHint && show.path) {
+    pathHint.textContent = `${CURRENT_LANG === "en" ? "Directory on disk: " : "Директория на диске: "}${show.path}`;
+  }
+
+  renderDeleteSeasonsTree(show, preselectedSeason, preselectedEpId);
   if (window.lucide) lucide.createIcons();
 }
 
@@ -5556,6 +5587,7 @@ function renderDeleteSeasonsTree(show, preselectedSeason = null, preselectedEpId
   }
 
   const seasonNums = Object.keys(seasons).map(Number).sort((a, b) => a - b);
+  const isMovie = show && show.content_type === "movie";
 
   container.innerHTML = seasonNums.map(sn => {
     const eps = seasons[sn].sort((a, b) => (a.episode_number || 0) - (b.episode_number || 0));
@@ -5563,24 +5595,31 @@ function renderDeleteSeasonsTree(show, preselectedSeason = null, preselectedEpId
     const totalBytes = eps.reduce((sum, e) => sum + (e.file_size || 0), 0);
     const sizeStr = totalBytes > 0 ? ` (${formatBytes(totalBytes)})` : "";
     const isSeasonPreselected = preselectedSeason !== null && Number(preselectedSeason) === sn;
+    const containsPreselectedEp = preselectedEpId !== null && eps.some(e => Number(e.id) === Number(preselectedEpId));
+
+    const seasonTitle = isMovie
+      ? (CURRENT_LANG === "en" ? "Movie" : "Фильм")
+      : (sn === 0
+        ? (CURRENT_LANG === "en" ? "Specials" : "Спецвыпуски")
+        : `${CURRENT_LANG === "en" ? "Season" : "Сезон"} ${sn}`);
 
     return `
       <div class="delete-season-group" style="margin-bottom: 6px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--bg-card);">
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--panel-alt); border-bottom: 1px solid var(--border);">
           <label style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; cursor: pointer; user-select: none; margin: 0;">
             <input type="checkbox" class="del-season-master-cb" id="del-season-cb-${sn}" data-season="${sn}" onchange="toggleDeleteSeason(${sn}, this.checked)" ${isSeasonPreselected ? "checked" : ""}>
-            <span>${CURRENT_LANG === 'en' ? 'Season' : 'Сезон'} ${sn} <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">(${eps.length} ${CURRENT_LANG === 'en' ? 'eps' : 'серий'}${sizeStr})</span></span>
+            <span>${seasonTitle} <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">(${eps.length} ${CURRENT_LANG === 'en' ? 'eps' : 'серий'}${sizeStr})</span></span>
           </label>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="badge ${downloadedCount > 0 ? 'badge-downloaded' : 'badge-wanted'}" style="font-size: 11px;">
               ${CURRENT_LANG === 'en' ? 'Downloaded' : 'Скачано'}: ${downloadedCount}/${eps.length}
             </span>
             <button type="button" class="btn-icon-only" style="padding: 2px;" onclick="toggleDeleteSeasonAccordion(${sn})">
-              <i data-lucide="chevron-down" id="del-season-chev-${sn}" class="ico-xs"></i>
+              <i data-lucide="${isSeasonPreselected || containsPreselectedEp ? 'chevron-up' : 'chevron-down'}" id="del-season-chev-${sn}" class="ico-xs"></i>
             </button>
           </div>
         </div>
-        <div id="del-season-eps-${sn}" style="display: ${isSeasonPreselected || preselectedEpId !== null ? 'block' : 'none'}; padding: 4px 8px; max-height: 180px; overflow-y: auto;">
+        <div id="del-season-eps-${sn}" style="display: ${isSeasonPreselected || containsPreselectedEp ? 'block' : 'none'}; padding: 4px 8px; max-height: 180px; overflow-y: auto;">
           ${eps.map(ep => {
             const isEpPreselected = isSeasonPreselected || (preselectedEpId !== null && Number(preselectedEpId) === ep.id);
             const hasFile = !!ep.file_path;
