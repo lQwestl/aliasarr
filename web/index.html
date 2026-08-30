@@ -2573,22 +2573,36 @@
   </div>
 </div>
 
-<!-- Модалка подтверждения удаления карточки тайтла -->
+<!-- Модалка подтверждения удаления карточки тайтла / сезонов / серий -->
 <div id="delete-show-modal" class="modal-overlay">
-  <div class="modal card" style="max-width: 480px;">
+  <div class="modal card" style="max-width: 580px; width: 95%;">
     <div class="card-header-row" style="margin-bottom: 12px;">
       <h3 style="display:flex; align-items:center; gap:8px; margin:0; color:var(--danger);">
         <i data-lucide="trash-2" class="ico-sm"></i>
-        <span data-i18n="show.delete_modal_title">Удаление карточки</span>
+        <span id="delete-modal-title-text" data-i18n="show.delete_modal_title">Удаление</span>
       </h3>
       <button class="btn-icon-only" onclick="closeModal('delete-show-modal')"><i data-lucide="x" class="ico-sm"></i></button>
     </div>
-    <div style="margin: 14px 0;">
-      <p id="delete-show-modal-msg" style="font-size: 14.5px; line-height: 1.5; color: var(--text);"></p>
+
+    <!-- Переключатель режима удаления -->
+    <div id="delete-mode-switcher-row" style="display: flex; gap: 8px; margin-bottom: 14px; background: var(--panel-alt); padding: 4px; border-radius: 8px; border: 1px solid var(--border);">
+      <button type="button" id="delete-tab-show-btn" class="btn btn-primary btn-small" style="flex:1; justify-content:center;" onclick="switchDeleteMode('show')">
+        <i data-lucide="tv" class="ico-xs"></i>
+        <span data-i18n="show.delete_tab_show">Тайтл целиком</span>
+      </button>
+      <button type="button" id="delete-tab-seasons-btn" class="btn btn-secondary btn-small" style="flex:1; justify-content:center;" onclick="switchDeleteMode('seasons')">
+        <i data-lucide="layers" class="ico-xs"></i>
+        <span data-i18n="show.delete_tab_seasons">Сезоны и серии</span>
+      </button>
+    </div>
+
+    <!-- Режим 1: Удаление тайтла целиком -->
+    <div id="delete-mode-show-panel" style="margin: 10px 0;">
+      <p id="delete-show-modal-msg" style="font-size: 14.5px; line-height: 1.5; color: var(--text); margin-bottom: 12px;"></p>
       
-      <div style="background: var(--panel-alt); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin: 14px 0;">
+      <div style="background: var(--panel-alt); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin: 12px 0;">
         <label class="checkbox-row" style="cursor: pointer; user-select: none;">
-          <input type="checkbox" id="delete-show-files-checkbox">
+          <input type="checkbox" id="delete-show-files-checkbox" checked>
           <strong style="color: var(--danger);" data-i18n="show.delete_files_label">Удалить карточку вместе с файлами</strong>
         </label>
         <p style="margin: 6px 0 0 24px; font-size: 12px; color: var(--text-muted);" id="delete-show-path-hint" data-i18n="show.delete_files_hint">
@@ -2596,11 +2610,38 @@
         </p>
       </div>
     </div>
+
+    <!-- Режим 2: Удаление сезонов / серий -->
+    <div id="delete-mode-seasons-panel" style="display: none; margin: 10px 0;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);" data-i18n="show.delete_select_items">Выберите сезоны или серии для удаления:</span>
+        <div style="display: flex; gap: 6px;">
+          <button type="button" class="btn btn-secondary btn-small" style="font-size: 11px; padding: 2px 7px;" onclick="selectAllDeleteItems(true)" data-i18n="common.select_all">Выбрать все</button>
+          <button type="button" class="btn btn-secondary btn-small" style="font-size: 11px; padding: 2px 7px;" onclick="selectAllDeleteItems(false)" data-i18n="common.deselect_all">Снять все</button>
+        </div>
+      </div>
+
+      <div id="delete-seasons-tree-container" style="max-height: 280px; overflow-y: auto; background: var(--panel-alt); border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-bottom: 12px;">
+        <!-- Динамическое дерево сезонов и серий -->
+      </div>
+
+      <div style="background: var(--panel-alt); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 10px 0; display: flex; flex-direction: column; gap: 8px;">
+        <label class="checkbox-row" style="cursor: pointer; user-select: none;">
+          <input type="checkbox" id="delete-content-files-checkbox" checked>
+          <span style="font-size: 13px; font-weight: 600; color: var(--danger);" data-i18n="show.delete_physical_files">Стереть видеофайлы выбранных серий с диска</span>
+        </label>
+        <label class="checkbox-row" style="cursor: pointer; user-select: none;">
+          <input type="checkbox" id="delete-content-wanted-checkbox" checked>
+          <span style="font-size: 13px; font-weight: 600; color: var(--text);" data-i18n="show.delete_reset_wanted">Перевести удаленные серии в статус «В поиске» (Wanted)</span>
+        </label>
+      </div>
+    </div>
+
     <div class="form-row" style="justify-content:flex-end; gap:10px; margin-top:16px;">
       <button class="btn btn-secondary" onclick="closeModal('delete-show-modal')" data-i18n="common.cancel">Отмена</button>
-      <button class="btn btn-danger" id="delete-show-confirm-btn" onclick="executeShowDeletion()">
+      <button class="btn btn-danger" id="delete-show-confirm-btn" onclick="executeContentDeletion()">
         <i data-lucide="trash-2" class="ico-sm"></i>
-        <span data-i18n="common.delete">Удалить</span>
+        <span id="delete-confirm-btn-text" data-i18n="common.delete">Удалить</span>
       </button>
     </div>
   </div>
@@ -3274,6 +3315,6 @@
 <div id="toast" class="toast"></div>
 
 <script src="https://unpkg.com/lucide@latest"></script>
-<script src="/ui/static/js/app.js?v=20260831-03"></script>
+<script src="/ui/static/js/app.js?v=20260831-04"></script>
 </body>
 </html>

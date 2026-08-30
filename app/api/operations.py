@@ -530,17 +530,11 @@ def get_calendar(
 
     episodes = episodes_q.order_by(Episode.air_date).all()
 
-    # Автоматически обновляем метаданные тайтлов в календаре, если у них есть серии с TBA/заглушками или истекло время
+    # Автоматически инициируем фоновое обновление метаданных для тайтлов в календаре без блокировки ответа
+    from app.services.metadata import trigger_show_metadata_refresh_if_needed
     cal_show_ids = {ep.show_id for ep in episodes}
     for sid in cal_show_ids:
-        s = db.get(Show, sid)
-        if s and should_refresh_show(s, db):
-            try:
-                sync_refresh_show_metadata(db, s)
-            except Exception as e:
-                logger.debug("On-demand calendar refresh failed for show %s: %s", sid, e)
-
-    episodes = episodes_q.order_by(Episode.air_date).all()
+        trigger_show_metadata_refresh_if_needed(sid, db)
 
     out: list[CalendarEntryOut] = []
     shows_with_episode_entries: set[int] = set()

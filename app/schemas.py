@@ -17,13 +17,29 @@ class AliasOut(AliasCreate):
     model_config = ConfigDict(from_attributes=True)
     id: int
     show_id: int
-    priority: int = 100
+    priority: int = 1
 
 
 class AliasUpdate(BaseModel):
     text: Optional[str] = None
     language: Optional[str] = None
     priority: Optional[int] = None
+
+
+class DeleteContentPayload(BaseModel):
+    delete_mode: str = "show"  # "show" | "seasons" | "episodes"
+    delete_files: bool = True
+    season_numbers: list[int] = []
+    episode_ids: list[int] = []
+    reset_to_wanted: bool = True
+
+
+class DeleteContentResponse(BaseModel):
+    success: bool = True
+    delete_mode: str
+    deleted_files_count: int = 0
+    episodes_affected_count: int = 0
+    message: str = ""
 
 
 class ShowCreate(BaseModel):

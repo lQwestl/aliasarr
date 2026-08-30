@@ -19,6 +19,8 @@ from app.schemas import (
     AliasCreate,
     AliasOut,
     AliasUpdate,
+    DeleteContentPayload,
+    DeleteContentResponse,
     EpisodeOut,
     ShowCreate,
     ShowOut,
@@ -179,10 +181,13 @@ async def create_show(
     db.flush()  # получаем show.id до коммита
 
     added_aliases = set()
+    current_p = 1
     for alias_in in payload.aliases:
         if alias_in.text.lower() not in added_aliases:
             added_aliases.add(alias_in.text.lower())
-            db.add(Alias(show_id=show.id, text=alias_in.text, language=alias_in.language, source=alias_in.source))
+            p = alias_in.priority if alias_in.priority is not None else current_p
+            db.add(Alias(show_id=show.id, text=alias_in.text, language=alias_in.language, source=alias_in.source, priority=p))
+            current_p += 1
 
     # Для фильмов создаём одну запись Episode (S01E01) для мониторинга и поиска
     if payload.content_type == "movie":
@@ -217,13 +222,8 @@ def get_show(show_id: int, db: Session = Depends(get_db), current_user: User = D
     if not show:
         raise HTTPException(404, "Show not found")
 
-    from app.services.metadata import should_refresh_show, sync_refresh_show_metadata
-    if should_refresh_show(show, db):
-        try:
-            sync_refresh_show_metadata(db, show)
-            db.refresh(show)
-        except Exception as e:
-            logger.debug("On-demand metadata refresh failed for show %s: %s", show_id, e)
+    from app.services.metadata import trigger_show_metadata_refresh_if_needed
+    trigger_show_metadata_refresh_if_needed(show.id, db)
 
     needs_commit = False
     try:
@@ -367,6 +367,220 @@ async def delete_show(
         pass
 
 
+@router.post("/{show_id}/delete-content", response_model=DeleteContentResponse, summary="Гранулярное удаление тайтла, сезонов или серий")
+async def delete_content(
+    show_id: int,
+    payload: DeleteContentPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    """
+    Гранулярное удаление контента:
+    - delete_mode='show': удаляет тайтл целиком (с файлами или без)
+    - delete_mode='seasons': удаляет файлы выбранных сезонов, сбрасывает статус серий в WANTED (В поиске)
+    - delete_mode='episodes': удаляет файлы выбранных серий, сбрасывает статус серий в WANTED (В поиске)
+    """
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Show not found")
+
+    deleted_files = 0
+    affected_eps = 0
+
+    if payload.delete_mode == "show":
+        show_title = show.title
+        show_path = show.path
+        episodes = db.query(Episode).filter_by(show_id=show.id).all()
+        affected_eps = len(episodes)
+
+        if payload.delete_files:
+            for ep in episodes:
+                if ep.file_path and os.path.isfile(ep.file_path):
+                    try:
+                        os.remove(ep.file_path)
+                        deleted_files += 1
+                    except Exception:
+                        pass
+            if show_path and os.path.isdir(show_path):
+                try:
+                    shutil.rmtree(show_path, ignore_errors=True)
+                except Exception:
+                    pass
+
+        db.delete(show)
+        db.commit()
+
+        log_audit(
+            db,
+            "show.delete",
+            f"Удалена карточка «{show_title}» (удаление файлов с диска: {'да' if payload.delete_files else 'нет'})",
+            username=getattr(current_user, "username", "admin"),
+            user=current_user,
+        )
+
+        from app.services.notifications import notify_all
+        msg = f"🗑 Удалена карточка «{show_title}» (вместе с файлами на диске)" if payload.delete_files else f"🗑 Удалена карточка «{show_title}» (файлы сохранены на диске)"
+        try:
+            await notify_all(db, "series_delete", msg)
+        except Exception:
+            pass
+
+        return DeleteContentResponse(
+            success=True,
+            delete_mode="show",
+            deleted_files_count=deleted_files,
+            episodes_affected_count=affected_eps,
+            message=f"Тайтл «{show_title}» успешно удален",
+        )
+
+    elif payload.delete_mode == "seasons":
+        target_seasons = set(payload.season_numbers or [])
+        if not target_seasons:
+            raise HTTPException(400, "Не указаны номера сезонов для удаления")
+
+        episodes = db.query(Episode).filter(
+            Episode.show_id == show.id,
+            Episode.season_number.in_(target_seasons)
+        ).all()
+        affected_eps = len(episodes)
+
+        season_folders_to_check = set()
+
+        for ep in episodes:
+            if ep.file_path:
+                if payload.delete_files and os.path.isfile(ep.file_path):
+                    try:
+                        # Удаляем файл серии
+                        fpath = ep.file_path
+                        os.remove(fpath)
+                        deleted_files += 1
+                        season_folders_to_check.add(os.path.dirname(fpath))
+
+                        # Удаляем сопутствующие файлы субтитров/аудио
+                        fstem = os.path.splitext(fpath)[0]
+                        parent_dir = os.path.dirname(fpath)
+                        if os.path.isdir(parent_dir):
+                            for sibling in os.listdir(parent_dir):
+                                s_full = os.path.join(parent_dir, sibling)
+                                if os.path.isfile(s_full) and s_full.startswith(fstem) and s_full != fpath:
+                                    try:
+                                        os.remove(s_full)
+                                    except Exception:
+                                        pass
+                    except Exception:
+                        pass
+
+                ep.file_path = None
+                ep.file_size = 0
+                ep.quality = None
+                ep.custom_formats = None
+                ep.languages = None
+                ep.progress = 0
+
+            if payload.reset_to_wanted:
+                ep.status = EpisodeStatus.WANTED
+                ep.monitored = True
+
+            db.add(ep)
+
+        # Удаляем пустые папки сезонов
+        if payload.delete_files:
+            for s_dir in season_folders_to_check:
+                if s_dir and os.path.isdir(s_dir):
+                    try:
+                        remaining_files = [f for f in os.listdir(s_dir) if not f.startswith(".")]
+                        if not remaining_files:
+                            shutil.rmtree(s_dir, ignore_errors=True)
+                    except Exception:
+                        pass
+
+        db.commit()
+
+        s_str = ", ".join(str(s) for s in sorted(target_seasons))
+        log_audit(
+            db,
+            "show.delete_seasons",
+            f"Удалены файлы сезонов {s_str} тайтла «{show.title}» ({affected_eps} серий, удалено файлов: {deleted_files}, сброс в поиск: {'да' if payload.reset_to_wanted else 'нет'})",
+            username=getattr(current_user, "username", "admin"),
+            user=current_user,
+        )
+
+        return DeleteContentResponse(
+            success=True,
+            delete_mode="seasons",
+            deleted_files_count=deleted_files,
+            episodes_affected_count=affected_eps,
+            message=f"Сезоны {s_str} успешно удалены ({affected_eps} серий переведено в поиск)",
+        )
+
+    elif payload.delete_mode == "episodes":
+        target_ep_ids = set(payload.episode_ids or [])
+        if not target_ep_ids:
+            raise HTTPException(400, "Не указаны ID серий для удаления")
+
+        episodes = db.query(Episode).filter(
+            Episode.show_id == show.id,
+            Episode.id.in_(target_ep_ids)
+        ).all()
+        affected_eps = len(episodes)
+
+        for ep in episodes:
+            if ep.file_path:
+                if payload.delete_files and os.path.isfile(ep.file_path):
+                    try:
+                        fpath = ep.file_path
+                        os.remove(fpath)
+                        deleted_files += 1
+
+                        # Удаляем сопутствующие файлы субтитров/аудио
+                        fstem = os.path.splitext(fpath)[0]
+                        parent_dir = os.path.dirname(fpath)
+                        if os.path.isdir(parent_dir):
+                            for sibling in os.listdir(parent_dir):
+                                s_full = os.path.join(parent_dir, sibling)
+                                if os.path.isfile(s_full) and s_full.startswith(fstem) and s_full != fpath:
+                                    try:
+                                        os.remove(s_full)
+                                    except Exception:
+                                        pass
+                    except Exception:
+                        pass
+
+                ep.file_path = None
+                ep.file_size = 0
+                ep.quality = None
+                ep.custom_formats = None
+                ep.languages = None
+                ep.progress = 0
+
+            if payload.reset_to_wanted:
+                ep.status = EpisodeStatus.WANTED
+                ep.monitored = True
+
+            db.add(ep)
+
+        db.commit()
+
+        log_audit(
+            db,
+            "show.delete_episodes",
+            f"Удалены файлы {affected_eps} серий тайтла «{show.title}» (удалено файлов: {deleted_files}, сброс в поиск: {'да' if payload.reset_to_wanted else 'нет'})",
+            username=getattr(current_user, "username", "admin"),
+            user=current_user,
+        )
+
+        return DeleteContentResponse(
+            success=True,
+            delete_mode="episodes",
+            deleted_files_count=deleted_files,
+            episodes_affected_count=affected_eps,
+            message=f"{affected_eps} серий успешно удалены и переведены в поиск",
+        )
+
+    else:
+        raise HTTPException(400, f"Неизвестный режим удаления: {payload.delete_mode}")
+
+
 @router.put("/{show_id}", response_model=ShowOut)
 def update_show(
     show_id: int,
@@ -455,13 +669,8 @@ def list_episodes(show_id: int, db: Session = Depends(get_db), current_user: Use
     if not show:
         raise HTTPException(404, "Show not found")
 
-    from app.services.metadata import should_refresh_show, sync_refresh_show_metadata
-    if should_refresh_show(show, db):
-        try:
-            sync_refresh_show_metadata(db, show)
-            db.refresh(show)
-        except Exception as e:
-            logger.debug("On-demand metadata refresh failed for episodes of show %s: %s", show_id, e)
+    from app.services.metadata import trigger_show_metadata_refresh_if_needed
+    trigger_show_metadata_refresh_if_needed(show.id, db)
 
     episodes = (
         db.query(Episode)

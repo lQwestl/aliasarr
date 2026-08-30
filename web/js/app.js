@@ -149,6 +149,8 @@ const TRANSLATIONS = {
     "common.loading": "Загрузка…",
     "common.none": "Нет",
     "common.all": "Все",
+    "common.select_all": "Выбрать все",
+    "common.deselect_all": "Снять все",
     "common.yes": "Да",
     "common.no": "Нет",
     "common.page": "Стр.",
@@ -849,8 +851,15 @@ const TRANSLATIONS = {
     "show.refresh_cover": "Обновить (Сеть)",
     "show.new_alias_placeholder": "Новый алиас…",
     "show.force_search": "Принудительный автопоиск",
-    "show.search_manual": "Искать релизы вручную",
-    "show.delete_video": "Удалить видео",
+    "show.delete_video": "Удалить",
+    "show.delete_modal_title": "Удаление",
+    "show.delete_tab_show": "Тайтл целиком",
+    "show.delete_tab_seasons": "Сезоны и серии",
+    "show.delete_select_items": "Выберите сезоны или серии для удаления:",
+    "show.delete_physical_files": "Стереть видеофайлы выбранных серий с диска",
+    "show.delete_reset_wanted": "Перевести удаленные серии в статус «В поиске» (Wanted)",
+    "show.delete_season_action": "Удалить сезон",
+    "show.delete_episode_action": "Удалить серию",
     "show.confirm_change_category": "Сменить категорию? Это изменит папку/шаблон переименования при следующем скачивании и вид карточки, но уже скачанные файлы никуда не переместятся автоматически.",
     "show.season": "Сезон",
     "show.download_wanted_episodes": "Скачать выбранные серии",
@@ -1164,6 +1173,8 @@ const TRANSLATIONS = {
     "common.loading": "Loading…",
     "common.none": "None",
     "common.all": "All",
+    "common.select_all": "Select All",
+    "common.deselect_all": "Deselect All",
     "common.yes": "Yes",
     "common.no": "No",
     "common.page": "Page",
@@ -1864,8 +1875,15 @@ const TRANSLATIONS = {
     "show.refresh_cover": "Refresh (Web)",
     "show.new_alias_placeholder": "New alias…",
     "show.force_search": "Force Auto Search",
-    "show.search_manual": "Manual Release Search",
-    "show.delete_video": "Delete Video",
+    "show.delete_video": "Delete",
+    "show.delete_modal_title": "Deletion",
+    "show.delete_tab_show": "Entire Title",
+    "show.delete_tab_seasons": "Seasons & Episodes",
+    "show.delete_select_items": "Select seasons or episodes to delete:",
+    "show.delete_physical_files": "Erase video files of selected episodes from disk",
+    "show.delete_reset_wanted": "Reset deleted episodes to «Wanted» status",
+    "show.delete_season_action": "Delete Season",
+    "show.delete_episode_action": "Delete Episode",
     "show.confirm_change_category": "Change category? This will update the destination folder and renaming template for future downloads and the card view, but existing files will not be moved automatically.",
     "show.season": "Season",
     "show.download_wanted_episodes": "Download Selected Episodes",
@@ -4852,12 +4870,12 @@ function renderSearchStatus(show) {
 }
 
 function renderAliasChips(show, canManageLib = true) {
-  const sorted = [...(show.aliases || [])].sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100));
+  const sorted = [...(show.aliases || [])].sort((a, b) => (a.priority ?? 1) - (b.priority ?? 1));
   return sorted.map((a, idx) => `
       <span class="alias-chip lang-${a.language}" title="${a.source === "manual" ? "Manual" : "Source: " + escapeHtml(a.source)}">
-        <span class="alias-chip-priority" title="${t("common.priority")}">#${a.priority ?? 100}</span>
+        <span class="alias-chip-priority" title="${t("common.priority")}">#${a.priority ?? (idx + 1)}</span>
         ${escapeHtml(a.text)}
-        ${canManageLib ? `<button class="alias-chip-edit" onclick="editAliasPrompt(${show.id}, ${a.id}, '${escapeHtml(a.text).replace(/'/g, "&apos;")}', ${a.priority ?? 100})" title="${t("common.edit")}"><i data-lucide="edit-2" class="ico-xs"></i></button>` : ""}
+        ${canManageLib ? `<button class="alias-chip-edit" onclick="editAliasPrompt(${show.id}, ${a.id}, '${escapeHtml(a.text).replace(/'/g, "&apos;")}', ${a.priority ?? (idx + 1)})" title="${t("common.edit")}"><i data-lucide="edit-2" class="ico-xs"></i></button>` : ""}
         ${canManageLib ? `<button class="alias-chip-remove" onclick="deleteAliasFromShow(${show.id}, ${a.id})" title="${t("common.delete")}"><i data-lucide="x" class="ico-xs"></i></button>` : ""}
       </span>`).join("");
 }
@@ -4889,7 +4907,7 @@ async function addAlias(showId) {
   try {
     await api(`/api/v1/shows/${showId}/aliases`, {
       method: "POST",
-      body: JSON.stringify({ text, language: langSelect.value, priority: 100 }),
+      body: JSON.stringify({ text, language: langSelect.value }),
     });
     textInput.value = "";
     await refreshShowModal();
@@ -5128,7 +5146,8 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
           </button>` : ""}
           ${canManageLib ? `
           <button class="btn-icon-only" title="${t("action.monitor_season")}" onclick="setSeasonMonitor(${seasonNumber}, true)"><i data-lucide="bookmark" class="ico-xs"></i></button>
-          <button class="btn-icon-only" title="${t("action.unmonitor_season")}" onclick="setSeasonMonitor(${seasonNumber}, false)"><i data-lucide="bookmark-minus" class="ico-xs"></i></button>` : ""}
+          <button class="btn-icon-only" title="${t("action.unmonitor_season")}" onclick="setSeasonMonitor(${seasonNumber}, false)"><i data-lucide="bookmark-minus" class="ico-xs"></i></button>
+          <button class="btn-icon-only" title="${t("show.delete_season_action")}" onclick="deleteShow(${targetShowId}, ${seasonNumber}, null)" style="color:var(--danger);"><i data-lucide="trash-2" class="ico-xs"></i></button>` : ""}
         </div>
       </div>
       <div class="season-episodes">
@@ -5232,7 +5251,8 @@ function renderEpisodeRow(ep, canManageLib = true, show = null) {
         </button>` : ""}
         ${canManageLib ? `
         <button class="btn-icon-only ${monitored ? "active" : ""}" title="${monitored ? t("action.unmonitor") : t("action.monitor")}"
-          onclick="toggleEpisodeMonitor(${ep.id}, ${monitored})"><i data-lucide="bookmark" class="ico-xs"></i></button>` : ""}
+          onclick="toggleEpisodeMonitor(${ep.id}, ${monitored})"><i data-lucide="bookmark" class="ico-xs"></i></button>
+        <button class="btn-icon-only" title="${t("show.delete_episode_action")}" onclick="deleteShow(${showId}, null, ${ep.id})" style="color:var(--danger);"><i data-lucide="trash-2" class="ico-xs"></i></button>` : ""}
       </div>
     </div>`;
 }
@@ -5449,19 +5469,51 @@ async function toggleMonitored(button, showId, value) {
 }
 
 let PENDING_DELETE_SHOW_ID = null;
+let CURRENT_DELETE_MODE = 'show'; // 'show' | 'seasons'
+let PENDING_DELETE_SHOW_DATA = null;
 
-function deleteShow(showId) {
+function switchDeleteMode(mode) {
+  CURRENT_DELETE_MODE = mode;
+  const showBtn = document.getElementById("delete-tab-show-btn");
+  const seasonsBtn = document.getElementById("delete-tab-seasons-btn");
+  const showPanel = document.getElementById("delete-mode-show-panel");
+  const seasonsPanel = document.getElementById("delete-mode-seasons-panel");
+  const confirmBtnText = document.getElementById("delete-confirm-btn-text");
+
+  if (mode === "show") {
+    if (showBtn) { showBtn.className = "btn btn-primary btn-small"; }
+    if (seasonsBtn) { seasonsBtn.className = "btn btn-secondary btn-small"; }
+    if (showPanel) showPanel.style.display = "block";
+    if (seasonsPanel) seasonsPanel.style.display = "none";
+    if (confirmBtnText) confirmBtnText.textContent = t("common.delete");
+  } else {
+    if (showBtn) { showBtn.className = "btn btn-secondary btn-small"; }
+    if (seasonsBtn) { seasonsBtn.className = "btn btn-primary btn-small"; }
+    if (showPanel) showPanel.style.display = "none";
+    if (seasonsPanel) seasonsPanel.style.display = "block";
+    if (confirmBtnText) confirmBtnText.textContent = CURRENT_LANG === "en" ? "Delete Selected" : "Удалить выбранное";
+  }
+}
+
+async function deleteShow(showId, preselectedSeason = null, preselectedEpId = null) {
   PENDING_DELETE_SHOW_ID = showId;
-  const show = (typeof CACHED_SHOWS !== "undefined" && CACHED_SHOWS) ? CACHED_SHOWS.find(s => s.id === showId) : null;
+  let show = (typeof CACHED_SHOWS !== "undefined" && CACHED_SHOWS) ? CACHED_SHOWS.find(s => s.id === showId) : null;
+
+  try {
+    const fetched = await api(`/api/v1/shows/${showId}`);
+    if (fetched) show = fetched;
+  } catch (e) {}
+
+  PENDING_DELETE_SHOW_DATA = show;
   const title = show ? show.title : "";
   const path = show ? show.path : "";
 
   const msgEl = document.getElementById("delete-show-modal-msg");
   if (msgEl) {
-    msgEl.innerHTML = `${CURRENT_LANG === "en" ? "Are you sure you want to delete" : "Вы действительно хотите удалить карточку"} <strong>«${escapeHtml(title || (CURRENT_LANG === "en" ? "this title" : "этот тайтл"))}»</strong>?`;
+    msgEl.innerHTML = `${CURRENT_LANG === "en" ? "Are you sure you want to delete card" : "Вы действительно хотите удалить карточку"} <strong>«${escapeHtml(title || (CURRENT_LANG === "en" ? "this title" : "этот тайтл"))}»</strong>?`;
   }
   const cb = document.getElementById("delete-show-files-checkbox");
-  if (cb) cb.checked = false;
+  if (cb) cb.checked = true;
 
   const pathHint = document.getElementById("delete-show-path-hint");
   if (pathHint) {
@@ -5472,31 +5524,229 @@ function deleteShow(showId) {
     }
   }
 
+  // Рендерим дерево сезонов и серий для режима 'seasons'
+  renderDeleteSeasonsTree(show, preselectedSeason, preselectedEpId);
+
+  // Если вызвано для конкретного сезона или серии, переключаем на вкладку 'seasons'
+  if (preselectedSeason !== null || preselectedEpId !== null) {
+    switchDeleteMode("seasons");
+  } else {
+    switchDeleteMode("show");
+  }
+
   openModal("delete-show-modal");
   if (window.lucide) lucide.createIcons();
 }
 
-async function executeShowDeletion() {
+function renderDeleteSeasonsTree(show, preselectedSeason = null, preselectedEpId = null) {
+  const container = document.getElementById("delete-seasons-tree-container");
+  if (!container) return;
+
+  const episodes = (show && show.episodes) ? show.episodes : [];
+  if (!episodes.length) {
+    container.innerHTML = `<div style="color:var(--text-muted); font-size:13px; text-align:center; padding:12px;">${CURRENT_LANG === 'en' ? 'No episodes found' : 'Серии не найдены'}</div>`;
+    return;
+  }
+
+  const seasons = {};
+  for (const ep of episodes) {
+    const sn = ep.season_number ?? 1;
+    if (!seasons[sn]) seasons[sn] = [];
+    seasons[sn].push(ep);
+  }
+
+  const seasonNums = Object.keys(seasons).map(Number).sort((a, b) => a - b);
+
+  container.innerHTML = seasonNums.map(sn => {
+    const eps = seasons[sn].sort((a, b) => (a.episode_number || 0) - (b.episode_number || 0));
+    const downloadedCount = eps.filter(e => e.file_path).length;
+    const totalBytes = eps.reduce((sum, e) => sum + (e.file_size || 0), 0);
+    const sizeStr = totalBytes > 0 ? ` (${formatBytes(totalBytes)})` : "";
+    const isSeasonPreselected = preselectedSeason !== null && Number(preselectedSeason) === sn;
+
+    return `
+      <div class="delete-season-group" style="margin-bottom: 6px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--bg-card);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--panel-alt); border-bottom: 1px solid var(--border);">
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; cursor: pointer; user-select: none; margin: 0;">
+            <input type="checkbox" class="del-season-master-cb" id="del-season-cb-${sn}" data-season="${sn}" onchange="toggleDeleteSeason(${sn}, this.checked)" ${isSeasonPreselected ? "checked" : ""}>
+            <span>${CURRENT_LANG === 'en' ? 'Season' : 'Сезон'} ${sn} <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">(${eps.length} ${CURRENT_LANG === 'en' ? 'eps' : 'серий'}${sizeStr})</span></span>
+          </label>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="badge ${downloadedCount > 0 ? 'badge-downloaded' : 'badge-wanted'}" style="font-size: 11px;">
+              ${CURRENT_LANG === 'en' ? 'Downloaded' : 'Скачано'}: ${downloadedCount}/${eps.length}
+            </span>
+            <button type="button" class="btn-icon-only" style="padding: 2px;" onclick="toggleDeleteSeasonAccordion(${sn})">
+              <i data-lucide="chevron-down" id="del-season-chev-${sn}" class="ico-xs"></i>
+            </button>
+          </div>
+        </div>
+        <div id="del-season-eps-${sn}" style="display: ${isSeasonPreselected || preselectedEpId !== null ? 'block' : 'none'}; padding: 4px 8px; max-height: 180px; overflow-y: auto;">
+          ${eps.map(ep => {
+            const isEpPreselected = isSeasonPreselected || (preselectedEpId !== null && Number(preselectedEpId) === ep.id);
+            const hasFile = !!ep.file_path;
+            const epSizeStr = ep.file_size ? ` · ${formatBytes(ep.file_size)}` : "";
+            const epQualityStr = ep.quality ? ` · ${ep.quality}` : "";
+            return `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; border-bottom: 1px solid var(--border-subtle); font-size: 12px;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  <input type="checkbox" class="del-ep-cb" data-season="${sn}" data-id="${ep.id}" onchange="syncSeasonCheckbox(${sn})" ${isEpPreselected ? "checked" : ""}>
+                  <span><strong>${String(ep.episode_number).padStart(2, '0')}</strong> ${escapeHtml(ep.title || (CURRENT_LANG === 'en' ? 'Episode ' + ep.episode_number : 'Серия ' + ep.episode_number))}</span>
+                </label>
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); flex-shrink: 0;">
+                  <span>${epQualityStr}${epSizeStr}</span>
+                  <span class="badge ${hasFile ? 'badge-downloaded' : 'badge-wanted'}" style="font-size: 10px; padding: 1px 4px;">
+                    ${hasFile ? (CURRENT_LANG === 'en' ? 'File' : 'Файл') : (CURRENT_LANG === 'en' ? 'Wanted' : 'В поиске')}
+                  </span>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function toggleDeleteSeasonAccordion(sn) {
+  const container = document.getElementById(`del-season-eps-${sn}`);
+  const chev = document.getElementById(`del-season-chev-${sn}`);
+  if (!container) return;
+  if (container.style.display === "none") {
+    container.style.display = "block";
+    if (chev) chev.setAttribute("data-lucide", "chevron-up");
+  } else {
+    container.style.display = "none";
+    if (chev) chev.setAttribute("data-lucide", "chevron-down");
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function toggleDeleteSeason(sn, checked) {
+  const epCheckboxes = document.querySelectorAll(`.del-ep-cb[data-season="${sn}"]`);
+  for (const cb of epCheckboxes) {
+    cb.checked = checked;
+  }
+}
+
+function syncSeasonCheckbox(sn) {
+  const masterCb = document.getElementById(`del-season-cb-${sn}`);
+  const epCheckboxes = document.querySelectorAll(`.del-ep-cb[data-season="${sn}"]`);
+  if (!masterCb || !epCheckboxes.length) return;
+  const allChecked = Array.from(epCheckboxes).every(cb => cb.checked);
+  masterCb.checked = allChecked;
+}
+
+function selectAllDeleteItems(checked) {
+  const masterCbs = document.querySelectorAll(".del-season-master-cb");
+  for (const cb of masterCbs) cb.checked = checked;
+  const epCheckboxes = document.querySelectorAll(".del-ep-cb");
+  for (const cb of epCheckboxes) cb.checked = checked;
+}
+
+async function executeContentDeletion() {
   if (!PENDING_DELETE_SHOW_ID) return;
   const showId = PENDING_DELETE_SHOW_ID;
-  const deleteFiles = !!document.getElementById("delete-show-files-checkbox")?.checked;
   const btn = document.getElementById("delete-show-confirm-btn");
 
-  await withLoading(btn, async () => {
-    try {
-      await api(`/api/v1/shows/${showId}?delete_files=${deleteFiles}`, { method: "DELETE" });
-      closeModal("delete-show-modal");
-      closeModal("show-modal");
-      toast(deleteFiles
-        ? (CURRENT_LANG === "en" ? "Card and files successfully deleted" : "Карточка и файлы успешно удалены")
-        : (CURRENT_LANG === "en" ? "Card deleted" : "Карточка успешно удалена")
-      );
-      PENDING_DELETE_SHOW_ID = null;
-      await loadShows();
-    } catch (e) {
-      toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true);
+  if (CURRENT_DELETE_MODE === "show") {
+    const deleteFiles = !!document.getElementById("delete-show-files-checkbox")?.checked;
+    await withLoading(btn, async () => {
+      try {
+        await api(`/api/v1/shows/${showId}/delete-content`, {
+          method: "POST",
+          body: JSON.stringify({
+            delete_mode: "show",
+            delete_files: deleteFiles,
+          }),
+        });
+        closeModal("delete-show-modal");
+        closeModal("show-modal");
+        toast(deleteFiles
+          ? (CURRENT_LANG === "en" ? "Card and files successfully deleted" : "Карточка и файлы успешно удалены")
+          : (CURRENT_LANG === "en" ? "Card deleted" : "Карточка успешно удалена")
+        );
+        PENDING_DELETE_SHOW_ID = null;
+        await loadShows();
+      } catch (e) {
+        toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true);
+      }
+    });
+  } else {
+    // Режим сезонов и серий
+    const deleteFiles = !!document.getElementById("delete-content-files-checkbox")?.checked;
+    const resetWanted = !!document.getElementById("delete-content-wanted-checkbox")?.checked;
+
+    const checkedMasterSeasons = Array.from(document.querySelectorAll(".del-season-master-cb:checked")).map(cb => Number(cb.dataset.season));
+    const checkedEps = Array.from(document.querySelectorAll(".del-ep-cb:checked")).map(cb => Number(cb.dataset.id));
+
+    if (!checkedEps.length && !checkedMasterSeasons.length) {
+      toast(CURRENT_LANG === "en" ? "Please select at least one season or episode" : "Выберите хотя бы один сезон или серию для удаления", true);
+      return;
     }
-  });
+
+    const masterSeasonNumbers = [];
+    const partialEpIds = [];
+
+    const seasonsMap = {};
+    document.querySelectorAll(".del-ep-cb").forEach(cb => {
+      const sn = Number(cb.dataset.season);
+      if (!seasonsMap[sn]) seasonsMap[sn] = { total: 0, checked: 0, checkedIds: [] };
+      seasonsMap[sn].total++;
+      if (cb.checked) {
+        seasonsMap[sn].checked++;
+        seasonsMap[sn].checkedIds.push(Number(cb.dataset.id));
+      }
+    });
+
+    for (const [sn, data] of Object.entries(seasonsMap)) {
+      if (data.checked > 0) {
+        if (data.checked === data.total) {
+          masterSeasonNumbers.push(Number(sn));
+        } else {
+          partialEpIds.push(...data.checkedIds);
+        }
+      }
+    }
+
+    await withLoading(btn, async () => {
+      try {
+        let resMsg = "";
+        if (masterSeasonNumbers.length > 0) {
+          const res = await api(`/api/v1/shows/${showId}/delete-content`, {
+            method: "POST",
+            body: JSON.stringify({
+              delete_mode: "seasons",
+              delete_files: deleteFiles,
+              season_numbers: masterSeasonNumbers,
+              reset_to_wanted: resetWanted,
+            }),
+          });
+          resMsg = res.message;
+        }
+        if (partialEpIds.length > 0) {
+          const res = await api(`/api/v1/shows/${showId}/delete-content`, {
+            method: "POST",
+            body: JSON.stringify({
+              delete_mode: "episodes",
+              delete_files: deleteFiles,
+              episode_ids: partialEpIds,
+              reset_to_wanted: resetWanted,
+            }),
+          });
+          resMsg = resMsg ? `${resMsg} · ${res.message}` : res.message;
+        }
+
+        closeModal("delete-show-modal");
+        toast(resMsg || (CURRENT_LANG === "en" ? "Content deleted" : "Контент успешно удален"));
+        await refreshShowModal();
+        await loadShows();
+      } catch (e) {
+        toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true);
+      }
+    });
+  }
 }
 
 async function setAllSeasonsMonitor(showId, value) {

@@ -8,8 +8,11 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
+import datetime as dt
 import logging
+import threading
 from typing import Optional, List, Dict, Any
 
 logger = logging.getLogger("aliasarr.metadata")
@@ -2148,15 +2151,18 @@ async def refresh_show_metadata(db, show) -> dict:
     # 6. Обновляем алиасы
     if details.aliases:
         existing_aliases = {a.text.lower().strip() for a in show.aliases}
+        cur_max_p = max([a.priority for a in show.aliases if a.priority is not None] or [0])
         for alias_text in details.aliases:
             clean_alias = str(alias_text).strip()
             if clean_alias and clean_alias.lower() not in existing_aliases:
                 existing_aliases.add(clean_alias.lower())
+                cur_max_p += 1
                 db.add(Alias(
                     show_id=show.id,
                     text=clean_alias,
                     language=AliasLanguage.RU if any(ord(c) >= 0x0400 and ord(c) <= 0x04FF for c in clean_alias) else AliasLanguage.EN,
                     source="skyhook",
+                    priority=cur_max_p,
                 ))
                 changed = True
 
@@ -2175,6 +2181,58 @@ async def refresh_show_metadata(db, show) -> dict:
         "episodes_updated": episodes_updated,
         "episodes_added": episodes_added,
     }
+
+
+_REFRESHING_SHOW_IDS: set[int] = set()
+_REFRESHING_LOCK = threading.Lock()
+
+
+async def _bg_refresh_show_task(show_id: int):
+    with _REFRESHING_LOCK:
+        if show_id in _REFRESHING_SHOW_IDS:
+            return
+        _REFRESHING_SHOW_IDS.add(show_id)
+    try:
+        from app.database import SessionLocal
+        from app.models.db import Show
+        bg_db = SessionLocal()
+        try:
+            show = bg_db.get(Show, show_id)
+            if show:
+                await refresh_show_metadata(bg_db, show)
+        finally:
+            bg_db.close()
+    except Exception as e:
+        logger.debug("Background metadata refresh failed for show %s: %s", show_id, e)
+    finally:
+        with _REFRESHING_LOCK:
+            _REFRESHING_SHOW_IDS.discard(show_id)
+
+
+def trigger_show_metadata_refresh_if_needed(show_id: int, db: Session) -> None:
+    """
+    Проверяет необходимость обновления метаданных по правилам Sonarr/Radarr
+    и запускает асинхронную фоновую задачу БЕЗ блокировки текущего HTTP-запроса и транзакции БД.
+    """
+    try:
+        from app.models.db import Show
+        show = db.get(Show, show_id)
+        if not show or not should_refresh_show(show, db):
+            return
+
+        with _REFRESHING_LOCK:
+            if show_id in _REFRESHING_SHOW_IDS:
+                return
+
+        import asyncio
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_bg_refresh_show_task(show_id))
+        except RuntimeError:
+            t = threading.Thread(target=lambda: asyncio.run(_bg_refresh_show_task(show_id)), daemon=True)
+            t.start()
+    except Exception as e:
+        logger.debug("trigger_show_metadata_refresh_if_needed error for show %s: %s", show_id, e)
 
 
 def sync_refresh_show_metadata(db, show) -> dict:
@@ -2219,6 +2277,11 @@ def should_refresh_show(show, db, force: bool = False) -> bool:
     import datetime as _dt
     now = _dt.datetime.utcnow()
     last_sync = show.last_metadata_refresh_at
+
+    # Защита от спама/зацикливания: если синхронизация была менее 15 минут назад, повторно не запрашиваем
+    if last_sync >= now - _dt.timedelta(minutes=15):
+        return False
+
     is_movie = getattr(show, "content_type", None) == "movie" or getattr(show, "category", None) == "movies"
 
     if is_movie:

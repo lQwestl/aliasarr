@@ -141,7 +141,7 @@ class Alias(Base):
     language: Mapped[AliasLanguage] = mapped_column(SAEnum(AliasLanguage), default=AliasLanguage.RU)
     source: Mapped[str] = mapped_column(String(50), default="manual")  # manual | tmdb | tvmaze | thetvdb | skyhook | custom
     # Приоритет перебора алиасов при поиске: меньшее число = опрашивается раньше
-    priority: Mapped[int] = mapped_column(Integer, default=100)
+    priority: Mapped[int] = mapped_column(Integer, default=1)
 
     show: Mapped["Show"] = relationship(back_populates="aliases")
 
