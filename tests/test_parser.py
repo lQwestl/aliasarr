@@ -309,6 +309,44 @@ class TestParser(unittest.TestCase):
         self.assertEqual(r_s2_4.season, 2)
         self.assertEqual(r_s2_4.episodes, list(range(1, 13)))
 
+    def test_russian_and_translit_season_episode_formats(self):
+        # 1. Translit Robot Chicken format
+        r1 = parse_episode("Robocip.(1.sezon.06.seriya.iz.20).2005.XviD.DVDRip.avi")
+        self.assertEqual(r1.season, 1)
+        self.assertEqual(r1.episodes, [6])
+        self.assertEqual(r1.kind, ReleaseKind.EPISODE)
+
+        r2 = parse_episode("Robocip.(1.sezon.14.seriya.iz.20).2005.XviD.DVDRip.avi")
+        self.assertEqual(r2.season, 1)
+        self.assertEqual(r2.episodes, [14])
+
+        r3 = parse_episode("Robocip.(2.sezon.19.seriya.iz.20).2005-2006.XviD.DVDRip.avi")
+        self.assertEqual(r3.season, 2)
+        self.assertEqual(r3.episodes, [19])
+
+        r4 = parse_episode("Robocip.(3.sezon.06.seriya.iz.20).2007-2008.XviD.DVDRip.avi")
+        self.assertEqual(r4.season, 3)
+        self.assertEqual(r4.episodes, [6])
+
+        r5 = parse_episode("Robocip.(4.sezon.04.seriya.iz.20).2008-2009.XviD.DVDRip.avi")
+        self.assertEqual(r5.season, 4)
+        self.assertEqual(r5.episodes, [4])
+
+        r6 = parse_episode("Robocip.(1.sezon.01-20.serii.iz.20).2005.XviD.DVDRip.avi")
+        self.assertEqual(r6.season, 1)
+        self.assertEqual(r6.episodes, list(range(1, 21)))
+        self.assertTrue(r6.is_range)
+
+        # 2. Cyrillic format
+        r7 = parse_episode("Робоцып (1 сезон 06 серия из 20) 2005.avi")
+        self.assertEqual(r7.season, 1)
+        self.assertEqual(r7.episodes, [6])
+
+        # 3. Multi-season translit pack
+        r8 = parse_episode("Robocip.(1-4.sezoni.plus.Robocip.Zvezdnie.voiny.1-2.epizodi).2005-2009.XviD.DVDRip")
+        self.assertEqual(r8.kind, ReleaseKind.SEASON_PACK)
+        self.assertEqual(r8.seasons, [1, 2, 3, 4])
+
 
 if __name__ == "__main__":
     unittest.main()

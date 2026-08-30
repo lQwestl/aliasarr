@@ -1818,7 +1818,7 @@ def scan_for_global_manual_import(
 
     shows_with_aliases = []
     for s in all_shows:
-        aliases = build_alias_candidates(s)
+        aliases = build_alias_candidates(s, db=db)
         shows_with_aliases.append((s, aliases))
 
     for file_path in video_files:

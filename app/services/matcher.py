@@ -167,27 +167,43 @@ def is_non_video_release(title: str, categories: Optional[list[int]] = None) -> 
     return False
 
 
-def build_alias_candidates(show) -> list[AliasCandidate]:
+def build_alias_candidates(show, db=None) -> list[AliasCandidate]:
     """
     Формирует список кандидатов для поиска и сопоставления.
-    Включает основное название тайтла и все пользовательские/автоматические алиасы.
+    Включает основное название тайтла и все пользовательские/автоматические алиасы из БД.
     Список отсортирован по приоритету: меньшее число = опрашивается раньше.
     """
     seen_normalized: set[str] = set()
     candidates: list[AliasCandidate] = []
 
-    title_norm = normalize_title(show.title)
+    show_title = (getattr(show, "title", "") or "").strip()
+    title_norm = normalize_title(show_title)
     if title_norm:
         seen_normalized.add(title_norm)
-        candidates.append(AliasCandidate(alias_id=0, text=show.title, language="en", priority=0))
+        candidates.append(AliasCandidate(alias_id=0, text=show_title, language="en", priority=0))
 
-    for alias in show.aliases:
-        norm = normalize_title(alias.text)
+    # Извлекаем все алиасы напрямую из БД, если передан db, чтобы избежать устаревшего кэша SQLAlchemy
+    aliases = []
+    if db is not None and getattr(show, "id", None):
+        try:
+            from app.models.db import Alias
+            aliases = db.query(Alias).filter(Alias.show_id == show.id).all()
+        except Exception:
+            aliases = getattr(show, "aliases", []) or []
+    else:
+        aliases = getattr(show, "aliases", []) or []
+
+    for alias in aliases:
+        a_text = (getattr(alias, "text", "") or "").strip()
+        norm = normalize_title(a_text)
         if not norm or norm in seen_normalized:
             continue
-        lang_str = alias.language.value if hasattr(alias.language, "value") else (str(alias.language) if alias.language else "ru")
+        seen_normalized.add(norm)
+        lang_str = alias.language.value if hasattr(getattr(alias, "language", None), "value") else (str(alias.language) if getattr(alias, "language", None) else "ru")
         candidates.append(AliasCandidate(
-            alias_id=alias.id, text=alias.text, language=lang_str,
+            alias_id=getattr(alias, "id", 0) or 0,
+            text=a_text,
+            language=lang_str,
             priority=getattr(alias, "priority", 100) or 100,
         ))
 

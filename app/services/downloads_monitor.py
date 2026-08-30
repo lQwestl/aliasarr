@@ -144,7 +144,7 @@ def _resolve_torrent_files_and_path(t, settings, show: Optional[Show] = None) ->
     # 4. Fallback: если список файлов не был получен, ищем в корне save_path файлы, матчащиеся с тайтлом шоу
     if show and t.save_path and os.path.isdir(t.save_path):
         from app.services.matcher import build_alias_candidates, best_alias_match
-        aliases = build_alias_candidates(show)
+        aliases = build_alias_candidates(show, db=db)
         matched_items = []
         try:
             for item in os.listdir(t.save_path):

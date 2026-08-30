@@ -108,7 +108,7 @@ class DecisionEngine:
 
         # 4. Проверка соответствия шоу и сезона/серий (Title & SeasonSpecification)
         if show:
-            aliases = build_alias_candidates(show)
+            aliases = build_alias_candidates(show, db=db)
             match = match_release(title, show.id, aliases, content_type=show.content_type, categories=categories)
             if not match.matched:
                 rejections.append(f"Название релиза не соответствует тайтлу «{show.title}»")

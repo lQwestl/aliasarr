@@ -236,7 +236,7 @@ async def search_custom_releases(
 
     settings = get_or_create_settings(db)
     show = db.get(Show, show_id) if show_id else None
-    alias_candidates = build_alias_candidates(show) if show else []
+    alias_candidates = build_alias_candidates(show, db=db) if show else []
 
     target_episodes = []
     if show:
@@ -348,7 +348,7 @@ async def search_releases_for_show(
         raise HTTPException(400, "Нет ни одного включённого индексатора")
 
     settings = get_or_create_settings(db)
-    alias_candidates = build_alias_candidates(show)
+    alias_candidates = build_alias_candidates(show, db=db)
     all_episodes = db.query(Episode).filter(Episode.show_id == show.id).all()
 
     query_terms: list[str] = []

@@ -820,7 +820,7 @@ def process_download(
     # фильтруем видеофайлы по соответствию названию шоу, чтобы не затронуть чужие релизы
     if not specific_files and len(video_files) > 1:
         from app.services.matcher import build_alias_candidates, best_alias_match
-        aliases = build_alias_candidates(show)
+        aliases = build_alias_candidates(show, db=db)
         matched_videos = []
         for vf in video_files:
             b_alias, b_score = best_alias_match(os.path.basename(vf), aliases, threshold=60)
@@ -928,10 +928,18 @@ def process_download(
         q_info = detect_file_quality(file_path, context_hints)
         quality = q_info.name
 
-        if parsed.kind not in (ReleaseKind.EPISODE, ReleaseKind.ABSOLUTE) or not parsed.episodes:
+        if parsed.kind not in (ReleaseKind.EPISODE, ReleaseKind.ABSOLUTE) or not parsed.episodes or parsed.season is None:
             parent_dir = os.path.basename(os.path.dirname(file_path))
             if parent_dir and parent_dir != os.path.basename(download_path):
-                parsed = parse_episode(parent_dir + " " + filename)
+                parent_parsed = parse_episode(parent_dir + " " + filename)
+                if parent_parsed.kind == ReleaseKind.EPISODE and parent_parsed.episodes:
+                    parsed = parent_parsed
+                elif parsed.episodes and parsed.season is None:
+                    from app.services.parser import detect_season_label
+                    dir_s = detect_season_label(parent_dir)
+                    if dir_s.get("type") == "numbered":
+                        parsed.season = dir_s["season"]
+                        parsed.kind = ReleaseKind.EPISODE
 
         if parsed.kind not in (ReleaseKind.EPISODE, ReleaseKind.ABSOLUTE) or not parsed.episodes:
             if len(video_files) == 1:
@@ -1324,7 +1332,7 @@ def process_movie_download(
     # фильтруем файлы по совпадению с названием/алиасами фильма, чтобы не взять чужой файл!
     if not specific_files and len(video_files) > 1:
         from app.services.matcher import build_alias_candidates, best_alias_match
-        aliases = build_alias_candidates(show)
+        aliases = build_alias_candidates(show, db=db)
         matched_videos = []
         for vf in video_files:
             b_alias, b_score = best_alias_match(os.path.basename(vf), aliases, threshold=60)

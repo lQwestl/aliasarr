@@ -424,7 +424,7 @@ async def _collect_candidates(
     """Собирает все релизы по всем алиасам во всех индексаторах (по приоритету), дедуп по guid."""
     quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
     allowed_qualities = quality_profile.allowed_qualities if quality_profile else []
-    alias_candidates = build_alias_candidates(show)
+    alias_candidates = build_alias_candidates(show, db=db)
 
     # Формируем список поисковых запросов: базовые алиасы + варианты номеров для конкретных wanted-серий
     query_terms: list[str] = []
@@ -570,8 +570,8 @@ async def _do_search_and_grab(
         return {"show_id": show.id, "grabbed": [], "reason": "no_enabled_indexers"}
 
     settings = get_or_create_settings(db)
-    alias_candidates = build_alias_candidates(show)
-    search_terms = ", ".join(f"«{a.text}»" for a in alias_candidates[:5])
+    alias_candidates = build_alias_candidates(show, db=db)
+    search_terms = ", ".join(f"«{a.text}»" for a in alias_candidates)
 
     candidates = await _collect_candidates(db, show, indexers, wanted_episodes=wanted_episodes)
 
