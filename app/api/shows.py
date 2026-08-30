@@ -2257,6 +2257,43 @@ async def refresh_show_cover(
     }
 
 
+@router.post("/{show_id}/refresh-metadata", summary="Обновление метаданных тайтла из сети")
+async def refresh_single_show_metadata(
+    show_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    """
+    Обновление метаданных конкретного тайтла из SkyHook / TVDB / TMDB:
+    - Обновление официальных названий серий (замена Episode X на реальные имена).
+    - Обновление дат выхода и появление новых анонсированных серий/сезонов.
+    - Обновление постера, рейтинга, жанров и синопсиса.
+    """
+    from app.services.metadata import refresh_show_metadata
+
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Карточка не найдена")
+
+    res = await refresh_show_metadata(db, show)
+
+    log_audit(
+        db,
+        "show.refresh_metadata",
+        f"Обновлены метаданные для тайтла «{show.title}»: обновлено серий {res.get('episodes_updated', 0)}, добавлено {res.get('episodes_added', 0)}",
+        username=current_user.username,
+        user=current_user,
+    )
+
+    return {
+        "success": True,
+        "updated": res.get("updated", False),
+        "episodes_updated": res.get("episodes_updated", 0),
+        "episodes_added": res.get("episodes_added", 0),
+        "message": f"Метаданные обновлены: серий обновлено — {res.get('episodes_updated', 0)}, добавлено новых — {res.get('episodes_added', 0)}",
+    }
+
+
 @router.get("/{show_id}/rename/preview", summary="Предпросмотр переименования файлов тайтла")
 def preview_rename_show(
     show_id: int,

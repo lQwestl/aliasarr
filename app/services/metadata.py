@@ -1905,26 +1905,83 @@ async def refresh_show_metadata(db, show) -> dict:
     metadata_id = getattr(show, "metadata_id", None)
     title = (getattr(show, "title", None) or "").strip()
 
-    client = RadarrClient() if is_movie else SkyHookClient()
+    # 1. Разрешаем клиент источника метаданных
+    client = None
+    if getattr(show, "metadata_source", None):
+        source = (
+            db.query(MetadataSource)
+            .filter(MetadataSource.type == show.metadata_source, MetadataSource.enabled == True)  # noqa: E712
+            .first()
+        )
+        if source:
+            try:
+                client = get_metadata_client(source)
+            except Exception:
+                client = None
+
+    if not client:
+        client = RadarrClient() if is_movie else SkyHookClient()
+
+    fallback_client = RadarrClient() if is_movie else SkyHookClient()
     details = None
 
+    # 2. Пробуем получить детали по metadata_id
     if metadata_id:
         try:
             details = await client.get_details(str(metadata_id))
         except Exception as e:
-            logger.debug("Failed to get details by metadata_id %s for %s: %s", metadata_id, title, e)
+            logger.debug("Failed to get details by metadata_id %s with %s for %s: %s", metadata_id, type(client).__name__, title, e)
 
-    if not details and title:
-        try:
-            results = await client.search(title)
-            if results:
-                target_result = results[0]
-                if target_result.external_id:
-                    details = await client.get_details(str(target_result.external_id))
-                else:
-                    details = target_result
-        except Exception as e:
-            logger.debug("Search fallback failed for %s: %s", title, e)
+        if (not details or (not is_movie and not details.episodes)) and client != fallback_client:
+            try:
+                details = await fallback_client.get_details(str(metadata_id))
+            except Exception as e:
+                logger.debug("Fallback client details failed for %s: %s", title, e)
+
+    # 3. Если по metadata_id детали не получены — ищем по названию и алиасам
+    search_candidates = []
+    if title:
+        search_candidates.append(title)
+        # Если название содержит подзаголовки через двоеточие или дефис
+        for sep in (":", "—", " - "):
+            if sep in title:
+                base_part = title.split(sep)[0].strip()
+                if base_part and base_part not in search_candidates:
+                    search_candidates.append(base_part)
+
+    # Добавляем английские / ромадзи алиасы первыми кандидатами
+    if getattr(show, "aliases", None):
+        en_aliases = [
+            a.text.strip() for a in show.aliases
+            if a.text and getattr(a, "language", None) in (AliasLanguage.EN, "en", "romaji", "jp")
+        ]
+        for ea in en_aliases:
+            if ea and ea not in search_candidates:
+                search_candidates.insert(0, ea)
+        for a in show.aliases:
+            at = a.text.strip() if a.text else ""
+            if at and at not in search_candidates:
+                search_candidates.append(at)
+
+    if not details or (not is_movie and not details.episodes):
+        for candidate in search_candidates:
+            if not candidate:
+                continue
+            for cl in (client, fallback_client):
+                try:
+                    results = await cl.search(candidate)
+                    if results:
+                        target_result = results[0]
+                        ext_id = target_result.external_id or ""
+                        if ext_id:
+                            det = await cl.get_details(str(ext_id))
+                            if det and (is_movie or det.episodes):
+                                details = det
+                                break
+                except Exception as e:
+                    logger.debug("Search candidate '%s' failed on %s: %s", candidate, type(cl).__name__, e)
+            if details and (is_movie or details.episodes):
+                break
 
     if not details:
         return {"updated": False, "show_id": show.id, "title": show.title, "reason": "No metadata found"}
@@ -1944,7 +2001,15 @@ async def refresh_show_metadata(db, show) -> dict:
         except ValueError:
             return None
 
-    # 1. Обновляем основные атрибуты тайтла
+    # Привязываем актуальный metadata_id, если он не был задан или обновился
+    if details.external_id and show.metadata_id != details.external_id:
+        show.metadata_id = details.external_id
+        changed = True
+    if not show.metadata_source:
+        show.metadata_source = "radarr" if is_movie else "skyhook"
+        changed = True
+
+    # 4. Обновляем основные атрибуты тайтла
     if getattr(details, "overview", None) and show.overview != details.overview:
         show.overview = details.overview
         changed = True
@@ -1969,7 +2034,7 @@ async def refresh_show_metadata(db, show) -> dict:
         show.premiere_date = new_premiere
         changed = True
 
-    # 2. Обновляем серии
+    # 5. Обновляем серии
     if is_movie:
         ep = db.query(Episode).filter(Episode.show_id == show.id).order_by(Episode.id).first()
         if ep:
@@ -2003,6 +2068,12 @@ async def refresh_show_metadata(db, show) -> dict:
         if details.episodes:
             for meta_ep in details.episodes:
                 air_date = _parse_date(meta_ep.air_date)
+                
+                # Очищаем заглушки названий
+                raw_ep_title = (meta_ep.title or "").strip()
+                if raw_ep_title in ("None", "null", "TBA", "tba", ""):
+                    raw_ep_title = None
+
                 episode = (
                     db.query(Episode)
                     .filter(
@@ -2012,10 +2083,23 @@ async def refresh_show_metadata(db, show) -> dict:
                     )
                     .first()
                 )
+                
+                # Для аниме fallback поиск по абсолютному номеру, если по сезону/эпизоду не нашлось
+                if not episode and getattr(meta_ep, "absolute_number", None) is not None and getattr(show, "content_type", None) == "anime":
+                    episode = (
+                        db.query(Episode)
+                        .filter(
+                            Episode.show_id == show.id,
+                            Episode.absolute_number == meta_ep.absolute_number,
+                        )
+                        .first()
+                    )
+
                 if episode:
                     ep_changed = False
-                    if meta_ep.title and episode.title != meta_ep.title:
-                        episode.title = meta_ep.title
+                    # Обновляем название, если в метаданных появилось нормальное имя
+                    if raw_ep_title and episode.title != raw_ep_title:
+                        episode.title = raw_ep_title
                         ep_changed = True
                     if air_date and episode.air_date != air_date:
                         episode.air_date = air_date
@@ -2036,14 +2120,14 @@ async def refresh_show_metadata(db, show) -> dict:
                         season_number=meta_ep.season_number if meta_ep.season_number is not None else 1,
                         episode_number=meta_ep.episode_number,
                         absolute_number=meta_ep.absolute_number,
-                        title=meta_ep.title,
+                        title=raw_ep_title or f"Episode {meta_ep.episode_number}",
                         air_date=air_date,
                         status=status,
                     ))
                     changed = True
                     episodes_added += 1
 
-    # 3. Обновляем алиасы
+    # 6. Обновляем алиасы
     if details.aliases:
         existing_aliases = {a.text.lower().strip() for a in show.aliases}
         for alias_text in details.aliases:

@@ -248,6 +248,62 @@ class TestRadarrMetadata(unittest.TestCase):
 
         asyncio.run(run_test())
 
+    def test_refresh_show_metadata_fallback_alias_and_none_titles(self):
+        from app.services.metadata import MetadataEpisode, MetadataShowDetails, refresh_show_metadata
+
+        mock_db = MagicMock()
+        mock_show = MagicMock()
+        mock_show.id = 99
+        mock_show.title = "Реинкарнация безработного"
+        mock_show.content_type = "anime"
+        mock_show.metadata_id = None
+        mock_alias = MagicMock()
+        mock_alias.text = "Mushoku Tensei: Jobless Reincarnation"
+        mock_alias.language = "en"
+        mock_show.aliases = [mock_alias]
+        mock_show.overview = None
+        mock_show.poster_url = None
+        mock_show.rating = None
+        mock_show.genre = None
+        mock_show.network = None
+        mock_show.year = 2021
+        mock_show.premiere_date = None
+
+        existing_ep10 = MagicMock()
+        existing_ep10.show_id = 99
+        existing_ep10.season_number = 3
+        existing_ep10.episode_number = 10
+        existing_ep10.title = "Episode 10"
+        existing_ep10.air_date = None
+        existing_ep10.absolute_number = 59
+
+        mock_db.query.return_value.filter.return_value.first.side_effect = lambda: existing_ep10
+
+        fake_search_res = [
+            MagicMock(external_id="tvdb:371310", title="Mushoku Tensei: Jobless Reincarnation")
+        ]
+        fake_details = MetadataShowDetails(
+            external_id="tvdb:371310",
+            title="Mushoku Tensei: Jobless Reincarnation",
+            content_type="anime",
+            episodes=[
+                MetadataEpisode(season_number=3, episode_number=10, title="An Audience with an Immortal Demon King", absolute_number=59, air_date="2026-08-31"),
+                MetadataEpisode(season_number=3, episode_number=12, title="None", absolute_number=61, air_date="2026-09-14"),
+            ],
+            aliases=["Jobless Reincarnation"],
+        )
+
+        async def run_test():
+            with patch("app.services.metadata.SkyHookClient.search", return_value=fake_search_res), \
+                 patch("app.services.metadata.SkyHookClient.get_details", return_value=fake_details):
+                res = await refresh_show_metadata(mock_db, mock_show)
+                self.assertTrue(res["updated"])
+                self.assertEqual(mock_show.metadata_id, "tvdb:371310")
+                self.assertEqual(existing_ep10.title, "An Audience with an Immortal Demon King")
+                mock_db.commit.assert_called()
+
+        asyncio.run(run_test())
+
 
 class TestMetadataSourcesSeeding(unittest.TestCase):
     def test_seed_default_metadata_sources_once(self):
