@@ -2177,6 +2177,25 @@ async def refresh_show_metadata(db, show) -> dict:
     }
 
 
+def sync_refresh_show_metadata(db, show) -> dict:
+    """Синхронный запуск refresh_show_metadata для вызова из синхронных эндпоинтов/тестов."""
+    import asyncio
+    import concurrent.futures
+    try:
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                    return pool.submit(asyncio.run, refresh_show_metadata(db, show)).result()
+            else:
+                return loop.run_until_complete(refresh_show_metadata(db, show))
+        except RuntimeError:
+            return asyncio.run(refresh_show_metadata(db, show))
+    except Exception as e:
+        logger.debug("sync_refresh_show_metadata failed: %s", e)
+        return {"updated": False, "error": str(e)}
+
+
 def should_refresh_show(show, db, force: bool = False) -> bool:
     """
     Точная реализация ShouldRefreshSeries (Sonarr) и ShouldRefreshMovie (Radarr):

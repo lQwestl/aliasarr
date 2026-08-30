@@ -211,16 +211,16 @@ async def create_show(
 
 
 @router.get("/{show_id}", response_model=ShowOut, summary="Получить информацию о тайтле")
-async def get_show(show_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_permission("view_library"))):
+def get_show(show_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_permission("view_library"))):
     """Возвращает подробную информацию о тайтле со списком серий, алиасов и прогрессом скачивания."""
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
 
-    from app.services.metadata import should_refresh_show, refresh_show_metadata
+    from app.services.metadata import should_refresh_show, sync_refresh_show_metadata
     if should_refresh_show(show, db):
         try:
-            await refresh_show_metadata(db, show)
+            sync_refresh_show_metadata(db, show)
             db.refresh(show)
         except Exception as e:
             logger.debug("On-demand metadata refresh failed for show %s: %s", show_id, e)
@@ -228,7 +228,7 @@ async def get_show(show_id: int, db: Session = Depends(get_db), current_user: Us
     needs_commit = False
     try:
         today = dt.date.today()
-        for ep in show.episodes:
+        for ep in (getattr(show, "episodes", None) or []):
             air_d = getattr(ep, "air_date", None)
             if isinstance(air_d, dt.datetime):
                 air_d = air_d.date()
@@ -450,15 +450,15 @@ def delete_alias(
 
 
 @router.get("/{show_id}/episodes", response_model=list[EpisodeOut])
-async def list_episodes(show_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_permission("view_library"))):
+def list_episodes(show_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_permission("view_library"))):
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
 
-    from app.services.metadata import should_refresh_show, refresh_show_metadata
+    from app.services.metadata import should_refresh_show, sync_refresh_show_metadata
     if should_refresh_show(show, db):
         try:
-            await refresh_show_metadata(db, show)
+            sync_refresh_show_metadata(db, show)
             db.refresh(show)
         except Exception as e:
             logger.debug("On-demand metadata refresh failed for episodes of show %s: %s", show_id, e)
