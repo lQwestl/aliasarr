@@ -482,11 +482,15 @@ async def on_startup():
     scheduler.add_job(_calendar_poll_job, "interval", minutes=calendar_poll_interval, id="calendar_poll")
     scheduler.add_job(_ssl_renew_job, "interval", hours=24, id="ssl_renew_check")
     scheduler.add_job(_auto_backup_job, "interval", hours=24, id="auto_backup_check")
-    scheduler.add_job(_refresh_metadata_job, "interval", hours=metadata_refresh_hours, id="refresh_metadata")
+    # Автоматическое обновление метаданных по алгоритму Sonarr/Radarr (каждые 6 часов)
+    scheduler.add_job(_refresh_metadata_job, "interval", hours=6, id="refresh_metadata")
     scheduler.start()
+    # Запускаем первичное фоновое обновление метаданных при старте приложения
+    asyncio.create_task(_refresh_metadata_job())
     logger.info(
         "Планировщик запущен: поиск wanted каждые %d мин, загрузки каждые %d сек, "
-        "слежение за раздачами каждые %d мин, активация премьер каждые %d мин, проверка индексаторов каждые %d мин",
+        "слежение за раздачами каждые %d мин, активация премьер каждые %d мин, проверка индексаторов каждые %d мин, "
+        "автоматическое обновление метаданных каждые 6 ч",
         monitor_interval, download_check_sec, tracker_interval, unaired_interval, indexer_check_interval,
     )
 

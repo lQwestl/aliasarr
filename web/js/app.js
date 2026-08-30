@@ -4737,9 +4737,6 @@ async function refreshShowModal() {
           <div class="show-detail-path">
             ${show.path && canManageLib ? `
             <div class="show-detail-path-actions">
-              <button type="button" class="btn btn-secondary btn-small" onclick="refreshShowMetadata(this, ${show.id})" title="${CURRENT_LANG === 'en' ? 'Refresh metadata and episode names from TVDB/Skyhook' : 'Обновить метаданные, названия всех серий и даты выхода из TVDB/Skyhook'}">
-                <i data-lucide="sparkles" class="ico-sm" style="color:var(--teal)"></i> <span>${CURRENT_LANG === 'en' ? 'Refresh Metadata' : 'Обновить метаданные'}</span>
-              </button>
               <button type="button" class="btn btn-secondary btn-small" onclick="syncShowPath(${show.id})" title="${t("show.sync_tooltip")}">
                 <i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.btn_sync")}</span>
               </button>
@@ -4802,10 +4799,6 @@ async function refreshShowModal() {
         <button class="btn btn-secondary btn-small" onclick="setUnairedMonitor(${show.id}, true)" title="${t("show.monitor_unaired_tooltip")}">
           <i data-lucide="calendar-search" class="ico-sm"></i> <span>${t("show.monitor_unaired")}</span>
         </button>` : ""}` : ""}
-        ${canManageLib ? `
-        <button class="btn btn-secondary btn-small" onclick="refreshShowMetadata(this, ${show.id})" title="${CURRENT_LANG === 'en' ? 'Refresh metadata and episode list from TVDB/Skyhook' : 'Обновить метаданные, названия всех серий и даты премьер'}">
-          <i data-lucide="sparkles" class="ico-sm" style="color:var(--teal)"></i> <span>${CURRENT_LANG === 'en' ? 'Metadata' : 'Метаданные'}</span>
-        </button>` : ""}
         ${canSearch ? `
         <button class="btn btn-primary btn-small" onclick="forceSearchShow(this, ${show.id})"><i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.force_search")}</span></button>
         <button class="btn btn-secondary btn-small" onclick="searchReleasesForShow(this, ${show.id})"><i data-lucide="search" class="ico-sm"></i> <span>${t("show.search_manual")}</span></button>` : ""}
@@ -10976,35 +10969,6 @@ async function loadMetadataSources() {
   } catch (e) {
     console.error("loadMetadataSources error:", e);
     tbody.innerHTML = `<tr><td colspan="3" style="color:var(--danger)">${escapeHtml(formatToastMessage(e.message))}</td></tr>`;
-  }
-  loadMetadataRefreshSettings();
-}
-
-async function loadMetadataRefreshSettings() {
-  const autoEl = document.getElementById("md-auto-refresh-enabled");
-  const intervalEl = document.getElementById("md-refresh-interval");
-  if (!autoEl || !intervalEl) return;
-  try {
-    const s = await api("/api/v1/settings");
-    autoEl.checked = s.metadata_auto_refresh_enabled !== false;
-    intervalEl.value = String(s.metadata_refresh_interval_hours || 12);
-  } catch (e) {
-    console.error("loadMetadataRefreshSettings error:", e);
-  }
-}
-
-async function saveMetadataRefreshSettings() {
-  const autoEl = document.getElementById("md-auto-refresh-enabled");
-  const intervalEl = document.getElementById("md-refresh-interval");
-  if (!autoEl || !intervalEl) return;
-  try {
-    await api("/api/v1/settings", "PUT", {
-      metadata_auto_refresh_enabled: autoEl.checked,
-      metadata_refresh_interval_hours: Number(intervalEl.value) || 12,
-    });
-    showToast(t("md.settings_saved") || "Настройки обновления метаданных сохранены");
-  } catch (e) {
-    showToast(e.message || "Ошибка сохранения настроек", "error");
   }
 }
 

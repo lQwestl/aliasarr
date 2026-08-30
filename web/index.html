@@ -1868,33 +1868,6 @@
       </div>
 
       <div id="settings-metadata" class="settings-panel">
-        <div class="card" style="margin-bottom: 16px;">
-          <h3><i data-lucide="refresh-cw" class="ico-sm icon-title"></i> <span data-i18n="md.auto_refresh_title">Автоматическое обновление метаданных</span></h3>
-          <p class="subtitle" style="margin-bottom: 12px;" data-i18n="md.auto_refresh_desc">
-            Регулярная синхронизация со SkyHook/TMDB/TVDB: подтягивание официальных названий для невышедших серий (вместо «Episode N»), добавление новых анонсированных серий и обновление дат премьер.
-          </p>
-          <div class="form-col" style="gap:12px;">
-            <label class="checkbox-row" style="margin:0;">
-              <input id="md-auto-refresh-enabled" type="checkbox" onchange="saveMetadataRefreshSettings()">
-              <strong data-i18n="md.auto_refresh_checkbox">Включить автоматическое обновление метаданных библиотеки</strong>
-            </label>
-            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-              <label class="hint" style="margin:0;"><span data-i18n="md.refresh_interval_label">Период обновления:</span></label>
-              <select id="md-refresh-interval" class="input" style="max-width:260px;" onchange="saveMetadataRefreshSettings()">
-                <option value="6" data-i18n="md.interval_6h">Каждые 6 часов</option>
-                <option value="12" data-i18n="md.interval_12h">Каждые 12 часов</option>
-                <option value="24" data-i18n="md.interval_24h">Каждые 24 часа (1 день)</option>
-                <option value="72" data-i18n="md.interval_3d">Каждые 3 дня</option>
-                <option value="168" data-i18n="md.interval_7d">Раз в 1 неделю (7 дней)</option>
-              </select>
-              <button class="btn btn-secondary" onclick="triggerManualMetadataRefresh(this)" title="Запустить полное обновление метаданных всех тайтлов сейчас" data-i18n-title="md.btn_refresh_now_title">
-                <i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="md.btn_refresh_now">Обновить метаданные всех тайтлов сейчас</span>
-              </button>
-            </div>
-            <div id="md-refresh-status" class="inline-status-box" style="display:none;"></div>
-          </div>
-        </div>
-
         <div class="card">
           <h3 id="md-form-title"><i data-lucide="database" class="ico-sm icon-title"></i> <span data-i18n="md.add_title">Добавить источник метаданных</span></h3>
           <div class="form-col">
@@ -3301,6 +3274,6 @@
 <div id="toast" class="toast"></div>
 
 <script src="https://unpkg.com/lucide@latest"></script>
-<script src="/ui/static/js/app.js?v=20260831-01"></script>
+<script src="/ui/static/js/app.js?v=20260831-02"></script>
 </body>
 </html>

@@ -304,6 +304,39 @@ class TestRadarrMetadata(unittest.TestCase):
 
         asyncio.run(run_test())
 
+    def test_should_refresh_show_sonarr_radarr_rules(self):
+        import datetime as dt
+        from app.services.metadata import should_refresh_show
+
+        mock_db = MagicMock()
+
+        # 1. Force always refreshes
+        show = MagicMock(content_type="anime", last_metadata_refresh_at=dt.datetime.utcnow())
+        self.assertTrue(should_refresh_show(show, mock_db, force=True))
+
+        # 2. Never synced before
+        show = MagicMock(content_type="anime", last_metadata_refresh_at=None)
+        self.assertTrue(should_refresh_show(show, mock_db))
+
+        # 3. Series with TBA / Episode X placeholders
+        show = MagicMock(content_type="anime", status="ended", last_metadata_refresh_at=dt.datetime.utcnow() - dt.timedelta(hours=1))
+        ep = MagicMock(title="Episode 10")
+        mock_db.query.return_value.filter.return_value.all.return_value = [ep]
+        self.assertTrue(should_refresh_show(show, mock_db))
+
+        # 4. Ended series with all names filled, synced 2 hours ago -> skip
+        ep_good = MagicMock(title="Final Battle", air_date=dt.datetime.utcnow() - dt.timedelta(days=100))
+        mock_db.query.return_value.filter.return_value.all.return_value = [ep_good]
+        self.assertFalse(should_refresh_show(show, mock_db))
+
+        # 5. Movie in cinemas synced 2 hours ago -> skip (within 12h)
+        movie = MagicMock(content_type="movie", status="in_cinemas", premiere_date=None, last_metadata_refresh_at=dt.datetime.utcnow() - dt.timedelta(hours=2))
+        self.assertFalse(should_refresh_show(movie, mock_db))
+
+        # 6. Movie in cinemas synced 14 hours ago -> should refresh
+        movie.last_metadata_refresh_at = dt.datetime.utcnow() - dt.timedelta(hours=14)
+        self.assertTrue(should_refresh_show(movie, mock_db))
+
 
 class TestMetadataSourcesSeeding(unittest.TestCase):
     def test_seed_default_metadata_sources_once(self):

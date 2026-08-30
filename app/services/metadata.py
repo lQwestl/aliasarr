@@ -2159,24 +2159,99 @@ async def refresh_show_metadata(db, show) -> dict:
     }
 
 
+def should_refresh_show(show, db, force: bool = False) -> bool:
+    """
+    Точная реализация ShouldRefreshSeries (Sonarr) и ShouldRefreshMovie (Radarr):
+    - force == True: всегда True
+    - Если show.last_metadata_refresh_at отсутствует: всегда True
+    - Для сериалов и аниме (Sonarr):
+      1. Прошло >30 дней с последней синхронизации -> True
+      2. Есть хотя бы одна серия с плейсхолдером (Episode X, Серия X, TBA, None, пустой title) -> True
+      3. Сериал продолжается (status != 'ended') и прошло >=6 часов -> True
+      4. Последняя вышедшая серия вышла менее 30 дней назад или еще не вышла -> True
+      5. Прошло <6 часов -> False
+    - Для фильмов (Radarr):
+      1. Прошло >180 дней -> True
+      2. Прошло <12 часов -> False
+      3. Статус фильма 'announced' или 'in_cinemas' -> True
+      4. Премьера/релиз был менее 30 дней назад или еще в будущем -> True
+    """
+    if force or not getattr(show, "last_metadata_refresh_at", None):
+        return True
+
+    import datetime as _dt
+    now = _dt.datetime.utcnow()
+    last_sync = show.last_metadata_refresh_at
+    is_movie = getattr(show, "content_type", None) == "movie" or getattr(show, "category", None) == "movies"
+
+    if is_movie:
+        # Radarr ShouldRefreshMovie:
+        if last_sync < now - _dt.timedelta(days=180):
+            return True
+        if last_sync >= now - _dt.timedelta(hours=12):
+            return False
+        st = (getattr(show, "status", None) or "").lower()
+        if st in ("announced", "in_cinemas", "incinemas"):
+            return True
+        if show.premiere_date and show.premiere_date >= now - _dt.timedelta(days=30):
+            return True
+        return False
+    else:
+        # Sonarr ShouldRefreshSeries:
+        if last_sync < now - _dt.timedelta(days=30):
+            return True
+
+        episodes = db.query(Episode).filter(Episode.show_id == show.id).all()
+        # Проверяем наличие серий с заглушками
+        has_placeholders = any(
+            (not ep.title) or
+            ep.title.strip().lower() in ("tba", "none", "null", "unknown", "") or
+            ep.title.strip().lower().startswith(("episode ", "серия "))
+            for ep in episodes
+        )
+        if has_placeholders:
+            return True
+
+        st = (getattr(show, "status", None) or "").lower()
+        if st != "ended" and last_sync < now - _dt.timedelta(hours=6):
+            return True
+
+        aired_episodes = [ep for ep in episodes if ep.air_date]
+        if aired_episodes:
+            max_air_date = max(ep.air_date for ep in aired_episodes)
+            if max_air_date > now - _dt.timedelta(days=30):
+                return True
+
+        if last_sync >= now - _dt.timedelta(hours=6):
+            return False
+
+        return False
+
+
 async def refresh_all_shows_metadata(db, force: bool = False, username: str = "system") -> dict:
     """
-    Фоновое обновление метаданных для всех тайтлов в библиотеке (Sonarr/Radarr Refresh Series/Movies).
+    Фоновое регулярное обновление метаданных для библиотеки по алгоритму Sonarr/Radarr.
+    Автоматически обновляет тайтлы, требующие синхронизации (невышедшие серии, TBA/Episode N, активные онгоинги).
     Отслеживается в task_manager и отображается в виджете фоновых операций.
     """
     from app.models.db import Show
     from app.services.audit import log_audit
     from app.services.task_manager import task_manager
 
-    shows = db.query(Show).all()
-    if not shows:
+    all_shows = db.query(Show).all()
+    if not all_shows:
         return {"total": 0, "updated": 0, "message": "Библиотека пуста"}
+
+    candidate_shows = [s for s in all_shows if should_refresh_show(s, db, force=force)]
+    if not candidate_shows:
+        logger.debug("Все %d тайтлов имеют актуальные метаданные (Sonarr/Radarr rate-limit). Пропуск.", len(all_shows))
+        return {"total": len(all_shows), "updated": 0, "message": "Все метаданные актуальны"}
 
     task = task_manager.start_task(
         name="metadata_refresh",
         title="Обновление метаданных библиотеки",
-        message=f"Подготовка к обновлению {len(shows)} тайтлов...",
-        total_items=len(shows),
+        message=f"Подготовка к обновлению {len(candidate_shows)} тайтлов...",
+        total_items=len(candidate_shows),
         current_item=0,
     )
 
@@ -2184,13 +2259,13 @@ async def refresh_all_shows_metadata(db, force: bool = False, username: str = "s
     errors_count = 0
 
     try:
-        for i, show in enumerate(shows):
+        for i, show in enumerate(candidate_shows):
             task_manager.update_task(
                 task.id,
-                message=f"Обновление «{show.title}» ({i + 1}/{len(shows)})",
-                progress=(i + 1) / len(shows),
+                message=f"Обновление «{show.title}» ({i + 1}/{len(candidate_shows)})",
+                progress=(i + 1) / len(candidate_shows),
                 current_item=i + 1,
-                total_items=len(shows),
+                total_items=len(candidate_shows),
                 show_id=show.id,
             )
             try:
@@ -2201,7 +2276,7 @@ async def refresh_all_shows_metadata(db, force: bool = False, username: str = "s
                 errors_count += 1
                 logger.warning("Ошибка обновления метаданных для тайтла %s (%s): %s", show.id, show.title, exc)
 
-        summary_msg = f"Завершено: обновлено {updated_count} из {len(shows)} тайтлов"
+        summary_msg = f"Завершено: обновлено {updated_count} из {len(candidate_shows)} тайтлов"
         if errors_count:
             summary_msg += f" (ошибок: {errors_count})"
 
@@ -2209,11 +2284,11 @@ async def refresh_all_shows_metadata(db, force: bool = False, username: str = "s
         log_audit(
             db,
             "metadata.refresh_all",
-            f"Автоматическое обновление метаданных библиотеки: обновлено {updated_count} из {len(shows)} тайтлов",
+            f"Автоматическое обновление метаданных библиотеки (Sonarr/Radarr): обновлено {updated_count} из {len(candidate_shows)} тайтлов",
             username=username,
         )
 
-        return {"total": len(shows), "updated": updated_count, "errors": errors_count, "message": summary_msg}
+        return {"total": len(candidate_shows), "updated": updated_count, "errors": errors_count, "message": summary_msg}
     except Exception as exc:
         task_manager.fail_task(task.id, error=str(exc))
         raise
