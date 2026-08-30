@@ -503,7 +503,7 @@ class CalendarSearchMissingIn(BaseModel):
 
 
 @router.get("/calendar", response_model=list[CalendarEntryOut])
-def get_calendar(
+async def get_calendar(
     days_forward: int = 60,
     days_back: int = 14,
     monitored_only: bool = False,
@@ -512,6 +512,8 @@ def get_calendar(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("view_calendar")),
 ):
+    from app.services.metadata import should_refresh_show, refresh_show_metadata
+
     start = dt.datetime.utcnow() - dt.timedelta(days=days_back)
     end = dt.datetime.utcnow() + dt.timedelta(days=days_forward)
 
@@ -525,6 +527,18 @@ def get_calendar(
         episodes_q = episodes_q.filter(Show.monitored.is_(True))
     if content_type and content_type != "all":
         episodes_q = episodes_q.filter(Show.content_type == content_type)
+
+    episodes = episodes_q.order_by(Episode.air_date).all()
+
+    # Автоматически обновляем метаданные тайтлов в календаре, если у них есть серии с TBA/заглушками или истекло время
+    cal_show_ids = {ep.show_id for ep in episodes}
+    for sid in cal_show_ids:
+        s = db.get(Show, sid)
+        if s and should_refresh_show(s, db):
+            try:
+                await refresh_show_metadata(db, s)
+            except Exception as e:
+                logger.debug("On-demand calendar refresh failed for show %s: %s", sid, e)
 
     episodes = episodes_q.order_by(Episode.air_date).all()
 

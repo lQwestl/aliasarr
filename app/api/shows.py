@@ -211,11 +211,19 @@ async def create_show(
 
 
 @router.get("/{show_id}", response_model=ShowOut, summary="Получить информацию о тайтле")
-def get_show(show_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_permission("view_library"))):
+async def get_show(show_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_permission("view_library"))):
     """Возвращает подробную информацию о тайтле со списком серий, алиасов и прогрессом скачивания."""
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
+
+    from app.services.metadata import should_refresh_show, refresh_show_metadata
+    if should_refresh_show(show, db):
+        try:
+            await refresh_show_metadata(db, show)
+            db.refresh(show)
+        except Exception as e:
+            logger.debug("On-demand metadata refresh failed for show %s: %s", show_id, e)
 
     needs_commit = False
     try:
@@ -442,10 +450,19 @@ def delete_alias(
 
 
 @router.get("/{show_id}/episodes", response_model=list[EpisodeOut])
-def list_episodes(show_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_permission("view_library"))):
+async def list_episodes(show_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_permission("view_library"))):
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
+
+    from app.services.metadata import should_refresh_show, refresh_show_metadata
+    if should_refresh_show(show, db):
+        try:
+            await refresh_show_metadata(db, show)
+            db.refresh(show)
+        except Exception as e:
+            logger.debug("On-demand metadata refresh failed for episodes of show %s: %s", show_id, e)
+
     episodes = (
         db.query(Episode)
         .filter(Episode.show_id == show_id)

@@ -712,16 +712,31 @@ class SkyHookClient(BaseMetadataClient):
 
     async def get_details(self, external_id: str) -> MetadataShowDetails:
         """Получение полных деталей и списка всех эпизодов через SkyHook / Servarr."""
-        if str(external_id).startswith("tvdb:"):
-            clean_id = str(external_id).replace("tvdb:", "")
+        ext_str = str(external_id or "").strip()
+        if not ext_str:
+            raise ValueError("external_id is empty")
+
+        clean_id = ext_str
+        for prefix in ("tvdb:", "sonarr:", "skyhook:"):
+            if clean_id.lower().startswith(prefix):
+                clean_id = clean_id[len(prefix):].strip()
+                break
+
+        if clean_id.startswith("movie:"):
+            return await self._get_movie_details(clean_id[6:])
+        elif clean_id.isdigit():
             return await self._get_series_details(clean_id)
-        elif str(external_id).startswith("movie:"):
-            clean_id = str(external_id).replace("movie:", "")
-            return await self._get_movie_details(clean_id)
-        elif str(external_id).isdigit():
-            return await self._get_series_details(str(external_id))
+        elif ext_str.lower().startswith(("anilist:", "mal:", "imdb:", "tmdb:")):
+            # SkyHook Sonarr API умеет искать по anilist:id, mal:id, imdb:id, tmdb:id
+            results = await self.search(ext_str)
+            if results and results[0].external_id:
+                target_ext = results[0].external_id
+                target_clean = target_ext.replace("tvdb:", "").replace("sonarr:", "").replace("skyhook:", "")
+                if target_clean.isdigit():
+                    return await self._get_series_details(target_clean)
+            return await self._get_series_details(clean_id)
         else:
-            return await self._get_series_details(str(external_id))
+            return await self._get_series_details(clean_id)
 
     async def _get_series_details(self, tvdb_id: str) -> MetadataShowDetails:
         async with httpx.AsyncClient(timeout=30, headers={"User-Agent": "Aliasarr/1.0.0 (Sonarr SkyHook Proxy)"}) as client:
@@ -2101,6 +2116,9 @@ async def refresh_show_metadata(db, show) -> dict:
                     if raw_ep_title and episode.title != raw_ep_title:
                         episode.title = raw_ep_title
                         ep_changed = True
+                    elif not raw_ep_title and (not episode.title or episode.title.strip().lower().startswith(("episode ", "серия "))):
+                        episode.title = "TBA"
+                        ep_changed = True
                     if air_date and episode.air_date != air_date:
                         episode.air_date = air_date
                         if episode.status in (EpisodeStatus.MISSING, EpisodeStatus.WANTED, EpisodeStatus.UNAIRED):
@@ -2120,7 +2138,7 @@ async def refresh_show_metadata(db, show) -> dict:
                         season_number=meta_ep.season_number if meta_ep.season_number is not None else 1,
                         episode_number=meta_ep.episode_number,
                         absolute_number=meta_ep.absolute_number,
-                        title=raw_ep_title or f"Episode {meta_ep.episode_number}",
+                        title=raw_ep_title or "TBA",
                         air_date=air_date,
                         status=status,
                     ))
