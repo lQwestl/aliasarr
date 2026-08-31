@@ -4681,68 +4681,209 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
   /* Show Detail Modal on Mobile */
   .show-detail-header {
+    display: flex !important;
     flex-direction: column !important;
     gap: 14px !important;
     align-items: center !important;
     text-align: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   .show-detail-poster-col {
-    width: 130px !important;
-    height: 195px !important;
+    width: 140px !important;
+    height: 210px !important;
     border-radius: 12px !important;
     overflow: hidden !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+    flex-shrink: 0 !important;
   }
   .show-detail-meta {
     width: 100% !important;
+    box-sizing: border-box !important;
   }
+  .show-detail-meta h2 {
+    font-size: 20px !important;
+    text-align: center !important;
+    margin-bottom: 10px !important;
+  }
+  .alias-manager {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    margin-bottom: 8px !important;
+  }
+  .alias-add-row {
+    display: grid !important;
+    grid-template-columns: 1fr 75px auto !important;
+    gap: 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 8px 0 12px 0 !important;
+  }
+  .alias-add-row input {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .alias-add-row select {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .alias-add-row button {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    padding: 6px 10px !important;
+  }
+
+  .meta-badges-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    margin: 10px 0 !important;
+  }
+
+  .show-detail-path {
+    margin-top: 14px !important;
+    padding: 12px !important;
+    background: var(--panel-alt) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .show-detail-path-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-bottom: 12px !important;
+  }
+  .show-detail-path-actions .btn {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+    min-height: 40px !important;
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+    box-sizing: border-box !important;
+  }
+  .show-detail-path-info {
+    text-align: center !important;
+  }
+
+  .show-detail-actions-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+    margin: 14px 0 !important;
+    box-sizing: border-box !important;
+  }
+  .show-detail-actions-row .form-col {
+    width: 100% !important;
+  }
+  .show-detail-actions-row select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
   .show-actions-row {
     display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;
     width: 100% !important;
-    margin-top: 12px !important;
+    box-sizing: border-box !important;
+    margin: 14px 0 !important;
   }
   .show-actions-row .btn {
     width: 100% !important;
     justify-content: center !important;
-    min-height: 40px !important;
+    text-align: center !important;
+    min-height: 42px !important;
+    padding: 8px 10px !important;
     font-size: 13px !important;
+    box-sizing: border-box !important;
+  }
+  .show-actions-row .btn-danger {
+    grid-column: 1 / -1 !important;
+  }
+
+  .seasons-toolbar {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-bottom: 12px !important;
   }
 
   /* Episode list and Season Accordions on Mobile */
   .season-block {
-    border-radius: 10px;
-    margin-bottom: 14px;
-    border: 1px solid var(--border);
-    overflow: hidden;
+    border-radius: 12px !important;
+    margin-bottom: 14px !important;
+    border: 1px solid var(--border) !important;
+    overflow: hidden !important;
+    background: var(--panel) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   .season-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 12px 14px;
-    background: var(--panel-alt);
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 12px 14px !important;
+    background: var(--panel-alt) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
   }
   .season-header-left {
-    flex: 1 1 auto;
-    font-size: 14px;
-    font-weight: 600;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
   }
   .season-header .row-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
+  .season-header .row-actions .btn {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 38px !important;
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    box-sizing: border-box !important;
+  }
+  .season-header .row-actions .btn-icon-only {
+    min-width: 38px !important;
+    height: 38px !important;
+  }
+  .season-header .row-actions .btn-specials-import {
+    grid-column: 1 / -1 !important;
+  }
+
   .season-episodes {
-    width: 100%;
+    width: 100% !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
     scrollbar-width: thin;
     scrollbar-color: var(--teal) var(--panel-alt);
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--border) !important;
+    background: var(--panel) !important;
   }
   .season-episodes::-webkit-scrollbar {
     height: 5px;
@@ -4755,12 +4896,18 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     background: var(--panel-alt);
   }
   .episode-row {
-    min-width: 620px !important;
+    min-width: max-content !important;
+    width: 100% !important;
     white-space: nowrap !important;
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    padding: 10px 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    box-sizing: border-box !important;
+    background: var(--panel) !important;
+  }
+  .episode-row:nth-child(even) {
+    background: rgba(255, 255, 255, 0.015) !important;
   }
   .episode-row .ep-code {
     width: 65px;
@@ -4775,8 +4922,15 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     flex-shrink: 0;
   }
   .episode-row-bulk {
-    min-width: 620px !important;
+    min-width: max-content !important;
+    width: 100% !important;
     white-space: nowrap !important;
+    background: var(--panel-alt) !important;
+    padding: 8px 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
   }
   .ep-mediainfo-tags {
     flex-shrink: 0;

@@ -48,6 +48,9 @@ function selectDesignSystem(design) {
 
 function updateDesignSettingsUI(currentDesign) {
   const d = currentDesign || document.documentElement.getAttribute("data-design") || localStorage.getItem("aliasarr_design") || "classic";
+  document.querySelectorAll(".design-card[data-design-choice]").forEach(card => {
+    card.classList.toggle("active", card.dataset.designChoice === d);
+  });
   const classicCard = document.getElementById("design-card-classic");
   const vanguardCard = document.getElementById("design-card-vanguard");
   if (classicCard) classicCard.classList.toggle("active", d === "classic");

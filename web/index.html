@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/ui/static/css/style.css?v=20260831-12">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260831-13">
 <script>
   // Применяем тему, язык и целевую вкладку сразу, до отрисовки основного контента, чтобы исключить мерцание Дашбордом при перезагрузке
   (function () {
@@ -1359,6 +1359,98 @@
 </select>
             <div style="margin-top:6px">
               <button class="btn btn-primary" onclick="saveInterfaceSettings(this)" data-i18n="common.save">Сохранить</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ДИЗАЙН ИНТЕРФЕЙСА В ОБЩИХ НАСТРОЙКАХ -->
+        <div class="card" style="margin-bottom: 24px;">
+          <h3><i data-lucide="sparkles" class="ico-sm icon-title" style="color:var(--teal);"></i> <span data-i18n="settings.design_title">Дизайн интерфейса</span></h3>
+          <p class="hint" style="margin-top: 4px; margin-bottom: 22px; max-width: 760px; line-height: 1.6;" data-i18n="settings.design_subtitle">
+            Выберите визуальный стиль и архитектуру компонентов для веб-приложения, Wiki и мобильной версии. Стили можно переключать в любой момент без потери настроек.
+          </p>
+
+          <div class="design-cards-grid">
+            <!-- 1. Классический дизайн -->
+            <div class="design-card" data-design-choice="classic" onclick="selectDesignSystem('classic')">
+              <div class="design-card-header">
+                <span class="design-card-badge badge-classic" data-i18n="settings.design_badge_classic">Классика</span>
+                <div class="design-card-check"><i data-lucide="check" class="ico-xs"></i></div>
+              </div>
+              <div class="design-card-preview preview-classic">
+                <div class="preview-classic-header">
+                  <div class="preview-dot"></div>
+                  <div class="preview-line w-30"></div>
+                </div>
+                <div class="preview-classic-body">
+                  <div class="preview-classic-sidebar">
+                    <div class="preview-item active"></div>
+                    <div class="preview-item"></div>
+                    <div class="preview-item"></div>
+                  </div>
+                  <div class="preview-classic-content">
+                    <div class="preview-classic-card">
+                      <div class="preview-line w-60"></div>
+                      <div class="preview-line w-40 muted"></div>
+                    </div>
+                    <div class="preview-classic-card">
+                      <div class="preview-line w-50"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="design-card-info">
+                <div class="design-card-title" data-i18n="settings.design_classic_title">Классический Neo-Glass</div>
+                <div class="design-card-desc" data-i18n="settings.design_classic_desc">
+                  Фирменный минималистичный стиль Aliasarr: полупрозрачные стеклянные панели, компактные карточки и традиционная компоновка интерфейса.
+                </div>
+              </div>
+              <div class="design-card-footer">
+                <button class="btn btn-secondary btn-small w-full" data-i18n="settings.btn_select_design">Выбрать стиль</button>
+              </div>
+            </div>
+
+            <!-- 2. Авангард Luxe -->
+            <div class="design-card" data-design-choice="vanguard" onclick="selectDesignSystem('vanguard')">
+              <div class="design-card-header">
+                <span class="design-card-badge badge-vanguard" data-i18n="settings.design_badge_vanguard">AVANGARD LUXE</span>
+                <div class="design-card-check"><i data-lucide="check" class="ico-xs"></i></div>
+              </div>
+              <div class="design-card-preview preview-vanguard">
+                <div class="preview-vanguard-island">
+                  <div class="preview-vanguard-pill"></div>
+                  <div class="preview-vanguard-pill mini"></div>
+                </div>
+                <div class="preview-vanguard-body">
+                  <div class="preview-vanguard-sidebar">
+                    <div class="preview-vanguard-nav active"></div>
+                    <div class="preview-vanguard-nav"></div>
+                    <div class="preview-vanguard-nav"></div>
+                  </div>
+                  <div class="preview-vanguard-content">
+                    <div class="preview-vanguard-doublebezel">
+                      <div class="preview-vanguard-inner">
+                        <div class="preview-line w-50 accent"></div>
+                        <div class="preview-line w-70 muted"></div>
+                      </div>
+                    </div>
+                    <div class="preview-vanguard-doublebezel">
+                      <div class="preview-vanguard-inner">
+                        <div class="preview-line w-40"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="design-card-info">
+                <div class="design-card-title" data-i18n="settings.design_vanguard_title">Авангард Luxe</div>
+                <div class="design-card-desc" data-i18n="settings.design_vanguard_desc">
+                  Современный футуристичный стиль: парящие островные панели, мягкие закругления, плавные микро-анимации и глубокое матовое стекло.
+                </div>
+              </div>
+              <div class="design-card-footer">
+                <button class="btn btn-primary btn-small w-full" data-i18n="settings.btn_select_design">Выбрать стиль</button>
+              </div>
             </div>
           </div>
         </div>
@@ -3315,6 +3407,6 @@
 <div id="toast" class="toast"></div>
 
 <script src="https://unpkg.com/lucide@latest"></script>
-<script src="/ui/static/js/app.js?v=20260831-12"></script>
+<script src="/ui/static/js/app.js?v=20260831-13"></script>
 </body>
 </html>
