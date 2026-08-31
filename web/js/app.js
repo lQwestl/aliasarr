@@ -12176,7 +12176,7 @@ async function loadReleaseLogs(page) {
 
     tbody.innerHTML = CURRENT_RELEASE_LOGS.map((item, idx) => {
       const st = stageLabels[item.stage] || { label: item.stage, color: "var(--text-muted)", bg: "rgba(255,255,255,0.05)" };
-      const levelClass = item.level === "error" ? "badge-error" : (item.level === "warning" ? "badge-warn" : (item.level === "success" ? "badge-ok" : "badge-tag"));
+      const levelClass = item.level === "error" ? "badge-error" : (item.level === "warning" ? "badge-warn" : (item.level === "success" ? "badge-ok" : "badge-info"));
       const levelLabel = item.level === "error" ? (CURRENT_LANG === "en" ? "Error" : "Ошибка") :
                          (item.level === "warning" ? (CURRENT_LANG === "en" ? "Warn" : "Внимание") :
                          (item.level === "success" ? (CURRENT_LANG === "en" ? "Success" : "Успех") : (CURRENT_LANG === "en" ? "Info" : "Инфо")));
@@ -12221,6 +12221,11 @@ function openReleaseLogDetail(index) {
   if (!body) return;
 
   const isRu = CURRENT_LANG !== "en";
+  const modalLevelClass = item.level === "error" ? "badge-error" : (item.level === "warning" ? "badge-warn" : (item.level === "success" ? "badge-ok" : "badge-info"));
+  const modalLevelLabel = item.level === "error" ? (isRu ? "Ошибка" : "Error") :
+                          (item.level === "warning" ? (isRu ? "Внимание" : "Warn") :
+                          (item.level === "success" ? (isRu ? "Успех" : "Success") : (isRu ? "Инфо" : "Info")));
+
   body.innerHTML = `
     <div class="form-col" style="gap:8px;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -12233,7 +12238,7 @@ function openReleaseLogDetail(index) {
       </div>
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <span class="hint">${isRu ? "Статус / Уровень:" : "Level:"}</span>
-        <strong class="mono" style="text-transform:uppercase; color:${item.level === 'error' ? 'var(--danger)' : (item.level === 'success' ? 'var(--teal)' : 'inherit')}">${escapeHtml(item.level)}</strong>
+        <span class="badge ${modalLevelClass}" style="font-size:11px; padding:2px 8px;">${modalLevelLabel}</span>
       </div>
       ${item.show_title ? `
         <div style="display:flex; justify-content:space-between; align-items:center;">

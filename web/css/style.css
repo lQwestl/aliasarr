@@ -2368,6 +2368,15 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   padding: 3px 8px;
   border-radius: 6px;
 }
+.badge-info {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  font-size: 11.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
 .badge-ok {
   background: rgba(45, 212, 191, 0.12);
   color: var(--teal);
@@ -6451,6 +6460,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid #e2e8f0;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .badge-info {
+  background: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
+  border: 1px solid rgba(2, 132, 199, 0.25);
 }
 
 
