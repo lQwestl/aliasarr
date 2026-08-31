@@ -290,17 +290,6 @@ def get_show(show_id: int, db: Session = Depends(get_db), current_user: User = D
                         ep.status = target_default_status
                         ep.download_progress = 0.0
                         needs_commit = True
-                    elif getattr(ep, "download_progress", 0) >= 0.99:
-                        has_downloaded_in_season = any(
-                            other.season_number == ep.season_number and other.status == EpisodeStatus.DOWNLOADED
-                            for other in eps
-                        )
-                        if has_downloaded_in_season:
-                            ep.status = target_default_status
-                            ep.download_progress = 0.0
-                            ep.torrent_hash = None
-                            ep.download_client_id = None
-                            needs_commit = True
 
         if needs_commit:
             try:
@@ -730,20 +719,10 @@ def list_episodes(show_id: int, db: Session = Depends(get_db), current_user: Use
                 ep.status = target_default_status
                 ep.download_progress = 0.0
                 needs_commit = True
-            # Серия завязла на прогрессе 100% без файла — призрак после частичного ручного импорта спецвыпусков
-            elif ep.status == EpisodeStatus.DOWNLOADING and getattr(ep, "download_progress", 0) >= 0.99:
-                has_downloaded_in_season = any(
-                    other.season_number == ep.season_number
-                    and other.status == EpisodeStatus.DOWNLOADED
-                    for other in episodes
-                    if other.id != ep.id
-                )
-                no_hash = not getattr(ep, "torrent_hash", None)
-                if has_downloaded_in_season or no_hash:
+            elif ep.status == EpisodeStatus.DOWNLOADING:
+                if not getattr(ep, "torrent_hash", None):
                     ep.status = target_default_status
                     ep.download_progress = 0.0
-                    ep.torrent_hash = None
-                    ep.download_client_id = None
                     needs_commit = True
 
         ep_out = EpisodeOut.model_validate(ep)

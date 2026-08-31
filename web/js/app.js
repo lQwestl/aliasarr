@@ -7510,6 +7510,10 @@ async function grabRelease(button, showId, result) {
       toast(t("history.event.grabbed"));
       button.textContent = "✓ Захвачен";
       button.disabled = true;
+      await refreshShowModal();
+      if (typeof loadShows === "function") {
+        loadShows(false);
+      }
     } catch (e) { toast("Ошибка: " + e.message, true); }
   });
 }
