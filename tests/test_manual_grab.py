@@ -33,7 +33,7 @@ class TestManualGrab(unittest.TestCase):
 
         mock_db.get.side_effect = mock_get
         mock_db.query.return_value.filter.return_value.all.return_value = [ep1, ep2]
-        mock_db.query.return_value.filter.return_value.order_by.return_value.first.return_value = DownloadClient(id=1, name="Transmission", client_type="transmission", enabled=True, is_default=True)
+        mock_db.query.return_value.filter.return_value.order_by.return_value.first.return_value = DownloadClient(id=1, name="Transmission", type="transmission", host="localhost", port=9091, enabled=True, is_default=True)
 
         req = GrabRequest(
             show_id=1,

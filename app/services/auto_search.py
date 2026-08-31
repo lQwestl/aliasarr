@@ -428,15 +428,18 @@ async def _limit_torrent_files_to_episodes(
                         )
 
                 async def _retry_next_candidate(s_id: int, ep_ids: set[int]):
-                    from app.database import SessionLocal
-                    with SessionLocal() as retry_db:
-                        r_show = retry_db.get(Show, s_id)
-                        if r_show:
-                            await search_and_grab_show(retry_db, r_show, episode_ids=ep_ids)
+                    try:
+                        from app.database import SessionLocal
+                        with SessionLocal() as retry_db:
+                            r_show = retry_db.get(Show, s_id)
+                            if r_show:
+                                await search_and_grab_show(retry_db, r_show, episode_ids=ep_ids)
+                    except Exception as e:
+                        logger.debug("Повторный автопоиск кандидата: %s", e)
 
                 asyncio.create_task(_retry_next_candidate(show_id, explicit_episode_ids or target_db_ids))
             except Exception as exc:
-                logger.warning("Не удалось запланировать автопоиск следующего кандидата: %s", exc)
+                logger.debug("Не удалось запланировать автопоиск следующего кандидата: %s", exc)
 
 
 _SHOW_SEARCH_LOCKS: dict[int, asyncio.Lock] = {}
