@@ -558,15 +558,7 @@ async def grab_release(
         allowed_qualities = quality_profile.allowed_qualities if quality_profile else []
 
         for ep in all_season_episodes:
-            file_on_disk = False
-            if ep.file_path:
-                try:
-                    import os
-                    file_on_disk = os.path.exists(ep.file_path)
-                except Exception:
-                    file_on_disk = False
-
-            if ep.status != EpisodeStatus.DOWNLOADED or not file_on_disk:
+            if ep.status != EpisodeStatus.DOWNLOADED:
                 target_episodes.append(ep)
             else:
                 current_q = (
