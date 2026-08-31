@@ -141,6 +141,17 @@ class TestParser(unittest.TestCase):
         self.assertEqual(r9.season, 2)
         self.assertEqual(r9.episodes, [])
 
+        # Discrete episode list after season:
+        r10 = parse_episode("Робоцып / Robot Chicken / 5 сезон / 0 , 10, 19 серия (19) (Крис МакКэй / Chris McKay) [2011, США, Мультсериал, комедия, пародия, кукольный, DVDRip] MVO")
+        self.assertEqual(r10.kind, ReleaseKind.EPISODE)
+        self.assertEqual(r10.season, 5)
+        self.assertEqual(r10.episodes, [0, 10, 19])
+
+        r11 = parse_episode("Show Title Season 2 / 01, 02, 05, 08")
+        self.assertEqual(r11.kind, ReleaseKind.EPISODE)
+        self.assertEqual(r11.season, 2)
+        self.assertEqual(r11.episodes, [1, 2, 5, 8])
+
     def test_hell_mode_season_2_episodes(self):
         for i in range(1, 8):
             fn = f"Hell_Mode_Yarikomizuki_no_Gamer_wa_Hai_Sette_2_[0{i}]_[HEVC].mkv"

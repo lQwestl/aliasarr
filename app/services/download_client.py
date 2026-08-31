@@ -553,6 +553,12 @@ class TransmissionClient(BaseDownloadClient):
             torrent_added = res.get("torrent-added") or res.get("torrent-duplicate") or {}
             hash_str = str(torrent_added.get("hashString", "")).strip().lower()
             if hash_str:
+                if res.get("torrent-duplicate"):
+                    try:
+                        await self._rpc_call("torrent-start", {"ids": [hash_str]})
+                        await self._rpc_call("torrent-verify", {"ids": [hash_str]})
+                    except Exception as e:
+                        logger.debug("Не удалось перезапустить duplicate torrent в Transmission: %s", e)
                 return hash_str
             if expected_hash:
                 return expected_hash

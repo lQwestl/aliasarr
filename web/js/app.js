@@ -7454,9 +7454,16 @@ function renderInteractiveReleaseRow(r) {
   const isMovie = INTERACTIVE_SEARCH_STATE.show?.content_type === "movie" || r.parsed_kind === "movie";
 
   // Серии релиза в компактном виде — только для сериалов и аниме
-  const seasonBadge = (!isMovie && r.parsed_season != null)
-    ? `<span class="badge badge-outline">S${String(r.parsed_season).padStart(2, "0")}</span>`
-    : "";
+  let seasonBadge = "";
+  if (!isMovie) {
+    if (r.parsed_seasons && r.parsed_seasons.length > 1) {
+      const minS = Math.min(...r.parsed_seasons);
+      const maxS = Math.max(...r.parsed_seasons);
+      seasonBadge = `<span class="badge badge-outline">S${String(minS).padStart(2, "0")}-S${String(maxS).padStart(2, "0")}</span>`;
+    } else if (r.parsed_season != null) {
+      seasonBadge = `<span class="badge badge-outline">S${String(r.parsed_season).padStart(2, "0")}</span>`;
+    }
+  }
   const episodesBadge = (!isMovie && r.parsed_episodes && r.parsed_episodes.length)
     ? `<span class="badge badge-outline" title="Серии: ${r.parsed_episodes.join(', ')}">${escapeHtml(formatEpisodeRange(r.parsed_episodes))}</span>`
     : "";

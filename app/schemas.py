@@ -213,6 +213,7 @@ class SearchResultOut(BaseModel):
     matched_alias: Optional[str] = None
     match_score: float = 0.0
     parsed_season: Optional[int] = None
+    parsed_seasons: list[int] = []
     parsed_episodes: list[int] = []
     parsed_kind: str = "unknown"
     # Расширенные метаданные в стиле Sonarr InteractiveSearch

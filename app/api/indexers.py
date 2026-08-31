@@ -459,6 +459,7 @@ async def search_releases_for_show(
                     matched_alias=match.alias_text,
                     match_score=match.score,
                     parsed_season=match.parsed.season,
+                    parsed_seasons=match.parsed.seasons or [],
                     parsed_episodes=match.parsed.episodes,
                     parsed_kind=match.parsed.kind.value,
                     quality=decision.quality.name,

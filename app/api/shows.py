@@ -982,13 +982,15 @@ async def search_selected_episodes(
 ):
     """Поиск и скачивание ТОЛЬКО выбранных пользователем серий (не всего сезона) —
     отмечаются флажками в карточке видео."""
-    from app.services.auto_search import search_and_grab_show
+    from app.services.auto_search import search_and_grab_show, clear_rejected_cache_for_show
 
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
     if not payload.episode_ids:
         raise HTTPException(400, "Не выбрано ни одной серии")
+
+    clear_rejected_cache_for_show(show_id)
 
     episodes = db.query(Episode).filter(Episode.id.in_(payload.episode_ids), Episode.show_id == show_id).all()
     if not episodes:
@@ -1046,11 +1048,13 @@ async def search_season_episodes(
     Автоматический поиск и скачивание ВСЕХ серий указанного сезона (Sonarr Season Search).
     Если находится полный пак или сезон-пак, загрузчик скачивает только серии этого сезона.
     """
-    from app.services.auto_search import search_and_grab_show
+    from app.services.auto_search import search_and_grab_show, clear_rejected_cache_for_show
 
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
+
+    clear_rejected_cache_for_show(show_id)
 
     season_episodes = (
         db.query(Episode)

@@ -106,6 +106,15 @@ _RE_PREFIX_SEASON = re.compile(
     re.IGNORECASE,
 )
 
+# Префиксные порядковые сезоны со списком серий: "5 сезон / 0, 10, 19 серия", "1-й сезон / 01, 03, 05 серии"
+_RE_PREFIX_SEASON_EP_LIST = re.compile(
+    r"(?:^|[\s_.\-\(\[/])(\d{1,2})[\s._–-]*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?[\s._–-]*" + _SEASON_WORD + _PART_WORD +
+    r"[\s._/–-]+"
+    r"((?:\d{1,4}\s*,\s*)+\d{1,4})\s*"
+    r"(?:[\s._/–-]*(?:эп(?:изод(?:ов|а)?)?|сери[йия]|eps?|episodes?|выпуск(?:ов|а)?))?",
+    re.IGNORECASE,
+)
+
 # Префиксные порядковые сезоны с диапазоном или одиночной серией:
 # "2nd Season - 01", "2nd Season [01-12]", "2-й сезон - 02", "1st Season 05", "1.sezon.06.seriya.iz.20", "1.sezon.14.seriya"
 _RE_PREFIX_SEASON_EP_RANGE = re.compile(
@@ -126,6 +135,13 @@ _RE_PREFIX_SEASON_EP_SINGLE = re.compile(
     r"(?:[\s._–-]*" + _EPISODE_WORD_RU + r")?"
     r"(?:[\s._–-]*(?:из|of|iz|\/|\|)[\s._–-]*\d+)?"
     r"(?:[\s._–-]*(?:эп(?:изод(?:ов|а)?)?|сери[йия]|eps?|episodes?|выпуск(?:ов|а)?))?",
+    re.IGNORECASE,
+)
+
+# S-dash / Season-dash со списком серий: "Сезон 5 / 0, 10, 19", "Season 2 - 01, 02, 05"
+_RE_S_DASH_EP_LIST = re.compile(
+    r"\b(?:S|Season|Сезон|Сез|sezon)\.?\s*(\d{1,2})" + _PART_WORD + r"\s*(?:[-–~_:/]|\s+)\s*\[?\s*((?:\d{1,4}\s*,\s*)+\d{1,4})\s*\]?"
+    r"(?:[\s._/–-]*(?:эп(?:изод(?:ов|а)?)?|сери[йия]|eps?|episodes?|выпуск(?:ов|а)?))?",
     re.IGNORECASE,
 )
 
@@ -483,7 +499,18 @@ def parse_episode(release_name: str) -> ParsedRelease:
             raw=raw, matched_pattern=f"season_{s_num}_special",
         )
 
-    # 1ж. Префиксные сезоны с сериями: "2nd Season - 01", "2nd Season [01-12]", "2-й сезон - 02", "1st Season 05"
+    # 1ж. Префиксные сезоны с сериями: "2nd Season - 01", "2nd Season [01-12]", "2-й сезон - 02", "1st Season 05", "5 сезон / 0, 10, 19 серия"
+    m_pref_list = _RE_PREFIX_SEASON_EP_LIST.search(protected)
+    if m_pref_list:
+        s = int(m_pref_list.group(1))
+        raw_eps = m_pref_list.group(2)
+        eps = [int(x.strip()) for x in raw_eps.split(',') if x.strip().isdigit()]
+        if eps:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=s, episodes=eps,
+                is_range=False, raw=raw, matched_pattern="prefix_season_ep_list",
+            )
+
     m_pref_range = _RE_PREFIX_SEASON_EP_RANGE.search(protected)
     if m_pref_range:
         s = int(m_pref_range.group(1))
@@ -502,6 +529,17 @@ def parse_episode(release_name: str) -> ParsedRelease:
         )
 
     # 1з. S-dash / Season-dash с сериями: "S2 - 01", "S02 - 02", "Season 2 - 01", "Сезон 2 - 02", "S2 [01-12]"
+    m_sd_list = _RE_S_DASH_EP_LIST.search(protected)
+    if m_sd_list:
+        s = int(m_sd_list.group(1))
+        raw_eps = m_sd_list.group(2)
+        eps = [int(x.strip()) for x in raw_eps.split(',') if x.strip().isdigit()]
+        if eps:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=s, episodes=eps,
+                is_range=False, raw=raw, matched_pattern="s_dash_ep_list",
+            )
+
     m_sd_range = _RE_S_DASH_EP_RANGE.search(protected)
     if m_sd_range:
         s = int(m_sd_range.group(1))
