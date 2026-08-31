@@ -472,6 +472,29 @@ class TestQualityAndMatcher(unittest.TestCase):
 
         db.close()
 
+    def test_is_non_video_release_manga_and_light_novels(self):
+        from app.services.matcher import is_non_video_release
+
+        non_video_titles = [
+            "TACHIBANA Pan, KATSURAI Yoshiaki - だから僕は、Hができない。/ Dakara Boku wa, H ga Dekinai. / Говорю же, я не извращенец! (комедия, мистика, романтика, этти) [тома 1-11] [2010, EPUB, JPN] [complete] [японский]",
+            "Dakara Boku wa, H ga Dekinai [Light Novel] [Vol 1-11]",
+            "Hell Mode [Manga] [Vols 01-08] [CBZ]",
+            "Sword Art Online [Ранобэ] [Тома 01-26] [FB2]",
+            "Berserk [Манга] [Тома 1-41] [PDF]",
+            "Attack on Titan [Artbook] [2018] [Scans]",
+        ]
+
+        for t in non_video_titles:
+            self.assertTrue(is_non_video_release(t), f"Релиз должен быть распознан как не-видео контент: {t}")
+
+        video_titles = [
+            "Говорю же, я не извращенец! | Dakara Boku wa, H ga Dekinai. | So, I Can't Play H! [TV + OVA] [1-12+1 из 12+1] [2012] [BDRip] [1080p]",
+            "Адский режим: Хардкорный геймер отправляется в другой мир на высоком уровне сложности 2 / E01-E09 Hell Mode [WEBRip 1080p][AVC][1-9] RUS",
+        ]
+
+        for t in video_titles:
+            self.assertFalse(is_non_video_release(t), f"Видео-релиз НЕ должен помечаться как не-видео: {t}")
+
 
 if __name__ == "__main__":
     unittest.main()

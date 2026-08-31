@@ -99,6 +99,12 @@ NON_VIDEO_KEYWORDS = re.compile(
     r"комикс(?:ы)?|comic(?!s? *tv)|"
     r"\bscans?\b|\bсканы\b|"
     r"\[flac\]|\[mp3\]|\[lossless\]|\bflac\s+pack\b|\bmp3\s+pack\b|"
+    r"\b(?:manga|манга|манхва|маньхуа|manhwa|manhua|webtoon|ранобэ|ranobe|light\s*novel|light\s*novels|ln|новелл[аы]|артбук[иа]?|artbooks?|e-?books?|audiobooks?|аудиокниг[иа]|журналы?)\b|"
+    r"\b(?:epub|fb2|mobi|azw3?|djvu|cbr|cbz)\b|"
+    r"\[(?:epub|fb2|pdf|djvu|cbr|cbz|mobi|azw3?|manga|манга|ранобэ|ln|light\s*novel|artbook|артбук|книга|книги|том(?:а|ов)?\s*[\d\s,–\-]+|vols?\.?\s*[\d\s,–\-]+)\]|"
+    r"\((?:epub|fb2|pdf|djvu|cbr|cbz|mobi|azw3?|manga|манга|ранобэ|ln|light\s*novel|artbook|артбук|книга|книги|том(?:а|ов)?\s*[\d\s,–\-]+|vols?\.?\s*[\d\s,–\-]+)\)|"
+    r"\bтом(?:а|ов)?\s*\d+\s*[-–~]\s*\d+\b|"
+    r"\bvols?\.?\s*\d+\s*[-–~]\s*\d+\b|"
     r"\.cbz\b|\.cbr\b|\.pdf\b|\.epub\b|\.fb2\b|\.djvu\b|"
     # Игры, консоли, платформы, ROM, образы дисков, репаки и софт:
     r"\b(?:nintendo(?:\s*(?:wii(?:\s*u)?|switch|nsw|3ds|nds|ds|gba|gbc|gamecube|ngc|n64|snes|nes|virtual\s*boy))?)\b|"

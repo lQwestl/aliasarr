@@ -71,6 +71,7 @@ def is_release_rejected_for_show(
     infohash: Optional[str] = None,
     guid: Optional[str] = None,
     download_url: Optional[str] = None,
+    title: Optional[str] = None,
 ) -> bool:
     if not show_id or show_id not in _SHOW_REJECTED_HASHES:
         return False
@@ -80,6 +81,8 @@ def is_release_rejected_for_show(
     if guid and str(guid).lower() in rejected:
         return True
     if download_url and str(download_url).lower() in rejected:
+        return True
+    if title and title.lower().strip() in rejected:
         return True
     return False
 
@@ -435,6 +438,9 @@ async def _limit_torrent_files_to_episodes(
         if show_id and target_db_ids:
             if torrent_hash:
                 add_rejected_release_for_show(show_id, torrent_hash)
+            t_name = getattr(torrent, "name", "")
+            if t_name:
+                add_rejected_release_for_show(show_id, t_name)
             try:
                 from app.database import SessionLocal
                 with SessionLocal() as s_db:
@@ -647,7 +653,13 @@ async def _collect_candidates(
             infohash = getattr(rel, "infohash", None)
             guid_str = str(rel.guid) if getattr(rel, "guid", None) else None
             dl_url = str(getattr(rel, "download_url", "")) if getattr(rel, "download_url", None) else None
-            if is_release_rejected_for_show(show.id, infohash=infohash, guid=guid_str, download_url=dl_url):
+            if is_release_rejected_for_show(
+                show.id,
+                infohash=infohash,
+                guid=guid_str,
+                download_url=dl_url,
+                title=getattr(rel, "title", None),
+            ):
                 continue
 
             match = match_release(
