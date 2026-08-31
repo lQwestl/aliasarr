@@ -5038,6 +5038,19 @@ async function searchPosterForShow(showId) {
   } catch (e) { toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true); }
 }
 
+function extractQualityFromPath(filePath) {
+  if (!filePath) return "";
+  const base = filePath.split(/[\\/]/).pop() || "";
+  const fullM = base.match(/\b(Bluray|BDRip|BRRip|Remux|WEBDL|WEB-DL|WEBRip|HDTV|DVDRip|SATRip|TVRip|SDTV)[-.\s_]*(2160p|1080p|720p|480p|576p)?\b/i);
+  if (fullM) {
+    const src = fullM[1].replace(/_/g, '-');
+    const res = fullM[2] ? `-${fullM[2]}` : '';
+    return `${src}${res}`;
+  }
+  const m = base.match(/\b(2160p|1080p|720p|480p|576p)\b/i);
+  return m ? m[1] : "";
+}
+
 function renderMovieBlock(show, ep, canManageLib = true) {
   const monitored = ep.monitored !== undefined ? Boolean(ep.monitored) : ep.status !== "ignored";
   const hasFile = Boolean(ep.has_file || ep.file_path);
@@ -5071,8 +5084,9 @@ function renderMovieBlock(show, ep, canManageLib = true) {
     statusHtml = `<span class="status-pill status-${ep.status}">${escapeHtml(episodeStatusLabel(ep.status))}</span>`;
   }
 
+  const qualityLabel = ep.downloaded_quality || extractQualityFromPath(ep.file_path) || t("show.on_disk");
   const hasFileBadge = hasFile
-    ? `<span class="badge-file-present" title="${ep.file_path ? t("show.present_on_disk") + ': ' + escapeHtml(ep.file_path) : t("show.present_on_disk")}"><i data-lucide="hard-drive"></i> ${ep.downloaded_quality ? escapeHtml(ep.downloaded_quality) : t("show.on_disk")}</span>`
+    ? `<span class="badge-file-present" title="${ep.file_path ? t("show.present_on_disk") + ': ' + escapeHtml(ep.file_path) : t("show.present_on_disk")}"><i data-lucide="hard-drive"></i> ${escapeHtml(qualityLabel)}</span>`
     : "";
   // MediaInfo бейджи
   let mediaInfoBadges = "";
@@ -5204,8 +5218,9 @@ function renderEpisodeRow(ep, canManageLib = true, show = null) {
     statusHtml = `<span class="status-pill status-${ep.status}">${escapeHtml(episodeStatusLabel(ep.status))}</span>`;
   }
 
+  const qualityLabel = ep.downloaded_quality || extractQualityFromPath(ep.file_path) || t("show.on_disk");
   const hasFileBadge = hasFile
-    ? `<span class="badge-file-present" title="${ep.file_path ? t("show.present_on_disk") + ': ' + escapeHtml(ep.file_path) : t("show.present_on_disk")}"><i data-lucide="hard-drive"></i> ${ep.downloaded_quality ? escapeHtml(ep.downloaded_quality) : t("show.on_disk")}</span>`
+    ? `<span class="badge-file-present" title="${ep.file_path ? t("show.present_on_disk") + ': ' + escapeHtml(ep.file_path) : t("show.present_on_disk")}"><i data-lucide="hard-drive"></i> ${escapeHtml(qualityLabel)}</span>`
     : "";
 
   // MediaInfo бейджи

@@ -256,6 +256,12 @@ def get_show(show_id: int, db: Session = Depends(get_db), current_user: User = D
                         ep.status = EpisodeStatus.DOWNLOADED
                         ep.download_progress = 1.0
                         needs_commit = True
+                    if not ep.downloaded_quality and ep.file_path:
+                        from app.services.quality import parse_quality
+                        q_parsed = parse_quality(os.path.basename(ep.file_path))
+                        if q_parsed and q_parsed.name:
+                            ep.downloaded_quality = q_parsed.name
+                            needs_commit = True
                 else:
                     # Файл был удален с диска пользователем: сбрасываем путь, качество, MediaInfo и статус
                     ep.file_path = None
@@ -711,6 +717,13 @@ def list_episodes(show_id: int, db: Session = Depends(get_db), current_user: Use
             if ep.status == EpisodeStatus.DOWNLOADED:
                 ep.status = target_default_status
             needs_commit = True
+        elif getattr(ep, "file_path", None) and has_real_file:
+            if not ep.downloaded_quality:
+                from app.services.quality import parse_quality
+                q_parsed = parse_quality(os.path.basename(ep.file_path))
+                if q_parsed and q_parsed.name:
+                    ep.downloaded_quality = q_parsed.name
+                    needs_commit = True
         elif not getattr(ep, "file_path", None):
             if getattr(ep, "downloaded_quality", None) is not None or getattr(ep, "video_codec", None) is not None:
                 ep.downloaded_quality = None

@@ -942,13 +942,24 @@ def process_download(
             dl_eps = []
 
     context_hints = [os.path.basename(download_path), show.title]
-    if db:
+    if db and torrent_hash:
         try:
-            from app.models.db import DownloadHistory
-            if torrent_hash:
-                hist = db.query(DownloadHistory).filter_by(show_id=show.id).order_by(DownloadHistory.id.desc()).first()
-                if hist and hist.release_title:
-                    context_hints.append(hist.release_title)
+            from app.models.db import DownloadHistory, TrackedRelease
+            tr = db.query(TrackedRelease).filter_by(infohash=torrent_hash).first()
+            if tr and getattr(tr, "topic_guid", None) and not str(tr.topic_guid).startswith("http"):
+                context_hints.append(tr.topic_guid)
+            hist = (
+                db.query(DownloadHistory)
+                .filter(DownloadHistory.show_id == show.id)
+                .filter(DownloadHistory.event_type.in_(["grabbed", "imported"]))
+                .order_by(DownloadHistory.id.desc())
+                .all()
+            )
+            for h in hist:
+                if h.matched_alias and torrent_hash.lower() in str(h.matched_alias).lower():
+                    if h.release_title:
+                        context_hints.append(h.release_title)
+                        break
         except Exception:
             pass
 

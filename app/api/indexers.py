@@ -538,11 +538,38 @@ async def grab_release(
         if ep:
             target_episodes.append(ep)
     elif payload.season is not None:
-        target_episodes = (
+        all_season_episodes = (
             db.query(Episode)
             .filter(Episode.show_id == show.id, Episode.season_number == payload.season)
             .all()
         )
+        from app.services.quality import parse_quality, is_upgrade
+        rel_quality = parse_quality(payload.release_title) if payload.release_title else parse_quality("")
+        quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
+        allowed_qualities = quality_profile.allowed_qualities if quality_profile else []
+
+        for ep in all_season_episodes:
+            file_on_disk = False
+            if ep.file_path:
+                try:
+                    import os
+                    file_on_disk = os.path.exists(ep.file_path)
+                except Exception:
+                    file_on_disk = False
+
+            if ep.status != EpisodeStatus.DOWNLOADED or not file_on_disk:
+                target_episodes.append(ep)
+            else:
+                current_q = (
+                    parse_quality(ep.downloaded_quality)
+                    if ep.downloaded_quality
+                    else (parse_quality(os.path.basename(ep.file_path)) if ep.file_path else parse_quality("SDTV"))
+                )
+                if is_upgrade(current_q, rel_quality, allowed_qualities):
+                    target_episodes.append(ep)
+
+        if not target_episodes:
+            target_episodes = all_season_episodes
 
     for ep in target_episodes:
         ep.status = EpisodeStatus.DOWNLOADING
@@ -576,19 +603,23 @@ async def grab_release(
                     torrent_hash,
                     target_eps_data,
                     None,
-                    None,
-                    show.content_type,
+                    explicit_episode_ids={ep.id for ep in target_episodes},
+                    content_type=show.content_type,
                 )
             except Exception as exc:
-                logger.warning("Не удалось запланировать ограничение файлов торрента: %s", exc)
+                logger.warning("Не удалось запланировать ограничение файлов раздачи: %s", exc)
 
-    db.add(DownloadHistory(
-        show_id=payload.show_id, episode_id=payload.episode_id or (target_episodes[0].id if target_episodes else None),
-        release_title=payload.release_title,
-        indexer_id=payload.indexer_id, event_type="grabbed",
-        matched_alias=payload.matched_alias, show_title_snapshot=show.title,
-    ))
-    db.commit()
+    if target_episodes:
+        db.add(DownloadHistory(
+            show_id=payload.show_id,
+            episode_id=payload.episode_id or target_episodes[0].id,
+            release_title=payload.release_title,
+            indexer_id=payload.indexer_id,
+            event_type="grabbed",
+            matched_alias=torrent_hash or payload.matched_alias,
+            show_title_snapshot=show.title,
+        ))
+        db.commit()
 
     title_linked = f'<a href="{payload.page_url}">«{show.title}»</a>' if payload.page_url else f"«{show.title}»"
     await notify_all(db, "grab", f"Захвачен релиз для {title_linked}: {payload.release_title}")
