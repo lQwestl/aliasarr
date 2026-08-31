@@ -10,7 +10,16 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.db import DownloadClient, DownloadHistory, Episode, EpisodeStatus, Indexer, Show, User
+from app.models.db import (
+    DownloadClient,
+    DownloadHistory,
+    Episode,
+    EpisodeStatus,
+    Indexer,
+    QualityProfile,
+    Show,
+    User,
+)
 from app.schemas import IndexerCreate, IndexerOut, SearchResultOut
 from app.services.download_client import get_client
 from app.services.indexer_service import get_indexer_client
