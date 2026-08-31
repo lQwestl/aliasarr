@@ -348,6 +348,60 @@ class TestParser(unittest.TestCase):
         self.assertEqual(r8.seasons, [1, 2, 3, 4])
 
 
+    def test_numbered_specials_and_ovas(self):
+        # 1. Leading number with special in name
+        r1 = parse_episode("13 Robot Chicken's ATM Christmas Special.mkv")
+        self.assertEqual(r1.kind, ReleaseKind.EPISODE)
+        self.assertEqual(r1.episodes, [13])
+
+        r2 = parse_episode("00 Born Again Virgin Christmas Special.mkv")
+        self.assertEqual(r2.kind, ReleaseKind.EPISODE)
+        self.assertEqual(r2.episodes, [0])
+
+        r3 = parse_episode("20 The Robot Chicken Lots of Holidays Special.mkv")
+        self.assertEqual(r3.kind, ReleaseKind.EPISODE)
+        self.assertEqual(r3.episodes, [20])
+
+        r4 = parse_episode("16 Bitch Pudding Special.mkv")
+        self.assertEqual(r4.kind, ReleaseKind.EPISODE)
+        self.assertEqual(r4.episodes, [16])
+
+        r5 = parse_episode("07 The Robot Chicken Christmas Special X-Mas United.mkv")
+        self.assertEqual(r5.kind, ReleaseKind.EPISODE)
+        self.assertEqual(r5.episodes, [7])
+
+        # 2. Season episode with special in title
+        r6 = parse_episode("Robot.Chicken.S11E00.The.Bleepin.Robot.Chicken.Archie.Comics.Special.mkv")
+        self.assertEqual(r6.kind, ReleaseKind.EPISODE)
+        self.assertEqual(r6.season, 11)
+        self.assertEqual(r6.episodes, [0])
+
+        r7 = parse_episode("Robot.Chicken.S11E21.Self-Discovery.Special.mkv")
+        self.assertEqual(r7.kind, ReleaseKind.EPISODE)
+        self.assertEqual(r7.season, 11)
+        self.assertEqual(r7.episodes, [21])
+
+        # 3. Whole OVA packs without episode numbers
+        r8 = parse_episode("Attack on Titan OVA")
+        self.assertEqual(r8.kind, ReleaseKind.SEASON_PACK)
+        self.assertEqual(r8.season, 0)
+        self.assertEqual(r8.episodes, [])
+
+        r9 = parse_episode("Tensei Shitara Slime Datta Ken OAD [BDRip 1920x1080 HEVC FLAC]_rev")
+        self.assertEqual(r9.kind, ReleaseKind.SEASON_PACK)
+        self.assertEqual(r9.season, 0)
+        self.assertEqual(r9.episodes, [])
+
+        # 4. Numbered OVA/SP files
+        r10 = parse_episode("Frieren Special 02.mkv")
+        self.assertEqual(r10.kind, ReleaseKind.EPISODE)
+        self.assertEqual(r10.episodes, [2])
+
+        r11 = parse_episode("KonoSuba OVA 1.mkv")
+        self.assertEqual(r11.kind, ReleaseKind.EPISODE)
+        self.assertEqual(r11.episodes, [1])
+
+
 if __name__ == "__main__":
     unittest.main()
 

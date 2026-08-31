@@ -629,8 +629,43 @@ def parse_episode(release_name: str) -> ParsedRelease:
         if not re.search(r"E\.?\d", protected[m.end():m.end() + 6], re.IGNORECASE):
             return _season_pack_result(s_num, raw, "season_pack:Sxx")
 
-    # OVA/ONA/спешл без номера серии — весь блок спешлов целиком (сезон 0)
+    # OVA/ONA/спешл без номера серии — весь блок спешлов целиком (сезон 0).
+    # Если в названии присутствует номер серии (например, "13 Robot Chicken ATM Christmas Special.mkv" или "OVA 02"),
+    # определяем его как отдельную серию, а не пустой сезон-пак без номеров серий.
     if _RE_OVA_ONA_PACK.search(protected):
+        m_lead = re.match(r"^(?:\[[^\s\]]+\][\s._-]*)?(\d{1,3})(?:[\s._-]+|\b)", name)
+        if m_lead:
+            ep_num = int(m_lead.group(1))
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=None, episodes=[ep_num],
+                raw=raw, matched_pattern="leading_num_special",
+            )
+        embedded_eps = _extract_embedded_episodes(protected)
+        if embedded_eps:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=0, episodes=embedded_eps,
+                is_range=len(embedded_eps) > 1, raw=raw, matched_pattern="ova_embedded_eps",
+            )
+        m_e = _RE_E_ONLY.search(protected)
+        if m_e:
+            start = int(m_e.group(1))
+            eps = list(range(start, int(m_e.group(2)) + 1)) if m_e.group(2) else [start]
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=0, episodes=eps,
+                is_range=len(eps) > 1, raw=raw, matched_pattern="ova_e_only",
+            )
+        m_dash = _RE_DASH_ABSOLUTE.search(protected)
+        if m_dash:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=0, episodes=[int(m_dash.group(1))],
+                raw=raw, matched_pattern="ova_dash_ep",
+            )
+        m_lone = _RE_LONE_NUMBER.search(protected)
+        if m_lone:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=0, episodes=[int(m_lone.group(1))],
+                raw=raw, matched_pattern="ova_lone_num",
+            )
         return _season_pack_result(0, raw, "season_pack:ova_ona")
 
     # "Complete" — сезон-пак, но только если нет явного диапазона серий рядом
