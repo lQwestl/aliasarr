@@ -17,6 +17,21 @@ class FakeClient:
     async def list_torrents(self):
         return self._torrents
 
+    async def get_torrent(self, h):
+        for t in self._torrents:
+            if t.hash == h:
+                return t
+        return None
+
+    async def recheck_torrent(self, h):
+        pass
+
+    async def resume_torrent(self, h):
+        pass
+
+    async def pause_torrent(self, h):
+        pass
+
 
 class TestDownloadsMonitor(unittest.TestCase):
     def test_folder_and_template(self):
@@ -81,75 +96,96 @@ class TestDownloadsMonitor(unittest.TestCase):
             self.assertEqual(results, [])
 
     def test_completed_torrent_triggers_postprocess_once_for_season_pack(self):
-        show = SimpleNamespace(id=1, title="Test Show", content_type="series", monitored=True, path="/media/series/Test Show")
-        dc = SimpleNamespace(id=10, name="DC1", type="qbittorrent", enabled=True)
-        ep1 = SimpleNamespace(
-            id=101, show_id=1, season_number=1, episode_number=1,
-            status="downloading", torrent_hash="hash-pack",
-            download_client_id=10, download_progress=0.0,
-        )
-        ep2 = SimpleNamespace(
-            id=102, show_id=1, season_number=1, episode_number=2,
-            status="downloading", torrent_hash="hash-pack",
-            download_client_id=10, download_progress=0.0,
-        )
+        import tempfile
+        import shutil
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            pack_dir = os.path.join(tmp_dir, "Season Pack")
+            os.makedirs(pack_dir, exist_ok=True)
+            with open(os.path.join(pack_dir, "S01E01.mkv"), "wb") as f:
+                f.write(b"dummy video data")
 
-        db_mock = MagicMock()
-        db_mock.query.return_value.filter.return_value.all.side_effect = [
-            [ep1, ep2],   # downloading episodes
-            [dc],         # active clients
-        ]
-        db_mock.get.return_value = show
+            show = SimpleNamespace(id=1, title="Test Show", content_type="series", monitored=True, path="/media/series/Test Show")
+            dc = SimpleNamespace(id=10, name="DC1", type="qbittorrent", enabled=True)
+            ep1 = SimpleNamespace(
+                id=101, show_id=1, season_number=1, episode_number=1,
+                status="downloading", torrent_hash="hash-pack",
+                download_client_id=10, download_progress=0.0,
+            )
+            ep2 = SimpleNamespace(
+                id=102, show_id=1, season_number=1, episode_number=2,
+                status="downloading", torrent_hash="hash-pack",
+                download_client_id=10, download_progress=0.0,
+            )
 
-        torrent = TorrentInfo(hash="hash-pack", name="Season Pack", progress=1.0, state="seeding", save_path="/tmp/pack", size=1000)
-        settings = SimpleNamespace(root_folder="", root_folder_series="/media/series", rename_template_series="{Series Title}", season_folder_template_series="Season {season}")
+            db_mock = MagicMock()
+            db_mock.query.return_value.filter.return_value.all.side_effect = [
+                [ep1, ep2],   # downloading episodes
+                [dc],         # active clients
+            ]
+            db_mock.get.return_value = show
 
-        postprocess_called = []
-        def fake_postprocess(show_id, dl_path, tpl, root, s_tpl, is_movie, specific_files=None, torrent_hash=None, task_id=None):
-            postprocess_called.append((show_id, dl_path, is_movie, specific_files, torrent_hash))
-            return [{"file": "a.mkv", "status": "imported", "dest": "/media/series/Test Show/Season 1/S01E01.mkv"}]
+            torrent = TorrentInfo(hash="hash-pack", name="Season Pack", progress=1.0, state="seeding", save_path=tmp_dir, size=1000)
+            settings = SimpleNamespace(root_folder="", root_folder_series="/media/series", rename_template_series="{Series Title}", season_folder_template_series="Season {season}", download_folder_series=tmp_dir)
 
-        with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
-             patch("app.services.downloads_monitor.get_client", return_value=FakeClient([torrent])), \
-             patch("app.services.downloads_monitor._run_postprocess_in_thread", side_effect=fake_postprocess):
-            results = asyncio.run(check_downloads(db_mock))
-            self.assertEqual(len(postprocess_called), 1)
-            self.assertEqual(postprocess_called[0][0], 1)
-            self.assertFalse(postprocess_called[0][2])  # is_movie is False
-            self.assertEqual(len(results), 1)
-            self.assertEqual(results[0]["torrent_hash"], "hash-pack")
+            postprocess_called = []
+            def fake_postprocess(show_id, dl_path, tpl, root, s_tpl, is_movie, specific_files=None, torrent_hash=None, task_id=None):
+                postprocess_called.append((show_id, dl_path, is_movie, specific_files, torrent_hash))
+                return [{"file": "a.mkv", "status": "imported", "dest": "/media/series/Test Show/Season 1/S01E01.mkv"}]
+
+            with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+                 patch("app.services.downloads_monitor.get_client", return_value=FakeClient([torrent])), \
+                 patch("app.services.downloads_monitor._run_postprocess_in_thread", side_effect=fake_postprocess):
+                results = asyncio.run(check_downloads(db_mock))
+                self.assertEqual(len(postprocess_called), 1)
+                self.assertEqual(postprocess_called[0][0], 1)
+                self.assertFalse(postprocess_called[0][2])  # is_movie is False
+                self.assertEqual(len(results), 1)
+                self.assertEqual(results[0]["torrent_hash"], "hash-pack")
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
     def test_movie_content_type_triggers_movie_postprocess(self):
-        show = SimpleNamespace(id=2, title="Test Movie", content_type="movie", monitored=True, path="/media/movies/Test Movie")
-        dc = SimpleNamespace(id=10, name="DC1", type="qbittorrent", enabled=True)
-        ep = SimpleNamespace(
-            id=201, show_id=2, season_number=1, episode_number=1,
-            status="downloading", torrent_hash="hash-movie",
-            download_client_id=10, download_progress=0.0,
-        )
+        import tempfile
+        import shutil
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            m_file = os.path.join(tmp_dir, "Movie 2024.mkv")
+            with open(m_file, "wb") as f:
+                f.write(b"dummy movie data")
 
-        db_mock = MagicMock()
-        db_mock.query.return_value.filter.return_value.all.side_effect = [
-            [ep],   # downloading episodes
-            [dc],   # active clients
-        ]
-        db_mock.get.return_value = show
+            show = SimpleNamespace(id=2, title="Test Movie", content_type="movie", monitored=True, path="/media/movies/Test Movie")
+            dc = SimpleNamespace(id=10, name="DC1", type="qbittorrent", enabled=True)
+            ep = SimpleNamespace(
+                id=201, show_id=2, season_number=1, episode_number=1,
+                status="downloading", torrent_hash="hash-movie",
+                download_client_id=10, download_progress=0.0,
+            )
 
-        torrent = TorrentInfo(hash="hash-movie", name="Movie 2024", progress=1.0, state="seeding", save_path="/tmp/movie", size=5000)
-        settings = SimpleNamespace(root_folder="", root_folder_movies="/media/movies", rename_template_movie="{Movie Title}")
+            db_mock = MagicMock()
+            db_mock.query.return_value.filter.return_value.all.side_effect = [
+                [ep],   # downloading episodes
+                [dc],   # active clients
+            ]
+            db_mock.get.return_value = show
 
-        postprocess_called = []
-        def fake_postprocess(show_id, dl_path, tpl, root, s_tpl, is_movie, specific_files=None, torrent_hash=None, task_id=None):
-            postprocess_called.append((show_id, dl_path, is_movie, specific_files, torrent_hash))
-            return [{"file": "movie.mkv", "status": "imported", "dest": "/media/movies/Test Movie/Test Movie (2024).mkv"}]
+            torrent = TorrentInfo(hash="hash-movie", name="Movie 2024.mkv", progress=1.0, state="seeding", save_path=tmp_dir, size=5000)
+            settings = SimpleNamespace(root_folder="", root_folder_movies="/media/movies", rename_template_movie="{Movie Title}", download_folder_movies=tmp_dir)
 
-        with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
-             patch("app.services.downloads_monitor.get_client", return_value=FakeClient([torrent])), \
-             patch("app.services.downloads_monitor._run_postprocess_in_thread", side_effect=fake_postprocess):
-            results = asyncio.run(check_downloads(db_mock))
-            self.assertEqual(len(postprocess_called), 1)
-            self.assertTrue(postprocess_called[0][2])  # is_movie is True
-            self.assertEqual(len(results), 1)
+            postprocess_called = []
+            def fake_postprocess(show_id, dl_path, tpl, root, s_tpl, is_movie, specific_files=None, torrent_hash=None, task_id=None):
+                postprocess_called.append((show_id, dl_path, is_movie, specific_files, torrent_hash))
+                return [{"file": "movie.mkv", "status": "imported", "dest": "/media/movies/Test Movie/Test Movie (2024).mkv"}]
+
+            with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+                 patch("app.services.downloads_monitor.get_client", return_value=FakeClient([torrent])), \
+                 patch("app.services.downloads_monitor._run_postprocess_in_thread", side_effect=fake_postprocess):
+                results = asyncio.run(check_downloads(db_mock))
+                self.assertEqual(len(postprocess_called), 1)
+                self.assertTrue(postprocess_called[0][2])  # is_movie is True
+                self.assertEqual(len(results), 1)
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
     def test_torrent_file_isolation_guarantee(self):
         import tempfile
@@ -257,34 +293,44 @@ class TestDownloadsMonitor(unittest.TestCase):
             fake_client.pause_torrent.assert_not_called()
 
         # 2. Seeding time reached (70 minutes >= 60 minutes)
-        t_seeding_done = TorrentInfo(
-            hash="hash1",
-            name="Test.Show.S01E01.mkv",
-            progress=1.0,
-            state="seeding",
-            save_path="/downloads",
-            size=1000,
-            seeding_time=4200,  # 70 min
-            ratio=1.2,
-        )
-        fake_client2 = FakeClient([t_seeding_done])
-        fake_client2.pause_torrent = AsyncMock()
-        fake_client2.get_torrent = AsyncMock(return_value=t_seeding_done)
+        import tempfile
+        import shutil
+        tmp_seeding = tempfile.mkdtemp()
+        try:
+            fake_f = os.path.join(tmp_seeding, "Test.Show.S01E01.mkv")
+            with open(fake_f, "wb") as f:
+                f.write(b"dummy episode video")
 
-        db2 = make_db()
-        with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
-             patch("app.services.downloads_monitor.get_client", return_value=fake_client2), \
-             patch("app.services.downloads_monitor._folder_and_template", return_value=("/media/series", "{Series Title}", "Season {season}")), \
-             patch("app.services.downloads_monitor._resolve_torrent_files_and_path", return_value=("/downloads/Test.Show.S01E01.mkv", ["/downloads/Test.Show.S01E01.mkv"])), \
-             patch("app.services.downloads_monitor._run_postprocess_in_thread", return_value=[{"status": "imported", "dest": "/media/series/Test Show/Test Show.mkv"}]) as mock_postprocess2:
-            
-            loop = asyncio.new_event_loop()
-            results2 = loop.run_until_complete(check_downloads(db2))
-            loop.close()
+            t_seeding_done = TorrentInfo(
+                hash="hash1",
+                name="Test.Show.S01E01.mkv",
+                progress=1.0,
+                state="seeding",
+                save_path=tmp_seeding,
+                size=1000,
+                seeding_time=4200,  # 70 min
+                ratio=1.2,
+            )
+            fake_client2 = FakeClient([t_seeding_done])
+            fake_client2.pause_torrent = AsyncMock()
+            fake_client2.get_torrent = AsyncMock(return_value=t_seeding_done)
 
-            # Torrent should be paused and imported
-            fake_client2.pause_torrent.assert_called_once_with("hash1")
-            self.assertEqual(len(results2), 1)
+            db2 = make_db()
+            with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+                 patch("app.services.downloads_monitor.get_client", return_value=fake_client2), \
+                 patch("app.services.downloads_monitor._folder_and_template", return_value=("/media/series", "{Series Title}", "Season {season}")), \
+                 patch("app.services.downloads_monitor._resolve_torrent_files_and_path", return_value=(fake_f, [fake_f])), \
+                 patch("app.services.downloads_monitor._run_postprocess_in_thread", return_value=[{"status": "imported", "dest": "/media/series/Test Show/Test Show.mkv"}]) as mock_postprocess2:
+                
+                loop = asyncio.new_event_loop()
+                results2 = loop.run_until_complete(check_downloads(db2))
+                loop.close()
+
+                # Torrent should be paused and imported
+                fake_client2.pause_torrent.assert_called_once_with("hash1")
+                self.assertEqual(len(results2), 1)
+        finally:
+            shutil.rmtree(tmp_seeding, ignore_errors=True)
 
     def test_premature_import_prevented_at_99_97_percent(self):
         """Проверяет, что при 99.97% прогресса в состоянии downloading импорт НЕ запускается."""
@@ -368,6 +414,59 @@ class TestDownloadsMonitor(unittest.TestCase):
             self.assertEqual(ep_future.status, "unaired")
             self.assertEqual(ep_future.download_progress, 0.0)
             self.assertIsNone(ep_future.torrent_hash)
+
+    def test_completed_torrent_with_missing_files_triggers_recheck_and_skips_import(self):
+        """Проверяет, что если торрент числится 100% / seeding, но файлы физически отсутствуют на диске,
+        запускается recheck_torrent, сбрасывается прогресс серий и импорт не выполняется."""
+        show = SimpleNamespace(id=1, title="Mushoku Tensei", content_type="anime", monitored=True, path="/media/anime/Mushoku Tensei")
+        dc = SimpleNamespace(id=10, name="Transmission", type="transmission", enabled=True)
+        ep = SimpleNamespace(
+            id=101, show_id=1, season_number=3, episode_number=10,
+            status="downloading", torrent_hash="hash-mt3",
+            download_client_id=10, download_progress=1.0,
+        )
+
+        db_mock = MagicMock()
+        db_mock.query.return_value.filter.return_value.all.side_effect = [
+            [ep],   # downloading episodes
+            [dc],   # active clients
+        ]
+        db_mock.get.return_value = show
+
+        torrent = TorrentInfo(
+            hash="hash-mt3",
+            name="Mushoku Tensei III [WEBRip]",
+            progress=1.0,
+            state="seeding",
+            save_path="/downloads/anime/nonexistent_folder_xyz",
+            size=1800000000,
+        )
+        settings = SimpleNamespace(
+            root_folder="", root_folder_anime="/media/anime",
+            rename_template_anime="{Series Title} - S{season:00}E{episode:00} - {Episode Title}",
+            season_folder_template_anime="Сезон {season}",
+            download_folder_anime="/downloads/anime",
+        )
+
+        client_mock = AsyncMock()
+        client_mock.list_torrents.return_value = [torrent]
+        client_mock.get_torrent.return_value = torrent
+        client_mock.recheck_torrent = AsyncMock()
+        client_mock.resume_torrent = AsyncMock()
+
+        with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+             patch("app.services.downloads_monitor.get_client", return_value=client_mock), \
+             patch("app.services.downloads_monitor._run_postprocess_in_thread") as mock_postprocess:
+            results = asyncio.run(check_downloads(db_mock))
+
+            # Проверяем, что recheck был вызван
+            client_mock.recheck_torrent.assert_called_once_with("hash-mt3")
+            client_mock.resume_torrent.assert_called_once_with("hash-mt3")
+            # Прогресс сброшен на 0.0
+            self.assertEqual(ep.download_progress, 0.0)
+            # Постпроцесс не запускался
+            self.assertFalse(mock_postprocess.called)
+            self.assertEqual(results, [])
 
 
 if __name__ == "__main__":

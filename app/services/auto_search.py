@@ -221,6 +221,10 @@ async def _ensure_movie_files_wanted(dl_client, torrent_hash: str) -> None:
                 if not wanted_indices:
                     wanted_indices = [f.index for f in torrent.files]
                 await dl_client.set_file_priorities(torrent_hash, wanted_indices, 1)
+                try:
+                    await dl_client.recheck_torrent(torrent_hash)
+                except Exception:
+                    pass
                 await dl_client.resume_torrent(torrent_hash)
                 logger.info("Для фильма в торренте %s успешно включены все файлы (%d шт) и возобновлено скачивание", torrent_hash, len(wanted_indices))
                 return
@@ -309,9 +313,13 @@ async def _limit_torrent_files_to_episodes(
             torrent_hash, len(wanted_indices), len(torrent.files), len(unwanted_indices),
         )
         try:
+            # Запускаем проверку целостности (verify / recheck) и возобновляем раздачу,
+            # чтобы клиент обнаружил отсутствие файлов на диске (если они ранее перемещались/удалялись)
+            # и скачал их заново.
+            await dl_client.recheck_torrent(torrent_hash)
             await dl_client.resume_torrent(torrent_hash)
         except Exception as exc:
-            logger.warning("Не удалось возобновить раздачу %s: %s", torrent_hash, exc)
+            logger.warning("Не удалось запустить проверку/возобновить раздачу %s: %s", torrent_hash, exc)
 
         logger.info(
             "Раздача %s: скачивание ограничено выбранными сериями (%d шт), отключено файлов: %d, включено: %d",

@@ -88,6 +88,10 @@ class BaseDownloadClient:
     async def resume_torrent(self, torrent_hash: str) -> None:
         raise NotImplementedError
 
+    async def recheck_torrent(self, torrent_hash: str) -> None:
+        """Принудительно запускает перепроверку целостности и наличия файлов торрента (hash check / verify)."""
+        pass
+
 
 def _normalize_client_url(host: str, port: int, default_port: int = 8080) -> str:
     host_str = (host or "localhost").strip()
@@ -479,6 +483,19 @@ class QBittorrentClient(BaseDownloadClient):
         except Exception as exc:
             logger.warning("Ошибка resume_torrent в qBittorrent: %s", exc)
 
+    async def recheck_torrent(self, torrent_hash: str) -> None:
+        try:
+            async with httpx.AsyncClient(timeout=8.0, cookies=self._cookies) as client:
+                await self._ensure_auth(client)
+                await client.post(f"{self._base_url}/api/v2/torrents/recheck", data={"hashes": torrent_hash}, cookies=self._cookies, timeout=8.0)
+        except Exception as exc:
+            logger.warning("Ошибка recheck_torrent в qBittorrent (%s): %s", torrent_hash, exc)
+            if self._sync_client:
+                try:
+                    await asyncio.to_thread(self._sync_client.torrents_recheck, torrent_hashes=torrent_hash)
+                except Exception:
+                    pass
+
 
 class TransmissionClient(BaseDownloadClient):
     """Асинхронный клиент Transmission RPC через httpx с поддержкой transmission_rpc."""
@@ -772,6 +789,17 @@ class TransmissionClient(BaseDownloadClient):
         except Exception as exc:
             logger.warning("Ошибка resume_torrent в Transmission: %s", exc)
 
+    async def recheck_torrent(self, torrent_hash: str) -> None:
+        try:
+            await self._rpc_call("torrent-verify", {"ids": [torrent_hash]})
+        except Exception as exc:
+            logger.warning("Ошибка recheck_torrent в Transmission (%s): %s", torrent_hash, exc)
+            if self._sync_client:
+                try:
+                    await asyncio.to_thread(self._sync_client.verify_torrent, torrent_hash)
+                except Exception:
+                    pass
+
 
 class DelugeClient(BaseDownloadClient):
     """Асинхронный клиент Deluge Web JSON-RPC."""
@@ -893,6 +921,13 @@ class DelugeClient(BaseDownloadClient):
         await self._auth()
         await self._rpc_call("core.resume_torrent", [[torrent_hash]])
 
+    async def recheck_torrent(self, torrent_hash: str) -> None:
+        try:
+            await self._auth()
+            await self._rpc_call("core.force_recheck", [[torrent_hash]])
+        except Exception as exc:
+            logger.warning("Ошибка recheck_torrent в Deluge: %s", exc)
+
 
 class RTorrentClient(BaseDownloadClient):
     """Асинхронный клиент rTorrent XML-RPC."""
@@ -985,6 +1020,12 @@ class RTorrentClient(BaseDownloadClient):
 
     async def resume_torrent(self, torrent_hash: str) -> None:
         await self._call("d.start", torrent_hash)
+
+    async def recheck_torrent(self, torrent_hash: str) -> None:
+        try:
+            await self._call("d.check_hash", torrent_hash)
+        except Exception as exc:
+            logger.warning("Ошибка recheck_torrent в rTorrent: %s", exc)
 
 
 class Aria2Client(BaseDownloadClient):

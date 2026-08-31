@@ -433,6 +433,51 @@ async def check_downloads(db: Session) -> list[dict]:
                 db.commit()
             continue
 
+        # Запрашиваем полные метаданные и список файлов торрента из клиента
+        full_torrent = None
+        client = None
+        try:
+            client = get_client(dc_row)
+            full_torrent = await client.get_torrent(torrent_hash)
+        except Exception as exc:
+            logger.debug("Не удалось получить детальные файлы торрента %s: %s", torrent_hash, exc)
+
+        torrent_obj = full_torrent or t
+        download_path, specific_files = _resolve_torrent_files_and_path(torrent_obj, settings, show)
+
+        # Проверяем реальное наличие файлов на диске перед запуском импорта
+        has_actual_files = False
+        if specific_files:
+            has_actual_files = any(os.path.exists(f) and (os.path.isdir(f) or os.path.getsize(f) > 0) for f in specific_files)
+        elif download_path and os.path.exists(download_path):
+            if os.path.isfile(download_path):
+                has_actual_files = os.path.getsize(download_path) > 0
+            elif os.path.isdir(download_path):
+                from app.services.postprocess import find_release_files
+                rf = find_release_files(download_path)
+                has_actual_files = bool(rf.get("video"))
+
+        if not has_actual_files:
+            logger.info(
+                "Торрент %s («%s») завершён в клиенте (100%%), но целевые файлы отсутствуют на диске (%s). "
+                "Запускаем принудительную перепроверку целостности (recheck) и возобновляем загрузку.",
+                torrent_hash, show.title, download_path,
+            )
+            if client:
+                try:
+                    await client.recheck_torrent(torrent_hash)
+                    await client.resume_torrent(torrent_hash)
+                except Exception as exc:
+                    logger.warning("Не удалось запустить recheck для торрента %s: %s", torrent_hash, exc)
+
+            # Сбрасываем прогресс серий, чтобы в интерфейсе не висело 100%
+            for ep in eps:
+                if ep.status == EpisodeStatus.DOWNLOADING and (ep.download_progress or 0) >= 0.99:
+                    ep.download_progress = 0.0
+                    db.add(ep)
+            db.commit()
+            continue
+
         root_folder, template, season_template = _folder_and_template(settings, show.content_type)
         from app.services.task_manager import task_manager
         async with task_manager.track(
@@ -443,17 +488,6 @@ async def check_downloads(db: Session) -> list[dict]:
             progress=0.01,
         ) as t_task:
             try:
-                # Запрашиваем полные метаданные и список файлов торрента из клиента
-                full_torrent = None
-                try:
-                    client = get_client(dc_row)
-                    full_torrent = await client.get_torrent(torrent_hash)
-                except Exception as exc:
-                    logger.debug("Не удалось получить детальные файлы торрента %s: %s", torrent_hash, exc)
-
-                torrent_obj = full_torrent or t
-                download_path, specific_files = _resolve_torrent_files_and_path(torrent_obj, settings, show)
-
                 logger.info(
                     "Запуск переноса завершённого торрента %s («%s») по пути: %s (файлов: %d)",
                     torrent_hash, show.title, download_path, len(specific_files),
