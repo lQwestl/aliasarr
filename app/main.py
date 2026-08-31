@@ -48,6 +48,11 @@ from app.services.user_service import ensure_master_admin, get_current_user_opti
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("aliasarr.main")
 
+try:
+    os.umask(0)
+except Exception:
+    pass
+
 _active_server = None
 _restart_requested = False
 

@@ -122,25 +122,55 @@ def apply_media_permissions(
     if not path or not os.path.exists(path):
         return stats
 
-    puid_str = os.getenv("PUID", "").strip()
-    pgid_str = os.getenv("PGID", "").strip()
+    # Читаем PUID / PGID из переменных окружения (поддержка различных форматов TrueNAS / Docker)
+    puid_str = (os.getenv("PUID") or os.getenv("UID") or os.getenv("USER_ID") or "").strip()
+    pgid_str = (os.getenv("PGID") or os.getenv("GID") or os.getenv("GROUP_ID") or "").strip()
     puid = int(puid_str) if puid_str.isdigit() else -1
     pgid = int(pgid_str) if pgid_str.isdigit() else -1
 
-    def _apply_single(target: str, is_target_dir: bool):
+    # Читаем кастомные маски прав из env, если заданы
+    custom_file_mode = os.getenv("FILE_MODE", "").strip()
+    if custom_file_mode:
         try:
+            file_mode = int(custom_file_mode, 8)
+        except Exception:
+            pass
+
+    custom_dir_mode = os.getenv("DIR_MODE", "").strip()
+    if custom_dir_mode:
+        try:
+            dir_mode = int(custom_dir_mode, 8)
+        except Exception:
+            pass
+
+    def _apply_single(target: str, is_target_dir: bool):
+        if not os.path.exists(target):
+            return
+        # 1. Изменение владельца (chown)
+        if puid >= 0 or pgid >= 0:
+            try:
+                os.chown(target, puid if puid >= 0 else -1, pgid if pgid >= 0 else -1, follow_symlinks=False)
+            except Exception:
+                pass
+
+        # 2. Изменение битов прав (chmod)
+        try:
+            target_mode = dir_mode if is_target_dir else file_mode
+            os.chmod(target, target_mode, follow_symlinks=False)
             if is_target_dir:
-                os.chmod(target, dir_mode)
                 stats["dirs"] += 1
             else:
-                os.chmod(target, file_mode)
                 stats["files"] += 1
-            if puid >= 0 or pgid >= 0:
-                os.chown(target, puid if puid >= 0 else -1, pgid if pgid >= 0 else -1)
         except Exception:
             pass
 
     try:
+        # Убеждаемся, что umask не маскирует создаваемые и изменяемые права
+        try:
+            os.umask(0)
+        except Exception:
+            pass
+
         if is_dir or os.path.isdir(path):
             _apply_single(path, True)
             if recursive:
@@ -151,9 +181,16 @@ def apply_media_permissions(
                         _apply_single(os.path.join(root, f), False)
         else:
             _apply_single(path, False)
-            parent_dir = os.path.dirname(path)
-            if parent_dir and os.path.isdir(parent_dir):
-                _apply_single(parent_dir, True)
+            # Применяем права ко всей цепочке родительских каталогов до корня медиатеки
+            curr = os.path.dirname(os.path.abspath(path))
+            for _ in range(5):
+                if not curr or curr == "/" or not os.path.isdir(curr):
+                    break
+                _apply_single(curr, True)
+                next_curr = os.path.dirname(curr)
+                if next_curr == curr:
+                    break
+                curr = next_curr
     except Exception:
         pass
 

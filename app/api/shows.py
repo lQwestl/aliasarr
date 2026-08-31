@@ -2432,17 +2432,31 @@ def fix_show_permissions(
 
     settings = get_or_create_settings(db)
     show_root = show.path or get_show_default_path(show, settings)
-    if not show_root or not os.path.exists(show_root):
-        raise HTTPException(400, f"Папка тайтла на диске не существует: {show_root}")
+    total_dirs = 0
+    total_files = 0
 
-    stats = apply_media_permissions(show_root, is_dir=True, recursive=True)
+    if show_root and os.path.exists(show_root):
+        stats = apply_media_permissions(show_root, is_dir=True, recursive=True)
+        total_dirs += stats.get("dirs", 0)
+        total_files += stats.get("files", 0)
+
+    # Дополнительно проходим по всем файлам серий тайтла и их директориям
+    for ep in (show.episodes or []):
+        if ep.file_path and os.path.exists(ep.file_path):
+            st = apply_media_permissions(ep.file_path, is_dir=False)
+            total_files += st.get("files", 0)
+            total_dirs += st.get("dirs", 0)
+
+    if not show_root and total_files == 0 and total_dirs == 0:
+        raise HTTPException(400, "Папка тайтла на диске не найдена")
+
     return {
         "success": True,
         "show_id": show_id,
         "path": show_root,
-        "dirs_fixed": stats.get("dirs", 0),
-        "files_fixed": stats.get("files", 0),
-        "message": f"Права доступа успешно обновлены: папок — {stats.get('dirs', 0)}, файлов — {stats.get('files', 0)}",
+        "dirs_fixed": total_dirs,
+        "files_fixed": total_files,
+        "message": f"Права доступа успешно обновлены: папок — {total_dirs}, файлов — {total_files}",
     }
 
 
