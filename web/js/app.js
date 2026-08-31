@@ -5159,32 +5159,35 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
           <span>${seasonTitle}</span>
           <span class="season-progress">${downloaded}/${episodes.length} ${t("status.downloaded")}</span>
         </div>
-        <div class="row-actions" onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:8px;">
-          ${canManageLib && seasonNumber === 0 ? `
-          <button class="btn btn-secondary btn-small btn-specials-import" id="btn-specials-import-${targetShowId}" onclick="openSpecialsImportModal(${targetShowId})" title="${t("show.import_specials_tooltip")}">
-            <i data-lucide="sparkles" class="ico-xs"></i> <span>${t("show.import_specials")}</span>
-          </button>` : ""}
-          ${canSearch ? `
-          <button class="btn btn-primary btn-small" title="${CURRENT_LANG === "en" ? `Auto search and download season ${seasonNumber}` : `Автоматический поиск и скачивание всех серий сезона ${seasonNumber}`}" onclick="searchSeasonAuto(this, ${targetShowId}, ${seasonNumber})">
-            <i data-lucide="zap" class="ico-xs"></i> <span>${CURRENT_LANG === "en" ? "Auto Search Season" : "Автопоиск сезона"}</span>
-          </button>
-          <button class="btn btn-secondary btn-small" title="${CURRENT_LANG === "en" ? `Interactive search season ${seasonNumber}` : `Интерактивный поиск сезона ${seasonNumber}`}" onclick="openInteractiveSearch(${targetShowId}, ${seasonNumber}, null)">
-            <i data-lucide="search" class="ico-xs"></i> <span>${CURRENT_LANG === "en" ? "Interactive Search" : "Интерактивный поиск"}</span>
-          </button>` : ""}
+        <div class="season-header-actions" onclick="event.stopPropagation()">
+          <div class="season-main-buttons">
+            ${canManageLib && seasonNumber === 0 ? `
+            <button class="btn btn-secondary btn-small btn-specials-import" id="btn-specials-import-${targetShowId}" onclick="openSpecialsImportModal(${targetShowId})" title="${t("show.import_specials_tooltip")}">
+              <i data-lucide="sparkles" class="ico-xs"></i> <span>${t("show.import_specials")}</span>
+            </button>` : ""}
+            ${canSearch ? `
+            <button class="btn btn-primary btn-small" title="${CURRENT_LANG === "en" ? `Auto search and download season ${seasonNumber}` : `Автоматический поиск и скачивание всех серий сезона ${seasonNumber}`}" onclick="searchSeasonAuto(this, ${targetShowId}, ${seasonNumber})">
+              <i data-lucide="zap" class="ico-xs"></i> <span>${CURRENT_LANG === "en" ? "Auto Search" : "Автопоиск"}</span>
+            </button>
+            <button class="btn btn-secondary btn-small" title="${CURRENT_LANG === "en" ? `Interactive search season ${seasonNumber}` : `Интерактивный поиск сезона ${seasonNumber}`}" onclick="openInteractiveSearch(${targetShowId}, ${seasonNumber}, null)">
+              <i data-lucide="search" class="ico-xs"></i> <span>${CURRENT_LANG === "en" ? "Search" : "Поиск"}</span>
+            </button>` : ""}
+          </div>
           ${canManageLib ? `
-          <button class="btn-icon-only" title="${t("action.monitor_season")}" onclick="setSeasonMonitor(${seasonNumber}, true)"><i data-lucide="bookmark" class="ico-xs"></i></button>
-          <button class="btn-icon-only" title="${t("action.unmonitor_season")}" onclick="setSeasonMonitor(${seasonNumber}, false)"><i data-lucide="bookmark-minus" class="ico-xs"></i></button>
-          <button class="btn-icon-only" title="${t("show.delete_season_action")}" onclick="deleteShow(${targetShowId}, ${seasonNumber}, null)" style="color:var(--danger);"><i data-lucide="trash-2" class="ico-xs"></i></button>` : ""}
+          <div class="season-icon-buttons">
+            <button class="btn-icon-only" title="${t("action.monitor_season")}" onclick="setSeasonMonitor(${seasonNumber}, true)"><i data-lucide="bookmark" class="ico-xs"></i></button>
+            <button class="btn-icon-only" title="${t("action.unmonitor_season")}" onclick="setSeasonMonitor(${seasonNumber}, false)"><i data-lucide="bookmark-minus" class="ico-xs"></i></button>
+            <button class="btn-icon-only" title="${t("show.delete_season_action")}" onclick="deleteShow(${targetShowId}, ${seasonNumber}, null)" style="color:var(--danger);"><i data-lucide="trash-2" class="ico-xs"></i></button>
+          </div>` : ""}
         </div>
       </div>
       <div class="season-episodes">
         ${canSearch ? `
-        <div class="episode-row episode-row-bulk" onclick="event.stopPropagation()" style="background:var(--panel-alt);border-bottom:1px solid var(--border);padding:6px 12px;display:flex;align-items:center;gap:10px;">
+        <div class="episode-row-bulk" onclick="event.stopPropagation()">
           <label class="checkbox-row" style="margin:0;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;">
             <input type="checkbox" class="season-select-all-checkbox" onchange="toggleSelectAllSeason(${seasonNumber}, this.checked)">
             <span style="font-weight:500;">${CURRENT_LANG === "en" ? "Select all" : "Выбрать все"}</span>
           </label>
-          <div style="flex:1"></div>
           <button class="btn btn-secondary btn-small" id="btn-download-selected-${seasonNumber}" onclick="searchSelectedEpisodes(this, ${seasonNumber})" title="${CURRENT_LANG === "en" ? "Download selected episodes" : "Скачать отмеченные серии сезона"}">
             <i data-lucide="download" class="ico-xs"></i> <span id="btn-download-selected-label-${seasonNumber}">${CURRENT_LANG === "en" ? "Download selected" : "Скачать выбранные серии"}</span>
           </button>
@@ -5265,22 +5268,28 @@ function renderEpisodeRow(ep, canManageLib = true, show = null) {
 
   return `
     <div class="episode-row" id="episode-row-${ep.id}" data-episode-id="${ep.id}" data-status="${ep.status}">
-      <input type="checkbox" class="ep-select-checkbox" data-episode-id="${ep.id}" onchange="updateGlobalEpisodeSelectionState()" style="margin-right:6px;cursor:pointer;">
-      ${epCodeHtml}
-      <span class="ep-title">${escapeHtml(ep.title || "—")}</span>
-      ${renderAirDateBadge(ep.air_date)}
-      ${mediaInfoBadges ? `<div class="ep-mediainfo-tags" style="display:inline-flex; align-items:center; gap:3px; margin: 0 6px;">${mediaInfoBadges}</div>` : ""}
-      ${hasFileBadge}
-      ${statusHtml}
-      <div class="ep-actions" style="display:inline-flex; align-items:center; gap:4px;">
-        ${canSearch ? `
-        <button class="btn-icon-only" title="${CURRENT_LANG === 'en' ? 'Interactive search' : 'Интерактивный поиск'} ${ep.episode_number}" onclick="openInteractiveSearch(${showId}, ${ep.season_number}, ${ep.episode_number})">
-          <i data-lucide="search" class="ico-xs"></i>
-        </button>` : ""}
-        ${canManageLib ? `
-        <button class="btn-icon-only ${monitored ? "active" : ""}" title="${monitored ? t("action.unmonitor") : t("action.monitor")}"
-          onclick="toggleEpisodeMonitor(${ep.id}, ${monitored})"><i data-lucide="bookmark" class="ico-xs"></i></button>
-        <button class="btn-icon-only" title="${t("show.delete_episode_action")}" onclick="deleteShow(${showId}, null, ${ep.id})" style="color:var(--danger);"><i data-lucide="trash-2" class="ico-xs"></i></button>` : ""}
+      <div class="episode-row-main">
+        <input type="checkbox" class="ep-select-checkbox" data-episode-id="${ep.id}" onchange="updateGlobalEpisodeSelectionState()" style="cursor:pointer;flex-shrink:0;">
+        ${epCodeHtml}
+        <span class="ep-title">${escapeHtml(ep.title || "—")}</span>
+        ${renderAirDateBadge(ep.air_date)}
+      </div>
+      <div class="episode-row-meta">
+        <div class="episode-badges-wrap">
+          ${hasFileBadge}
+          ${mediaInfoBadges ? `<div class="ep-mediainfo-tags">${mediaInfoBadges}</div>` : ""}
+          ${statusHtml}
+        </div>
+        <div class="ep-actions">
+          ${canSearch ? `
+          <button class="btn-icon-only" title="${CURRENT_LANG === 'en' ? 'Interactive search' : 'Интерактивный поиск'} ${ep.episode_number}" onclick="openInteractiveSearch(${showId}, ${ep.season_number}, ${ep.episode_number})">
+            <i data-lucide="search" class="ico-xs"></i>
+          </button>` : ""}
+          ${canManageLib ? `
+          <button class="btn-icon-only ${monitored ? "active" : ""}" title="${monitored ? t("action.unmonitor") : t("action.monitor")}"
+            onclick="toggleEpisodeMonitor(${ep.id}, ${monitored})"><i data-lucide="bookmark" class="ico-xs"></i></button>
+          <button class="btn-icon-only" title="${t("show.delete_episode_action")}" onclick="deleteShow(${showId}, null, ${ep.id})" style="color:var(--danger);"><i data-lucide="trash-2" class="ico-xs"></i></button>` : ""}
+        </div>
       </div>
     </div>`;
 }
