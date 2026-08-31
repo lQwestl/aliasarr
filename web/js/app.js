@@ -5118,18 +5118,24 @@ function renderMovieBlock(show, ep, canManageLib = true) {
       </div>
       <div class="season-episodes">
         <div class="episode-row" id="episode-row-${ep.id}" data-episode-id="${ep.id}" data-status="${ep.status}">
-          <span class="ep-title">${escapeHtml(show.title)}</span>
-          ${renderAirDateBadge(ep.air_date)}
-          ${mediaInfoBadges ? `<div class="ep-mediainfo-tags" style="display:inline-flex; align-items:center; gap:3px; margin: 0 6px;">${mediaInfoBadges}</div>` : ""}
-          ${hasFileBadge}
-          ${statusHtml}
-          <div class="ep-actions" style="display:inline-flex; align-items:center; gap:4px;">
-            <button class="btn-icon-only" title="Интерактивный поиск фильма" onclick="openInteractiveSearch(${show.id}, null, null)">
-              <i data-lucide="search" class="ico-xs"></i>
-            </button>
-            ${canManageLib ? `
-            <button class="btn-icon-only ${monitored ? "active" : ""}" title="${monitored ? t("action.unmonitor") : t("action.monitor")}"
-              onclick="toggleEpisodeMonitor(${ep.id}, ${monitored})"><i data-lucide="bookmark" class="ico-xs"></i></button>` : ""}
+          <div class="episode-row-main">
+            <span class="ep-title">${escapeHtml(show.title)}</span>
+            ${renderAirDateBadge(ep.air_date)}
+          </div>
+          <div class="episode-row-meta">
+            <div class="episode-badges-wrap">
+              ${hasFileBadge}
+              ${mediaInfoBadges ? `<div class="ep-mediainfo-tags">${mediaInfoBadges}</div>` : ""}
+              ${statusHtml}
+            </div>
+            <div class="ep-actions">
+              <button class="btn-icon-only" title="Интерактивный поиск фильма" onclick="openInteractiveSearch(${show.id}, null, null)">
+                <i data-lucide="search" class="ico-xs"></i>
+              </button>
+              ${canManageLib ? `
+              <button class="btn-icon-only ${monitored ? "active" : ""}" title="${monitored ? t("action.unmonitor") : t("action.monitor")}"
+                onclick="toggleEpisodeMonitor(${ep.id}, ${monitored})"><i data-lucide="bookmark" class="ico-xs"></i></button>` : ""}
+            </div>
           </div>
         </div>
       </div>
@@ -5297,11 +5303,14 @@ function renderEpisodeRow(ep, canManageLib = true, show = null) {
 function renderAirDateBadge(airDateStr) {
   if (!airDateStr) return "";
   const airDate = new Date(airDateStr);
+  if (isNaN(airDate.getTime())) return "";
   const now = new Date();
   if (airDate <= now) {
-    return `<span class="hint" style="margin-left:8px;font-size:0.85em;">${t("status.aired")}</span>`;
+    // Вышло: скрываем статус "Вышло", так как вышло
+    return "";
   } else {
-    return `<span class="hint" style="margin-left:8px;font-size:0.85em;">${formatDateOnly(airDateStr)}</span>`;
+    // Еще не вышло: обособляем дату выхода в цветной бейдж
+    return `<span class="badge-air-date" title="${CURRENT_LANG === "en" ? "Air Date" : "Дата выхода"}: ${formatDateOnly(airDateStr)}"><i data-lucide="calendar" class="ico-xs"></i> ${formatDateOnly(airDateStr)}</span>`;
   }
 }
 

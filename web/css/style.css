@@ -2670,6 +2670,34 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   height: 12px;
   stroke-width: 2.2;
 }
+
+.badge-air-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.14);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 6px;
+  transition: all 0.2s ease;
+}
+.badge-air-date i, .badge-air-date svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.2;
+}
+[data-design="vanguard"] .badge-air-date {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(251, 191, 36, 0.1) 100%);
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
+}
 .show-detail-actions-row { display: flex; gap: 24px; margin-top: 14px; flex-wrap: wrap; }
 .show-detail-actions-row .form-col { gap: 6px; }
 .pagination-row { display: flex; gap: 6px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
