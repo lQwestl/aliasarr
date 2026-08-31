@@ -117,8 +117,15 @@ def evaluate_torrent_file_priority(
     import os
     import re
 
+    AUDIO_EXTS = {".mka", ".aac", ".ac3", ".dts", ".eac3", ".flac", ".mp3", ".m4a", ".wav", ".opus"}
+    FONT_EXTS = {".ttf", ".otf", ".ttc", ".woff", ".woff2", ".eot"}
+    SUB_EXTS = {".srt", ".ass", ".sub", ".idx", ".vtt", ".nfo"}
+    ALL_EXTRA_EXTS = SUB_EXTS | AUDIO_EXTS | FONT_EXTS
+
     if extra_extensions is None:
-        extra_extensions = {".srt", ".ass", ".sub", ".idx", ".vtt", ".nfo", ".mka", ".ttf", ".otf", ".woff", ".woff2", ".eot"}
+        extra_extensions = set(ALL_EXTRA_EXTS)
+    else:
+        extra_extensions = set(extra_extensions) | ALL_EXTRA_EXTS
 
     ext = os.path.splitext(file_name)[1].lower()
     fname_lower = file_name.lower().replace("\\", "/")
@@ -134,12 +141,19 @@ def evaluate_torrent_file_priority(
         return 0
 
     # 1. Шрифты для субтитров аниме и сериалов — всегда оставляем, если включен импорт доп. файлов
-    if ext in {".ttf", ".otf", ".ttc", ".woff", ".woff2", ".eot"} or "/fonts/" in fname_lower or fname_lower.startswith("fonts/") or "/attachments/" in fname_lower:
+    if ext in FONT_EXTS or "/fonts/" in fname_lower or fname_lower.startswith("fonts/") or "/attachments/" in fname_lower:
         return 1 if import_extra_files else 0
+
+    # Проверяем, является ли это папкой с аудио/озвучкой/звуком (Sound [...], Audio [...], Озвучка [...], Звук [...], OST)
+    is_audio_folder = any(
+        kw in fname_lower for kw in (
+            "/sound", "sound/", "/audio", "audio/", "/озвучк", "озвучк/", "/звук", "звук/", "/ost", "ost/", "/soundtrack", "soundtrack/"
+        )
+    )
 
     target_keys = {(ep.season_number, ep.episode_number) for ep in target_episodes}
     target_abs = {ep.absolute_number for ep in target_episodes if ep.absolute_number is not None}
-    primary_season = target_episodes[0].season_number if target_episodes else 1
+    has_wanted_specials = any(ep.season_number == 0 for ep in target_episodes)
 
     base_name = os.path.basename(file_name)
     dir_name = os.path.dirname(file_name)
@@ -172,31 +186,51 @@ def evaluate_torrent_file_priority(
             if season is None and parsed_full.season is not None:
                 season = parsed_full.season
 
-    # 2. Не-видео файлы (субтитры, аудио, nfo)
-    if ext in extra_extensions:
+    is_special_file = (
+        (parsed and (parsed.season == 0 or parsed.matched_pattern in ("season_pack:ova_ona", "leading_num_special"))) or
+        any(kw in base_name.lower() for kw in ("ova", "ona", "oad", "special", "specials", "спешл", "sp", "bonus")) or
+        (episodes and 0 in episodes)
+    )
+
+    # 2. Не-видео файлы (субтитры, аудиодорожки, nfo, папки Sound / Audio / OST)
+    if ext in extra_extensions or is_audio_folder:
         if not import_extra_files:
             return 0
         if not episodes:
-            # Общие субтитры/nfo без явного номера серии в названии (например, общая папка subs)
+            # Общие субтитры/аудио/nfo без явного номера серии в названии (например, общая папка Sound / Subs / OST)
             return 1
 
         for ep_num in episodes:
-            if season is not None:
+            if is_special_file:
+                if (0, ep_num) in target_keys or has_wanted_specials:
+                    return 1
+            elif season is not None:
                 if (season, ep_num) in target_keys:
                     return 1
                 if is_part_2 and 1 <= ep_num <= 12:
                     if (season, ep_num + 12) in target_keys:
                         return 1
             else:
-                if (primary_season, ep_num) in target_keys or ep_num in target_abs:
+                if (1, ep_num) in target_keys or ep_num in target_abs:
                     return 1
                 if is_part_2 and 1 <= ep_num <= 12:
-                    if (primary_season, ep_num + 12) in target_keys or (ep_num + 12) in target_abs:
+                    if (1, ep_num + 12) in target_keys or (ep_num + 12) in target_abs:
                         return 1
         return 0
 
     # 3. Видеофайлы (.mkv, .mp4, .avi, .ts, etc.)
     if ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}:
+        if is_special_file:
+            if not has_wanted_specials:
+                return 0
+            if episodes:
+                for ep_num in episodes:
+                    if (0, ep_num) in target_keys:
+                        return 1
+            # Если OVA/Special без явного номера серии в названии (например 'Dakara Boku wa, H ga Dekinai - OVA.avi')
+            return 1 if has_wanted_specials else 0
+
+        # Основной сезон (Season 1..N)
         if not episodes:
             # Если не удалось спарсить номер серии, но разыскивается 1 серия и в имени нет чужих меток
             if len(target_episodes) == 1 and not re.search(r"\bs\d+|\be\d+|\bep\d+", fname_lower):
@@ -211,23 +245,12 @@ def evaluate_torrent_file_priority(
                     if (season, ep_num + 12) in target_keys:
                         return 1
             else:
-                if (primary_season, ep_num) in target_keys or ep_num in target_abs:
+                # Обычные серии без указания сезона по умолчанию относятся к 1-му сезону!
+                if (1, ep_num) in target_keys or ep_num in target_abs:
                     return 1
                 if is_part_2 and 1 <= ep_num <= 12:
-                    if (primary_season, ep_num + 12) in target_keys or (ep_num + 12) in target_abs:
+                    if (1, ep_num + 12) in target_keys or (ep_num + 12) in target_abs:
                         return 1
-
-        # Если файл относится к спецвыпускам (E00, Special, OVA, SP) или не подошел к основному сезону
-        has_wanted_specials = any(ep.season_number == 0 for ep in target_episodes)
-        if has_wanted_specials:
-            if (episodes and 0 in episodes) or any(kw in fname_lower for kw in ("special", "specials", "спешл", "ova", "ona", "oad", "sp")):
-                return 1
-            specials_in_target = [ep for ep in target_episodes if ep.season_number == 0]
-            if specials_in_target:
-                from app.services.matcher import match_special_episode
-                if match_special_episode(file_name, specials_in_target, parsed):
-                    return 1
-
         return 0
 
     # Все прочие неизвестные файлы
@@ -241,7 +264,12 @@ async def _ensure_movie_files_wanted(dl_client, torrent_hash: str) -> None:
         try:
             torrent = await dl_client.get_torrent(torrent_hash)
             if torrent and torrent.files:
-                allowed_exts = {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm", ".srt", ".ass", ".sub", ".mka", ".nfo", ".ttf", ".otf"}
+                allowed_exts = {
+                    ".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm",
+                    ".srt", ".ass", ".sub", ".idx", ".vtt", ".nfo",
+                    ".mka", ".aac", ".ac3", ".dts", ".eac3", ".flac", ".mp3", ".m4a", ".wav", ".opus",
+                    ".ttf", ".otf", ".ttc"
+                }
                 wanted_indices = []
                 for f in torrent.files:
                     f_ext = os.path.splitext(f.name)[1].lower()

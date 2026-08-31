@@ -493,3 +493,46 @@ class TestAutoSearch(unittest.TestCase):
         self.session.refresh(ep1)
         self.assertEqual(ep1.status, EpisodeStatus.DOWNLOADED)
         self.assertFalse(ep1.monitored)
+
+    def test_evaluate_torrent_file_priority_specials_and_sound_folder(self):
+        """Проверяет корректное разделение серий и спешлов, а также выбор папок Sound."""
+        from app.services.auto_search import evaluate_torrent_file_priority
+
+        class DummyEp:
+            def __init__(self, s, e, abs_n=None):
+                self.id = 100 + s * 20 + e
+                self.season_number = s
+                self.episode_number = e
+                self.absolute_number = abs_n
+                self.title = f"Episode {e}"
+
+        # 1. Разыскиваются только спешлы (S00E01, S00E02)
+        target_s0 = [DummyEp(0, 1), DummyEp(0, 2)]
+        
+        # Обычные серии 01.avi..12.avi НЕ должны помечаться как спешлы
+        for ep_i in range(1, 13):
+            prio = evaluate_torrent_file_priority(f"Anime - {ep_i:02d}.avi", ep_i, target_s0, content_type="anime")
+            self.assertEqual(prio, 0, f"Серия {ep_i:02d}.avi не должна скачиваться, когда разыскиваются только спешлы")
+
+        # Файл OVA.avi ДОЛЖЕН скачиваться
+        prio_ova = evaluate_torrent_file_priority("Anime - OVA.avi", 13, target_s0, content_type="anime")
+        self.assertEqual(prio_ova, 1, "Файл OVA.avi должен скачиваться для разыскиваемых спешлов")
+
+        # 2. Разыскивается 1-й сезон (S01E01..S01E12)
+        target_s1 = [DummyEp(1, i) for i in range(1, 13)]
+        for ep_i in range(1, 13):
+            prio = evaluate_torrent_file_priority(f"Anime - {ep_i:02d}.avi", ep_i, target_s1, content_type="anime")
+            self.assertEqual(prio, 1, f"Серия {ep_i:02d}.avi должна скачиваться для 1-го сезона")
+
+        # 3. Аудиофайлы в папке Sound [Scout86, YukiKata, Sayuri-chan]
+        sound_file_1 = "Sound [Scout86, YukiKata, Sayuri-chan]/Anime - 01 [Scout86].mka"
+        sound_file_2 = "Sound [Scout86, YukiKata, Sayuri-chan]/Anime - 02 [Scout86].mka"
+        sound_ost = "Sound [Scout86, YukiKata, Sayuri-chan]/OST.flac"
+
+        prio_sound1 = evaluate_torrent_file_priority(sound_file_1, 14, target_s1, content_type="anime")
+        prio_sound2 = evaluate_torrent_file_priority(sound_file_2, 15, target_s1, content_type="anime")
+        prio_ost = evaluate_torrent_file_priority(sound_ost, 16, target_s1, content_type="anime")
+
+        self.assertEqual(prio_sound1, 1, "Аудиодорожка к 1-й серии должна скачиваться")
+        self.assertEqual(prio_sound2, 1, "Аудиодорожка ко 2-й серии должна скачиваться")
+        self.assertEqual(prio_ost, 1, "Общий аудиофайл/OST из папки Sound должен скачиваться")

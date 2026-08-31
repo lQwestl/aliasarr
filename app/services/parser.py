@@ -865,7 +865,7 @@ _SEASON_LABEL_FINAL_RE = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-# «Complete Series / Collection / Pack», «Full Series», «Полная коллекция / серия», «Full», «Complete»
+# «Complete Series / Collection / Pack», «Full Series», «Полная коллекция / серия», «Full», «Complete», «TV+OVA»
 _SEASON_LABEL_COMPLETE_RE = re.compile(
     r"""
     (?:
@@ -876,6 +876,10 @@ _SEASON_LABEL_COMPLETE_RE = re.compile(
     |   \bПолный                                      [\s_\-]+  (?:сезон|сериал)
     |   \bВсе                                         [\s_\-]+  сезоны
     |   \b(?:Антология|Anthology)\b
+    |   \bTV\s*[\+_&]\s*(?:OVA|ONA|OAD|SP|Specials?|Спешл\w*)\b
+    |   \[TV\s*[\+_&]\s*(?:OVA|ONA|OAD|SP|Specials?|Спешл\w*)\]
+    |   \(TV\s*[\+_&]\s*(?:OVA|ONA|OAD|SP|Specials?|Спешл\w*)\)
+    |   \b\d{1,4}\s*[-–~]\s*\d{1,4}\s*\+\s*\d{1,3}\b
     |   \[Full\]
     |   \(Full\)
     )
