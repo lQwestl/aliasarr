@@ -3932,7 +3932,6 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
    SMARTPHONE BREAKPOINT (max-width: 768px)
    ----------------------------------------------------------------------------- */
 @media (max-width: 768px) {
-  body {
   /* Mobile Bottom Tab Bar (Sonarr v4 Style) */
   .mobile-bottom-bar {
     display: flex;
