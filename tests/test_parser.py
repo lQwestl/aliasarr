@@ -320,6 +320,12 @@ class TestParser(unittest.TestCase):
         self.assertEqual(r_s2_4.season, 2)
         self.assertEqual(r_s2_4.episodes, list(range(1, 13)))
 
+        # 7. Complex anime release with slash title separator and 2nd Season / E01-E09
+        r_s2_5 = parse_episode("Адский режим: Хардкорный геймер отправляется в другой мир на высоком уровне сложности 2 / E01-E09 Hell Mode- Yarikomizuki no Gamer wa Hai Settei no Isekai de Musou suru 2nd Season - AniLiberty.TOP [WEBRip 1080p][AVC][1-9]  RUS")
+        self.assertEqual(r_s2_5.season, 2)
+        self.assertEqual(r_s2_5.episodes, list(range(1, 10)))
+        self.assertTrue(r_s2_5.is_range)
+
     def test_russian_and_translit_season_episode_formats(self):
         # 1. Translit Robot Chicken format
         r1 = parse_episode("Robocip.(1.sezon.06.seriya.iz.20).2005.XviD.DVDRip.avi")

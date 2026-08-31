@@ -275,7 +275,9 @@ _RE_RANGE_IZ_N = re.compile(
     re.IGNORECASE,
 )
 _RE_SINGLE_IZ_N = re.compile(
-    r"(?:\[|\(|\b)(?:(?:ep|эп|сери[яи]|episode|e)\.?\s*)?(\d{1,4})\s*(?:из|of|iz|\/|\|)\s*(?:(?:ep|эп|сери[яи]|episode|e)\.?\s*)?(\d{1,4})\+?(?:\s*(?:эп(?:изод(?:ов|а)?)?|сери[йия]|eps?|episodes?|выпуск(?:ов|а)?))?(?:\]|\)|\b)",
+    r"(?:\[|\()(?:(?:ep|эп|сери[яи]|episode|e)\.?\s*)?(\d{1,4})\s*(?:из|of|iz|\/|\|)\s*(?:(?:ep|эп|сери[яи]|episode|e)\.?\s*)?(\d{1,4})\+?(?:\s*(?:эп(?:изод(?:ов|а)?)?|сери[йия]|eps?|episodes?|выпуск(?:ов|а)?))?(?:\]|\))|"
+    r"\b(?:(?:ep|эп|сери[яи]|episode|e)\.?\s*)(\d{1,4})\s*(?:из|of|iz|\/|\|)\s*(?:(?:ep|эп|сери[яи]|episode|e)\.?\s*)?(\d{1,4})\+?(?:\s*(?:эп(?:изод(?:ов|а)?)?|сери[йия]|eps?|episodes?|выпуск(?:ов|а)?))?\b|"
+    r"\b(\d{1,4})\s*(?:из|of|iz)\s*(?:(?:ep|эп|сери[яи]|episode|e)\.?\s*)?(\d{1,4})\+?(?:\s*(?:эп(?:изод(?:ов|а)?)?|сери[йия]|eps?|episodes?|выпуск(?:ов|а)?))?\b",
     re.IGNORECASE,
 )
 _RE_PLAIN_RANGE = re.compile(r"\b(\d{1,4})\s*[-–~]\s*(\d{1,4})\b")
@@ -611,16 +613,21 @@ def parse_episode(release_name: str) -> ParsedRelease:
             s_ep, e_ep = int(m_iz_sub.group(1)), int(m_iz_sub.group(2))
             if 0 <= s_ep <= e_ep <= 9999 and (e_ep - s_ep) < 10000:
                 return list(range(s_ep, e_ep + 1))
-        m_s_iz_sub = _RE_SINGLE_IZ_N.search(text_to_check)
-        if m_s_iz_sub:
-            curr_ep = int(m_s_iz_sub.group(1))
-            if 1 <= curr_ep <= 9999:
-                return list(range(1, curr_ep + 1))
+        m_e_sub = re.search(r"\bE(?:P)?\.?(\d{1,4})\s*[-–~]\s*E?(?:P)?\.?(\d{1,4})\b", text_to_check, re.IGNORECASE)
+        if m_e_sub:
+            s_ep, e_ep = int(m_e_sub.group(1)), int(m_e_sub.group(2))
+            if 0 <= s_ep <= e_ep <= 9999 and (e_ep - s_ep) < 10000:
+                return list(range(s_ep, e_ep + 1))
         m_br_sub = _RE_BRACKET_RANGE.search(text_to_check)
         if m_br_sub:
             s_ep, e_ep = int(m_br_sub.group(1)), int(m_br_sub.group(2))
             if 0 <= s_ep <= e_ep <= 9999 and (e_ep - s_ep) < 10000:
                 return list(range(s_ep, e_ep + 1))
+        m_s_iz_sub = _RE_SINGLE_IZ_N.search(text_to_check)
+        if m_s_iz_sub:
+            curr_ep = int(next(g for g in m_s_iz_sub.groups() if g is not None))
+            if 1 <= curr_ep <= 9999:
+                return list(range(1, curr_ep + 1))
         m_s_br_sub = _RE_BRACKET_SINGLE_EP.search(text_to_check)
         if m_s_br_sub:
             s_ep = int(m_s_br_sub.group(1))
@@ -743,7 +750,7 @@ def parse_episode(release_name: str) -> ParsedRelease:
 
     m = _RE_SINGLE_IZ_N.search(protected)
     if m:
-        curr_ep = int(m.group(1))
+        curr_ep = int(next(g for g in m.groups() if g is not None))
         if 1 <= curr_ep <= 9999:
             ep_list = list(range(1, curr_ep + 1))
             return ParsedRelease(
