@@ -340,6 +340,9 @@ async def delete_show(
     db.delete(show)
     db.commit()
 
+    from app.services.auto_search import clear_rejected_cache_for_show
+    clear_rejected_cache_for_show(show_id)
+
     log_audit(
         db,
         "show.delete",
@@ -398,6 +401,9 @@ async def delete_content(
 
         db.delete(show)
         db.commit()
+
+        from app.services.auto_search import clear_rejected_cache_for_show
+        clear_rejected_cache_for_show(show_id)
 
         log_audit(
             db,
@@ -916,11 +922,13 @@ async def force_search_show(
     Принудительный автопоиск: сразу ищет и захватывает лучшие релизы для всех
     wanted-серий этого шоу, не дожидаясь плановой джобы (каждые 15 минут).
     """
-    from app.services.auto_search import search_and_grab_show
+    from app.services.auto_search import search_and_grab_show, clear_rejected_cache_for_show
 
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
+
+    clear_rejected_cache_for_show(show_id)
 
     try:
         result = await search_and_grab_show(db, show)

@@ -57,8 +57,36 @@ from app.services.torznab import TorznabClient
 
 logger = logging.getLogger("aliasarr.auto_search")
 
-# Кэш хэшей раздач, которые были признаны неподходящими (например, внутри торрента отсутствуют нужные серии)
-_REJECTED_RELEASE_HASHES: set[str] = set()
+# Кэш хэшей раздач по ID тайтла, которые были признаны неподходящими (например, внутри торрента отсутствуют нужные серии)
+_SHOW_REJECTED_HASHES: dict[int, set[str]] = {}
+
+
+def add_rejected_release_for_show(show_id: int, identifier: str) -> None:
+    if show_id and identifier:
+        _SHOW_REJECTED_HASHES.setdefault(show_id, set()).add(identifier.lower())
+
+
+def is_release_rejected_for_show(
+    show_id: int,
+    infohash: Optional[str] = None,
+    guid: Optional[str] = None,
+    download_url: Optional[str] = None,
+) -> bool:
+    if not show_id or show_id not in _SHOW_REJECTED_HASHES:
+        return False
+    rejected = _SHOW_REJECTED_HASHES[show_id]
+    if infohash and infohash.lower() in rejected:
+        return True
+    if guid and str(guid).lower() in rejected:
+        return True
+    if download_url and str(download_url).lower() in rejected:
+        return True
+    return False
+
+
+def clear_rejected_cache_for_show(show_id: int) -> None:
+    if show_id:
+        _SHOW_REJECTED_HASHES.pop(show_id, None)
 
 
 def _get_show_max_season(db: Session, show: Show) -> int:
@@ -337,8 +365,6 @@ async def _limit_torrent_files_to_episodes(
             "Раздача %s: ни один файл в раздаче не соответствует запрошенным сериям (%s). Раздача отменена и удалена из загрузчика.",
             torrent_hash, requested_ep_str,
         )
-        if torrent_hash:
-            _REJECTED_RELEASE_HASHES.add(torrent_hash.lower())
 
         try:
             await dl_client.remove_torrent(torrent_hash, delete_files=True)
@@ -379,6 +405,8 @@ async def _limit_torrent_files_to_episodes(
 
         # Логируем событие и автоматически запускаем поиск следующего кандидата
         if show_id and target_db_ids:
+            if torrent_hash:
+                add_rejected_release_for_show(show_id, torrent_hash)
             try:
                 from app.database import SessionLocal
                 with SessionLocal() as s_db:
@@ -584,11 +612,11 @@ async def _collect_candidates(
                 continue
             seen_guids.add(rel.guid)
 
-            # Проверяем, не был ли этот релиз ранее отклонён из-за отсутствия нужных файлов внутри торрента
+            # Проверяем, не был ли этот релиз ранее отклонён для этого тайтла
             infohash = getattr(rel, "infohash", None)
-            guid_str = str(rel.guid).lower()
-            dl_url = str(getattr(rel, "download_url", "")).lower()
-            if (infohash and infohash.lower() in _REJECTED_RELEASE_HASHES) or (guid_str in _REJECTED_RELEASE_HASHES) or (dl_url in _REJECTED_RELEASE_HASHES):
+            guid_str = str(rel.guid) if getattr(rel, "guid", None) else None
+            dl_url = str(getattr(rel, "download_url", "")) if getattr(rel, "download_url", None) else None
+            if is_release_rejected_for_show(show.id, infohash=infohash, guid=guid_str, download_url=dl_url):
                 continue
 
             match = match_release(
