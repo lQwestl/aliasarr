@@ -777,10 +777,19 @@ async def _do_search_and_grab(
         if label_type == "numbered":
             label_season = season_label["season"]
             if label_season != ep.season_number:
+                # Если в базе у шоу нет такого сезона (например, цифра 2 была частью названия аниме/арки, а не номером сезона)
+                # и разыскивается сезон 1, проверяем не является ли это серией/паком для сезона 1
+                has_label_season_in_db = (
+                    total_episodes_by_season.get(label_season, 0) > 0
+                )
+                if not has_label_season_in_db and ep.season_number == 1:
+                    if parsed.episodes:
+                        return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
+                    return True
                 return False
             if parsed.episodes:
                 return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
-            return parsed.kind == ReleaseKind.SEASON_PACK
+            return True
 
         # --- Случай 2: «Final Season» ---
         if label_type == "final":
@@ -812,13 +821,18 @@ async def _do_search_and_grab(
                 return False
             if parsed.episodes:
                 return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
-            return parsed.kind == ReleaseKind.SEASON_PACK
+            return True
 
-        # --- Случай 6: сезон в названии релиза не указан (аниме absolute / lone number) ---
+        # --- Случай 6: сезон в названии релиза не указан (аниме absolute / lone number / диапазон серий) ---
         if parsed.episodes:
             if ep.absolute_number is not None:
                 return ep.absolute_number in parsed.episodes
             return ep.episode_number in parsed.episodes and ep.season_number in (0, 1)
+
+        # --- Случай 7: релиз без явного указания серий и сезона (полный пак / аниме сериал целиком) ---
+        if not parsed.episodes and parsed.season is None and label_type == "none":
+            if ep.season_number == 1:
+                return True
 
         return False
 
@@ -900,6 +914,25 @@ async def _do_search_and_grab(
         })
 
     if not scored_candidates:
+        log_release_event(
+            stage="decision",
+            level="warning",
+            show_title=show.title,
+            show_id=show.id,
+            message=f"Найдено {len(candidates)} кандидатов, но ни один не подошёл для захвата (не покрывают разыскиваемые серии или отклонены профилем качества)",
+            details={
+                "candidates": [
+                    {
+                        "title": c["rel"].title,
+                        "quality": c["quality"].name,
+                        "seeders": c["rel"].seeders,
+                        "indexer": getattr(c["indexer"], "name", "Indexer"),
+                    }
+                    for c in candidates[:6]
+                ]
+            },
+            db=db,
+        )
         return {"show_id": show.id, "grabbed": [], "criteria": search_terms}
 
     # Многоуровневая сортировка кандидатов:
@@ -955,6 +988,18 @@ async def _do_search_and_grab(
         if not remaining:
             break
 
+    if not to_grab:
+        log_release_event(
+            stage="decision",
+            level="warning",
+            show_title=show.title,
+            show_id=show.id,
+            message="Ни один из кандидатов не был выбран для захвата (разыскиваемые серии уже закрыты)",
+            details={"scored_candidates_count": len(scored_candidates)},
+            db=db,
+        )
+        return {"show_id": show.id, "grabbed": [], "criteria": search_terms}
+
     grabbed = []
     download_client_row = (
         db.query(DownloadClient).filter(DownloadClient.enabled == True).order_by(  # noqa: E712
@@ -963,6 +1008,15 @@ async def _do_search_and_grab(
     )
     if download_client_row is None:
         logger.warning("Нет доступного download client для видео %s", show.id)
+        log_release_event(
+            stage="grab",
+            level="error",
+            show_title=show.title,
+            show_id=show.id,
+            message="Не удалось отправить релиз в загрузчик: нет активного/включенного клиента загрузки (Download Client). Включите загрузчик в Настройки -> Загрузчики.",
+            details={"to_grab_count": len(to_grab)},
+            db=db,
+        )
         return {"show_id": show.id, "grabbed": [], "criteria": search_terms}
 
     for c in to_grab:
