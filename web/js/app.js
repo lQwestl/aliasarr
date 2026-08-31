@@ -2278,9 +2278,17 @@ async function withLoading(button, fn) {
 }
 
 // ---------- Modal system ----------
-function openModal(id) { document.getElementById(id).classList.add("active"); }
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add("active");
+  document.body.classList.add("modal-open");
+}
 function closeModal(id) {
-  document.getElementById(id).classList.remove("active");
+  const el = document.getElementById(id);
+  if (el) el.classList.remove("active");
+  if (!document.querySelector(".modal-overlay.active, .modal.active")) {
+    document.body.classList.remove("modal-open");
+  }
   if (id === "show-modal" && typeof SHOW_MODAL_POLL_INTERVAL !== 'undefined' && SHOW_MODAL_POLL_INTERVAL) {
     clearInterval(SHOW_MODAL_POLL_INTERVAL);
   }
