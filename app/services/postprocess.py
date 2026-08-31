@@ -1013,6 +1013,12 @@ def process_download(
 
         ext = os.path.splitext(file_path)[1]
 
+        is_special_file = (
+            (parsed and (parsed.season == 0 or parsed.matched_pattern in ("season_pack:ova_ona", "leading_num_special"))) or
+            any(kw in filename.lower() for kw in ("ova", "ona", "oad", "special", "specials", "спешл", "sp", "bonus")) or
+            (parsed and parsed.episodes and 0 in parsed.episodes)
+        )
+
         for ep_num in parsed.episodes:
             episode = None
 
@@ -1023,47 +1029,58 @@ def process_download(
                         (ep for ep in dl_eps if ep.season_number == parsed.season and (ep.episode_number == ep_num or ep.absolute_number == ep_num)),
                         None,
                     )
-                else:
+                elif is_special_file:
                     episode = next(
-                        (ep for ep in dl_eps if ep.episode_number == ep_num or ep.absolute_number == ep_num),
+                        (ep for ep in dl_eps if ep.season_number == 0 and (ep.episode_number == ep_num or ep.absolute_number == ep_num)),
                         None,
                     )
+                else:
+                    # Обычные серии без маркеров спешлов сопоставляются с основными сезонами (season > 0)
+                    episode = next(
+                        (ep for ep in dl_eps if ep.season_number > 0 and (ep.episode_number == ep_num or ep.absolute_number == ep_num)),
+                        None,
+                    )
+                    if episode is None:
+                        episode = next(
+                            (ep for ep in dl_eps if ep.episode_number == ep_num or ep.absolute_number == ep_num),
+                            None,
+                        )
 
             # 2. Поиск по базе данных
             if episode is None and db:
-                if parsed.season is not None:
-                    episode = (
-                        db.query(Episode)
-                        .filter_by(show_id=show.id, season_number=parsed.season, episode_number=ep_num)
-                        .first()
-                    )
-                else:
-                    episode = (
-                        db.query(Episode)
-                        .filter_by(show_id=show.id, absolute_number=ep_num)
-                        .first()
-                    )
-                    if episode is None and dl_eps:
-                        episode = (
-                            db.query(Episode)
-                            .filter_by(show_id=show.id, season_number=dl_eps[0].season_number, episode_number=ep_num)
-                            .first()
-                        )
-
-                # Если для серии в основном сезоне запись не найдена (например, S11E00, S11E21 Special, OVA, SP),
-                # проверяем наличие подходящего спецвыпуска в Сезоне 0 (Specials)
-                if episode is None:
+                if is_special_file:
                     specials_for_show = db.query(Episode).filter_by(show_id=show.id, season_number=0).order_by(Episode.episode_number).all()
                     if specials_for_show:
                         from app.services.matcher import match_special_episode
                         episode = match_special_episode(file_path, specials_for_show, parsed)
 
-                if episode is None and parsed.season is None:
+                if episode is None and parsed.season is not None:
                     episode = (
                         db.query(Episode)
-                        .filter_by(show_id=show.id, season_number=1, episode_number=ep_num)
+                        .filter_by(show_id=show.id, season_number=parsed.season, episode_number=ep_num)
                         .first()
                     )
+
+                if episode is None and not is_special_file:
+                    # Сначала по absolute_number (для аниме)
+                    episode = (
+                        db.query(Episode)
+                        .filter_by(show_id=show.id, absolute_number=ep_num)
+                        .first()
+                    )
+                    if episode is None:
+                        target_s = dl_eps[0].season_number if (dl_eps and dl_eps[0].season_number > 0) else 1
+                        episode = (
+                            db.query(Episode)
+                            .filter_by(show_id=show.id, season_number=target_s, episode_number=ep_num)
+                            .first()
+                        )
+                    if episode is None:
+                        episode = (
+                            db.query(Episode)
+                            .filter_by(show_id=show.id, season_number=1, episode_number=ep_num)
+                            .first()
+                        )
 
             if episode:
                 season_num = episode.season_number
