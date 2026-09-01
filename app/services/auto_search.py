@@ -1105,6 +1105,8 @@ async def _do_search_and_grab(
                     "seeders": rel.seeders,
                     "quality": c["quality"].name,
                     "client": download_client_row.name,
+                    "page_url": getattr(rel, "page_url", None),
+                    "download_url": getattr(rel, "download_url", None),
                 },
                 db=db,
             )
@@ -1118,7 +1120,12 @@ async def _do_search_and_grab(
                 release_title=rel.title,
                 indexer=getattr(indexer, "name", "Torznab"),
                 message=f"Ошибка отправки релиза в загрузчик '{download_client_row.name}': {exc}",
-                details={"error": str(exc), "download_url": rel.download_url, "client": download_client_row.name},
+                details={
+                    "error": str(exc),
+                    "download_url": getattr(rel, "download_url", None),
+                    "page_url": getattr(rel, "page_url", None),
+                    "client": download_client_row.name,
+                },
                 db=db,
             )
             continue

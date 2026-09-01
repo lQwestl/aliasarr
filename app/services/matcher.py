@@ -368,6 +368,11 @@ DORAMA_KEYWORDS = re.compile(
     re.IGNORECASE,
 )
 
+RAW_DISC_KEYWORDS = re.compile(
+    r"(?<![a-z0-9])(?:\d+\s*x\s*DVD[59]?|\d+\s*x\s*BD(?:25|50)?|\d+\s*x\s*DVD|DVD9|DVD5|BDMV|2x\s*DVD9\s*\+\s*8x\s*DVD5)(?![a-z0-9])",
+    re.IGNORECASE,
+)
+
 
 def match_release(
     release_name: str,
@@ -384,6 +389,13 @@ def match_release(
 
     # Отсеиваем не-видео релизы (игры, консоли, ROM, софт, манга, артбуки, OST/саундтреки)
     if is_non_video_release(release_name, categories=categories):
+        return MatchResult(
+            matched=False, show_id=None, alias_id=None, alias_text=None,
+            score=score, parsed=parsed,
+        )
+
+    # Отсеиваем сырые многодисковые образы (10x DVD9, 8x DVD5, BDMV) для сериалов/аниме
+    if content_type in ("series", "anime") and RAW_DISC_KEYWORDS.search(release_name):
         return MatchResult(
             matched=False, show_id=None, alias_id=None, alias_text=None,
             score=score, parsed=parsed,

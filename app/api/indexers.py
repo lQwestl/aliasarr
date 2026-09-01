@@ -625,6 +625,27 @@ async def grab_release(
         ))
         db.commit()
 
+    from app.services.release_log_service import log_release_event
+    indexer_row = db.get(Indexer, payload.indexer_id) if payload.indexer_id else None
+    indexer_name = indexer_row.name if indexer_row else "Manual"
+    log_release_event(
+        stage="grab",
+        level="success",
+        show_title=show.title,
+        show_id=show.id,
+        release_title=payload.release_title,
+        indexer=indexer_name,
+        message=f"Ручной захват релиза передан в '{download_client_row.name}' (хэш: {torrent_hash or 'n/a'}).",
+        details={
+            "torrent_hash": torrent_hash,
+            "save_path": save_path,
+            "page_url": payload.page_url,
+            "download_url": payload.download_url,
+            "client": download_client_row.name,
+        },
+        db=db,
+    )
+
     title_linked = f'<a href="{payload.page_url}">«{show.title}»</a>' if payload.page_url else f"«{show.title}»"
     await notify_all(db, "grab", f"Захвачен релиз для {title_linked}: {payload.release_title}")
 

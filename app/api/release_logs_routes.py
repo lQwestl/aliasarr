@@ -109,6 +109,10 @@ def export_release_logs(
             lines.append(f"  Release: {l.release_title}")
         if l.indexer:
             lines.append(f"  Indexer: {l.indexer}")
+        if l.details and isinstance(l.details, dict):
+            src_url = l.details.get("page_url") or l.details.get("download_url")
+            if src_url:
+                lines.append(f"  Source Link: {src_url}")
         lines.append(f"  Message: {l.message}")
         if l.details:
             import json

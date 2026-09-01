@@ -12217,6 +12217,7 @@ async function loadReleaseLogs(page) {
                          (item.level === "warning" ? (CURRENT_LANG === "en" ? "Warn" : "Внимание") :
                          (item.level === "success" ? (CURRENT_LANG === "en" ? "Success" : "Успех") : (CURRENT_LANG === "en" ? "Info" : "Инфо")));
 
+      const sourceLink = (item.details && typeof item.details === "object") ? (item.details.page_url || item.details.download_url) : null;
       return `
         <tr>
           <td class="mono col-time" style="font-size:11.5px; white-space:nowrap;">${formatDateTZ(item.created_at)}</td>
@@ -12225,6 +12226,7 @@ async function loadReleaseLogs(page) {
           <td>
             <div style="font-weight:600; color:var(--text); font-size:13px;">${escapeHtml(item.show_title || "—")}</div>
             ${item.indexer ? `<span class="hint mono" style="font-size:11px; color:#818cf8;">[${escapeHtml(item.indexer)}]</span>` : ""}
+            ${sourceLink ? `<a href="${escapeHtml(sourceLink)}" target="_blank" rel="noopener noreferrer" title="${CURRENT_LANG === 'en' ? 'Open tracker page' : 'Открыть страницу раздачи'}" style="color:#818cf8; margin-left:4px; display:inline-flex; align-items:center; vertical-align:middle;"><i data-lucide="external-link" style="width:12px; height:12px;"></i></a>` : ""}
           </td>
           <td>
             <div style="font-size:12.5px; color:var(--text); line-height:1.4;">${escapeHtml(translateLogMessage(item.message))}</div>
@@ -12262,6 +12264,8 @@ function openReleaseLogDetail(index) {
                           (item.level === "warning" ? (isRu ? "Внимание" : "Warn") :
                           (item.level === "success" ? (isRu ? "Успех" : "Success") : (isRu ? "Инфо" : "Info")));
 
+  const modalSourceLink = (item.details && typeof item.details === "object") ? (item.details.page_url || item.details.download_url) : null;
+
   body.innerHTML = `
     <div class="form-col" style="gap:8px;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -12286,6 +12290,15 @@ function openReleaseLogDetail(index) {
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <span class="hint">${isRu ? "Индексатор / Трекер:" : "Indexer:"}</span>
           <strong class="mono" style="color:#818cf8;">${escapeHtml(item.indexer)}</strong>
+        </div>
+      ` : ""}
+      ${modalSourceLink ? `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--panel-alt); padding:8px 10px; border-radius:6px; border:1px solid var(--border); margin-top:4px;">
+          <span class="hint" style="font-weight:600; color:var(--text);">${isRu ? "Ссылка на раздачу / сайт:" : "Tracker / Source Link:"}</span>
+          <a href="${escapeHtml(modalSourceLink)}" target="_blank" rel="noopener noreferrer" class="link" style="color:var(--accent); font-size:12px; font-weight:600; word-break:break-all; max-width:65%; display:inline-flex; align-items:center; gap:4px;">
+            ${escapeHtml(modalSourceLink)}
+            <i data-lucide="external-link" style="width:12px; height:12px; flex-shrink:0;"></i>
+          </a>
         </div>
       ` : ""}
       ${item.release_title ? `
