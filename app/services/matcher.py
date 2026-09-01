@@ -177,16 +177,22 @@ def build_alias_candidates(show, db=None) -> list[AliasCandidate]:
     """
     Формирует список кандидатов для поиска и сопоставления.
     Включает основное название тайтла и все пользовательские/автоматические алиасы из БД.
+    Автоматически расщепляет составные алиасы (содержащие слэши или пайпы) на отдельные под-алиасы.
     Список отсортирован по приоритету: меньшее число = опрашивается раньше.
     """
     seen_normalized: set[str] = set()
     candidates: list[AliasCandidate] = []
 
     show_title = (getattr(show, "title", "") or "").strip()
-    title_norm = normalize_title(show_title)
-    if title_norm:
-        seen_normalized.add(title_norm)
-        candidates.append(AliasCandidate(alias_id=0, text=show_title, language="en", priority=0))
+    title_parts = [show_title] if show_title else []
+    if "/" in show_title or "|" in show_title:
+        title_parts.extend([p.strip() for p in re.split(r"\s*[/|]\s*", show_title) if p.strip()])
+
+    for tp in title_parts:
+        title_norm = normalize_title(tp)
+        if title_norm and title_norm not in seen_normalized:
+            seen_normalized.add(title_norm)
+            candidates.append(AliasCandidate(alias_id=0, text=tp, language="en", priority=0))
 
     # Извлекаем все алиасы напрямую из БД, если передан db, чтобы избежать устаревшего кэша SQLAlchemy
     aliases = []
@@ -201,17 +207,27 @@ def build_alias_candidates(show, db=None) -> list[AliasCandidate]:
 
     for alias in aliases:
         a_text = (getattr(alias, "text", "") or "").strip()
-        norm = normalize_title(a_text)
-        if not norm or norm in seen_normalized:
+        if not a_text:
             continue
-        seen_normalized.add(norm)
+
+        sub_parts = [a_text]
+        if "/" in a_text or "|" in a_text:
+            sub_parts.extend([p.strip() for p in re.split(r"\s*[/|]\s*", a_text) if p.strip()])
+
         lang_str = alias.language.value if hasattr(getattr(alias, "language", None), "value") else (str(alias.language) if getattr(alias, "language", None) else "ru")
-        candidates.append(AliasCandidate(
-            alias_id=getattr(alias, "id", 0) or 0,
-            text=a_text,
-            language=lang_str,
-            priority=getattr(alias, "priority", 100) or 100,
-        ))
+        prio = getattr(alias, "priority", 100) or 100
+
+        for part in sub_parts:
+            norm = normalize_title(part)
+            if not norm or norm in seen_normalized:
+                continue
+            seen_normalized.add(norm)
+            candidates.append(AliasCandidate(
+                alias_id=getattr(alias, "id", 0) or 0,
+                text=part,
+                language=lang_str,
+                priority=prio,
+            ))
 
     # Приоритет — единственный фактор порядка (НЕ язык): меньше число = ищем раньше.
     candidates.sort(key=lambda c: c.priority)
