@@ -495,6 +495,44 @@ class TestQualityAndMatcher(unittest.TestCase):
         for t in video_titles:
             self.assertFalse(is_non_video_release(t), f"Видео-релиз НЕ должен помечаться как не-видео: {t}")
 
+    def test_gto_dorama_year_mismatch_and_alias_splitting(self):
+        from app.services.matcher import match_release, build_alias_candidates, AliasCandidate
+
+        class MockShow:
+            def __init__(self, title, year=1999, content_type="anime"):
+                self.id = 10
+                self.title = title
+                self.year = year
+                self.content_type = content_type
+                self.aliases = []
+
+        class MockAlias:
+            def __init__(self, text):
+                self.id = 1
+                self.text = text
+                self.language = "ru"
+                self.priority = 100
+
+        # 1. Проверяем расщепление составного алиаса
+        show = MockShow("Great Teacher Onizuka", year=1999, content_type="anime")
+        show.aliases = [MockAlias("Крутой учитель Онидзука / Great Teacher Onizuka / GTO")]
+
+        candidates = build_alias_candidates(show)
+        cand_texts = [c.text for c in candidates]
+        self.assertIn("Great Teacher Onizuka", cand_texts)
+        self.assertIn("Крутой учитель Онидзука", cand_texts)
+        self.assertIn("GTO", cand_texts)
+
+        # 2. Проверяем отсеивание дорамы 2012 года для аниме 1999 года
+        t_dorama = "Великий Учитель Онидзука 2012 / GTO / GTO: Great Teacher Onizuka 2012 [11/11] [Япония, 2012, комедия, школа, DTVRip] [RAW] [VO] (SkomoroX)"
+        t_anime = "[AniLibria] Крутой учитель Онидзука / Great Teacher Onizuka [01-43 из 43] [1999, WEBRip 1080p]"
+
+        m_dorama = match_release(t_dorama, show.id, candidates, content_type="anime", show_year=show.year)
+        m_anime = match_release(t_anime, show.id, candidates, content_type="anime", show_year=show.year)
+
+        self.assertFalse(m_dorama.matched, "Дорама 2012 года НЕ должна матчиться с аниме 1999 года")
+        self.assertTrue(m_anime.matched, "Аниме 1999 года должно успешно матчиться")
+
 
 if __name__ == "__main__":
     unittest.main()

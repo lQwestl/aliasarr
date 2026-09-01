@@ -363,6 +363,12 @@ MOVIE_KEYWORDS = re.compile(
 )
 
 
+DORAMA_KEYWORDS = re.compile(
+    r"\b(?:дорам[аыеу]|дорама|dorama|live[-_\s]*action|j[-_\s]*dorama|k[-_\s]*dorama|тв-дорама)\b",
+    re.IGNORECASE,
+)
+
+
 def match_release(
     release_name: str,
     show_id: int,
@@ -370,8 +376,9 @@ def match_release(
     threshold: int = DEFAULT_FUZZY_THRESHOLD,
     content_type: str = "series",
     categories: Optional[list[int]] = None,
+    show_year: Optional[int] = None,
 ) -> MatchResult:
-    """Полный матчинг релиза: алиас (fuzzy) + парсинг номера серии + проверка типа контента."""
+    """Полный матчинг релиза: алиас (fuzzy) + парсинг номера серии + проверка типа контента и года."""
     alias, score = best_alias_match(release_name, aliases, threshold)
     parsed = parse_episode(release_name)
 
@@ -381,6 +388,25 @@ def match_release(
             matched=False, show_id=None, alias_id=None, alias_text=None,
             score=score, parsed=parsed,
         )
+
+    # Отсеиваем дорамы / live-action при поиске аниме
+    if content_type == "anime" and DORAMA_KEYWORDS.search(release_name):
+        return MatchResult(
+            matched=False, show_id=None, alias_id=None, alias_text=None,
+            score=score, parsed=parsed,
+        )
+
+    # Проверка соответствия года выхода (исключает ремейки, перезапуски и одноименные фильмы других годов)
+    if isinstance(show_year, int) and show_year > 1900:
+        clean_rel = re.sub(r"\b(1080|2160|1440|720|480|360|240)[pi]?\b", "", release_name, flags=re.IGNORECASE)
+        rel_years = [int(y) for y in re.findall(r"\b(19\d\d|20\d\d)\b", clean_rel)]
+        if rel_years:
+            has_matching_year = any(abs(y - show_year) <= 1 for y in rel_years)
+            if not has_matching_year:
+                return MatchResult(
+                    matched=False, show_id=None, alias_id=None, alias_text=None,
+                    score=score, parsed=parsed,
+                )
 
     if alias is None:
         return MatchResult(

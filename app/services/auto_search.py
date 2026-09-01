@@ -668,6 +668,7 @@ async def _collect_candidates(
                 alias_candidates,
                 content_type=show.content_type,
                 categories=getattr(rel, "categories", None),
+                show_year=getattr(show, "year", None),
             )
             if not match.matched:
                 continue

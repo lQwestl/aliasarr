@@ -292,6 +292,7 @@ async def search_custom_releases(
                 alias_candidates,
                 content_type=show.content_type if show else "series",
                 categories=getattr(rel, "categories", None),
+                show_year=getattr(show, "year", None) if show else None,
             ) if show else None
 
             # Оценка через DecisionEngine
@@ -430,6 +431,7 @@ async def search_releases_for_show(
                 alias_candidates,
                 content_type=show.content_type,
                 categories=getattr(rel, "categories", None),
+                show_year=getattr(show, "year", None),
             )
 
             # Оценка через DecisionEngine

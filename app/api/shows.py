@@ -2083,7 +2083,7 @@ def scan_for_global_manual_import(
             for s_name in search_names:
                 if not s_name or s_name == ".":
                     continue
-                match = match_release(s_name, s.id, aliases, content_type=s.content_type)
+                match = match_release(s_name, s.id, aliases, content_type=s.content_type, show_year=getattr(s, "year", None))
                 if match.matched and match.score > best_score:
                     best_score = match.score
                     matched_show = s
