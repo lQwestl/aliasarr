@@ -2378,7 +2378,6 @@ function applyUserPermissionsToUI() {
   const tabQuality = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="quality"]');
   const tabMetadata = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="metadata"]');
   const tabNotifications = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="notifications"]');
-  const tabDesign = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="design"]');
   const tabUsers = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="users"]');
   const tabIndexers = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="indexers"]');
   const tabDownloaders = document.querySelector('#tab-settings .settings-tab-btn[data-settings-tab="download-clients"]');
@@ -2389,7 +2388,6 @@ function applyUserPermissionsToUI() {
   if (tabQuality) tabQuality.style.display = hasSettingsPerm ? "" : "none";
   if (tabMetadata) tabMetadata.style.display = hasSettingsPerm ? "" : "none";
   if (tabNotifications) tabNotifications.style.display = hasSettingsPerm ? "" : "none";
-  if (tabDesign) tabDesign.style.display = hasSettingsPerm ? "" : "none";
   if (tabUsers) tabUsers.style.display = hasPermission("manage_users") ? "" : "none";
   if (tabIndexers) tabIndexers.style.display = hasPermission("manage_indexers") ? "" : "none";
   if (tabDownloaders) tabDownloaders.style.display = hasPermission("manage_downloaders") ? "" : "none";
@@ -3451,7 +3449,6 @@ document.querySelectorAll(".settings-tab-btn").forEach(btn => {
     else if (targetTab === "download-clients") loadDownloadClients();
     else if (targetTab === "quality") loadQualityProfiles();
     else if (targetTab === "notifications") loadNotifications();
-    else if (targetTab === "design") loadDesignSettings();
     else if (targetTab === "general") loadGeneralSettings();
     else if (targetTab === "security") loadSecuritySettings();
     else if (targetTab === "users") loadUsers();
@@ -8913,7 +8910,10 @@ async function loadGeneralSettings() {
       if (hintEl) hintEl.textContent = t("settings.apikey_source_auto");
       if (regenBtn) regenBtn.disabled = false;
     }
-  } catch (e) {}
+    updateDesignSettingsUI();
+  } catch (e) {
+    updateDesignSettingsUI();
+  }
 
   try {
     const authStatus = await fetch("/api/v1/auth/status").then(r => r.json());
