@@ -5108,12 +5108,20 @@ function renderMovieBlock(show, ep, canManageLib = true) {
     if (ep.release_group) mediaInfoBadges += `<span class="badge-group">${escapeHtml(ep.release_group)}</span> `;
   }
 
+  const isDownloaded = ep.status === "downloaded" || hasFile;
+  const movieProgressClass = isDownloaded ? "badge-season-complete" : "badge-season-empty";
+  const movieProgressIcon = isDownloaded ? "check-circle-2" : "film";
+  const movieProgressText = isDownloaded ? t("status.downloaded") : episodeStatusLabel(ep.status);
+
   return `
     <div class="season-block" id="season-block-1">
       <div class="season-header">
         <div class="season-header-left">
           <span>${t("settings.cat_movies")}</span>
-          <span class="season-progress">${(ep.status === "downloaded" || hasFile) ? t("status.downloaded") : episodeStatusLabel(ep.status)}</span>
+          <span class="badge-season-progress ${movieProgressClass}">
+            <i data-lucide="${movieProgressIcon}"></i>
+            <span>${movieProgressText}</span>
+          </span>
         </div>
       </div>
       <div class="season-episodes">
@@ -5144,6 +5152,18 @@ function renderMovieBlock(show, ep, canManageLib = true) {
 
 function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearch = true, show = null) {
   const downloaded = episodes.filter(e => e.status === "downloaded" || (e.file_path && e.status === "downloading")).length;
+  const totalEps = episodes.length;
+  let progressBadgeClass = "badge-season-empty";
+  let progressIcon = "circle-dashed";
+
+  if (downloaded === totalEps && totalEps > 0) {
+    progressBadgeClass = "badge-season-complete";
+    progressIcon = "check-circle-2";
+  } else if (downloaded > 0) {
+    progressBadgeClass = "badge-season-partial";
+    progressIcon = "hard-drive";
+  }
+
   const seasonTitle = seasonNumber === 0
     ? (CURRENT_LANG === "en" ? "Specials" : "Спецвыпуски")
     : `${t("show.season")} ${seasonNumber}`;
@@ -5163,7 +5183,10 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
         <div class="season-header-left">
           <i data-lucide="chevron-down" class="season-caret ico-sm"></i>
           <span>${seasonTitle}</span>
-          <span class="season-progress">${downloaded}/${episodes.length} ${t("status.downloaded")}</span>
+          <span class="badge-season-progress ${progressBadgeClass}">
+            <i data-lucide="${progressIcon}"></i>
+            <span>${downloaded}/${totalEps} ${t("status.downloaded")}</span>
+          </span>
         </div>
         <div class="season-header-actions" onclick="event.stopPropagation()">
           <div class="season-main-buttons">
