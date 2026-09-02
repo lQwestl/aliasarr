@@ -418,6 +418,66 @@ class TestManualImportLogic(unittest.TestCase):
         m_empty = match_special_episode("Some.file.mkv", [])
         self.assertIsNone(m_empty)
 
+    def test_immediate_episode_commit_during_postprocess(self):
+        from types import SimpleNamespace
+        from app.services.postprocess import process_download
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            dl_dir = os.path.join(tmpdir, "downloads")
+            os.makedirs(dl_dir, exist_ok=True)
+            f1 = os.path.join(dl_dir, "1.01 - Dulcinea.mkv")
+            f2 = os.path.join(dl_dir, "1.02 - The Big Empty.mkv")
+            with open(f1, "wb") as f:
+                f.write(b"video1")
+            with open(f2, "wb") as f:
+                f.write(b"video2")
+
+            root_dir = os.path.join(tmpdir, "library")
+            os.makedirs(root_dir, exist_ok=True)
+
+            show = SimpleNamespace(id=1, title="The Expanse", year=2015, path=None, content_type="series", monitored=True)
+            ep1 = SimpleNamespace(id=1, show_id=1, season_number=1, episode_number=1, title="Dulcinea", status="downloading", file_path=None, download_progress=0.5, downloaded_quality=None, absolute_number=None, air_date=None)
+            ep2 = SimpleNamespace(id=2, show_id=1, season_number=1, episode_number=2, title="The Big Empty", status="downloading", file_path=None, download_progress=0.5, downloaded_quality=None, absolute_number=None, air_date=None)
+
+            db_mock = MagicMock()
+            def query_mock(model):
+                q = MagicMock()
+                def filter_by_mock(**kwargs):
+                    s = kwargs.get("season_number")
+                    e = kwargs.get("episode_number")
+                    res = MagicMock()
+                    if s == 1 and e == 1:
+                        res.first.return_value = ep1
+                    elif s == 1 and e == 2:
+                        res.first.return_value = ep2
+                    else:
+                        res.first.return_value = None
+                    res.all.return_value = []
+                    return res
+                q.filter_by.side_effect = filter_by_mock
+                q.filter.return_value = q
+                q.order_by.return_value = q
+                q.all.return_value = []
+                q.first.return_value = None
+                return q
+
+            db_mock.query.side_effect = query_mock
+
+            res = process_download(
+                db=db_mock,
+                show=show,
+                download_path=dl_dir,
+                rename_template="{Series Title} - S{season:02d}E{episode:02d}",
+                root_folder=root_dir,
+            )
+
+            # Check that both episodes were imported and committed immediately
+            self.assertEqual(len(res), 2)
+            self.assertEqual(ep1.status, "downloaded")
+            self.assertEqual(ep2.status, "downloaded")
+            # db.commit should have been called at least once per imported episode
+            self.assertGreaterEqual(db_mock.commit.call_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

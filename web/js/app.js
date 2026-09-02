@@ -3420,7 +3420,7 @@ function switchTab(tabId) {
       if (document.getElementById("tab-library")?.classList.contains("active")) {
         loadShows(true);
       }
-    }, 5000);
+    }, 3000);
   } else if (LIBRARY_POLL_INTERVAL) {
     clearInterval(LIBRARY_POLL_INTERVAL);
     LIBRARY_POLL_INTERVAL = null;
@@ -4734,7 +4734,15 @@ async function openShowModal(showId) {
         const row = document.getElementById(`episode-row-${ep.id}`);
         if (!row) return;
         
-        if (row.dataset.status && row.dataset.status !== ep.status) {
+        const curStatus = row.dataset.status || row.getAttribute("data-status");
+        if (curStatus && curStatus !== ep.status) {
+          statusChanged = true;
+          return;
+        }
+
+        const hasBadge = Boolean(row.querySelector('.badge-file-present'));
+        const hasFileNow = Boolean(ep.has_file || ep.file_path);
+        if (hasBadge !== hasFileNow) {
           statusChanged = true;
           return;
         }
@@ -4762,7 +4770,7 @@ async function openShowModal(showId) {
         }
       }
     } catch (e) {}
-  }, 2000);
+  }, 1500);
 }
 
 async function refreshShowModal() {
@@ -4785,6 +4793,9 @@ async function refreshShowModal() {
     });
     SHOW_EXPANDED_SEASONS[showId] = currentSet;
   }
+
+  const modalContainer = document.querySelector("#show-modal .modal") || document.getElementById("show-modal-content");
+  const modalScrollTop = modalContainer ? modalContainer.scrollTop : 0;
 
   const content = document.getElementById("show-modal-content");
   try {
@@ -4962,6 +4973,10 @@ async function refreshShowModal() {
             ${seasonNumbers.map(sn => renderSeasonBlock(sn, seasons[sn], canManageLib, canSearch, show)).join("") ||
              `<p style="color:var(--text-muted)">${t("show.no_overview")}</p>`}`}
       </div>`;
+
+    if (modalContainer && modalScrollTop) {
+      modalContainer.scrollTop = modalScrollTop;
+    }
 
     if (typeof lucide !== "undefined" && lucide.createIcons) {
       lucide.createIcons();

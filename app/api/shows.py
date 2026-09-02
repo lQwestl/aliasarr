@@ -1891,6 +1891,10 @@ def execute_manual_import(
                 episode.download_progress = 1.0
                 episode.downloaded_quality = quality
                 db.add(episode)
+                try:
+                    db.commit()
+                except Exception:
+                    pass
                 imported_count += 1
 
                 # Отправляем уведомление в мессенджеры для каждой импортированной серии
@@ -2358,6 +2362,10 @@ def execute_global_manual_import(
                 episode.dynamic_range = q_info.dynamic_range
                 episode.file_size_bytes = os.path.getsize(dest_video_path) if os.path.exists(dest_video_path) else None
                 db.add(episode)
+                try:
+                    db.commit()
+                except Exception:
+                    pass
                 imported_count += 1
 
                 # Отправляем уведомление в мессенджеры для каждой импортированной серии

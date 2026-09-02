@@ -19,9 +19,32 @@ try:
     from app.models.db import Episode, EpisodeStatus, Show
 except ImportError:
     Session = object
-    Episode = None
-    EpisodeStatus = type("EpisodeStatus", (), {"DOWNLOADED": "downloaded"})
-    Show = None
+    class _MockCol:
+        def __eq__(self, other): return self
+        def __ne__(self, other): return self
+        def isnot(self, other): return self
+        def is_(self, other): return self
+        def in_(self, other): return self
+    Episode = type("Episode", (), {
+        "id": _MockCol(),
+        "show_id": _MockCol(),
+        "status": _MockCol(),
+        "torrent_hash": _MockCol(),
+        "season_number": _MockCol(),
+        "episode_number": _MockCol(),
+        "absolute_number": _MockCol(),
+        "download_client_id": _MockCol(),
+        "download_progress": _MockCol(),
+    })
+    EpisodeStatus = type("EpisodeStatus", (), {
+        "DOWNLOADED": "downloaded",
+        "DOWNLOADING": "downloading",
+        "WANTED": "wanted",
+        "MISSING": "missing",
+        "UNAIRED": "unaired",
+        "IGNORED": "ignored",
+    })
+    Show = type("Show", (), {"id": _MockCol(), "title": _MockCol(), "content_type": _MockCol(), "path": _MockCol()})
 
 from app.services.parser import ReleaseKind, parse_episode
 from app.services.quality import parse_quality, detect_file_quality
@@ -1279,6 +1302,41 @@ def process_download(
                     except Exception:
                         pass
                 db.add(episode)
+                try:
+                    db.commit()
+                except Exception:
+                    try:
+                        db.rollback()
+                    except Exception:
+                        pass
+            elif db and season_num is not None and actual_ep_num is not None:
+                new_ep = Episode(
+                    show_id=show.id,
+                    season_number=season_num,
+                    episode_number=actual_ep_num,
+                    title=episode_title or f"Серия {actual_ep_num}",
+                    status=EpisodeStatus.DOWNLOADED,
+                    file_path=dest_video_path,
+                    download_progress=1.0,
+                    downloaded_quality=quality,
+                    video_codec=q_info.video_codec,
+                    audio_codec=q_info.audio_codec,
+                    audio_channels=q_info.audio_channels,
+                    dynamic_range=q_info.dynamic_range,
+                )
+                if os.path.exists(dest_video_path):
+                    try:
+                        new_ep.file_size_bytes = os.path.getsize(dest_video_path)
+                    except Exception:
+                        pass
+                db.add(new_ep)
+                try:
+                    db.commit()
+                except Exception:
+                    try:
+                        db.rollback()
+                    except Exception:
+                        pass
 
             end_pct = round((v_idx + 1) / max(1, total_videos), 2)
             if progress_callback:
