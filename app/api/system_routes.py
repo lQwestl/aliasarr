@@ -95,8 +95,8 @@ def get_system_about(
 
     return {
         "app_name": "Aliasarr",
-        "version": "1.7.0",
-        "package_version": "1.7.0 (main)",
+        "version": "1.8.0",
+        "package_version": "1.8.0 (main)",
         "branch": "main",
         "python_version": py_ver,
         "os_name": os_sys,
