@@ -1069,24 +1069,36 @@ def process_download(
             # 1. Приоритетный поиск среди серий этой конкретной загрузки (dl_eps)
             if dl_eps:
                 if parsed.season is not None:
+                    # Точное совпадение по сезону и номеру серии в этом сезоне
                     episode = next(
-                        (ep for ep in dl_eps if ep.season_number == parsed.season and (ep.episode_number == ep_num or ep.absolute_number == ep_num)),
+                        (ep for ep in dl_eps if ep.season_number == parsed.season and ep.episode_number == ep_num),
                         None,
                     )
+                    # Только если серии с таким номером нет в сезоне (например, аниме с абсолютной нумерацией в подпапке сезона)
+                    if episode is None and getattr(show, "content_type", "series") == "anime":
+                        episode = next(
+                            (ep for ep in dl_eps if ep.season_number == parsed.season and ep.absolute_number == ep_num),
+                            None,
+                        )
                 elif is_special_file:
                     episode = next(
-                        (ep for ep in dl_eps if ep.season_number == 0 and (ep.episode_number == ep_num or ep.absolute_number == ep_num)),
+                        (ep for ep in dl_eps if ep.season_number == 0 and ep.episode_number == ep_num),
                         None,
                     )
                 else:
-                    # Обычные серии без маркеров спешлов сопоставляются с основными сезонами (season > 0)
+                    # Обычные серии без маркеров спешлов сопоставляются сначала с 1 сезоном, затем по абсолютной нумерации
                     episode = next(
-                        (ep for ep in dl_eps if ep.season_number > 0 and (ep.episode_number == ep_num or ep.absolute_number == ep_num)),
+                        (ep for ep in dl_eps if ep.season_number == 1 and ep.episode_number == ep_num),
                         None,
                     )
                     if episode is None:
                         episode = next(
-                            (ep for ep in dl_eps if ep.episode_number == ep_num or ep.absolute_number == ep_num),
+                            (ep for ep in dl_eps if ep.absolute_number == ep_num),
+                            None,
+                        )
+                    if episode is None:
+                        episode = next(
+                            (ep for ep in dl_eps if ep.season_number > 0 and ep.episode_number == ep_num),
                             None,
                         )
 
@@ -1106,14 +1118,15 @@ def process_download(
                     )
 
                 if episode is None and not is_special_file:
-                    # Сначала по absolute_number (для аниме)
-                    episode = (
-                        db.query(Episode)
-                        .filter_by(show_id=show.id, absolute_number=ep_num)
-                        .first()
-                    )
+                    # По absolute_number только для аниме или если сезон не был указан в релизе
+                    if parsed.season is None or getattr(show, "content_type", "series") == "anime":
+                        episode = (
+                            db.query(Episode)
+                            .filter_by(show_id=show.id, absolute_number=ep_num)
+                            .first()
+                        )
                     if episode is None:
-                        target_s = dl_eps[0].season_number if (dl_eps and dl_eps[0].season_number > 0) else 1
+                        target_s = dl_eps[0].season_number if (dl_eps and dl_eps[0].season_number > 0) else (parsed.season or 1)
                         episode = (
                             db.query(Episode)
                             .filter_by(show_id=show.id, season_number=target_s, episode_number=ep_num)

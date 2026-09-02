@@ -478,6 +478,85 @@ class TestManualImportLogic(unittest.TestCase):
             # db.commit should have been called at least once per imported episode
             self.assertGreaterEqual(db_mock.commit.call_count, 2)
 
+    def test_season_2_episodes_not_colliding_with_season_1_absolute_numbers(self):
+        from types import SimpleNamespace
+        from app.services.postprocess import process_download
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            dl_dir = os.path.join(tmpdir, "downloads")
+            os.makedirs(dl_dir, exist_ok=True)
+            f11 = os.path.join(dl_dir, "2.11 - Here There Be Dragons.mkv")
+            f12 = os.path.join(dl_dir, "2.12 - The Monster and tha Rocket.mkv")
+            f13 = os.path.join(dl_dir, "2.13 - Caliban's War.mkv")
+            for f in [f11, f12, f13]:
+                with open(f, "wb") as fp:
+                    fp.write(b"content")
+
+            root_dir = os.path.join(tmpdir, "library")
+            os.makedirs(root_dir, exist_ok=True)
+
+            show = SimpleNamespace(id=1, title="The Expanse", year=2015, path=None, content_type="series", monitored=True)
+
+            # S02E01 has absolute_number=11 (10 eps in S1 + 1)
+            # S02E02 has absolute_number=12 (10 eps in S1 + 2)
+            # S02E03 has absolute_number=13 (10 eps in S1 + 3)
+            ep_s2e1 = SimpleNamespace(id=11, show_id=1, season_number=2, episode_number=1, absolute_number=11, title="Safe", status="downloaded", file_path="/fake/s2e1.mkv", download_progress=1.0, downloaded_quality="Bluray-1080p", air_date=None)
+            ep_s2e2 = SimpleNamespace(id=12, show_id=1, season_number=2, episode_number=2, absolute_number=12, title="Doors & Corners", status="downloaded", file_path="/fake/s2e2.mkv", download_progress=1.0, downloaded_quality="Bluray-1080p", air_date=None)
+            ep_s2e3 = SimpleNamespace(id=13, show_id=1, season_number=2, episode_number=3, absolute_number=13, title="Static", status="downloaded", file_path="/fake/s2e3.mkv", download_progress=1.0, downloaded_quality="Bluray-1080p", air_date=None)
+
+            ep_s2e11 = SimpleNamespace(id=21, show_id=1, season_number=2, episode_number=11, absolute_number=21, title="Here There Be Dragons", status="downloading", file_path=None, download_progress=0.5, downloaded_quality=None, air_date=None)
+            ep_s2e12 = SimpleNamespace(id=22, show_id=1, season_number=2, episode_number=12, absolute_number=22, title="The Monster and the Rocket", status="downloading", file_path=None, download_progress=0.5, downloaded_quality=None, air_date=None)
+            ep_s2e13 = SimpleNamespace(id=23, show_id=1, season_number=2, episode_number=13, absolute_number=23, title="Caliban's War", status="downloading", file_path=None, download_progress=0.5, downloaded_quality=None, air_date=None)
+
+            all_eps = [ep_s2e1, ep_s2e2, ep_s2e3, ep_s2e11, ep_s2e12, ep_s2e13]
+
+            db_mock = MagicMock()
+            def query_mock(model):
+                q = MagicMock()
+                def filter_by_mock(**kwargs):
+                    s = kwargs.get("season_number")
+                    e = kwargs.get("episode_number")
+                    res = MagicMock()
+                    matched = next((ep for ep in all_eps if ep.season_number == s and ep.episode_number == e), None)
+                    res.first.return_value = matched
+                    res.all.return_value = []
+                    return res
+                q.filter_by.side_effect = filter_by_mock
+                q.filter.return_value = q
+                q.order_by.return_value = q
+                q.all.return_value = []
+                q.first.return_value = None
+                return q
+
+            db_mock.query.side_effect = query_mock
+
+            res = process_download(
+                db=db_mock,
+                show=show,
+                download_path=dl_dir,
+                rename_template="{Series Title} - S{season:02d}E{episode:02d} - {Episode Title}",
+                root_folder=root_dir,
+            )
+
+            self.assertEqual(len(res), 3)
+            res_by_ep = {r["episode"]: r for r in res}
+            self.assertIn(11, res_by_ep)
+            self.assertEqual(res_by_ep[11]["season"], 2)
+            self.assertEqual(ep_s2e11.status, "downloaded")
+
+            self.assertIn(12, res_by_ep)
+            self.assertEqual(res_by_ep[12]["season"], 2)
+            self.assertEqual(ep_s2e12.status, "downloaded")
+
+            self.assertIn(13, res_by_ep)
+            self.assertEqual(res_by_ep[13]["season"], 2)
+            self.assertEqual(ep_s2e13.status, "downloaded")
+
+            # Episodes 1, 2, 3 must NOT have been overwritten
+            self.assertEqual(ep_s2e1.file_path, "/fake/s2e1.mkv")
+            self.assertEqual(ep_s2e2.file_path, "/fake/s2e2.mkv")
+            self.assertEqual(ep_s2e3.file_path, "/fake/s2e3.mkv")
+
 
 if __name__ == "__main__":
     unittest.main()
