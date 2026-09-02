@@ -12419,7 +12419,7 @@ async function loadReleaseLogs(page) {
             <div style="font-size:12.5px; color:var(--text); line-height:1.4;">${escapeHtml(translateLogMessage(item.message))}</div>
             ${item.release_title ? `<div class="hint mono" style="font-size:11px; margin-top:3px; word-break:break-all; color:var(--text-muted);">${escapeHtml(item.release_title)}</div>` : ""}
           </td>
-          <td>
+          <td style="text-align:center;">
             <button class="btn btn-icon-only btn-small" onclick="openReleaseLogDetail(${idx})" title="${t("common.details")}">
               <i data-lucide="info" class="ico-sm"></i>
             </button>

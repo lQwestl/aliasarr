@@ -1687,27 +1687,53 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   line-height: 1.45;
 }
 
+#release-logs-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+#release-logs-table thead tr th {
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--border);
+}
+#release-logs-table thead tr th:first-child {
+  border-top-left-radius: 7px;
+}
+#release-logs-table thead tr th:last-child {
+  border-top-right-radius: 7px;
+}
+#release-logs-table td {
+  border-bottom: 1px solid var(--border);
+}
+
+#release-logs-table .col-time,
 #release-logs-table th:nth-child(1),
 #release-logs-table td:nth-child(1) {
-  width: 180px;
-  min-width: 180px;
-  white-space: nowrap;
+  width: 145px !important;
+  min-width: 145px !important;
+  max-width: 145px !important;
+  white-space: nowrap !important;
 }
 #release-logs-table th:nth-child(2),
 #release-logs-table td:nth-child(2) {
-  width: 100px;
-  min-width: 100px;
+  width: 90px;
+  min-width: 90px;
+  max-width: 90px;
   white-space: nowrap;
 }
 #release-logs-table th:nth-child(3),
 #release-logs-table td:nth-child(3) {
-  width: 90px;
-  min-width: 90px;
+  width: 85px;
+  min-width: 85px;
+  max-width: 85px;
   white-space: nowrap;
 }
 #release-logs-table th:nth-child(4),
 #release-logs-table td:nth-child(4) {
-  width: 170px;
+  width: 160px;
+  min-width: 140px;
+  max-width: 180px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1722,9 +1748,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #release-logs-table th:nth-child(6),
 #release-logs-table td:nth-child(6) {
-  width: 70px;
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
   text-align: center;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 #history-table th:nth-child(1),
@@ -4721,10 +4750,11 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     word-break: break-word !important;
   }
   #release-logs-table {
-    min-width: 890px !important;
+    min-width: 780px !important;
   }
+  #release-logs-table th:nth-child(5),
   #release-logs-table td:nth-child(5) {
-    min-width: 280px !important;
+    min-width: 200px !important;
     white-space: normal !important;
     word-break: break-word !important;
   }
