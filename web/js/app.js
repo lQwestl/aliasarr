@@ -4992,7 +4992,14 @@ async function refreshShowModal() {
 
 function renderSearchStatus(show) {
   if (show.is_searching) {
-    return `<span class="spin-icon">↻</span> ${t("common.loading")}`;
+    return `<span class="search-status-badge is-searching">
+      <svg class="search-spin-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        <polyline points="21 3 21 9 15 9"/>
+      </svg>
+      <span class="search-status-text">${t("common.loading")}</span>
+      <span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span>
+    </span>`;
   }
   if (!show.last_search_at) {
     return `—`;
@@ -6085,7 +6092,16 @@ async function openPreviewRenameModal(showId, seasonNumber = null) {
   const btnExec = document.getElementById("btn-execute-rename");
 
   if (container) {
-    container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);"><span class="spin-icon">↻</span> ${t("common.loading")}</div>`;
+    container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);">
+      <span class="search-status-badge is-searching">
+        <svg class="search-spin-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          <polyline points="21 3 21 9 15 9"/>
+        </svg>
+        <span>${t("common.loading")}</span>
+        <span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span>
+      </span>
+    </div>`;
   }
   if (emptyState) emptyState.style.display = "none";
   if (counterEl) counterEl.textContent = "";
@@ -7478,7 +7494,33 @@ async function executeInteractiveSearch() {
   const searchBtn = document.getElementById("interactive-search-btn");
   const state = INTERACTIVE_SEARCH_STATE;
 
-  bodyEl.innerHTML = `<div style="text-align:center; padding:40px;"><p style="color:var(--text-muted);"><i data-lucide="loader" class="ico-spin ico-lg"></i></p><p>${t("common.loading")}</p></div>`;
+  bodyEl.innerHTML = `
+    <div class="interactive-search-loader-card">
+      <div class="rays-spinner-container">
+        <div class="rays-spinner-ambient-glow"></div>
+        <svg class="rays-spinner-svg" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="22" y1="4" x2="22" y2="11" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-1"/>
+          <line x1="34.73" y1="9.27" x2="29.78" y2="14.22" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-2"/>
+          <line x1="40" y1="22" x2="33" y2="22" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-3"/>
+          <line x1="34.73" y1="34.73" x2="29.78" y2="29.78" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-4"/>
+          <line x1="22" y1="40" x2="22" y2="33" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-5"/>
+          <line x1="9.27" y1="34.73" x2="14.22" y2="29.78" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-6"/>
+          <line x1="4" y1="22" x2="11" y2="22" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-7"/>
+          <line x1="9.27" y1="9.27" x2="14.22" y2="14.22" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-8"/>
+          <defs>
+            <linearGradient id="rays-grad" x1="4" y1="4" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+              <stop stop-color="var(--teal, #00F0FF)"/>
+              <stop offset="100%" stop-color="var(--violet, #8B5CF6)"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="interactive-loader-text">
+        <span>${t("common.loading")}</span>
+        <span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span>
+      </div>
+      <p class="interactive-loader-subtitle">${CURRENT_LANG === "en" ? "Querying indexers for releases..." : "Опрос трекеров и поиск релизов…"}</p>
+    </div>`;
   if (window.lucide) lucide.createIcons();
 
   try {
