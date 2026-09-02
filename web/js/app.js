@@ -3413,7 +3413,19 @@ function switchTab(tabId) {
     DASHBOARD_POLL_INTERVAL = null;
   }
 
-  if (tabId === "library") loadShows();
+  if (tabId === "library") {
+    loadShows(false);
+    if (LIBRARY_POLL_INTERVAL) clearInterval(LIBRARY_POLL_INTERVAL);
+    LIBRARY_POLL_INTERVAL = setInterval(() => {
+      if (document.getElementById("tab-library")?.classList.contains("active")) {
+        loadShows(true);
+      }
+    }, 5000);
+  } else if (LIBRARY_POLL_INTERVAL) {
+    clearInterval(LIBRARY_POLL_INTERVAL);
+    LIBRARY_POLL_INTERVAL = null;
+  }
+
   if (tabId === "calendar") loadCalendar();
   if (tabId === "history") loadHistory();
   if (tabId === "audit") loadAuditLogs(1);
@@ -3826,21 +3838,102 @@ function applyPosterOptions() {
   renderLibrary();
 }
 
-async function loadShows() {
-  const empty = document.getElementById("shows-empty");
+let LIBRARY_POLL_INTERVAL = null;
+
+function updateShowCardProgressInDOM(show) {
+  if (!show) return;
+  const total = show.episodes_count || 1;
+  const downloaded = show.downloaded_episodes_count || 0;
+  const downloading = show.downloading_episodes_count || 0;
+
+  // 1. Постеры (Grid view)
+  const card = document.getElementById(`show-card-${show.id}`);
+  if (card) {
+    const posterProgress = card.querySelector(".poster-progress");
+    const progressText = card.querySelector(".poster-progress-text");
+    const isImporting = posterProgress && posterProgress.classList.contains("status-importing");
+
+    let statusClass = "status-ended";
+    if (downloading > 0) {
+      statusClass = "status-downloading";
+    } else if (downloaded < total) {
+      statusClass = show.monitored ? "status-missing-mon" : "status-missing-unmon";
+    } else {
+      if ((show.content_type === "series" || show.content_type === "anime") && show.next_airing) {
+        statusClass = "status-continuing";
+      } else {
+        statusClass = "status-ended";
+      }
+    }
+    show._computed_status = statusClass;
+
+    if (!isImporting && posterProgress) {
+      posterProgress.className = `poster-progress ${statusClass}`;
+    }
+
+    if (!isImporting && progressText) {
+      if (POSTER_OPTIONS.progressText && show.content_type !== "movie") {
+        progressText.textContent = `${downloaded} / ${total}`;
+      } else if (POSTER_OPTIONS.progressText && show.content_type === "movie") {
+        progressText.textContent = downloaded > 0 ? "1 / 1" : "0 / 1";
+      }
+    }
+  }
+
+  // 2. Обзор (Overview view)
+  const overviewRow = document.getElementById(`show-overview-${show.id}`);
+  if (overviewRow) {
+    const overviewProgress = overviewRow.querySelector(".poster-progress");
+    const progressText = overviewProgress ? overviewProgress.querySelector(".poster-progress-text") : null;
+    const isImporting = overviewProgress && overviewProgress.classList.contains("status-importing");
+
+    if (!isImporting && overviewProgress && show._computed_status) {
+      overviewProgress.className = `poster-progress ${show._computed_status}`;
+    }
+    if (!isImporting && progressText) {
+      if (POSTER_OPTIONS.progressText && show.content_type !== "movie") {
+        progressText.textContent = `${downloaded} / ${total}`;
+      } else if (POSTER_OPTIONS.progressText && show.content_type === "movie") {
+        progressText.textContent = downloaded > 0 ? "1 / 1" : "0 / 1";
+      }
+    }
+  }
+
+  // 3. Таблица (Table view)
+  const tableRow = document.getElementById(`show-row-${show.id}`);
+  if (tableRow) {
+    const cells = tableRow.querySelectorAll("td");
+    if (cells.length >= 7) {
+      cells[5].textContent = show.seasons_count || 0;
+      cells[6].textContent = show.episodes_count || 0;
+    }
+  }
+}
+
+async function loadShows(silent = false) {
   try {
     const promises = [api("/api/v1/shows")];
     if (!CACHED_QUALITY_PROFILES.length) {
       promises.push(api("/api/v1/quality-profiles").catch(() => []));
     }
     const results = await Promise.all(promises);
-    CACHED_SHOWS = results[0] || [];
+    const newShows = results[0] || [];
     if (results[1] && results[1].length) {
       CACHED_QUALITY_PROFILES = results[1];
     }
-    renderLibrary();
+
+    const hadExisting = CACHED_SHOWS && CACHED_SHOWS.length > 0;
+    const sameLength = hadExisting && CACHED_SHOWS.length === newShows.length;
+    CACHED_SHOWS = newShows;
+
+    if (silent && hadExisting && sameLength) {
+      // Плавное бесшовное обновление индикаторов выполнения в DOM без мерцания и сброса скролла
+      newShows.forEach(updateShowCardProgressInDOM);
+    } else {
+      renderLibrary();
+    }
   } catch (e) {
-    if (e.message !== "unauthorized") toast("Ошибка загрузки: " + e.message, true);
+    if (!silent && e.message !== "unauthorized") toast("Ошибка загрузки: " + e.message, true);
   }
 }
 
@@ -4716,6 +4809,20 @@ async function refreshShowModal() {
         }
       }
     });
+
+    const downloadedEpsCount = episodes.filter(e => e.status === "downloaded" || (e.file_path && e.status !== "ignored")).length;
+    show.episodes_count = episodes.length;
+    show.downloaded_episodes_count = downloadedEpsCount;
+
+    if (Array.isArray(CACHED_SHOWS)) {
+      const idx = CACHED_SHOWS.findIndex(s => s.id === show.id);
+      if (idx !== -1) {
+        CACHED_SHOWS[idx] = Object.assign({}, CACHED_SHOWS[idx], show);
+      }
+    }
+    if (typeof updateShowCardProgressInDOM === "function") {
+      updateShowCardProgressInDOM(show);
+    }
 
     const seasons = {};
     episodes.forEach(ep => {

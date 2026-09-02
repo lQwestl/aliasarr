@@ -8,7 +8,7 @@ import shutil
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 import re
@@ -92,7 +92,13 @@ def _attach_computed_fields(db: Session, shows: list[Show]) -> list[ShowOut]:
     )
     dl_counts = dict(
         db.query(Episode.show_id, func.count(Episode.id))
-        .filter(Episode.show_id.in_(show_ids), Episode.status == EpisodeStatus.DOWNLOADED)
+        .filter(
+            Episode.show_id.in_(show_ids),
+            or_(
+                Episode.status == EpisodeStatus.DOWNLOADED,
+                and_(Episode.file_path.isnot(None), Episode.file_path != "")
+            )
+        )
         .group_by(Episode.show_id)
         .all()
     )
