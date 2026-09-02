@@ -942,26 +942,42 @@ def process_download(
             dl_eps = []
 
     context_hints = [os.path.basename(download_path), show.title]
-    if db and torrent_hash:
+    if db:
         try:
-            from app.models.db import DownloadHistory, TrackedRelease
-            tr = db.query(TrackedRelease).filter_by(infohash=torrent_hash).first()
-            if tr and getattr(tr, "topic_guid", None) and not str(tr.topic_guid).startswith("http"):
-                context_hints.append(tr.topic_guid)
+            from app.models.db import DownloadHistory, TrackedRelease, ReleaseLog
+            if torrent_hash:
+                tr = db.query(TrackedRelease).filter_by(infohash=torrent_hash).first()
+                if tr:
+                    if getattr(tr, "topic_guid", None) and not str(tr.topic_guid).startswith("http"):
+                        context_hints.append(tr.topic_guid)
+                    if getattr(tr, "title", None):
+                        context_hints.append(tr.title)
+                    if getattr(tr, "quality", None):
+                        context_hints.append(tr.quality)
+
+                rl = db.query(ReleaseLog).filter_by(torrent_hash=torrent_hash).first()
+                if rl and getattr(rl, "release_title", None):
+                    context_hints.append(rl.release_title)
+
             hist = (
                 db.query(DownloadHistory)
                 .filter(DownloadHistory.show_id == show.id)
                 .filter(DownloadHistory.event_type.in_(["grabbed", "imported"]))
                 .order_by(DownloadHistory.id.desc())
+                .limit(10)
                 .all()
             )
             for h in hist:
-                if h.matched_alias and torrent_hash.lower() in str(h.matched_alias).lower():
-                    if h.release_title:
-                        context_hints.append(h.release_title)
-                        break
+                if h.release_title:
+                    context_hints.append(h.release_title)
         except Exception:
             pass
+
+    if dl_eps:
+        for ep in dl_eps:
+            if getattr(ep, "downloaded_quality", None) and ep.downloaded_quality not in ("SDTV", "SDTV-480p"):
+                context_hints.append(ep.downloaded_quality)
+                break
 
     for v_idx, file_path in enumerate(video_files):
         filename = os.path.basename(file_path)
@@ -1013,10 +1029,15 @@ def process_download(
 
         ext = os.path.splitext(file_path)[1]
 
+        _RE_SPECIAL_WORD = re.compile(
+            r"\b(?:ova|ona|oad|special|specials|спешл(?:ы)?|спецвыпуск(?:и)?|sp|bonus|extra)\b|"
+            r"\[(?:ova|ona|oad|special|sp|bonus)\]",
+            re.IGNORECASE,
+        )
         is_special_file = (
-            (parsed and (parsed.season == 0 or parsed.matched_pattern in ("season_pack:ova_ona", "leading_num_special"))) or
-            any(kw in filename.lower() for kw in ("ova", "ona", "oad", "special", "specials", "спешл", "sp", "bonus")) or
-            (parsed and parsed.episodes and 0 in parsed.episodes)
+            (parsed and (parsed.season == 0 or parsed.matched_pattern in ("season_pack:ova_ona", "leading_num_special", "ova_ona_range", "ova_ona_episode", "season_0_special"))) or
+            (parsed and parsed.episodes and 0 in parsed.episodes) or
+            (parsed and parsed.season is None and bool(_RE_SPECIAL_WORD.search(filename)))
         )
 
         for ep_num in parsed.episodes:

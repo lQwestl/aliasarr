@@ -189,10 +189,16 @@ def evaluate_torrent_file_priority(
             if season is None and parsed_full.season is not None:
                 season = parsed_full.season
 
+    _RE_SPECIAL_WORD = re.compile(
+        r"\b(?:ova|ona|oad|special|specials|спешл(?:ы)?|спецвыпуск(?:и)?|sp|bonus|extra)\b|"
+        r"\[(?:ova|ona|oad|special|sp|bonus)\]",
+        re.IGNORECASE,
+    )
     is_special_file = (
-        (parsed and (parsed.season == 0 or parsed.matched_pattern in ("season_pack:ova_ona", "leading_num_special"))) or
-        any(kw in base_name.lower() for kw in ("ova", "ona", "oad", "special", "specials", "спешл", "sp", "bonus")) or
-        (episodes and 0 in episodes)
+        (parsed and (parsed.season == 0 or parsed.matched_pattern in ("season_pack:ova_ona", "leading_num_special", "ova_ona_range", "ova_ona_episode", "season_0_special"))) or
+        (parsed and parsed.episodes and 0 in parsed.episodes) or
+        (season == 0) or
+        (season is None and bool(_RE_SPECIAL_WORD.search(base_name)))
     )
 
     # 2. Не-видео файлы (субтитры, аудиодорожки, nfo, папки Sound / Audio / OST)
@@ -1143,6 +1149,7 @@ async def _do_search_and_grab(
             ep.status = EpisodeStatus.DOWNLOADING
             ep.download_client_id = download_client_row.id
             ep.torrent_hash = torrent_hash
+            ep.downloaded_quality = c["quality"].name
             db.add(ep)
 
         # Для сериалов/аниме запускаем selective download в фоне, для фильмов — гарантируем включение всех файлов

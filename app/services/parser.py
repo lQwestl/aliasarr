@@ -259,6 +259,30 @@ _RE_OVA_ONA_PACK = re.compile(
 # 1x05, 01x05, 1x05-1x07
 _RE_XFORMAT = re.compile(r"\b(\d{1,2})x(\d{2,4})\b", re.IGNORECASE)
 
+# 1.01-1.10, 1.01-10, 2.01-2.13, 01.01-01.10 (<Season>.<Episode> диапазон)
+_RE_DOT_FORMAT_RANGE = re.compile(
+    r"(?:^|[\s_.\[\(/])(\d{1,2})\.(\d{1,3})\s*[-–~]\s*(?:(?:\d{1,2}\.)?(\d{1,3}))(?:$|[\s_.\]\)\-])",
+    re.IGNORECASE,
+)
+
+# 1.01, 1.02, 2.04, 3.04, 4.06, 4.07, 6.1, 6.2 (<Season>.<Episode> одиночная серия)
+_RE_DOT_FORMAT = re.compile(
+    r"(?:^|[\s_.\[\(/])(\d{1,2})\.(\d{1,3})(?:$|[\s_.\]\)\-])(?!\.\d)",
+    re.IGNORECASE,
+)
+
+# Защита от ложного срабатывания dot-формата на аудиоканалах (5.1, 7.1, 2.0) и версиях (v1.8)
+_AUDIO_CHANNEL_AND_VER_PROTECT_RE = re.compile(
+    r"(?:\b(?:ac3|dts|ddp|dd\+|eac3|aac|flac|lpcm|audio|звук|rus|eng)[\s._-]+[1257]\.[012]\b|"
+    r"\b[1257]\.[012]\s*(?:ch|channels)\b|"
+    r"\b(?:ddp|eac3|ac3|dts)[1257]\.[012]\b|"
+    r"\b(?:[1257]\.[012])\s*(?:audio|sound|track|звук)\b|"
+    r"\b(?:5\.1|7\.1|2\.0|2\.1|1\.0)\b|"
+    r"\bv\d+(?:\.\d+)?\b)",
+    re.IGNORECASE,
+)
+_DATE_PROTECT_RE = re.compile(r"\b(19|20)\d{2}[._-]\d{2}[._-]\d{2}\b")
+
 # E05, EP05, E01-E06, E01E02 (без явного сезона)
 _RE_E_ONLY = re.compile(
     r"(?<![Ss]\d)\bE(?:P)?\.?(\d{1,4})(?:\s?[-\s]\s?E(?:P)?\.?(\d{1,4}))?\b",
@@ -394,8 +418,10 @@ def parse_episode(release_name: str) -> ParsedRelease:
     has_explicit_s_e = (
         _RE_MULTI_SEASON_EP_RANGE.search(protected) or
         _RE_SXXEXX_RANGE.search(protected) or _RE_SXXEXX_MULTI.search(protected) or
-        _RE_XFORMAT_RANGE.search(protected) or _RE_WORDY_SEASON_EP_RANGE.search(protected) or
-        _RE_WORDY_SEASON_EP_SINGLE.search(protected) or _RE_XFORMAT.search(protected)
+        _RE_XFORMAT_RANGE.search(protected) or _RE_XFORMAT.search(protected) or
+        _RE_DOT_FORMAT_RANGE.search(raw) or _RE_DOT_FORMAT.search(raw) or
+        _RE_WORDY_SEASON_EP_RANGE.search(protected) or
+        _RE_WORDY_SEASON_EP_SINGLE.search(protected)
     )
     if not has_explicit_s_e and _EXTRA_RELEASE_RE.search(raw):
         return ParsedRelease(kind=ReleaseKind.UNKNOWN, raw=raw, matched_pattern="extra_ignored")
@@ -445,7 +471,7 @@ def parse_episode(release_name: str) -> ParsedRelease:
         )
 
     # 1в. 1x01-1x10 диапазон серий (1x01-1x10, 1x01-10, 01x01-01x10)
-    m_x_range = _RE_XFORMAT_RANGE.search(protected)
+    m_x_range = _RE_XFORMAT_RANGE.search(raw) or _RE_XFORMAT_RANGE.search(protected)
     if m_x_range:
         s = int(m_x_range.group(1))
         start, end = int(m_x_range.group(2)), int(m_x_range.group(3))
@@ -453,6 +479,41 @@ def parse_episode(release_name: str) -> ParsedRelease:
             return ParsedRelease(
                 kind=ReleaseKind.EPISODE, season=s, episodes=list(range(start, end + 1)),
                 is_range=True, raw=raw, matched_pattern="1x01_range",
+            )
+
+    # 1в2. 1x05, 01x05 одиночная серия
+    m_x = _RE_XFORMAT.search(raw) or _RE_XFORMAT.search(protected)
+    if m_x:
+        return ParsedRelease(
+            kind=ReleaseKind.EPISODE, season=int(m_x.group(1)), episodes=[int(m_x.group(2))],
+            raw=raw, matched_pattern="1x05",
+        )
+
+    # 1в3. 1.01-1.10 / 1.01-10 (dot-format диапазон)
+    raw_dot_protected = _DATE_PROTECT_RE.sub(" ", raw)
+    raw_dot_protected = _YEAR_RANGE_RE.sub(" ", raw_dot_protected)
+    raw_dot_protected = _YEAR_RE.sub(" ", raw_dot_protected)
+    raw_dot_protected = _AUDIO_CHANNEL_AND_VER_PROTECT_RE.sub(" ", raw_dot_protected)
+
+    m_dot_range = _RE_DOT_FORMAT_RANGE.search(raw_dot_protected)
+    if m_dot_range:
+        s = int(m_dot_range.group(1))
+        start, end = int(m_dot_range.group(2)), int(m_dot_range.group(3))
+        if 1 <= s <= 99 and 0 <= start <= end <= 999 and (end - start) < 300:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=s, episodes=list(range(start, end + 1)),
+                is_range=True, raw=raw, matched_pattern="dot_format_range",
+            )
+
+    # 1в4. 1.01, 1.02, 2.04, 3.04, 4.06, 4.07, 6.1, 6.2 (dot-format одиночная серия)
+    m_dot = _RE_DOT_FORMAT.search(raw_dot_protected)
+    if m_dot:
+        s = int(m_dot.group(1))
+        ep = int(m_dot.group(2))
+        if 1 <= s <= 99 and 0 <= ep <= 999:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=s, episodes=[ep],
+                raw=raw, matched_pattern="dot_format",
             )
 
     # 1г. "Сезон: 2 / Серии: 1-18 (18)" / "Season 2 Episodes 1-18" — сезон и диапазон серий словами
@@ -633,6 +694,16 @@ def parse_episode(release_name: str) -> ParsedRelease:
             s_ep = int(m_s_br_sub.group(1))
             if 0 <= s_ep <= 9999:
                 return [s_ep]
+        m_dot_sub = _RE_DOT_FORMAT_RANGE.search(raw_dot_protected)
+        if m_dot_sub:
+            s_ep, e_ep = int(m_dot_sub.group(2)), int(m_dot_sub.group(3))
+            if 0 <= s_ep <= e_ep <= 9999 and (e_ep - s_ep) < 10000:
+                return list(range(s_ep, e_ep + 1))
+        m_dot_single = _RE_DOT_FORMAT.search(raw_dot_protected)
+        if m_dot_single:
+            ep = int(m_dot_single.group(2))
+            if 0 <= ep <= 9999:
+                return [ep]
         return []
 
     # 2б. Римские цифры сезонов: "I сезон", "II сезон", "III сезон", "Season IV", "Сезон V"
@@ -727,14 +798,6 @@ def parse_episode(release_name: str) -> ParsedRelease:
     m_trail_s = _RE_TRAILING_SEASON_DIGIT_PACK.search(protected)
     if m_trail_s and not (_RE_BRACKET_RANGE.search(protected) or _RE_RANGE_IZ_N.search(protected) or _RE_SINGLE_IZ_N.search(protected) or _RE_BRACKET_SINGLE_EP.search(protected)):
         return _season_pack_result(int(m_trail_s.group(1)), raw, "season_pack:trailing_digit")
-
-    # 3. 1x05
-    m = _RE_XFORMAT.search(protected)
-    if m:
-        return ParsedRelease(
-            kind=ReleaseKind.EPISODE, season=int(m.group(1)), episodes=[int(m.group(2))],
-            raw=raw, matched_pattern="1x05",
-        )
 
     # 4. Диапазоны и серии N of TOTAL / N из TOTAL:
     # [E01-E12 of 12], [01-12 из 12], [E12 of 12], [E12 of E12], [12 of 12], [E12 из 12], [E06 of 12], [12/12], E12 of 12
