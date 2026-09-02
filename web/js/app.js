@@ -4721,7 +4721,8 @@ async function openShowModal(showId) {
       return;
     }
     try {
-      const [episodes, queue] = await Promise.all([
+      const [show, episodes, queue] = await Promise.all([
+        api(`/api/v1/shows/${showId}`),
         api(`/api/v1/shows/${showId}/episodes`),
         api(`/api/v1/queue`).catch(() => [])
       ]);
@@ -4729,6 +4730,18 @@ async function openShowModal(showId) {
       queue.forEach(q => queueByHash[q.hash.toLowerCase()] = q.progress);
 
       let statusChanged = false;
+
+      const statusRow = document.getElementById("modal-search-status-row") || document.querySelector(".search-status-row");
+      if (statusRow && show) {
+        const wasSearching = statusRow.classList.contains("is-searching");
+        if (Boolean(show.is_searching) !== wasSearching) {
+          statusRow.className = `search-status-row ${show.is_searching ? "is-searching" : ""}`;
+          statusRow.innerHTML = renderSearchStatus(show);
+          if (wasSearching && !show.is_searching) {
+            statusChanged = true;
+          }
+        }
+      }
 
       episodes.forEach(ep => {
         const row = document.getElementById(`episode-row-${ep.id}`);
@@ -4855,7 +4868,7 @@ async function refreshShowModal() {
           <div class="poster-manual-actions">
             <button type="button" class="btn btn-secondary btn-small" onclick="document.getElementById('show-cover-file-${show.id}').click()" title="${t("show.upload_cover")}"><i data-lucide="upload" class="ico-sm"></i> <span>${t("show.upload_cover")}</span></button>
             <input id="show-cover-file-${show.id}" type="file" accept="image/*" style="display:none" onchange="onShowCoverFile(event, ${show.id})">
-            <button type="button" class="btn btn-secondary btn-small" style="white-space: normal; line-height: 1.2;" onclick="searchPosterForShow(${show.id})" title="${t("show.refresh_cover")}"><i data-lucide="search" class="ico-sm"></i> <span>${t("show.refresh_cover")}</span></button>
+            <button type="button" class="btn btn-secondary btn-small" onclick="searchPosterForShow(${show.id})" title="${t("show.refresh_cover")}"><i data-lucide="search" class="ico-sm"></i> <span>${t("show.refresh_cover")}</span></button>
           </div>` : ""}
         </div>
         <div class="show-detail-meta">
@@ -4922,7 +4935,7 @@ async function refreshShowModal() {
         </div>
       </div>
 
-      <div class="search-status-row ${show.is_searching ? "is-searching" : ""}">
+      <div id="modal-search-status-row" class="search-status-row ${show.is_searching ? "is-searching" : ""}">
         ${renderSearchStatus(show)}
       </div>
 
@@ -4990,15 +5003,33 @@ async function refreshShowModal() {
   }
 }
 
+function setModalSearchingState(showId, isSearching) {
+  const targetId = showId || CURRENT_SHOW_ID;
+  if (!targetId) return;
+  const row = document.getElementById("modal-search-status-row") || document.querySelector(".search-status-row");
+  if (row) {
+    if (isSearching) {
+      row.classList.add("is-searching");
+      row.innerHTML = renderSearchStatus({ is_searching: true });
+    } else {
+      row.classList.remove("is-searching");
+    }
+  }
+  if (Array.isArray(CACHED_SHOWS)) {
+    const s = CACHED_SHOWS.find(x => x.id === targetId);
+    if (s) s.is_searching = isSearching;
+  }
+}
+
 function renderSearchStatus(show) {
   if (show.is_searching) {
+    const loadingWord = (t("common.loading") || (CURRENT_LANG === "en" ? "Loading" : "Загрузка")).replace(/[\.…]+$/, "");
     return `<span class="search-status-badge is-searching">
       <svg class="search-spin-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
         <polyline points="21 3 21 9 15 9"/>
       </svg>
-      <span class="search-status-text">${t("common.loading")}</span>
-      <span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span>
+      <span class="search-status-text">${loadingWord}<span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span></span>
     </span>`;
   }
   if (!show.last_search_at) {
@@ -5466,6 +5497,7 @@ function renderAirDateBadge(airDateStr) {
 async function searchSeasonAuto(button, showId, seasonNumber) {
   const sId = showId || CURRENT_SHOW_ID;
   if (!sId) return;
+  setModalSearchingState(sId, true);
   await withLoading(button, async () => {
     try {
       const result = await api(`/api/v1/shows/${sId}/search-season/${seasonNumber}`, {
@@ -5475,6 +5507,7 @@ async function searchSeasonAuto(button, showId, seasonNumber) {
       await refreshShowModal();
     } catch (e) {
       toast("Ошибка: " + e.message, true);
+      await refreshShowModal();
     }
   });
 }
@@ -5563,6 +5596,7 @@ async function searchSelectedEpisodes(button, seasonNumber = null) {
     return;
   }
 
+  setModalSearchingState(CURRENT_SHOW_ID, true);
   await withLoading(button, async () => {
     try {
       const result = await api(`/api/v1/shows/${CURRENT_SHOW_ID}/search-episodes`, {
@@ -5573,6 +5607,7 @@ async function searchSelectedEpisodes(button, seasonNumber = null) {
       await refreshShowModal();
     } catch (e) {
       toast("Ошибка: " + e.message, true);
+      await refreshShowModal();
     }
   });
 }
@@ -6031,12 +6066,16 @@ async function toggleEpisodeMonitor(episodeId, currentlyMonitored) {
 }
 
 async function searchSingleEpisode(button, episodeId) {
+  setModalSearchingState(CURRENT_SHOW_ID, true);
   await withLoading(button, async () => {
     try {
       const result = await api(`/api/v1/episodes/${episodeId}/search`, { method: "POST" });
       toast(result.message, !result.success);
       await refreshShowModal();
-    } catch (e) { toast("Ошибка: " + e.message, true); }
+    } catch (e) {
+      toast("Ошибка: " + e.message, true);
+      await refreshShowModal();
+    }
   });
 }
 
@@ -6098,8 +6137,7 @@ async function openPreviewRenameModal(showId, seasonNumber = null) {
           <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
           <polyline points="21 3 21 9 15 9"/>
         </svg>
-        <span>${t("common.loading")}</span>
-        <span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span>
+        <span class="search-status-text">${(t("common.loading") || (CURRENT_LANG === "en" ? "Loading" : "Загрузка")).replace(/[\.…]+$/, "")}<span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span></span>
       </span>
     </div>`;
   }
@@ -7308,6 +7346,7 @@ async function executeGlobalManualImport() {
 }
 
 async function forceSearchShow(button, showId) {
+  setModalSearchingState(showId, true);
   await withLoading(button, async () => {
     try {
       const result = await api(`/api/v1/shows/${showId}/search`, { method: "POST" });
@@ -7315,7 +7354,10 @@ async function forceSearchShow(button, showId) {
       toast(count ? `${t("dash.wanted")}: ${count}` : (result.status || t("common.none")));
       await refreshShowModal();
       loadShows();
-    } catch (e) { toast("Ошибка: " + e.message, true); }
+    } catch (e) {
+      toast("Ошибка: " + e.message, true);
+      await refreshShowModal();
+    }
   });
 }
 
@@ -7516,8 +7558,7 @@ async function executeInteractiveSearch() {
         </svg>
       </div>
       <div class="interactive-loader-text">
-        <span>${t("common.loading")}</span>
-        <span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span>
+        <span>${(t("common.loading") || (CURRENT_LANG === "en" ? "Loading" : "Загрузка")).replace(/[\.…]+$/, "")}<span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span></span>
       </div>
       <p class="interactive-loader-subtitle">${CURRENT_LANG === "en" ? "Querying indexers for releases..." : "Опрос трекеров и поиск релизов…"}</p>
     </div>`;
