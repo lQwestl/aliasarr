@@ -147,3 +147,7 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
     digest = hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt), _PBKDF2_ITERATIONS)
     return secrets.compare_digest(digest.hex(), digest_hex)
+
+
+# Алиас для совместимости
+get_settings = get_or_create_settings

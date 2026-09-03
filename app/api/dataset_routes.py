@@ -25,7 +25,7 @@ from app.services.matcher import (
     normalize_title,
 )
 from app.services.decision_engine import DecisionEngine
-from app.services.settings_service import get_settings
+from app.services.settings_service import get_or_create_settings
 
 logger = logging.getLogger("aliasarr.dataset")
 
@@ -356,7 +356,7 @@ async def _run_harvest_task(targets: list[dict], indexer_id: Optional[int]):
     db = SessionLocal()
 
     try:
-        settings = get_settings(db)
+        settings = get_or_create_settings(db)
         if indexer_id:
             idx_list = db.query(Indexer).filter(Indexer.id == indexer_id, Indexer.enabled == True).all()
         else:
@@ -609,7 +609,7 @@ def diagnose_release(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_any_permission("manual_search", "manage_settings")),
 ):
-    settings = get_settings(db)
+    settings = get_or_create_settings(db)
     target_show = None
     if req.show_id:
         target_show = db.get(Show, req.show_id)
