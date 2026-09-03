@@ -8525,8 +8525,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 /* Dataset Table Base Layout */
 #dataset-table {
   width: 100%;
-  min-width: 960px;
-  table-layout: auto;
+  min-width: 1000px;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -8535,42 +8535,63 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 #dataset-table td {
   padding: 10px 12px;
   vertical-align: middle;
+  box-sizing: border-box;
 }
 
 #dataset-table .col-query {
-  width: 120px;
-  min-width: 110px;
+  width: 130px;
+  min-width: 130px;
+  max-width: 130px;
+  white-space: nowrap;
 }
 
 #dataset-table .col-title {
-  min-width: 280px;
-  word-break: break-word;
+  width: 340px;
+  min-width: 300px;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  line-height: 1.45;
+}
+
+#dataset-table .dataset-release-title {
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
 #dataset-table .col-size {
   width: 110px;
-  min-width: 100px;
+  min-width: 110px;
+  max-width: 110px;
   white-space: nowrap;
 }
 
 #dataset-table .col-episodes {
   width: 120px;
-  min-width: 110px;
+  min-width: 120px;
+  max-width: 120px;
 }
 
 #dataset-table .col-match {
   width: 175px;
-  min-width: 160px;
+  min-width: 175px;
+  max-width: 175px;
 }
 
 #dataset-table .col-decision {
-  width: 145px;
-  min-width: 135px;
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
 }
 
 #dataset-table .col-actions {
   width: 75px;
-  min-width: 70px;
+  min-width: 75px;
+  max-width: 75px;
   text-align: center;
 }
 
@@ -8640,48 +8661,70 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     gap: 8px !important;
   }
 
-  /* В мобильной версии таблица идентична десктопной со свободным горизонтальным скроллом без наезжания */
+  /* В мобильной версии таблица идентична десктопной со свободным горизонтальным скроллом и аккуратным переносом текста */
   #dataset-table {
-    min-width: 960px !important;
-    width: max-content !important;
-    table-layout: auto !important;
+    min-width: 1000px !important;
+    width: 100% !important;
+    table-layout: fixed !important;
   }
 
   #dataset-table th,
   #dataset-table td {
     padding: 10px 12px !important;
     font-size: 12px !important;
+    box-sizing: border-box !important;
   }
 
   #dataset-table .col-query {
-    width: 120px !important;
-    min-width: 110px !important;
+    width: 130px !important;
+    min-width: 130px !important;
+    max-width: 130px !important;
   }
 
   #dataset-table .col-title {
-    min-width: 280px !important;
-    max-width: 440px !important;
+    width: 340px !important;
+    min-width: 300px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  #dataset-table .dataset-release-title {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    line-height: 1.45 !important;
   }
 
   #dataset-table .col-size {
-    min-width: 100px !important;
+    width: 110px !important;
+    min-width: 110px !important;
+    max-width: 110px !important;
     white-space: nowrap !important;
   }
 
   #dataset-table .col-episodes {
+    width: 120px !important;
     min-width: 120px !important;
+    max-width: 120px !important;
   }
 
   #dataset-table .col-match {
-    min-width: 170px !important;
+    width: 175px !important;
+    min-width: 175px !important;
+    max-width: 175px !important;
   }
 
   #dataset-table .col-decision {
-    min-width: 140px !important;
+    width: 150px !important;
+    min-width: 150px !important;
+    max-width: 150px !important;
   }
 
   #dataset-table .col-actions {
+    width: 75px !important;
     min-width: 75px !important;
+    max-width: 75px !important;
     text-align: center !important;
   }
 }

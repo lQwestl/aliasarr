@@ -13106,8 +13106,8 @@ async function loadDatasetData(page = 1) {
           <div class="query-title" style="font-weight: 600; color: var(--teal, #00F0FF);">${query}</div>
           <div class="query-indexer hint" style="font-size: 10px;">${indexer}</div>
         </td>
-        <td class="col-title" style="word-break: break-word;">
-          <div style="font-weight: 500; font-size: 12px; line-height: 1.4;">${title}</div>
+        <td class="col-title">
+          <div class="dataset-release-title">${title}</div>
         </td>
         <td class="col-size">
           <div class="mono" style="font-size: 11px;">${sizeStr}</div>
