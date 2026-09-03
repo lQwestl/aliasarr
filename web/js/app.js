@@ -13117,12 +13117,14 @@ async function loadDatasetData(page = 1) {
         <td class="col-match">${dbMatchHtml}</td>
         <td class="col-decision">${decisionHtml}</td>
         <td class="col-actions" style="text-align: center; white-space: nowrap;">
-          <button class="btn btn-ghost btn-xs" onclick="openDatasetDiagnoseModal(${idx})" title="Подробная диагностика сопоставления">
-            <i data-lucide="search" class="ico-xs" style="color:var(--teal);"></i>
-          </button>
-          <button class="btn btn-ghost btn-xs" data-copy-title="${escapeHtml(r.title || "")}" onclick="copyDatasetRowTitle(this)" title="Скопировать название в буфер">
-            <i data-lucide="copy" class="ico-xs"></i>
-          </button>
+          <div class="dataset-actions-btns">
+            <button class="btn btn-ghost btn-xs" onclick="openDatasetDiagnoseModal(${idx})" title="Подробная диагностика сопоставления">
+              <i data-lucide="search" class="ico-xs" style="color:var(--teal);"></i>
+            </button>
+            <button class="btn btn-ghost btn-xs" data-copy-title="${escapeHtml(r.title || "")}" onclick="copyDatasetRowTitle(this)" title="Скопировать название в буфер">
+              <i data-lucide="copy" class="ico-xs"></i>
+            </button>
+          </div>
         </td>
       </tr>`;
     });

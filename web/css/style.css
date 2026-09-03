@@ -8525,9 +8525,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 /* Dataset Table Base Layout */
 #dataset-table {
   width: 100%;
-  min-width: 1000px;
+  min-width: 1020px;
   table-layout: fixed;
-  border-collapse: separate;
+  border-collapse: collapse;
   border-spacing: 0;
 }
 
@@ -8538,6 +8538,15 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   box-sizing: border-box;
 }
 
+#dataset-table thead tr th {
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--border);
+}
+
+#dataset-table tbody tr td {
+  border-bottom: 1px solid var(--border);
+}
+
 #dataset-table .col-query {
   width: 130px;
   min-width: 130px;
@@ -8546,8 +8555,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 #dataset-table .col-title {
-  width: 340px;
-  min-width: 300px;
+  width: auto;
+  min-width: 280px;
   white-space: normal !important;
   word-break: break-word !important;
   overflow-wrap: anywhere !important;
@@ -8589,10 +8598,16 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 #dataset-table .col-actions {
-  width: 75px;
-  min-width: 75px;
-  max-width: 75px;
+  width: 90px;
+  min-width: 90px;
   text-align: center;
+}
+
+.dataset-actions-btns {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
 /* Vanguard & Theme Overrides for Dataset Harvester */
@@ -8663,9 +8678,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
   /* В мобильной версии таблица идентична десктопной со свободным горизонтальным скроллом и аккуратным переносом текста */
   #dataset-table {
-    min-width: 1000px !important;
+    min-width: 1020px !important;
     width: 100% !important;
     table-layout: fixed !important;
+    border-collapse: collapse !important;
   }
 
   #dataset-table th,
@@ -8682,8 +8698,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 
   #dataset-table .col-title {
-    width: 340px !important;
-    min-width: 300px !important;
+    width: auto !important;
+    min-width: 280px !important;
     white-space: normal !important;
     word-break: break-word !important;
     overflow-wrap: anywhere !important;
@@ -8722,9 +8738,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 
   #dataset-table .col-actions {
-    width: 75px !important;
-    min-width: 75px !important;
-    max-width: 75px !important;
+    width: 90px !important;
+    min-width: 90px !important;
     text-align: center !important;
   }
 }
