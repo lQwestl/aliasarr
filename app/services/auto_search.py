@@ -448,18 +448,42 @@ async def _limit_torrent_files_to_episodes(
             torrent_hash, len(wanted_indices), len(torrent.files), len(unwanted_indices),
         )
         try:
-            # Запускаем проверку целостности (verify / recheck) и возобновляем раздачу,
-            # чтобы клиент обнаружил отсутствие файлов на диске (если они ранее перемещались/удалялись)
-            # и скачал их заново.
-            await dl_client.recheck_torrent(torrent_hash)
             await dl_client.resume_torrent(torrent_hash)
         except Exception as exc:
-            logger.warning("Не удалось запустить проверку/возобновить раздачу %s: %s", torrent_hash, exc)
+            logger.warning("Не удалось возобновить раздачу %s: %s", torrent_hash, exc)
 
         logger.info(
             "Раздача %s: скачивание ограничено выбранными сериями (%d шт), отключено файлов: %d, включено: %d",
             torrent_hash, len(target_eps), len(unwanted_indices), len(wanted_indices)
         )
+
+        try:
+            from app.database import SessionLocal
+            with SessionLocal() as s_db:
+                db_show = s_db.get(Show, show_id) if show_id else None
+                if db_show:
+                    wanted_names = [torrent.files[i].name.replace("\\", "/") for i in wanted_indices]
+                    unwanted_names = [torrent.files[i].name.replace("\\", "/") for i in unwanted_indices]
+                    log_release_event(
+                        stage="download",
+                        level="info",
+                        show_title=db_show.title,
+                        show_id=db_show.id,
+                        release_title=getattr(torrent, "name", "") or torrent_hash,
+                        indexer="DownloadClient",
+                        message=(
+                            f"Раздача '{getattr(torrent, 'name', '') or torrent_hash}': включено серий: {len(wanted_indices)}, "
+                            f"отключено файлов: {len(unwanted_indices)}."
+                        ),
+                        details={
+                            "torrent_hash": torrent_hash,
+                            "wanted_files": wanted_names,
+                            "unwanted_files": unwanted_names[:15],
+                        },
+                        db=s_db,
+                    )
+        except Exception as log_exc:
+            logger.debug("Не удалось залогировать событие выборочной загрузки: %s", log_exc)
     else:
         # wanted_indices пуст.
         # Собираем все видеофайлы в раздаче
@@ -493,10 +517,35 @@ async def _limit_torrent_files_to_episodes(
             unw_indices = [f.index for f in torrent.files if f.index not in v_indices]
             await dl_client.set_files_wanted_unwanted(torrent_hash, v_indices, unw_indices)
             try:
-                await dl_client.recheck_torrent(torrent_hash)
                 await dl_client.resume_torrent(torrent_hash)
             except Exception as exc:
                 logger.warning("Не удалось возобновить раздачу %s: %s", torrent_hash, exc)
+
+            try:
+                from app.database import SessionLocal
+                with SessionLocal() as s_db:
+                    db_show = s_db.get(Show, show_id) if show_id else None
+                    if db_show:
+                        all_file_names = [f.name.replace("\\", "/") for f in torrent.files]
+                        log_release_event(
+                            stage="download",
+                            level="warning",
+                            show_title=db_show.title,
+                            show_id=db_show.id,
+                            release_title=getattr(torrent, "name", "") or torrent_hash,
+                            indexer="DownloadClient",
+                            message=(
+                                f"Раздача '{getattr(torrent, 'name', '') or torrent_hash}': не удалось сопоставить отдельные серии по именам файлов. "
+                                f"Скачиваются все видеофайлы ({len(video_files)} шт)."
+                            ),
+                            details={
+                                "torrent_hash": torrent_hash,
+                                "all_files": all_file_names[:20],
+                            },
+                            db=s_db,
+                        )
+            except Exception as log_exc:
+                logger.debug("Не удалось залогировать предупреждение о загрузке всех файлов: %s", log_exc)
             return
 
         # Раздача действительно не содержит запрошенных серий (например, Part 1 при поиске Part 2).

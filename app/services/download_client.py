@@ -764,12 +764,34 @@ class TransmissionClient(BaseDownloadClient):
 
     async def set_files_wanted_unwanted(self, torrent_hash: str, wanted_indices: list[int], unwanted_indices: list[int]) -> None:
         try:
-            args = {"ids": [torrent_hash]}
+            # Получаем реальный числовой ID торрента в Transmission для корректной работы torrent-set
+            t_id = None
+            try:
+                res = await self._rpc_call("torrent-get", {"fields": ["id", "hashString"], "ids": [torrent_hash]})
+                torrents = res.get("torrents", [])
+                if not torrents:
+                    res_all = await self._rpc_call("torrent-get", {"fields": ["id", "hashString"]})
+                    torrents = [t for t in res_all.get("torrents", []) if str(t.get("hashString", "")).lower() == torrent_hash.lower()]
+                if torrents:
+                    t_id = torrents[0].get("id")
+            except Exception as e:
+                logger.debug("Не удалось получить числовой ID торрента в Transmission: %s", e)
+
+            target_ids = [t_id] if t_id is not None else [torrent_hash]
+
+            # Вызываем сначала отключение нежелательных файлов, затем включение нужных
             if unwanted_indices:
-                args["files-unwanted"] = unwanted_indices
+                await self._rpc_call("torrent-set", {"ids": target_ids, "files-unwanted": unwanted_indices})
             if wanted_indices:
-                args["files-wanted"] = wanted_indices
-            await self._rpc_call("torrent-set", args)
+                await self._rpc_call("torrent-set", {"ids": target_ids, "files-wanted": wanted_indices})
+
+            # Если доступен sync_client transmission_rpc, дублируем вызов через нативный python-клиент
+            if self._sync_client:
+                target_ref = t_id if t_id is not None else torrent_hash
+                try:
+                    await asyncio.to_thread(self._set_files_wanted_unwanted_sync, str(target_ref), wanted_indices, unwanted_indices)
+                except Exception as sync_exc:
+                    logger.debug("Дублирование через sync transmission_rpc: %s", sync_exc)
         except Exception as exc:
             logger.warning("Ошибка set_files_wanted_unwanted в Transmission: %s", exc)
             if self._sync_client:
@@ -777,15 +799,19 @@ class TransmissionClient(BaseDownloadClient):
 
     def _set_files_wanted_unwanted_sync(self, torrent_hash: str, wanted_indices: list[int], unwanted_indices: list[int]) -> None:
         try:
-            torrent = self._sync_client.get_torrent(torrent_hash)
-            kwargs = {}
+            torrent = None
+            try:
+                torrent = self._sync_client.get_torrent(int(torrent_hash))
+            except Exception:
+                torrent = self._sync_client.get_torrent(torrent_hash)
+            if not torrent:
+                return
             if unwanted_indices:
-                kwargs["files_unwanted"] = unwanted_indices
+                self._sync_client.change_torrent(torrent.id, files_unwanted=unwanted_indices)
             if wanted_indices:
-                kwargs["files_wanted"] = wanted_indices
-            self._sync_client.change_torrent(torrent.id, **kwargs)
-        except Exception:
-            pass
+                self._sync_client.change_torrent(torrent.id, files_wanted=wanted_indices)
+        except Exception as e:
+            logger.debug("Ошибка в _set_files_wanted_unwanted_sync: %s", e)
 
     async def remove_torrent(self, torrent_hash: str, delete_files: bool = False) -> None:
         try:
