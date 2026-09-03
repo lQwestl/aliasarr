@@ -43,6 +43,7 @@ logger = logging.getLogger("aliasarr.downloads_monitor")
 # Прогресс 100% для завершения раздачи
 _COMPLETE_THRESHOLD = 1.0
 _NOTIFIED_PENDING_SPECIALS: set[str] = set()
+_RECONCILED_TORRENTS: set[str] = set()
 
 
 def _folder_and_template(settings, content_type: str) -> tuple[str, str, str]:
@@ -279,6 +280,7 @@ async def check_downloads(db: Session) -> list[dict]:
                 continue
 
             _MISSING_TORRENT_POLL_COUNTS.pop(torrent_hash, None)
+            _RECONCILED_TORRENTS.discard(torrent_hash)
             # Торрент действительно удален из загрузчика: сбрасываем в WANTED / UNAIRED
             import datetime as dt
             today = dt.date.today()
@@ -302,6 +304,62 @@ async def check_downloads(db: Session) -> list[dict]:
         # Раздача найдена: сбрасываем счетчик пропущенных опросов
         _MISSING_TORRENT_POLL_COUNTS.pop(torrent_hash, None)
         t, dc_row = entry
+
+        # Разовая сверка селективной загрузки активной раздачи (если файлов в клиенте меньше, чем серий в базе)
+        if torrent_hash not in _RECONCILED_TORRENTS and len(eps) > 1:
+            _RECONCILED_TORRENTS.add(torrent_hash)
+            try:
+                client = get_client(dc_row)
+                full_t = await client.get_torrent(torrent_hash)
+                if full_t and full_t.files:
+                    from app.services.auto_search import evaluate_torrent_file_priority
+                    show_id = eps[0].show_id
+                    show_obj = db.get(Show, show_id) if show_id else None
+                    all_show_eps = db.query(Episode).filter(Episode.show_id == show_id).all() if show_id else eps
+                    show_ova_mode = getattr(show_obj, "ova_mode", "auto") or "auto"
+
+                    matched_eps = []
+                    for f in full_t.files:
+                        if getattr(f, "wanted", True) is False:
+                            continue
+                        evaluate_torrent_file_priority(
+                            file_name=f.name,
+                            file_index=f.index,
+                            target_episodes=eps,
+                            content_type=getattr(show_obj, "content_type", "series") if show_obj else "series",
+                            ova_mode=show_ova_mode,
+                            torrent_name=getattr(full_t, "name", "") or "",
+                            all_show_episodes=all_show_eps,
+                            out_matched_episodes=matched_eps,
+                        )
+                    if matched_eps:
+                        actually_matched_ids = {e.id for e in matched_eps if getattr(e, "id", None) is not None}
+                        actually_matched_pairs = {(e.season_number, e.episode_number) for e in matched_eps}
+                        uncovered = [
+                            e for e in eps
+                            if (e.id and e.id not in actually_matched_ids) and (e.season_number, e.episode_number) not in actually_matched_pairs
+                        ]
+                        if uncovered:
+                            import datetime as dt
+                            today = dt.date.today()
+                            for u_ep in uncovered:
+                                air_d = u_ep.air_date
+                                if isinstance(air_d, dt.datetime):
+                                    air_d = air_d.date()
+                                u_ep.status = EpisodeStatus.UNAIRED if (air_d and air_d > today) else EpisodeStatus.WANTED
+                                u_ep.torrent_hash = None
+                                u_ep.download_client_id = None
+                                u_ep.download_progress = 0.0
+                                db.add(u_ep)
+                                logger.info(
+                                    "DownloadsMonitor: Серия S%02dE%02d («%s») не загружается в раздаче %s — статус возвращен в 'в поиске'",
+                                    u_ep.season_number, u_ep.episode_number, u_ep.title or "", torrent_hash,
+                                )
+                            db.commit()
+                            progress_changed = True
+                            eps = [e for e in eps if e not in uncovered]
+            except Exception as rec_err:
+                logger.debug("DownloadsMonitor: Ошибка при сверке файлов раздачи %s: %s", torrent_hash, rec_err)
 
         for ep in eps:
             if abs((ep.download_progress or 0) - t.progress) > 0.001:
@@ -570,6 +628,8 @@ async def check_downloads(db: Session) -> list[dict]:
             except Exception as exc:
                 logger.exception("Ошибка постобработки для видео %s: %s", show.id, exc)
                 t_task.fail(error=str(exc))
+            finally:
+                _RECONCILED_TORRENTS.discard(torrent_hash)
 
     if progress_changed or results:
         try:

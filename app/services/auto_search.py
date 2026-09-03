@@ -112,6 +112,7 @@ def evaluate_torrent_file_priority(
     ova_mode: str = "auto",
     torrent_name: str = "",
     all_show_episodes: Optional[list[Episode]] = None,
+    out_matched_episodes: Optional[list[Any]] = None,
 ) -> int:
     """
     Определяет приоритет скачивания файла торрента (1 = скачивать, 0 = не скачивать).
@@ -201,6 +202,12 @@ def evaluate_torrent_file_priority(
             target_ids = {ep.id for ep in target_episodes if getattr(ep, "id", None) is not None}
             target_pairs = {(ep.season_number, ep.episode_number) for ep in target_episodes}
             if (best_ep.id and best_ep.id in target_ids) or (best_ep.season_number, best_ep.episode_number) in target_pairs:
+                if out_matched_episodes is not None:
+                    matched_target = next(
+                        (ep for ep in target_episodes if (getattr(ep, "id", None) and ep.id == best_ep.id) or (ep.season_number, ep.episode_number) == (best_ep.season_number, best_ep.episode_number)),
+                        best_ep
+                    )
+                    out_matched_episodes.append(matched_target)
                 return 1
             return 0
 
@@ -300,20 +307,35 @@ def evaluate_torrent_file_priority(
             if allow_ova_as_s1 and episodes:
                 for ep_num in episodes:
                     if (1, ep_num) in target_keys or ep_num in target_abs:
+                        if out_matched_episodes is not None:
+                            matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (1, ep_num) or getattr(ep, "absolute_number", None) == ep_num), None)
+                            if matched:
+                                out_matched_episodes.append(matched)
                         return 1
             if not has_wanted_specials:
                 return 0
             if episodes:
                 for ep_num in episodes:
                     if (0, ep_num) in target_keys:
+                        if out_matched_episodes is not None:
+                            matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (0, ep_num)), None)
+                            if matched:
+                                out_matched_episodes.append(matched)
                         return 1
-            # Если OVA/Special без явного номера серии в названии (например 'Dakara Boku wa, H ga Dekinai - OVA.avi')
-            return 1 if has_wanted_specials else 0
+            if has_wanted_specials:
+                if out_matched_episodes is not None:
+                    matched = next((ep for ep in target_episodes if ep.season_number == 0), None)
+                    if matched:
+                        out_matched_episodes.append(matched)
+                return 1
+            return 0
 
         # Основной сезон (Season 1..N)
         if not episodes:
             # Если не удалось спарсить номер серии, но разыскивается 1 серия и в имени нет чужих меток
             if len(target_episodes) == 1 and not re.search(r"\bs\d+|\be\d+|\bep\d+", fname_lower):
+                if out_matched_episodes is not None:
+                    out_matched_episodes.append(target_episodes[0])
                 return 1
             return 0
 
@@ -322,28 +344,56 @@ def evaluate_torrent_file_priority(
             if 101 <= ep_num <= 9999:
                 s_div, e_mod = divmod(ep_num, 100)
                 if (s_div, e_mod) in target_keys:
+                    if out_matched_episodes is not None:
+                        matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (s_div, e_mod)), None)
+                        if matched:
+                            out_matched_episodes.append(matched)
                     return 1
 
             # 2. При известном сезоне (проверяем только если сезон среди разыскиваемых)
             if season is not None:
                 if season in target_seasons:
                     if (season, ep_num) in target_keys:
+                        if out_matched_episodes is not None:
+                            matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (season, ep_num)), None)
+                            if matched:
+                                out_matched_episodes.append(matched)
                         return 1
                     if ep_num in target_abs:
+                        if out_matched_episodes is not None:
+                            matched = next((ep for ep in target_episodes if getattr(ep, "absolute_number", None) == ep_num), None)
+                            if matched:
+                                out_matched_episodes.append(matched)
                         return 1
                     if is_part_2 and 1 <= ep_num <= 12:
                         if (season, ep_num + 12) in target_keys:
+                            if out_matched_episodes is not None:
+                                matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (season, ep_num + 12)), None)
+                                if matched:
+                                    out_matched_episodes.append(matched)
                             return 1
             else:
                 # 3. Если сезон не указан явно в имени файла, сопоставляем по сквозной нумерации или регулярным сезонам (s > 0)
                 if ep_num in target_abs:
+                    if out_matched_episodes is not None:
+                        matched = next((ep for ep in target_episodes if getattr(ep, "absolute_number", None) == ep_num), None)
+                        if matched:
+                            out_matched_episodes.append(matched)
                     return 1
                 for s in target_seasons:
                     if s > 0 and (s, ep_num) in target_keys:
+                        if out_matched_episodes is not None:
+                            matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (s, ep_num)), None)
+                            if matched:
+                                out_matched_episodes.append(matched)
                         return 1
                 if is_part_2 and 1 <= ep_num <= 12:
                     for s in target_seasons:
                         if s > 0 and ((s, ep_num + 12) in target_keys or (ep_num + 12) in target_abs):
+                            if out_matched_episodes is not None:
+                                matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (s, ep_num + 12) or getattr(ep, "absolute_number", None) == (ep_num + 12)), None)
+                                if matched:
+                                    out_matched_episodes.append(matched)
                             return 1
         return 0
 
@@ -462,6 +512,7 @@ async def _limit_torrent_files_to_episodes(
 
     unwanted_indices = []
     wanted_indices = []
+    matched_target_eps = []
 
     t_name = getattr(torrent, "name", "") or ""
     for f in torrent.files:
@@ -475,6 +526,7 @@ async def _limit_torrent_files_to_episodes(
             ova_mode=show_ova_mode,
             torrent_name=t_name,
             all_show_episodes=all_show_episodes,
+            out_matched_episodes=matched_target_eps,
         )
         if prio > 0:
             wanted_indices.append(f.index)
@@ -496,6 +548,46 @@ async def _limit_torrent_files_to_episodes(
             "Раздача %s: скачивание ограничено выбранными сериями (%d шт), отключено файлов: %d, включено: %d",
             torrent_hash, len(target_eps), len(unwanted_indices), len(wanted_indices)
         )
+
+        # Синхронизируем базу данных: серии, которых нет в раздаче или которые были исключены (спешлы, непокрытые номера),
+        # возвращаем обратно в статус WANTED (в поиске), чтобы счетчик скачиваемых серий
+        # и карточка тайтла точно соответствовали реальным файлам в торрент-клиенте.
+        if matched_target_eps:
+            try:
+                import datetime as dt
+                today = dt.date.today()
+                from app.database import SessionLocal
+                with SessionLocal() as s_db:
+                    actually_matched_ids = {ep.id for ep in matched_target_eps if getattr(ep, "id", None) is not None}
+                    actually_matched_pairs = {(ep.season_number, ep.episode_number) for ep in matched_target_eps}
+
+                    for t_ep in target_eps:
+                        t_id = getattr(t_ep, "id", None)
+                        pair = (t_ep.season_number, t_ep.episode_number)
+                        if (t_id and t_id not in actually_matched_ids) and pair not in actually_matched_pairs:
+                            db_ep = s_db.get(Episode, t_id) if t_id else None
+                            if not db_ep and show_id:
+                                db_ep = s_db.query(Episode).filter(
+                                    Episode.show_id == show_id,
+                                    Episode.season_number == t_ep.season_number,
+                                    Episode.episode_number == t_ep.episode_number,
+                                ).first()
+                            if db_ep and db_ep.status == EpisodeStatus.DOWNLOADING and db_ep.torrent_hash == torrent_hash:
+                                air_d = db_ep.air_date
+                                if isinstance(air_d, dt.datetime):
+                                    air_d = air_d.date()
+                                db_ep.status = EpisodeStatus.UNAIRED if (air_d and air_d > today) else EpisodeStatus.WANTED
+                                db_ep.torrent_hash = None
+                                db_ep.download_client_id = None
+                                db_ep.download_progress = 0.0
+                                s_db.add(db_ep)
+                                logger.info(
+                                    "Серия S%02dE%02d («%s») не содержится в скачиваемых файлах раздачи %s — статус возвращен в 'в поиске'",
+                                    db_ep.season_number, db_ep.episode_number, db_ep.title or "", torrent_hash,
+                                )
+                    s_db.commit()
+            except Exception as sync_err:
+                logger.warning("Не удалось синхронизировать статусы серий раздачи %s: %s", torrent_hash, sync_err)
 
         try:
             from app.database import SessionLocal

@@ -697,3 +697,43 @@ class TestSeasonQueries(unittest.TestCase):
         query_terms = getattr(cands, "query_terms", [])
         self.assertTrue(any("ТВ-4" in q or "(ТВ-4)" in q for q in query_terms), f"ТВ-4 missing from queries: {query_terms}")
         self.assertTrue(any("S04" in q for q in query_terms), f"S04 missing from queries: {query_terms}")
+
+    def test_selective_download_tracks_matched_episodes_and_reconciles(self):
+        """Проверка того, что evaluate_torrent_file_priority возвращает сматченные серии в out_matched_episodes."""
+        from types import SimpleNamespace as Ep
+        from app.services import auto_search
+        ep1 = Ep(id=101, show_id=1, season_number=5, episode_number=1, absolute_number=81, title="Saving Private Gigli")
+        ep2 = Ep(id=102, show_id=1, season_number=5, episode_number=2, absolute_number=82, title="Terms of Endaredevil")
+        ep6 = Ep(id=106, show_id=1, season_number=5, episode_number=6, absolute_number=86, title="Major League of Extraordinary Gentlemen")
+        ep10 = Ep(id=110, show_id=1, season_number=5, episode_number=10, absolute_number=90, title="Beastmaster & Commander")
+
+        all_show_eps = [ep1, ep2, ep6, ep10]
+        targets = [ep1, ep2, ep6, ep10]
+
+        matched = []
+        prio_f1 = auto_search.evaluate_torrent_file_priority(
+            "Season 5/S05E02 Saving Private Gigli.avi", 1, targets, all_show_episodes=all_show_eps, out_matched_episodes=matched
+        )
+        self.assertEqual(prio_f1, 1)
+        self.assertEqual(len(matched), 1)
+        self.assertEqual(matched[0].id, 101)  # Сматчилась серия 1 (Saving Private Gigli)!
+
+        prio_f6 = auto_search.evaluate_torrent_file_priority(
+            "Season 5/S05E07 Major League Of Extraordinary Gentlemen.avi", 6, targets, all_show_episodes=all_show_eps, out_matched_episodes=matched
+        )
+        self.assertEqual(prio_f6, 1)
+        self.assertEqual(len(matched), 2)
+        self.assertEqual(matched[1].id, 106)  # Сматчилась серия 6!
+
+        prio_special = auto_search.evaluate_torrent_file_priority(
+            "Season 5/S05E01 DP Christmas Special.avi", 0, targets, all_show_episodes=all_show_eps, out_matched_episodes=matched
+        )
+        self.assertEqual(prio_special, 0)
+        self.assertEqual(len(matched), 2)  # Спешл не добавлен!
+
+        matched_ids = {e.id for e in matched}
+        uncovered = [e for e in targets if e.id not in matched_ids]
+        # Серии 2 и 10 не были покрыты этими файлами
+        self.assertIn(ep10, uncovered)
+        self.assertIn(ep2, uncovered)
+

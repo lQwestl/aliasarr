@@ -595,9 +595,11 @@ async def grab_release(
                 target_eps_data = [
                     Episode(
                         id=ep.id,
+                        show_id=show.id,
                         season_number=ep.season_number,
                         episode_number=ep.episode_number,
                         absolute_number=ep.absolute_number,
+                        title=getattr(ep, "title", None),
                     )
                     for ep in target_episodes
                 ]
