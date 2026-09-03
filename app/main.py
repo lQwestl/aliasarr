@@ -24,6 +24,7 @@ from app.api import (
     audit_routes,
     auth_routes,
     custom_formats_routes,
+    dataset_routes,
     download_clients,
     indexers,
     metadata_routes,
@@ -143,6 +144,7 @@ app.include_router(users_routes.router)
 app.include_router(audit_routes.router)
 app.include_router(system_routes.router)
 app.include_router(release_logs_routes.router)
+app.include_router(dataset_routes.router)
 
 _WEB_DIR = os.path.join(os.path.dirname(__file__), "..", "web")
 if os.path.isdir(_WEB_DIR):

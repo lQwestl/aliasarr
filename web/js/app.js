@@ -76,6 +76,7 @@ const TRANSLATIONS = {
     "nav.events": "События",
     "nav.journal": "Журнал",
     "nav.release_logs": "Релиз логи",
+    "nav.dataset_harvester": "Логи для улучшения",
     "nav.backup": "Бэкап",
     "nav.wiki": "Wiki",
     "nav.wiki_tooltip": "База знаний и руководство пользователя",
@@ -90,6 +91,7 @@ const TRANSLATIONS = {
     "tab.events": "События",
     "tab.journal": "Журнал",
     "tab.release_logs": "Релиз логи",
+    "tab.dataset_harvester": "Логи для улучшения и обучения парсера",
     "tab.backup": "Бэкап",
 
     // Subtitles
@@ -102,6 +104,7 @@ const TRANSLATIONS = {
     "subtitle.events": "Информация, предупреждения и ошибки приложения",
     "subtitle.journal": "Логи приложения (info / warn / debug). Записи старше срока хранения удаляются автоматически.",
     "subtitle.release_logs": "Диагностический журнал работы движка релизов: поиск, сопоставление, парсинг серий, принятие решений, вызовы загрузчика и импорт.",
+    "subtitle.dataset_harvester": "Автоматический сбор раздач с трекеров (Jackett / Prowlarr) для проверки качества распознавания и выявления краевых случаев",
     "subtitle.backup": "Резервное копирование настроек приложения (индексаторы, загрузчики, профили качества, шаблоны и т.д.)",
     "subtitle.settings": "Конфигурация системы, интеграций и безопасности",
 
@@ -1104,6 +1107,7 @@ const TRANSLATIONS = {
     "nav.events": "Events",
     "nav.journal": "Journal",
     "nav.release_logs": "Release Logs",
+    "nav.dataset_harvester": "Learning Logs",
     "nav.backup": "Backup",
     "nav.wiki": "Wiki",
     "nav.wiki_tooltip": "Knowledge Base & User Documentation",
@@ -1118,6 +1122,7 @@ const TRANSLATIONS = {
     "tab.events": "Events",
     "tab.journal": "Journal",
     "tab.release_logs": "Release Logs",
+    "tab.dataset_harvester": "Logs for Improvement & Parser Training",
     "tab.backup": "Backup",
 
     // Subtitles
@@ -1130,6 +1135,7 @@ const TRANSLATIONS = {
     "subtitle.events": "Application information, warnings, and errors",
     "subtitle.journal": "Application logs (info / warn / debug). Entries older than the retention period are deleted automatically.",
     "subtitle.release_logs": "Diagnostic release engine log: searching, matching, episode parsing, decision making, download client RPC and media imports.",
+    "subtitle.dataset_harvester": "Automated release harvester from indexers (Jackett / Prowlarr) to benchmark and enhance parser patterns",
     "subtitle.backup": "Backup application settings (indexers, download clients, quality profiles, templates, etc.)",
     "subtitle.settings": "System configuration, integrations, and security",
 
@@ -2365,6 +2371,12 @@ function applyUserPermissionsToUI() {
     navReleaseLogs.style.display = canSeeRelLogs ? "" : "none";
   }
 
+  const navDatasetHarvester = document.querySelector('.sidebar nav [data-tab="dataset-harvester"]');
+  if (navDatasetHarvester) {
+    const canSeeDataset = hasPermission("manage_settings") || hasPermission("manual_search") || hasPermission("view_release_logs");
+    navDatasetHarvester.style.display = canSeeDataset ? "" : "none";
+  }
+
   const btnRelLogsClear = document.getElementById("release-logs-clear-btn");
   if (btnRelLogsClear) btnRelLogsClear.style.display = hasPermission("manage_release_logs") ? "" : "none";
 
@@ -2428,6 +2440,7 @@ function applyUserPermissionsToUI() {
     events: "view_events",
     journal: "view_journal",
     "release-logs": "view_release_logs",
+    "dataset-harvester": "manual_search",
     audit: "view_audit",
     backup: "manage_backups",
   };
@@ -2436,12 +2449,14 @@ function applyUserPermissionsToUI() {
     ? canSeeSettings
     : currentActiveTab === "release-logs"
     ? (hasPermission("view_release_logs") || hasPermission("manage_release_logs"))
+    : currentActiveTab === "dataset-harvester"
+    ? (hasPermission("manage_settings") || hasPermission("manual_search") || hasPermission("view_release_logs"))
     : (tabPermMap[currentActiveTab] ? hasPermission(tabPermMap[currentActiveTab]) : true);
 
   if (!isCurrentTabAllowed) {
-    const candidateTabs = ["dashboard", "library", "calendar", "activity", "history", "events", "journal", "release-logs", "audit", "backup", "settings"];
+    const candidateTabs = ["dashboard", "library", "calendar", "activity", "history", "events", "journal", "release-logs", "dataset-harvester", "audit", "backup", "settings"];
     for (const t of candidateTabs) {
-      const allowed = t === "settings" ? canSeeSettings : (t === "release-logs" ? (hasPermission("view_release_logs") || hasPermission("manage_release_logs")) : hasPermission(tabPermMap[t]));
+      const allowed = t === "settings" ? canSeeSettings : (t === "release-logs" ? (hasPermission("view_release_logs") || hasPermission("manage_release_logs")) : (t === "dataset-harvester" ? (hasPermission("manage_settings") || hasPermission("manual_search") || hasPermission("view_release_logs")) : hasPermission(tabPermMap[t])));
       if (allowed && t !== currentActiveTab) {
         switchTab(t);
         break;
@@ -3440,7 +3455,13 @@ function switchTab(tabId) {
   if (tabId === "events") loadEvents();
   if (tabId === "journal") loadJournal();
   if (tabId === "release-logs") loadReleaseLogs(1);
+  if (tabId === "dataset-harvester") loadDatasetHarvester(1);
   if (tabId === "backup") loadBackups();
+
+  if (tabId !== "dataset-harvester" && typeof DATASET_HARVEST_INTERVAL !== "undefined" && DATASET_HARVEST_INTERVAL) {
+    clearInterval(DATASET_HARVEST_INTERVAL);
+    DATASET_HARVEST_INTERVAL = null;
+  }
 
   if (tabId === "activity") {
     loadQueue();
@@ -12711,6 +12732,317 @@ async function clearReleaseLogs() {
     await api("/api/v1/release-logs", { method: "DELETE" });
     toast(CURRENT_LANG === "en" ? "Release logs cleared" : "Журнал релизов очищен");
     loadReleaseLogs(1);
+  } catch (e) {
+    toast("Ошибка: " + e.message, true);
+  }
+}
+
+// ---------- ЛОГИ ДЛЯ ОБУЧЕНИЯ И УЛУЧШЕНИЯ ПАРСЕРА (DATASET HARVESTER) ----------
+let DATASET_STATE = {
+  page: 1,
+  pageSize: 50,
+  filter: "all",
+  query: "",
+};
+let DATASET_HARVEST_INTERVAL = null;
+
+async function loadDatasetHarvester(page = 1) {
+  DATASET_STATE.page = page;
+
+  // 1. Подгружаем список индексаторов в селект
+  const idxSelect = document.getElementById("dataset-indexer-select");
+  if (idxSelect && idxSelect.children.length <= 1) {
+    try {
+      const indexers = await api("/api/v1/indexers");
+      if (Array.isArray(indexers)) {
+        indexers.forEach(idx => {
+          if (idx.enabled) {
+            const opt = document.createElement("option");
+            opt.value = idx.id;
+            opt.textContent = `${idx.name} (${idx.type || "torznab"})`;
+            idxSelect.appendChild(opt);
+          }
+        });
+      }
+    } catch (e) {
+      console.warn("Failed to load indexers for dataset harvester", e);
+    }
+  }
+
+  // 2. Проверяем текущий статус фонового сбора
+  await checkDatasetHarvestStatus();
+
+  // 3. Загружаем данные таблицы
+  await loadDatasetData(page);
+}
+
+function onDatasetPresetChanged() {
+  const sel = document.getElementById("dataset-preset-select");
+  const wrap = document.getElementById("dataset-custom-query-wrap");
+  if (!sel || !wrap) return;
+  wrap.style.display = sel.value === "custom" ? "block" : "none";
+}
+
+async function checkDatasetHarvestStatus() {
+  try {
+    const res = await api("/api/v1/dataset/status");
+    if (!res || !res.state) return;
+
+    const isRunning = !!res.state.is_running;
+    const btnStart = document.getElementById("dataset-start-btn");
+    const btnStop = document.getElementById("dataset-stop-btn");
+    const progressWrap = document.getElementById("dataset-progress-wrap");
+    const progressStatus = document.getElementById("dataset-progress-status");
+    const progressCount = document.getElementById("dataset-progress-count");
+    const progressBar = document.getElementById("dataset-progress-bar");
+
+    if (isRunning) {
+      if (btnStart) btnStart.style.display = "none";
+      if (btnStop) btnStop.style.display = "";
+      if (progressWrap) progressWrap.style.display = "";
+
+      const curr = res.state.progress_current || 0;
+      const total = res.state.progress_total || 0;
+      const q = res.state.current_query || "";
+      const collected = res.state.collected_count || 0;
+      const pct = total > 0 ? Math.min(100, Math.round((curr / total) * 100)) : 0;
+
+      if (progressStatus) {
+        progressStatus.innerHTML = `<i data-lucide="loader-2" class="ico-sm spin"></i> Опрос трекеров: <strong>«${escapeHtml(q)}»</strong> (найдено: ${collected} раздач)`;
+      }
+      if (progressCount) {
+        progressCount.textContent = `${curr} / ${total} (${pct}%)`;
+      }
+      if (progressBar) {
+        progressBar.style.width = `${pct}%`;
+      }
+      if (typeof lucide !== "undefined") lucide.createIcons();
+
+      if (!DATASET_HARVEST_INTERVAL) {
+        DATASET_HARVEST_INTERVAL = setInterval(checkDatasetHarvestStatus, 1500);
+      }
+    } else {
+      if (btnStart) btnStart.style.display = "";
+      if (btnStop) btnStop.style.display = "none";
+      if (progressWrap) progressWrap.style.display = "none";
+
+      if (DATASET_HARVEST_INTERVAL) {
+        clearInterval(DATASET_HARVEST_INTERVAL);
+        DATASET_HARVEST_INTERVAL = null;
+        loadDatasetData(DATASET_STATE.page);
+      }
+
+      if (res.state.error) {
+        toast("Ошибка сбора: " + res.state.error, true);
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to check dataset status", e);
+  }
+}
+
+async function startDatasetHarvest() {
+  const presetSel = document.getElementById("dataset-preset-select");
+  const preset = presetSel?.value || "anime";
+  const customQueries = document.getElementById("dataset-custom-query")?.value || "";
+  const indexerIdVal = document.getElementById("dataset-indexer-select")?.value;
+  const indexerId = indexerIdVal ? parseInt(indexerIdVal, 10) : null;
+
+  if (preset === "custom" && !customQueries.trim()) {
+    toast(CURRENT_LANG === "en" ? "Please enter at least one title to search" : "Укажите хотя бы один тайтл для поиска", true);
+    return;
+  }
+
+  try {
+    const res = await api("/api/v1/dataset/harvest", {
+      method: "POST",
+      body: JSON.stringify({
+        preset: preset,
+        custom_queries: customQueries,
+        indexer_id: indexerId,
+      }),
+    });
+    toast(res.message || (CURRENT_LANG === "en" ? "Harvesting started" : "Сбор раздач запущен"));
+    await checkDatasetHarvestStatus();
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error starting harvest: " : "Ошибка запуска сбора: ") + e.message, true);
+  }
+}
+
+async function stopDatasetHarvest() {
+  try {
+    const res = await api("/api/v1/dataset/stop", { method: "POST" });
+    toast(res.message || (CURRENT_LANG === "en" ? "Stop requested" : "Запрос на остановку отправлен"));
+    await checkDatasetHarvestStatus();
+  } catch (e) {
+    toast("Ошибка остановки: " + e.message, true);
+  }
+}
+
+async function loadDatasetData(page = 1) {
+  DATASET_STATE.page = page;
+  const filter = document.getElementById("dataset-filter-select")?.value || "all";
+  const search = document.getElementById("dataset-search-input")?.value || "";
+
+  const tbody = document.querySelector("#dataset-table tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);"><i data-lucide="loader-2" class="ico-md spin"></i> Загрузка логов датасета...</td></tr>`;
+  if (typeof lucide !== "undefined") lucide.createIcons();
+
+  try {
+    const params = new URLSearchParams({
+      filter: filter,
+      query: search,
+      page: page.toString(),
+      page_size: "50",
+    });
+
+    const data = await api(`/api/v1/dataset/data?${params.toString()}`);
+    if (!data) return;
+
+    // Обновляем плашки статистики
+    const stats = data.stats || {};
+    const elTotal = document.getElementById("dataset-stat-total");
+    const elVideo = document.getElementById("dataset-stat-video");
+    const elAcc = document.getElementById("dataset-stat-accuracy");
+    const elParsed = document.getElementById("dataset-stat-parsed-count");
+    const elNonVideo = document.getElementById("dataset-stat-non-video");
+    const elUnknown = document.getElementById("dataset-stat-unknown");
+
+    if (elTotal) elTotal.textContent = (stats.total_records || 0).toLocaleString();
+    if (elVideo) elVideo.textContent = `${(stats.video_titles || 0).toLocaleString()} видео`;
+    if (elAcc) elAcc.textContent = `${stats.accuracy_pct || 0}%`;
+    if (elParsed) elParsed.textContent = `${(stats.parsed_success || 0).toLocaleString()} распознано`;
+    if (elNonVideo) elNonVideo.textContent = (stats.non_video_filtered || 0).toLocaleString();
+    if (elUnknown) elUnknown.textContent = (stats.unknown_total || 0).toLocaleString();
+
+    if (!data.items || data.items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 32px; color: var(--text-muted);">
+        <i data-lucide="database" class="ico-lg" style="margin-bottom:8px; opacity:0.4;"></i>
+        <div>${CURRENT_LANG === "en" ? "No records found. Select a preset and click «Run Harvester»." : "Нет записей в датасете. Выберите пресет и нажмите «Запустить сбор данных»."}</div>
+      </td></tr>`;
+      renderPagination("dataset-pagination", 1, 50, 0, loadDatasetData);
+      if (typeof lucide !== "undefined") lucide.createIcons();
+      return;
+    }
+
+    let rowsHtml = "";
+    data.items.forEach(r => {
+      const title = escapeHtml(r.title || "");
+      const indexer = escapeHtml(r.indexer || "—");
+      const query = escapeHtml(r.query || "");
+      const sizeStr = r.size_bytes ? formatBytes(r.size_bytes) : "—";
+      const analysis = r.analysis || {};
+
+      let statusBadge = "";
+      if (!analysis.is_video) {
+        statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);"><i data-lucide="filter" class="ico-xs"></i> Не-видео</span>`;
+      } else if (analysis.status === "parsed") {
+        statusBadge = `<span class="badge badge-success" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);"><i data-lucide="check" class="ico-xs"></i> Распознано</span>`;
+      } else {
+        statusBadge = `<span class="badge badge-danger" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);"><i data-lucide="alert-circle" class="ico-xs"></i> Не распознано</span>`;
+      }
+
+      let seasonEpBadge = "";
+      if (analysis.is_video) {
+        const parts = [];
+        if (analysis.season !== null && analysis.season !== undefined) {
+          parts.push(`<span class="badge badge-info" style="font-size:11px;">S${String(analysis.season).padStart(2, "0")}</span>`);
+        }
+        if (analysis.part && analysis.part >= 2) {
+          parts.push(`<span class="badge badge-warning" style="font-size:11px;">Часть ${analysis.part}</span>`);
+        }
+        if (analysis.episodes && analysis.episodes.length > 0) {
+          if (analysis.episodes.length === 1) {
+            parts.push(`<span class="badge badge-secondary" style="font-size:11px;">E${String(analysis.episodes[0]).padStart(2, "0")}</span>`);
+          } else {
+            const minE = Math.min(...analysis.episodes);
+            const maxE = Math.max(...analysis.episodes);
+            parts.push(`<span class="badge badge-secondary" style="font-size:11px;">E${minE}..${maxE} (${analysis.episodes.length} сер.)</span>`);
+          }
+        } else if (analysis.kind === "season_pack") {
+          parts.push(`<span class="badge badge-primary" style="font-size:11px;">Сезон-пак</span>`);
+        }
+        seasonEpBadge = parts.join(" ") || `<span class="hint" style="font-size:11px;">Пак сериала</span>`;
+      } else {
+        seasonEpBadge = `<span class="hint" style="font-size:11px;">Отфильтровано</span>`;
+      }
+
+      rowsHtml += `<tr>
+        <td style="font-size: 12px;">
+          <div style="font-weight: 600; color: var(--teal, #00F0FF);">${query}</div>
+          <div class="hint" style="font-size: 11px;">${indexer}</div>
+        </td>
+        <td style="word-break: break-word;">
+          <div style="font-weight: 500; font-size: 13px; line-height: 1.4;">${title}</div>
+        </td>
+        <td class="mono" style="font-size: 12px;">${sizeStr}</td>
+        <td>${seasonEpBadge}</td>
+        <td>${statusBadge}</td>
+        <td style="text-align: center;">
+          <button class="btn btn-ghost btn-xs" data-copy-title="${escapeHtml(r.title || "")}" onclick="copyDatasetRowTitle(this)" title="Скопировать название в буфер">
+            <i data-lucide="copy" class="ico-xs"></i>
+          </button>
+        </td>
+      </tr>`;
+    });
+
+    tbody.innerHTML = rowsHtml;
+    renderPagination("dataset-pagination", page, 50, data.total, loadDatasetData);
+    if (typeof lucide !== "undefined") lucide.createIcons();
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--danger);">Ошибка загрузки: ${escapeHtml(e.message)}</td></tr>`;
+  }
+}
+
+function copyDatasetRowTitle(btn) {
+  const text = btn?.getAttribute("data-copy-title") || "";
+  copyDatasetTitle(text);
+}
+
+function copyDatasetTitle(text) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text);
+  } else {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  }
+  toast(CURRENT_LANG === "en" ? "Title copied to clipboard" : "Название скопировано в буфер обмена");
+}
+
+async function downloadDatasetJson() {
+  try {
+    const resp = await fetch("/api/v1/dataset/export", { headers: { "X-Api-Key": API_KEY } });
+    if (!resp.ok) throw new Error("Status " + resp.status);
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `aliasarr_dataset_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(CURRENT_LANG === "en" ? "Dataset downloaded" : "Логи датасета скачаны (.json)");
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Download error: " : "Ошибка скачивания: ") + e.message, true);
+  }
+}
+
+async function clearDatasetRecords() {
+  const confirmed = await confirmModal(
+    CURRENT_LANG === "en"
+      ? "Clear all harvested learning logs and reset dataset?"
+      : "Очистить все собранные логи датасета и удалить устаревшие данные?"
+  );
+  if (!confirmed) return;
+  try {
+    await api("/api/v1/dataset", { method: "DELETE" });
+    toast(CURRENT_LANG === "en" ? "Dataset cleared" : "Логи датасета успешно очищены");
+    loadDatasetData(1);
   } catch (e) {
     toast("Ошибка: " + e.message, true);
   }
