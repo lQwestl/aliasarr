@@ -175,27 +175,39 @@ def evaluate_torrent_file_priority(
     # 0. Сопоставление по названиям серий (актуально при несовпадении нумерации в релизах,
     # например когда спешл/рождественский выпуск включен как E01, смещая нумерацию всех серий на 1)
     if all_show_episodes:
-        fname_no_ext = os.path.splitext(base_name)[0]
-        fname_words = set(re.sub(r"[^\w\s]", " ", fname_no_ext.lower()).split())
+        _ROMAN_TO_ARABIC = {
+            "i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5",
+            "vi": "6", "vii": "7", "viii": "8", "ix": "9", "x": "10",
+        }
 
-        def _calc_title_score(title_str: Optional[str]) -> float:
-            if not title_str or len(title_str.strip()) < 3:
-                return 0.0
-            words = [
-                w for w in re.sub(r"[^\w\s]", " ", title_str.lower()).split()
-                if len(w) > 1 and w not in {"the", "a", "an", "of", "in", "on", "and", "or", "to", "for", "vs", "part"}
-            ]
+        def _normalize_title_words(text: Optional[str]) -> list[str]:
+            if not text or len(text.strip()) < 2:
+                return []
+            raw = re.sub(r"[^\w\s]", " ", text.lower()).split()
+            clean = []
+            for raw_w in raw:
+                w = _ROMAN_TO_ARABIC.get(raw_w, raw_w)
+                if (len(w) > 1 or w.isdigit()) and w not in {"the", "a", "an", "of", "in", "on", "and", "or", "to", "for", "vs", "part"}:
+                    clean.append(w)
+            return clean
+
+        fname_words = set(_normalize_title_words(os.path.splitext(base_name)[0]))
+
+        def _calc_title_match(title_str: Optional[str]) -> tuple[float, int]:
+            words = _normalize_title_words(title_str)
             if not words:
-                return 0.0
+                return (0.0, 0)
             matched = sum(1 for w in words if w in fname_words)
-            return matched / len(words)
+            score = matched / len(words)
+            return (score, matched)
 
         best_ep = None
-        best_score = 0.0
+        best_match_key = (0.0, 0)
         for ep in all_show_episodes:
-            score = _calc_title_score(getattr(ep, "title", None))
-            if score >= 0.7 and score > best_score:
-                best_score = score
+            score, matched_count = _calc_title_match(getattr(ep, "title", None))
+            match_key = (score, matched_count)
+            if score >= 0.7 and match_key > best_match_key:
+                best_match_key = match_key
                 best_ep = ep
 
         if best_ep is not None:

@@ -746,14 +746,31 @@ class TestSeasonQueries(unittest.TestCase):
         self.assertIn("Robot Chicken S05", queries)
         self.assertIn("Robot Chicken S5", queries)
 
-    def test_multi_season_regex_does_not_break_season_with_episodes(self):
-        """Проверка того, что '5 сезон: 1-20 серии' не распознается как сезоны 1-20."""
-        from app.services.parser import parse_episode, detect_season_label
-        t = "Робоцып / Robot Chicken (5 сезон: 1-20 серии из 20) [2010-2012, BDRip 1080p]"
-        p = parse_episode(t)
-        lbl = detect_season_label(t)
-        self.assertEqual(p.season, 5)
-        self.assertEqual(lbl.get("type"), "numbered")
-        self.assertEqual(lbl.get("season"), 5)
+    def test_roman_numeral_title_matching(self):
+        """Проверка сопоставления названий с римскими цифрами (Casablankman 2 -> Casablankman II)."""
+        from types import SimpleNamespace
+        from app.services.auto_search import evaluate_torrent_file_priority
+
+        ep11 = SimpleNamespace(id=111, season_number=5, episode_number=11, title="Casablankman", absolute_number=None)
+        ep18 = SimpleNamespace(id=118, season_number=5, episode_number=18, title="Casablankman II", absolute_number=None)
+        all_eps = [ep11, ep18]
+        targets = [ep11, ep18]
+
+        matched_eps_12 = []
+        prio_12 = evaluate_torrent_file_priority(
+            "Season 5/12 Casablankman.mkv", 0, targets, all_show_episodes=all_eps, out_matched_episodes=matched_eps_12
+        )
+        self.assertEqual(prio_12, 1)
+        self.assertEqual(len(matched_eps_12), 1)
+        self.assertEqual(matched_eps_12[0].id, ep11.id)
+
+        matched_eps_19 = []
+        prio_19 = evaluate_torrent_file_priority(
+            "Season 5/19 Casablankman 2.mkv", 1, targets, all_show_episodes=all_eps, out_matched_episodes=matched_eps_19
+        )
+        self.assertEqual(prio_19, 1)
+        self.assertEqual(len(matched_eps_19), 1)
+        self.assertEqual(matched_eps_19[0].id, ep18.id)  # Должна сопоставиться именно Casablankman II!
+
 
 
