@@ -13015,18 +13015,23 @@ function copyDatasetTitle(text) {
   toast(CURRENT_LANG === "en" ? "Title copied to clipboard" : "Название скопировано в буфер обмена");
 }
 
-async function downloadDatasetJson() {
+async function downloadDatasetJson(filter = "all") {
   try {
-    const resp = await fetch("/api/v1/dataset/export", { headers: { "X-Api-Key": API_KEY } });
+    const params = new URLSearchParams({ filter: filter });
+    const resp = await fetch(`/api/v1/dataset/export?${params.toString()}`, { headers: { "X-Api-Key": API_KEY } });
     if (!resp.ok) throw new Error("Status " + resp.status);
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `aliasarr_dataset_${new Date().toISOString().slice(0, 10)}.json`;
+    const prefix = filter === "unknown" ? "aliasarr_unknown_titles" : "aliasarr_dataset";
+    a.download = `${prefix}_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast(CURRENT_LANG === "en" ? "Dataset downloaded" : "Логи датасета скачаны (.json)");
+    toast(filter === "unknown"
+      ? (CURRENT_LANG === "en" ? "Unknown titles downloaded" : "Неизвестные раздачи скачаны (.json)")
+      : (CURRENT_LANG === "en" ? "Dataset downloaded" : "Логи датасета скачаны (.json)")
+    );
   } catch (e) {
     toast((CURRENT_LANG === "en" ? "Download error: " : "Ошибка скачивания: ") + e.message, true);
   }

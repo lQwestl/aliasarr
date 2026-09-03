@@ -48,6 +48,8 @@ env/
 *.sqlite3
 vbeacon.db
 config/*.db
+aliasarr_dataset_*.json
+aliasarr_unknown_*.json
 config/*.db-journal
 config/*.db-wal
 config/*.db-shm

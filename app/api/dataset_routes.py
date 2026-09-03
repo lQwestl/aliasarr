@@ -360,17 +360,33 @@ def get_dataset_data(
 
 @router.get("/export")
 def export_dataset(
+    filter: str = "all",  # all | unknown | video | non_video
     current_user: User = Depends(require_any_permission("manual_search", "manage_settings")),
 ):
     records = _load_stored_dataset()
     stats = _compute_stats(records)
+
+    filtered_records = []
+    for r in records:
+        analysis = r.get("analysis") or _analyze_record(r)
+        if filter == "unknown" and analysis.get("status") != "unknown":
+            continue
+        if filter == "video" and not analysis.get("is_video"):
+            continue
+        if filter == "non_video" and analysis.get("is_video"):
+            continue
+        filtered_records.append(r)
+
     payload = {
         "exported_at": dt.datetime.utcnow().isoformat() + "Z",
+        "filter": filter,
         "stats": stats,
-        "records": records,
+        "records_count": len(filtered_records),
+        "records": filtered_records,
     }
     content = json.dumps(payload, ensure_ascii=False, indent=2)
-    filename = f"aliasarr_dataset_{dt.datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+    prefix = "aliasarr_unknown_titles" if filter == "unknown" else "aliasarr_dataset"
+    filename = f"{prefix}_{dt.datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
     return Response(
         content=content,
         media_type="application/json",

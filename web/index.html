@@ -2446,9 +2446,14 @@
                 <span>Остановить</span>
               </button>
 
-              <button class="btn btn-secondary" id="dataset-download-btn" onclick="downloadDatasetJson()" title="Скачать полный JSON датасета">
+              <button class="btn btn-secondary" id="dataset-download-unknown-btn" onclick="downloadDatasetJson('unknown')" title="Скачать компактный JSON только с нераспознанными раздачами (для отправки ассистенту)">
+                <i data-lucide="file-question" class="ico-sm"></i>
+                <span>Скачать неизвестные (~30 КБ)</span>
+              </button>
+
+              <button class="btn btn-secondary" id="dataset-download-btn" onclick="downloadDatasetJson('all')" title="Скачать полный JSON датасета">
                 <i data-lucide="download" class="ico-sm"></i>
-                <span>Скачать логи (.json)</span>
+                <span>Скачать всё (.json)</span>
               </button>
 
               <button class="btn btn-danger" id="dataset-clear-btn" onclick="clearDatasetRecords()" title="Очистить устаревшие собранные логи">

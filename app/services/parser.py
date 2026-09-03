@@ -25,6 +25,7 @@ class ReleaseKind(str, Enum):
     EPISODE = "episode"          # конкретная серия / диапазон серий одного сезона
     SEASON_PACK = "season_pack"  # весь сезон целиком
     ABSOLUTE = "absolute"        # абсолютный номер (типично для аниме, без сезона)
+    MOVIE = "movie"              # полнометражный фильм
     UNKNOWN = "unknown"
 
 
@@ -891,6 +892,23 @@ def _parse_episode_internal(release_name: str) -> ParsedRelease:
                 kind=ReleaseKind.ABSOLUTE, episodes=[num],
                 raw=raw, matched_pattern="lone_number",
             )
+
+    # 9. Префиксы трекера AniBelka ([mv] = фильм, [rus]/[uni]/[sub] = пак сериала)
+    if re.match(r"^\[mv\]", name, re.IGNORECASE):
+        return ParsedRelease(kind=ReleaseKind.MOVIE, raw=raw, matched_pattern="movie:anibelka")
+
+    if re.match(r"^\[(?:rus|uni|sub)\]", name, re.IGNORECASE):
+        return _season_pack_result(1, raw, "season_pack:anibelka")
+
+    # 10. Одиночные полнометражные фильмы (Movie): год + видео-качество без сериальных маркеров
+    _RE_MOVIE_YEAR_AND_QUALITY = re.compile(
+        r"(?:\((?:19|20)\d{2}\)|\[(?:19|20)\d{2}[,\s\]]).*?(?:bdrip|web-dl|webdl|webrip|hdrip|remux|bluray|dvdrip|1080p|720p|2160p|4k|telesync|ts\b|hdtv|vhsrip|dvb|satrip)|"
+        r"\[(?:bd-remux|bdremux|bluray|bdrip|web-dl|webrip|dvdrip)\]",
+        re.IGNORECASE,
+    )
+    if _RE_MOVIE_YEAR_AND_QUALITY.search(raw):
+        if not re.search(r"\b(?:сезон|сери[йия]|s\d+|ep\d+|\[.*?из.*?\])\b", raw, re.IGNORECASE):
+            return ParsedRelease(kind=ReleaseKind.MOVIE, raw=raw, matched_pattern="movie:year_quality")
 
     return ParsedRelease(kind=ReleaseKind.UNKNOWN, raw=raw, matched_pattern="none")
 

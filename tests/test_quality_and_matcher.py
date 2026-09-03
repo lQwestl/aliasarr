@@ -638,10 +638,36 @@ class TestQualityAndMatcher(unittest.TestCase):
             "Tappei Nagatsuki/Таппэй Нагацуки - RE Zero. Жизнь с нуля в альтернативном мире/Re:Zero kara Hajimeru Isekai Seikatsu (фэнтези, приключения) [тома 1-6] [2014, FB2/EPUB/DOCX, RUS] [incomplete]",
             "Nyan Nyan Factory - Табакошка / Yani Neko / Chainsmoker Cat / Tar Cat [manga] [Vol. 5-9] [2023, Comedy, Psychological, Slice of Life] [incomplete]",
             "Цугаи загробного мира / Yomi no Tsugai / Daemons of the Shadow Realm [TV] [1-21 из 24] [RUS(2*Dub, 2*MVO)] [2026, ААС]",
+            "Star Wars Jedi: Survivor (RUS/ENG) [RePack]",
+            "[Русификатор] Star Wars Jedi: Survivor (Любительский / GamesVoice) (Звук + текст)",
+            "LEGO Star Wars The Skywalker Saga [EUR/RUS] [Archive]",
+            "[PS VR Only] Spider-Man Homecoming Virtual Reality Experience [EUR/ENG]",
+            "Сайлент Хилл: Возвращение - New Edition / Silent Hill: Homecoming (2008) PC | Пиратка",
+            "Re ZERO Starting Life in Another World The Prophecy of the Throne [DUPLEX]",
+            "Обои - Крутой учитель Онидзука / GTO: Great Teacher Onizuka [480x800, 240x320, JPG] [Wall]",
+            "David Guetta Feat. Taio Cruz & Ludacris - Little Bad Girl [2011, Electro house, Master 1080p]",
         ]
 
         for nv_title in non_video_cases:
             self.assertTrue(is_non_video_release(nv_title), f"Failed to detect non-video: {nv_title}")
+
+    def test_movie_and_anibelka_parsing(self):
+        from app.services.parser import parse_episode, ReleaseKind
+
+        # Movie parsing
+        m1 = parse_episode("Кот и пёс / Chien & chat / Cat and Dog (2024) BDRip 1080p | Велес")
+        self.assertEqual(m1.kind, ReleaseKind.MOVIE)
+
+        m2 = parse_episode("Изгой-один: Звёздные войны. Истории / Rogue One: A Star Wars Story (2016) BDRip-1080p-AVC [лицензия] [мультираздача]")
+        self.assertEqual(m2.kind, ReleaseKind.MOVIE)
+
+        # AniBelka [mv] and [rus]
+        ab_movie = parse_episode("[mv] Война на Венере / Venus Senki / Venus Wars [R,S][1989, приключения, фантастика]")
+        self.assertEqual(ab_movie.kind, ReleaseKind.MOVIE)
+
+        ab_pack = parse_episode("[rus] Рамэнная рыжего кота / Ramen Aka Neko / Red Cat Ramen [2024, комедия, повседневность]")
+        self.assertEqual(ab_pack.kind, ReleaseKind.SEASON_PACK)
+        self.assertEqual(ab_pack.season, 1)
 
     def test_split_cour_part2_matching_and_offset(self):
         import datetime as dt
