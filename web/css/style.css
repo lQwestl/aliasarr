@@ -5494,6 +5494,50 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     justify-content: center !important;
     min-height: 40px !important;
   }
+
+  /* Manual Import Modal on Mobile */
+  .manual-import-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    padding-right: 40px !important;
+  }
+  .manual-import-mode-row {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+  .manual-import-mode-row select {
+    flex: 1 !important;
+    max-width: none !important;
+  }
+  .manual-import-path-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-bottom: 14px !important;
+  }
+  .manual-import-path-row input,
+  .manual-import-path-row #manual-import-path-input {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+    box-sizing: border-box !important;
+    min-height: 42px !important;
+  }
+  .manual-import-path-row .btn {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    box-sizing: border-box !important;
+  }
 }
 
 /* Extra small devices (< 380px) */
