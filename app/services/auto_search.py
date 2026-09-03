@@ -17,6 +17,7 @@ from typing import Optional, List, Dict, Any
 import asyncio
 import datetime as dt
 import logging
+import os
 import re
 import uuid
 
@@ -246,11 +247,11 @@ def evaluate_torrent_file_priority(
                 if ep_num in target_abs:
                     return 1
                 for s in target_seasons:
-                    if (s, ep_num) in target_keys:
+                    if s > 0 and (s, ep_num) in target_keys:
                         return 1
                 if is_part_2 and 1 <= ep_num <= 12:
                     for s in target_seasons:
-                        if (s, ep_num + 12) in target_keys or (ep_num + 12) in target_abs:
+                        if s > 0 and ((s, ep_num + 12) in target_keys or (ep_num + 12) in target_abs):
                             return 1
         return 0
 
@@ -298,15 +299,15 @@ def evaluate_torrent_file_priority(
                         if (season, ep_num + 12) in target_keys:
                             return 1
             else:
-                # 3. Если сезон не указан явно в имени файла, сопоставляем по сквозной нумерации или разыскиваемым сезонам
+                # 3. Если сезон не указан явно в имени файла, сопоставляем по сквозной нумерации или регулярным сезонам (s > 0)
                 if ep_num in target_abs:
                     return 1
                 for s in target_seasons:
-                    if (s, ep_num) in target_keys:
+                    if s > 0 and (s, ep_num) in target_keys:
                         return 1
                 if is_part_2 and 1 <= ep_num <= 12:
                     for s in target_seasons:
-                        if (s, ep_num + 12) in target_keys or (ep_num + 12) in target_abs:
+                        if s > 0 and ((s, ep_num + 12) in target_keys or (ep_num + 12) in target_abs):
                             return 1
         return 0
 
@@ -459,37 +460,12 @@ async def _limit_torrent_files_to_episodes(
             torrent_hash, len(target_eps), len(unwanted_indices), len(wanted_indices)
         )
     else:
-        # Если ни один файл не подошёл по строгому пофайловому парсеру:
-        # Раздача уже была проверена и одобрена matcher.py по тайтлу и сезону.
-        # Поэтому мы НЕ удаляем раздачу, а оставляем все видеофайлы включенными,
-        # чтобы скачивание не обрывалось. При завершении загрузки модуль импорта
-        # сможет точно распарсить и импортировать файлы.
-        video_indices = [
-            f.index for f in torrent.files
-            if os.path.splitext(f.name)[1].lower() in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}
-            and not ("/sample" in f.name.lower() or f.name.lower().endswith("-sample.mkv"))
-        ]
-        if video_indices:
-            logger.warning(
-                "Раздача %s (%s): пофайловое отключение пропущено (не удалось определить номера серий в именах файлов). Оставляем все видеофайлы (%d шт) включенными.",
-                torrent_hash, t_name, len(video_indices)
-            )
-            await dl_client.set_files_wanted_unwanted(
-                torrent_hash,
-                video_indices,
-                [f.index for f in torrent.files if f.index not in video_indices]
-            )
-            try:
-                await dl_client.recheck_torrent(torrent_hash)
-                await dl_client.resume_torrent(torrent_hash)
-            except Exception as exc:
-                logger.warning("Не удалось возобновить раздачу %s: %s", torrent_hash, exc)
-            return
-
-        # Если в раздаче ВООБЩЕ нет ни одного видеофайла (битый релиз):
+        # Раздача не содержит ни одной из запрошенных серий (например, скачали Part 1 (1-12), а искали серии 23-24).
+        # Помещаем хэш в список исключений, удаляем неподходящую раздачу из загрузчика, возвращаем серии в статус WANTED
+        # и автоматически запускаем поиск следующего кандидата.
         requested_ep_str = ", ".join(f"S{ep.season_number}E{ep.episode_number}" for ep in target_eps)
         logger.warning(
-            "Раздача %s: в раздаче отсутствуют видеофайлы, соответствующие запрошенным сериям (%s). Раздача отменена и удалена из загрузчика.",
+            "Раздача %s: ни один файл в раздаче не соответствует запрошенным сериям (%s). Раздача отменена и удалена из загрузчика.",
             torrent_hash, requested_ep_str,
         )
 
