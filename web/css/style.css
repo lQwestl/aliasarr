@@ -4281,25 +4281,34 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     border-top: 1px solid var(--border);
   }
 
-  /* Vanguard Luxe Floating Island Pill Bottom Bar */
+  /* Vanguard Luxe Full-Width Bottom Bar */
   [data-design="vanguard"] .mobile-bottom-bar {
-    bottom: max(10px, env(safe-area-inset-bottom, 10px));
-    left: 12px;
-    right: 12px;
-    height: 58px;
-    border-radius: 9999px;
-    background: rgba(10, 14, 26, 0.85);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(0, 245, 212, 0.22);
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 245, 212, 0.15);
-    padding: 0 6px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    margin: 0;
+    height: 60px;
+    height: calc(60px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: 2px;
+    padding-right: 2px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    border-top: 1px solid rgba(0, 245, 212, 0.22);
+    background: rgba(10, 14, 26, 0.92);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.65), 0 0 16px rgba(0, 245, 212, 0.1);
+    box-sizing: border-box;
   }
 
   [data-theme="light"][data-design="vanguard"] .mobile-bottom-bar {
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(2, 132, 199, 0.22);
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12), 0 0 16px rgba(2, 132, 199, 0.12);
+    background: rgba(255, 255, 255, 0.94);
+    border-top: 1px solid rgba(2, 132, 199, 0.22);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
   }
 
   .mobile-bottom-item {
@@ -7272,20 +7281,53 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 
   [data-design="vanguard"] .mobile-bottom-bar {
-    margin: 0 14px calc(12px + env(safe-area-inset-bottom, 0px)) 14px;
-    width: calc(100% - 28px);
-    border-radius: 26px;
-    background: rgba(14, 19, 32, 0.92);
+    margin: 0;
+    width: 100%;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(14, 19, 32, 0.94);
     backdrop-filter: blur(32px);
     -webkit-backdrop-filter: blur(32px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.16);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    height: calc(60px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: 2px;
+    padding-right: 2px;
+    box-sizing: border-box;
   }
 
   [data-design="vanguard"] .mobile-bottom-item {
-    border-radius: 16px;
-    padding: 6px 12px;
-    transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 20%;
+    border-radius: 12px;
+    padding: 5px 2px;
+    margin: 0 1px;
+    box-sizing: border-box;
+    transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  [data-design="vanguard"] .mobile-bottom-item span {
+    font-size: 8.5px;
+    letter-spacing: 0.1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: block;
+    text-align: center;
+  }
+
+  [data-design="vanguard"] .mobile-bottom-item svg,
+  [data-design="vanguard"] .mobile-bottom-item i {
+    width: 19px;
+    height: 19px;
   }
 
   [data-design="vanguard"] .mobile-bottom-item.active {
@@ -7972,6 +8014,87 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
   [data-design="vanguard"] .btn-small {
     height: auto !important;
+  }
+
+  /* 13. Mobile Bottom Navigation Bar (100% Full Width & 5 Items Fit Cleanly) */
+  [data-design="vanguard"] .mobile-bottom-bar {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+    height: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    z-index: 900 !important;
+  }
+
+  [data-design="vanguard"] .mobile-bottom-item {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 20% !important;
+    padding: 4px 1px !important;
+    margin: 0 !important;
+    border-radius: 10px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2px !important;
+  }
+
+  [data-design="vanguard"] .mobile-bottom-item span {
+    font-size: 8.5px !important;
+    letter-spacing: 0.1px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+    display: block !important;
+    text-align: center !important;
+  }
+
+  [data-design="vanguard"] .mobile-bottom-item svg,
+  [data-design="vanguard"] .mobile-bottom-item i {
+    width: 18px !important;
+    height: 18px !important;
+    flex-shrink: 0 !important;
+  }
+
+  [data-design="vanguard"] .mobile-bottom-item.active {
+    background: rgba(0, 240, 255, 0.12) !important;
+    color: var(--teal, #00F0FF) !important;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.2) !important;
+  }
+
+  [data-design="vanguard"] .mobile-bottom-item.active::after {
+    bottom: 2px !important;
+    width: 12px !important;
+    height: 2.5px !important;
+  }
+
+  [data-theme="dracula"][data-design="vanguard"] .mobile-bottom-bar {
+    background: rgba(30, 31, 41, 0.96) !important;
+    border-top: 1px solid #44475a !important;
+  }
+
+  [data-theme="light"][data-design="vanguard"] .mobile-bottom-bar {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border-top: 1px solid #e2e8f0 !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
   }
 }
 
