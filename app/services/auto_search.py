@@ -574,6 +574,57 @@ async def _collect_candidates(
             seen_queries.add(q.lower())
             query_terms.append(q)
 
+        # Очищаем алиасы от служебных меток Shikimori/AniDB типа "(ТВ-4)", "(ТВ-2)", "(TV-3)"
+        clean_q = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", q, flags=re.IGNORECASE).strip()
+        if clean_q and clean_q.lower() not in seen_queries:
+            seen_queries.add(clean_q.lower())
+            query_terms.append(clean_q)
+
+    # 1. Сезонные запросы (Season Pack): если разыскиваются серии конкретных сезонов (даже > 6 серий)
+    # Формируем точные запросы на трекеры ("Title S03", "Title Season 3", "Title 3 сезон", "Title S04")
+    if wanted_episodes:
+        wanted_seasons = {
+            ep.season_number
+            for ep in wanted_episodes
+            if ep.season_number is not None and ep.season_number > 0
+        }
+        for sn in sorted(wanted_seasons):
+            for alias in alias_candidates[:3]:
+                raw_base = alias.text.strip()
+                clean_base = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", raw_base, flags=re.IGNORECASE).strip()
+                bases_to_try = [clean_base] if clean_base and clean_base != raw_base else [raw_base]
+                for base in bases_to_try:
+                    for s_term in (
+                        f"{base} S{sn:02d}",
+                        f"{base} Season {sn}",
+                        f"{base} {sn} сезон",
+                        f"{base} S{sn}",
+                    ):
+                        if s_term.lower() not in seen_queries:
+                            seen_queries.add(s_term.lower())
+                            query_terms.append(s_term)
+
+    # 2. Обработка меток (ТВ-X) из аниме-баз (напр. Shikimori ТВ-4 = 3-й сезон Re:Zero)
+    for alias in alias_candidates:
+        m_tv = re.search(r"\((?:тв|tv)[\s\-]?(\d+)\)", alias.text, flags=re.IGNORECASE)
+        if m_tv:
+            tv_num = int(m_tv.group(1))
+            clean_base = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", alias.text, flags=re.IGNORECASE).strip()
+            # Для аниме ТВ-N ищем как N сезон, а для ТВ-4 (часто 3 сезон из-за сплит-куров) ищем и N-1
+            tv_seasons = {tv_num}
+            if tv_num > 1:
+                tv_seasons.add(tv_num - 1)
+            for sn_val in sorted(tv_seasons):
+                for s_term in (
+                    f"{clean_base} S{sn_val:02d}",
+                    f"{clean_base} {sn_val} сезон",
+                    f"{clean_base} Season {sn_val}",
+                    f"{clean_base} {sn_val}",
+                ):
+                    if s_term.lower() not in seen_queries:
+                        seen_queries.add(s_term.lower())
+                        query_terms.append(s_term)
+
     if wanted_episodes and len(wanted_episodes) <= 6:
         for ep in wanted_episodes:
             for alias in alias_candidates[:3]:
