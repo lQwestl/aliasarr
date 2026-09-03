@@ -7456,7 +7456,16 @@ async function searchReleasesForShow(button, showId) {
 }
 
 async function openInteractiveSearch(showId, seasonNumber = null, episodeNumber = null, customQuery = null) {
-  const show = CACHED_SHOWS.find(s => s.id === showId);
+  let show = (typeof CACHED_SHOWS !== "undefined" && Array.isArray(CACHED_SHOWS))
+    ? CACHED_SHOWS.find(s => String(s.id) === String(showId))
+    : null;
+
+  if (!show && showId) {
+    try {
+      show = await api(`/api/v1/shows/${showId}`);
+    } catch (e) {}
+  }
+
   let initialQuery = customQuery;
   if (!initialQuery && show) {
     if (seasonNumber !== null && episodeNumber !== null) {
