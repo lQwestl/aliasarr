@@ -2604,25 +2604,6 @@
         </table>
       </div>
       <div class="form-row" id="dataset-pagination" style="justify-content:center; margin-top:14px;"></div>
-
-      <!-- МОДАЛЬНОЕ ОКНО ДИАГНОСТИКИ СОПОСТАВЛЕНИЯ -->
-      <div id="modal-dataset-diagnose" class="modal-backdrop" style="display:none;">
-        <div class="modal-dialog" style="max-width: 680px;">
-          <div class="modal-header">
-            <h3 style="display:flex; align-items:center; gap:8px;">
-              <i data-lucide="search" class="ico-sm" style="color:var(--teal);"></i>
-              <span>Диагностика сопоставления раздачи</span>
-            </h3>
-            <button class="btn-icon" onclick="closeDatasetDiagnoseModal()"><i data-lucide="x"></i></button>
-          </div>
-          <div class="modal-body" id="modal-dataset-diagnose-body" style="padding: 16px 20px; font-size: 13px;">
-            <!-- динамический контент -->
-          </div>
-          <div class="modal-footer" style="padding: 12px 20px;">
-            <button class="btn btn-secondary" onclick="closeDatasetDiagnoseModal()">Закрыть</button>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- BACKUP (Резервное копирование и восстановление) -->
@@ -3533,6 +3514,24 @@
     </div>
     <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
       <button class="btn btn-secondary" onclick="closeModal('modal-release-log-detail')" data-i18n="common.close">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-dataset-diagnose" class="modal-overlay">
+  <div class="modal modal-medium" style="max-width: 720px; width: 95%;">
+    <button class="modal-close" onclick="closeModal('modal-dataset-diagnose')"><i data-lucide="x"></i></button>
+    <div class="modal-header" style="margin-bottom: 16px;">
+      <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+        <i data-lucide="search" class="ico-sm" style="color:var(--teal)"></i>
+        <span>Диагностика сопоставления раздачи</span>
+      </h3>
+    </div>
+    <div class="modal-body" style="padding: 4px 0;">
+      <div id="modal-dataset-diagnose-body" class="form-col" style="gap:12px;"></div>
+    </div>
+    <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-dataset-diagnose')">Закрыть</button>
     </div>
   </div>
 </div>

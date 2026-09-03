@@ -13219,13 +13219,12 @@ function openDatasetDiagnoseModal(index) {
     </div>
   `;
 
-  modal.style.display = "flex";
+  openModal("modal-dataset-diagnose");
   if (typeof lucide !== "undefined") lucide.createIcons();
 }
 
 function closeDatasetDiagnoseModal() {
-  const modal = document.getElementById("modal-dataset-diagnose");
-  if (modal) modal.style.display = "none";
+  closeModal("modal-dataset-diagnose");
 }
 
 function copyDatasetRowTitle(btn) {
