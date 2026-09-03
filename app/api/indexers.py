@@ -267,7 +267,18 @@ async def search_custom_releases(
         async with sem:
             try:
                 client = get_indexer_client(idx)
-                rels = await asyncio.wait_for(client.search(query.strip()), timeout=12.0)
+                q_text = query.strip()
+                rels = await asyncio.wait_for(client.search(q_text), timeout=12.0)
+                if season is not None and not re.search(r"\b(?:s\d{1,2}|season\s*\d{1,2}|\d{1,2}\s*сезон)\b", q_text, re.IGNORECASE):
+                    try:
+                        s_q = f"{q_text} S{season:02d}"
+                        more_rels = await asyncio.wait_for(client.search(s_q), timeout=12.0)
+                        existing_guids = {r.guid for r in rels}
+                        for mr in more_rels:
+                            if mr.guid not in existing_guids:
+                                rels.append(mr)
+                    except Exception:
+                        pass
                 return (idx, rels)
             except Exception:
                 return (idx, [])
