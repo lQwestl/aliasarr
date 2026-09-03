@@ -34,6 +34,8 @@ class ParsedRelease:
     season: Optional[int] = None
     seasons: list[int] = field(default_factory=list)   # список сезонов для мульти-сезонных паков
     episodes: list[int] = field(default_factory=list)   # список серий (может быть один элемент)
+    part: Optional[int] = None                          # номер части/кура (Part 1, Part 2, Cour 2, часть 2)
+    total_in_part: Optional[int] = None                 # общее кол-во серий в части (из «12 из 12»)
     is_range: bool = False
     raw: str = ""
     matched_pattern: str = ""
@@ -380,11 +382,45 @@ def _season_pack_result(seasons: list[int] | int, raw: str, pattern: str) -> Par
     )
 
 
-def parse_episode(release_name: str) -> ParsedRelease:
+def extract_part_info(raw: str) -> tuple[Optional[int], Optional[int]]:
     """
-    Разбирает имя релиза и возвращает ParsedRelease.
-    Пробует форматы по порядку приоритета, первое совпадение побеждает.
+    Извлекает номер части/кура (Part / Cour / Часть) и общее количество серий в части.
+    Например:
+      «(ТВ-2, часть 2)» -> (2, None)
+      «2nd Season Part 2 [12 из 12]» -> (2, 12)
+      «Cour 2 [01-13 из 13]» -> (2, 13)
+      «4 сезон: 2-я часть» -> (2, None)
+      «Part II» -> (2, None)
     """
+    m1 = re.search(
+        r"(?:часть|part|cour|кур|parte)\s*[:\-_.\s]?\s*(\d{1,2})(?:\s*(?:из|of)\s*(\d{1,2}))?",
+        raw,
+        re.IGNORECASE,
+    )
+    part_num = None
+    if m1:
+        part_num = int(m1.group(1))
+    else:
+        m2 = re.search(
+            r"\b(\d{1,2})(?:[-_\s]?(?:я|ая|й|ой|th|nd|rd|st))?\s*(?:часть|part|cour|кур)\b",
+            raw,
+            re.IGNORECASE,
+        )
+        if m2:
+            part_num = int(m2.group(1))
+        else:
+            m_roman = re.search(r"\b(?:part|cour|часть)\s*(i{1,3}|iv|v|vi)\b", raw, re.IGNORECASE)
+            if m_roman:
+                roman_map = {"i": 1, "ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6}
+                part_num = roman_map[m_roman.group(1).lower()]
+
+    m_iz = re.search(r"\[\s*(?:\d{1,4}\s*[-–~]\s*)?\d{1,4}\s+из\s+(\d{1,4})\s*\]", raw, re.IGNORECASE)
+    total_in_part = int(m_iz.group(1)) if m_iz else None
+
+    return part_num, total_in_part
+
+
+def _parse_episode_internal(release_name: str) -> ParsedRelease:
     raw = release_name
     name = normalize(release_name)
 
@@ -857,6 +893,19 @@ def parse_episode(release_name: str) -> ParsedRelease:
             )
 
     return ParsedRelease(kind=ReleaseKind.UNKNOWN, raw=raw, matched_pattern="none")
+
+
+def parse_episode(release_name: str) -> ParsedRelease:
+    """
+    Разбирает имя релиза и возвращает ParsedRelease.
+    Пробует форматы по порядку приоритета, первое совпадение побеждает.
+    Также заполняет информацию о части/куре (Part / Cour / Часть).
+    """
+    res = _parse_episode_internal(release_name)
+    part, total_in_part = extract_part_info(release_name)
+    res.part = part
+    res.total_in_part = total_in_part
+    return res
 
 
 # ---------------------------------------------------------------------------

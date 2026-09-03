@@ -1074,6 +1074,17 @@ def process_download(
                         (ep for ep in dl_eps if ep.season_number == parsed.season and ep.episode_number == ep_num),
                         None,
                     )
+                    # Проверка смещения кура / части (Part 2 offset), когда серии в раздаче начинаются с 1
+                    if episode is None:
+                        same_season_dl_eps = [ep for ep in dl_eps if ep.season_number == parsed.season]
+                        if same_season_dl_eps:
+                            min_dl_ep = min(ep.episode_number for ep in same_season_dl_eps)
+                            if min_dl_ep > 1:
+                                offset = min_dl_ep - 1
+                                episode = next(
+                                    (ep for ep in same_season_dl_eps if ep.episode_number == (ep_num + offset)),
+                                    None,
+                                )
                     # Только если серии с таким номером нет в сезоне (например, аниме с абсолютной нумерацией в подпапке сезона)
                     if episode is None and getattr(show, "content_type", "series") == "anime":
                         episode = next(

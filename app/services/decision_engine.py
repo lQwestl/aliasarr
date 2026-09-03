@@ -174,8 +174,26 @@ class DecisionEngine:
                         # Проверка конкретных серий
                         if match.parsed.episodes and match.parsed.kind not in (ReleaseKind.SEASON_PACK, ReleaseKind.UNKNOWN):
                             rel_s = match.parsed.season if match.parsed.season is not None else (min(target_seasons) if target_seasons else 1)
+
+                            # Расчёт смещения для multi-part / split-cour релизов (Part 2, Cour 2, часть 2)
+                            part_offset = 0
+                            if match.parsed.part and match.parsed.part >= 2 and show and getattr(show, "episodes", None):
+                                all_season_eps = [e for e in show.episodes if getattr(e, "season_number", None) == rel_s]
+                                wanted_season_eps = [e for e in episodes if getattr(e, "season_number", None) == rel_s] if episodes else []
+                                from app.services.matcher import resolve_part_offset
+                                part_offset = resolve_part_offset(
+                                    match.parsed.part,
+                                    match.parsed.total_in_part,
+                                    match.parsed.episodes,
+                                    all_season_eps,
+                                    wanted_season_eps,
+                                )
+
                             has_matching_ep = any(
-                                (rel_s, ep_n) in target_ep_keys or ep_n in target_abs
+                                (rel_s, ep_n) in target_ep_keys
+                                or (rel_s, ep_n + part_offset) in target_ep_keys
+                                or ep_n in target_abs
+                                or (ep_n + part_offset) in target_abs
                                 for ep_n in match.parsed.episodes
                             )
                             if not has_matching_ep:

@@ -643,6 +643,81 @@ class TestQualityAndMatcher(unittest.TestCase):
         for nv_title in non_video_cases:
             self.assertTrue(is_non_video_release(nv_title), f"Failed to detect non-video: {nv_title}")
 
+    def test_split_cour_part2_matching_and_offset(self):
+        import datetime as dt
+        from types import SimpleNamespace
+        from app.services.parser import parse_episode, extract_part_info
+        from app.services.matcher import resolve_part_offset
+        from app.services.decision_engine import DecisionEngine
+
+        t_part2 = "Re:Zero — жизнь с нуля в другом мире (ТВ-2, часть 2) / Re:Zero kara Hajimeru Isekai Seikatsu 2 / Re:Zero - Starting Life in Another World 2nd Season Part 2 / С нуля: пособие по выживанию в альтернативном мире 2 [TV] [12 из 12] [RUS(ext), JAP+Sub] [2021, фэнтези, приключения, драма, BDRip] [1080p]"
+
+        # 1. Проверка парсера
+        p = parse_episode(t_part2)
+        self.assertEqual(p.season, 2)
+        self.assertEqual(p.episodes, list(range(1, 13)))
+        self.assertEqual(p.part, 2)
+        self.assertEqual(p.total_in_part, 12)
+
+        # 2. Проверка расчёта смещения (offset)
+        s2_all = [
+            SimpleNamespace(
+                season_number=2, episode_number=i, absolute_number=25 + i,
+                air_date=dt.datetime(2020, 7, 8) if i <= 13 else dt.datetime(2021, 1, 6),
+                status="downloaded" if i <= 13 else "wanted",
+                monitored=True,
+            )
+            for i in range(1, 26)
+        ]
+        s2_wanted = [e for e in s2_all if e.status == "wanted"] # 14..25
+
+        offset = resolve_part_offset(p.part, p.total_in_part, p.episodes, s2_all, s2_wanted)
+        self.assertEqual(offset, 13)
+
+        mapped_episodes = [e + offset for e in p.episodes]
+        self.assertEqual(mapped_episodes, list(range(14, 26)))
+
+        # 3. Проверка оценки через DecisionEngine
+        show_rezero = SimpleNamespace(
+            id=77,
+            title="Re:Zero — жизнь с нуля в другом мире",
+            year=2016,
+            content_type="anime",
+            quality_profile_id=1,
+            path=None,
+            aliases=[
+                SimpleNamespace(id=1, text="Re: ZERO, Starting Life in Another World", language="en", priority=10),
+                SimpleNamespace(id=2, text="Re:Zero — жизнь с нуля в другом мире", language="ru", priority=20),
+            ],
+            episodes=s2_all,
+        )
+
+        qp = SimpleNamespace(
+            id=1,
+            name="HD-1080p",
+            cutoff="Bluray-1080p",
+            upgrade_allowed=True,
+            allowed_qualities=["Bluray-1080p", "WEBDL-1080p", "HDTV-1080p"],
+            min_custom_format_score=0,
+            format_items=[],
+            min_size_mb=None,
+            max_size_mb=None,
+        )
+
+        decision = DecisionEngine.evaluate_release(
+            db=None,
+            title=t_part2,
+            show=show_rezero,
+            episodes=s2_wanted,
+            size_bytes=27940000000,
+            seeders=63,
+            settings=None,
+            quality_profile=qp,
+        )
+
+        self.assertTrue(decision.approved, f"Decision rejected: {decision.rejections}")
+        self.assertEqual(decision.rejections, [])
+
 
 if __name__ == "__main__":
     unittest.main()

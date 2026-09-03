@@ -859,9 +859,33 @@ async def _do_search_and_grab(
         if show.content_type == "movie":
             return True
 
+        # Вычисляем смещение для Part 2 / Cour 2 (Split-Cour)
+        part_offset = 0
+        if parsed.part and parsed.part >= 2 and parsed.episodes:
+            from app.services.matcher import resolve_part_offset
+            all_s_eps = [e for e in getattr(show, "episodes", []) if getattr(e, "season_number", None) == ep.season_number]
+            part_offset = resolve_part_offset(
+                parsed.part,
+                parsed.total_in_part,
+                parsed.episodes,
+                all_s_eps,
+                wanted_episodes,
+            )
+
+        def _has_ep_match():
+            if not parsed.episodes:
+                return True
+            ep_n = ep.episode_number
+            ep_abs = ep.absolute_number
+            if ep_n in parsed.episodes or (part_offset > 0 and (ep_n - part_offset) in parsed.episodes):
+                return True
+            if ep_abs is not None and (ep_abs in parsed.episodes or (part_offset > 0 and (ep_abs - part_offset) in parsed.episodes)):
+                return True
+            return False
+
         # 1. Проверяем точное совпадение по absolute_number (для аниме)
         if ep.absolute_number is not None and parsed.episodes:
-            if ep.absolute_number in parsed.episodes:
+            if ep.absolute_number in parsed.episodes or (part_offset > 0 and (ep.absolute_number - part_offset) in parsed.episodes):
                 if parsed.season is not None and parsed.season != ep.season_number:
                     pass
                 else:
@@ -875,17 +899,13 @@ async def _do_search_and_grab(
         if label_type == "range":
             if ep.season_number not in season_label.get("seasons", []):
                 return False
-            if parsed.episodes:
-                return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
-            return True
+            return _has_ep_match()
 
         # --- Случай 0б: Мультисезонный список из parsed.seasons ---
         if parsed.seasons and len(parsed.seasons) > 1:
             if ep.season_number not in parsed.seasons:
                 return False
-            if parsed.episodes:
-                return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
-            return True
+            return _has_ep_match()
 
         # --- Случай 1: явный номер сезона в названии релиза ---
         if label_type == "numbered":
@@ -897,28 +917,20 @@ async def _do_search_and_grab(
                     total_episodes_by_season.get(label_season, 0) > 0
                 )
                 if not has_label_season_in_db and ep.season_number == 1:
-                    if parsed.episodes:
-                        return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
-                    return True
+                    return _has_ep_match()
                 return False
-            if parsed.episodes:
-                return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
-            return True
+            return _has_ep_match()
 
         # --- Случай 2: «Final Season» ---
         if label_type == "final":
             max_s = _get_show_max_season(db, show)
             if max_s > 1 and ep.season_number != max_s:
                 return False
-            if parsed.episodes:
-                return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
-            return True
+            return _has_ep_match()
 
         # --- Случай 3: «Complete Series» / «Все сезоны» ---
         if label_type == "complete":
-            if parsed.episodes:
-                return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
-            return True
+            return _has_ep_match()
 
         # --- Случай 4: OVA/ONA/Special — сезон 0 ---
         if label_type == "ova_ona" or parsed.season == 0:
@@ -933,15 +945,13 @@ async def _do_search_and_grab(
         if parsed_season is not None:
             if parsed_season != ep.season_number:
                 return False
-            if parsed.episodes:
-                return ep.episode_number in parsed.episodes or (ep.absolute_number is not None and ep.absolute_number in parsed.episodes)
-            return True
+            return _has_ep_match()
 
         # --- Случай 6: сезон в названии релиза не указан (аниме absolute / lone number / диапазон серий) ---
         if parsed.episodes:
             if ep.absolute_number is not None:
-                return ep.absolute_number in parsed.episodes
-            return ep.episode_number in parsed.episodes and ep.season_number in (0, 1)
+                return ep.absolute_number in parsed.episodes or (part_offset > 0 and (ep.absolute_number - part_offset) in parsed.episodes)
+            return (ep.episode_number in parsed.episodes or (part_offset > 0 and (ep.episode_number - part_offset) in parsed.episodes)) and ep.season_number in (0, 1)
 
         # --- Случай 7: релиз без явного указания серий и сезона (полный пак / аниме сериал целиком) ---
         if not parsed.episodes and parsed.season is None and label_type == "none":

@@ -686,3 +686,67 @@ def match_special_episode(filepath_or_name: str, specials: list, parsed_ep: Opti
 
     return None
 
+
+def resolve_part_offset(
+    part_num: Optional[int],
+    total_in_part: Optional[int],
+    parsed_episodes: list[int],
+    all_season_episodes: Optional[list] = None,
+    wanted_season_episodes: Optional[list] = None,
+) -> int:
+    """
+    Вычисляет смещение номеров серий (offset) для раздельных куров/частей сезона (Split-Cour / Part 2 / Part 3).
+    Например, для Re:Zero S02 Part 2 [12 из 12] при 25 сериях в сезоне смещение = 13 (серии 14..25).
+    """
+    if not part_num or part_num < 2 or not parsed_episodes:
+        return 0
+
+    # Если номера серий уже сквозные для сезона (например, [14..25]), смещение не требуется
+    if min(parsed_episodes) > 12:
+        return 0
+
+    sorted_all = sorted(all_season_episodes, key=lambda e: getattr(e, "episode_number", 0)) if all_season_episodes else []
+    total_season_eps = len(sorted_all)
+
+    # 1. Поиск разрыва в датах выхода (air_date gap > 45 дней) между частями сплит-кура
+    if sorted_all:
+        gaps = []
+        for i in range(len(sorted_all) - 1):
+            e1, e2 = sorted_all[i], sorted_all[i + 1]
+            ad1 = getattr(e1, "air_date", None)
+            ad2 = getattr(e2, "air_date", None)
+            if ad1 and ad2:
+                try:
+                    days = (ad2 - ad1).days
+                    if days > 45:
+                        gaps.append(getattr(e1, "episode_number", 0))
+                except Exception:
+                    pass
+
+        if part_num == 2 and len(gaps) >= 1 and gaps[0] > 0:
+            return gaps[0]
+        elif part_num == 3 and len(gaps) >= 2 and gaps[1] > 0:
+            return gaps[1]
+
+    # 2. Вычисление по общему количеству серий сезона и размеру части (total_season_eps - total_in_part)
+    if total_in_part and total_season_eps and total_season_eps > total_in_part:
+        if part_num == 2:
+            offset = total_season_eps - total_in_part
+            if offset > 0:
+                return offset
+
+    # 3. Проверка стартового номера разыскиваемых серий (если 1-я часть уже скачана)
+    if wanted_season_episodes:
+        wanted_nums = [getattr(e, "episode_number", 0) for e in wanted_season_episodes if getattr(e, "episode_number", 0) > 0]
+        if wanted_nums:
+            min_wanted = min(wanted_nums)
+            if min_wanted > 1 and (min_wanted - 1) in range(10, 30):
+                return min_wanted - 1
+
+    # 4. Стандартный размер аниме-кура (12-13 серий)
+    if total_season_eps >= 22:
+        cour_len = total_season_eps // 2
+        return cour_len * (part_num - 1)
+
+    return 0
+
