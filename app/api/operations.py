@@ -1166,18 +1166,26 @@ async def delete_queue_item(
     Параметр delete_files=True удаляет загруженные файлы с диска.
     """
     removed_from = []
+    target_hash_lower = (torrent_hash or "").strip().lower()
     for dc in db.query(DownloadClient).filter(DownloadClient.enabled == True).all():  # noqa: E712
         try:
             client = get_client(dc)
             torrents = await client.list_torrents()
-            if not any(t.hash.lower() == torrent_hash.lower() for t in torrents):
+            matching_torrents = [t for t in torrents if getattr(t, "hash", "").lower() == target_hash_lower]
+            if not matching_torrents:
                 continue
-            await client.remove_torrent(torrent_hash, delete_files=delete_files)
+            for mt in matching_torrents:
+                await client.remove_torrent(mt.hash, delete_files=delete_files)
             removed_from.append(dc.name)
         except Exception:
             continue
 
-    affected_episodes = db.query(Episode).filter(Episode.torrent_hash == torrent_hash).all()
+    affected_episodes = db.query(Episode).filter(
+        or_(
+            Episode.torrent_hash == torrent_hash,
+            func.lower(Episode.torrent_hash) == target_hash_lower,
+        )
+    ).all()
     for ep in affected_episodes:
         ep.status = EpisodeStatus.WANTED
         ep.torrent_hash = None
@@ -1186,10 +1194,11 @@ async def delete_queue_item(
         db.add(ep)
     db.commit()
 
-    if not removed_from:
-        raise HTTPException(404, "Раздача не найдена ни в одном из включённых download client'ов")
-
-    return {"removed_from": removed_from, "affected_episodes": len(affected_episodes)}
+    return {
+        "status": "deleted",
+        "removed_from": removed_from,
+        "affected_episodes": len(affected_episodes),
+    }
 
 
 @router.post("/queue/check")

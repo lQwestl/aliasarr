@@ -8232,16 +8232,18 @@ async function finishWizard(button) {
 // =============================================================================
 
 let QUEUE_DELETE_TARGET = { hash: null, name: "" };
+let CACHED_QUEUE_ITEMS = [];
 
 async function loadQueue() {
   const tbody = document.querySelector("#queue-table tbody");
   if (!tbody) return;
   try {
     const items = await api("/api/v1/queue");
+    CACHED_QUEUE_ITEMS = items || [];
     const pct = (p) => Math.round((p || 0) * 100);
     const canManage = hasPermission("manage_activity") || hasPermission("manual_search");
 
-    tbody.innerHTML = items.map(i => {
+    tbody.innerHTML = CACHED_QUEUE_ITEMS.map((i, idx) => {
       const isPaused = (i.state || "").toLowerCase().includes("pause") ||
                        (i.state || "").toLowerCase().includes("stop") ||
                        (i.state || "").toLowerCase().includes("halt") ||
@@ -8284,10 +8286,10 @@ async function loadQueue() {
           <td>
             ${canManage ? `
               <div class="row-actions">
-                <button class="btn-icon-only ${isPaused ? "active" : ""}" title="${toggleTitle}" onclick="toggleQueueItemPause(this, '${i.hash}', ${isPaused})">
+                <button class="btn-icon-only ${isPaused ? "active" : ""}" title="${toggleTitle}" onclick="toggleQueueItemPauseByIndex(this, ${idx})">
                   <i data-lucide="${toggleIcon}" class="ico-sm"></i>
                 </button>
-                <button class="btn-icon-only danger" title="${t("activity.delete_title")}" onclick="openQueueDeleteModal('${i.hash}', '${escapeHtml(i.name).replace(/'/g, "&apos;")}')">
+                <button class="btn-icon-only danger" title="${t("activity.delete_title")}" onclick="openQueueDeleteModalByIndex(${idx})">
                   <i data-lucide="trash-2" class="ico-sm"></i>
                 </button>
               </div>
@@ -8297,6 +8299,22 @@ async function loadQueue() {
     }).join("") || `<tr><td colspan="7" style="color:var(--text-muted); text-align:center; padding:30px;">${t("activity.empty")}</td></tr>`;
     if (window.lucide) lucide.createIcons();
   } catch (e) {}
+}
+
+async function toggleQueueItemPauseByIndex(button, idx) {
+  const item = (CACHED_QUEUE_ITEMS || [])[idx];
+  if (!item) return;
+  const isPaused = (item.state || "").toLowerCase().includes("pause") ||
+                   (item.state || "").toLowerCase().includes("stop") ||
+                   (item.state || "").toLowerCase().includes("halt") ||
+                   item.state === "0";
+  await toggleQueueItemPause(button, item.hash, isPaused);
+}
+
+function openQueueDeleteModalByIndex(idx) {
+  const item = (CACHED_QUEUE_ITEMS || [])[idx];
+  if (!item) return;
+  openQueueDeleteModal(item.hash, item.name);
 }
 
 async function toggleQueueItemPause(button, hash, isCurrentlyPaused) {
@@ -8325,23 +8343,32 @@ async function resumeQueueItem(hash) {
 }
 
 function openQueueDeleteModal(hash, name) {
-  QUEUE_DELETE_TARGET = { hash, name };
+  QUEUE_DELETE_TARGET = { hash, name: name || "" };
   const promptEl = document.getElementById("queue-delete-prompt");
-  if (promptEl) promptEl.textContent = `Удалить раздачу «${name}» из очереди загрузчика?`;
+  if (promptEl) {
+    promptEl.textContent = CURRENT_LANG === "en"
+      ? `Delete download "${name || ""}" from queue and downloader?`
+      : `Удалить раздачу «${name || ""}» из очереди и загрузчика?`;
+  }
   const chk = document.getElementById("queue-delete-files");
   if (chk) chk.checked = false;
   openModal("queue-delete-modal");
 }
 
 async function confirmDeleteQueueItem() {
-  if (!QUEUE_DELETE_TARGET.hash) return;
+  if (!QUEUE_DELETE_TARGET || !QUEUE_DELETE_TARGET.hash) return;
   const deleteFiles = document.getElementById("queue-delete-files")?.checked || false;
-  try {
-    await api(`/api/v1/queue/${encodeURIComponent(QUEUE_DELETE_TARGET.hash)}?delete_files=${deleteFiles}`, { method: "DELETE" });
-    toast(t("activity.deleted_toast"));
-    closeModal("queue-delete-modal");
-    loadQueue();
-  } catch (e) { toast("Ошибка: " + e.message, true); }
+  const btn = document.getElementById("queue-delete-confirm-btn");
+  await withLoading(btn, async () => {
+    try {
+      await api(`/api/v1/queue/${encodeURIComponent(QUEUE_DELETE_TARGET.hash)}?delete_files=${deleteFiles}`, { method: "DELETE" });
+      toast(t("activity.deleted_toast") || (CURRENT_LANG === "en" ? "Deleted from queue" : "Удалено из очереди"));
+      closeModal("queue-delete-modal");
+      await loadQueue();
+    } catch (e) {
+      toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + formatToastMessage(e.message), true);
+    }
+  });
 }
 
 async function triggerWantedSearch() {
