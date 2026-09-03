@@ -264,6 +264,22 @@ class TestAutoSearch(unittest.TestCase):
         self.assertEqual(auto_search.evaluate_torrent_file_priority("Season 5\\81.avi", 1, targets, torrent_name="Season 5"), 1)
         self.assertEqual(auto_search.evaluate_torrent_file_priority("Season 5\\02.avi", 2, targets, torrent_name="Season 5"), 0)
 
+        # 4. Сопоставление по названиям серий (при смещении нумерации в релизе из-за спешла)
+        ep1_titled = Episode(id=1, show_id=1, season_number=5, episode_number=1, title="Saving Private Gigli")
+        ep2_titled = Episode(id=2, show_id=1, season_number=5, episode_number=2, title="Terms of Endaredevil")
+        ep6_titled = Episode(id=6, show_id=1, season_number=5, episode_number=6, title="Major League of Extraordinary Gentlemen")
+        all_show_eps = [ep1_titled, ep2_titled, ep6_titled]
+        wanted_eps = [ep1_titled, ep6_titled]
+
+        # S05E02 в релизе на самом деле серия 1 (Saving Private Gigli) — должна быть 1!
+        self.assertEqual(auto_search.evaluate_torrent_file_priority("S05E02 Saving Private Gigli.avi", 1, wanted_eps, all_show_episodes=all_show_eps), 1)
+        # S05E07 в релизе на самом деле серия 6 (Major League...) — должна быть 1!
+        self.assertEqual(auto_search.evaluate_torrent_file_priority("S05E07 Major League Of Extraordinary Gentlemen.avi", 6, wanted_eps, all_show_episodes=all_show_eps), 1)
+        # S05E03 в релизе это серия 2 (Terms of Endaredevil) — не нужна, должна быть 0!
+        self.assertEqual(auto_search.evaluate_torrent_file_priority("S05E03 Terms Of Endaredevil.avi", 2, wanted_eps, all_show_episodes=all_show_eps), 0)
+        # S05E01 DP Christmas Special — спешл, должна быть 0!
+        self.assertEqual(auto_search.evaluate_torrent_file_priority("S05E01 DP Christmas Special.avi", 0, wanted_eps, all_show_episodes=all_show_eps), 0)
+
     def test_wrong_season_release_not_grabbed_for_absolute_numbering(self):
         """Релиз без явного сезона в названии не должен ошибочно захватываться для 2 сезона."""
         show = make_show(self.session, title="My Hero Academia")

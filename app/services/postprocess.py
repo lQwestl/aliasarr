@@ -1068,7 +1068,26 @@ def process_download(
 
             # 1. Приоритетный поиск среди серий этой конкретной загрузки (dl_eps)
             if dl_eps:
-                if parsed.season is not None:
+                # 1.0. Сопоставление по названию серии (актуально при несовпадении нумерации в релизах)
+                fname_no_ext = os.path.splitext(filename)[0]
+                fname_words = set(re.sub(r"[^\w\s]", " ", fname_no_ext.lower()).split())
+                best_dl_ep = None
+                best_score = 0.0
+                for d_ep in dl_eps:
+                    if d_ep.title and len(d_ep.title.strip()) >= 3:
+                        words = [
+                            w for w in re.sub(r"[^\w\s]", " ", d_ep.title.lower()).split()
+                            if len(w) > 1 and w not in {"the", "a", "an", "of", "in", "on", "and", "or", "to", "for", "vs", "part"}
+                        ]
+                        if words:
+                            score = sum(1 for w in words if w in fname_words) / len(words)
+                            if score >= 0.7 and score > best_score:
+                                best_score = score
+                                best_dl_ep = d_ep
+                if best_dl_ep is not None:
+                    episode = best_dl_ep
+
+                if episode is None and parsed.season is not None:
                     # Точное совпадение по сезону и номеру серии в этом сезоне
                     episode = next(
                         (ep for ep in dl_eps if ep.season_number == parsed.season and ep.episode_number == ep_num),

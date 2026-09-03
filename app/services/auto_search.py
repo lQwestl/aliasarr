@@ -111,12 +111,14 @@ def evaluate_torrent_file_priority(
     content_type: str = "series",
     ova_mode: str = "auto",
     torrent_name: str = "",
+    all_show_episodes: Optional[list[Episode]] = None,
 ) -> int:
     """
     Определяет приоритет скачивания файла торрента (1 = скачивать, 0 = не скачивать).
     Учитывает:
     - Для фильмов (content_type == "movie"): все видеофайлы и сопутствующие файлы скачиваются.
     - Для сериалов/аниме:
+      - Сопоставление по названиям серий (актуально при несовпадении нумерации в релизах)
       - Сезон и номер серии (season_number, episode_number)
       - Абсолютную / сквозную нумерацию (absolute_number), актуально для мультсериалов и аниме
       - Формат 3-4 цифры (501 -> S05E01)
@@ -168,6 +170,39 @@ def evaluate_torrent_file_priority(
 
     base_name = os.path.basename(file_name)
     dir_name = os.path.dirname(file_name)
+
+    # 0. Сопоставление по названиям серий (актуально при несовпадении нумерации в релизах,
+    # например когда спешл/рождественский выпуск включен как E01, смещая нумерацию всех серий на 1)
+    if all_show_episodes:
+        fname_no_ext = os.path.splitext(base_name)[0]
+        fname_words = set(re.sub(r"[^\w\s]", " ", fname_no_ext.lower()).split())
+
+        def _calc_title_score(title_str: Optional[str]) -> float:
+            if not title_str or len(title_str.strip()) < 3:
+                return 0.0
+            words = [
+                w for w in re.sub(r"[^\w\s]", " ", title_str.lower()).split()
+                if len(w) > 1 and w not in {"the", "a", "an", "of", "in", "on", "and", "or", "to", "for", "vs", "part"}
+            ]
+            if not words:
+                return 0.0
+            matched = sum(1 for w in words if w in fname_words)
+            return matched / len(words)
+
+        best_ep = None
+        best_score = 0.0
+        for ep in all_show_episodes:
+            score = _calc_title_score(getattr(ep, "title", None))
+            if score >= 0.7 and score > best_score:
+                best_score = score
+                best_ep = ep
+
+        if best_ep is not None:
+            target_ids = {ep.id for ep in target_episodes if getattr(ep, "id", None) is not None}
+            target_pairs = {(ep.season_number, ep.episode_number) for ep in target_episodes}
+            if (best_ep.id and best_ep.id in target_ids) or (best_ep.season_number, best_ep.episode_number) in target_pairs:
+                return 1
+            return 0
 
     # 1. Сначала разбираем имя самого файла (basename)
     parsed = parse_episode(base_name)
@@ -408,17 +443,21 @@ async def _limit_torrent_files_to_episodes(
         logger.debug("Настройки доп. файлов не загружены, используются по умолчанию: %s", exc)
 
     show_obj = None
+    all_show_episodes = []
     if target_eps:
         try:
-            show_id = target_eps[0].show_id
-            if db and hasattr(db, "is_active") and db.is_active:
-                show_obj = db.get(Show, show_id)
-            else:
-                from app.database import SessionLocal
-                with SessionLocal() as s_db:
-                    show_obj = s_db.get(Show, show_id)
-        except Exception:
-            pass
+            show_id = getattr(target_eps[0], "show_id", None)
+            if show_id:
+                if db and hasattr(db, "is_active") and db.is_active:
+                    show_obj = db.get(Show, show_id)
+                    all_show_episodes = db.query(Episode).filter(Episode.show_id == show_id).all()
+                else:
+                    from app.database import SessionLocal
+                    with SessionLocal() as s_db:
+                        show_obj = s_db.get(Show, show_id)
+                        all_show_episodes = s_db.query(Episode).filter(Episode.show_id == show_id).all()
+        except Exception as e:
+            logger.debug("Не удалось загрузить эпизоды тайтла для пофайлового сопоставления: %s", e)
     show_ova_mode = getattr(show_obj, "ova_mode", "auto") or "auto"
 
     unwanted_indices = []
@@ -435,6 +474,7 @@ async def _limit_torrent_files_to_episodes(
             content_type=content_type,
             ova_mode=show_ova_mode,
             torrent_name=t_name,
+            all_show_episodes=all_show_episodes,
         )
         if prio > 0:
             wanted_indices.append(f.index)
@@ -1410,9 +1450,11 @@ async def _do_search_and_grab(
                         target_eps_data = [
                             Episode(
                                 id=ep.id,
+                                show_id=ep.show_id,
                                 season_number=ep.season_number,
                                 episode_number=ep.episode_number,
                                 absolute_number=ep.absolute_number,
+                                title=getattr(ep, "title", None),
                             )
                             for ep in covered
                         ]
