@@ -2416,7 +2416,7 @@
       </div>
 
       <!-- Панель действий -->
-      <div class="form-row" style="margin-bottom:18px; gap:10px; flex-wrap:wrap; align-items:center;">
+      <div class="form-row backup-actions-row" style="margin-bottom:18px; gap:10px; flex-wrap:wrap; align-items:center;">
         <button class="btn btn-primary" onclick="openCreateBackupModal()" style="display:inline-flex; align-items:center; gap:6px;">
           <i data-lucide="plus" class="ico-xs"></i> <span data-i18n="backup.btn_create">Создать бэкап</span>
         </button>
@@ -2424,7 +2424,7 @@
           <i data-lucide="upload" class="ico-xs"></i> <span data-i18n="backup.btn_upload">Загрузить архив</span>
         </button>
         <input type="file" id="backup-upload-input" accept=".zip" style="display:none" onchange="onBackupFileSelected(event)">
-        <button class="btn btn-secondary" onclick="openBackupScheduleModal()" style="display:inline-flex; align-items:center; gap:6px;">
+        <button id="btn-backup-schedule" class="btn btn-secondary" onclick="openBackupScheduleModal()" style="display:inline-flex; align-items:center; gap:6px;">
           <i data-lucide="settings-2" class="ico-xs"></i> <span data-i18n="backup.btn_schedule_settings">Настройки расписания</span>
         </button>
         <div style="flex:1"></div>

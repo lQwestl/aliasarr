@@ -5575,6 +5575,38 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   .manual-import-table-wrap {
     order: 6 !important;
   }
+
+  /* Backup Actions Row on Mobile */
+  .backup-actions-row {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .backup-actions-row > .btn-primary,
+  .backup-actions-row > .btn-secondary:not(#btn-backup-schedule) {
+    flex: 1 1 calc(50% - 4px) !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+  }
+  #btn-backup-schedule {
+    width: 100% !important;
+    flex: 1 0 100% !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+  }
+  .backup-actions-row > div[style*="flex:1"] {
+    display: none !important;
+  }
+  #backup-delete-selected-btn {
+    width: 100% !important;
+    flex: 1 0 100% !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+  }
 }
 
 /* Extra small devices (< 380px) */
