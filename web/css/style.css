@@ -5496,7 +5496,14 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 
   /* Manual Import Modal on Mobile */
+  #manual-import-modal-content {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
   .manual-import-header {
+    order: 1 !important;
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 10px !important;
@@ -5511,13 +5518,14 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     max-width: none !important;
   }
   .manual-import-path-row {
+    order: 2 !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 10px !important;
     width: 100% !important;
     min-width: 0 !important;
-    margin-bottom: 14px !important;
+    margin-bottom: 10px !important;
   }
   .manual-import-path-row input,
   .manual-import-path-row #manual-import-path-input {
@@ -5537,6 +5545,35 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     font-size: 13.5px !important;
     font-weight: 500 !important;
     box-sizing: border-box !important;
+  }
+  .manual-import-footer {
+    order: 3 !important;
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    gap: 10px !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 0 14px 0 !important;
+    border-top: none !important;
+  }
+  .manual-import-footer .btn {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    box-sizing: border-box !important;
+  }
+  .manual-import-summary-bar {
+    order: 4 !important;
+  }
+  .manual-import-bulk-toolbar {
+    order: 5 !important;
+  }
+  .manual-import-table-wrap {
+    order: 6 !important;
   }
 }
 
