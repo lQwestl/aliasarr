@@ -4876,10 +4876,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 
   /* Full-Viewport Scrollable Sheet Modals on Mobile */
-  .modal-overlay,
-  [data-design="vanguard"] .modal-overlay,
-  #show-modal.modal-overlay,
-  #interactive-search-modal.modal-overlay {
+  .modal-overlay {
     position: fixed !important;
     inset: 0 !important;
     width: 100% !important;
@@ -4895,9 +4892,16 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     -webkit-overflow-scrolling: touch !important;
   }
   .modal-overlay.active,
+  .modal-overlay.is-active,
   [data-design="vanguard"] .modal-overlay.active,
+  #show-modal.active,
   #show-modal.modal-overlay.active,
-  #interactive-search-modal.modal-overlay.active {
+  #interactive-search-modal.active,
+  #interactive-search-modal.modal-overlay.active,
+  [data-design="vanguard"] #show-modal.active,
+  [data-design="vanguard"] #show-modal.modal-overlay.active,
+  [data-design="vanguard"] #interactive-search-modal.active,
+  [data-design="vanguard"] #interactive-search-modal.modal-overlay.active {
     display: block !important;
   }
 
@@ -6820,6 +6824,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   border-radius: 22px;
   overflow: hidden;
   padding: 0;
+  cursor: pointer;
   transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.4s cubic-bezier(0.32, 0.72, 0, 1), border-color 0.4s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -7895,9 +7900,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 
   /* 11. Modal Sheets (Full-Screen, Solid, Seamless) */
-  [data-design="vanguard"] .modal-overlay,
-  [data-design="vanguard"] #show-modal.modal-overlay,
-  [data-design="vanguard"] #interactive-search-modal.modal-overlay {
+  [data-design="vanguard"] .modal-overlay {
     position: fixed !important;
     inset: 0 !important;
     width: 100% !important;
@@ -7912,7 +7915,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
   }
-  [data-design="vanguard"] .modal-overlay.active {
+  [data-design="vanguard"] .modal-overlay.active,
+  [data-design="vanguard"] .modal-overlay.is-active,
+  [data-design="vanguard"] #show-modal.active,
+  [data-design="vanguard"] #show-modal.modal-overlay.active,
+  [data-design="vanguard"] #interactive-search-modal.active,
+  [data-design="vanguard"] #interactive-search-modal.modal-overlay.active {
     display: block !important;
   }
   [data-design="vanguard"] .modal {
