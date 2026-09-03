@@ -5122,16 +5122,17 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
   .show-detail-path {
     margin-top: 14px !important;
-    padding: 12px !important;
+    padding: 12px 10px !important;
     background: var(--panel-alt) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     width: 100% !important;
+    max-width: 100% !important;
     box-sizing: border-box !important;
   }
   .show-detail-path-actions {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 8px !important;
     width: 100% !important;
     box-sizing: border-box !important;
@@ -5139,15 +5140,42 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
   .show-detail-path-actions .btn {
     width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    min-height: 42px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
-    min-height: 40px !important;
-    padding: 8px 10px !important;
-    font-size: 12px !important;
-    box-sizing: border-box !important;
+    padding: 6px 8px !important;
+    gap: 5px !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    border-radius: 9999px !important;
+  }
+  .show-detail-path-actions .btn i,
+  .show-detail-path-actions .btn svg {
+    width: 15px !important;
+    height: 15px !important;
+    flex-shrink: 0 !important;
+  }
+  .show-detail-path-actions .btn span {
+    white-space: normal !important;
+    line-height: 1.15 !important;
+    text-align: center !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    display: inline-block !important;
+    max-width: 100% !important;
   }
   .show-detail-path-info {
     text-align: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-top: 4px !important;
   }
 
   .show-detail-actions-row {
@@ -8095,6 +8123,85 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     background: rgba(255, 255, 255, 0.96) !important;
     border-top: 1px solid #e2e8f0 !important;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  /* 14. Show Detail Directory Path & Action Buttons (Full Width, Even 2x2 Grid) */
+  [data-design="vanguard"] .show-detail-path {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 14px 0 !important;
+    padding: 12px 10px !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.005) 100%), var(--panel-alt) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+  }
+
+  [data-design="vanguard"] .show-detail-path-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-bottom: 12px !important;
+  }
+
+  [data-design="vanguard"] .show-detail-path-actions .btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    min-height: 42px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 6px 8px !important;
+    gap: 5px !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    border-radius: 9999px !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    white-space: normal !important;
+  }
+
+  [data-design="vanguard"] .show-detail-path-actions .btn i,
+  [data-design="vanguard"] .show-detail-path-actions .btn svg {
+    width: 15px !important;
+    height: 15px !important;
+    flex-shrink: 0 !important;
+  }
+
+  [data-design="vanguard"] .show-detail-path-actions .btn span {
+    white-space: normal !important;
+    line-height: 1.15 !important;
+    text-align: center !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    display: inline-block !important;
+    max-width: 100% !important;
+  }
+
+  [data-design="vanguard"] .show-detail-path-info {
+    text-align: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-top: 4px !important;
+  }
+
+  [data-theme="light"][data-design="vanguard"] .show-detail-path {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  [data-theme="light"][data-design="vanguard"] .show-detail-path-actions .btn {
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
   }
 }
 
