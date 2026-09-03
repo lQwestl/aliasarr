@@ -4876,30 +4876,40 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 
   /* Full-Viewport Scrollable Sheet Modals on Mobile */
-  .modal-overlay {
+  .modal-overlay,
+  [data-design="vanguard"] .modal-overlay,
+  #show-modal.modal-overlay,
+  #interactive-search-modal.modal-overlay {
     position: fixed !important;
     inset: 0 !important;
     width: 100% !important;
     height: 100% !important;
     height: 100dvh !important;
-    background: rgba(0, 0, 0, 0.82) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
+    background: var(--panel) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     z-index: 1000 !important;
     display: none !important;
-    align-items: stretch !important;
-    justify-content: stretch !important;
     padding: 0 !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
   }
-  .modal-overlay.active {
-    display: flex !important;
+  .modal-overlay.active,
+  [data-design="vanguard"] .modal-overlay.active,
+  #show-modal.modal-overlay.active,
+  #interactive-search-modal.modal-overlay.active {
+    display: block !important;
   }
 
-  .modal {
+  .modal,
+  [data-design="vanguard"] .modal,
+  [data-theme="dracula"][data-design="vanguard"] .modal,
+  [data-theme="light"][data-design="vanguard"] .modal,
+  [data-theme="obsidian"][data-design="vanguard"] .modal {
     position: relative !important;
+    width: 100% !important;
     width: 100vw !important;
+    max-width: 100% !important;
     max-width: 100vw !important;
     min-height: 100vh !important;
     min-height: 100dvh !important;
@@ -4908,7 +4918,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     margin: 0 !important;
     border-radius: 0 !important;
     border: none !important;
-    padding: max(16px, env(safe-area-inset-top, 16px)) 14px calc(50px + env(safe-area-inset-bottom, 0px)) !important;
+    box-shadow: none !important;
+    padding: max(16px, env(safe-area-inset-top, 16px)) 14px calc(60px + env(safe-area-inset-bottom, 0px)) !important;
     overflow-y: visible !important;
     -webkit-overflow-scrolling: touch !important;
     box-sizing: border-box !important;
@@ -4917,13 +4928,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     z-index: 1001 !important;
   }
   .modal-wide, .modal-large, .modal-small, .modal-medium {
+    width: 100% !important;
     width: 100vw !important;
+    max-width: 100% !important;
     max-width: 100vw !important;
-  }
-
-  [data-design="vanguard"] .modal {
-    background: linear-gradient(180deg, rgba(20, 28, 45, 0.98) 0%, rgba(10, 14, 26, 0.98) 100%), var(--panel) !important;
-    border-radius: 0 !important;
   }
 
   #show-modal-content {
@@ -4931,6 +4939,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     box-sizing: border-box !important;
     overflow: visible !important;
     padding-bottom: 24px;
+    background: transparent !important;
   }
 
   .modal-header {
@@ -5318,9 +5327,21 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 
   /* Interactive Search on Mobile & Solid Theme Background */
+  #interactive-search-modal,
+  #interactive-search-modal.modal-overlay {
+    background: var(--panel) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
   #interactive-search-modal .modal {
     background: var(--panel) !important;
     border: none !important;
+    box-shadow: none !important;
+    max-height: none !important;
+    height: auto !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
   .interactive-search-header {
     background: var(--panel-alt) !important;
@@ -5333,6 +5354,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     background: var(--panel) !important;
     width: 100% !important;
     box-sizing: border-box !important;
+    flex: none !important;
+    overflow-y: visible !important;
+    max-height: none !important;
+    height: auto !important;
   }
   .interactive-search-query-bar {
     display: flex !important;
