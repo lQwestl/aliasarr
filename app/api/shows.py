@@ -594,8 +594,12 @@ def update_show(
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    dumped = payload.model_dump(exclude_unset=True)
+    for field, value in dumped.items():
         setattr(show, field, value)
+    if "ova_mode" in dumped or "content_type" in dumped:
+        from app.services.auto_search import clear_rejected_cache_for_show
+        clear_rejected_cache_for_show(show.id)
     db.add(show)
     db.commit()
     db.refresh(show)

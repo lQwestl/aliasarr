@@ -108,6 +108,7 @@ def evaluate_torrent_file_priority(
     import_extra_files: bool = True,
     extra_extensions: Optional[set[str]] = None,
     content_type: str = "series",
+    ova_mode: str = "auto",
 ) -> int:
     """
     Определяет приоритет скачивания файла торрента (1 = скачивать, 0 = не скачивать).
@@ -206,6 +207,11 @@ def evaluate_torrent_file_priority(
 
         for ep_num in episodes:
             if is_special_file:
+                allow_ova_as_s1 = (ova_mode == "season_1") or (
+                    ova_mode == "auto" and not has_wanted_specials and any(sn == 1 for sn, _ in target_keys)
+                )
+                if allow_ova_as_s1 and ((1, ep_num) in target_keys or ep_num in target_abs):
+                    return 1
                 if (0, ep_num) in target_keys or has_wanted_specials:
                     return 1
             elif season is not None:
@@ -225,6 +231,13 @@ def evaluate_torrent_file_priority(
     # 3. Видеофайлы (.mkv, .mp4, .avi, .ts, etc.)
     if ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}:
         if is_special_file:
+            allow_ova_as_s1 = (ova_mode == "season_1") or (
+                ova_mode == "auto" and not has_wanted_specials and any(sn == 1 for sn, _ in target_keys)
+            )
+            if allow_ova_as_s1 and episodes:
+                for ep_num in episodes:
+                    if (1, ep_num) in target_keys or ep_num in target_abs:
+                        return 1
             if not has_wanted_specials:
                 return 0
             if episodes:
@@ -352,8 +365,19 @@ async def _limit_torrent_files_to_episodes(
     except Exception as exc:
         logger.debug("Настройки доп. файлов не загружены, используются по умолчанию: %s", exc)
 
-    unwanted_indices = []
-    wanted_indices = []
+    show_obj = None
+    if target_eps:
+        try:
+            show_id = target_eps[0].show_id
+            if db and hasattr(db, "is_active") and db.is_active:
+                show_obj = db.get(Show, show_id)
+            else:
+                from app.database import SessionLocal
+                with SessionLocal() as s_db:
+                    show_obj = s_db.get(Show, show_id)
+        except Exception:
+            pass
+    show_ova_mode = getattr(show_obj, "ova_mode", "auto") or "auto"
 
     for f in torrent.files:
         prio = evaluate_torrent_file_priority(
@@ -363,6 +387,7 @@ async def _limit_torrent_files_to_episodes(
             import_extra_files=import_extras,
             extra_extensions=extra_exts,
             content_type=content_type,
+            ova_mode=show_ova_mode,
         )
         if prio > 0:
             wanted_indices.append(f.index)
@@ -895,6 +920,39 @@ async def _do_search_and_grab(
         season_label = detect_season_label(rel.title)
         label_type = season_label["type"]
 
+        # Обработка OVA согласно настройке тайтла ova_mode (auto | season_1 | specials)
+        ova_mode = getattr(show, "ova_mode", "auto") or "auto"
+        is_ova_release = (
+            label_type == "ova_ona"
+            or parsed.season == 0
+            or (parsed.matched_pattern and "ova" in parsed.matched_pattern.lower())
+            or re.search(r"\[ova(?:[-_ ]?\d+)?\]|\bova\b", rel.title, re.IGNORECASE) is not None
+        )
+
+        remap_to_season_1 = False
+        if is_ova_release and show.content_type in ("series", "anime") and ova_mode != "specials":
+            if ova_mode == "season_1":
+                remap_to_season_1 = True
+            elif ova_mode == "auto":
+                show_all_eps = getattr(show, "episodes", []) or []
+                s0_count = sum(1 for e in show_all_eps if getattr(e, "season_number", None) == 0)
+                s1_count = sum(1 for e in show_all_eps if getattr(e, "season_number", None) == 1)
+                if parsed.episodes:
+                    max_ep = max(parsed.episodes)
+                    if max_ep > s0_count and max_ep <= s1_count:
+                        remap_to_season_1 = True
+                    elif wanted_episodes and 0 not in {getattr(e, "season_number", None) for e in wanted_episodes} and 1 in {getattr(e, "season_number", None) for e in wanted_episodes}:
+                        remap_to_season_1 = True
+                elif parsed.kind == ReleaseKind.SEASON_PACK and s0_count <= 1 and s1_count >= 2:
+                    remap_to_season_1 = True
+
+        if remap_to_season_1:
+            if ep.season_number != 1:
+                return False
+            if parsed.episodes:
+                return ep.episode_number in parsed.episodes
+            return True
+
         # --- Случай 0: Мультисезонный диапазон (Сезоны 1-5, S01-S05, Seasons 1-5) ---
         if label_type == "range":
             if ep.season_number not in season_label.get("seasons", []):
@@ -955,6 +1013,15 @@ async def _do_search_and_grab(
 
         # --- Случай 7: релиз без явного указания серий и сезона (полный пак / аниме сериал целиком) ---
         if not parsed.episodes and parsed.season is None and label_type == "none":
+            s1_total = total_episodes_by_season.get(1, 0)
+            if s1_total > 1:
+                is_pack_title = bool(re.search(
+                    r"\b(?:complete|collection|коллекция|полная\s+серия|все\s+серии|пак|pack|season|сезон)\b",
+                    rel.title,
+                    re.IGNORECASE,
+                ))
+                if not is_pack_title:
+                    return False
             if ep.season_number == 1:
                 return True
 

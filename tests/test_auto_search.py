@@ -317,6 +317,31 @@ class TestAutoSearch(unittest.TestCase):
         self.assertEqual(auto_search.evaluate_torrent_file_priority(sub01, 3, target_eps, True, content_type="anime"), 0)
         self.assertEqual(auto_search.evaluate_torrent_file_priority(sub24, 4, target_eps, True, content_type="anime"), 1)
 
+    def test_genocyber_ova_priority_and_selective_matching(self):
+        """Проверяет корректность разметки приоритетов файлов и сопоставления серий для OVA-тайтлов вроде Genocyber."""
+        episodes = [
+            Episode(id=100 + i, season_number=1, episode_number=i, absolute_number=None)
+            for i in range(1, 6)
+        ]
+        files = [
+            f"Genocyber - {i:02d} [OVA].mkv" for i in range(1, 6)
+        ]
+        for idx, f in enumerate(files):
+            prio_s1 = auto_search.evaluate_torrent_file_priority(
+                f, idx, episodes, True, content_type="anime", ova_mode="season_1"
+            )
+            self.assertEqual(prio_s1, 1, f"File {f} must have prio 1 for season_1")
+
+            prio_auto = auto_search.evaluate_torrent_file_priority(
+                f, idx, episodes, True, content_type="anime", ova_mode="auto"
+            )
+            self.assertEqual(prio_auto, 1, f"File {f} must have prio 1 for auto")
+
+            prio_sp = auto_search.evaluate_torrent_file_priority(
+                f, idx, episodes, True, content_type="anime", ova_mode="specials"
+            )
+            self.assertEqual(prio_sp, 0, f"File {f} must have prio 0 for specials")
+
     def test_limit_torrent_files_removes_mismatched_torrent(self):
         """Если раздача не содержит ни одной запрошенной серии (например, Part 1 1-12 при поиске 23-24),
         раздача удаляется из загрузчика, а статус серий возвращается в WANTED."""
