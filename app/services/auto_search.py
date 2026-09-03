@@ -552,6 +552,12 @@ async def search_and_grab_show(
                     pass
                 logger.warning("Не удалось обновить статус поиска для шоу %s: %s", show.id, e)
 
+class CandidateList(list):
+    """Список кандидатов с сохранённым списком сгенерированных поисковых запросов."""
+    def __init__(self, items=(), query_terms=None):
+        super().__init__(items)
+        self.query_terms = query_terms or []
+
 
 def _extract_core_title(text: str) -> Optional[str]:
     """Извлекает короткое ядро тайтла (например, 'Re:Zero' из 'Re: ZERO, Starting Life in Another World')."""
@@ -794,9 +800,7 @@ async def _collect_candidates(
                 "rel": rel, "match": match, "quality": quality, "indexer": indexer,
             })
 
-    res = list(candidates)
-    res.query_terms = query_terms
-    return res
+    return CandidateList(candidates, query_terms=query_terms)
 
 
 async def _do_search_and_grab(

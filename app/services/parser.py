@@ -346,9 +346,9 @@ _NON_VIDEO_RELEASE_RE = re.compile(
 _RE_MULTI_SEASON_RANGE = re.compile(
     r"""
     (?:
-        \b(?:S(?:easons?)?|Сез(?:он(?:ы|а)?)?|sezon(?:y|i|a)?|sez)[:\.]?\s*(\d{1,3})\s*[-–~]\s*(?:S(?:easons?)?|Сез(?:он(?:ы|а)?)?|sezon(?:y|i|a)?|sez)?[:\.]?\s*(\d{1,3})(?:(?=E\d)|(?=[\s_\-\[\(])|\b)
+        \b(?:S(?:easons?)?|Сез(?:он(?:ы|а|ов)?)?|sezon(?:y|i|a)?|sez)[:\.]?\s*(\d{1,3})\s*[-–~]\s*(?:S(?:easons?)?|Сез(?:он(?:ы|а|ов)?)?|sezon(?:y|i|a)?|sez)?[:\.]?\s*(\d{1,3})(?:(?=E\d)|(?=[\s_\-\[\(])|\b)
     |
-        \b(\d{1,3})\s*[-–~]\s*(\d{1,3})\s*(?:сезон(?:ы|а)?|seasons?|sezon(?:y|i|a)?)\b
+        \b(\d{1,3})\s*[-–~]\s*(\d{1,3})\s*(?:[-–]?(?:й|ый|ой|ий|я|ая))?\s*(?:сезон(?:ы|а|ов)?|seasons?|sezon(?:y|i|a)?)\b
     |
         \(\s*S(\d{1,3})\s*[-–~]\s*S?(\d{1,3})\s*\)
     |
@@ -615,10 +615,16 @@ def parse_episode(release_name: str) -> ParsedRelease:
 
     m_sd_single = _RE_S_DASH_EP_SINGLE.search(protected)
     if m_sd_single:
-        return ParsedRelease(
-            kind=ReleaseKind.EPISODE, season=int(m_sd_single.group(1)), episodes=[int(m_sd_single.group(2))],
-            raw=raw, matched_pattern="s_dash_ep_single",
-        )
+        prefix_char = protected[m_sd_single.start() - 1] if m_sd_single.start() > 0 else ""
+        suffix_char = protected[m_sd_single.end():m_sd_single.end() + 1]
+        is_bracketed_s_range = prefix_char in "([{" and (suffix_char in ")]}" or m_sd_single.group(0).endswith("]") or m_sd_single.group(0).endswith(")"))
+        suffix_after = protected[m_sd_single.end(2):].lower().strip(" _.-")
+        m_s_word = protected[m_sd_single.start():m_sd_single.start(1)].lower()
+        if not is_bracketed_s_range and not re.search(r"^(?:[-–]?(?:й|ый|ой|ий|я|ая)\s*)?(?:сезон|season|sezon)", suffix_after, re.IGNORECASE) and not re.search(r"сезон[ыа]|seasons", m_s_word, re.IGNORECASE):
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=int(m_sd_single.group(1)), episodes=[int(m_sd_single.group(2))],
+                raw=raw, matched_pattern="s_dash_ep_single",
+            )
 
     # 1и. Римские цифры сезонов с серией: "II сезон - 05", "Season II - 03"
     m_roman_ep = _RE_ROMAN_SEASON_EP.search(protected)
@@ -643,12 +649,14 @@ def parse_episode(release_name: str) -> ParsedRelease:
 
     m_s_dash = _RE_SEASON_DIGIT_DASH_EP.search(protected)
     if m_s_dash:
+        suffix_after = protected[m_s_dash.end(2):].lower().strip(" _.-")
         prefix_before = protected[:m_s_dash.start(1)].lower().strip(" _.-")
-        if not re.search(r"\b(?:part|часть|cour|кур|vol|volume|том)$", prefix_before, re.IGNORECASE):
-            return ParsedRelease(
-                kind=ReleaseKind.EPISODE, season=int(m_s_dash.group(1)), episodes=[int(m_s_dash.group(2))],
-                raw=raw, matched_pattern="season_digit_dash_ep",
-            )
+        if not re.search(r"^(?:[-–]?(?:й|ый|ой|ий|я|ая)\s*)?(?:сезон|season|sezon)", suffix_after, re.IGNORECASE) and not re.search(r"\b(?:сезон\w*|season\w*|sezon\w*)$", prefix_before, re.IGNORECASE):
+            if not re.search(r"\b(?:part|часть|cour|кур|vol|volume|том)$", prefix_before, re.IGNORECASE):
+                return ParsedRelease(
+                    kind=ReleaseKind.EPISODE, season=int(m_s_dash.group(1)), episodes=[int(m_s_dash.group(2))],
+                    raw=raw, matched_pattern="season_digit_dash_ep",
+                )
 
     # 2a. Мульти-сезонный диапазон (Сезон: 1-3, Сезоны 1-5, S01-S05, Seasons 1-5, 1-10 сезоны, 1-100 сезоны) — ДО единичного сезона!
     m_range = _RE_MULTI_SEASON_RANGE.search(protected)
