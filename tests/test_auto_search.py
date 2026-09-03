@@ -259,6 +259,11 @@ class TestAutoSearch(unittest.TestCase):
         self.assertEqual(auto_search.evaluate_torrent_file_priority("06.avi", 1, targets, torrent_name="Season 5"), 1)
         self.assertEqual(auto_search.evaluate_torrent_file_priority("02.avi", 2, targets, torrent_name="Season 5"), 0)
 
+        # 3. Пути с обратными слэшами Windows (например из торрентов с RuTracker: 'Season 5\01.avi')
+        self.assertEqual(auto_search.evaluate_torrent_file_priority("Season 5\\01.avi", 0, targets, torrent_name="Season 5"), 1)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority("Season 5\\81.avi", 1, targets, torrent_name="Season 5"), 1)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority("Season 5\\02.avi", 2, targets, torrent_name="Season 5"), 0)
+
     def test_wrong_season_release_not_grabbed_for_absolute_numbering(self):
         """Релиз без явного сезона в названии не должен ошибочно захватываться для 2 сезона."""
         show = make_show(self.session, title="My Hero Academia")

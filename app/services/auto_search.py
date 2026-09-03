@@ -136,8 +136,9 @@ def evaluate_torrent_file_priority(
     else:
         extra_extensions = set(extra_extensions) | ALL_EXTRA_EXTS
 
+    file_name = file_name.replace("\\", "/")
     ext = os.path.splitext(file_name)[1].lower()
-    fname_lower = file_name.lower().replace("\\", "/")
+    fname_lower = file_name.lower()
 
     # Для фильмов: все видеофайлы скачиваются (приоритет 1). Исключаются только сэмплы.
     if content_type == "movie":
@@ -460,13 +461,52 @@ async def _limit_torrent_files_to_episodes(
             torrent_hash, len(target_eps), len(unwanted_indices), len(wanted_indices)
         )
     else:
-        # Раздача не содержит ни одной из запрошенных серий (например, скачали Part 1 (1-12), а искали серии 23-24).
+        # wanted_indices пуст.
+        # Собираем все видеофайлы в раздаче
+        video_files = [
+            f for f in torrent.files
+            if os.path.splitext(f.name.replace("\\", "/"))[1].lower() in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}
+            and not ("/sample" in f.name.lower().replace("\\", "/") or f.name.lower().endswith("-sample.mkv"))
+        ]
+
+        # Проверяем, есть ли файлы с ЧЕТКО определенными номерами серий, не пересекающимися с запрошенными
+        # (например, скачали Part 1 с сериями 1-12 при запросе серий 23-24).
+        disjoint_episodes = set()
+        for f in video_files:
+            p = parse_episode(os.path.basename(f.name.replace("\\", "/")))
+            if p and p.episodes:
+                disjoint_episodes.update(p.episodes)
+
+        is_explicitly_wrong_part = bool(
+            disjoint_episodes and not any(
+                (ep.episode_number in disjoint_episodes or (ep.absolute_number and ep.absolute_number in disjoint_episodes))
+                for ep in target_eps
+            ) and any(kw in t_name.lower() for kw in ("part 1", "part 2", "part 3", "part 4", "cour 1", "cour 2", "часть 1", "часть 2"))
+        )
+
+        if video_files and not is_explicitly_wrong_part:
+            logger.warning(
+                "Раздача %s (%s): пофайловое отключение пропущено (не удалось определить номера серий в именах файлов). Оставляем все видеофайлы (%d шт) включенными.",
+                torrent_hash, t_name, len(video_files)
+            )
+            v_indices = [f.index for f in video_files]
+            unw_indices = [f.index for f in torrent.files if f.index not in v_indices]
+            await dl_client.set_files_wanted_unwanted(torrent_hash, v_indices, unw_indices)
+            try:
+                await dl_client.recheck_torrent(torrent_hash)
+                await dl_client.resume_torrent(torrent_hash)
+            except Exception as exc:
+                logger.warning("Не удалось возобновить раздачу %s: %s", torrent_hash, exc)
+            return
+
+        # Раздача действительно не содержит запрошенных серий (например, Part 1 при поиске Part 2).
         # Помещаем хэш в список исключений, удаляем неподходящую раздачу из загрузчика, возвращаем серии в статус WANTED
         # и автоматически запускаем поиск следующего кандидата.
+        file_sample = [f.name.replace("\\", "/") for f in torrent.files][:15]
         requested_ep_str = ", ".join(f"S{ep.season_number}E{ep.episode_number}" for ep in target_eps)
         logger.warning(
-            "Раздача %s: ни один файл в раздаче не соответствует запрошенным сериям (%s). Раздача отменена и удалена из загрузчика.",
-            torrent_hash, requested_ep_str,
+            "Раздача %s: ни один файл в раздаче не соответствует запрошенным сериям (%s). Файлы: %s. Раздача отменена и удалена из загрузчика.",
+            torrent_hash, requested_ep_str, file_sample
         )
 
         try:
@@ -529,7 +569,7 @@ async def _limit_torrent_files_to_episodes(
                                 f"Раздача '{getattr(torrent, 'name', '') or torrent_hash}' удалена: файлы внутри не соответствуют запрошенным сериям ({requested_ep_str}). "
                                 "Автоматический поиск следующего подходящего релиза..."
                             ),
-                            details={"torrent_hash": torrent_hash, "requested_episodes": requested_ep_str},
+                            details={"torrent_hash": torrent_hash, "requested_episodes": requested_ep_str, "files": file_sample},
                             db=s_db,
                         )
 
