@@ -379,6 +379,9 @@ async def _limit_torrent_files_to_episodes(
             pass
     show_ova_mode = getattr(show_obj, "ova_mode", "auto") or "auto"
 
+    unwanted_indices = []
+    wanted_indices = []
+
     for f in torrent.files:
         prio = evaluate_torrent_file_priority(
             file_name=f.name,
