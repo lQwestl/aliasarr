@@ -170,14 +170,16 @@
 
     <!-- ДАШБОРД -->
     <section id="tab-dashboard" class="tab-panel">
-      <header class="panel-header">
-        <div class="header-row">
-          <div>
-            <h1 data-i18n="tab.dashboard">Дашборд</h1>
-            <p class="subtitle" data-i18n="subtitle.dashboard">Общая картина и мониторинг библиотеки</p>
+      <div class="panel-sticky-header">
+        <header class="panel-header">
+          <div class="header-row">
+            <div>
+              <h1 data-i18n="tab.dashboard">Дашборд</h1>
+              <p class="subtitle" data-i18n="subtitle.dashboard">Общая картина и мониторинг библиотеки</p>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
       <div class="stats-grid-dashboard">
         <!-- Карточка 1: Медиатека -->
@@ -516,8 +518,12 @@
     <section id="tab-calendar" class="tab-panel">
       <div class="panel-sticky-header">
         <header class="panel-header">
-          <h1 data-i18n="tab.calendar">Календарь</h1>
-          <p class="subtitle" data-i18n="subtitle.calendar">Даты выхода серий и премьер фильмов</p>
+          <div class="header-row">
+            <div>
+              <h1 data-i18n="tab.calendar">Календарь</h1>
+              <p class="subtitle" data-i18n="subtitle.calendar">Даты выхода серий и премьер фильмов</p>
+            </div>
+          </div>
         </header>
 
         <div class="calendar-toolbar">
@@ -734,8 +740,12 @@
     <section id="tab-history" class="tab-panel">
       <div class="panel-sticky-header">
         <header class="panel-header">
-          <h1 data-i18n="tab.history">История</h1>
-          <p class="subtitle" data-i18n="subtitle.history">Журнал захваченных релизов</p>
+          <div class="header-row">
+            <div>
+              <h1 data-i18n="tab.history">История</h1>
+              <p class="subtitle" data-i18n="subtitle.history">Журнал захваченных релизов</p>
+            </div>
+          </div>
         </header>
       </div>
       <div class="table-responsive">
@@ -2255,8 +2265,12 @@
     <section id="tab-events" class="tab-panel">
       <div class="panel-sticky-header">
         <header class="panel-header">
-          <h1 data-i18n="tab.events">События</h1>
-          <p class="subtitle" data-i18n="subtitle.events">Информация, предупреждения и ошибки приложения</p>
+          <div class="header-row">
+            <div>
+              <h1 data-i18n="tab.events">События</h1>
+              <p class="subtitle" data-i18n="subtitle.events">Информация, предупреждения и ошибки приложения</p>
+            </div>
+          </div>
         </header>
 
         <div class="form-row events-toolbar" style="margin-bottom:0; flex-wrap:wrap;">
@@ -2287,8 +2301,12 @@
     <section id="tab-journal" class="tab-panel">
       <div class="panel-sticky-header">
         <header class="panel-header">
-          <h1 data-i18n="tab.journal">Журнал</h1>
-          <p class="subtitle" data-i18n="subtitle.journal">Логи приложения (info / warn / debug). Записи старше срока хранения удаляются автоматически.</p>
+          <div class="header-row">
+            <div>
+              <h1 data-i18n="tab.journal">Журнал</h1>
+              <p class="subtitle" data-i18n="subtitle.journal">Логи приложения (info / warn / debug). Записи старше срока хранения удаляются автоматически.</p>
+            </div>
+          </div>
         </header>
 
         <div class="form-row journal-toolbar" style="margin-bottom:0; flex-wrap:wrap;">
@@ -2327,9 +2345,11 @@
     <section id="tab-release-logs" class="tab-panel">
       <div class="panel-sticky-header">
         <header class="panel-header">
-          <div>
-            <h1 data-i18n="tab.release_logs">Релиз логи</h1>
-            <p class="subtitle" data-i18n="subtitle.release_logs">Диагностический журнал работы движка релизов: поиск, сопоставление, парсинг серий, принятие решений, вызовы загрузчика и импорт.</p>
+          <div class="header-row">
+            <div>
+              <h1 data-i18n="tab.release_logs">Релиз логи</h1>
+              <p class="subtitle" data-i18n="subtitle.release_logs">Диагностический журнал работы движка релизов: поиск, сопоставление, парсинг серий, принятие решений, вызовы загрузчика и импорт.</p>
+            </div>
           </div>
         </header>
 
@@ -2385,9 +2405,11 @@
     <section id="tab-backup" class="tab-panel">
       <div class="panel-sticky-header">
         <header class="panel-header">
-          <div>
-            <h1 data-i18n="tab.backup">Резервное копирование и восстановление</h1>
-            <p class="subtitle" data-i18n="subtitle.backup">Управление резервными копиями библиотеки (фильмы, сериалы, аниме, эпизоды) и конфигурации Aliasarr</p>
+          <div class="header-row">
+            <div>
+              <h1 data-i18n="tab.backup">Резервное копирование и восстановление</h1>
+              <p class="subtitle" data-i18n="subtitle.backup">Управление резервными копиями библиотеки (фильмы, сериалы, аниме, эпизоды) и конфигурации Aliasarr</p>
+            </div>
           </div>
         </header>
       </div>
