@@ -737,3 +737,23 @@ class TestSeasonQueries(unittest.TestCase):
         self.assertIn(ep10, uncovered)
         self.assertIn(ep2, uncovered)
 
+    def test_season_queries_include_season_x(self):
+        """Проверка генерации сезонных запросов (Season X, Сезон X) для сериалов."""
+        from app.services.auto_search import _generate_season_queries
+        queries = _generate_season_queries("Robot Chicken", 5, is_anime=False)
+        self.assertIn("Robot Chicken Season 5", queries)
+        self.assertIn("Robot Chicken Сезон 5", queries)
+        self.assertIn("Robot Chicken S05", queries)
+        self.assertIn("Robot Chicken S5", queries)
+
+    def test_multi_season_regex_does_not_break_season_with_episodes(self):
+        """Проверка того, что '5 сезон: 1-20 серии' не распознается как сезоны 1-20."""
+        from app.services.parser import parse_episode, detect_season_label
+        t = "Робоцып / Robot Chicken (5 сезон: 1-20 серии из 20) [2010-2012, BDRip 1080p]"
+        p = parse_episode(t)
+        lbl = detect_season_label(t)
+        self.assertEqual(p.season, 5)
+        self.assertEqual(lbl.get("type"), "numbered")
+        self.assertEqual(lbl.get("season"), 5)
+
+

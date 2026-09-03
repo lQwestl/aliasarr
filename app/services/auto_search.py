@@ -876,20 +876,33 @@ def _ordinal_en(n: int) -> str:
     return f"{n}" + {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
 
 
-def _generate_season_queries(base: str, sn: int) -> list[str]:
-    """Генерирует умный и компактный список сезонных запросов (включая ТВ-X, 4 сезон, 4th Season, S04, паки)."""
+def _generate_season_queries(base: str, sn: int, is_anime: bool = False) -> list[str]:
+    """Генерирует умный и результативный список сезонных запросов."""
     ord_en = _ordinal_en(sn)
-    terms = [
-        f"{base} (ТВ-{sn})",
-        f"{base} ТВ-{sn}",
+    terms = []
+    if is_anime:
+        terms.extend([
+            f"{base} (ТВ-{sn})",
+            f"{base} ТВ-{sn}",
+        ])
+    terms.extend([
+        f"{base} Season {sn}",
+        f"{base} Сезон {sn}",
         f"{base} {sn} сезон",
         f"{base} S{sn:02d}",
+        f"{base} S{sn}",
         f"{base} {ord_en} Season",
-    ]
+    ])
+    if not is_anime:
+        terms.extend([
+            f"{base} (ТВ-{sn})",
+            f"{base} ТВ-{sn}",
+        ])
     if sn > 1:
         terms.extend([
             f"{base} 1-{sn} сезон",
             f"{base} S01-S{sn:02d}",
+            f"{base} Seasons 1-{sn}",
         ])
     return terms
 
@@ -936,8 +949,9 @@ async def _collect_candidates(
             for ep in wanted_episodes
             if ep.season_number is not None and ep.season_number > 0
         }
+        is_anime = getattr(show, "content_type", "series") == "anime"
         for sn in sorted(wanted_seasons):
-            season_query_lists = [_generate_season_queries(b, sn) for b in key_bases]
+            season_query_lists = [_generate_season_queries(b, sn, is_anime=is_anime) for b in key_bases]
             if season_query_lists:
                 max_sq = max(len(l) for l in season_query_lists)
                 for idx in range(max_sq):
@@ -1394,27 +1408,60 @@ async def _do_search_and_grab(
         return {"show_id": show.id, "grabbed": [], "criteria": search_terms}
 
     # Многоуровневая сортировка кандидатов:
-    # 1. Приоритет качества из профиля (Quality Preference: наивысшее качество из профиля побеждает всегда!)
+    # 1. Приоритет качества из профиля (Quality Preference: наивысшее качество побеждает всегда!)
     # 2. Очки кастомных форматов (CF Score)
-    # 3. Флаг Full/Complete (1 если полный пак / закрывает все нужные серии на этом уровне качества)
-    # 4. Количество закрываемых серий (coverage_count)
-    # 5. Приоритет индексатора (0 — высший приоритет, 100 — низший)
-    # 6. Число сидеров (seeders)
-    # 7. Скор соответствия названия (match.score)
+    # 3. Флаг полноты сезона относительно карточки (is_full_season: полный пак сезона побеждает частичные паки 1-10)
+    # 4. Общее число серий сезона в релизе (season_episodes_count: 20 серий > 10 серий)
+    # 5. Флаг покрытия всех разыскиваемых серий (is_wanted_full)
+    # 6. Число закрываемых разыскиваемых серий (wanted_coverage_count)
+    # 7. Приоритет индексатора (0 — высший приоритет, 100 — низший)
+    # 8. Число сидеров (seeders)
+    # 9. Скор соответствия названия (match.score)
+    wanted_seasons_set = {ep.season_number for ep in wanted_episodes if ep.season_number is not None and ep.season_number > 0}
+
     def candidate_sort_key(c):
         quality_pref = get_quality_preference(c["quality"], allowed_qualities) if c.get("quality") else 0
         cf_score = c.get("cf_score") or 0
         season_lbl = detect_season_label(c["rel"].title) if c.get("rel") else {"type": "none"}
-        is_full = 1 if (
-            season_lbl["type"] == "complete" or
-            c["match"].parsed.matched_pattern in ("season_pack:complete", "season_pack:multi_range") or
-            len(c.get("covered", [])) >= len(wanted_episodes)
-        ) else 0
-        coverage_count = len(c.get("covered", []))
+        parsed = c["match"].parsed
+
+        # Оцениваем полноту сезона относительно общего числа серий в карточке тайтла
+        target_s = parsed.season or (season_lbl.get("season") if season_lbl.get("type") == "numbered" else None)
+        if not target_s and wanted_seasons_set:
+            target_s = min(wanted_seasons_set)
+        season_card_total = total_episodes_by_season.get(target_s, 0)
+
+        if season_lbl.get("type") == "complete" or parsed.matched_pattern in ("season_pack:complete", "season_pack:multi_range"):
+            is_full_season = 1
+            season_episodes_count = season_card_total or 100
+        elif parsed.kind == ReleaseKind.SEASON_PACK and not parsed.episodes:
+            is_full_season = 1
+            season_episodes_count = season_card_total or 100
+        elif parsed.episodes:
+            rel_eps_count = len(parsed.episodes)
+            season_episodes_count = rel_eps_count
+            is_full_season = 1 if (season_card_total > 0 and rel_eps_count >= season_card_total) else 0
+        else:
+            is_full_season = 1 if len(c.get("covered", [])) >= len(wanted_episodes) else 0
+            season_episodes_count = len(c.get("covered", []))
+
+        is_wanted_full = 1 if len(c.get("covered", [])) >= len(wanted_episodes) else 0
+        wanted_coverage_count = len(c.get("covered", []))
         indexer_priority = getattr(c.get("indexer"), "priority", 100) or 100
         seeders = getattr(c.get("rel"), "seeders", 0) or 0
         match_score = c.get("score") or 0
-        return (quality_pref or 0, cf_score, is_full, coverage_count, -indexer_priority, seeders, match_score)
+
+        return (
+            quality_pref or 0,
+            cf_score,
+            is_full_season,
+            season_episodes_count,
+            is_wanted_full,
+            wanted_coverage_count,
+            -indexer_priority,
+            seeders,
+            match_score,
+        )
 
     scored_candidates.sort(key=candidate_sort_key, reverse=True)
 
