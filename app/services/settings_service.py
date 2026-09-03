@@ -70,7 +70,11 @@ def _clear_legacy_folder_defaults(db: Session, settings: AppSettings) -> None:
         db.refresh(settings)
 
 
+_LEGACY_CHECKED = False
+
+
 def get_or_create_settings(db: Session) -> AppSettings:
+    global _LEGACY_CHECKED
     settings = db.get(AppSettings, 1)
     env_key = os.getenv(ENV_API_KEY_VAR, "").strip()
 
@@ -87,7 +91,10 @@ def get_or_create_settings(db: Session) -> AppSettings:
         db.commit()
         db.refresh(settings)
 
-    _clear_legacy_folder_defaults(db, settings)
+    if not _LEGACY_CHECKED:
+        _clear_legacy_folder_defaults(db, settings)
+        _LEGACY_CHECKED = True
+
     return settings
 
 

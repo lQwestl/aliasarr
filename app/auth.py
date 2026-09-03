@@ -89,13 +89,33 @@ def is_private_ip(ip_str: str | None) -> bool:
         return False
 
 
+import time
+
+_SESSION_USER_CACHE: dict[str, tuple[float, bool, any]] = {}  # token -> (timestamp, is_valid, user)
+_SESSION_CACHE_TTL = 10.0  # Кэшируем сессию на 10 секунд в памяти для разгрузки БД
+
+
+def invalidate_session_cache(token: str | None = None) -> None:
+    global _SESSION_USER_CACHE
+    if token:
+        _SESSION_USER_CACHE.pop(token, None)
+    else:
+        _SESSION_USER_CACHE.clear()
+
+
 def _get_valid_session_user(db, token: str | None):
     if not token:
         return False, None
+    now_ts = time.time()
+    cached = _SESSION_USER_CACHE.get(token)
+    if cached and (now_ts - cached[0] < _SESSION_CACHE_TTL):
+        return cached[1], cached[2]
+
     from app.models.db import Session as SessionModel, User
 
     row = db.query(SessionModel).filter(SessionModel.token == token).first()
     if not row:
+        _SESSION_USER_CACHE[token] = (now_ts, False, None)
         return False, None
     if row.expires_at < dt.datetime.utcnow():
         try:
@@ -103,12 +123,14 @@ def _get_valid_session_user(db, token: str | None):
             db.commit()
         except Exception:
             db.rollback()
+        _SESSION_USER_CACHE[token] = (now_ts, False, None)
         return False, None
 
     user = None
     if row.user_id:
         user = db.get(User, row.user_id)
         if user and not user.enabled:
+            _SESSION_USER_CACHE[token] = (now_ts, False, None)
             return False, None
         if user:
             _ = (user.id, user.username, user.display_name, user.is_owner, user.is_admin, user.permissions, user.api_key)
@@ -116,6 +138,7 @@ def _get_valid_session_user(db, token: str | None):
                 db.expunge(user)
             except Exception:
                 pass
+    _SESSION_USER_CACHE[token] = (now_ts, True, user)
     return True, user
 
 

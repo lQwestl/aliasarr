@@ -60,16 +60,15 @@ def _attach_computed_fields(db: Session, shows: list[Show]) -> list[ShowOut]:
     if not shows:
         return []
 
-    settings = get_or_create_settings(db)
-    has_path_updates = False
-    for s in shows:
-        if not s.path:
+    # Обновляем дефолтные пути только если у каких-то шоу path отсутствует
+    missing_paths = [s for s in shows if not s.path]
+    if missing_paths:
+        settings = get_or_create_settings(db)
+        for s in missing_paths:
             def_path = get_show_default_path(s, settings)
             if def_path:
                 s.path = def_path
                 db.add(s)
-                has_path_updates = True
-    if has_path_updates:
         try:
             db.commit()
         except Exception:
@@ -78,36 +77,32 @@ def _attach_computed_fields(db: Session, shows: list[Show]) -> list[ShowOut]:
     show_ids = [s.id for s in shows]
     now = dt.datetime.utcnow()
 
-    counts = dict(
-        db.query(Episode.show_id, func.count(func.distinct(Episode.season_number)))
-        .filter(Episode.show_id.in_(show_ids))
-        .group_by(Episode.show_id)
-        .all()
+    # Объединяем 4 раздельных запроса подсчёта в один сверхбыстрый агрегирующий запрос
+    from sqlalchemy import case
+
+    dl_condition = or_(
+        Episode.status == EpisodeStatus.DOWNLOADED,
+        and_(Episode.file_path.isnot(None), Episode.file_path != "")
     )
-    ep_counts = dict(
-        db.query(Episode.show_id, func.count(Episode.id))
-        .filter(Episode.show_id.in_(show_ids))
-        .group_by(Episode.show_id)
-        .all()
-    )
-    dl_counts = dict(
-        db.query(Episode.show_id, func.count(Episode.id))
-        .filter(
-            Episode.show_id.in_(show_ids),
-            or_(
-                Episode.status == EpisodeStatus.DOWNLOADED,
-                and_(Episode.file_path.isnot(None), Episode.file_path != "")
-            )
+    downloading_condition = (Episode.status == EpisodeStatus.DOWNLOADING)
+
+    stats_rows = (
+        db.query(
+            Episode.show_id,
+            func.count(func.distinct(Episode.season_number)),
+            func.count(Episode.id),
+            func.sum(case((dl_condition, 1), else_=0)),
+            func.sum(case((downloading_condition, 1), else_=0)),
         )
+        .filter(Episode.show_id.in_(show_ids))
         .group_by(Episode.show_id)
         .all()
     )
-    downloading_counts = dict(
-        db.query(Episode.show_id, func.count(Episode.id))
-        .filter(Episode.show_id.in_(show_ids), Episode.status == EpisodeStatus.DOWNLOADING)
-        .group_by(Episode.show_id)
-        .all()
-    )
+    stats = {
+        row[0]: (row[1] or 0, row[2] or 0, int(row[3] or 0), int(row[4] or 0))
+        for row in stats_rows
+    }
+
     next_airing_rows = (
         db.query(Episode.show_id, func.min(Episode.air_date))
         .filter(Episode.show_id.in_(show_ids), Episode.air_date.isnot(None), Episode.air_date >= now)
@@ -119,10 +114,11 @@ def _attach_computed_fields(db: Session, shows: list[Show]) -> list[ShowOut]:
     out = []
     for show in shows:
         item = ShowOut.model_validate(show)
-        item.seasons_count = counts.get(show.id, 0)
-        item.episodes_count = ep_counts.get(show.id, 0)
-        item.downloaded_episodes_count = dl_counts.get(show.id, 0)
-        item.downloading_episodes_count = downloading_counts.get(show.id, 0)
+        s_count, ep_c, dl_c, dling_c = stats.get(show.id, (0, 0, 0, 0))
+        item.seasons_count = s_count
+        item.episodes_count = ep_c
+        item.downloaded_episodes_count = dl_c
+        item.downloading_episodes_count = dling_c
         item.next_airing = next_airing.get(show.id) or show.premiere_date
         out.append(item)
     return out

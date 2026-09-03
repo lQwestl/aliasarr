@@ -3420,11 +3420,12 @@ function switchTab(tabId) {
   if (tabId === "library") {
     loadShows(false);
     if (LIBRARY_POLL_INTERVAL) clearInterval(LIBRARY_POLL_INTERVAL);
+    CURRENT_LIBRARY_POLL_INTERVAL_MS = 8000;
     LIBRARY_POLL_INTERVAL = setInterval(() => {
       if (document.getElementById("tab-library")?.classList.contains("active")) {
         loadShows(true);
       }
-    }, 3000);
+    }, CURRENT_LIBRARY_POLL_INTERVAL_MS);
   } else if (LIBRARY_POLL_INTERVAL) {
     clearInterval(LIBRARY_POLL_INTERVAL);
     LIBRARY_POLL_INTERVAL = null;
@@ -3920,7 +3921,25 @@ function updateShowCardProgressInDOM(show) {
   }
 }
 
+let _LOAD_SHOWS_IN_FLIGHT = false;
+let CURRENT_LIBRARY_POLL_INTERVAL_MS = 8000;
+
+function adjustLibraryPolling(intervalMs) {
+  if (CURRENT_LIBRARY_POLL_INTERVAL_MS === intervalMs) return;
+  CURRENT_LIBRARY_POLL_INTERVAL_MS = intervalMs;
+  if (LIBRARY_POLL_INTERVAL && document.getElementById("tab-library")?.classList.contains("active")) {
+    clearInterval(LIBRARY_POLL_INTERVAL);
+    LIBRARY_POLL_INTERVAL = setInterval(() => {
+      if (document.getElementById("tab-library")?.classList.contains("active")) {
+        loadShows(true);
+      }
+    }, CURRENT_LIBRARY_POLL_INTERVAL_MS);
+  }
+}
+
 async function loadShows(silent = false) {
+  if (_LOAD_SHOWS_IN_FLIGHT) return;
+  _LOAD_SHOWS_IN_FLIGHT = true;
   try {
     const promises = [api("/api/v1/shows")];
     if (!CACHED_QUALITY_PROFILES.length) {
@@ -3942,8 +3961,15 @@ async function loadShows(silent = false) {
     } else {
       renderLibrary();
     }
+
+    // Динамическая адаптация поллинга библиотеки:
+    // если есть активные загрузки — опрашиваем раз в 4 секунды, если нет — раз в 12 секунд
+    const hasActiveDownloads = newShows.some(s => (s.downloading_episodes_count || 0) > 0);
+    adjustLibraryPolling(hasActiveDownloads ? 4000 : 12000);
   } catch (e) {
     if (!silent && e.message !== "unauthorized") toast("Ошибка загрузки: " + e.message, true);
+  } finally {
+    _LOAD_SHOWS_IN_FLIGHT = false;
   }
 }
 
@@ -13042,8 +13068,11 @@ let TASKS_POLL_INTERVAL = null;
 let TASKS_CURRENT_INTERVAL = 3500;
 let LAST_RUNNING_COUNT = 0;
 let CURRENT_ACTIVE_TASKS = [];
+let _TASKS_IN_FLIGHT = false;
 
 async function loadTasksStatus(manual = false) {
+  if (_TASKS_IN_FLIGHT) return;
+  _TASKS_IN_FLIGHT = true;
   try {
     const data = await api("/api/v1/tasks");
     CURRENT_ACTIVE_TASKS = data.running || [];
@@ -13054,14 +13083,16 @@ async function loadTasksStatus(manual = false) {
     }
     updateLibraryTasksProgress(data);
 
-    // Динамическая адаптация частоты опроса: 1.2с при активных задачах, 3.5с в режиме покоя
-    const targetInterval = CURRENT_ACTIVE_TASKS.length > 0 ? 1200 : 3500;
+    // Динамическая адаптация частоты опроса: 2с при активных задачах, 4с в режиме покоя
+    const targetInterval = CURRENT_ACTIVE_TASKS.length > 0 ? 2000 : 4000;
     if (TASKS_CURRENT_INTERVAL !== targetInterval) {
       TASKS_CURRENT_INTERVAL = targetInterval;
       restartTasksPolling(targetInterval);
     }
   } catch (e) {
     // Non-blocking in background
+  } finally {
+    _TASKS_IN_FLIGHT = false;
   }
 }
 

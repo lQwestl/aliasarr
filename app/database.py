@@ -17,22 +17,28 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////config/aliasarr.db")
 is_sqlite = DATABASE_URL.startswith("sqlite")
 
 if is_sqlite:
-    # Для SQLite используем NullPool (исключает QueuePool timeout) и включаем WAL-режим
-    # с busy_timeout=60000 мс (60 сек) для бесконфликтной многопоточной работы
+    # Для SQLite используем пул с повторным использованием соединений и оптимизированные PRAGMA:
+    # 64MB RAM кэш, 256MB mmap, synchronous=NORMAL и busy_timeout=60с
     connect_args = {"check_same_thread": False, "timeout": 60}
     engine = create_engine(
         DATABASE_URL,
         connect_args=connect_args,
-        poolclass=NullPool,
+        pool_size=10,
+        max_overflow=20,
+        pool_timeout=60,
+        pool_recycle=1800,
     )
 
     @event.listens_for(engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
         try:
             cursor = dbapi_connection.cursor()
-            cursor.execute("PRAGMA journal_mode=WAL")
             cursor.execute("PRAGMA busy_timeout=60000")
             cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA cache_size=-64000")      # 64 MB кэш в оперативной памяти
+            cursor.execute("PRAGMA temp_store=MEMORY")      # Временные таблицы и индексы в RAM
+            cursor.execute("PRAGMA mmap_size=268435456")   # 256 MB memory-mapped I/O для чтения на скорости RAM
+            cursor.execute("PRAGMA foreign_keys=ON")
             cursor.close()
         except Exception:
             pass
@@ -118,12 +124,48 @@ def _migrate_add_missing_columns() -> None:
                 logger.warning("DB-миграция: не удалось добавить %s.%s (%s)", table.name, column.name, exc)
 
 
+def _ensure_performance_indexes() -> None:
+    """Создаёт критически важные индексы для мгновенного выполнения запросов и устранения full table scan."""
+    indexes = [
+        ("idx_episodes_show_id", "episodes", "show_id"),
+        ("idx_episodes_status", "episodes", "status"),
+        ("idx_episodes_air_date", "episodes", "air_date"),
+        ("idx_episodes_torrent_hash", "episodes", "torrent_hash"),
+        ("idx_episodes_show_status", "episodes", "show_id, status"),
+        ("idx_shows_monitored", "shows", "monitored"),
+        ("idx_shows_content_type", "shows", "content_type"),
+        ("idx_aliases_show_id", "aliases", "show_id"),
+        ("idx_aliases_text", "aliases", "text"),
+        ("idx_tracked_releases_show_id", "tracked_releases", "show_id"),
+        ("idx_tracked_releases_active", "tracked_releases", "active"),
+        ("idx_download_history_show_id", "download_history", "show_id"),
+        ("idx_download_history_created_at", "download_history", "created_at"),
+    ]
+    try:
+        with engine.begin() as conn:
+            for idx_name, table_name, cols in indexes:
+                try:
+                    conn.execute(text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name}({cols})"))
+                except Exception as e:
+                    logger.debug("Индекс %s уже существует или таблица %s не готова: %s", idx_name, table_name, e)
+    except Exception as exc:
+        logger.debug("Ошибка в _ensure_performance_indexes: %s", exc)
+
+
 def init_db() -> None:
     try:
         if DATABASE_URL.startswith("sqlite:////config"):
             os.makedirs("/config", exist_ok=True)
     except Exception:
         pass
+
+    if is_sqlite:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("PRAGMA journal_mode=WAL"))
+                conn.commit()
+        except Exception as exc:
+            logger.warning("Ошибка установки PRAGMA journal_mode=WAL: %s", exc)
 
     try:
         Base.metadata.create_all(bind=engine)
@@ -139,6 +181,11 @@ def init_db() -> None:
         Base.metadata.create_all(bind=engine)
     except Exception as exc:
         logger.warning("Ошибка повторного Base.metadata.create_all: %s", exc)
+
+    try:
+        _ensure_performance_indexes()
+    except Exception as exc:
+        logger.warning("Ошибка _ensure_performance_indexes: %s", exc)
 
 
 def get_db():

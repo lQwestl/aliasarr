@@ -471,16 +471,27 @@ async def on_startup():
             return
         async with _metadata_refresh_lock:
             db = SessionLocal()
+            enabled = True
             try:
                 settings = get_or_create_settings(db)
-                if not getattr(settings, "metadata_auto_refresh_enabled", True):
-                    return
-                from app.services.metadata import refresh_all_shows_metadata
-                await refresh_all_shows_metadata(db, username="scheduler")
+                enabled = getattr(settings, "metadata_auto_refresh_enabled", True)
             except Exception as exc:
-                logger.warning("Ошибка автоматического обновления метаданных библиотеки: %s", exc)
+                logger.warning("Ошибка проверки настроек обновления метаданных: %s", exc)
             finally:
                 db.close()
+
+            if not enabled:
+                return
+
+            try:
+                from app.services.metadata import refresh_all_shows_metadata
+                db_refresh = SessionLocal()
+                try:
+                    await refresh_all_shows_metadata(db_refresh, username="scheduler")
+                finally:
+                    db_refresh.close()
+            except Exception as exc:
+                logger.warning("Ошибка автоматического обновления метаданных библиотеки: %s", exc)
 
     scheduler.add_job(_tracker_job, "interval", minutes=tracker_interval, id="recheck_tracked_releases")
     # Периодический поиск разыскиваемого контента
@@ -495,8 +506,17 @@ async def on_startup():
     # Автоматическое обновление метаданных по алгоритму Sonarr/Radarr (каждые 6 часов)
     scheduler.add_job(_refresh_metadata_job, "interval", hours=6, id="refresh_metadata")
     scheduler.start()
-    # Запускаем первичное фоновое обновление метаданных при старте приложения
-    asyncio.create_task(_refresh_metadata_job())
+
+    # Запускаем первичное фоновое обновление метаданных с задержкой (60 сек),
+    # чтобы веб-интерфейс и страницы стартовали мгновенно без блокировок
+    async def _delayed_initial_refresh():
+        try:
+            await asyncio.sleep(60)
+            await _refresh_metadata_job()
+        except Exception:
+            pass
+
+    asyncio.create_task(_delayed_initial_refresh())
     logger.info(
         "Планировщик запущен: поиск wanted каждые %d мин, загрузки каждые %d сек, "
         "слежение за раздачами каждые %d мин, активация премьер каждые %d мин, проверка индексаторов каждые %d мин, "

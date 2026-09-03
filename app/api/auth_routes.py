@@ -401,6 +401,8 @@ def logout(response: Response, request: Request, db: Session = Depends(get_db)):
     token = request.cookies.get(SESSION_COOKIE_NAME)
     user = None
     if token:
+        from app.auth import invalidate_session_cache
+        invalidate_session_cache(token)
         session_row = db.query(SessionModel).filter(SessionModel.token == token).first()
         if session_row:
             if session_row.user_id:

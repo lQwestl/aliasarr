@@ -103,7 +103,7 @@ class Show(Base):
     overview: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     poster_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     path: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)  # папка на диске
-    monitored: Mapped[bool] = mapped_column(Boolean, default=True)
+    monitored: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
     quality_profile_id: Mapped[Optional[int]] = mapped_column(ForeignKey("quality_profiles.id"), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
     last_search_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
@@ -115,7 +115,7 @@ class Show(Base):
     rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     country: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     genre: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
-    content_type: Mapped[str] = mapped_column(String(20), default="series")  # movie | series | anime (см. ContentCategory)
+    content_type: Mapped[str] = mapped_column(String(20), default="series", index=True)  # movie | series | anime (см. ContentCategory)
     premiere_date: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
     # Ожидаемый год/квартал выхода (когда точной даты премьеры ещё нет в метаданных)
     expected_year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -136,8 +136,8 @@ class Alias(Base):
     __table_args__ = (UniqueConstraint("show_id", "text", name="uq_alias_show_text"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False)
-    text: Mapped[str] = mapped_column(String(500), nullable=False)
+    show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False, index=True)
+    text: Mapped[str] = mapped_column(String(500), nullable=False, index=True)
     language: Mapped[AliasLanguage] = mapped_column(SAEnum(AliasLanguage), default=AliasLanguage.RU)
     source: Mapped[str] = mapped_column(String(50), default="manual")  # manual | tmdb | tvmaze | thetvdb | skyhook | custom
     # Приоритет перебора алиасов при поиске: меньшее число = опрашивается раньше
@@ -151,19 +151,19 @@ class Episode(Base):
     __table_args__ = (UniqueConstraint("show_id", "season_number", "episode_number", name="uq_episode"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False)
+    show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False, index=True)
     season_number: Mapped[int] = mapped_column(Integer, nullable=False)
     episode_number: Mapped[int] = mapped_column(Integer, nullable=False)
     absolute_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     title: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    air_date: Mapped[Optional[dt.date]] = mapped_column(DateTime, nullable=True)
-    status: Mapped[EpisodeStatus] = mapped_column(SAEnum(EpisodeStatus), default=EpisodeStatus.MISSING)
+    air_date: Mapped[Optional[dt.date]] = mapped_column(DateTime, nullable=True, index=True)
+    status: Mapped[EpisodeStatus] = mapped_column(SAEnum(EpisodeStatus), default=EpisodeStatus.MISSING, index=True)
     monitored: Mapped[bool] = mapped_column(Boolean, default=True)
     file_path: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
 
     # Привязка к активной загрузке в клиенте
     download_client_id: Mapped[Optional[int]] = mapped_column(ForeignKey("download_clients.id"), nullable=True)
-    torrent_hash: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    torrent_hash: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
     download_progress: Mapped[float] = mapped_column(Float, default=0.0)  # 0..1 для прогресс-бара
     downloaded_quality: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
@@ -249,7 +249,7 @@ class TrackedRelease(Base):
     __tablename__ = "tracked_releases"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False)
+    show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False, index=True)
     indexer_id: Mapped[int] = mapped_column(ForeignKey("indexers.id"), nullable=False)
     topic_guid: Mapped[str] = mapped_column(String(500), nullable=False)  # guid/id топика на трекере
     topic_url: Mapped[str] = mapped_column(String(1000), nullable=False)
@@ -257,7 +257,7 @@ class TrackedRelease(Base):
     downloaded_episodes: Mapped[list] = mapped_column(JSON, default=list)  # [{"season":1,"episode":5,"file":"..."}]
     last_checked_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
     last_updated_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)  # когда топик обновился
-    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
 
     show: Mapped["Show"] = relationship(back_populates="tracked_releases")
 
@@ -266,14 +266,14 @@ class DownloadHistory(Base):
     __tablename__ = "download_history"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False)
+    show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False, index=True)
     episode_id: Mapped[Optional[int]] = mapped_column(ForeignKey("episodes.id"), nullable=True)
     release_title: Mapped[str] = mapped_column(String(1000), nullable=False)
     indexer_id: Mapped[Optional[int]] = mapped_column(ForeignKey("indexers.id"), nullable=True)
     event_type: Mapped[str] = mapped_column(String(50), default="grabbed")  # grabbed|imported|failed
     matched_alias: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # по какому алиасу нашли релиз
     show_title_snapshot: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # имя шоу на момент захвата
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow, index=True)
 
 
 class DownloadClient(Base):

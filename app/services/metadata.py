@@ -2359,6 +2359,7 @@ async def refresh_all_shows_metadata(db, force: bool = False, username: str = "s
     errors_count = 0
 
     try:
+        from app.database import SessionLocal
         for i, show in enumerate(candidate_shows):
             task_manager.update_task(
                 task.id,
@@ -2368,13 +2369,21 @@ async def refresh_all_shows_metadata(db, force: bool = False, username: str = "s
                 total_items=len(candidate_shows),
                 show_id=show.id,
             )
+            s_db = SessionLocal()
             try:
-                res = await refresh_show_metadata(db, show)
-                if res.get("updated"):
-                    updated_count += 1
+                s_show = s_db.get(Show, show.id)
+                if s_show:
+                    res = await refresh_show_metadata(s_db, s_show)
+                    if res.get("updated"):
+                        updated_count += 1
             except Exception as exc:
                 errors_count += 1
                 logger.warning("Ошибка обновления метаданных для тайтла %s (%s): %s", show.id, show.title, exc)
+            finally:
+                s_db.close()
+
+            # Даём паузу циклу событий и SQLite для обработки других входящих запросов
+            await asyncio.sleep(0.1)
 
         summary_msg = f"Завершено: обновлено {updated_count} из {len(candidate_shows)} тайтлов"
         if errors_count:
