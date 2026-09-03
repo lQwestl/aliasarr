@@ -13102,21 +13102,21 @@ async function loadDatasetData(page = 1) {
       }
 
       rowsHtml += `<tr>
-        <td style="font-size: 11px;">
-          <div style="font-weight: 600; color: var(--teal, #00F0FF);">${query}</div>
-          <div class="hint" style="font-size: 10px;">${indexer}</div>
+        <td class="col-query">
+          <div class="query-title" style="font-weight: 600; color: var(--teal, #00F0FF);">${query}</div>
+          <div class="query-indexer hint" style="font-size: 10px;">${indexer}</div>
         </td>
-        <td style="word-break: break-word;">
+        <td class="col-title" style="word-break: break-word;">
           <div style="font-weight: 500; font-size: 12px; line-height: 1.4;">${title}</div>
         </td>
-        <td style="font-size: 11px;">
-          <div class="mono">${sizeStr}</div>
+        <td class="col-size">
+          <div class="mono" style="font-size: 11px;">${sizeStr}</div>
           ${qualityHtml}
         </td>
-        <td>${seasonEpBadge}</td>
-        <td>${dbMatchHtml}</td>
-        <td>${decisionHtml}</td>
-        <td style="text-align: center; white-space: nowrap;">
+        <td class="col-episodes">${seasonEpBadge}</td>
+        <td class="col-match">${dbMatchHtml}</td>
+        <td class="col-decision">${decisionHtml}</td>
+        <td class="col-actions" style="text-align: center; white-space: nowrap;">
           <button class="btn btn-ghost btn-xs" onclick="openDatasetDiagnoseModal(${idx})" title="Подробная диагностика сопоставления">
             <i data-lucide="search" class="ico-xs" style="color:var(--teal);"></i>
           </button>
