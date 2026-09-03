@@ -243,6 +243,22 @@ class TestAutoSearch(unittest.TestCase):
             self.assertEqual(ep1.status, EpisodeStatus.DOWNLOADING)
             self.assertEqual(ep1.torrent_hash, "hash-working-123")
 
+    def test_evaluate_priority_absolute_numbering_and_torrent_name(self):
+        """Проверяет корректность фильтрации файлов в раздачах со сквозной нумерацией (например Робоцып S05E01 = серия 81)."""
+        ep1 = Episode(id=1, show_id=1, season_number=5, episode_number=1, absolute_number=81)
+        ep6 = Episode(id=2, show_id=1, season_number=5, episode_number=6, absolute_number=86)
+        targets = [ep1, ep6]
+
+        # 1. Файл со сквозным номером 81 должен быть включен
+        self.assertEqual(auto_search.evaluate_torrent_file_priority("Season 5/81.avi", 0, targets, torrent_name="Season 5"), 1)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority("Season 5/86 - Ep.avi", 1, targets, torrent_name="Season 5"), 1)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority("Season 5/82.avi", 2, targets, torrent_name="Season 5"), 0)
+
+        # 2. Файлы без явного сезона в имени, но с именем торрента Season 5
+        self.assertEqual(auto_search.evaluate_torrent_file_priority("01.avi", 0, targets, torrent_name="Season 5"), 1)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority("06.avi", 1, targets, torrent_name="Season 5"), 1)
+        self.assertEqual(auto_search.evaluate_torrent_file_priority("02.avi", 2, targets, torrent_name="Season 5"), 0)
+
     def test_wrong_season_release_not_grabbed_for_absolute_numbering(self):
         """Релиз без явного сезона в названии не должен ошибочно захватываться для 2 сезона."""
         show = make_show(self.session, title="My Hero Academia")

@@ -109,6 +109,7 @@ def evaluate_torrent_file_priority(
     extra_extensions: Optional[set[str]] = None,
     content_type: str = "series",
     ova_mode: str = "auto",
+    torrent_name: str = "",
 ) -> int:
     """
     Определяет приоритет скачивания файла торрента (1 = скачивать, 0 = не скачивать).
@@ -116,7 +117,9 @@ def evaluate_torrent_file_priority(
     - Для фильмов (content_type == "movie"): все видеофайлы и сопутствующие файлы скачиваются.
     - Для сериалов/аниме:
       - Сезон и номер серии (season_number, episode_number)
-      - Абсолютную нумерацию аниме (absolute_number)
+      - Абсолютную / сквозную нумерацию (absolute_number), актуально для мультсериалов и аниме
+      - Формат 3-4 цифры (501 -> S05E01)
+      - Имя торрента (torrent_name) при отсутствии явного сезона в имени файла
       - Дополнительные файлы: субтитры (.ass/.srt), аудиодорожки (.mka), шрифты (Fonts/ .ttf/.otf), NFO.
     """
     import os
@@ -158,6 +161,7 @@ def evaluate_torrent_file_priority(
 
     target_keys = {(ep.season_number, ep.episode_number) for ep in target_episodes}
     target_abs = {ep.absolute_number for ep in target_episodes if ep.absolute_number is not None}
+    target_seasons = {ep.season_number for ep in target_episodes}
     has_wanted_specials = any(ep.season_number == 0 for ep in target_episodes)
 
     base_name = os.path.basename(file_name)
@@ -183,6 +187,16 @@ def evaluate_torrent_file_priority(
                 if s_lbl["type"] == "numbered":
                     season = s_lbl["season"]
 
+    # Если сезон не определен ни из basename, ни из dir_name, пробуем определить из torrent_name
+    if season is None and torrent_name:
+        t_parsed = parse_episode(torrent_name)
+        if t_parsed and t_parsed.season is not None:
+            season = t_parsed.season
+        else:
+            s_lbl = detect_season_label(torrent_name)
+            if s_lbl["type"] == "numbered":
+                season = s_lbl["season"]
+
     # Если в basename номер серии не найден, пробуем по полному относительному пути
     if not episodes:
         parsed_full = parse_episode(file_name)
@@ -206,6 +220,11 @@ def evaluate_torrent_file_priority(
             return 1
 
         for ep_num in episodes:
+            if 101 <= ep_num <= 9999:
+                s_div, e_mod = divmod(ep_num, 100)
+                if (s_div, e_mod) in target_keys:
+                    return 1
+
             if is_special_file:
                 allow_ova_as_s1 = (ova_mode == "season_1") or (
                     ova_mode == "auto" and not has_wanted_specials and any(sn == 1 for sn, _ in target_keys)
@@ -215,17 +234,24 @@ def evaluate_torrent_file_priority(
                 if (0, ep_num) in target_keys or has_wanted_specials:
                     return 1
             elif season is not None:
-                if (season, ep_num) in target_keys:
-                    return 1
-                if is_part_2 and 1 <= ep_num <= 12:
-                    if (season, ep_num + 12) in target_keys:
+                if season in target_seasons:
+                    if (season, ep_num) in target_keys:
                         return 1
+                    if ep_num in target_abs:
+                        return 1
+                    if is_part_2 and 1 <= ep_num <= 12:
+                        if (season, ep_num + 12) in target_keys:
+                            return 1
             else:
-                if (1, ep_num) in target_keys or ep_num in target_abs:
+                if ep_num in target_abs:
                     return 1
-                if is_part_2 and 1 <= ep_num <= 12:
-                    if (1, ep_num + 12) in target_keys or (ep_num + 12) in target_abs:
+                for s in target_seasons:
+                    if (s, ep_num) in target_keys:
                         return 1
+                if is_part_2 and 1 <= ep_num <= 12:
+                    for s in target_seasons:
+                        if (s, ep_num + 12) in target_keys or (ep_num + 12) in target_abs:
+                            return 1
         return 0
 
     # 3. Видеофайлы (.mkv, .mp4, .avi, .ts, etc.)
@@ -255,19 +281,33 @@ def evaluate_torrent_file_priority(
             return 0
 
         for ep_num in episodes:
+            # 1. Формат 3-4 цифры (501 -> Сезон 5 Серия 1, 1204 -> Сезон 12 Серия 4)
+            if 101 <= ep_num <= 9999:
+                s_div, e_mod = divmod(ep_num, 100)
+                if (s_div, e_mod) in target_keys:
+                    return 1
+
+            # 2. При известном сезоне (проверяем только если сезон среди разыскиваемых)
             if season is not None:
-                if (season, ep_num) in target_keys:
-                    return 1
-                if is_part_2 and 1 <= ep_num <= 12:
-                    if (season, ep_num + 12) in target_keys:
+                if season in target_seasons:
+                    if (season, ep_num) in target_keys:
                         return 1
+                    if ep_num in target_abs:
+                        return 1
+                    if is_part_2 and 1 <= ep_num <= 12:
+                        if (season, ep_num + 12) in target_keys:
+                            return 1
             else:
-                # Обычные серии без указания сезона по умолчанию относятся к 1-му сезону!
-                if (1, ep_num) in target_keys or ep_num in target_abs:
+                # 3. Если сезон не указан явно в имени файла, сопоставляем по сквозной нумерации или разыскиваемым сезонам
+                if ep_num in target_abs:
                     return 1
-                if is_part_2 and 1 <= ep_num <= 12:
-                    if (1, ep_num + 12) in target_keys or (ep_num + 12) in target_abs:
+                for s in target_seasons:
+                    if (s, ep_num) in target_keys:
                         return 1
+                if is_part_2 and 1 <= ep_num <= 12:
+                    for s in target_seasons:
+                        if (s, ep_num + 12) in target_keys or (ep_num + 12) in target_abs:
+                            return 1
         return 0
 
     # Все прочие неизвестные файлы
@@ -382,6 +422,7 @@ async def _limit_torrent_files_to_episodes(
     unwanted_indices = []
     wanted_indices = []
 
+    t_name = getattr(torrent, "name", "") or ""
     for f in torrent.files:
         prio = evaluate_torrent_file_priority(
             file_name=f.name,
@@ -391,6 +432,7 @@ async def _limit_torrent_files_to_episodes(
             extra_extensions=extra_exts,
             content_type=content_type,
             ova_mode=show_ova_mode,
+            torrent_name=t_name,
         )
         if prio > 0:
             wanted_indices.append(f.index)
@@ -417,12 +459,37 @@ async def _limit_torrent_files_to_episodes(
             torrent_hash, len(target_eps), len(unwanted_indices), len(wanted_indices)
         )
     else:
-        # Раздача не содержит ни одной из запрошенных серий (например, скачали Part 1 (1-12), а искали серии 23-24).
-        # Помещаем хэш в список исключений, удаляем неподходящую раздачу из загрузчика, возвращаем серии в статус WANTED
-        # и автоматически запускаем поиск следующего кандидата.
+        # Если ни один файл не подошёл по строгому пофайловому парсеру:
+        # Раздача уже была проверена и одобрена matcher.py по тайтлу и сезону.
+        # Поэтому мы НЕ удаляем раздачу, а оставляем все видеофайлы включенными,
+        # чтобы скачивание не обрывалось. При завершении загрузки модуль импорта
+        # сможет точно распарсить и импортировать файлы.
+        video_indices = [
+            f.index for f in torrent.files
+            if os.path.splitext(f.name)[1].lower() in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}
+            and not ("/sample" in f.name.lower() or f.name.lower().endswith("-sample.mkv"))
+        ]
+        if video_indices:
+            logger.warning(
+                "Раздача %s (%s): пофайловое отключение пропущено (не удалось определить номера серий в именах файлов). Оставляем все видеофайлы (%d шт) включенными.",
+                torrent_hash, t_name, len(video_indices)
+            )
+            await dl_client.set_files_wanted_unwanted(
+                torrent_hash,
+                video_indices,
+                [f.index for f in torrent.files if f.index not in video_indices]
+            )
+            try:
+                await dl_client.recheck_torrent(torrent_hash)
+                await dl_client.resume_torrent(torrent_hash)
+            except Exception as exc:
+                logger.warning("Не удалось возобновить раздачу %s: %s", torrent_hash, exc)
+            return
+
+        # Если в раздаче ВООБЩЕ нет ни одного видеофайла (битый релиз):
         requested_ep_str = ", ".join(f"S{ep.season_number}E{ep.episode_number}" for ep in target_eps)
         logger.warning(
-            "Раздача %s: ни один файл в раздаче не соответствует запрошенным сериям (%s). Раздача отменена и удалена из загрузчика.",
+            "Раздача %s: в раздаче отсутствуют видеофайлы, соответствующие запрошенным сериям (%s). Раздача отменена и удалена из загрузчика.",
             torrent_hash, requested_ep_str,
         )
 
