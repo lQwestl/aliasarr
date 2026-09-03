@@ -556,6 +556,30 @@ def move_file_with_progress(
         apply_media_permissions(dst, is_dir=False)
 
 
+def episode_file_sort_key(fpath: str) -> tuple[int, int, list[int | str]]:
+    """
+    Ключ сортировки видеофайлов для гарантированной обработки от 1-й серии к последней.
+    Учитывает:
+    1. Номер сезона (из имени файла или родительской папки 'Season X')
+    2. Минимальный номер серии (1, 2, ... 19, 20)
+    3. Естественную числовую сортировку имени файла (natural_sort_key)
+    """
+    fname = os.path.basename(fpath)
+    parsed = parse_episode(fname)
+    season = parsed.season
+    if season is None:
+        parent_dir = os.path.basename(os.path.dirname(fpath))
+        if parent_dir:
+            from app.services.parser import detect_season_label
+            dir_s = detect_season_label(parent_dir)
+            if dir_s.get("type") == "numbered":
+                season = dir_s["season"]
+    if season is None:
+        season = 999
+    ep = min(parsed.episodes) if parsed.episodes else 9999
+    return (season, ep, natural_sort_key(fname))
+
+
 def find_release_files(root: str, specific_files: Optional[list[str]] = None) -> dict[str, list[str]]:
     """
     Сканирует путь загрузки (или обрабатывает строго список файлов из торрента) и группирует файлы по типам:
@@ -574,6 +598,15 @@ def find_release_files(root: str, specific_files: Optional[list[str]] = None) ->
         "extras": [],
         "other": [],
     }
+
+    def _finalize(res: dict[str, list[str]]) -> dict[str, list[str]]:
+        res["video"].sort(key=episode_file_sort_key)
+        res["subtitle"].sort(key=lambda p: natural_sort_key(os.path.basename(p)))
+        res["audio"].sort(key=lambda p: natural_sort_key(os.path.basename(p)))
+        res["font"].sort(key=lambda p: natural_sort_key(os.path.basename(p)))
+        res["extras"].sort(key=lambda p: natural_sort_key(os.path.basename(p)))
+        res["other"].sort(key=lambda p: natural_sort_key(os.path.basename(p)))
+        return res
 
     if specific_files:
         for fpath in specific_files:
@@ -620,7 +653,7 @@ def find_release_files(root: str, specific_files: Optional[list[str]] = None) ->
                 except Exception:
                     pass
 
-        return files_by_type
+        return _finalize(files_by_type)
 
     if os.path.isfile(root):
         ext = os.path.splitext(root)[1].lower()
@@ -655,7 +688,7 @@ def find_release_files(root: str, specific_files: Optional[list[str]] = None) ->
         except Exception:
             pass
 
-        return files_by_type
+        return _finalize(files_by_type)
 
     for dirpath, _dirs, filenames in os.walk(root):
         for fname in filenames:
@@ -674,7 +707,7 @@ def find_release_files(root: str, specific_files: Optional[list[str]] = None) ->
                 files_by_type["font"].append(fpath)
             else:
                 files_by_type["other"].append(fpath)
-    return files_by_type
+    return _finalize(files_by_type)
 
 
 def find_video_files(root: str) -> list[str]:
@@ -1003,7 +1036,8 @@ def process_download(
         for ep in dl_eps:
             if getattr(ep, "downloaded_quality", None) and ep.downloaded_quality not in ("SDTV", "SDTV-480p"):
                 context_hints.append(ep.downloaded_quality)
-                break
+    # Гарантируем строгую последовательную обработку от 1-й серии к последней
+    video_files.sort(key=episode_file_sort_key)
 
     for v_idx, file_path in enumerate(video_files):
         filename = os.path.basename(file_path)

@@ -1709,7 +1709,15 @@ def execute_manual_import(
     imported_count = 0
     errors: list[str] = []
     total_items = len(payload.items)
-    valid_items = [it for it in payload.items if os.path.exists(it.file_path)]
+
+    def _manual_item_sort_key(it):
+        ep_obj = db.get(Episode, it.episode_id) if getattr(it, "episode_id", None) else None
+        s_num = ep_obj.season_number if ep_obj else (getattr(it, "season_number", 999) or 999)
+        e_num = ep_obj.episode_number if ep_obj else (getattr(it, "episode_number", 9999) or 9999)
+        return (s_num, e_num, natural_sort_key(os.path.basename(it.file_path or "")))
+
+    sorted_payload_items = sorted(payload.items, key=_manual_item_sort_key)
+    valid_items = [it for it in sorted_payload_items if os.path.exists(it.file_path)]
     total_bytes = sum(os.path.getsize(it.file_path) for it in valid_items) or 1
     overall_bytes_copied = 0
     used_dest_paths = set()
@@ -1725,7 +1733,7 @@ def execute_manual_import(
         total_items=total_items,
         current_item=0,
     ) as m_task:
-        for idx, item in enumerate(payload.items, 1):
+        for idx, item in enumerate(sorted_payload_items, 1):
             file_name = os.path.basename(item.file_path)
             if not os.path.exists(item.file_path):
                 errors.append(f"Файл не найден: {item.file_path}")
@@ -2184,7 +2192,15 @@ def execute_global_manual_import(
     imported_count = 0
     errors: list[str] = []
     total_items = len(payload.items)
-    valid_items = [it for it in payload.items if os.path.exists(it.file_path)]
+
+    def _global_item_sort_key(it):
+        ep_obj = db.get(Episode, it.episode_id) if getattr(it, "episode_id", None) else None
+        s_num = ep_obj.season_number if ep_obj else (getattr(it, "season_number", 999) or 999)
+        e_num = ep_obj.episode_number if ep_obj else (getattr(it, "episode_number", 9999) or 9999)
+        return (it.show_id, s_num, e_num, natural_sort_key(os.path.basename(it.file_path or "")))
+
+    sorted_payload_items = sorted(payload.items, key=_global_item_sort_key)
+    valid_items = [it for it in sorted_payload_items if os.path.exists(it.file_path)]
     total_bytes = sum(os.path.getsize(it.file_path) for it in valid_items) or 1
     overall_bytes_copied = 0
 
@@ -2196,7 +2212,7 @@ def execute_global_manual_import(
         total_items=total_items,
         current_item=0,
     ) as m_task:
-        for idx, item in enumerate(payload.items, 1):
+        for idx, item in enumerate(sorted_payload_items, 1):
             file_name = os.path.basename(item.file_path)
             if not os.path.exists(item.file_path):
                 errors.append(f"Файл не найден: {item.file_path}")

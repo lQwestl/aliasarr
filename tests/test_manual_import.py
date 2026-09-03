@@ -418,6 +418,31 @@ class TestManualImportLogic(unittest.TestCase):
         m_empty = match_special_episode("Some.file.mkv", [])
         self.assertIsNone(m_empty)
 
+    def test_episode_file_sorting_sequential_order(self):
+        from app.services.postprocess import episode_file_sort_key
+
+        scrambled_files = [
+            "/downloads/Robot Chicken S05/18 Casablankman II.mkv",
+            "/downloads/Robot Chicken S05/01 Robot Chicken DP Christmas Special.mkv",
+            "/downloads/Robot Chicken S05/19 Casablankman 2.mkv",
+            "/downloads/Robot Chicken S05/02 Saving Private Gigli.mkv",
+            "/downloads/Robot Chicken S05/10 Catch Me If You Kangaroo Jack.mkv",
+            "/downloads/Robot Chicken S05/05 Kramer Vs. Showgirls.mkv",
+        ]
+
+        sorted_files = sorted(scrambled_files, key=episode_file_sort_key)
+        basenames = [os.path.basename(f) for f in sorted_files]
+
+        expected_order = [
+            "01 Robot Chicken DP Christmas Special.mkv",
+            "02 Saving Private Gigli.mkv",
+            "05 Kramer Vs. Showgirls.mkv",
+            "10 Catch Me If You Kangaroo Jack.mkv",
+            "18 Casablankman II.mkv",
+            "19 Casablankman 2.mkv",
+        ]
+        self.assertEqual(basenames, expected_order)
+
 
 if __name__ == "__main__":
     unittest.main()
