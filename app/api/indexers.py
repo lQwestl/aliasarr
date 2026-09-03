@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import logging
-import re
 from typing import Any, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -266,53 +265,11 @@ async def search_custom_releases(
 
     async def _fetch_custom(idx: Indexer):
         async with sem:
-            idx_name = getattr(idx, "name", "Indexer")
             try:
                 client = get_indexer_client(idx)
-                q_text = query.strip()
-                t_out = min(max(float(getattr(idx, "timeout_seconds", 25) or 25), 12.0), 35.0)
-
-                # 1. Поиск по запросу пользователя
-                rels = await asyncio.wait_for(client.search(q_text), timeout=t_out)
-                existing_guids = {r.guid for r in rels if getattr(r, "guid", None)}
-
-                # 2. Если передан номер сезона и в тексте запроса нет указания сезона:
-                if season is not None and not re.search(r"\b(?:s\d{1,2}|season\s*\d{1,2}|\d{1,2}\s*сезон)\b", q_text, re.IGNORECASE):
-                    for s_variant in (f"{q_text} S{season:02d}", f"{q_text} {season} сезон"):
-                        try:
-                            more_rels = await asyncio.wait_for(client.search(s_variant), timeout=t_out)
-                            for mr in more_rels:
-                                if getattr(mr, "guid", None) and mr.guid not in existing_guids:
-                                    existing_guids.add(mr.guid)
-                                    rels.append(mr)
-                        except Exception:
-                            pass
-
-                # 3. Если результатов мало и привязан тайтл: опрашиваем также другие алиасы тайтла
-                if show and len(rels) < 3:
-                    for alias in alias_candidates[:3]:
-                        a_text = alias.text.strip()
-                        if a_text.lower() == q_text.lower():
-                            continue
-                        clean_a = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", a_text, flags=re.IGNORECASE).strip()
-                        to_try = [clean_a]
-                        if season is not None:
-                            to_try.extend([f"{clean_a} S{season:02d}", f"{clean_a} {season} сезон"])
-                        for extra_q in to_try:
-                            if extra_q.lower() == q_text.lower():
-                                continue
-                            try:
-                                extra_rels = await asyncio.wait_for(client.search(extra_q), timeout=t_out)
-                                for er in extra_rels:
-                                    if getattr(er, "guid", None) and er.guid not in existing_guids:
-                                        existing_guids.add(er.guid)
-                                        rels.append(er)
-                            except Exception:
-                                pass
-
+                rels = await asyncio.wait_for(client.search(query.strip()), timeout=12.0)
                 return (idx, rels)
-            except Exception as ex:
-                logger.warning("Ошибка ручного поиска на индексаторе %s: %s", idx_name, ex)
+            except Exception:
                 return (idx, [])
 
     tasks = [_fetch_custom(idx) for idx in sorted(indexers, key=lambda i: i.priority)]

@@ -7456,26 +7456,8 @@ async function searchReleasesForShow(button, showId) {
 }
 
 async function openInteractiveSearch(showId, seasonNumber = null, episodeNumber = null, customQuery = null) {
-  let show = (typeof CACHED_SHOWS !== "undefined" && Array.isArray(CACHED_SHOWS))
-    ? CACHED_SHOWS.find(s => String(s.id) === String(showId))
-    : null;
-
-  if (!show && showId) {
-    try {
-      show = await api(`/api/v1/shows/${showId}`);
-    } catch (e) {}
-  }
-
-  let initialQuery = customQuery;
-  if (!initialQuery && show) {
-    if (seasonNumber !== null && episodeNumber !== null) {
-      initialQuery = `${show.title} S${String(seasonNumber).padStart(2, "0")}E${String(episodeNumber).padStart(2, "0")}`;
-    } else if (seasonNumber !== null && seasonNumber > 0) {
-      initialQuery = `${show.title} S${String(seasonNumber).padStart(2, "0")}`;
-    } else {
-      initialQuery = show.title || "";
-    }
-  }
+  const show = CACHED_SHOWS.find(s => s.id === showId);
+  const initialQuery = customQuery || (show ? show.title : "");
 
   INTERACTIVE_SEARCH_STATE = {
     showId: showId,

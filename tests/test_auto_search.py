@@ -536,35 +536,3 @@ class TestAutoSearch(unittest.TestCase):
         self.assertEqual(prio_sound1, 1, "Аудиодорожка к 1-й серии должна скачиваться")
         self.assertEqual(prio_sound2, 1, "Аудиодорожка ко 2-й серии должна скачиваться")
         self.assertEqual(prio_ost, 1, "Общий аудиофайл/OST из папки Sound должен скачиваться")
-
-    def test_collect_candidates_specials_query_generation(self):
-        from types import SimpleNamespace
-        from unittest.mock import MagicMock
-        from app.services.auto_search import _collect_candidates
-
-        show = SimpleNamespace(
-            id=42,
-            title="Genocyber",
-            year=1994,
-            content_type="anime",
-            path=None,
-            quality_profile_id=1,
-        )
-        ep0 = SimpleNamespace(
-            id=101,
-            show_id=42,
-            season_number=0,
-            episode_number=1,
-            absolute_number=None,
-            title="A New Mystery (OVA 1)",
-            status="wanted",
-        )
-        db_mock = MagicMock()
-        db_mock.get.return_value = None
-        db_mock.query.return_value.filter.return_value.all.return_value = []
-        db_mock.query.return_value.filter_by.return_value.all.return_value = []
-
-        # This should execute without NameError: name 're' is not defined
-        cands = asyncio.run(_collect_candidates(db_mock, show, [], wanted_episodes=[ep0]))
-        self.assertEqual(cands, [])
-

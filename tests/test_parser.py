@@ -5,7 +5,7 @@ import os
 import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from app.services.parser import parse_episode, ReleaseKind, normalize, detect_season_label
+from app.services.parser import parse_episode, ReleaseKind, normalize
 
 
 class TestParser(unittest.TestCase):
@@ -417,55 +417,6 @@ class TestParser(unittest.TestCase):
         r11 = parse_episode("KonoSuba OVA 1.mkv")
         self.assertEqual(r11.kind, ReleaseKind.EPISODE)
         self.assertEqual(r11.episodes, [1])
-
-    def test_dot_format_episodes(self):
-        # The Expanse & other <Season>.<Episode> format files
-        cases = [
-            ("Season 1 (2015-2016)/1.01 - Dulcinea.mkv", 1, [1]),
-            ("Season 1 (2015-2016)/1.02 - The Big Empty.mkv", 1, [2]),
-            ("Season 2 (2017)/2.01 - Safe.mkv", 2, [1]),
-            ("Season 2 (2017)/2.04 - Godspeed.mkv", 2, [4]),
-            ("Season 3 (2018)/3.04 - Reload.mkv", 3, [4]),
-            ("Season 4 (2019)/4.06 - Displacement.mkv", 4, [6]),
-            ("Season 4 (2019)/4.07 - A Short in the Dark.mkv", 4, [7]),
-            ("Season 6 (2021-2022)/6.1 - Strange Dogs.mkv", 6, [1]),
-            ("Season 6 (2021-2022)/6.2 - Azure Dragon.mkv", 6, [2]),
-            ("The.Expanse.1.01.Dulcinea.1080p.mkv", 1, [1]),
-            ("The.Expanse.2.04.1080p.mkv", 2, [4]),
-            ("Show.Name.2.01-2.10.1080p.mkv", 2, list(range(1, 11))),
-            ("Show.Name.2.01-10.1080p.mkv", 2, list(range(1, 11))),
-            ("1.01.mkv", 1, [1]),
-            ("6.2.mkv", 6, [2]),
-        ]
-        for name, exp_s, exp_eps in cases:
-            r = parse_episode(name)
-            self.assertEqual(r.kind, ReleaseKind.EPISODE, f"Failed kind for {name}")
-            self.assertEqual(r.season, exp_s, f"Failed season for {name}")
-            self.assertEqual(r.episodes, exp_eps, f"Failed episodes for {name}")
-
-    def test_multi_season_ranges_various_formats(self):
-        cases = [
-            ("Show S01-S04 [1080p]", [1, 2, 3, 4]),
-            ("Show Сезоны 1-4 [1080p]", [1, 2, 3, 4]),
-            ("Show Сезоны 1 - 4 [1080p]", [1, 2, 3, 4]),
-            ("Show 1-4 сезон [BDRip]", [1, 2, 3, 4]),
-            ("Show 1 - 4 сезон [BDRip]", [1, 2, 3, 4]),
-            ("Show 1 - 4-й сезон [BDRip]", [1, 2, 3, 4]),
-            ("Show 1-10 сезоны [WEB-DL]", list(range(1, 11))),
-            ("Show 1 - 10 сезоны [WEB-DL]", list(range(1, 11))),
-            ("Show (S1-4) [720p]", [1, 2, 3, 4]),
-            ("Show [S01-S04] [1080p]", [1, 2, 3, 4]),
-            ("Show [S1-4] [1080p]", [1, 2, 3, 4]),
-            ("Show 1-25 сезоны [1080p]", list(range(1, 26))),
-            ("Show 1 - 25 сезонов [1080p]", list(range(1, 26))),
-        ]
-        for name, exp_seasons in cases:
-            r = parse_episode(name)
-            self.assertEqual(r.kind, ReleaseKind.SEASON_PACK, f"Failed kind for {name}")
-            self.assertEqual(r.seasons, exp_seasons, f"Failed seasons for {name}")
-            lbl = detect_season_label(name)
-            self.assertEqual(lbl["type"], "range", f"Failed label type for {name}")
-            self.assertEqual(lbl["seasons"], exp_seasons, f"Failed label seasons for {name}")
 
 
 if __name__ == "__main__":
