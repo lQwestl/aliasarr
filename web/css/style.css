@@ -4535,35 +4535,60 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     font-size: 12px;
   }
 
-  /* Settings Tabs Horizontal Scroll */
+  /* Settings Tabs 2x4 Grid on Mobile (2 per row, 4 rows, 100% full width) */
   .settings-tabs {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    gap: 6px;
-    padding-bottom: 8px;
-    margin-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-    scrollbar-width: none;
-  }
-  .settings-tabs::-webkit-scrollbar {
-    display: none;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin-bottom: 16px !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding-bottom: 14px !important;
+    overflow-x: visible !important;
+    flex-wrap: wrap !important;
   }
   .settings-tab-btn {
-    white-space: nowrap;
-    flex-shrink: 0;
-    padding: 8px 12px;
-    font-size: 12.5px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: var(--panel-alt);
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 6px 10px !important;
+    gap: 7px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    border-radius: var(--radius-sm, 8px) !important;
+    border: 1px solid var(--border) !important;
+    background: var(--panel-alt) !important;
+    color: var(--text-muted) !important;
+    margin: 0 !important;
+  }
+  .settings-tab-btn i,
+  .settings-tab-btn svg {
+    width: 16px !important;
+    height: 16px !important;
+    flex-shrink: 0 !important;
+  }
+  .settings-tab-btn span {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-size: 12.5px !important;
+    max-width: calc(100% - 24px) !important;
   }
   .settings-tab-btn.active {
-    background: var(--panel);
-    border-color: var(--teal);
-    color: var(--teal);
-    box-shadow: 0 2px 8px rgba(45, 212, 191, 0.15);
+    background: var(--panel) !important;
+    border-color: var(--teal) !important;
+    color: var(--teal) !important;
+    box-shadow: 0 2px 8px rgba(45, 212, 191, 0.15) !important;
+    font-weight: 600 !important;
   }
 
   /* Nested Settings & Security Controls */
