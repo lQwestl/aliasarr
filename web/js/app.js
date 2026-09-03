@@ -236,6 +236,8 @@ const TRANSLATIONS = {
     "library.view_table": "Таблица",
     "library.view_overview": "Обзор",
     "library.view_label": "Просмотр:",
+    "library.content_label": "Контент:",
+    "library.monitor_label": "Мониторинг:",
     "library.poster_options_title": "Опции постера",
     "library.empty": "Пока нет ни одного видео.",
     "library.add_first": "Добавить первое видео",
@@ -1261,6 +1263,8 @@ const TRANSLATIONS = {
     "library.view_table": "Table",
     "library.view_overview": "Overview",
     "library.view_label": "View:",
+    "library.content_label": "Content:",
+    "library.monitor_label": "Monitoring:",
     "library.poster_options_title": "Poster Options",
     "library.empty": "No videos yet.",
     "library.add_first": "Add your first video",
@@ -3767,6 +3771,8 @@ async function loadHealthCheck() {
 
 let LIBRARY_VIEW_MODE = localStorage.getItem("aliasarr_library_view") || "posters";
 const VIEW_MODE_LABELS = { posters: "library.view_posters", table: "library.view_table", overview: "library.view_overview" };
+const CATEGORY_FILTER_LABELS = { all: "library.filter_all", movie: "library.filter_movies", series: "library.filter_series", anime: "library.filter_anime" };
+const MONITOR_FILTER_LABELS = { all: "library.filter_all", monitored: "library.filter_monitored", unmonitored: "library.filter_unmonitored" };
 
 let LIBRARY_CATEGORY_FILTER = localStorage.getItem("aliasarr_library_cat") || "all";
 let LIBRARY_MONITOR_FILTER = localStorage.getItem("aliasarr_library_mon") || "all";
@@ -3800,6 +3806,10 @@ function updateLibraryFilterButtons() {
   document.querySelectorAll("#library-monitor-btns button").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.monitor === LIBRARY_MONITOR_FILTER);
   });
+  const catLabel = document.getElementById("category-switcher-label");
+  if (catLabel) catLabel.textContent = t(CATEGORY_FILTER_LABELS[LIBRARY_CATEGORY_FILTER] || "library.filter_all");
+  const monLabel = document.getElementById("monitor-switcher-label");
+  if (monLabel) monLabel.textContent = t(MONITOR_FILTER_LABELS[LIBRARY_MONITOR_FILTER] || "library.filter_all");
 }
 
 let POSTER_OPTIONS = {
@@ -3937,8 +3947,38 @@ async function loadShows(silent = false) {
   }
 }
 
+function toggleCategoryMenu() {
+  document.getElementById("view-switcher-menu")?.classList.remove("open");
+  document.getElementById("monitor-switcher-menu")?.classList.remove("open");
+  document.getElementById("category-switcher-menu")?.classList.toggle("open");
+}
+
+function toggleMonitorMenu() {
+  document.getElementById("view-switcher-menu")?.classList.remove("open");
+  document.getElementById("category-switcher-menu")?.classList.remove("open");
+  document.getElementById("monitor-switcher-menu")?.classList.toggle("open");
+}
+
 function toggleViewMenu() {
-  document.getElementById("view-switcher-menu").classList.toggle("open");
+  document.getElementById("category-switcher-menu")?.classList.remove("open");
+  document.getElementById("monitor-switcher-menu")?.classList.remove("open");
+  document.getElementById("view-switcher-menu")?.classList.toggle("open");
+}
+
+function selectLibraryCategory(cat) {
+  LIBRARY_CATEGORY_FILTER = cat;
+  try { localStorage.setItem("aliasarr_library_cat", LIBRARY_CATEGORY_FILTER); } catch (e) {}
+  document.getElementById("category-switcher-menu")?.classList.remove("open");
+  updateLibraryFilterButtons();
+  renderLibrary();
+}
+
+function selectLibraryMonitor(mon) {
+  LIBRARY_MONITOR_FILTER = mon;
+  try { localStorage.setItem("aliasarr_library_mon", LIBRARY_MONITOR_FILTER); } catch (e) {}
+  document.getElementById("monitor-switcher-menu")?.classList.remove("open");
+  updateLibraryFilterButtons();
+  renderLibrary();
 }
 
 function setLibraryView(mode) {
@@ -3950,9 +3990,14 @@ function setLibraryView(mode) {
 }
 
 document.addEventListener("click", (e) => {
-  const switcher = document.querySelector(".view-switcher");
-  if (switcher && !switcher.contains(e.target)) {
+  if (!e.target.closest("#view-switcher")) {
     document.getElementById("view-switcher-menu")?.classList.remove("open");
+  }
+  if (!e.target.closest("#category-switcher")) {
+    document.getElementById("category-switcher-menu")?.classList.remove("open");
+  }
+  if (!e.target.closest("#monitor-switcher")) {
+    document.getElementById("monitor-switcher-menu")?.classList.remove("open");
   }
 });
 

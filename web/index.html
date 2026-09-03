@@ -371,7 +371,31 @@
             <button class="btn btn-secondary btn-small" data-monitor="monitored" onclick="setLibraryMonitor('monitored')" data-i18n="library.filter_monitored">Мониторится</button>
             <button class="btn btn-secondary btn-small" data-monitor="unmonitored" onclick="setLibraryMonitor('unmonitored')" data-i18n="library.filter_unmonitored">Не мониторится</button>
           </div>
-          <div class="view-switcher">
+
+          <div class="view-switcher" id="category-switcher">
+            <button class="btn btn-secondary view-switcher-btn" id="category-switcher-btn" onclick="toggleCategoryMenu()">
+              <span class="nav-ico" style="margin-right:4px; display:inline-flex; align-items:center;"><i data-lucide="film" class="ico-xs"></i></span><span data-i18n="library.content_label">Контент:</span> <span id="category-switcher-label" data-i18n="library.filter_all">Все</span> ▾
+            </button>
+            <div class="view-switcher-menu" id="category-switcher-menu">
+              <button onclick="selectLibraryCategory('all')" data-i18n="library.filter_all">Все</button>
+              <button onclick="selectLibraryCategory('movie')" data-i18n="library.filter_movies">Фильмы</button>
+              <button onclick="selectLibraryCategory('series')" data-i18n="library.filter_series">Сериалы</button>
+              <button onclick="selectLibraryCategory('anime')" data-i18n="library.filter_anime">Аниме</button>
+            </div>
+          </div>
+
+          <div class="view-switcher" id="monitor-switcher">
+            <button class="btn btn-secondary view-switcher-btn" id="monitor-switcher-btn" onclick="toggleMonitorMenu()">
+              <span class="nav-ico" style="margin-right:4px; display:inline-flex; align-items:center;"><i data-lucide="bookmark" class="ico-xs"></i></span><span data-i18n="library.monitor_label">Мониторинг:</span> <span id="monitor-switcher-label" data-i18n="library.filter_all">Все</span> ▾
+            </button>
+            <div class="view-switcher-menu" id="monitor-switcher-menu">
+              <button onclick="selectLibraryMonitor('all')" data-i18n="library.filter_all">Все</button>
+              <button onclick="selectLibraryMonitor('monitored')" data-i18n="library.filter_monitored">Мониторится</button>
+              <button onclick="selectLibraryMonitor('unmonitored')" data-i18n="library.filter_unmonitored">Не мониторится</button>
+            </div>
+          </div>
+
+          <div class="view-switcher" id="view-switcher">
             <button class="btn btn-secondary view-switcher-btn" id="view-switcher-btn" onclick="toggleViewMenu()">
               <span class="nav-ico" style="margin-right:4px; display:inline-flex; align-items:center;"><i data-lucide="layout-grid" class="ico-xs"></i></span><span data-i18n="library.view_label">Просмотр:</span> <span id="view-switcher-label" data-i18n="library.view_posters">Постеры</span> ▾
             </button>
@@ -383,6 +407,7 @@
           </div>
           <button class="btn btn-secondary btn-icon-only" id="poster-options-btn" onclick="openPosterOptionsModal()" title="Опции постера" data-i18n-title="poster_opt.btn_title">
             <i data-lucide="sliders-horizontal"></i>
+            <span class="poster-options-btn-label" data-i18n="poster_opt.btn_title">Опции постера</span>
           </button>
         </div>
 
