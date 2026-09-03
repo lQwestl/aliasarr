@@ -8525,7 +8525,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 /* Dataset Table Base Layout */
 #dataset-table {
   width: 100%;
-  min-width: 1020px;
+  min-width: 1080px;
   table-layout: fixed;
   border-collapse: collapse;
   border-spacing: 0;
@@ -8541,20 +8541,33 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 #dataset-table thead tr th {
   background: var(--panel-alt);
   border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  white-space: normal;
+  line-height: 1.3;
 }
 
 #dataset-table tbody tr td {
   border-bottom: 1px solid var(--border);
 }
 
-#dataset-table .col-query {
-  width: 130px;
-  min-width: 130px;
-  max-width: 130px;
-  white-space: nowrap;
+#dataset-table col.col-query,
+#dataset-table th.col-query,
+#dataset-table td.col-query {
+  width: 125px;
+  min-width: 125px;
+  max-width: 125px;
 }
 
-#dataset-table .col-title {
+#dataset-table col.col-title {
+  width: auto;
+}
+
+#dataset-table th.col-title,
+#dataset-table td.col-title {
   width: auto;
   min-width: 280px;
   white-space: normal !important;
@@ -8572,34 +8585,48 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   overflow-wrap: anywhere !important;
 }
 
-#dataset-table .col-size {
-  width: 110px;
-  min-width: 110px;
-  max-width: 110px;
+#dataset-table col.col-size,
+#dataset-table th.col-size,
+#dataset-table td.col-size {
+  width: 145px;
+  min-width: 145px;
+  max-width: 145px;
+}
+
+#dataset-table td.col-size {
   white-space: nowrap;
 }
 
-#dataset-table .col-episodes {
-  width: 120px;
-  min-width: 120px;
-  max-width: 120px;
+#dataset-table col.col-episodes,
+#dataset-table th.col-episodes,
+#dataset-table td.col-episodes {
+  width: 135px;
+  min-width: 135px;
+  max-width: 135px;
 }
 
-#dataset-table .col-match {
+#dataset-table col.col-match,
+#dataset-table th.col-match,
+#dataset-table td.col-match {
   width: 175px;
   min-width: 175px;
   max-width: 175px;
 }
 
-#dataset-table .col-decision {
-  width: 150px;
-  min-width: 150px;
-  max-width: 150px;
+#dataset-table col.col-decision,
+#dataset-table th.col-decision,
+#dataset-table td.col-decision {
+  width: 145px;
+  min-width: 145px;
+  max-width: 145px;
 }
 
-#dataset-table .col-actions {
-  width: 90px;
-  min-width: 90px;
+#dataset-table col.col-actions,
+#dataset-table th.col-actions,
+#dataset-table td.col-actions {
+  width: 76px;
+  min-width: 76px;
+  max-width: 76px;
   text-align: center;
 }
 
@@ -8678,7 +8705,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
   /* В мобильной версии таблица идентична десктопной со свободным горизонтальным скроллом и аккуратным переносом текста */
   #dataset-table {
-    min-width: 1020px !important;
+    min-width: 1080px !important;
     width: 100% !important;
     table-layout: fixed !important;
     border-collapse: collapse !important;
@@ -8691,13 +8718,25 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     box-sizing: border-box !important;
   }
 
-  #dataset-table .col-query {
-    width: 130px !important;
-    min-width: 130px !important;
-    max-width: 130px !important;
+  #dataset-table thead tr th {
+    white-space: normal !important;
+    line-height: 1.3 !important;
   }
 
-  #dataset-table .col-title {
+  #dataset-table col.col-query,
+  #dataset-table th.col-query,
+  #dataset-table td.col-query {
+    width: 125px !important;
+    min-width: 125px !important;
+    max-width: 125px !important;
+  }
+
+  #dataset-table col.col-title {
+    width: auto !important;
+  }
+
+  #dataset-table th.col-title,
+  #dataset-table td.col-title {
     width: auto !important;
     min-width: 280px !important;
     white-space: normal !important;
@@ -8712,34 +8751,48 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     line-height: 1.45 !important;
   }
 
-  #dataset-table .col-size {
-    width: 110px !important;
-    min-width: 110px !important;
-    max-width: 110px !important;
+  #dataset-table col.col-size,
+  #dataset-table th.col-size,
+  #dataset-table td.col-size {
+    width: 145px !important;
+    min-width: 145px !important;
+    max-width: 145px !important;
+  }
+
+  #dataset-table td.col-size {
     white-space: nowrap !important;
   }
 
-  #dataset-table .col-episodes {
-    width: 120px !important;
-    min-width: 120px !important;
-    max-width: 120px !important;
+  #dataset-table col.col-episodes,
+  #dataset-table th.col-episodes,
+  #dataset-table td.col-episodes {
+    width: 135px !important;
+    min-width: 135px !important;
+    max-width: 135px !important;
   }
 
-  #dataset-table .col-match {
+  #dataset-table col.col-match,
+  #dataset-table th.col-match,
+  #dataset-table td.col-match {
     width: 175px !important;
     min-width: 175px !important;
     max-width: 175px !important;
   }
 
-  #dataset-table .col-decision {
-    width: 150px !important;
-    min-width: 150px !important;
-    max-width: 150px !important;
+  #dataset-table col.col-decision,
+  #dataset-table th.col-decision,
+  #dataset-table td.col-decision {
+    width: 145px !important;
+    min-width: 145px !important;
+    max-width: 145px !important;
   }
 
-  #dataset-table .col-actions {
-    width: 90px !important;
-    min-width: 90px !important;
+  #dataset-table col.col-actions,
+  #dataset-table th.col-actions,
+  #dataset-table td.col-actions {
+    width: 76px !important;
+    min-width: 76px !important;
+    max-width: 76px !important;
     text-align: center !important;
   }
 }
