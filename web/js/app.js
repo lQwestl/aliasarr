@@ -5816,8 +5816,8 @@ async function changeOvaMode(showId, value) {
   try {
     await api(`/api/v1/shows/${showId}`, { method: "PUT", body: JSON.stringify({ ova_mode: value }) });
     toast(t("settings.toast_saved"));
-    if (CURRENT_SHOW && CURRENT_SHOW.id === showId) {
-      CURRENT_SHOW.ova_mode = value;
+    if (typeof CURRENT_SHOW_DATA !== "undefined" && CURRENT_SHOW_DATA && CURRENT_SHOW_DATA.id === showId) {
+      CURRENT_SHOW_DATA.ova_mode = value;
     }
   } catch (e) { toast("Ошибка: " + e.message, true); }
 }
