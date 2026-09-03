@@ -577,6 +577,72 @@ class TestQualityAndMatcher(unittest.TestCase):
         self.assertEqual(p.season, 3)
         self.assertEqual(p.episodes, list(range(1, 17)))
 
+    def test_user_provided_complex_tracker_titles_suite(self):
+        from app.services.parser import parse_episode, detect_season_label
+        from app.services.matcher import is_non_video_release, match_release, AliasCandidate
+
+        rezero_aliases = [
+            AliasCandidate(1, "Re: ZERO, Starting Life in Another World"),
+            AliasCandidate(2, "Re:Zero — жизнь в альтернативном мире с нуля"),
+            AliasCandidate(3, "Re:Zero kara Hajimeru Isekai Seikatsu"),
+            AliasCandidate(4, "Re: Жизнь в альтернативном мире с нуля"),
+            AliasCandidate(5, "С нуля: пособие по выживанию в альтернативном мире"),
+            AliasCandidate(6, "Re:Zero — жизнь с нуля в другом мире"),
+        ]
+        clevatess_aliases = [
+            AliasCandidate(1, "Clevatess"),
+            AliasCandidate(2, "Клеватесс: Король демонических зверей, младенец и герой-нежить"),
+            AliasCandidate(3, "Клеватесс"),
+        ]
+        tabakoshka_aliases = [
+            AliasCandidate(1, "Yani Neko"),
+            AliasCandidate(2, "Табакошка"),
+            AliasCandidate(3, "Chainsmoker Cat"),
+        ]
+        tsugai_aliases = [
+            AliasCandidate(1, "Yomi no Tsugai"),
+            AliasCandidate(2, "Цугаи загробного мира"),
+            AliasCandidate(3, "Daemons of the Shadow Realm"),
+        ]
+
+        # 1. Проверка видео-релизов (корректный сезон, серии и 100% совпадение)
+        video_cases = [
+            ("Re:Zero — жизнь с нуля в другом мире (ТВ-4) / Re:Zero kara Hajimeru Isekai Seikatsu 4 / Re:Zero - Starting Life in Another World 4th Season [TV] [01-15 из 19] [RUS(ext), JAP+Sub] [2026, фэнтези, драма, WEB-DL] [1080p]", rezero_aliases, 4, [1, 15], 2016),
+            ("Re:Zero — жизнь с нуля в другом мире (ТВ-4) / Re:Zero kara Hajimeru Isekai Seikatsu 4 / Re:Zero - Starting Life in Another World / С нуля: пособие по выживанию в альтернативном мире 4 [TV] [1-14 из 19] [RUS(int), JAP+Sub] [2026, фэнтези, драма, WEB-DL] [1080p] [Локализованный видеоряд]", rezero_aliases, 4, [1, 14], 2016),
+            ("Re:Zero — жизнь с нуля в другом мире (ТВ-4) / Re:Zero kara Hajimeru Isekai Seikatsu 4 / Re:Zero - Starting Life in Another World 4th Season / Re: Жизнь в альтернативном мире с нуля 4 [TV] [01-11 из 19] [RUS(int), JAP+Sub] [2026, приключения, фэнтези, драма, WEBRip] [HWP]", rezero_aliases, 4, [1, 11], 2016),
+            ("Re:Zero — жизнь с нуля в другом мире (ТВ-2, часть 2) / Re:Zero kara Hajimeru Isekai Seikatsu 2 / Re:Zero - Starting Life in Another World 2nd Season Part 2 / С нуля: пособие по выживанию в альтернативном мире 2 [TV] [12 из 12] [RUS(ext), JAP+Sub] [2021, фэнтези, приключения, драма, BDRip] [1080p]", rezero_aliases, 2, [1, 12], 2016),
+            ("Клеватесс (ТВ-2): Король демонических зверей и легенда о ложном герое / Clevatess II: Majuu no Ou to Itsuwari no Yuusha Denshou [TV] [01-08 из 13] [RUS(int), ENG, JAP+Sub] [2026, Фэнтези, WEB-DL] [1080p]", clevatess_aliases, 2, [1, 8], 2025),
+            ("Табакошка / Yani Neko / Chainsmoker Cat [TV] [01-08 из XX] [RUS(int), JAP+Sub] [2026, Сэйнэн, Комедия, WEB-DL] [1080p]", tabakoshka_aliases, 1, [1, 8], 2026),
+            ("Цугаи загробного мира / Yomi no Tsugai / Daemons of the Shadow Realm [TV] [1-21 из 24] [JAP+Sub] & [1-12 из 24] [RUS(int)] & [1-21 из 24] [RUS(ext)] [2026, приключения, фэнтези, сёнэн, WEB-DL] [1080p]", tsugai_aliases, 1, [1, 21], 2026),
+        ]
+
+        for title, aliases, exp_s, exp_eps, s_year in video_cases:
+            self.assertFalse(is_non_video_release(title), f"False positive non-video: {title}")
+            m = match_release(title, 1, aliases, content_type="anime", show_year=s_year)
+            self.assertTrue(m.matched, f"Failed to match title: {title}")
+            p = parse_episode(title)
+            lbl = detect_season_label(title)
+            actual_season = p.season or (lbl.get("season") if lbl["type"] == "numbered" else 1)
+            self.assertEqual(actual_season, exp_s, f"Wrong season for {title}")
+            self.assertEqual([min(p.episodes), max(p.episodes)], exp_eps, f"Wrong episodes for {title}")
+
+        # 2. Проверка не-видео контента (ранобэ, манга, аудиокниги, звуковые дорожки, игры, обои)
+        non_video_cases = [
+            "NAGATSUKI Tappei, OOTSUKA Shinichirou - Re:Zero − Starting Life in Another World / Re:Zero kara Hajimeru Isekai Seikatsu (триллер, фэнтези, драма) [тома 1-29, 1-6 EX, 1-5 Short Stories] [2014, EPUB, ENG] [incomplete]",
+            "Re:Zero — жизнь с нуля в другом мире (ТВ-3) / Re:Zero kara Hajimeru Isekai Seikatsu 3 / Re: Zero - Starting Life in Another World 3rd Season / С нуля: пособие по выживанию в альтернативном мире 3 [TV] [16 из 16] [RUS(Dub)] [2024, ААС]",
+            "Re: Жизнь в альтернативном мире с нуля / Re:Zero kara Hajimeru Isekai Seikatsu / Re:Zero -Starting Life in Another World- / ゼロから始める異世界生活 (21 релиз) (Kenichiro Suehiro), 2016-2025, MP3 (tracks), 320 kbps",
+            "Re:ZERO Starting Life in Another World - The Prophecy of the Throne (The False Royal Election Candidate) [NSP][RUS (Mod.)/ENG]",
+            "Нагацуки Таппэй - Re: Zero kara Hajimeru Isekai Seikatsu / Жизнь в альтернативном мире с нуля 3 [NoName, (ЛИ), 2021, 160 kbps, MP3]",
+            "Re:ZERO -Starting Life in Another World- The Prophecy of the Throne [P] [ENG + 3 / ENG + JPN] (2021, TBS) (1.0) [Scene]",
+            "Re:Zero kara Hajimeru Isekai Seikatsu / Starting Life in Another World / Жизнь в альтернативном мире с нуля [Art] [2020] [JPG]",
+            "Tappei Nagatsuki/Таппэй Нагацуки - RE Zero. Жизнь с нуля в альтернативном мире/Re:Zero kara Hajimeru Isekai Seikatsu (фэнтези, приключения) [тома 1-6] [2014, FB2/EPUB/DOCX, RUS] [incomplete]",
+            "Nyan Nyan Factory - Табакошка / Yani Neko / Chainsmoker Cat / Tar Cat [manga] [Vol. 5-9] [2023, Comedy, Psychological, Slice of Life] [incomplete]",
+            "Цугаи загробного мира / Yomi no Tsugai / Daemons of the Shadow Realm [TV] [1-21 из 24] [RUS(2*Dub, 2*MVO)] [2026, ААС]",
+        ]
+
+        for nv_title in non_video_cases:
+            self.assertTrue(is_non_video_release(nv_title), f"Failed to detect non-video: {nv_title}")
+
 
 if __name__ == "__main__":
     unittest.main()
