@@ -557,6 +557,26 @@ class TestQualityAndMatcher(unittest.TestCase):
             self.assertEqual(p.kind, ReleaseKind.SEASON_PACK, f"Wrong kind for: {t}")
             self.assertEqual(p.seasons, [4], f"Wrong season for: {t}")
 
+    def test_rezero_season3_rutracker_composite_and_later_year(self):
+        from app.services.parser import parse_episode, ReleaseKind
+
+        aliases = [
+            AliasCandidate(alias_id=1, text="Re: ZERO, Starting Life in Another World", language="en", priority=10),
+            AliasCandidate(alias_id=2, text="Re:Zero — жизнь в альтернативном мире с нуля", language="ru", priority=20),
+            AliasCandidate(alias_id=3, text="Re:Zero kara Hajimeru Isekai Seikatsu", language="ja", priority=30),
+        ]
+
+        title = "Re:Zero — жизнь с нуля в другом мире (ТВ-3) / Re:Zero kara Hajimeru Isekai Seikatsu 3 / Re: Zero - Starting Life in Another World 3rd Season / С нуля: пособие по выживанию в альтернативном мире 3 [TV] [16 из 16] [RUS(int), JAP+Sub] [2024, приключения, фэнтези, BDRip] [1080p]"
+
+        # Проверяем, что релиз 2024 года не блокируется для аниме 2016 года (так как это 3-й сезон)
+        m = match_release(title, 77, aliases, content_type="anime", show_year=2016)
+        self.assertTrue(m.matched, f"Failed to match RuTracker Season 3 title: {title}")
+        self.assertEqual(m.score, 100.0)
+
+        p = parse_episode(title)
+        self.assertEqual(p.season, 3)
+        self.assertEqual(p.episodes, list(range(1, 17)))
+
 
 if __name__ == "__main__":
     unittest.main()

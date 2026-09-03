@@ -637,7 +637,7 @@ async def _collect_candidates(
 
     key_bases = cores + [cb for cb in clean_bases if cb.lower() not in [c.lower() for c in cores]]
 
-    # 2. Сезонные запросы (ТВ-4, 4 сезон, S04, 4th Season, паки) для разыскиваемых сезонов
+    # 2. Сезонные запросы (ТВ-X, X сезон, SX, Xth Season, паки) для разыскиваемых сезонов
     if wanted_episodes:
         wanted_seasons = {
             ep.season_number
@@ -645,12 +645,16 @@ async def _collect_candidates(
             if ep.season_number is not None and ep.season_number > 0
         }
         for sn in sorted(wanted_seasons):
-            for b in key_bases[:3]:
-                for s_term in _generate_season_queries(b, sn):
-                    _add_query(s_term)
+            season_query_lists = [_generate_season_queries(b, sn) for b in key_bases]
+            if season_query_lists:
+                max_sq = max(len(l) for l in season_query_lists)
+                for idx in range(max_sq):
+                    for q_list in season_query_lists:
+                        if idx < len(q_list):
+                            _add_query(q_list[idx])
 
     # 3. Базовые названия (без сезона)
-    for b in key_bases[:3]:
+    for b in key_bases:
         _add_query(b)
 
     # 4. Полные оригинальные алиасы
@@ -674,7 +678,7 @@ async def _collect_candidates(
     seen_guids: set[str] = set()
     candidates: list[dict] = []
 
-    active_queries = query_terms[:12]
+    active_queries = query_terms[:16]
 
     # Опрашиваем индексаторы параллельно с пулом семафора, собирая все полученные результаты
     sem = asyncio.Semaphore(8)

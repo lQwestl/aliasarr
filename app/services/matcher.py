@@ -416,7 +416,22 @@ def match_release(
         clean_rel = re.sub(r"\b(1080|2160|1440|720|480|360|240)[pi]?\b", "", release_name, flags=re.IGNORECASE)
         rel_years = [int(y) for y in re.findall(r"\b(19\d\d|20\d\d)\b", clean_rel)]
         if rel_years:
-            has_matching_year = any(abs(y - show_year) <= 1 for y in rel_years)
+            if content_type == "movie":
+                has_matching_year = any(abs(y - show_year) <= 1 for y in rel_years)
+            else:
+                from app.services.parser import detect_season_label
+                s_lbl = detect_season_label(release_name)
+                s_num = parsed.season or (s_lbl.get("season") if s_lbl.get("type") == "numbered" else None)
+                s_list = parsed.seasons or (s_lbl.get("seasons") if s_lbl.get("type") == "range" else [])
+                is_subsequent_season = bool((s_num and s_num >= 2) or any(s >= 2 for s in s_list))
+
+                if is_subsequent_season:
+                    # Для сезонов 2+ (S2, S3, S4) релиз закономерно выходит в более поздние годы (например, 2024 при старте в 2016).
+                    has_matching_year = any(y >= (show_year - 2) for y in rel_years)
+                else:
+                    # Для 1-го сезона / сериала без указания сезона — год должен соответствовать году выхода сериала (±1 год).
+                    has_matching_year = any(abs(y - show_year) <= 1 for y in rel_years)
+
             if not has_matching_year:
                 return MatchResult(
                     matched=False, show_id=None, alias_id=None, alias_text=None,

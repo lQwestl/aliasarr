@@ -1059,7 +1059,8 @@ def detect_season_label(release_name: str) -> dict:
         return {"type": "ova_ona"}
 
     # 8. Одиночная цифра сезона/части в названии тайтла («Re:Zero 3», «Bleach 3», «Пацаны 4», «Fargo 5», «TV-2»)
-    segments = re.split(r"\s*[/|]\s*", name)
+    clean_for_segments = re.sub(r"\[[^\]]*\]", " ", name)
+    segments = re.split(r"\s*[/|]\s*", clean_for_segments)
     for seg in segments:
         cleaned = _NOISE_FOR_SEASON_DIGIT_RE.sub(" ", seg)
         cleaned = re.sub(r"[\[\](){}]", " ", cleaned)
