@@ -41,7 +41,7 @@ class TestHealthAndDC(unittest.TestCase):
         res = get_system_about(db=mock_db, current_user=mock_user)
 
         self.assertEqual(res['app_name'], 'Aliasarr')
-        self.assertEqual(res['version'], '1.8.0')
+        self.assertEqual(res['version'], '1.9.0')
         self.assertIn('python_version', res)
         self.assertIn('database_type', res)
         self.assertIn('uptime_formatted', res)
