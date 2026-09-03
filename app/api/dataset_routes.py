@@ -13,11 +13,19 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.db import Indexer, Show, User
+from app.models.db import Indexer, Show, User, Episode, Alias, QualityProfile, EpisodeStatus
 from app.services.user_service import require_any_permission, get_current_user
 from app.services.indexer_service import get_indexer_client
 from app.services.parser import parse_episode, detect_season_label, ReleaseKind
-from app.services.matcher import is_non_video_release
+from app.services.matcher import (
+    is_non_video_release,
+    match_release,
+    build_alias_candidates,
+    resolve_part_offset,
+    normalize_title,
+)
+from app.services.decision_engine import DecisionEngine
+from app.services.settings_service import get_settings
 
 logger = logging.getLogger("aliasarr.dataset")
 
@@ -118,6 +126,136 @@ def _analyze_record(r: dict) -> dict:
     }
 
 
+def _find_show_by_query(query: str, shows: list[Show]) -> Optional[Show]:
+    norm_q = normalize_title(query)
+    if not norm_q:
+        return None
+    for s in shows:
+        if normalize_title(s.title) == norm_q:
+            return s
+        for a in (s.aliases or []):
+            if normalize_title(a.text) == norm_q:
+                return s
+    return None
+
+
+def _evaluate_record_against_show(
+    show: Show,
+    title: str,
+    size_bytes: int,
+    seeders: int,
+    categories: list[int],
+    db: Session,
+    settings,
+) -> dict:
+    alias_candidates = build_alias_candidates(show, db=db)
+    match = match_release(
+        title,
+        show.id,
+        alias_candidates,
+        content_type=show.content_type,
+        categories=categories,
+        show_year=getattr(show, "year", None),
+    )
+
+    qp = None
+    if show.quality_profile_id:
+        qp = db.get(QualityProfile, show.quality_profile_id)
+
+    wanted_episodes = [
+        ep for ep in (show.episodes or [])
+        if getattr(ep, "status", None) in (EpisodeStatus.WANTED, EpisodeStatus.MISSING) and getattr(ep, "monitored", True)
+    ]
+
+    decision = DecisionEngine.evaluate_release(
+        db=db,
+        title=title,
+        show=show,
+        episodes=wanted_episodes if wanted_episodes else None,
+        size_bytes=size_bytes,
+        seeders=seeders,
+        quality_profile=qp,
+        settings=settings,
+        categories=categories,
+    )
+
+    parsed = match.parsed
+    rel_s = parsed.season if parsed.season is not None else 1
+    part_offset = 0
+    if parsed.part and parsed.part >= 2 and show.episodes:
+        all_s_eps = [e for e in show.episodes if getattr(e, "season_number", None) == rel_s]
+        wanted_s_eps = [e for e in wanted_episodes if getattr(e, "season_number", None) == rel_s]
+        part_offset = resolve_part_offset(
+            parsed.part,
+            parsed.total_in_part,
+            parsed.episodes,
+            all_s_eps,
+            wanted_s_eps,
+        )
+
+    covered_eps = []
+    if show.content_type == "movie":
+        if match.matched:
+            covered_eps = list(show.episodes) if show.episodes else []
+    elif parsed.kind == ReleaseKind.SEASON_PACK:
+        target_s = parsed.season if parsed.season is not None else 1
+        covered_eps = [e for e in show.episodes if getattr(e, "season_number", None) == target_s]
+    elif parsed.seasons:
+        covered_eps = [e for e in show.episodes if getattr(e, "season_number", None) in parsed.seasons]
+    elif parsed.episodes:
+        target_ep_set = set(parsed.episodes)
+        offset_ep_set = {e + part_offset for e in parsed.episodes} if part_offset > 0 else set()
+        for e in show.episodes:
+            sn = getattr(e, "season_number", None)
+            en = getattr(e, "episode_number", None)
+            ab = getattr(e, "absolute_number", None)
+            if sn == rel_s:
+                if part_offset > 0:
+                    if en in offset_ep_set:
+                        covered_eps.append(e)
+                else:
+                    if en in target_ep_set:
+                        covered_eps.append(e)
+            elif ab is not None:
+                if part_offset > 0:
+                    if ab in offset_ep_set:
+                        covered_eps.append(e)
+                else:
+                    if ab in target_ep_set:
+                        covered_eps.append(e)
+
+    wanted_count = sum(1 for e in covered_eps if getattr(e, "status", None) in (EpisodeStatus.WANTED, EpisodeStatus.MISSING))
+    downloaded_count = sum(1 for e in covered_eps if getattr(e, "status", None) == EpisodeStatus.DOWNLOADED)
+
+    if covered_eps:
+        sorted_eps = sorted(covered_eps, key=lambda x: (getattr(x, "season_number", 0), getattr(x, "episode_number", 0)))
+        s_num = getattr(sorted_eps[0], "season_number", 1)
+        if len(sorted_eps) == 1:
+            cov_summary = f"S{s_num:02d}E{sorted_eps[0].episode_number:02d}"
+        else:
+            cov_summary = f"S{s_num:02d}E{sorted_eps[0].episode_number:02d}-E{sorted_eps[-1].episode_number:02d} ({len(sorted_eps)} сер.)"
+    else:
+        cov_summary = "Серии не совпали"
+
+    return {
+        "show_id": show.id,
+        "show_title": show.title,
+        "matched_alias": match.alias_text,
+        "match_score": round(match.score, 1),
+        "is_title_matched": match.matched,
+        "covered_summary": cov_summary,
+        "covered_count": len(covered_eps),
+        "wanted_overlap": wanted_count,
+        "downloaded_overlap": downloaded_count,
+        "part_offset": part_offset,
+        "approved": decision.approved,
+        "rejections": decision.rejections,
+        "quality": decision.quality.name,
+        "languages": decision.language_badges,
+        "release_group": decision.release_group,
+    }
+
+
 def _compute_stats(records: list[dict]) -> dict:
     total = len(records)
     video_titles = 0
@@ -129,6 +267,12 @@ def _compute_stats(records: list[dict]) -> dict:
     ranges_count = 0
     single_eps = 0
     absolute_eps = 0
+    movies_count = 0
+
+    approved_count = 0
+    rejected_count = 0
+    matched_shows_count = 0
+    wanted_overlap_count = 0
 
     for r in records:
         analysis = r.get("analysis") or _analyze_record(r)
@@ -154,8 +298,21 @@ def _compute_stats(records: list[dict]) -> dict:
                     single_eps += 1
             elif kind == "absolute":
                 absolute_eps += 1
+            elif kind == "movie":
+                movies_count += 1
         else:
             unknown_count += 1
+
+        db_m = r.get("db_match")
+        if db_m:
+            if db_m.get("is_title_matched"):
+                matched_shows_count += 1
+            if db_m.get("approved") is True:
+                approved_count += 1
+            elif db_m.get("approved") is False:
+                rejected_count += 1
+            if (db_m.get("wanted_overlap") or 0) > 0:
+                wanted_overlap_count += 1
 
     acc = round((parsed_success / video_titles * 100), 1) if video_titles > 0 else 100.0
 
@@ -171,21 +328,27 @@ def _compute_stats(records: list[dict]) -> dict:
         "episode_ranges": ranges_count,
         "single_episodes": single_eps,
         "absolute_episodes": absolute_eps,
+        "movies_detected": movies_count,
+        "approved_count": approved_count,
+        "rejected_count": rejected_count,
+        "matched_shows_count": matched_shows_count,
+        "wanted_overlap_count": wanted_overlap_count,
     }
 
 
 class HarvestRequest(BaseModel):
-    preset: str = "anime"  # anime | series | all | db | custom
+    preset: str = "anime"  # anime | series | all | db | show | custom
+    show_id: Optional[int] = None
     custom_queries: Optional[str] = None
     indexer_id: Optional[int] = None
 
 
-async def _run_harvest_task(queries: list[str], indexer_id: Optional[int]):
+async def _run_harvest_task(targets: list[dict], indexer_id: Optional[int]):
     global _HARVEST_STATE
     _HARVEST_STATE["is_running"] = True
     _HARVEST_STATE["cancel_requested"] = False
     _HARVEST_STATE["progress_current"] = 0
-    _HARVEST_STATE["progress_total"] = len(queries)
+    _HARVEST_STATE["progress_total"] = len(targets)
     _HARVEST_STATE["collected_count"] = 0
     _HARVEST_STATE["error"] = None
 
@@ -193,6 +356,7 @@ async def _run_harvest_task(queries: list[str], indexer_id: Optional[int]):
     db = SessionLocal()
 
     try:
+        settings = get_settings(db)
         if indexer_id:
             idx_list = db.query(Indexer).filter(Indexer.id == indexer_id, Indexer.enabled == True).all()
         else:
@@ -204,18 +368,26 @@ async def _run_harvest_task(queries: list[str], indexer_id: Optional[int]):
 
         clients = [(idx, get_indexer_client(idx)) for idx in idx_list]
 
+        all_shows = db.query(Show).all()
+        show_by_id = {s.id: s for s in all_shows}
+
         existing_records = _load_stored_dataset()
         seen_guids = {r.get("guid") for r in existing_records if r.get("guid")}
         seen_titles = {r.get("title") for r in existing_records if r.get("title")}
         new_records = []
 
-        for idx_q, q in enumerate(queries, 1):
+        for idx_t, target in enumerate(targets, 1):
             if _HARVEST_STATE["cancel_requested"]:
                 logger.info("Harvest cancelled by user")
                 break
 
-            _HARVEST_STATE["progress_current"] = idx_q
+            q = target.get("query", "")
+            target_show_id = target.get("show_id")
+
+            _HARVEST_STATE["progress_current"] = idx_t
             _HARVEST_STATE["current_query"] = q
+
+            target_show = show_by_id.get(target_show_id) if target_show_id else _find_show_by_query(q, all_shows)
 
             for indexer_row, client in clients:
                 if _HARVEST_STATE["cancel_requested"]:
@@ -230,16 +402,35 @@ async def _run_harvest_task(queries: list[str], indexer_id: Optional[int]):
                         seen_titles.add(title)
                         seen_guids.add(guid)
 
+                        size_bytes = getattr(rel, "size_bytes", 0) or 0
+                        seeders = getattr(rel, "seeders", 0) or 0
+                        categories = getattr(rel, "categories", []) or []
+
                         rec = {
                             "title": title,
                             "guid": guid,
                             "indexer": indexer_row.name,
-                            "size_bytes": getattr(rel, "size_bytes", 0) or 0,
-                            "categories": getattr(rel, "categories", []) or [],
+                            "size_bytes": size_bytes,
+                            "categories": categories,
                             "query": q,
                             "created_at": dt.datetime.utcnow().isoformat() + "Z",
                         }
                         rec["analysis"] = _analyze_record(rec)
+
+                        # Безопасная симуляция (Dry-run): сопоставление с тайтлом и сериями без скачивания
+                        if target_show:
+                            rec["db_match"] = _evaluate_record_against_show(
+                                target_show,
+                                title,
+                                size_bytes,
+                                seeders,
+                                categories,
+                                db,
+                                settings,
+                            )
+                        else:
+                            rec["db_match"] = None
+
                         new_records.append(rec)
                         _HARVEST_STATE["collected_count"] += 1
                 except Exception as exc:
@@ -277,27 +468,60 @@ def start_harvest(
     if _HARVEST_STATE["is_running"]:
         raise HTTPException(status_code=409, detail="Процесс сбора уже запущен")
 
-    queries: list[str] = []
-    if req.preset == "custom":
-        if req.custom_queries:
-            raw_items = re.split(r"[,\n\r]+", req.custom_queries)
-            queries = [it.strip() for it in raw_items if it.strip()]
-        if not queries:
-            raise HTTPException(status_code=400, detail="Укажите хотя бы один тайтл для поиска")
+    targets: list[dict] = []
+
+    if req.preset == "show":
+        if not req.show_id:
+            raise HTTPException(status_code=400, detail="Выберите тайтл из библиотеки")
+        show = db.get(Show, req.show_id)
+        if not show:
+            raise HTTPException(status_code=404, detail="Тайтл не найден")
+        queries = [show.title]
+        for a in (show.aliases or []):
+            if a.text and a.text not in queries:
+                queries.append(a.text)
+        for q in queries:
+            targets.append({"query": q, "show_id": show.id})
+
     elif req.preset == "db":
         shows = db.query(Show).all()
-        queries = [s.title for s in shows if s.title]
-        if not queries:
+        if not shows:
             raise HTTPException(status_code=400, detail="В библиотеке Aliasarr пока нет добавленных тайтлов")
-    elif req.preset == "anime":
-        queries = PRESET_ANIME
-    elif req.preset == "series":
-        queries = PRESET_SERIES
-    elif req.preset == "all":
-        queries = PRESET_ANIME + PRESET_SERIES
+        for s in shows:
+            if s.title:
+                targets.append({"query": s.title, "show_id": s.id})
 
-    background_tasks.add_task(_run_harvest_task, queries, req.indexer_id)
-    return {"success": True, "message": f"Запущен сбор раздач для {len(queries)} запросов", "total_queries": len(queries)}
+    elif req.preset == "custom":
+        if req.custom_queries:
+            raw_items = re.split(r"[,\n\r]+", req.custom_queries)
+            raw_queries = [it.strip() for it in raw_items if it.strip()]
+            all_shows = db.query(Show).all()
+            for q in raw_queries:
+                matched_s = _find_show_by_query(q, all_shows)
+                targets.append({"query": q, "show_id": matched_s.id if matched_s else None})
+        if not targets:
+            raise HTTPException(status_code=400, detail="Укажите хотя бы один тайтл для поиска")
+
+    else:
+        raw_queries = []
+        if req.preset == "anime":
+            raw_queries = PRESET_ANIME
+        elif req.preset == "series":
+            raw_queries = PRESET_SERIES
+        elif req.preset == "all":
+            raw_queries = PRESET_ANIME + PRESET_SERIES
+
+        all_shows = db.query(Show).all()
+        for q in raw_queries:
+            matched_s = _find_show_by_query(q, all_shows)
+            targets.append({"query": q, "show_id": matched_s.id if matched_s else None})
+
+    background_tasks.add_task(_run_harvest_task, targets, req.indexer_id)
+    return {
+        "success": True,
+        "message": f"Запущен сбор раздач для {len(targets)} запросов (симуляция сопоставления без скачивания)",
+        "total_queries": len(targets),
+    }
 
 
 @router.post("/stop")
@@ -312,7 +536,7 @@ def stop_harvest(
 
 @router.get("/data")
 def get_dataset_data(
-    filter: str = "all",  # all | video | non_video | unknown | multi_part
+    filter: str = "all",  # all | approved | rejected | wanted_eps | video | non_video | unknown | multi_part
     query: Optional[str] = None,
     page: int = 1,
     page_size: int = 50,
@@ -326,6 +550,7 @@ def get_dataset_data(
     for r in reversed(records):
         analysis = r.get("analysis") or _analyze_record(r)
         r["analysis"] = analysis
+        db_m = r.get("db_match") or {}
 
         if filter == "video" and not analysis.get("is_video"):
             continue
@@ -335,12 +560,24 @@ def get_dataset_data(
             continue
         if filter == "multi_part" and not (analysis.get("part") and analysis.get("part") >= 2):
             continue
+        if filter == "approved" and db_m.get("approved") is not True:
+            continue
+        if filter == "rejected" and db_m.get("approved") is not False:
+            continue
+        if filter == "wanted_eps" and (db_m.get("wanted_overlap") or 0) <= 0:
+            continue
 
         if query_lower:
             t = r.get("title", "").lower()
             idx = r.get("indexer", "").lower()
             q_src = r.get("query", "").lower()
-            if query_lower not in t and query_lower not in idx and query_lower not in q_src:
+            s_name = (db_m.get("show_title") or "").lower()
+            if (
+                query_lower not in t
+                and query_lower not in idx
+                and query_lower not in q_src
+                and query_lower not in s_name
+            ):
                 continue
 
         filtered.append(r)
@@ -358,9 +595,51 @@ def get_dataset_data(
     }
 
 
+class DiagnoseRequest(BaseModel):
+    title: str
+    show_id: Optional[int] = None
+    size_bytes: Optional[int] = 0
+    seeders: Optional[int] = 10
+    categories: Optional[list[int]] = None
+
+
+@router.post("/diagnose")
+def diagnose_release(
+    req: DiagnoseRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_any_permission("manual_search", "manage_settings")),
+):
+    settings = get_settings(db)
+    target_show = None
+    if req.show_id:
+        target_show = db.get(Show, req.show_id)
+    if not target_show:
+        all_shows = db.query(Show).all()
+        target_show = _find_show_by_query(req.title, all_shows)
+
+    analysis = _analyze_record({"title": req.title, "categories": req.categories or []})
+    db_match = None
+    if target_show:
+        db_match = _evaluate_record_against_show(
+            target_show,
+            req.title,
+            req.size_bytes or 0,
+            req.seeders or 10,
+            req.categories or [],
+            db,
+            settings,
+        )
+
+    return {
+        "title": req.title,
+        "analysis": analysis,
+        "db_match": db_match,
+    }
+
+
 @router.get("/export")
 def export_dataset(
-    filter: str = "all",  # all | unknown | video | non_video
+    filter: str = "all",  # all | unknown | approved | rejected | wanted_eps | video | non_video
     current_user: User = Depends(require_any_permission("manual_search", "manage_settings")),
 ):
     records = _load_stored_dataset()
@@ -369,11 +648,19 @@ def export_dataset(
     filtered_records = []
     for r in records:
         analysis = r.get("analysis") or _analyze_record(r)
+        db_m = r.get("db_match") or {}
+
         if filter == "unknown" and analysis.get("status") != "unknown":
             continue
         if filter == "video" and not analysis.get("is_video"):
             continue
         if filter == "non_video" and analysis.get("is_video"):
+            continue
+        if filter == "approved" and db_m.get("approved") is not True:
+            continue
+        if filter == "rejected" and db_m.get("approved") is not False:
+            continue
+        if filter == "wanted_eps" and (db_m.get("wanted_overlap") or 0) <= 0:
             continue
         filtered_records.append(r)
 

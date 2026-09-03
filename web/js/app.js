@@ -12745,11 +12745,37 @@ let DATASET_STATE = {
   query: "",
 };
 let DATASET_HARVEST_INTERVAL = null;
+let DATASET_CURRENT_ITEMS = [];
 
 async function loadDatasetHarvester(page = 1) {
   DATASET_STATE.page = page;
 
-  // 1. Подгружаем список индексаторов в селект
+  // 1. Подгружаем список тайтлов из библиотеки в селект
+  const showSelect = document.getElementById("dataset-show-select");
+  if (showSelect && showSelect.children.length <= 1) {
+    try {
+      const shows = await api("/api/v1/shows");
+      if (Array.isArray(shows)) {
+        showSelect.innerHTML = "";
+        if (shows.length === 0) {
+          showSelect.innerHTML = `<option value="">(В библиотеке пока нет тайтлов)</option>`;
+        } else {
+          shows.forEach(s => {
+            const opt = document.createElement("option");
+            opt.value = s.id;
+            const y = s.year ? ` (${s.year})` : "";
+            const t = s.content_type === "movie" ? " [Фильм]" : " [Сериал]";
+            opt.textContent = `${s.title}${y}${t}`;
+            showSelect.appendChild(opt);
+          });
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load shows for dataset harvester", e);
+    }
+  }
+
+  // 2. Подгружаем список индексаторов в селект
   const idxSelect = document.getElementById("dataset-indexer-select");
   if (idxSelect && idxSelect.children.length <= 1) {
     try {
@@ -12769,18 +12795,22 @@ async function loadDatasetHarvester(page = 1) {
     }
   }
 
-  // 2. Проверяем текущий статус фонового сбора
+  onDatasetPresetChanged();
+
+  // 3. Проверяем текущий статус фонового сбора
   await checkDatasetHarvestStatus();
 
-  // 3. Загружаем данные таблицы
+  // 4. Загружаем данные таблицы
   await loadDatasetData(page);
 }
 
 function onDatasetPresetChanged() {
   const sel = document.getElementById("dataset-preset-select");
-  const wrap = document.getElementById("dataset-custom-query-wrap");
-  if (!sel || !wrap) return;
-  wrap.style.display = sel.value === "custom" ? "block" : "none";
+  const customWrap = document.getElementById("dataset-custom-query-wrap");
+  const showWrap = document.getElementById("dataset-show-select-wrap");
+  if (!sel) return;
+  if (customWrap) customWrap.style.display = sel.value === "custom" ? "block" : "none";
+  if (showWrap) showWrap.style.display = sel.value === "show" ? "block" : "none";
 }
 
 async function checkDatasetHarvestStatus() {
@@ -12808,7 +12838,7 @@ async function checkDatasetHarvestStatus() {
       const pct = total > 0 ? Math.min(100, Math.round((curr / total) * 100)) : 0;
 
       if (progressStatus) {
-        progressStatus.innerHTML = `<i data-lucide="loader-2" class="ico-sm spin"></i> Опрос трекеров: <strong>«${escapeHtml(q)}»</strong> (найдено: ${collected} раздач)`;
+        progressStatus.innerHTML = `<i data-lucide="loader-2" class="ico-sm spin"></i> Симуляция проверки: <strong>«${escapeHtml(q)}»</strong> (найдено: ${collected} раздач)`;
       }
       if (progressCount) {
         progressCount.textContent = `${curr} / ${total} (${pct}%)`;
@@ -12843,11 +12873,17 @@ async function checkDatasetHarvestStatus() {
 
 async function startDatasetHarvest() {
   const presetSel = document.getElementById("dataset-preset-select");
-  const preset = presetSel?.value || "anime";
+  const preset = presetSel?.value || "show";
+  const showIdVal = document.getElementById("dataset-show-select")?.value;
+  const showId = showIdVal ? parseInt(showIdVal, 10) : null;
   const customQueries = document.getElementById("dataset-custom-query")?.value || "";
   const indexerIdVal = document.getElementById("dataset-indexer-select")?.value;
   const indexerId = indexerIdVal ? parseInt(indexerIdVal, 10) : null;
 
+  if (preset === "show" && !showId) {
+    toast(CURRENT_LANG === "en" ? "Please select a show from library" : "Выберите тайтл из библиотеки", true);
+    return;
+  }
   if (preset === "custom" && !customQueries.trim()) {
     toast(CURRENT_LANG === "en" ? "Please enter at least one title to search" : "Укажите хотя бы один тайтл для поиска", true);
     return;
@@ -12858,14 +12894,15 @@ async function startDatasetHarvest() {
       method: "POST",
       body: JSON.stringify({
         preset: preset,
+        show_id: showId,
         custom_queries: customQueries,
         indexer_id: indexerId,
       }),
     });
-    toast(res.message || (CURRENT_LANG === "en" ? "Harvesting started" : "Сбор раздач запущен"));
+    toast(res.message || (CURRENT_LANG === "en" ? "Verification started" : "Проверка запущена (Dry-Run, без скачивания)"));
     await checkDatasetHarvestStatus();
   } catch (e) {
-    toast((CURRENT_LANG === "en" ? "Error starting harvest: " : "Ошибка запуска сбора: ") + e.message, true);
+    toast((CURRENT_LANG === "en" ? "Error starting harvest: " : "Ошибка запуска: ") + e.message, true);
   }
 }
 
@@ -12887,7 +12924,7 @@ async function loadDatasetData(page = 1) {
   const tbody = document.querySelector("#dataset-table tbody");
   if (!tbody) return;
 
-  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);"><i data-lucide="loader-2" class="ico-md spin"></i> Загрузка логов датасета...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 24px; color: var(--text-muted);"><i data-lucide="loader-2" class="ico-md spin"></i> Загрузка логов проверки...</td></tr>`;
   if (typeof lucide !== "undefined") lucide.createIcons();
 
   try {
@@ -12901,12 +12938,17 @@ async function loadDatasetData(page = 1) {
     const data = await api(`/api/v1/dataset/data?${params.toString()}`);
     if (!data) return;
 
+    DATASET_CURRENT_ITEMS = data.items || [];
+
     // Обновляем плашки статистики
     const stats = data.stats || {};
     const elTotal = document.getElementById("dataset-stat-total");
     const elVideo = document.getElementById("dataset-stat-video");
     const elAcc = document.getElementById("dataset-stat-accuracy");
     const elParsed = document.getElementById("dataset-stat-parsed-count");
+    const elApproved = document.getElementById("dataset-stat-approved");
+    const elWantedOverlap = document.getElementById("dataset-stat-wanted-overlap");
+    const elRejected = document.getElementById("dataset-stat-rejected");
     const elNonVideo = document.getElementById("dataset-stat-non-video");
     const elUnknown = document.getElementById("dataset-stat-unknown");
 
@@ -12914,13 +12956,16 @@ async function loadDatasetData(page = 1) {
     if (elVideo) elVideo.textContent = `${(stats.video_titles || 0).toLocaleString()} видео`;
     if (elAcc) elAcc.textContent = `${stats.accuracy_pct || 0}%`;
     if (elParsed) elParsed.textContent = `${(stats.parsed_success || 0).toLocaleString()} распознано`;
+    if (elApproved) elApproved.textContent = (stats.approved_count || 0).toLocaleString();
+    if (elWantedOverlap) elWantedOverlap.textContent = `${(stats.wanted_overlap_count || 0).toLocaleString()} с разыскиваемыми`;
+    if (elRejected) elRejected.textContent = (stats.rejected_count || 0).toLocaleString();
     if (elNonVideo) elNonVideo.textContent = (stats.non_video_filtered || 0).toLocaleString();
     if (elUnknown) elUnknown.textContent = (stats.unknown_total || 0).toLocaleString();
 
     if (!data.items || data.items.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 32px; color: var(--text-muted);">
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 32px; color: var(--text-muted);">
         <i data-lucide="database" class="ico-lg" style="margin-bottom:8px; opacity:0.4;"></i>
-        <div>${CURRENT_LANG === "en" ? "No records found. Select a preset and click «Run Harvester»." : "Нет записей в датасете. Выберите пресет и нажмите «Запустить сбор данных»."}</div>
+        <div>${CURRENT_LANG === "en" ? "No records found. Select a show/preset and click «Run Verification»." : "Нет записей. Выберите тайтл или пресет и нажмите «Запустить проверку»."}</div>
       </td></tr>`;
       renderPagination("dataset-pagination", 1, 50, 0, loadDatasetData);
       if (typeof lucide !== "undefined") lucide.createIcons();
@@ -12928,59 +12973,110 @@ async function loadDatasetData(page = 1) {
     }
 
     let rowsHtml = "";
-    data.items.forEach(r => {
+    data.items.forEach((r, idx) => {
       const title = escapeHtml(r.title || "");
       const indexer = escapeHtml(r.indexer || "—");
       const query = escapeHtml(r.query || "");
       const sizeStr = r.size_bytes ? formatBytes(r.size_bytes) : "—";
       const analysis = r.analysis || {};
+      const dbMatch = r.db_match || null;
 
-      let statusBadge = "";
-      if (!analysis.is_video) {
-        statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);"><i data-lucide="filter" class="ico-xs"></i> Не-видео</span>`;
-      } else if (analysis.status === "parsed") {
-        statusBadge = `<span class="badge badge-success" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);"><i data-lucide="check" class="ico-xs"></i> Распознано</span>`;
-      } else {
-        statusBadge = `<span class="badge badge-danger" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);"><i data-lucide="alert-circle" class="ico-xs"></i> Не распознано</span>`;
-      }
+      // 1. Качество и размер
+      const qualityStr = dbMatch?.quality || "";
+      const qualityHtml = qualityStr ? `<div style="font-weight:600; font-size:11px; color:var(--teal);">${escapeHtml(qualityStr)}</div>` : "";
 
+      // 2. Серии (парсер)
       let seasonEpBadge = "";
       if (analysis.is_video) {
         const parts = [];
         if (analysis.season !== null && analysis.season !== undefined) {
-          parts.push(`<span class="badge badge-info" style="font-size:11px;">S${String(analysis.season).padStart(2, "0")}</span>`);
+          parts.push(`<span class="badge badge-info" style="font-size:10px;">S${String(analysis.season).padStart(2, "0")}</span>`);
         }
         if (analysis.part && analysis.part >= 2) {
-          parts.push(`<span class="badge badge-warning" style="font-size:11px;">Часть ${analysis.part}</span>`);
+          parts.push(`<span class="badge badge-warning" style="font-size:10px;">Ч. ${analysis.part}</span>`);
         }
         if (analysis.episodes && analysis.episodes.length > 0) {
           if (analysis.episodes.length === 1) {
-            parts.push(`<span class="badge badge-secondary" style="font-size:11px;">E${String(analysis.episodes[0]).padStart(2, "0")}</span>`);
+            parts.push(`<span class="badge badge-secondary" style="font-size:10px;">E${String(analysis.episodes[0]).padStart(2, "0")}</span>`);
           } else {
             const minE = Math.min(...analysis.episodes);
             const maxE = Math.max(...analysis.episodes);
-            parts.push(`<span class="badge badge-secondary" style="font-size:11px;">E${minE}..${maxE} (${analysis.episodes.length} сер.)</span>`);
+            parts.push(`<span class="badge badge-secondary" style="font-size:10px;">E${minE}..${maxE}</span>`);
           }
         } else if (analysis.kind === "season_pack") {
-          parts.push(`<span class="badge badge-primary" style="font-size:11px;">Сезон-пак</span>`);
+          parts.push(`<span class="badge badge-primary" style="font-size:10px;">Сезон-пак</span>`);
+        } else if (analysis.kind === "movie") {
+          parts.push(`<span class="badge badge-primary" style="font-size:10px; background: rgba(168, 85, 247, 0.15); color: #a855f7;">Фильм</span>`);
         }
-        seasonEpBadge = parts.join(" ") || `<span class="hint" style="font-size:11px;">Пак сериала</span>`;
+        seasonEpBadge = parts.join(" ") || `<span class="hint" style="font-size:11px;">Пак</span>`;
       } else {
-        seasonEpBadge = `<span class="hint" style="font-size:11px;">Отфильтровано</span>`;
+        seasonEpBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-size:10px;">Не-видео</span>`;
+      }
+
+      // 3. Сопоставление с БД (Тайтл & Серии)
+      let dbMatchHtml = "";
+      if (dbMatch) {
+        if (dbMatch.is_title_matched) {
+          const scoreBadge = `<span class="badge badge-success" style="font-size:9px; padding:1px 4px;">${dbMatch.match_score}%</span>`;
+          let epsCoverageBadge = "";
+          if (dbMatch.wanted_overlap > 0) {
+            epsCoverageBadge = `<span class="badge badge-success" style="font-size:10px;"><i data-lucide="check" class="ico-xs"></i> ${dbMatch.wanted_overlap} разыск.</span>`;
+          } else if (dbMatch.downloaded_overlap > 0) {
+            epsCoverageBadge = `<span class="badge badge-info" style="font-size:10px;"><i data-lucide="download-cloud" class="ico-xs"></i> ${dbMatch.downloaded_overlap} скачано</span>`;
+          } else {
+            epsCoverageBadge = `<span class="badge badge-ghost" style="font-size:10px;">${escapeHtml(dbMatch.covered_summary || "—")}</span>`;
+          }
+          const offsetBadge = (dbMatch.part_offset && dbMatch.part_offset > 0) ? `<span class="badge badge-warning" style="font-size:9px;">+${dbMatch.part_offset} offset</span>` : "";
+          dbMatchHtml = `<div>
+            <div style="font-weight:600; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px;" title="${escapeHtml(dbMatch.show_title || '')}">${escapeHtml(dbMatch.show_title || '')} ${scoreBadge}</div>
+            <div style="display:flex; gap:3px; flex-wrap:wrap; margin-top:2px;">${epsCoverageBadge} ${offsetBadge}</div>
+          </div>`;
+        } else {
+          dbMatchHtml = `<span class="badge badge-ghost" style="font-size:10px; color:var(--text-muted);">Тайтл не совпал</span>`;
+        }
+      } else {
+        dbMatchHtml = `<span class="hint" style="font-size:11px;">Нет привязки</span>`;
+      }
+
+      // 4. Вердикт DecisionEngine
+      let decisionHtml = "";
+      if (dbMatch) {
+        if (dbMatch.approved) {
+          decisionHtml = `<span class="badge badge-success" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-weight:600; font-size:11px;">
+            <i data-lucide="check-circle-2" class="ico-xs"></i> Одобрено
+          </span>`;
+        } else {
+          const reason = (dbMatch.rejections && dbMatch.rejections.length > 0) ? dbMatch.rejections[0] : "Отклонено";
+          decisionHtml = `<div>
+            <span class="badge badge-danger" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-weight:600; font-size:10px;" title="${escapeHtml(reason)}">
+              <i data-lucide="x-circle" class="ico-xs"></i> Отклонено
+            </span>
+            <div class="hint" style="font-size:10px; color:#ef4444; margin-top:2px; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(reason)}">${escapeHtml(reason)}</div>
+          </div>`;
+        }
+      } else {
+        decisionHtml = `<span class="hint" style="font-size:11px;">—</span>`;
       }
 
       rowsHtml += `<tr>
-        <td style="font-size: 12px;">
+        <td style="font-size: 11px;">
           <div style="font-weight: 600; color: var(--teal, #00F0FF);">${query}</div>
-          <div class="hint" style="font-size: 11px;">${indexer}</div>
+          <div class="hint" style="font-size: 10px;">${indexer}</div>
         </td>
         <td style="word-break: break-word;">
-          <div style="font-weight: 500; font-size: 13px; line-height: 1.4;">${title}</div>
+          <div style="font-weight: 500; font-size: 12px; line-height: 1.4;">${title}</div>
         </td>
-        <td class="mono" style="font-size: 12px;">${sizeStr}</td>
+        <td style="font-size: 11px;">
+          <div class="mono">${sizeStr}</div>
+          ${qualityHtml}
+        </td>
         <td>${seasonEpBadge}</td>
-        <td>${statusBadge}</td>
-        <td style="text-align: center;">
+        <td>${dbMatchHtml}</td>
+        <td>${decisionHtml}</td>
+        <td style="text-align: center; white-space: nowrap;">
+          <button class="btn btn-ghost btn-xs" onclick="openDatasetDiagnoseModal(${idx})" title="Подробная диагностика сопоставления">
+            <i data-lucide="search" class="ico-xs" style="color:var(--teal);"></i>
+          </button>
           <button class="btn btn-ghost btn-xs" data-copy-title="${escapeHtml(r.title || "")}" onclick="copyDatasetRowTitle(this)" title="Скопировать название в буфер">
             <i data-lucide="copy" class="ico-xs"></i>
           </button>
@@ -12992,8 +13088,101 @@ async function loadDatasetData(page = 1) {
     renderPagination("dataset-pagination", page, 50, data.total, loadDatasetData);
     if (typeof lucide !== "undefined") lucide.createIcons();
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--danger);">Ошибка загрузки: ${escapeHtml(e.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 24px; color: var(--danger);">Ошибка загрузки: ${escapeHtml(e.message)}</td></tr>`;
   }
+}
+
+function openDatasetDiagnoseModal(index) {
+  const item = DATASET_CURRENT_ITEMS[index];
+  if (!item) return;
+
+  const modal = document.getElementById("modal-dataset-diagnose");
+  const body = document.getElementById("modal-dataset-diagnose-body");
+  if (!modal || !body) return;
+
+  const title = escapeHtml(item.title || "");
+  const indexer = escapeHtml(item.indexer || "—");
+  const sizeStr = item.size_bytes ? formatBytes(item.size_bytes) : "—";
+  const analysis = item.analysis || {};
+  const dbMatch = item.db_match || null;
+
+  let verdictHtml = "";
+  if (dbMatch) {
+    if (dbMatch.approved) {
+      verdictHtml = `<div style="padding:12px; border-radius:8px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981;">
+        <div style="font-weight:700; font-size:14px; display:flex; align-items:center; gap:6px;">
+          <i data-lucide="check-circle-2" class="ico-sm"></i> Одобрено движком DecisionEngine
+        </div>
+        <div style="font-size:12px; margin-top:4px; color:var(--text-main);">Релиз полностью удовлетворяет правилам качества, сезона и серий. В боевом режиме он был бы автоматически отправлен на загрузку.</div>
+      </div>`;
+    } else {
+      const reasonsList = (dbMatch.rejections && dbMatch.rejections.length > 0)
+        ? `<ul style="margin:6px 0 0 16px; padding:0; font-size:12px;">${dbMatch.rejections.map(r => `<li>${escapeHtml(r)}</li>`).join("")}</ul>`
+        : `<div style="font-size:12px; margin-top:4px;">Не подошли параметры раздачи.</div>`;
+      verdictHtml = `<div style="padding:12px; border-radius:8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444;">
+        <div style="font-weight:700; font-size:14px; display:flex; align-items:center; gap:6px;">
+          <i data-lucide="shield-x" class="ico-sm"></i> Отклонено движком DecisionEngine
+        </div>
+        ${reasonsList}
+      </div>`;
+    }
+  } else {
+    verdictHtml = `<div class="hint">Релиз не был привязан к тайтлу библиотеки (поиск по независимому пресету).</div>`;
+  }
+
+  let dbDetailsHtml = "";
+  if (dbMatch) {
+    dbDetailsHtml = `
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
+        <div class="panel" style="padding:10px;">
+          <div class="hint" style="font-size:11px;">Тайтл в библиотеке</div>
+          <div style="font-weight:600;">${escapeHtml(dbMatch.show_title || "—")}</div>
+          <div class="hint" style="font-size:11px; margin-top:4px;">Совпавший алиас:</div>
+          <div style="font-size:12px; color:var(--teal);">${escapeHtml(dbMatch.matched_alias || "—")} (Score: ${dbMatch.match_score}%)</div>
+        </div>
+
+        <div class="panel" style="padding:10px;">
+          <div class="hint" style="font-size:11px;">Сопоставление серий</div>
+          <div style="font-weight:600;">${escapeHtml(dbMatch.covered_summary || "—")}</div>
+          <div style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
+            <span class="badge badge-success" style="font-size:11px;">${dbMatch.wanted_overlap || 0} разыскиваемых</span>
+            <span class="badge badge-info" style="font-size:11px;">${dbMatch.downloaded_overlap || 0} уже скачано</span>
+            ${(dbMatch.part_offset && dbMatch.part_offset > 0) ? `<span class="badge badge-warning" style="font-size:11px;">Смещение кура: +${dbMatch.part_offset}</span>` : ""}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  body.innerHTML = `
+    <div style="margin-bottom:12px;">
+      <div class="hint" style="font-size:11px;">Название релиза:</div>
+      <div style="font-weight:600; font-size:13px; line-height:1.4; word-break:break-word;">${title}</div>
+      <div class="hint" style="font-size:11px; margin-top:4px;">Трекер: <strong>${indexer}</strong> • Размер: <strong>${sizeStr}</strong></div>
+    </div>
+
+    ${verdictHtml}
+    ${dbDetailsHtml}
+
+    <div class="panel" style="padding:10px; margin-top:10px;">
+      <div class="hint" style="font-size:11px;">Синтаксический разбор парсера:</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
+        <span class="badge badge-info">Тип: ${escapeHtml(analysis.kind || "unknown")}</span>
+        <span class="badge badge-secondary">Сезон: ${analysis.season !== null && analysis.season !== undefined ? analysis.season : "не указан"}</span>
+        <span class="badge badge-secondary">Серии: ${analysis.episodes && analysis.episodes.length ? analysis.episodes.join(", ") : "—"}</span>
+        ${analysis.part ? `<span class="badge badge-warning">Часть/Кур: ${analysis.part}</span>` : ""}
+        <span class="badge ${analysis.status === 'parsed' ? 'badge-success' : 'badge-danger'}">Статус: ${escapeHtml(analysis.status_text || analysis.status || "")}</span>
+      </div>
+    </div>
+  `;
+
+  modal.style.display = "flex";
+  if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
+function closeDatasetDiagnoseModal() {
+  const modal = document.getElementById("modal-dataset-diagnose");
+  if (modal) modal.style.display = "none";
 }
 
 function copyDatasetRowTitle(btn) {

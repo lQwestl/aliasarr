@@ -2417,18 +2417,27 @@
         <!-- ПАНЕЛЬ УПРАВЛЕНИЯ И ЗАПУСКА СБОРА -->
         <div class="panel" style="padding: 16px 20px; margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--radius, 12px);">
           <div class="form-row" style="margin-bottom: 0; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
-            <div style="min-width: 210px; flex: 1;">
+            <div style="min-width: 220px; flex: 1;">
               <label class="label" style="font-size: 12px; margin-bottom: 4px; display: block;">Пресет поиска / Источник тайтлов</label>
               <select id="dataset-preset-select" class="input" onchange="onDatasetPresetChanged()">
+                <option value="show" selected>Конкретный тайтл из библиотеки (БД)</option>
                 <option value="db">Все тайтлы из библиотеки Aliasarr (БД)</option>
-                <option value="anime" selected>Популярные аниме (30 сложных франшиз)</option>
+                <option value="anime">Популярные аниме (30 сложных франшиз)</option>
                 <option value="series">Популярные сериалы (20 франшиз)</option>
                 <option value="all">Все пресеты (Аниме + Сериалы)</option>
                 <option value="custom">Задать тайтлы вручную (Custom)</option>
               </select>
             </div>
 
-            <div style="min-width: 180px;">
+            <!-- Селектор конкретного тайтла из БД -->
+            <div id="dataset-show-select-wrap" style="min-width: 260px; flex: 1.5;">
+              <label class="label" style="font-size: 12px; margin-bottom: 4px; display: block;">Тайтл из библиотеки</label>
+              <select id="dataset-show-select" class="input">
+                <option value="">Загрузка тайтлов библиотеки...</option>
+              </select>
+            </div>
+
+            <div style="min-width: 170px;">
               <label class="label" style="font-size: 12px; margin-bottom: 4px; display: block;">Индексатор</label>
               <select id="dataset-indexer-select" class="input">
                 <option value="">Все активные индексаторы</option>
@@ -2438,7 +2447,7 @@
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
               <button class="btn btn-primary" id="dataset-start-btn" onclick="startDatasetHarvest()">
                 <i data-lucide="sparkles" class="ico-sm"></i>
-                <span>Запустить сбор данных</span>
+                <span>Запустить проверку</span>
               </button>
 
               <button class="btn btn-danger" id="dataset-stop-btn" onclick="stopDatasetHarvest()" style="display: none;">
@@ -2448,7 +2457,7 @@
 
               <button class="btn btn-secondary" id="dataset-download-unknown-btn" onclick="downloadDatasetJson('unknown')" title="Скачать компактный JSON только с нераспознанными раздачами (для отправки ассистенту)">
                 <i data-lucide="file-question" class="ico-sm"></i>
-                <span>Скачать неизвестные (~30 КБ)</span>
+                <span>Неизвестные (~30 КБ)</span>
               </button>
 
               <button class="btn btn-secondary" id="dataset-download-btn" onclick="downloadDatasetJson('all')" title="Скачать полный JSON датасета">
@@ -2458,9 +2467,15 @@
 
               <button class="btn btn-danger" id="dataset-clear-btn" onclick="clearDatasetRecords()" title="Очистить устаревшие собранные логи">
                 <i data-lucide="trash-2" class="ico-sm"></i>
-                <span>Очистить логи</span>
+                <span>Очистить</span>
               </button>
             </div>
+          </div>
+
+          <!-- Безопасный режим Dry-Run -->
+          <div style="font-size: 12px; color: var(--teal, #00F0FF); margin-top: 10px; display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(0, 240, 255, 0.04); border-radius: 6px; border: 1px dashed rgba(0, 240, 255, 0.2);">
+            <i data-lucide="shield-check" class="ico-xs" style="flex-shrink:0;"></i>
+            <span><strong>Безопасная симуляция (Dry-Run):</strong> Раздачи только анализируются и сопоставляются с сериями из базы в памяти. <u>Никакой контент в торрент-клиент не добавляется и не скачивается.</u></span>
           </div>
 
           <!-- Поле ручного ввода тайтлов (активно при выборе 'custom') -->
@@ -2483,8 +2498,11 @@
 
         <!-- ТУЛБАР ФИЛЬТРАЦИИ ТАБЛИЦЫ -->
         <div class="form-row dataset-toolbar" style="margin-bottom:0; flex-wrap:wrap; gap:10px;">
-          <select id="dataset-filter-select" class="input" style="max-width:200px" onchange="loadDatasetData(1)">
+          <select id="dataset-filter-select" class="input" style="max-width:240px" onchange="loadDatasetData(1)">
             <option value="all">Все записи</option>
+            <option value="approved">🟢 Одобрено DecisionEngine</option>
+            <option value="rejected">🔴 Отклонено DecisionEngine</option>
+            <option value="wanted_eps">🎯 Закрывает разыскиваемые серии</option>
             <option value="video">Только видео-релизы</option>
             <option value="unknown">Не распознано (Unknown)</option>
             <option value="multi_part">Сплит-куры (Part 2+)</option>
@@ -2500,48 +2518,70 @@
       </div>
 
       <!-- КАРТОЧКИ СТАТИСТИКИ -->
-      <div class="backup-stats-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 16px;">
-        <div class="panel" style="padding: 12px 16px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 10px;">
-          <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(0, 240, 255, 0.1); color: var(--teal, #00F0FF); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+      <div class="backup-stats-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
+        <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(0, 240, 255, 0.1); color: var(--teal, #00F0FF); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
             <i data-lucide="database" class="ico-sm"></i>
           </div>
           <div>
-            <div class="hint" style="font-size: 11px; text-transform: uppercase;">Собрано записей</div>
-            <div style="font-size: 18px; font-weight: 700;" id="dataset-stat-total">—</div>
-            <div class="hint" style="font-size: 11px;" id="dataset-stat-video">— видео</div>
+            <div class="hint" style="font-size: 10px; text-transform: uppercase;">Собрано записей</div>
+            <div style="font-size: 16px; font-weight: 700;" id="dataset-stat-total">—</div>
+            <div class="hint" style="font-size: 10px;" id="dataset-stat-video">— видео</div>
           </div>
         </div>
 
-        <div class="panel" style="padding: 12px 16px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 10px;">
-          <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
             <i data-lucide="check-circle-2" class="ico-sm"></i>
           </div>
           <div>
-            <div class="hint" style="font-size: 11px; text-transform: uppercase;">Точность парсера</div>
-            <div style="font-size: 18px; font-weight: 700; color: #10b981;" id="dataset-stat-accuracy">—%</div>
-            <div class="hint" style="font-size: 11px;" id="dataset-stat-parsed-count">— распознано</div>
+            <div class="hint" style="font-size: 10px; text-transform: uppercase;">Точность парсера</div>
+            <div style="font-size: 16px; font-weight: 700; color: #10b981;" id="dataset-stat-accuracy">—%</div>
+            <div class="hint" style="font-size: 10px;" id="dataset-stat-parsed-count">— распознано</div>
           </div>
         </div>
 
-        <div class="panel" style="padding: 12px 16px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 10px;">
-          <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="thumbs-up" class="ico-sm"></i>
+          </div>
+          <div>
+            <div class="hint" style="font-size: 10px; text-transform: uppercase;">Одобрено движком</div>
+            <div style="font-size: 16px; font-weight: 700; color: #3b82f6;" id="dataset-stat-approved">—</div>
+            <div class="hint" style="font-size: 10px;" id="dataset-stat-wanted-overlap">— с разыскиваемыми</div>
+          </div>
+        </div>
+
+        <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); color: #ef4444; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="shield-x" class="ico-sm"></i>
+          </div>
+          <div>
+            <div class="hint" style="font-size: 10px; text-transform: uppercase;">Отклонено движком</div>
+            <div style="font-size: 16px; font-weight: 700; color: #ef4444;" id="dataset-stat-rejected">—</div>
+            <div class="hint" style="font-size: 10px;">не подошли параметры</div>
+          </div>
+        </div>
+
+        <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
             <i data-lucide="filter" class="ico-sm"></i>
           </div>
           <div>
-            <div class="hint" style="font-size: 11px; text-transform: uppercase;">Не-видео контент</div>
-            <div style="font-size: 18px; font-weight: 700;" id="dataset-stat-non-video">—</div>
-            <div class="hint" style="font-size: 11px;">саундтреки, манга, игры</div>
+            <div class="hint" style="font-size: 10px; text-transform: uppercase;">Не-видео контент</div>
+            <div style="font-size: 16px; font-weight: 700;" id="dataset-stat-non-video">—</div>
+            <div class="hint" style="font-size: 10px;">игры, OST, манга</div>
           </div>
         </div>
 
-        <div class="panel" style="padding: 12px 16px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 10px;">
-          <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); color: #ef4444; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(168, 85, 247, 0.1); color: #a855f7; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
             <i data-lucide="alert-triangle" class="ico-sm"></i>
           </div>
           <div>
-            <div class="hint" style="font-size: 11px; text-transform: uppercase;">Требуют внимания</div>
-            <div style="font-size: 18px; font-weight: 700; color: #ef4444;" id="dataset-stat-unknown">—</div>
-            <div class="hint" style="font-size: 11px;">нераспознанные форматы</div>
+            <div class="hint" style="font-size: 10px; text-transform: uppercase;">Не распознано</div>
+            <div style="font-size: 16px; font-weight: 700; color: #a855f7;" id="dataset-stat-unknown">—</div>
+            <div class="hint" style="font-size: 10px;">краевые случаи</div>
           </div>
         </div>
       </div>
@@ -2551,18 +2591,38 @@
         <table class="data-table" id="dataset-table">
           <thead>
             <tr>
-              <th style="width:140px;">Запрос / Трекер</th>
+              <th style="width:130px;">Запрос / Трекер</th>
               <th>Заголовок раздачи с трекера</th>
-              <th style="width:120px;">Размер</th>
-              <th style="width:170px;">Сезон и серии</th>
-              <th style="width:130px;">Статус парсера</th>
-              <th style="width:60px; text-align:center;">Копия</th>
+              <th style="width:110px;">Размер / Качество</th>
+              <th style="width:120px;">Серии (Парсер)</th>
+              <th style="width:180px;">Сопоставление с БД</th>
+              <th style="width:150px;">DecisionEngine</th>
+              <th style="width:80px; text-align:center;">Действия</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
       </div>
       <div class="form-row" id="dataset-pagination" style="justify-content:center; margin-top:14px;"></div>
+
+      <!-- МОДАЛЬНОЕ ОКНО ДИАГНОСТИКИ СОПОСТАВЛЕНИЯ -->
+      <div id="modal-dataset-diagnose" class="modal-backdrop" style="display:none;">
+        <div class="modal-dialog" style="max-width: 680px;">
+          <div class="modal-header">
+            <h3 style="display:flex; align-items:center; gap:8px;">
+              <i data-lucide="search" class="ico-sm" style="color:var(--teal);"></i>
+              <span>Диагностика сопоставления раздачи</span>
+            </h3>
+            <button class="btn-icon" onclick="closeDatasetDiagnoseModal()"><i data-lucide="x"></i></button>
+          </div>
+          <div class="modal-body" id="modal-dataset-diagnose-body" style="padding: 16px 20px; font-size: 13px;">
+            <!-- динамический контент -->
+          </div>
+          <div class="modal-footer" style="padding: 12px 20px;">
+            <button class="btn btn-secondary" onclick="closeDatasetDiagnoseModal()">Закрыть</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- BACKUP (Резервное копирование и восстановление) -->
