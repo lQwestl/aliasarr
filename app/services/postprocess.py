@@ -10,9 +10,12 @@
 from __future__ import annotations
 
 import datetime as dt
+import logging
 import os
 import re
 import shutil
+
+logger = logging.getLogger("aliasarr.postprocess")
 
 try:
     from sqlalchemy.orm import Session
@@ -1225,8 +1228,43 @@ def process_download(
             dest_video_path = os.path.join(target_dir, target_stem + ext)
 
             try:
-                # Если уже был старый файл (замена по качеству), удаляем его и старые субтитры
+                # Если уже был старый файл, проверяем защиту от понижения качества и целевой список
                 if episode and episode.file_path and os.path.exists(episode.file_path):
+                    # Если раздача скачивалась под конкретный список серий (dl_eps),
+                    # запрещаем перезапись серий, не входивших в этот список
+                    if dl_eps and episode not in dl_eps and getattr(episode, "id", None) not in {getattr(d, "id", None) for d in dl_eps}:
+                        logger.warning(
+                            "Пропуск импорта: файл %s сопоставлен с серией S%02dE%02d, которая уже скачана и не входит в целевой список раздачи",
+                            file_path, episode.season_number, episode.episode_number,
+                        )
+                        results.append({
+                            "file": file_path,
+                            "status": "skipped",
+                            "reason": f"серия S{episode.season_number:02d}E{episode.episode_number:02d} уже скачана и не запрашивалась для этой раздачи",
+                        })
+                        continue
+
+                    # Проверяем защиту от даунгрейда качества (Downgrade Protection)
+                    existing_quality_str = getattr(episode, "downloaded_quality", None)
+                    if not existing_quality_str:
+                        existing_q_info = detect_file_quality(episode.file_path)
+                        existing_quality_str = existing_q_info.name
+
+                    new_q = parse_quality(quality)
+                    old_q = parse_quality(existing_quality_str)
+
+                    if old_q.rank > new_q.rank:
+                        logger.warning(
+                            "Защита от понижения качества: %s (%s, ранг %d) не может заменить существующий файл %s (%s, ранг %d)",
+                            file_path, quality, new_q.rank, episode.file_path, existing_quality_str, old_q.rank,
+                        )
+                        results.append({
+                            "file": file_path,
+                            "status": "skipped",
+                            "reason": f"существующий файл имеет лучшее качество ({existing_quality_str} > {quality})",
+                        })
+                        continue
+
                     try:
                         old_stem = os.path.splitext(episode.file_path)[0]
                         os.remove(episode.file_path)
