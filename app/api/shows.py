@@ -1550,6 +1550,7 @@ def scan_for_manual_import(
     video_files.sort(key=lambda p: natural_sort_key(os.path.relpath(p, base_dir) if os.path.exists(p) else p))
 
     file_candidates: list[ManualImportFileCandidate] = []
+    used_scan_ep_ids: set[int] = set()
 
     for file_path in video_files:
         filename = os.path.basename(file_path)
@@ -1612,9 +1613,30 @@ def scan_for_manual_import(
             if not matched_ep and episodes:
                 matched_ep = episodes[0]
         else:
+            # 0. Приоритетное сопоставление по названию серии (актуально при несовпадении нумерации в релизах)
+            from app.services.matcher import normalize_title_words, calc_title_match
+            fname_no_ext = os.path.splitext(filename)[0]
+            fname_words = set(normalize_title_words(fname_no_ext))
+            if len(fname_words) >= 1:
+                candidate_pool = [e for e in episodes if e.id not in used_scan_ep_ids]
+                target_s = parsed.season
+                if target_s is not None:
+                    candidate_pool.sort(key=lambda e: (0 if e.season_number == target_s else 1, e.episode_number))
+                best_match_key = (0.0, 0)
+                best_scan_ep = None
+                for ep in candidate_pool:
+                    if ep.title and len(ep.title.strip()) >= 3:
+                        score, matched_count = calc_title_match(ep.title, fname_words)
+                        match_key = (score, matched_count)
+                        if score >= 0.7 and match_key > best_match_key:
+                            best_match_key = match_key
+                            best_scan_ep = ep
+                if best_scan_ep is not None:
+                    matched_ep = best_scan_ep
+
             # 1. Явный сезон и номер серии
-            if parsed.season is not None and parsed.episodes:
-                matched_ep = next((e for e in episodes if e.season_number == parsed.season and e.episode_number in parsed.episodes), None)
+            if not matched_ep and parsed.season is not None and parsed.episodes:
+                matched_ep = next((e for e in episodes if e.id not in used_scan_ep_ids and e.season_number == parsed.season and e.episode_number in parsed.episodes), None)
 
             # 2. Аниме absolute / lone number
             if not matched_ep and parsed.kind == ReleaseKind.ABSOLUTE and parsed.episodes:
@@ -1642,6 +1664,9 @@ def scan_for_manual_import(
                             p_episode = matched_ep.episode_number
                     except Exception:
                         matched_ep = None
+
+        if matched_ep and getattr(matched_ep, "id", None) is not None:
+            used_scan_ep_ids.add(matched_ep.id)
 
         file_candidates.append(
             ManualImportFileCandidate(

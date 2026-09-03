@@ -757,3 +757,42 @@ def resolve_part_offset(
 
     return 0
 
+
+_ROMAN_TO_ARABIC = {
+    "i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5",
+    "vi": "6", "vii": "7", "viii": "8", "ix": "9", "x": "10",
+}
+
+
+def normalize_title_words(text: Optional[str]) -> list[str]:
+    """
+    Нормализует строку заголовка серии/файла в список значимых слов:
+    - переводит в нижний регистр
+    - заменяет римские цифры на арабские (I..X -> 1..10)
+    - фильтрует стоп-слова (the, a, an, of, in, on, and, or, to, for, vs, part)
+    """
+    if not text or len(text.strip()) < 2:
+        return []
+    raw = re.sub(r"[^\w\s]", " ", text.lower()).split()
+    clean = []
+    for raw_w in raw:
+        w = _ROMAN_TO_ARABIC.get(raw_w, raw_w)
+        if (len(w) > 1 or w.isdigit()) and w not in {
+            "the", "a", "an", "of", "in", "on", "and", "or", "to", "for", "vs", "part"
+        }:
+            clean.append(w)
+    return clean
+
+
+def calc_title_match(ep_title: Optional[str], fname_words: set[str]) -> tuple[float, int]:
+    """
+    Вычисляет долю совпадения слов названия эпизода в множестве слов имени файла.
+    Возвращает (score, matched_words_count).
+    """
+    words = normalize_title_words(ep_title)
+    if not words:
+        return (0.0, 0)
+    matched = sum(1 for w in words if w in fname_words)
+    return (matched / len(words), matched)
+
+

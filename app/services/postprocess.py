@@ -977,13 +977,33 @@ def process_download(
 
     total_videos = len(video_files)
     used_companions = set()
+    used_episode_ids: set[int] = set()
+
+    all_show_eps: list[Episode] = []
+    if db:
+        try:
+            all_show_eps = (
+                db.query(Episode)
+                .filter(Episode.show_id == show.id)
+                .order_by(Episode.season_number, Episode.episode_number)
+                .all()
+            )
+        except Exception:
+            all_show_eps = []
 
     dl_eps: list[Episode] = []
     if torrent_hash and db:
         try:
+            from sqlalchemy import func, or_
             dl_eps = (
                 db.query(Episode)
-                .filter(Episode.show_id == show.id, Episode.torrent_hash == torrent_hash)
+                .filter(
+                    Episode.show_id == show.id,
+                    or_(
+                        Episode.torrent_hash == torrent_hash,
+                        func.lower(Episode.torrent_hash) == torrent_hash.lower(),
+                    )
+                )
                 .order_by(Episode.season_number, Episode.episode_number)
                 .all()
             )
@@ -1065,6 +1085,19 @@ def process_download(
                         parsed.season = dir_s["season"]
                         parsed.kind = ReleaseKind.EPISODE
 
+        if parsed.season is None:
+            from app.services.parser import detect_season_label
+            for folder_candidate in [os.path.basename(download_path), os.path.basename(os.path.dirname(file_path))]:
+                if folder_candidate:
+                    dir_s = detect_season_label(folder_candidate)
+                    if dir_s.get("type") == "numbered":
+                        parsed.season = dir_s["season"]
+                        parsed.kind = ReleaseKind.EPISODE
+                        break
+            if parsed.season is None and dl_eps and dl_eps[0].season_number > 0:
+                parsed.season = dl_eps[0].season_number
+                parsed.kind = ReleaseKind.EPISODE
+
         if parsed.kind not in (ReleaseKind.EPISODE, ReleaseKind.ABSOLUTE) or not parsed.episodes:
             if len(video_files) == 1:
                 # Если видеофайл один, проверяем ожидающие серии
@@ -1103,36 +1136,50 @@ def process_download(
         for ep_num in parsed.episodes:
             episode = None
 
-            # 1. Приоритетный поиск среди серий этой конкретной загрузки (dl_eps)
-            if dl_eps:
-                # 1.0. Сопоставление по названию серии (актуально при несовпадении нумерации в релизах)
-                fname_no_ext = os.path.splitext(filename)[0]
-                fname_words = set(re.sub(r"[^\w\s]", " ", fname_no_ext.lower()).split())
-                best_dl_ep = None
-                best_score = 0.0
-                for d_ep in dl_eps:
-                    if d_ep.title and len(d_ep.title.strip()) >= 3:
-                        words = [
-                            w for w in re.sub(r"[^\w\s]", " ", d_ep.title.lower()).split()
-                            if len(w) > 1 and w not in {"the", "a", "an", "of", "in", "on", "and", "or", "to", "for", "vs", "part"}
-                        ]
-                        if words:
-                            score = sum(1 for w in words if w in fname_words) / len(words)
-                            if score >= 0.7 and score > best_score:
-                                best_score = score
-                                best_dl_ep = d_ep
-                if best_dl_ep is not None:
-                    episode = best_dl_ep
+            # 0. Приоритетное сопоставление по названию серии (актуально при несовпадении нумерации в релизах,
+            # например когда спешл включен как 01, сдвигая серии 02..20 на 1)
+            fname_no_ext = os.path.splitext(filename)[0]
+            from app.services.matcher import normalize_title_words, calc_title_match
+            fname_words = set(normalize_title_words(fname_no_ext))
 
-                if episode is None and parsed.season is not None:
-                    # Точное совпадение по сезону и номеру серии в этом сезоне
+            if len(fname_words) >= 1:
+                best_match_key = (0.0, 0)
+                best_match_ep = None
+
+                # Пул кандидатов: сначала неиспользованные серии загрузки (dl_eps)
+                title_pool = [e for e in dl_eps if e.id not in used_episode_ids]
+                target_s = parsed.season if parsed.season is not None else (dl_eps[0].season_number if dl_eps else None)
+                if target_s is not None and all_show_eps:
+                    same_season_extra = [
+                        e for e in all_show_eps
+                        if e.season_number == target_s and e.id not in used_episode_ids and e not in title_pool
+                    ]
+                    title_pool = title_pool + same_season_extra
+                elif all_show_eps and not title_pool:
+                    title_pool = [e for e in all_show_eps if e.id not in used_episode_ids]
+
+                for d_ep in title_pool:
+                    if d_ep.title and len(d_ep.title.strip()) >= 3:
+                        score, matched_count = calc_title_match(d_ep.title, fname_words)
+                        match_key = (score, matched_count)
+                        if score >= 0.7 and match_key > best_match_key:
+                            best_match_key = match_key
+                            best_match_ep = d_ep
+
+                if best_match_ep is not None:
+                    episode = best_match_ep
+
+            # 1. Поиск среди серий этой конкретной загрузки (dl_eps) по номеру
+            if episode is None and dl_eps:
+                if parsed.season is not None:
+                    # Точное совпадение по сезону и номеру серии в этом сезоне (среди свободных)
                     episode = next(
-                        (ep for ep in dl_eps if ep.season_number == parsed.season and ep.episode_number == ep_num),
+                        (ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number == parsed.season and ep.episode_number == ep_num),
                         None,
                     )
                     # Проверка смещения кура / части (Part 2 offset), когда серии в раздаче начинаются с 1
                     if episode is None:
-                        same_season_dl_eps = [ep for ep in dl_eps if ep.season_number == parsed.season]
+                        same_season_dl_eps = [ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number == parsed.season]
                         if same_season_dl_eps:
                             min_dl_ep = min(ep.episode_number for ep in same_season_dl_eps)
                             if min_dl_ep > 1:
@@ -1144,69 +1191,67 @@ def process_download(
                     # Только если серии с таким номером нет в сезоне (например, аниме с абсолютной нумерацией в подпапке сезона)
                     if episode is None and getattr(show, "content_type", "series") == "anime":
                         episode = next(
-                            (ep for ep in dl_eps if ep.season_number == parsed.season and ep.absolute_number == ep_num),
+                            (ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number == parsed.season and ep.absolute_number == ep_num),
                             None,
                         )
                 elif is_special_file:
                     episode = next(
-                        (ep for ep in dl_eps if ep.season_number == 0 and ep.episode_number == ep_num),
+                        (ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number == 0 and ep.episode_number == ep_num),
                         None,
                     )
                 else:
                     # Обычные серии без маркеров спешлов сопоставляются сначала с 1 сезоном, затем по абсолютной нумерации
                     episode = next(
-                        (ep for ep in dl_eps if ep.season_number == 1 and ep.episode_number == ep_num),
+                        (ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number == 1 and ep.episode_number == ep_num),
                         None,
                     )
                     if episode is None:
                         episode = next(
-                            (ep for ep in dl_eps if ep.absolute_number == ep_num),
+                            (ep for ep in dl_eps if ep.id not in used_episode_ids and ep.absolute_number == ep_num),
                             None,
                         )
                     if episode is None:
                         episode = next(
-                            (ep for ep in dl_eps if ep.season_number > 0 and ep.episode_number == ep_num),
+                            (ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number > 0 and ep.episode_number == ep_num),
                             None,
                         )
 
             # 2. Поиск по базе данных
             if episode is None and db:
                 if is_special_file:
-                    specials_for_show = db.query(Episode).filter_by(show_id=show.id, season_number=0).order_by(Episode.episode_number).all()
+                    specials_for_show = [e for e in all_show_eps if e.season_number == 0 and e.id not in used_episode_ids]
                     if specials_for_show:
                         from app.services.matcher import match_special_episode
                         episode = match_special_episode(file_path, specials_for_show, parsed)
 
                 if episode is None and parsed.season is not None:
-                    episode = (
-                        db.query(Episode)
-                        .filter_by(show_id=show.id, season_number=parsed.season, episode_number=ep_num)
-                        .first()
+                    episode = next(
+                        (e for e in all_show_eps if e.id not in used_episode_ids and e.season_number == parsed.season and e.episode_number == ep_num),
+                        None,
                     )
 
                 if episode is None and not is_special_file:
                     # По absolute_number только для аниме или если сезон не был указан в релизе
                     if parsed.season is None or getattr(show, "content_type", "series") == "anime":
-                        episode = (
-                            db.query(Episode)
-                            .filter_by(show_id=show.id, absolute_number=ep_num)
-                            .first()
+                        episode = next(
+                            (e for e in all_show_eps if e.id not in used_episode_ids and getattr(e, "absolute_number", None) == ep_num),
+                            None,
                         )
                     if episode is None:
-                        target_s = dl_eps[0].season_number if (dl_eps and dl_eps[0].season_number > 0) else (parsed.season or 1)
-                        episode = (
-                            db.query(Episode)
-                            .filter_by(show_id=show.id, season_number=target_s, episode_number=ep_num)
-                            .first()
-                        )
-                    if episode is None:
-                        episode = (
-                            db.query(Episode)
-                            .filter_by(show_id=show.id, season_number=1, episode_number=ep_num)
-                            .first()
+                        target_s = dl_eps[0].season_number if (dl_eps and dl_eps[0].season_number > 0) else parsed.season
+                        if target_s is not None:
+                            episode = next(
+                                (e for e in all_show_eps if e.id not in used_episode_ids and e.season_number == target_s and e.episode_number == ep_num),
+                                None,
+                            )
+                    if episode is None and parsed.season is None:
+                        episode = next(
+                            (e for e in all_show_eps if e.id not in used_episode_ids and e.season_number == 1 and e.episode_number == ep_num),
+                            None,
                         )
 
             if episode:
+                used_episode_ids.add(episode.id)
                 season_num = episode.season_number
                 actual_ep_num = episode.episode_number
                 episode_title = episode.title or ""
@@ -1479,7 +1524,13 @@ def process_download(
             Episode.status == EpisodeStatus.DOWNLOADING,
         )
         if torrent_hash:
-            unimported_query = unimported_query.filter(Episode.torrent_hash == torrent_hash)
+            from sqlalchemy import func, or_
+            unimported_query = unimported_query.filter(
+                or_(
+                    Episode.torrent_hash == torrent_hash,
+                    func.lower(Episode.torrent_hash) == torrent_hash.lower(),
+                )
+            )
 
         try:
             unimported_eps = unimported_query.all()

@@ -443,6 +443,50 @@ class TestManualImportLogic(unittest.TestCase):
         ]
         self.assertEqual(basenames, expected_order)
 
+    def test_shifted_numbering_title_matching_robot_chicken(self):
+        from types import SimpleNamespace
+        from app.services.matcher import normalize_title_words, calc_title_match
+
+        s5_episodes = [
+            SimpleNamespace(id=1, season_number=5, episode_number=1, title="Saving Private Gigli"),
+            SimpleNamespace(id=2, season_number=5, episode_number=2, title="Terms of Endaredevil"),
+            SimpleNamespace(id=3, season_number=5, episode_number=3, title="Big Trouble in Little Clerks 2"),
+            SimpleNamespace(id=18, season_number=5, episode_number=18, title="Casablankman II"),
+            SimpleNamespace(id=19, season_number=5, episode_number=19, title="Fight Club Paradise"),
+        ]
+
+        files = [
+            "02 Saving Private Gigli.mkv",
+            "03 Terms of Endaredevil.mkv",
+            "04 Big Trouble in Little Clerks 2.mkv",
+            "19 Casablankman 2.mkv",
+            "20 Fight Club Paradise.mkv",
+        ]
+
+        matched_map = {}
+        used_ids = set()
+        for f in files:
+            fname_no_ext = os.path.splitext(f)[0]
+            fname_words = set(normalize_title_words(fname_no_ext))
+            best_ep = None
+            best_score = 0.0
+            for ep in s5_episodes:
+                if ep.id in used_ids:
+                    continue
+                score, matched_count = calc_title_match(ep.title, fname_words)
+                if score >= 0.7 and score > best_score:
+                    best_score = score
+                    best_ep = ep
+            if best_ep:
+                used_ids.add(best_ep.id)
+                matched_map[f] = (best_ep.season_number, best_ep.episode_number)
+
+        self.assertEqual(matched_map["02 Saving Private Gigli.mkv"], (5, 1))
+        self.assertEqual(matched_map["03 Terms of Endaredevil.mkv"], (5, 2))
+        self.assertEqual(matched_map["04 Big Trouble in Little Clerks 2.mkv"], (5, 3))
+        self.assertEqual(matched_map["19 Casablankman 2.mkv"], (5, 18))
+        self.assertEqual(matched_map["20 Fight Club Paradise.mkv"], (5, 19))
+
 
 if __name__ == "__main__":
     unittest.main()
