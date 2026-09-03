@@ -583,47 +583,34 @@ def _extract_core_title(text: str) -> Optional[str]:
 
 
 def _generate_season_queries(base: str, sn: int) -> list[str]:
-    """Генерирует все возможные альтернативные поисковые запросы для сезона sn."""
-    terms = [
-        f"{base} S{sn:02d}",
-        f"{base} {sn} сезон",
-        f"{base} Сезон {sn}",
-        f"{base} {sn}-й сезон",
-        f"{base} Season {sn}",
-        f"{base} Season {sn:02d}",
-        f"{base} S{sn}",
-        f"{base} ТВ-{sn}",
-        f"{base} TV-{sn}",
-        f"{base} Part {sn}",
-        f"{base} Часть {sn}",
-    ]
-    # Для сезонов > 1 добавляем запросы на полные паки: без пробелов (1-4) и с пробелами (1 - 4)
-    if sn > 1:
+    """Генерирует компактный и релевантный список сезонных запросов с учётом языка тайтла."""
+    is_cyrillic = bool(re.search(r"[\u0400-\u04FF]", base))
+    terms = [f"{base} S{sn:02d}"]
+    if is_cyrillic:
         terms.extend([
-            f"{base} 1-{sn} сезон",
-            f"{base} 1 - {sn} сезон",
-            f"{base} Сезоны 1-{sn}",
-            f"{base} Сезоны 1 - {sn}",
-            f"{base} S01-S{sn:02d}",
-            f"{base} S1-{sn}",
-            f"{base} Seasons 1-{sn}",
-            f"{base} 1-{sn}",
-            f"{base} 1 - {sn}",
+            f"{base} {sn} сезон",
+            f"{base} Сезон {sn}",
+            f"{base} ТВ-{sn}",
         ])
-
-    # Английские порядковые (1st, 2nd, 3rd, 4th Season)
-    if 11 <= (sn % 100) <= 13:
-        ord_s = f"{sn}th"
+        if sn > 1:
+            terms.extend([
+                f"{base} 1-{sn} сезон",
+                f"{base} Сезоны 1-{sn}",
+            ])
     else:
-        ord_s = f"{sn}" + {1: "st", 2: "nd", 3: "rd"}.get(sn % 10, "th")
-    terms.append(f"{base} {ord_s} Season")
-
-    # Римские цифры (I, II, III, IV, V, VI, ...)
-    roman_map = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V", 6: "VI", 7: "VII", 8: "VIII", 9: "IX", 10: "X"}
-    if sn in roman_map:
-        terms.append(f"{base} {roman_map[sn]} сезон")
-        terms.append(f"{base} Season {roman_map[sn]}")
-        terms.append(f"{base} {roman_map[sn]}")
+        terms.extend([
+            f"{base} Season {sn}",
+            f"{base} TV-{sn}",
+        ])
+        if sn > 1:
+            terms.extend([
+                f"{base} S01-S{sn:02d}",
+                f"{base} Seasons 1-{sn}",
+                f"{base} 1-{sn}",
+            ])
+        if 1 <= sn <= 4:
+            ord_s = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th"}.get(sn, f"{sn}th")
+            terms.append(f"{base} {ord_s} Season")
 
     return terms
 
@@ -750,26 +737,35 @@ async def _collect_candidates(
     seen_guids: set[str] = set()
     candidates: list[dict] = []
 
-    # Опрашиваем индексаторы параллельно с ограничением конкурентных запросов (Semaphore)
-    sem = asyncio.Semaphore(6)
+    # Ограничиваем список запросов самыми результативными (не более 16)
+    active_queries = query_terms[:16]
 
-    async def _fetch_indexer_term(idx: Indexer, q_term: str):
-        async with sem:
+    # Опрашиваем каждый индексатор параллельно со строгим ограничением по времени
+    async def _fetch_indexer(idx: Indexer, terms: list[str]):
+        client = get_indexer_client(idx)
+        idx_rels = []
+        for term in terms:
             try:
-                client = get_indexer_client(idx)
-                # Таймаут на единичный запрос к трекеру 12 секунд
-                rels = await asyncio.wait_for(client.search(q_term), timeout=12.0)
-                return (idx, rels)
+                # Таймаут на один запрос 8 секунд
+                rels = await asyncio.wait_for(client.search(term), timeout=8.0)
+                idx_rels.extend(rels)
             except Exception as exc:
-                logger.debug("Индексатор %s запрос «%s»: %s", idx.name, q_term, exc)
-                return (idx, [])
+                logger.debug("Индексатор %s запрос «%s»: %s", getattr(idx, "name", idx), term, exc)
+                # Если индексатор завис по таймауту, не держим остальные запросы
+                if isinstance(exc, (asyncio.TimeoutError, ConnectionError)):
+                    break
+        return (idx, idx_rels)
 
-    tasks = []
-    for indexer in sorted(indexers, key=lambda i: i.priority):
-        for term in query_terms:
-            tasks.append(_fetch_indexer_term(indexer, term))
-
-    fetched_batches = await asyncio.gather(*tasks, return_exceptions=True)
+    tasks = [_fetch_indexer(idx, active_queries) for idx in sorted(indexers, key=lambda i: i.priority)]
+    try:
+        # Общий глобальный таймаут на опрос всех трекеров — 25 секунд
+        fetched_batches = await asyncio.wait_for(
+            asyncio.gather(*tasks, return_exceptions=True),
+            timeout=25.0,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Общий таймаут автопоиска релизов на индексаторах (25s)")
+        fetched_batches = []
 
     for item in fetched_batches:
         if not isinstance(item, tuple):
