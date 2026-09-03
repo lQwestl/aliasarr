@@ -536,3 +536,62 @@ class TestAutoSearch(unittest.TestCase):
         self.assertEqual(prio_sound1, 1, "Аудиодорожка к 1-й серии должна скачиваться")
         self.assertEqual(prio_sound2, 1, "Аудиодорожка ко 2-й серии должна скачиваться")
         self.assertEqual(prio_ost, 1, "Общий аудиофайл/OST из папки Sound должен скачиваться")
+
+class TestSeasonQueries(unittest.TestCase):
+    def test_season_queries_generation_and_core_title(self):
+        import asyncio
+        from unittest.mock import MagicMock
+        from types import SimpleNamespace
+        from app.services.auto_search import _generate_season_queries, _extract_core_title, _collect_candidates
+
+        # 1. Проверка извлечения ядра
+        core_en = _extract_core_title("Re: ZERO, Starting Life in Another World")
+        self.assertEqual(core_en, "Re: ZERO")
+
+        core_ru = _extract_core_title("Re:Zero — жизнь в альтернативном мире с нуля")
+        self.assertEqual(core_ru, "Re:Zero")
+
+        # 2. Проверка генерации сезонных запросов для 4-го сезона
+        ru_terms = _generate_season_queries("Re:Zero", 4)
+        self.assertIn("Re:Zero (ТВ-4)", ru_terms)
+        self.assertIn("Re:Zero ТВ-4", ru_terms)
+        self.assertIn("Re:Zero 4 сезон", ru_terms)
+        self.assertIn("Re:Zero S04", ru_terms)
+        self.assertIn("Re:Zero 1-4 сезон", ru_terms)
+        self.assertIn("Re:Zero 1 - 4 сезон", ru_terms)
+        self.assertIn("Re:Zero Сезоны 1-4", ru_terms)
+
+        en_terms = _generate_season_queries("Re: ZERO", 4)
+        self.assertIn("Re: ZERO (ТВ-4)", en_terms)
+        self.assertIn("Re: ZERO ТВ-4", en_terms)
+        self.assertIn("Re: ZERO S04", en_terms)
+        self.assertIn("Re: ZERO Season 4", en_terms)
+        self.assertIn("Re: ZERO S01-S04", en_terms)
+
+        # 3. Проверка _collect_candidates со списком эпизодов 4-го сезона
+        show = SimpleNamespace(
+            id=77,
+            title="Re: ZERO, Starting Life in Another World",
+            year=2016,
+            content_type="anime",
+            path=None,
+            quality_profile_id=1,
+        )
+        ep4 = SimpleNamespace(
+            id=204,
+            show_id=77,
+            season_number=4,
+            episode_number=1,
+            absolute_number=None,
+            title="Season 4 Premiere",
+            status="wanted",
+        )
+        db_mock = MagicMock()
+        db_mock.get.return_value = None
+        db_mock.query.return_value.filter.return_value.all.return_value = []
+        db_mock.query.return_value.filter_by.return_value.all.return_value = []
+
+        cands = asyncio.run(_collect_candidates(db_mock, show, [], wanted_episodes=[ep4]))
+        query_terms = getattr(cands, "query_terms", [])
+        self.assertTrue(any("ТВ-4" in q or "(ТВ-4)" in q for q in query_terms), f"ТВ-4 missing from queries: {query_terms}")
+        self.assertTrue(any("S04" in q for q in query_terms), f"S04 missing from queries: {query_terms}")

@@ -220,6 +220,11 @@ _RE_SEASON_PACK = re.compile(
     r"\b(?:S(?:easons?)?|Сез(?:он(?:ы|а)?)?|sezon(?:y|i|a)?|sez)[:\.]?\s*(\d{1,3})\b(?!\s*(?:E\.?\d|" + _EPISODE_WORD_RU + "|" + _EPISODE_WORD_EN + r"))",
     re.IGNORECASE,
 )
+# Аниме ТВ-сезоны: (ТВ-4), [ТВ-4], ТВ-4, (TV-4), [TV-4], TV-4, (ТВ 4)
+_RE_ANIME_TV_SEASON = re.compile(
+    r"(?:^|[\s_.\(\[\{/])(?:ТВ|TV)[\s\-_]?(\d{1,2})(?:$|[\s_.\)\]\}/])",
+    re.IGNORECASE,
+)
 _RE_SEASON_PACK_KEYWORDS = re.compile(
     r"\b(complete|full(?!\s*hd)|полный сезон|весь сезон|все сезоны|полный сериал|весь сериал|антология|anthology)\b|\[full\]|\(full\)",
     re.IGNORECASE,
@@ -322,13 +327,15 @@ _NON_VIDEO_RELEASE_RE = re.compile(
 _RE_MULTI_SEASON_RANGE = re.compile(
     r"""
     (?:
-        \b(?:S(?:easons?)?|Сез(?:он(?:ы|а)?)?|sezon(?:y|i|a)?|sez)[:\.]?\s*(\d{1,3})\s*[-–~]\s*(?:S(?:easons?)?|Сез(?:он(?:ы|а)?)?|sezon(?:y|i|a)?|sez)?[:\.]?\s*(\d{1,3})(?:(?=E\d)|(?=[\s_\-\[\(])|\b)
+        \b(?:S(?:easons?)?|Сез(?:он(?:ы|а|ов)?)?|sezon(?:y|i|a)?|sez)[:\.]?\s*(\d{1,3})\s*[-–~]\s*(?:S(?:easons?)?|Сез(?:он(?:ы|а|ов)?)?|sezon(?:y|i|a)?|sez)?[:\.]?\s*(\d{1,3})(?:(?=E\d)|(?=[\s_\-\[\(])|\b)
     |
-        \b(\d{1,3})\s*[-–~]\s*(\d{1,3})\s*(?:сезон(?:ы|а)?|seasons?|sezon(?:y|i|a)?)\b
+        \b(\d{1,3})\s*[-–~]\s*(\d{1,3})\s*(?:[-–]?(?:й|ый|ой|ий|я|ая))?\s*(?:сезон(?:ы|а|ов)?|seasons?|sezon(?:y|i|a)?)\b
     |
         \(\s*S(\d{1,3})\s*[-–~]\s*S?(\d{1,3})\s*\)
     |
         \[\s*S(\d{1,3})\s*[-–~]\s*S?(\d{1,3})\s*\]
+    |
+        (?:^|[\s_.\(\[\{/])(?:ТВ|TV)[\s\-_]?(\d{1,2})\s*[-–~,]\s*(?:(?:ТВ|TV)[\s\-_]?)?(\d{1,2})(?:$|[\s_.\)\]\}/])
     )
     """,
     re.IGNORECASE | re.VERBOSE,
@@ -336,9 +343,9 @@ _RE_MULTI_SEASON_RANGE = re.compile(
 _RE_MULTI_SEASON_LIST = re.compile(
     r"""
     (?:
-        \b(?:Seasons?|Сезоны?|Сез(?:он(?:ы|а)?)?|sezon(?:y|i|a)?|sez)[:\.]?\s*(\d{1,3}(?:\s*,\s*\d{1,3})+)\b
+        \b(?:Seasons?|Сезоны?|Сез(?:он(?:ы|а|ов)?)?|sezon(?:y|i|a)?|sez)[:\.]?\s*(\d{1,3}(?:\s*,\s*\d{1,3})+)\b
     |
-        \b(\d{1,3}(?:\s*,\s*\d{1,3})+)\s*(?:сезон(?:ы|а)?|seasons?|sezon(?:y|i|a)?)\b
+        \b(\d{1,3}(?:\s*,\s*\d{1,3})+)\s*(?:сезон(?:ы|а|ов)?|seasons?|sezon(?:y|i|a)?)\b
     )
     """,
     re.IGNORECASE | re.VERBOSE,
@@ -554,10 +561,16 @@ def parse_episode(release_name: str) -> ParsedRelease:
 
     m_sd_single = _RE_S_DASH_EP_SINGLE.search(protected)
     if m_sd_single:
-        return ParsedRelease(
-            kind=ReleaseKind.EPISODE, season=int(m_sd_single.group(1)), episodes=[int(m_sd_single.group(2))],
-            raw=raw, matched_pattern="s_dash_ep_single",
-        )
+        prefix_char = protected[m_sd_single.start() - 1] if m_sd_single.start() > 0 else ""
+        suffix_char = protected[m_sd_single.end():m_sd_single.end() + 1]
+        is_bracketed_s_range = prefix_char in "([{" and (suffix_char in ")]}" or m_sd_single.group(0).endswith("]") or m_sd_single.group(0).endswith(")"))
+        suffix_after = protected[m_sd_single.end(2):].lower().strip(" _.-")
+        m_s_word = protected[m_sd_single.start():m_sd_single.start(1)].lower()
+        if not is_bracketed_s_range and not re.search(r"^(?:[-–]?(?:й|ый|ой|ий|я|ая)\s*)?(?:сезон|season|sezon)", suffix_after, re.IGNORECASE) and not re.search(r"сезон[ыа]|seasons", m_s_word, re.IGNORECASE):
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=int(m_sd_single.group(1)), episodes=[int(m_sd_single.group(2))],
+                raw=raw, matched_pattern="s_dash_ep_single",
+            )
 
     # 1и. Римские цифры сезонов с серией: "II сезон - 05", "Season II - 03"
     m_roman_ep = _RE_ROMAN_SEASON_EP.search(protected)
@@ -582,20 +595,21 @@ def parse_episode(release_name: str) -> ParsedRelease:
 
     m_s_dash = _RE_SEASON_DIGIT_DASH_EP.search(protected)
     if m_s_dash:
+        suffix_after = protected[m_s_dash.end(2):].lower().strip(" _.-")
         prefix_before = protected[:m_s_dash.start(1)].lower().strip(" _.-")
-        if not re.search(r"\b(?:part|часть|cour|кур|vol|volume|том)$", prefix_before, re.IGNORECASE):
-            return ParsedRelease(
-                kind=ReleaseKind.EPISODE, season=int(m_s_dash.group(1)), episodes=[int(m_s_dash.group(2))],
-                raw=raw, matched_pattern="season_digit_dash_ep",
-            )
+        if not re.search(r"^(?:[-–]?(?:й|ый|ой|ий|я|ая)\s*)?(?:сезон|season|sezon)", suffix_after, re.IGNORECASE) and not re.search(r"\b(?:сезон\w*|season\w*|sezon\w*)$", prefix_before, re.IGNORECASE):
+            if not re.search(r"\b(?:part|часть|cour|кур|vol|volume|том)$", prefix_before, re.IGNORECASE):
+                return ParsedRelease(
+                    kind=ReleaseKind.EPISODE, season=int(m_s_dash.group(1)), episodes=[int(m_s_dash.group(2))],
+                    raw=raw, matched_pattern="season_digit_dash_ep",
+                )
 
-    # 2a. Мульти-сезонный диапазон (Сезон: 1-3, Сезоны 1-5, S01-S05, Seasons 1-5, 1-10 сезоны, 1-100 сезоны) — ДО единичного сезона!
+    # 2a. Мульти-сезонный диапазон (Сезон: 1-3, Сезоны 1-5, S01-S05, Seasons 1-5, 1-10 сезоны, 1-100 сезоны, ТВ-1-4) — ДО единичного сезона!
     m_range = _RE_MULTI_SEASON_RANGE.search(protected)
     if m_range:
-        s1 = m_range.group(1) or m_range.group(3) or m_range.group(5) or m_range.group(7)
-        s2 = m_range.group(2) or m_range.group(4) or m_range.group(6) or m_range.group(8)
-        if s1 and s2:
-            s_start, s_end = int(s1), int(s2)
+        groups = [g for g in m_range.groups() if g is not None]
+        if len(groups) >= 2:
+            s_start, s_end = int(groups[0]), int(groups[1])
             if 1 <= s_start <= s_end <= 999 and (s_end - s_start) < 200:
                 return _season_pack_result(list(range(s_start, s_end + 1)), raw, "season_pack:multi_range")
 
@@ -673,6 +687,26 @@ def parse_episode(release_name: str) -> ParsedRelease:
             )
         if not re.search(r"E\.?\d", protected[m.end():m.end() + 6], re.IGNORECASE):
             return _season_pack_result(s_num, raw, "season_pack:Sxx")
+
+    # 2г2. Аниме ТВ-сезоны: (ТВ-4), [ТВ-4], ТВ-4, (TV-4), [TV-4], TV-4, (ТВ 4)
+    m_tv = _RE_ANIME_TV_SEASON.search(protected)
+    if m_tv:
+        s_num = int(m_tv.group(1))
+        embedded_eps = _extract_embedded_episodes(protected)
+        if embedded_eps:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=s_num, episodes=embedded_eps,
+                is_range=len(embedded_eps) > 1, raw=raw, matched_pattern="season_anime_tv_plus_range",
+            )
+        m_e = _RE_E_ONLY.search(protected)
+        if m_e:
+            start = int(m_e.group(1))
+            eps = list(range(start, int(m_e.group(2)) + 1)) if m_e.group(2) else [start]
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=s_num, episodes=eps,
+                is_range=len(eps) > 1, raw=raw, matched_pattern="season_anime_tv_e_only",
+            )
+        return _season_pack_result(s_num, raw, "season_pack:anime_tv")
 
     # OVA/ONA/спешл без номера серии — весь блок спешлов целиком (сезон 0).
     # Если в названии присутствует номер серии (например, "13 Robot Chicken ATM Christmas Special.mkv" или "OVA 02"),
@@ -962,13 +996,12 @@ def detect_season_label(release_name: str) -> dict:
         if 1 <= s1 <= s2 <= 100:
             return {"type": "range", "seasons": list(range(s1, s2 + 1))}
 
-    # 1. Мультисезонный диапазон (Сезон: 1-3, Сезоны 1-5, S01-S05, Seasons 1-10, 1-100 сезоны) — проверяем ДО единичного сезона!
+    # 1. Мультисезонный диапазон (Сезон: 1-3, Сезоны 1-5, S01-S05, Seasons 1-10, 1-100 сезоны, ТВ-1-4) — проверяем ДО единичного сезона!
     m_range = _SEASON_LABEL_RANGE_RE.search(name)
     if m_range:
-        start_raw = m_range.group(1) or m_range.group(3) or m_range.group(5) or m_range.group(7)
-        end_raw = m_range.group(2) or m_range.group(4) or m_range.group(6) or m_range.group(8)
-        if start_raw and end_raw:
-            start, end = int(start_raw), int(end_raw)
+        groups = [g for g in m_range.groups() if g is not None]
+        if len(groups) >= 2:
+            start, end = int(groups[0]), int(groups[1])
             if 1 <= start <= end <= 999:
                 return {"type": "range", "seasons": list(range(start, end + 1))}
 
@@ -994,8 +1027,14 @@ def detect_season_label(release_name: str) -> dict:
     # 4. Явный номер сезона со словом S/Season/Сезон (S01, Season 1, Сезон 1, S01 COMPLETE, S01 Full Season, S01 Pack, S01 Batch)
     m = _SEASON_LABEL_NUMBERED_RE.search(name)
     if m:
-        raw_num = m.group(1) or m.group(2)
-        return {"type": "numbered", "season": int(raw_num)}
+        s_val = m.group(1) or m.group(2)
+        if s_val:
+            return {"type": "numbered", "season": int(s_val)}
+
+    # 4б. Аниме ТВ-сезоны: (ТВ-4), [ТВ-4], ТВ-4, (TV-4), [TV-4], TV-4
+    m_tv = _RE_ANIME_TV_SEASON.search(name)
+    if m_tv:
+        return {"type": "numbered", "season": int(m_tv.group(1))}
 
     # 4б. SxxExx-Exx / 1x01-1x10 / S01E01 явный сезон перед сериями
     m_sxx = _RE_SXXEXX_RANGE.search(name) or _RE_XFORMAT_RANGE.search(name) or _RE_SXXEXX_MULTI.search(name)

@@ -1066,19 +1066,25 @@ async def search_season_episodes(
     if not season_episodes:
         raise HTTPException(404, f"Серии сезона {season_number} не найдены")
 
-    # Переводим неотслеживаемые/пропущенные серии сезона в WANTED
-    now = dt.datetime.utcnow()
-    for ep in season_episodes:
-        ep.monitored = True
-        if ep.status in (EpisodeStatus.IGNORED, EpisodeStatus.MISSING) or (
-            ep.status == EpisodeStatus.UNAIRED and (ep.air_date is None or ep.air_date <= now)
-        ):
-            ep.status = EpisodeStatus.WANTED
-        db.add(ep)
-    db.commit()
+    # Выбираем для поиска неотслеживаемые / разыскиваемые серии сезона, которые ещё не скачаны
+    target_episodes = [
+        ep for ep in season_episodes
+        if (ep.monitored or ep.status == EpisodeStatus.WANTED) and ep.status != EpisodeStatus.DOWNLOADED
+    ]
+    if not target_episodes:
+        target_episodes = [ep for ep in season_episodes if ep.status != EpisodeStatus.DOWNLOADED]
+
+    if not target_episodes:
+        return {
+            "show_id": show_id,
+            "season_number": season_number,
+            "success": True,
+            "message": f"Все серии сезона {season_number} уже скачаны",
+            "grabbed": [],
+        }
 
     try:
-        target_ids = {ep.id for ep in season_episodes}
+        target_ids = {ep.id for ep in target_episodes}
         result = await search_and_grab_show(db, show, episode_ids=target_ids)
         try:
             db.refresh(show)

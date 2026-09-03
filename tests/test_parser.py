@@ -418,6 +418,35 @@ class TestParser(unittest.TestCase):
         self.assertEqual(r11.kind, ReleaseKind.EPISODE)
         self.assertEqual(r11.episodes, [1])
 
+    def test_anime_tv_seasons_and_multi_seasons(self):
+        cases = [
+            ("Re:Zero (ТВ-4) [1080p]", 4, ReleaseKind.SEASON_PACK, [4]),
+            ("Re:Zero [ТВ-4] [1080p]", 4, ReleaseKind.SEASON_PACK, [4]),
+            ("Re:Zero ТВ-4 [1080p]", 4, ReleaseKind.SEASON_PACK, [4]),
+            ("Re:Zero (TV-4) [1080p]", 4, ReleaseKind.SEASON_PACK, [4]),
+            ("Re:Zero TV-4 [1080p]", 4, ReleaseKind.SEASON_PACK, [4]),
+            ("Re:Zero 4 сезон [1080p]", 4, ReleaseKind.SEASON_PACK, [4]),
+            ("Re:Zero 4-й сезон [1080p]", 4, ReleaseKind.SEASON_PACK, [4]),
+            ("Re:Zero IV сезон [1080p]", 4, ReleaseKind.SEASON_PACK, [4]),
+            ("Re:Zero 1-4 сезон [1080p]", 1, ReleaseKind.SEASON_PACK, [1, 2, 3, 4]),
+            ("Re:Zero 1 - 4 сезон [1080p]", 1, ReleaseKind.SEASON_PACK, [1, 2, 3, 4]),
+            ("Re:Zero Сезоны 1-4 [1080p]", 1, ReleaseKind.SEASON_PACK, [1, 2, 3, 4]),
+            ("Re:Zero S01-S04 [1080p]", 1, ReleaseKind.SEASON_PACK, [1, 2, 3, 4]),
+            ("Re:Zero [S1-4] [1080p]", 1, ReleaseKind.SEASON_PACK, [1, 2, 3, 4]),
+            ("Re:Zero (S1-4) [1080p]", 1, ReleaseKind.SEASON_PACK, [1, 2, 3, 4]),
+            ("Re:Zero (ТВ-1-4) [BDRip]", 1, ReleaseKind.SEASON_PACK, [1, 2, 3, 4]),
+            ("Re:Zero (ТВ-1, 2) [BDRip]", 1, ReleaseKind.SEASON_PACK, [1, 2]),
+        ]
+        for name, exp_s, exp_kind, exp_seasons in cases:
+            p = parse_episode(name)
+            self.assertEqual(p.kind, exp_kind, f"Failed kind for {name}")
+            self.assertEqual(p.seasons, exp_seasons, f"Failed seasons for {name}")
+
+        p_ep = parse_episode("Re:Zero (ТВ-4) [E01-E08 of 16] [1080p]")
+        self.assertEqual(p_ep.kind, ReleaseKind.EPISODE)
+        self.assertEqual(p_ep.season, 4)
+        self.assertEqual(p_ep.episodes, list(range(1, 9)))
+
 
 if __name__ == "__main__":
     unittest.main()

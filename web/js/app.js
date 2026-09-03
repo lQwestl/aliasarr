@@ -5570,12 +5570,26 @@ function renderAirDateBadge(airDateStr) {
 async function searchSeasonAuto(button, showId, seasonNumber) {
   const sId = showId || CURRENT_SHOW_ID;
   if (!sId) return;
+
+  // 1. Проверяем, выделил ли пользователь конкретные серии чекбоксами в этом сезоне
+  const block = document.getElementById(`season-block-${seasonNumber}`);
+  const checkedBoxes = block ? Array.from(block.querySelectorAll('.ep-select-checkbox:checked')) : [];
+  const checkedIds = checkedBoxes.map(cb => Number(cb.dataset.episodeId)).filter(id => id);
+
   setModalSearchingState(sId, true);
   await withLoading(button, async () => {
     try {
-      const result = await api(`/api/v1/shows/${sId}/search-season/${seasonNumber}`, {
-        method: "POST",
-      });
+      let result;
+      if (checkedIds.length > 0) {
+        result = await api(`/api/v1/shows/${sId}/search-episodes`, {
+          method: "POST",
+          body: JSON.stringify({ episode_ids: checkedIds }),
+        });
+      } else {
+        result = await api(`/api/v1/shows/${sId}/search-season/${seasonNumber}`, {
+          method: "POST",
+        });
+      }
       toast(result.message, !result.success);
       await refreshShowModal();
     } catch (e) {
@@ -7419,12 +7433,27 @@ async function executeGlobalManualImport() {
 }
 
 async function forceSearchShow(button, showId) {
-  setModalSearchingState(showId, true);
+  const sId = showId || CURRENT_SHOW_ID;
+  if (!sId) return;
+
+  // Проверяем, есть ли выделенные пользователем серии чекбоксами
+  const checkedBoxes = Array.from(document.querySelectorAll('#show-modal-content .ep-select-checkbox:checked'));
+  const checkedIds = checkedBoxes.map(cb => Number(cb.dataset.episodeId)).filter(id => id);
+
+  setModalSearchingState(sId, true);
   await withLoading(button, async () => {
     try {
-      const result = await api(`/api/v1/shows/${showId}/search`, { method: "POST" });
+      let result;
+      if (checkedIds.length > 0) {
+        result = await api(`/api/v1/shows/${sId}/search-episodes`, {
+          method: "POST",
+          body: JSON.stringify({ episode_ids: checkedIds }),
+        });
+      } else {
+        result = await api(`/api/v1/shows/${sId}/search`, { method: "POST" });
+      }
       const count = (result.grabbed || []).length;
-      toast(count ? `${t("dash.wanted")}: ${count}` : (result.status || t("common.none")));
+      toast(count ? `${t("dash.wanted")}: ${count}` : (result.message || result.status || t("common.none")));
       await refreshShowModal();
       loadShows();
     } catch (e) {
