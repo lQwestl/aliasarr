@@ -848,6 +848,10 @@ const TRANSLATIONS = {
 
     // Show Details Modal
     "show.directory": "Директория:",
+    "show.ova_mode_label": "Обработка OVA:",
+    "show.ova_mode_auto": "Авто (по сериям)",
+    "show.ova_mode_season_1": "OVA = Сезон 1 (Genocyber, FLCL...)",
+    "show.ova_mode_specials": "OVA = Спешлы (Сезон 0)",
     "show.not_set": "Не задана",
     "show.btn_sync": "Синхронизация",
     "show.present_on_disk": "Присутствует на диске",
@@ -1879,6 +1883,10 @@ const TRANSLATIONS = {
 
     // Show Details Modal
     "show.directory": "Directory:",
+    "show.ova_mode_label": "OVA Mapping:",
+    "show.ova_mode_auto": "Auto (by episode count)",
+    "show.ova_mode_season_1": "OVA = Season 1 (Genocyber, etc.)",
+    "show.ova_mode_specials": "OVA = Specials (Season 0)",
     "show.not_set": "Not set",
     "show.btn_sync": "Sync Files",
     "show.present_on_disk": "Present on disk",
@@ -5027,6 +5035,15 @@ async function refreshShowModal() {
             <option value="anime" ${show.content_type === "anime" ? "selected" : ""}>${t("settings.cat_anime")}</option>
           </select>
         </div>
+        ${show.content_type !== "movie" ? `
+        <div class="form-col">
+          <label class="hint" title="${CURRENT_LANG === 'en' ? 'How to match releases with [OVA] tag' : 'Как сопоставлять раздачи с тегом [OVA]'}">${t("show.ova_mode_label")}</label>
+          <select class="input" style="max-width:260px" ${canManageLib ? "" : "disabled"} onchange="changeOvaMode(${show.id}, this.value)">
+            <option value="auto" ${(!show.ova_mode || show.ova_mode === "auto") ? "selected" : ""}>${t("show.ova_mode_auto")}</option>
+            <option value="season_1" ${show.ova_mode === "season_1" ? "selected" : ""}>${t("show.ova_mode_season_1")}</option>
+            <option value="specials" ${show.ova_mode === "specials" ? "selected" : ""}>${t("show.ova_mode_specials")}</option>
+          </select>
+        </div>` : ""}
       </div>
 
       <div id="modal-search-status-row" class="search-status-row ${show.is_searching ? "is-searching" : ""}">
@@ -5792,6 +5809,16 @@ async function changeContentType(showId, value) {
     toast(t("settings.toast_saved"));
     await refreshShowModal();
     await loadShows();
+  } catch (e) { toast("Ошибка: " + e.message, true); }
+}
+
+async function changeOvaMode(showId, value) {
+  try {
+    await api(`/api/v1/shows/${showId}`, { method: "PUT", body: JSON.stringify({ ova_mode: value }) });
+    toast(t("settings.toast_saved"));
+    if (CURRENT_SHOW && CURRENT_SHOW.id === showId) {
+      CURRENT_SHOW.ova_mode = value;
+    }
   } catch (e) { toast("Ошибка: " + e.message, true); }
 }
 

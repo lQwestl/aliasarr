@@ -265,6 +265,68 @@ class TestQualityAndMatcher(unittest.TestCase):
         grp = parse_release_group("Табакошка / Yani Neko [2026, WEB-DL]")
         self.assertNotEqual(grp, "DL]")
 
+    def test_ova_mode_mapping_genocyber(self):
+        from unittest.mock import MagicMock
+        from app.services.decision_engine import DecisionEngine
+
+        mock_show = MagicMock()
+        mock_show.id = 99
+        mock_show.title = "Genocyber"
+        mock_show.content_type = "anime"
+        mock_show.quality_profile_id = None
+        mock_show.aliases = [
+            MagicMock(id=1, text="Genocyber", language=MagicMock(value="en"), priority=1),
+            MagicMock(id=2, text="Генокибер", language=MagicMock(value="ru"), priority=2),
+        ]
+        eps = []
+        ep0 = MagicMock()
+        ep0.season_number = 0
+        ep0.episode_number = 1
+        ep0.absolute_number = None
+        ep0.status = "wanted"
+        ep0.downloaded_quality = None
+        ep0.file_path = None
+        eps.append(ep0)
+
+        for i in range(1, 6):
+            ep = MagicMock()
+            ep.season_number = 1
+            ep.episode_number = i
+            ep.absolute_number = None
+            ep.status = "wanted"
+            ep.downloaded_quality = None
+            ep.file_path = None
+            eps.append(ep)
+
+        mock_show.episodes = eps
+        mock_db = MagicMock()
+        mock_db.get.return_value = None
+
+        rel = "Genocyber / Генокибер [OVA] [01-05 из 05] [1994, BDRip 1080p]"
+        wanted_s1 = [e for e in eps if e.season_number == 1]
+
+        # 1. ova_mode = 'season_1'
+        mock_show.ova_mode = "season_1"
+        dec1 = DecisionEngine.evaluate_release(
+            db=mock_db, title=rel, show=mock_show, episodes=wanted_s1, size_bytes=5 * 1024 * 1024 * 1024, seeders=15
+        )
+        self.assertTrue(dec1.approved, f"Failed season_1: {dec1.rejections}")
+
+        # 2. ova_mode = 'auto'
+        mock_show.ova_mode = "auto"
+        dec2 = DecisionEngine.evaluate_release(
+            db=mock_db, title=rel, show=mock_show, episodes=wanted_s1, size_bytes=5 * 1024 * 1024 * 1024, seeders=15
+        )
+        self.assertTrue(dec2.approved, f"Failed auto: {dec2.rejections}")
+
+        # 3. ova_mode = 'specials'
+        mock_show.ova_mode = "specials"
+        dec3 = DecisionEngine.evaluate_release(
+            db=mock_db, title=rel, show=mock_show, episodes=wanted_s1, size_bytes=5 * 1024 * 1024 * 1024, seeders=15
+        )
+        self.assertFalse(dec3.approved)
+        self.assertIn("Релиз относится к сезону S00, а разыскивается S01", dec3.rejections)
+
     def test_builtin_custom_formats_and_reset(self):
         from types import SimpleNamespace
         from app.services.custom_formats import (

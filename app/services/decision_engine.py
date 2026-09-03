@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, List, Optional
+import re
 
 try:
     from sqlalchemy.orm import Session
@@ -124,6 +125,37 @@ class DecisionEngine:
             s_lbl = detect_season_label(title)
 
             if show.content_type in ("series", "anime"):
+                # Обработка OVA согласно настройке тайтла ova_mode (auto | season_1 | specials)
+                ova_mode = getattr(show, "ova_mode", "auto") or "auto"
+                is_ova_release = (
+                    s_lbl.get("type") == "ova_ona"
+                    or (match.parsed.matched_pattern and "ova" in match.parsed.matched_pattern.lower())
+                    or re.search(r"\[ova(?:[-_ ]?\d+)?\]|\bova\b", title, re.IGNORECASE) is not None
+                )
+
+                remap_to_season_1 = False
+                if is_ova_release and ova_mode != "specials":
+                    if ova_mode == "season_1":
+                        remap_to_season_1 = True
+                    elif ova_mode == "auto":
+                        show_all_eps = getattr(show, "episodes", []) or []
+                        s0_count = sum(1 for e in show_all_eps if getattr(e, "season_number", None) == 0)
+                        s1_count = sum(1 for e in show_all_eps if getattr(e, "season_number", None) == 1)
+                        if match.parsed.episodes:
+                            max_ep = max(match.parsed.episodes)
+                            if max_ep > s0_count and max_ep <= s1_count:
+                                remap_to_season_1 = True
+                            elif episodes and 0 not in {getattr(e, "season_number", None) for e in episodes} and 1 in {getattr(e, "season_number", None) for e in episodes}:
+                                remap_to_season_1 = True
+                        elif match.parsed.kind == ReleaseKind.SEASON_PACK and s0_count <= 1 and s1_count >= 2:
+                            remap_to_season_1 = True
+
+                if remap_to_season_1:
+                    match.parsed.season = 1
+                    s_lbl["season"] = 1
+                    if s_lbl.get("type") == "ova_ona":
+                        s_lbl["type"] = "numbered"
+
                 if match.parsed.kind == ReleaseKind.UNKNOWN and s_lbl["type"] == "none":
                     rejections.append("Релиз не содержит информации о сезоне или сериях сериала")
 

@@ -52,6 +52,7 @@ class ShowCreate(BaseModel):
     path: Optional[str] = None
     quality_profile_id: Optional[int] = None
     content_type: str = "series"  # movie | series | anime
+    ova_mode: str = "auto"  # auto | season_1 | specials
     aliases: list[AliasCreate] = []
 
 
@@ -67,6 +68,7 @@ class ShowUpdate(BaseModel):
     country: Optional[str] = None
     genre: Optional[str] = None
     content_type: Optional[str] = None
+    ova_mode: Optional[str] = None
     expected_year: Optional[int] = None
     expected_quarter: Optional[int] = None
     in_calendar: Optional[bool] = None
@@ -91,6 +93,7 @@ class ShowOut(BaseModel):
     country: Optional[str] = None
     genre: Optional[str] = None
     content_type: str = "series"
+    ova_mode: str = "auto"
     premiere_date: Optional[dt.datetime] = None
     expected_year: Optional[int] = None
     expected_quarter: Optional[int] = None

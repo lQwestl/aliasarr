@@ -116,6 +116,7 @@ class Show(Base):
     country: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     genre: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
     content_type: Mapped[str] = mapped_column(String(20), default="series", index=True)  # movie | series | anime (см. ContentCategory)
+    ova_mode: Mapped[str] = mapped_column(String(20), default="auto")  # auto | season_1 | specials
     premiere_date: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
     # Ожидаемый год/квартал выхода (когда точной даты премьеры ещё нет в метаданных)
     expected_year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
