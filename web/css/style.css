@@ -5854,6 +5854,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     box-sizing: border-box !important;
     margin-top: 8px;
   }
+  .cf-guide-btn {
+    display: none !important;
+  }
   .cf-header-actions {
     width: 100% !important;
     margin-top: 8px;
