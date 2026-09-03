@@ -1351,8 +1351,36 @@
         <div class="wiki-subcard">
           <div class="wiki-subcard-title"><i data-lucide="tag" class="ico-xs" style="color:#818cf8"></i> <span class="lang-ru">Авто-генерация алиасов</span><span class="lang-en">Automatic Alias Enrichment</span></div>
           <p class="wiki-subcard-text">
-            <span class="lang-ru">При добавлении тайтла метаданные автоматически наполняют список алиасов (русский перевод, оригинальное название, ромадзи, английское название).</span>
-            <span class="lang-en">Metadata sources automatically populate alias candidates (Russian translation, original title, Romaji, English title, transliterations).</span>
+            <span class="lang-ru">При добавлении тайтла метаданные автоматически наполняют список алиасов (русский перевод, оригинальное название, ромадзи, английское название, очистка суффиксов <code>(ТВ-1)</code>).</span>
+            <span class="lang-en">Metadata sources automatically populate alias candidates (Russian translation, original title, Romaji, English title, strip <code>(TV-1)</code> markers).</span>
+          </p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="git-merge" class="ico-xs" style="color:#10b981"></i> <span class="lang-ru">Каскадный матчинг (Waterfall)</span><span class="lang-en">Title Matching Waterfall</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Парсер проводит многопроходное сопоставление: точное совпадение алиаса $\to$ префиксный поиск $\to$ сопоставление по годам $\to$ распознавание диапазона серий $\to$ отсечение ложных мультисезонов.</span>
+            <span class="lang-en">Multi-pass cascade: exact alias $\to$ prefix matching $\to$ year validation $\to$ episode range detection $\to$ multi-season false positive rejection.</span>
+          </p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="split" class="ico-xs" style="color:#f59e0b"></i> <span class="lang-ru">Сплит-куры и Part 2 (Offsets)</span><span class="lang-en">Split-Cour &amp; Part 2 Offsets</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Автоматическое определение релизов <code>Part 2</code> / <code>Cour 2</code> с пересчетом локальной нумерации серий (серии 1–12 второй части маппятся на серии 13–24 в карточке).</span>
+            <span class="lang-en">Automatic detection of <code>Part 2</code> / <code>Cour 2</code> with intelligent offset calculation (mapping part episodes 1–12 to database episodes 13–24).</span>
+          </p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="shield-alert" class="ico-xs" style="color:#ef4444"></i> <span class="lang-ru">Фильтрация не-видео контента</span><span class="lang-en">Non-Video Content Shield</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Автоматический отсев раздач игр (ROM, ISO, Repack), софта, аудиокниг, манги, артбуков и саундтреков при поиске видеоконтента.</span>
+            <span class="lang-en">Automatic rejection of games (ROM, ISO, Repacks), software, audiobooks, manga, and standalone OSTs during media searches.</span>
+          </p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="check-check" class="ico-xs" style="color:#38bdf8"></i> <span class="lang-ru">Защита от ложных диапазонов</span><span class="lang-en">Multi-Season Range Safety</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Конструкции вида <code>5 сезон: 1-20 серии из 20</code> надежно распознаются как 5-й сезон, исключая ошибочное определение как мультисезона <code>1-20</code>.</span>
+            <span class="lang-en">Patterns like <code>5 сезон: 1-20 серии</code> are accurately identified as Season 5, preventing false identification as multi-season range <code>1-20</code>.</span>
           </p>
         </div>
       </div>
@@ -1412,6 +1440,10 @@
             <tr>
               <td><strong>Upgrade Allowed</strong><br><span style="font-size:11.5px; color:var(--text-muted);"><span class="lang-ru">Разрешить апгрейд</span><span class="lang-en">Allow Upgrades</span></span></td>
               <td><span class="lang-ru">Если включено — Aliasarr автоматически скачает более качественную версию при её появлении (например, заменит WEBRip на BDRip или озвучку ColdFilm на LostFilm/Дубляж). Если выключено — останется первый скачанный релиз.</span><span class="lang-en">When enabled, Aliasarr will automatically download superior releases as they appear (e.g. replacing WEBRip with BDRip or upgrading audio tracks). When disabled, the first acquired release is retained.</span></td>
+            </tr>
+            <tr>
+              <td><strong>Canonical Rank</strong><br><span style="font-size:11.5px; color:var(--text-muted);"><span class="lang-ru">Канонический ранг</span><span class="lang-en">Canonical Rank</span></span></td>
+              <td><span class="lang-ru">Приоритет качества всегда строго рассчитывается по физическому разрешению и источнику (<code>2160p &gt; 1080p &gt; 720p &gt; 480p</code>). Вне зависимости от того, в каком порядке чипы были выбраны в профиле (снизу вверх или сверху вниз), 1080p всегда имеет приоритет над 480p. При сохранении профиля список качеств в UI автоматически упорядочивается от высшего к низшему.</span><span class="lang-en">Quality hierarchy is strictly anchored to canonical resolution ranks (<code>2160p &gt; 1080p &gt; 720p &gt; 480p</code>). Regardless of how chips were selected, 1080p always triumphs over 480p. On save, profile chips automatically sort descending from best to lowest.</span></td>
             </tr>
           </tbody>
         </table>
@@ -1883,6 +1915,25 @@
           </tbody>
         </table>
       </div>
+
+      <div class="wiki-h3"><span class="lang-ru">Умный автопоиск и оценка полноты сезона (Season Completeness):</span><span class="lang-en">Smart Auto-Search &amp; Season Completeness Engine:</span></div>
+      
+      <div class="wiki-card-grid">
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="package-check" class="ico-xs" style="color:var(--teal)"></i> <span class="lang-ru">Приоритет полного пака сезона</span><span class="lang-en">Full Season Pack Precedence</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Раздачи, закрывающие 100% серий сезона в карточке (все 19–20 серий) или являющиеся цельным сезонным паком, получают флаг <code>is_full_season = 1</code> и безусловный приоритет над частичными раздачами (1–10 серий). Даже если разыскивается лишь пара недостающих серий, Aliasarr выберет полноценный качественный пак, а селективный загрузчик отфильтрует файлы.</span>
+            <span class="lang-en">Releases covering 100% of season episodes or full season packs receive <code>is_full_season = 1</code>, decisively beating partial releases (1–10 eps). Even if only 2 episodes are wanted, the full pack wins and selective download handles file isolation.</span>
+          </p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="layers" class="ico-xs" style="color:#818cf8"></i> <span class="lang-ru">Гарантия базовых названий в поиске</span><span class="lang-en">Guaranteed Core Titles</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Запросы автопоиска обязательно включают чистые базовые имена тайтла (<code>Robot Chicken</code>, <code>Робоцып</code>) в первой же пачке запросов наряду с <code>Season X</code> и <code>Сезон X</code>. Это исключает потерю полных коллекций и мультисезонных паков, которые трекеры не отдают по узким запросам.</span>
+            <span class="lang-en">Auto-search queries always place clean show titles at the front of query batches alongside <code>Season X</code>, guaranteeing complete multi-season torrents and collections are retrieved.</span>
+          </p>
+        </div>
+      </div>
     </section>
 
     <!-- 15. КЛИЕНТЫ ЗАГРУЗКИ -->
@@ -1890,22 +1941,44 @@
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="download-cloud"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">15. Клиенты загрузки</span>
-          <span class="lang-en">15. Download Clients</span>
+          <span class="lang-ru">15. Клиенты загрузки и Селективное скачивание</span>
+          <span class="lang-en">15. Download Clients &amp; Selective Download</span>
         </h2>
         <span class="wiki-section-badge">DOWNLOADERS</span>
       </div>
       <p class="wiki-p">
-        <span class="lang-ru">Поддерживаются популярные торрент-клиенты: <strong>qBittorrent</strong>, <strong>Transmission</strong>, <strong>Deluge</strong>, <strong>rTorrent</strong>, <strong>Aria2</strong>, <strong>SABnzbd</strong>.</span>
-        <span class="lang-en">Supported clients include: <strong>qBittorrent</strong>, <strong>Transmission</strong>, <strong>Deluge</strong>, <strong>rTorrent</strong>, <strong>Aria2</strong>, and <strong>SABnzbd</strong>.</span>
+        <span class="lang-ru">Поддерживаются популярные торрент-клиенты: <strong>qBittorrent</strong>, <strong>Transmission (3.x и 4.x с Integer RPC)</strong>, <strong>Deluge</strong>, <strong>rTorrent</strong>, <strong>Aria2</strong>, <strong>SABnzbd</strong>.</span>
+        <span class="lang-en">Supported clients include: <strong>qBittorrent</strong>, <strong>Transmission (3.x &amp; 4.x with Integer RPC)</strong>, <strong>Deluge</strong>, <strong>rTorrent</strong>, <strong>Aria2</strong>, and <strong>SABnzbd</strong>.</span>
       </p>
 
-      <div class="wiki-callout wiki-callout-note">
-        <i data-lucide="check" class="callout-ico ico-sm"></i>
-        <div>
-          <strong class="lang-ru">Выборочное скачивание:</strong><strong class="lang-en">Selective Episode Downloading:</strong>
-          <span class="lang-ru"> При захвате релиза для конкретных серий Aliasarr автоматически выключает лишние файлы раздачи в клиенте, загружая только нужные вам серии.</span>
-          <span class="lang-en"> When grabbing releases for specific episodes, Aliasarr automatically disables unneeded files in the torrent client to save disk space.</span>
+      <div class="wiki-card-grid">
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="check-square" class="ico-xs" style="color:var(--teal)"></i> <span class="lang-ru">Селективная загрузка файлов</span><span class="lang-en">Selective File Isolation</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">При захвате релиза для конкретных серий Aliasarr автоматически выключает лишние файлы раздачи в клиенте (образцы, чужие сезоны, трейлеры), загружая только нужные вам серии.</span>
+            <span class="lang-en">When downloading specific episodes, Aliasarr automatically disables unneeded files in the torrent client (samples, unneeded seasons, trailers) to conserve disk space.</span>
+          </p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="type" class="ico-xs" style="color:#818cf8"></i> <span class="lang-ru">Матчинг по именам серий (Title Match)</span><span class="lang-en">Title Matching Engine</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Решает проблему смещения нумерации, когда рождественский выпуск или пилот включен релизером как E01 (сдвигая все серии сезона на 1). Движок сопоставляет файлы по названиям эпизодов в карточке тайтла, отключает спешл и включает точные серии.</span>
+            <span class="lang-en">Resolves numbering offsets when a special is packaged as E01 (shifting all season episodes by 1). Matches files by episode title, disabling unwanted specials and grabbing target episodes.</span>
+          </p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="hash" class="ico-xs" style="color:#10b981"></i> <span class="lang-ru">Римские и арабские цифры</span><span class="lang-en">Roman &amp; Arabic Numerals</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Автоматическая нормализация обозначений (<code>Casablankman 2</code> $\leftrightarrow$ <code>Casablankman II</code>, <code>I</code> $\to$ <code>1</code>, <code>II</code> $\to$ <code>2</code>) с двухфакторным ключом <code>(score, matched_count)</code> для исключения коллизий сиквелов и многосерийных арок.</span>
+            <span class="lang-en">Automatic normalization of sequel numerals (<code>Casablankman 2</code> $\leftrightarrow$ <code>Casablankman II</code>) with dual-factor scoring <code>(score, matched_count)</code> to eliminate arc collisions.</span>
+          </p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="cpu" class="ico-xs" style="color:#f59e0b"></i> <span class="lang-ru">Transmission Integer RPC</span><span class="lang-en">Transmission Integer RPC</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Полная поддержка спецификаций Transmission 3.x и 4.x с передачей числовых целочисленных идентификаторов в RPC-запросах селективного управления файлами.</span>
+            <span class="lang-en">Full compliance with Transmission 3.x and 4.x RPC specs using strictly integer torrent identifiers for file mutation requests.</span>
+          </p>
         </div>
       </div>
     </section>
@@ -1915,17 +1988,42 @@
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="film"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">16. Спецвыпуски (Specials, OVA) и Ручной импорт</span>
-          <span class="lang-en">16. Specials, OVA &amp; Manual Import</span>
+          <span class="lang-ru">16. Спецвыпуски (Specials, OVA) и Режимы маппинга</span>
+          <span class="lang-en">16. Specials, OVA &amp; Mapping Modes</span>
         </h2>
         <span class="wiki-section-badge">SPECIALS</span>
       </div>
       <p class="wiki-p">
-        <span class="lang-ru">Спецвыпуски (OVA, фильмовые вставки, SP01, рекапы) часто имеют нестандартную нумерацию. Aliasarr предоставляет интерактивный мастер ручного сопоставления:</span>
-        <span class="lang-en">Specials (OVA, side stories, SP01, recaps) often have non-standard naming. Aliasarr provides an interactive mapping wizard:</span>
+        <span class="lang-ru">Спецвыпуски (OVA, фильмовые вставки, SP01, рекапы) часто имеют нестандартную нумерацию. Aliasarr предоставляет гибкие режимы маппинга и интерактивный мастер ручного сопоставления:</span>
+        <span class="lang-en">Specials (OVA, side stories, SP01, recaps) often have non-standard naming. Aliasarr provides flexible mapping modes and an interactive wizard:</span>
       </p>
 
-      <ul style="color:var(--text); font-size:14px; line-height:1.7;">
+      <div class="table-responsive">
+        <table class="wiki-table">
+          <thead>
+            <tr>
+              <th style="width:200px;"><span class="lang-ru">Режим OVA (ova_mode)</span><span class="lang-en">OVA Mode</span></th>
+              <th><span class="lang-ru">Поведение и область применения</span><span class="lang-en">Behavior and Use Case</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>auto</strong><br><span style="font-size:11.5px; color:var(--text-muted);"><span class="lang-ru">Автоопределение (дефолт)</span><span class="lang-en">Auto-detect (Default)</span></span></td>
+              <td><span class="lang-ru">Если тайтл состоит из OVA-серий и в базе данных нет 0 сезона (Specials) либо число серий совпадает с 1 сезоном, релизы OVA автоматически сопоставляются с Сезоном 1.</span><span class="lang-en">If a title consists of OVA releases and has no Season 0 in the database, OVA episodes automatically map to Season 1.</span></td>
+            </tr>
+            <tr>
+              <td><strong>season_1</strong><br><span style="font-size:11.5px; color:var(--text-muted);"><span class="lang-ru">Принудительно Сезон 1</span><span class="lang-en">Force Season 1</span></span></td>
+              <td><span class="lang-ru">Любые OVA/ONA релизы сопоставляются исключительно с 1 сезоном (актуально для многих OVA-тайтлов Shikimori/MyAnimeList).</span><span class="lang-en">Directs all OVA/ONA releases strictly into Season 1 episodes.</span></td>
+            </tr>
+            <tr>
+              <td><strong>specials</strong><br><span style="font-size:11.5px; color:var(--text-muted);"><span class="lang-ru">Классический (Сезон 0)</span><span class="lang-en">Classic (Season 0)</span></span></td>
+              <td><span class="lang-ru">Классическое сопоставление Sonarr/Radarr — все OVA/Special серии строго направляются в Сезон 0.</span><span class="lang-en">Classic Sonarr/Radarr behavior: all OVA/Special episodes map strictly to Season 0.</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ul style="color:var(--text); font-size:14px; line-height:1.7; margin-top:16px;">
         <li><strong class="lang-ru">Индикатор готовности:</strong><strong class="lang-en">Ready Indicator:</strong> <span class="lang-ru">В карточке тайтла подсвечивается кнопка «Спецвыпуски (готов к импорту)» при завершении скачивания.</span><span class="lang-en">Show card displays highlighted «Specials (ready to import)» badge upon download completion.</span></li>
         <li><strong class="lang-ru">Привязка к S00 или сезону:</strong><strong class="lang-en">Mapping to S00 or Season:</strong> <span class="lang-ru">Интерактивный выбор целевой серии или сезона Specials.</span><span class="lang-en">Interactive assignment to Season 00 or specific season episode.</span></li>
         <li><strong class="lang-ru">Изоляция шрифтов:</strong><strong class="lang-en">Font Isolation:</strong> <span class="lang-ru">Автоматическое создание <code>.ignore</code> файлов в папках <code>fonts/</code> для Jellyfin/Emby/Plex.</span><span class="lang-en">Automatic generation of <code>.ignore</code> files in <code>fonts/</code> directories for clean Jellyfin/Emby libraries.</span></li>
