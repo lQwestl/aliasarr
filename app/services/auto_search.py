@@ -1159,42 +1159,6 @@ async def _do_search_and_grab(
     # - Если полного пака нет, последовательно берутся лучшие паки по сезонам с приоритетных трекеров,
     #   а недостающие сезоны добираются со следующих трекеров.
     # - Железная гарантия: ровно один релиз на каждый сезон (никаких параллельных дублей).
-    remaining = dict(episodes_by_key)  # (season, ep) -> Episode ещё не закрыт релизом
-    grabbed_seasons: set[int] = set()
-    to_grab: list[dict] = []
-    for c in scored_candidates:
-        still_covered = [
-            ep for ep in c["covered"]
-            if (ep.season_number, ep.episode_number) in remaining
-        ]
-        if not still_covered:
-            continue
-
-        # Проверяем, не закрыт ли уже этот сезон другим ранее выбранным релизом
-        candidate_seasons = {ep.season_number for ep in still_covered}
-        if not (candidate_seasons - grabbed_seasons) and len(candidate_seasons) == 1:
-            continue
-
-        to_grab.append({**c, "covered": still_covered})
-        for ep in still_covered:
-            remaining.pop((ep.season_number, ep.episode_number), None)
-            grabbed_seasons.add(ep.season_number)
-        if not remaining:
-            break
-
-    if not to_grab:
-        log_release_event(
-            stage="decision",
-            level="warning",
-            show_title=show.title,
-            show_id=show.id,
-            message="Ни один из кандидатов не был выбран для захвата (разыскиваемые серии уже закрыты)",
-            details={"scored_candidates_count": len(scored_candidates)},
-            db=db,
-        )
-        return {"show_id": show.id, "grabbed": [], "criteria": search_terms}
-
-    grabbed = []
     download_client_row = (
         db.query(DownloadClient).filter(DownloadClient.enabled == True).order_by(  # noqa: E712
             DownloadClient.is_default.desc()
@@ -1208,13 +1172,37 @@ async def _do_search_and_grab(
             show_title=show.title,
             show_id=show.id,
             message="Не удалось отправить релиз в загрузчик: нет активного/включенного клиента загрузки (Download Client). Включите загрузчик в Настройки -> Загрузчики.",
-            details={"to_grab_count": len(to_grab)},
+            details={"scored_candidates_count": len(scored_candidates)},
             db=db,
         )
         return {"show_id": show.id, "grabbed": [], "criteria": search_terms}
 
-    for c in to_grab:
-        rel, match, indexer, covered = c["rel"], c["match"], c["indexer"], c["covered"]
+    # Динамический алгоритм захвата с автоматическим переходом к следующему релизу при сбое:
+    # - Если захват первого по приоритету релиза падает (например, 404 у трекера или ошибка сети),
+    #   серии не сбрасываются, и система автоматически пробует захватить следующий подходящий релиз.
+    # - Железная гарантия: ровно один успешно захваченный релиз на каждый сезон (никаких параллельных дублей).
+    remaining = dict(episodes_by_key)  # (season, ep) -> Episode ещё не закрыт релизом
+    grabbed_seasons: set[int] = set()
+    grabbed = []
+    dl_client = get_client(download_client_row)
+
+    for c in scored_candidates:
+        if not remaining:
+            break
+
+        still_covered = [
+            ep for ep in c["covered"]
+            if (ep.season_number, ep.episode_number) in remaining
+        ]
+        if not still_covered:
+            continue
+
+        # Проверяем, не закрыт ли уже этот сезон другим ранее успешно захваченным релизом
+        candidate_seasons = {ep.season_number for ep in still_covered}
+        if not (candidate_seasons - grabbed_seasons) and len(candidate_seasons) == 1:
+            continue
+
+        rel, match, indexer, covered = c["rel"], c["match"], c["indexer"], still_covered
         # Папка временного скачивания для соответствующей категории контента
         if show.content_type == "movie":
             save_path = settings.download_folder_movies
@@ -1222,6 +1210,7 @@ async def _do_search_and_grab(
             save_path = settings.download_folder_anime
         else:
             save_path = settings.download_folder_series
+
         # Находим старые торрент-хэши для этих серий (если раздача заменяется/апгрейдится),
         # чтобы удалить старый дубликат из торрент-клиента и не качать дважды
         old_hashes_to_cleanup = {
@@ -1230,7 +1219,6 @@ async def _do_search_and_grab(
         }
 
         try:
-            dl_client = get_client(download_client_row)
             torrent_hash = await dl_client.add_torrent(rel.download_url, download_client_row.category, save_path)
             if not torrent_hash:
                 raise RuntimeError(f"Загрузчик '{download_client_row.name}' не подтвердил добавление раздачи (хэш не получен)")
@@ -1263,8 +1251,98 @@ async def _do_search_and_grab(
                 },
                 db=db,
             )
+
+            # Удаляем старые дублирующие раздачи из торрент-клиента
+            for old_hash in old_hashes_to_cleanup:
+                if old_hash != torrent_hash:
+                    try:
+                        await dl_client.remove_torrent(old_hash, delete_files=True)
+                        logger.info("Удалена старая дублирующая раздача %s из загрузчика", old_hash)
+                    except Exception as exc:
+                        logger.warning("Не удалось удалить старую раздачу %s: %s", old_hash, exc)
+
+            for ep in covered:
+                ep.status = EpisodeStatus.DOWNLOADING
+                ep.download_client_id = download_client_row.id
+                ep.torrent_hash = torrent_hash
+                remaining.pop((ep.season_number, ep.episode_number), None)
+                grabbed_seasons.add(ep.season_number)
+                db.add(ep)
+
+            # Для сериалов/аниме запускаем selective download в фоне, для фильмов — гарантируем включение всех файлов
+            if torrent_hash:
+                try:
+                    if show.content_type == "movie":
+                        asyncio.create_task(_ensure_movie_files_wanted(dl_client, torrent_hash))
+                    else:
+                        target_eps_data = [
+                            Episode(
+                                id=ep.id,
+                                season_number=ep.season_number,
+                                episode_number=ep.episode_number,
+                                absolute_number=ep.absolute_number,
+                            )
+                            for ep in covered
+                        ]
+                        asyncio.create_task(
+                            _limit_torrent_files_to_episodes(
+                                dl_client,
+                                torrent_hash,
+                                target_eps_data,
+                                None,
+                                explicit_episode_ids=episode_ids,
+                                content_type=show.content_type,
+                            )
+                        )
+                except Exception as exc:
+                    logger.warning("Не удалось запланировать обработку файлов раздачи: %s", exc)
+
+            topic_guid = rel.guid or rel.download_url or rel.infohash or str(uuid.uuid4())
+            topic_url = rel.page_url or rel.download_url or ""
+            tracked = TrackedRelease(
+                show_id=show.id,
+                indexer_id=indexer.id,
+                topic_guid=topic_guid,
+                topic_url=topic_url,
+                infohash=torrent_hash or rel.infohash,
+                downloaded_episodes=[{"season": ep.season_number, "episode": ep.episode_number} for ep in covered],
+                last_checked_at=dt.datetime.utcnow(),
+            )
+            db.add(tracked)
+
+            if covered:
+                db.add(DownloadHistory(
+                    show_id=show.id, episode_id=covered[0].id, release_title=rel.title,
+                    indexer_id=indexer.id, event_type="grabbed",
+                    matched_alias=match.alias_text, show_title_snapshot=show.title,
+                ))
+            db.commit()
+
+            is_upgrade = any(ep.status == EpisodeStatus.DOWNLOADED for ep in covered)
+            title_linked = f'<a href="{rel.guid}">«{show.title}»</a>' if rel.guid else f"«{show.title}»"
+
+            if show.content_type == "movie":
+                yr_str = f" ({show.year})" if show.year else ""
+                action_text = "Обнаружено лучшее качество и начато скачивание для фильма" if is_upgrade else "Захвачен релиз для фильма"
+                notify_msg = f"{action_text} {title_linked}{yr_str}, сиды: {rel.seeders}: {rel.title}"
+            else:
+                ep_list = ", ".join(f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in covered)
+                action_text = "Обнаружено лучшее качество и начато скачивание для" if is_upgrade else "Захвачен релиз для"
+                notify_msg = f"{action_text} {title_linked} ({ep_list}), сиды: {rel.seeders}: {rel.title}"
+
+            try:
+                await notify_all(db, "grab", notify_msg)
+            except Exception as exc:
+                logger.warning("Не удалось отправить уведомление о захвате: %s", exc)
+
+            for ep in covered:
+                grabbed.append({
+                    "episode_id": ep.id, "season": ep.season_number, "episode": ep.episode_number,
+                    "release": rel.title, "score": c["score"], "seeders": rel.seeders,
+                })
+
         except Exception as exc:
-            logger.error("Не удалось отправить релиз в download client: %s", exc)
+            logger.error("Не удалось отправить релиз '%s' в download client: %s", rel.title, exc)
             log_release_event(
                 stage="grab",
                 level="error",
@@ -1272,7 +1350,7 @@ async def _do_search_and_grab(
                 show_id=show.id,
                 release_title=rel.title,
                 indexer=getattr(indexer, "name", "Torznab"),
-                message=f"Ошибка отправки релиза в загрузчик '{download_client_row.name}': {exc}",
+                message=f"Ошибка отправки релиза в загрузчик '{download_client_row.name}': {exc}. Пробуем следующий доступный релиз...",
                 details={
                     "error": str(exc),
                     "download_url": getattr(rel, "download_url", None),
@@ -1283,92 +1361,16 @@ async def _do_search_and_grab(
             )
             continue
 
-        # Удаляем старые дублирующие раздачи из торрент-клиента
-        for old_hash in old_hashes_to_cleanup:
-            if old_hash != torrent_hash:
-                try:
-                    await dl_client.remove_torrent(old_hash, delete_files=True)
-                    logger.info("Удалена старая дублирующая раздача %s из загрузчика", old_hash)
-                except Exception as exc:
-                    logger.warning("Не удалось удалить старую раздачу %s: %s", old_hash, exc)
-
-        for ep in covered:
-            ep.status = EpisodeStatus.DOWNLOADING
-            ep.download_client_id = download_client_row.id
-            ep.torrent_hash = torrent_hash
-            db.add(ep)
-
-        # Для сериалов/аниме запускаем selective download в фоне, для фильмов — гарантируем включение всех файлов
-        if torrent_hash:
-            try:
-                if show.content_type == "movie":
-                    asyncio.create_task(_ensure_movie_files_wanted(dl_client, torrent_hash))
-                else:
-                    target_eps_data = [
-                        Episode(
-                            id=ep.id,
-                            season_number=ep.season_number,
-                            episode_number=ep.episode_number,
-                            absolute_number=ep.absolute_number,
-                        )
-                        for ep in covered
-                    ]
-                    asyncio.create_task(
-                        _limit_torrent_files_to_episodes(
-                            dl_client,
-                            torrent_hash,
-                            target_eps_data,
-                            None,
-                            explicit_episode_ids=episode_ids,
-                            content_type=show.content_type,
-                        )
-                    )
-            except Exception as exc:
-                logger.warning("Не удалось запланировать обработку файлов раздачи: %s", exc)
-
-        topic_guid = rel.guid or rel.download_url or rel.infohash or str(uuid.uuid4())
-        topic_url = rel.page_url or rel.download_url or ""
-        tracked = TrackedRelease(
+    if not grabbed:
+        log_release_event(
+            stage="decision",
+            level="warning",
+            show_title=show.title,
             show_id=show.id,
-            indexer_id=indexer.id,
-            topic_guid=topic_guid,
-            topic_url=topic_url,
-            infohash=torrent_hash or rel.infohash,
-            downloaded_episodes=[{"season": ep.season_number, "episode": ep.episode_number} for ep in covered],
-            last_checked_at=dt.datetime.utcnow(),
+            message="Ни один из кандидатов не был успешно захвачен (ошибки добавления в загрузчик или разыскиваемые серии уже закрыты)",
+            details={"scored_candidates_count": len(scored_candidates)},
+            db=db,
         )
-        db.add(tracked)
-
-        if covered:
-            db.add(DownloadHistory(
-                show_id=show.id, episode_id=covered[0].id, release_title=rel.title,
-                indexer_id=indexer.id, event_type="grabbed",
-                matched_alias=match.alias_text, show_title_snapshot=show.title,
-            ))
-        db.commit()
-
-        is_upgrade = any(ep.status == EpisodeStatus.DOWNLOADED for ep in covered)
-        title_linked = f'<a href="{rel.guid}">«{show.title}»</a>' if rel.guid else f"«{show.title}»"
-        
-        if show.content_type == "movie":
-            yr_str = f" ({show.year})" if show.year else ""
-            action_text = "Обнаружено лучшее качество и начато скачивание для фильма" if is_upgrade else "Захвачен релиз для фильма"
-            notify_msg = f"{action_text} {title_linked}{yr_str}, сиды: {rel.seeders}: {rel.title}"
-        else:
-            ep_list = ", ".join(f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in covered)
-            action_text = "Обнаружено лучшее качество и начато скачивание для" if is_upgrade else "Захвачен релиз для"
-            notify_msg = f"{action_text} {title_linked} ({ep_list}), сиды: {rel.seeders}: {rel.title}"
-
-        try:
-            await notify_all(db, "grab", notify_msg)
-        except Exception as exc:
-            logger.warning("Не удалось отправить уведомление о захвате: %s", exc)
-
-        for ep in covered:
-            grabbed.append({
-                "episode_id": ep.id, "season": ep.season_number, "episode": ep.episode_number,
-                "release": rel.title, "score": c["score"], "seeders": rel.seeders,
-            })
 
     from app.services.task_manager import task_manager
     async with task_manager.track(

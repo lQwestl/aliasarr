@@ -166,12 +166,13 @@ async def _fetch_torrent_content_if_url(url_or_magnet: str) -> tuple[Optional[by
     }
 
     current_url = url_or_magnet
+    last_err = ""
     for _ in range(5):
         if current_url.startswith("magnet:"):
             return None, current_url
 
         try:
-            async with httpx.AsyncClient(timeout=20.0, follow_redirects=False, verify=False, headers=headers) as client:
+            async with httpx.AsyncClient(timeout=25.0, follow_redirects=False, verify=False, headers=headers) as client:
                 resp = await client.get(current_url)
 
                 # Обработка редиректов (301, 302, 303, 307, 308)
@@ -180,11 +181,7 @@ async def _fetch_torrent_content_if_url(url_or_magnet: str) -> tuple[Optional[by
                     if location:
                         if location.startswith("magnet:"):
                             return None, location
-                        if location.startswith("/"):
-                            parsed = urllib.parse.urlparse(current_url)
-                            current_url = f"{parsed.scheme}://{parsed.netloc}{location}"
-                        else:
-                            current_url = location
+                        current_url = urllib.parse.urljoin(current_url, location)
                         continue
 
                 if resp.status_code == 200 and resp.content:
@@ -206,14 +203,19 @@ async def _fetch_torrent_content_if_url(url_or_magnet: str) -> tuple[Optional[by
                     if content.startswith(b"d") or b"4:info" in content:
                         return content, current_url
                     else:
-                        logger.warning("Ответ по URL %s не является торрентом (длина: %d, начало: %r)", current_url, len(content), text_preview[:50])
+                        last_err = f"Ответ индексатора не является торрент-файлом (длина {len(content)}, начало: {text_preview[:60]})"
+                        logger.warning("%s: %s", last_err, current_url)
                 else:
-                    logger.warning("Ошибка скачивания торрента по URL %s (HTTP %s): %s", current_url, resp.status_code, resp.text[:200])
+                    last_err = f"HTTP {resp.status_code}"
+                    logger.warning("Ошибка скачивания торрента по URL %s: %s", current_url, last_err)
                 break
         except Exception as exc:
+            last_err = f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
             logger.warning("Ошибка запроса торрента по URL (%s): %s", current_url, exc)
             break
 
+    if last_err:
+        raise RuntimeError(f"Не удалось скачать .torrent файл с индексатора ({last_err})")
     return None, url_or_magnet
 
 
@@ -517,7 +519,7 @@ class TransmissionClient(BaseDownloadClient):
         if self._session_id:
             headers["X-Transmission-Session-Id"] = self._session_id
 
-        async with httpx.AsyncClient(timeout=10.0, auth=self._auth, verify=False) as client:
+        async with httpx.AsyncClient(timeout=30.0, auth=self._auth, verify=False) as client:
             resp = await client.post(self._rpc_url, json={"method": method, "arguments": arguments or {}}, headers=headers)
             if resp.status_code == 409:
                 self._session_id = resp.headers.get("X-Transmission-Session-Id")
@@ -569,7 +571,15 @@ class TransmissionClient(BaseDownloadClient):
                 sync_res = await asyncio.to_thread(self._add_torrent_sync, resolved_url, category, save_path)
                 if sync_res:
                     return sync_res
-            raise RuntimeError(f"Ошибка Transmission при добавлении торрента: {exc}")
+            exc_desc = str(exc).strip()
+            if not exc_desc:
+                if isinstance(exc, (httpx.TimeoutException, TimeoutError)):
+                    exc_desc = "таймаут ответа от Transmission RPC (более 30 сек)"
+                elif isinstance(exc, httpx.NetworkError):
+                    exc_desc = f"сетевая ошибка подключения к Transmission ({type(exc).__name__})"
+                else:
+                    exc_desc = f"{type(exc).__name__}"
+            raise RuntimeError(f"Ошибка Transmission при добавлении торрента: {exc_desc}")
 
     def _add_torrent_sync(self, url_or_magnet: str, category: Optional[str], save_path: Optional[str]) -> str:
         try:

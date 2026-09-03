@@ -203,6 +203,46 @@ class TestAutoSearch(unittest.TestCase):
             self.session.refresh(ep2)
             self.assertEqual(ep2.status, EpisodeStatus.WANTED, "Серия, не входящая в episode_ids, не должна трогаться")
 
+    def test_auto_search_falls_back_to_next_candidate_if_first_fails(self):
+        """Если лучший по скору релиз падает при добавлении в загрузчик (например 404 у трекера),
+        система должна автоматически попытаться захватить следующий подходящий релиз."""
+        show = make_show(self.session, title="Fallback Show")
+        self.session.add(Alias(show_id=show.id, text="Fallback Show"))
+        self.session.commit()
+
+        ep1 = make_episode(self.session, show, season=1, episode=1)
+        make_indexer(self.session)
+        make_download_client(self.session)
+
+        rel_failing = _release("guid-fail", "Fallback.Show.S01E01.1080p.WEBDL", seeders=100)
+        rel_working = _release("guid-work", "Fallback.Show.S01E01.720p.WEBDL", seeders=40)
+
+        class FailingFirstDownloadClient:
+            def __init__(self):
+                self.attempts = []
+
+            async def add_torrent(self, url_or_magnet, category=None, save_path=None):
+                self.attempts.append(url_or_magnet)
+                if "guid-fail" in url_or_magnet:
+                    raise RuntimeError("HTTP 404: Not Found")
+                return "hash-working-123"
+
+            async def remove_torrent(self, *args, **kwargs):
+                pass
+
+        fake_dc = FailingFirstDownloadClient()
+        with patch("app.services.indexer_service.TorznabIndexerClient.search", lambda self_c, query, categories=None: _async_return([rel_failing, rel_working])), \
+             patch("app.services.auto_search.get_client", lambda row: fake_dc):
+            result = asyncio.run(auto_search._do_search_and_grab(self.session, show))
+
+            self.assertEqual(len(result["grabbed"]), 1, "Должен быть захвачен второй кандидат после падения первого")
+            self.assertEqual(result["grabbed"][0]["release"], "Fallback.Show.S01E01.720p.WEBDL")
+            self.assertEqual(len(fake_dc.attempts), 2, "Загрузчик должен был сначала попробовать первый релиз, затем второй")
+
+            self.session.refresh(ep1)
+            self.assertEqual(ep1.status, EpisodeStatus.DOWNLOADING)
+            self.assertEqual(ep1.torrent_hash, "hash-working-123")
+
     def test_wrong_season_release_not_grabbed_for_absolute_numbering(self):
         """Релиз без явного сезона в названии не должен ошибочно захватываться для 2 сезона."""
         show = make_show(self.session, title="My Hero Academia")
