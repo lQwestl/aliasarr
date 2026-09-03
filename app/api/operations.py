@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import datetime as dt
+import logging
 import os
 import shutil
-from typing import Optional, List, Dict, Any, Optional
+from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -28,6 +29,8 @@ from app.services.auto_search import run_wanted_search
 from app.services.download_client import get_client
 from app.services.notifications import REQUIRED_NOTIFICATION_FIELDS, notify_all, send_notification
 from app.services.user_service import require_permission, require_any_permission, get_current_user
+
+logger = logging.getLogger("aliasarr.operations")
 
 router = APIRouter(prefix="/api/v1", tags=["operations"])
 
@@ -1180,19 +1183,24 @@ async def delete_queue_item(
         except Exception:
             continue
 
-    affected_episodes = db.query(Episode).filter(
-        or_(
-            Episode.torrent_hash == torrent_hash,
-            func.lower(Episode.torrent_hash) == target_hash_lower,
-        )
-    ).all()
-    for ep in affected_episodes:
-        ep.status = EpisodeStatus.WANTED
-        ep.torrent_hash = None
-        ep.download_client_id = None
-        ep.download_progress = 0.0
-        db.add(ep)
-    db.commit()
+    try:
+        affected_episodes = db.query(Episode).filter(
+            or_(
+                Episode.torrent_hash == torrent_hash,
+                func.lower(Episode.torrent_hash) == target_hash_lower,
+            )
+        ).all()
+        for ep in affected_episodes:
+            ep.status = EpisodeStatus.WANTED
+            ep.torrent_hash = None
+            ep.download_client_id = None
+            ep.download_progress = 0.0
+            db.add(ep)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.error("Ошибка при обновлении статусов серий после удаления закачки: %s", exc)
+        affected_episodes = []
 
     return {
         "status": "deleted",

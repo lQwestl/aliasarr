@@ -189,6 +189,35 @@ class TestDeletionAndAliases(unittest.TestCase):
         self.db.commit()
         self.assertTrue(should_refresh_show(show, self.db))
 
+    def test_delete_queue_item_resets_episodes(self):
+        import asyncio
+        from app.api.operations import delete_queue_item
+
+        show = Show(title="Queue Show", content_type="anime")
+        self.db.add(show)
+        self.db.flush()
+
+        t_hash = "abcdef1234567890"
+        ep = Episode(
+            show_id=show.id,
+            season_number=1,
+            episode_number=1,
+            torrent_hash=t_hash,
+            status=EpisodeStatus.DOWNLOADING,
+            download_progress=0.45,
+        )
+        self.db.add(ep)
+        self.db.commit()
+
+        res = asyncio.run(delete_queue_item(torrent_hash=t_hash, delete_files=False, db=self.db, current_user=self.user))
+        self.assertEqual(res["status"], "deleted")
+        self.assertEqual(res["affected_episodes"], 1)
+
+        self.db.refresh(ep)
+        self.assertEqual(ep.status, EpisodeStatus.WANTED)
+        self.assertIsNone(ep.torrent_hash)
+        self.assertEqual(ep.download_progress, 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
