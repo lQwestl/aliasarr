@@ -8203,6 +8203,112 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     background: #ffffff !important;
     color: #1e293b !important;
   }
+
+  /* 15. Settings Header & Sub-Tabs 2x4 Grid (2 per row, 4 rows, 100% full width) */
+  [data-design="vanguard"] #tab-settings .panel-sticky-header {
+    padding: 16px 14px 14px 14px !important;
+    margin: 0 0 16px 0 !important;
+    border-radius: 18px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  [data-design="vanguard"] #tab-settings .panel-header {
+    margin-bottom: 12px !important;
+    padding-bottom: 0 !important;
+    border-bottom: none !important;
+  }
+
+  [data-design="vanguard"] #tab-settings .panel-header h1 {
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    margin: 0 0 4px 0 !important;
+    padding: 0 2px !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.02em !important;
+    display: block !important;
+  }
+
+  [data-design="vanguard"] #tab-settings .panel-header .subtitle {
+    font-size: 12.5px !important;
+    line-height: 1.4 !important;
+    color: var(--text-muted) !important;
+    margin: 0 0 8px 0 !important;
+    padding: 0 2px !important;
+    display: block !important;
+  }
+
+  [data-design="vanguard"] #tab-settings .settings-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-top: 10px !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: visible !important;
+    flex-wrap: wrap !important;
+    border-bottom: none !important;
+  }
+
+  [data-design="vanguard"] #tab-settings .settings-tab-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 6px 10px !important;
+    gap: 7px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    border-radius: 9999px !important;
+    margin: 0 !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-muted) !important;
+  }
+
+  [data-design="vanguard"] #tab-settings .settings-tab-btn i,
+  [data-design="vanguard"] #tab-settings .settings-tab-btn svg {
+    width: 16px !important;
+    height: 16px !important;
+    flex-shrink: 0 !important;
+  }
+
+  [data-design="vanguard"] #tab-settings .settings-tab-btn span {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-size: 12.5px !important;
+    max-width: calc(100% - 24px) !important;
+  }
+
+  [data-design="vanguard"] #tab-settings .settings-tab-btn.active {
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.16) 0%, rgba(99, 102, 241, 0.12) 100%) !important;
+    color: var(--teal, #00F0FF) !important;
+    border-color: rgba(0, 240, 255, 0.35) !important;
+    box-shadow: 0 0 16px rgba(0, 240, 255, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
+  }
+
+  [data-theme="light"][data-design="vanguard"] #tab-settings .settings-tab-btn {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #475569 !important;
+  }
+
+  [data-theme="light"][data-design="vanguard"] #tab-settings .settings-tab-btn.active {
+    background: rgba(2, 132, 199, 0.12) !important;
+    color: #0284c7 !important;
+    border-color: #0284c7 !important;
+    box-shadow: 0 2px 10px rgba(2, 132, 199, 0.15) !important;
+  }
 }
 
 

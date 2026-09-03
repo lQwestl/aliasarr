@@ -103,6 +103,7 @@ const TRANSLATIONS = {
     "subtitle.journal": "Логи приложения (info / warn / debug). Записи старше срока хранения удаляются автоматически.",
     "subtitle.release_logs": "Диагностический журнал работы движка релизов: поиск, сопоставление, парсинг серий, принятие решений, вызовы загрузчика и импорт.",
     "subtitle.backup": "Резервное копирование настроек приложения (индексаторы, загрузчики, профили качества, шаблоны и т.д.)",
+    "subtitle.settings": "Конфигурация системы, интеграций и безопасности",
 
     // Release Logs
     "release_logs.filter_all_stages": "Все этапы",
@@ -1130,6 +1131,7 @@ const TRANSLATIONS = {
     "subtitle.journal": "Application logs (info / warn / debug). Entries older than the retention period are deleted automatically.",
     "subtitle.release_logs": "Diagnostic release engine log: searching, matching, episode parsing, decision making, download client RPC and media imports.",
     "subtitle.backup": "Backup application settings (indexers, download clients, quality profiles, templates, etc.)",
+    "subtitle.settings": "System configuration, integrations, and security",
 
     // Release Logs
     "release_logs.filter_all_stages": "All Stages",
