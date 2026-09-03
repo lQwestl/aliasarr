@@ -11353,9 +11353,15 @@ async function submitQualityProfile() {
   const cutoffScore = parseInt(document.getElementById("qp-cutoff-score")?.value || "0", 10) || 0;
   const upgradeAllowed = document.getElementById("qp-upgrade-allowed")?.checked ?? true;
 
+  const sortedQualities = Array.from(SELECTED_QUALITIES).sort((a, b) => {
+    const idxA = QUALITY_OPTIONS.indexOf(a);
+    const idxB = QUALITY_OPTIONS.indexOf(b);
+    return idxB - idxA;
+  });
+
   const payload = {
     name,
-    allowed_qualities: Array.from(SELECTED_QUALITIES),
+    allowed_qualities: sortedQualities,
     cutoff_quality: cutoffQuality,
     cutoff_score: cutoffScore,
     upgrade_allowed: upgradeAllowed,

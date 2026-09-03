@@ -1347,11 +1347,10 @@ async def _do_search_and_grab(
     allowed_qualities = quality_profile.allowed_qualities if quality_profile else []
 
     def get_quality_preference(q_info, allowed):
-        norm_name = QUALITY_ALIASES.get(q_info.name.upper(), q_info.name)
-        for idx, a in enumerate(allowed):
-            if a == q_info.name or a == norm_name or QUALITY_ALIASES.get(a.upper(), a) == norm_name:
-                return len(allowed) - idx
-        return q_info.rank
+        # Канонический ранг качества (2160p > 1080p > 720p > 480p) гарантирует,
+        # что более высокое разрешение всегда побеждает более низкое независимо
+        # от порядка выбора/сохранения чипов в профиле качества.
+        return getattr(q_info, "rank", 0)
 
     scored_candidates = []
     for c in candidates:
