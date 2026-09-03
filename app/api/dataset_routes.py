@@ -116,11 +116,12 @@ def _analyze_record(r: dict) -> dict:
     return {
         "kind": p.kind.value if hasattr(p.kind, "value") else str(p.kind),
         "is_video": True,
-        "season": p.season or (s_lbl.get("season") if s_lbl.get("type") == "numbered" else None),
+        "season": p.season if p.season is not None else (s_lbl.get("season") if s_lbl.get("type") == "numbered" else None),
         "episodes": p.episodes or [],
         "part": p.part,
         "total_in_part": p.total_in_part,
         "season_label": s_lbl,
+        "is_ova": (s_lbl.get("type") == "ova_ona" or p.season == 0 or "ova" in (p.matched_pattern or "").lower()),
         "status": status,
         "status_text": status_text,
     }
@@ -253,6 +254,7 @@ def _evaluate_record_against_show(
         "covered_count": len(covered_eps),
         "wanted_overlap": wanted_count,
         "downloaded_overlap": downloaded_count,
+        "effective_season": match.parsed.season,
         "part_offset": part_offset,
         "approved": decision.approved,
         "rejections": decision.rejections,

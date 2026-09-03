@@ -2415,9 +2415,9 @@
         </header>
 
         <!-- ПАНЕЛЬ УПРАВЛЕНИЯ И ЗАПУСКА СБОРА -->
-        <div class="panel" style="padding: 16px 20px; margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--radius, 12px);">
-          <div class="form-row" style="margin-bottom: 0; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
-            <div style="min-width: 220px; flex: 1;">
+        <div class="panel dataset-panel" style="padding: 16px 20px; margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--radius, 12px);">
+          <div class="dataset-inputs-grid">
+            <div class="dataset-input-col">
               <label class="label" style="font-size: 12px; margin-bottom: 4px; display: block;">Пресет поиска / Источник тайтлов</label>
               <select id="dataset-preset-select" class="input" onchange="onDatasetPresetChanged()">
                 <option value="show" selected>Конкретный тайтл из библиотеки (БД)</option>
@@ -2430,46 +2430,46 @@
             </div>
 
             <!-- Селектор конкретного тайтла из БД -->
-            <div id="dataset-show-select-wrap" style="min-width: 260px; flex: 1.5;">
+            <div id="dataset-show-select-wrap" class="dataset-input-col dataset-show-col">
               <label class="label" style="font-size: 12px; margin-bottom: 4px; display: block;">Тайтл из библиотеки</label>
               <select id="dataset-show-select" class="input">
                 <option value="">Загрузка тайтлов библиотеки...</option>
               </select>
             </div>
 
-            <div style="min-width: 170px;">
+            <div class="dataset-input-col dataset-indexer-col">
               <label class="label" style="font-size: 12px; margin-bottom: 4px; display: block;">Индексатор</label>
               <select id="dataset-indexer-select" class="input">
                 <option value="">Все активные индексаторы</option>
               </select>
             </div>
+          </div>
 
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <button class="btn btn-primary" id="dataset-start-btn" onclick="startDatasetHarvest()">
-                <i data-lucide="sparkles" class="ico-sm"></i>
-                <span>Запустить проверку</span>
-              </button>
+          <div class="dataset-actions-row">
+            <button class="btn btn-primary" id="dataset-start-btn" onclick="startDatasetHarvest()">
+              <i data-lucide="sparkles" class="ico-sm"></i>
+              <span>Запустить проверку</span>
+            </button>
 
-              <button class="btn btn-danger" id="dataset-stop-btn" onclick="stopDatasetHarvest()" style="display: none;">
-                <i data-lucide="square" class="ico-sm"></i>
-                <span>Остановить</span>
-              </button>
+            <button class="btn btn-danger" id="dataset-stop-btn" onclick="stopDatasetHarvest()" style="display: none;">
+              <i data-lucide="square" class="ico-sm"></i>
+              <span>Остановить</span>
+            </button>
 
-              <button class="btn btn-secondary" id="dataset-download-unknown-btn" onclick="downloadDatasetJson('unknown')" title="Скачать компактный JSON только с нераспознанными раздачами (для отправки ассистенту)">
-                <i data-lucide="file-question" class="ico-sm"></i>
-                <span>Неизвестные (~30 КБ)</span>
-              </button>
+            <button class="btn btn-secondary" id="dataset-download-unknown-btn" onclick="downloadDatasetJson('unknown')" title="Скачать компактный JSON только с нераспознанными раздачами (для отправки ассистенту)">
+              <i data-lucide="file-question" class="ico-sm"></i>
+              <span>Неизвестные (~30 КБ)</span>
+            </button>
 
-              <button class="btn btn-secondary" id="dataset-download-btn" onclick="downloadDatasetJson('all')" title="Скачать полный JSON датасета">
-                <i data-lucide="download" class="ico-sm"></i>
-                <span>Скачать всё (.json)</span>
-              </button>
+            <button class="btn btn-secondary" id="dataset-download-btn" onclick="downloadDatasetJson('all')" title="Скачать полный JSON датасета">
+              <i data-lucide="download" class="ico-sm"></i>
+              <span>Скачать всё (.json)</span>
+            </button>
 
-              <button class="btn btn-danger" id="dataset-clear-btn" onclick="clearDatasetRecords()" title="Очистить устаревшие собранные логи">
-                <i data-lucide="trash-2" class="ico-sm"></i>
-                <span>Очистить</span>
-              </button>
-            </div>
+            <button class="btn btn-danger" id="dataset-clear-btn" onclick="clearDatasetRecords()" title="Очистить устаревшие собранные логи">
+              <i data-lucide="trash-2" class="ico-sm"></i>
+              <span>Очистить</span>
+            </button>
           </div>
 
           <!-- Безопасный режим Dry-Run -->

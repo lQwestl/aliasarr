@@ -12837,7 +12837,7 @@ function onDatasetPresetChanged() {
   const showWrap = document.getElementById("dataset-show-select-wrap");
   if (!sel) return;
   if (customWrap) customWrap.style.display = sel.value === "custom" ? "block" : "none";
-  if (showWrap) showWrap.style.display = sel.value === "show" ? "block" : "none";
+  if (showWrap) showWrap.style.display = sel.value === "show" ? "flex" : "none";
 }
 
 async function checkDatasetHarvestStatus() {
@@ -13010,79 +13010,95 @@ async function loadDatasetData(page = 1) {
 
       // 1. Качество и размер
       const qualityStr = dbMatch?.quality || "";
-      const qualityHtml = qualityStr ? `<div style="font-weight:600; font-size:11px; color:var(--teal);">${escapeHtml(qualityStr)}</div>` : "";
+      const qualityHtml = qualityStr ? `<div style="margin-top:3px;"><span class="badge badge-primary badge-sm">${escapeHtml(qualityStr)}</span></div>` : "";
 
       // 2. Серии (парсер)
       let seasonEpBadge = "";
       if (analysis.is_video) {
         const parts = [];
-        if (analysis.season !== null && analysis.season !== undefined) {
-          parts.push(`<span class="badge badge-info" style="font-size:10px;">S${String(analysis.season).padStart(2, "0")}</span>`);
+        const effSeason = (dbMatch && dbMatch.effective_season !== undefined && dbMatch.effective_season !== null) ? dbMatch.effective_season : analysis.season;
+        if (effSeason !== null && effSeason !== undefined) {
+          if (effSeason === 0) {
+            parts.push(`<span class="badge badge-purple" title="Сезон 0 / Спецвыпуск"><i data-lucide="sparkles" class="ico-xs"></i> S00</span>`);
+          } else {
+            parts.push(`<span class="badge badge-info"><i data-lucide="tv" class="ico-xs"></i> S${String(effSeason).padStart(2, "0")}</span>`);
+          }
+        } else if (analysis.is_ova || analysis.season_label?.type === "ova_ona") {
+          parts.push(`<span class="badge badge-purple" title="OVA / ONA"><i data-lucide="sparkles" class="ico-xs"></i> OVA</span>`);
         }
+
         if (analysis.part && analysis.part >= 2) {
-          parts.push(`<span class="badge badge-warning" style="font-size:10px;">Ч. ${analysis.part}</span>`);
+          parts.push(`<span class="badge badge-warning">Ч. ${analysis.part}</span>`);
         }
+
         if (analysis.episodes && analysis.episodes.length > 0) {
           if (analysis.episodes.length === 1) {
-            parts.push(`<span class="badge badge-secondary" style="font-size:10px;">E${String(analysis.episodes[0]).padStart(2, "0")}</span>`);
+            parts.push(`<span class="badge badge-secondary"><i data-lucide="film" class="ico-xs"></i> E${String(analysis.episodes[0]).padStart(2, "0")}</span>`);
           } else {
             const minE = Math.min(...analysis.episodes);
             const maxE = Math.max(...analysis.episodes);
-            parts.push(`<span class="badge badge-secondary" style="font-size:10px;">E${minE}..${maxE}</span>`);
+            parts.push(`<span class="badge badge-secondary"><i data-lucide="layers" class="ico-xs"></i> E${minE}..${maxE}</span>`);
           }
         } else if (analysis.kind === "season_pack") {
-          parts.push(`<span class="badge badge-primary" style="font-size:10px;">Сезон-пак</span>`);
+          parts.push(`<span class="badge badge-primary"><i data-lucide="package" class="ico-xs"></i> Сезон-пак</span>`);
         } else if (analysis.kind === "movie") {
-          parts.push(`<span class="badge badge-primary" style="font-size:10px; background: rgba(168, 85, 247, 0.15); color: #a855f7;">Фильм</span>`);
+          parts.push(`<span class="badge badge-purple"><i data-lucide="film" class="ico-xs"></i> Фильм</span>`);
         }
-        seasonEpBadge = parts.join(" ") || `<span class="hint" style="font-size:11px;">Пак</span>`;
+        seasonEpBadge = `<div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">${parts.join(" ") || `<span class="badge badge-ghost">Пак</span>`}</div>`;
       } else {
-        seasonEpBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; font-size:10px;">Не-видео</span>`;
+        seasonEpBadge = `<span class="badge badge-warning"><i data-lucide="slash" class="ico-xs"></i> Не-видео</span>`;
       }
 
       // 3. Сопоставление с БД (Тайтл & Серии)
       let dbMatchHtml = "";
       if (dbMatch) {
         if (dbMatch.is_title_matched) {
-          const scoreBadge = `<span class="badge badge-success" style="font-size:9px; padding:1px 4px;">${dbMatch.match_score}%</span>`;
+          const scoreBadge = `<span class="badge badge-success badge-sm">${dbMatch.match_score}%</span>`;
           let epsCoverageBadge = "";
           if (dbMatch.wanted_overlap > 0) {
-            epsCoverageBadge = `<span class="badge badge-success" style="font-size:10px;"><i data-lucide="check" class="ico-xs"></i> ${dbMatch.wanted_overlap} разыск.</span>`;
+            epsCoverageBadge = `<span class="badge badge-success"><i data-lucide="check" class="ico-xs"></i> ${dbMatch.wanted_overlap} разыск.</span>`;
           } else if (dbMatch.downloaded_overlap > 0) {
-            epsCoverageBadge = `<span class="badge badge-info" style="font-size:10px;"><i data-lucide="download-cloud" class="ico-xs"></i> ${dbMatch.downloaded_overlap} скачано</span>`;
+            epsCoverageBadge = `<span class="badge badge-info"><i data-lucide="download-cloud" class="ico-xs"></i> ${dbMatch.downloaded_overlap} скачано</span>`;
+          } else if (dbMatch.covered_summary === "Серии не совпали") {
+            epsCoverageBadge = `<span class="badge badge-warning"><i data-lucide="alert-circle" class="ico-xs"></i> Серии не совпали</span>`;
+          } else if (dbMatch.covered_summary && dbMatch.covered_summary !== "—") {
+            epsCoverageBadge = `<span class="badge badge-ghost"><i data-lucide="info" class="ico-xs"></i> ${escapeHtml(dbMatch.covered_summary)}</span>`;
           } else {
-            epsCoverageBadge = `<span class="badge badge-ghost" style="font-size:10px;">${escapeHtml(dbMatch.covered_summary || "—")}</span>`;
+            epsCoverageBadge = `<span class="badge badge-ghost">Серии: —</span>`;
           }
-          const offsetBadge = (dbMatch.part_offset && dbMatch.part_offset > 0) ? `<span class="badge badge-warning" style="font-size:9px;">+${dbMatch.part_offset} offset</span>` : "";
-          dbMatchHtml = `<div>
-            <div style="font-weight:600; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px;" title="${escapeHtml(dbMatch.show_title || '')}">${escapeHtml(dbMatch.show_title || '')} ${scoreBadge}</div>
-            <div style="display:flex; gap:3px; flex-wrap:wrap; margin-top:2px;">${epsCoverageBadge} ${offsetBadge}</div>
+          const offsetBadge = (dbMatch.part_offset && dbMatch.part_offset > 0) ? `<span class="badge badge-warning">+${dbMatch.part_offset} offset</span>` : "";
+          dbMatchHtml = `<div class="dataset-db-match-wrap">
+            <div class="dataset-db-title" title="${escapeHtml(dbMatch.show_title || '')}">
+              <span class="dataset-show-name">${escapeHtml(dbMatch.show_title || '')}</span>
+              ${scoreBadge}
+            </div>
+            <div class="dataset-db-badges">${epsCoverageBadge} ${offsetBadge}</div>
           </div>`;
         } else {
-          dbMatchHtml = `<span class="badge badge-ghost" style="font-size:10px; color:var(--text-muted);">Тайтл не совпал</span>`;
+          dbMatchHtml = `<span class="badge badge-muted-red"><i data-lucide="x" class="ico-xs"></i> Тайтл не совпал</span>`;
         }
       } else {
-        dbMatchHtml = `<span class="hint" style="font-size:11px;">Нет привязки</span>`;
+        dbMatchHtml = `<span class="badge badge-ghost"><i data-lucide="help-circle" class="ico-xs"></i> Нет привязки</span>`;
       }
 
       // 4. Вердикт DecisionEngine
       let decisionHtml = "";
       if (dbMatch) {
         if (dbMatch.approved) {
-          decisionHtml = `<span class="badge badge-success" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-weight:600; font-size:11px;">
+          decisionHtml = `<span class="badge badge-success" style="font-weight:600;">
             <i data-lucide="check-circle-2" class="ico-xs"></i> Одобрено
           </span>`;
         } else {
           const reason = (dbMatch.rejections && dbMatch.rejections.length > 0) ? dbMatch.rejections[0] : "Отклонено";
-          decisionHtml = `<div>
-            <span class="badge badge-danger" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-weight:600; font-size:10px;" title="${escapeHtml(reason)}">
+          decisionHtml = `<div class="dataset-decision-wrap">
+            <span class="badge badge-danger" style="font-weight:600;" title="${escapeHtml(reason)}">
               <i data-lucide="x-circle" class="ico-xs"></i> Отклонено
             </span>
-            <div class="hint" style="font-size:10px; color:#ef4444; margin-top:2px; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(reason)}">${escapeHtml(reason)}</div>
+            <div class="dataset-rejection-reason" title="${escapeHtml(reason)}">${escapeHtml(reason)}</div>
           </div>`;
         }
       } else {
-        decisionHtml = `<span class="hint" style="font-size:11px;">—</span>`;
+        decisionHtml = `<span class="badge badge-ghost">—</span>`;
       }
 
       rowsHtml += `<tr>
