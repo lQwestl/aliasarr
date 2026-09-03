@@ -1756,10 +1756,55 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   box-sizing: border-box;
 }
 
+#history-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+#history-table thead tr th {
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--border);
+}
+#history-table thead tr th:first-child {
+  border-top-left-radius: 7px;
+}
+#history-table thead tr th:last-child {
+  border-top-right-radius: 7px;
+}
+#history-table td {
+  border-bottom: 1px solid var(--border);
+}
+
+#history-table .col-time,
 #history-table th:nth-child(1),
 #history-table td:nth-child(1) {
-  width: 180px;
-  min-width: 180px;
+  width: 145px !important;
+  min-width: 145px !important;
+  max-width: 145px !important;
+  white-space: nowrap !important;
+}
+#history-table th:nth-child(2),
+#history-table td:nth-child(2) {
+  width: 140px;
+  min-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#history-table th:nth-child(3),
+#history-table td:nth-child(3) {
+  width: auto;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.45;
+}
+#history-table th:nth-child(4),
+#history-table td:nth-child(4) {
+  width: 110px;
+  min-width: 110px;
+  max-width: 120px;
   white-space: nowrap;
 }
 
@@ -4724,7 +4769,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     max-width: 340px !important;
   }
   #history-table {
-    min-width: 760px !important;
+    min-width: 580px !important;
+  }
+  #history-table th:nth-child(3),
+  #history-table td:nth-child(3) {
+    min-width: 180px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
   }
   #audit-table {
     min-width: 840px !important;

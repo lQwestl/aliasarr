@@ -9044,7 +9044,7 @@ async function loadHistory() {
           ${escapeHtml(e.show_title)}
           ${e.matched_alias ? `<div class="hint">${CURRENT_LANG === "en" ? "by alias" : "по алиасу"} «${escapeHtml(e.matched_alias)}»</div>` : ""}
         </td>
-        <td class="mono" style="max-width:320px; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(e.release_title)}</td>
+        <td class="mono" style="word-break:break-word; overflow-wrap:anywhere; line-height:1.4;">${escapeHtml(e.release_title)}</td>
         <td>${escapeHtml(t("history.event." + e.event_type) !== "history.event." + e.event_type ? t("history.event." + e.event_type) : e.event_type)}</td>
       </tr>`).join("") || `<tr><td colspan="4" style="color:var(--text-muted)">${t("history.empty")}</td></tr>`;
   } catch (e) {}
