@@ -902,8 +902,14 @@ def _parse_episode_internal(release_name: str) -> ParsedRelease:
 
     # 10. Одиночные полнометражные фильмы (Movie): год + видео-качество без сериальных маркеров
     _RE_MOVIE_YEAR_AND_QUALITY = re.compile(
-        r"(?:\((?:19|20)\d{2}\)|\[(?:19|20)\d{2}[,\s\]]).*?(?:bdrip|web-dl|webdl|webrip|hdrip|remux|bluray|dvdrip|1080p|720p|2160p|4k|telesync|ts\b|hdtv|vhsrip|dvb|satrip)|"
-        r"\[(?:bd-remux|bdremux|bluray|bdrip|web-dl|webrip|dvdrip)\]",
+        r"(?:"
+        r"(?:\((?:19|20)\d{2}(?:\s*[-–~]\s*(?:19|20)\d{2})?\)|\[(?:19|20)\d{2}(?:\s*[-–~]\s*(?:19|20)\d{2})?[,\s\]]).*?"
+        r"(?:bdrip|web-dl|webdl|webrip|hdrip|remux|bluray|dvdrip|1080p|720p|2160p|4k|telesync|ts\b|hdtv|vhsrip|dvb|satrip)"
+        r"|"
+        r"\[(?:bd-remux|bdremux|bluray|bdrip|web-dl|webrip|dvdrip)\]"
+        r"|"
+        r"\b(?:the\s+documentary|documentary|фильм|movie)\b.*?(?:1080p|720p|2160p|web-?dl|webrip|bdrip|bluray|remux|dvdrip)"
+        r")",
         re.IGNORECASE,
     )
     if _RE_MOVIE_YEAR_AND_QUALITY.search(raw):

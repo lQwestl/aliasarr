@@ -30,7 +30,7 @@ _TRAILING_GROUP_RE = re.compile(
 _BRACKET_TRAILING_GROUP_RE = re.compile(r"\[(?P<group>[A-Za-z0-9_-]+)\]$", re.IGNORECASE)
 
 _INVALID_GROUPS = {
-    "hdtv", "sdtv", "webrip", "webdl", "web", "bluray", "dvd", "dvdrip", "remux",
+    "hdtv", "sdtv", "webrip", "webdl", "dl", "web", "bluray", "dvd", "dvdrip", "remux",
     "x264", "x265", "hevc", "av1", "xvid", "divx", "1080p", "720p", "2160p", "480p",
     "aac", "flac", "mp3", "dts", "ac3", "eac3", "proper", "repack", "rus", "eng"
 }
@@ -67,6 +67,7 @@ def parse_release_group(title: str) -> Optional[str]:
     clean_end = re.sub(r"\[[a-z0-9._-]+\]$", "", title, flags=re.IGNORECASE).strip()
     if "-" in clean_end:
         last_part = clean_end.split("-")[-1].strip()
+        last_part = re.sub(r"[\[\](){}<>]+", "", last_part).strip()
         # Если последний фрагмент валиден и не является суффиксом качества типа DL или Ray
         if last_part.lower() not in _INVALID_GROUPS and not last_part.isdigit() and len(last_part) >= 2:
             return last_part

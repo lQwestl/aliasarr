@@ -227,6 +227,12 @@ def _evaluate_record_against_show(
     wanted_count = sum(1 for e in covered_eps if getattr(e, "status", None) in (EpisodeStatus.WANTED, EpisodeStatus.MISSING))
     downloaded_count = sum(1 for e in covered_eps if getattr(e, "status", None) == EpisodeStatus.DOWNLOADED)
 
+    # Если серии найдены, но среди них нет разыскиваемых и все уже скачаны
+    if covered_eps and wanted_count == 0 and downloaded_count > 0:
+        if decision.approved:
+            decision.approved = False
+            decision.rejections.append(f"Все серии ({len(covered_eps)} шт.) уже скачаны в медиатеку (нет разыскиваемых)")
+
     if covered_eps:
         sorted_eps = sorted(covered_eps, key=lambda x: (getattr(x, "season_number", 0), getattr(x, "episode_number", 0)))
         s_num = getattr(sorted_eps[0], "season_number", 1)

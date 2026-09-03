@@ -6,7 +6,8 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.services.quality import parse_quality, is_allowed, is_upgrade, detect_file_quality
-from app.services.matcher import AliasCandidate, match_release, best_alias_match
+from app.services.matcher import AliasCandidate, match_release, best_alias_match, is_non_video_release
+from app.services.parser import parse_episode, ReleaseKind
 
 
 class TestQualityAndMatcher(unittest.TestCase):
@@ -247,6 +248,22 @@ class TestQualityAndMatcher(unittest.TestCase):
         )
         self.assertTrue(dec.approved, f"Decision rejected with: {dec.rejections}")
         self.assertEqual(dec.rejections, [])
+
+    def test_movie_year_range_and_documentary(self):
+        t1 = "Звездные Войны. Коллекция / Star Wars. Collection (Джордж Лукас) [1977-2019, фантастика, BDRemux 1080p] [D]"
+        p1 = parse_episode(t1)
+        self.assertEqual(p1.kind, ReleaseKind.MOVIE)
+
+        t2 = "And Just Like That… - And Just Like That... The Documentary - rus 1080p WEBDL (LostFilm)"
+        p2 = parse_episode(t2)
+        self.assertEqual(p2.kind, ReleaseKind.MOVIE)
+
+        t3 = "Spider-Man Homecoming The Arcade Game [Игровой автомат]"
+        self.assertTrue(is_non_video_release(t3))
+
+        from app.services.release_group_parser import parse_release_group
+        grp = parse_release_group("Табакошка / Yani Neko [2026, WEB-DL]")
+        self.assertNotEqual(grp, "DL]")
 
     def test_builtin_custom_formats_and_reset(self):
         from types import SimpleNamespace
