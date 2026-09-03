@@ -546,7 +546,7 @@ class TestSeasonQueries(unittest.TestCase):
 
         # 1. Проверка извлечения ядра
         core_en = _extract_core_title("Re: ZERO, Starting Life in Another World")
-        self.assertEqual(core_en, "Re: ZERO")
+        self.assertEqual(core_en, "Re:ZERO")
 
         core_ru = _extract_core_title("Re:Zero — жизнь в альтернативном мире с нуля")
         self.assertEqual(core_ru, "Re:Zero")
@@ -558,14 +558,14 @@ class TestSeasonQueries(unittest.TestCase):
         self.assertIn("Re:Zero 4 сезон", ru_terms)
         self.assertIn("Re:Zero S04", ru_terms)
         self.assertIn("Re:Zero 1-4 сезон", ru_terms)
-        self.assertIn("Re:Zero 1 - 4 сезон", ru_terms)
-        self.assertIn("Re:Zero Сезоны 1-4", ru_terms)
+        self.assertIn("Re:Zero 4th Season", ru_terms)
+        self.assertIn("Re:Zero S01-S04", ru_terms)
 
         en_terms = _generate_season_queries("Re: ZERO", 4)
         self.assertIn("Re: ZERO (ТВ-4)", en_terms)
         self.assertIn("Re: ZERO ТВ-4", en_terms)
         self.assertIn("Re: ZERO S04", en_terms)
-        self.assertIn("Re: ZERO Season 4", en_terms)
+        self.assertIn("Re: ZERO 4th Season", en_terms)
         self.assertIn("Re: ZERO S01-S04", en_terms)
 
         # 3. Проверка _collect_candidates со списком эпизодов 4-го сезона

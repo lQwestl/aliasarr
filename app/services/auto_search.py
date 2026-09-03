@@ -558,21 +558,22 @@ def _extract_core_title(text: str) -> Optional[str]:
     """Извлекает короткое ядро тайтла (например, 'Re:Zero' из 'Re: ZERO, Starting Life in Another World')."""
     if not text:
         return None
-    cleaned = text.strip()
-    m_sep = re.split(r"\s*[,—–]\s*", cleaned)
+    cleaned = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", text.strip(), flags=re.IGNORECASE).strip()
+
+    # Спец-обработка для Re:Zero, Fate/Stay и т.п.
+    if re.match(r"^(?:re|fate)\s*[:/]", cleaned, re.IGNORECASE):
+        parts = re.split(r"\s*[:/]\s*", cleaned, maxsplit=2)
+        if len(parts) >= 2:
+            prefix = f"{parts[0]}:{parts[1]}"
+            prefix = re.split(r"\s*[,—–]\s*", prefix)[0].strip()
+            if prefix.lower() != text.strip().lower():
+                return prefix
+
+    # Обычный сплит по двоеточию, длинному тире, запятой
+    m_sep = re.split(r"\s*[:—–,]\s*", cleaned)
     if len(m_sep) > 1 and len(m_sep[0]) >= 3:
         cand = m_sep[0].strip()
-        if cand.lower() != cleaned.lower():
-            return cand
-    parts = cleaned.split(":")
-    if len(parts) > 2 and parts[0].strip().lower() in ("re", "fate"):
-        cand = f"{parts[0]}:{parts[1]}".strip()
-        cand = re.split(r"\s*[,—–]\s*", cand)[0].strip()
-        if cand.lower() != cleaned.lower():
-            return cand
-    elif len(parts) > 1 and len(parts[0].strip()) >= 4:
-        cand = parts[0].strip()
-        if cand.lower() != cleaned.lower():
+        if cand.lower() != text.strip().lower():
             return cand
     return None
 
@@ -590,19 +591,13 @@ def _generate_season_queries(base: str, sn: int) -> list[str]:
         f"{base} (ТВ-{sn})",
         f"{base} ТВ-{sn}",
         f"{base} {sn} сезон",
-        f"{base} {sn}-й сезон",
         f"{base} S{sn:02d}",
         f"{base} {ord_en} Season",
-        f"{base} Season {sn}",
-        f"{base} TV-{sn}",
     ]
     if sn > 1:
         terms.extend([
             f"{base} 1-{sn} сезон",
-            f"{base} 1 - {sn} сезон",
-            f"{base} Сезоны 1-{sn}",
             f"{base} S01-S{sn:02d}",
-            f"{base} Seasons 1-{sn}",
         ])
     return terms
 
@@ -618,7 +613,7 @@ async def _collect_candidates(
     allowed_qualities = quality_profile.allowed_qualities if quality_profile else []
     alias_candidates = build_alias_candidates(show, db=db)
 
-    # Формируем список поисковых запросов:
+    # Формируем компактный и результативный список поисковых запросов (не более 12-14)
     query_terms: list[str] = []
     seen_queries: set[str] = set()
 
@@ -628,17 +623,21 @@ async def _collect_candidates(
             seen_queries.add(q.lower())
             query_terms.append(q)
 
-    # 1. Базовые алиасы и их короткие ядра
+    # 1. Извлекаем короткие ядра и чистые алиасы
+    cores: list[str] = []
+    clean_bases: list[str] = []
     for alias in alias_candidates:
-        _add_query(alias.text)
         clean_a = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", alias.text, flags=re.IGNORECASE).strip()
-        if clean_a != alias.text:
-            _add_query(clean_a)
-        core_a = _extract_core_title(clean_a)
-        if core_a:
-            _add_query(core_a)
+        if clean_a:
+            if clean_a.lower() not in [b.lower() for b in clean_bases]:
+                clean_bases.append(clean_a)
+            core_a = _extract_core_title(clean_a)
+            if core_a and core_a.lower() not in [c.lower() for c in cores]:
+                cores.append(core_a)
 
-    # 2. Сезонные запросы (ТВ-4, 4 сезон, 4th Season, S04, паки) для разыскиваемых сезонов
+    key_bases = cores + [cb for cb in clean_bases if cb.lower() not in [c.lower() for c in cores]]
+
+    # 2. Сезонные запросы (ТВ-4, 4 сезон, S04, 4th Season, паки) для разыскиваемых сезонов
     if wanted_episodes:
         wanted_seasons = {
             ep.season_number
@@ -646,79 +645,56 @@ async def _collect_candidates(
             if ep.season_number is not None and ep.season_number > 0
         }
         for sn in sorted(wanted_seasons):
-            season_queries_by_base = []
-            for alias in alias_candidates[:4]:
-                raw_base = alias.text.strip()
-                clean_base = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", raw_base, flags=re.IGNORECASE).strip()
-                core_base = _extract_core_title(clean_base)
-                for b in (core_base, clean_base, raw_base):
-                    if b and b not in [sq[0] for sq in season_queries_by_base]:
-                        season_queries_by_base.append((b, _generate_season_queries(b, sn)))
+            for b in key_bases[:3]:
+                for s_term in _generate_season_queries(b, sn):
+                    _add_query(s_term)
 
-            # Чередуем запросы от разных алиасов (round-robin), чтобы в топ попали ТВ-4, 4 сезон, S04 для всех версий названий
-            if season_queries_by_base:
-                max_len = max(len(terms) for _, terms in season_queries_by_base)
-                for idx in range(max_len):
-                    for _, terms in season_queries_by_base:
-                        if idx < len(terms):
-                            _add_query(terms[idx])
+    # 3. Базовые названия (без сезона)
+    for b in key_bases[:3]:
+        _add_query(b)
 
-    # 3. Обработка меток (ТВ-X) из названий аниме (например, Shikimori "Re:Zero ... (ТВ-4)")
+    # 4. Полные оригинальные алиасы
     for alias in alias_candidates:
-        m_tv = re.search(r"\((?:тв|tv)[\s\-]?(\d+)\)", alias.text, flags=re.IGNORECASE)
-        if m_tv:
-            tv_num = int(m_tv.group(1))
-            clean_base = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", alias.text, flags=re.IGNORECASE).strip()
-            core_base = _extract_core_title(clean_base)
-            for b in (core_base, clean_base):
-                if b:
-                    for s_term in _generate_season_queries(b, tv_num):
-                        _add_query(s_term)
+        _add_query(alias.text)
 
-    # 4. Конкретные серии при небольшом количестве
+    # 5. Конкретные серии при небольшом количестве
     if wanted_episodes and len(wanted_episodes) <= 6:
         for ep in wanted_episodes:
-            for alias in alias_candidates[:2]:
-                base = alias.text.strip()
+            for b in key_bases[:2]:
                 if ep.absolute_number is not None:
-                    for fmt in (f"{base} {ep.absolute_number}", f"{base} {ep.absolute_number:02d}", f"{base} - {ep.absolute_number}"):
+                    for fmt in (f"{b} {ep.absolute_number}", f"{b} {ep.absolute_number:02d}", f"{b} - {ep.absolute_number}"):
                         _add_query(fmt)
                 elif ep.season_number == 0:
-                    for fmt in (f"{base} OVA", f"{base} Special", f"{base} S00E{ep.episode_number:02d}"):
+                    for fmt in (f"{b} OVA", f"{b} Special", f"{b} S00E{ep.episode_number:02d}"):
                         _add_query(fmt)
                 else:
-                    for fmt in (f"{base} S{ep.season_number:02d}E{ep.episode_number:02d}", f"{base} {ep.episode_number:02d}"):
+                    for fmt in (f"{b} S{ep.season_number:02d}E{ep.episode_number:02d}", f"{b} {ep.episode_number:02d}"):
                         _add_query(fmt)
 
     seen_guids: set[str] = set()
     candidates: list[dict] = []
 
-    # Ограничиваем список запросов самыми результативными (до 20)
-    active_queries = query_terms[:20]
+    active_queries = query_terms[:12]
 
-    # Опрашиваем каждый индексатор параллельно со строгим ограничением по времени
-    async def _fetch_indexer(idx: Indexer, terms: list[str]):
-        client = get_indexer_client(idx)
-        idx_rels = []
-        for term in terms:
+    # Опрашиваем индексаторы параллельно с пулом семафора, собирая все полученные результаты
+    sem = asyncio.Semaphore(8)
+
+    async def _fetch_indexer_term(idx: Indexer, q_term: str):
+        async with sem:
             try:
-                rels = await asyncio.wait_for(client.search(term), timeout=8.0)
-                idx_rels.extend(rels)
+                client = get_indexer_client(idx)
+                rels = await asyncio.wait_for(client.search(q_term), timeout=10.0)
+                return (idx, rels)
             except Exception as exc:
-                logger.debug("Индексатор %s запрос «%s»: %s", getattr(idx, "name", idx), term, exc)
-                if isinstance(exc, (asyncio.TimeoutError, ConnectionError)):
-                    break
-        return (idx, idx_rels)
+                logger.debug("Индексатор %s запрос «%s»: %s", getattr(idx, "name", idx), q_term, exc)
+                return (idx, [])
 
-    tasks = [_fetch_indexer(idx, active_queries) for idx in sorted(indexers, key=lambda i: i.priority)]
-    try:
-        fetched_batches = await asyncio.wait_for(
-            asyncio.gather(*tasks, return_exceptions=True),
-            timeout=25.0,
-        )
-    except asyncio.TimeoutError:
-        logger.warning("Общий таймаут автопоиска релизов на индексаторах (25s)")
-        fetched_batches = []
+    tasks = []
+    for indexer in sorted(indexers, key=lambda i: i.priority):
+        for term in active_queries:
+            tasks.append(_fetch_indexer_term(indexer, term))
+
+    fetched_batches = await asyncio.gather(*tasks, return_exceptions=True)
 
     for item in fetched_batches:
         if not isinstance(item, tuple):
