@@ -553,6 +553,61 @@ async def search_and_grab_show(
                 logger.warning("Не удалось обновить статус поиска для шоу %s: %s", show.id, e)
 
 
+def _extract_core_title(text: str) -> Optional[str]:
+    """Извлекает короткое ядро тайтла (например, 'Re:Zero' из 'Re: ZERO, Starting Life in Another World')."""
+    if not text:
+        return None
+    cleaned = text.strip()
+    m_sep = re.split(r"\s*[,—–]\s*", cleaned)
+    if len(m_sep) > 1 and len(m_sep[0]) >= 3:
+        cand = m_sep[0].strip()
+        if cand.lower() != cleaned.lower():
+            return cand
+    parts = cleaned.split(":")
+    if len(parts) > 2 and parts[0].strip().lower() in ("re", "fate"):
+        cand = f"{parts[0]}:{parts[1]}".strip()
+        cand = re.split(r"\s*[,—–]\s*", cand)[0].strip()
+        if cand.lower() != cleaned.lower():
+            return cand
+    elif len(parts) > 1 and len(parts[0].strip()) >= 4:
+        cand = parts[0].strip()
+        if cand.lower() != cleaned.lower():
+            return cand
+    return None
+
+
+def _generate_season_queries(base: str, sn: int) -> list[str]:
+    """Генерирует все возможные альтернативные поисковые запросы для сезона sn."""
+    terms = [
+        f"{base} S{sn:02d}",
+        f"{base} {sn} сезон",
+        f"{base} Сезон {sn}",
+        f"{base} {sn}-й сезон",
+        f"{base} Season {sn}",
+        f"{base} Season {sn:02d}",
+        f"{base} S{sn}",
+        f"{base} ТВ-{sn}",
+        f"{base} TV-{sn}",
+        f"{base} Part {sn}",
+        f"{base} Часть {sn}",
+    ]
+    # Английские порядковые (1st, 2nd, 3rd, 4th Season)
+    if 11 <= (sn % 100) <= 13:
+        ord_s = f"{sn}th"
+    else:
+        ord_s = f"{sn}" + {1: "st", 2: "nd", 3: "rd"}.get(sn % 10, "th")
+    terms.append(f"{base} {ord_s} Season")
+
+    # Римские цифры (I, II, III, IV, V, VI, ...)
+    roman_map = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V", 6: "VI", 7: "VII", 8: "VIII", 9: "IX", 10: "X"}
+    if sn in roman_map:
+        terms.append(f"{base} {roman_map[sn]} сезон")
+        terms.append(f"{base} Season {roman_map[sn]}")
+        terms.append(f"{base} {roman_map[sn]}")
+
+    return terms
+
+
 async def _collect_candidates(
     db: Session,
     show: Show,
@@ -564,7 +619,7 @@ async def _collect_candidates(
     allowed_qualities = quality_profile.allowed_qualities if quality_profile else []
     alias_candidates = build_alias_candidates(show, db=db)
 
-    # Формируем список поисковых запросов: базовые алиасы + варианты номеров для конкретных wanted-серий
+    # Формируем список поисковых запросов: базовые алиасы + все альтернативные форматы сезонов + серии
     query_terms: list[str] = []
     seen_queries: set[str] = set()
 
@@ -580,8 +635,14 @@ async def _collect_candidates(
             seen_queries.add(clean_q.lower())
             query_terms.append(clean_q)
 
+        # Добавляем короткое ядро тайтла
+        core_q = _extract_core_title(clean_q)
+        if core_q and core_q.lower() not in seen_queries:
+            seen_queries.add(core_q.lower())
+            query_terms.append(core_q)
+
     # 1. Сезонные запросы (Season Pack): если разыскиваются серии конкретных сезонов (даже > 6 серий)
-    # Формируем точные запросы на трекеры ("Title S03", "Title Season 3", "Title 3 сезон", "Title S04")
+    # Формируем все возможные альтернативные форматы ("Title S04", "Title 4 сезон", "Title Сезон 4", "Title ТВ-4")
     if wanted_episodes:
         wanted_seasons = {
             ep.season_number
@@ -592,38 +653,32 @@ async def _collect_candidates(
             for alias in alias_candidates[:3]:
                 raw_base = alias.text.strip()
                 clean_base = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", raw_base, flags=re.IGNORECASE).strip()
-                bases_to_try = [clean_base] if clean_base and clean_base != raw_base else [raw_base]
+                core_base = _extract_core_title(clean_base)
+                bases_to_try = [b for b in (clean_base, core_base, raw_base) if b]
                 for base in bases_to_try:
-                    for s_term in (
-                        f"{base} S{sn:02d}",
-                        f"{base} Season {sn}",
-                        f"{base} {sn} сезон",
-                        f"{base} S{sn}",
-                    ):
+                    for s_term in _generate_season_queries(base, sn):
                         if s_term.lower() not in seen_queries:
                             seen_queries.add(s_term.lower())
                             query_terms.append(s_term)
 
-    # 2. Обработка меток (ТВ-X) из аниме-баз (напр. Shikimori ТВ-4 = 3-й сезон Re:Zero)
+    # 2. Обработка меток (ТВ-X) из аниме-баз (напр. Shikimori ТВ-4 = 3-й или 4-й сезон)
     for alias in alias_candidates:
         m_tv = re.search(r"\((?:тв|tv)[\s\-]?(\d+)\)", alias.text, flags=re.IGNORECASE)
         if m_tv:
             tv_num = int(m_tv.group(1))
             clean_base = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", alias.text, flags=re.IGNORECASE).strip()
-            # Для аниме ТВ-N ищем как N сезон, а для ТВ-4 (часто 3 сезон из-за сплит-куров) ищем и N-1
+            core_base = _extract_core_title(clean_base)
             tv_seasons = {tv_num}
             if tv_num > 1:
                 tv_seasons.add(tv_num - 1)
             for sn_val in sorted(tv_seasons):
-                for s_term in (
-                    f"{clean_base} S{sn_val:02d}",
-                    f"{clean_base} {sn_val} сезон",
-                    f"{clean_base} Season {sn_val}",
-                    f"{clean_base} {sn_val}",
-                ):
-                    if s_term.lower() not in seen_queries:
-                        seen_queries.add(s_term.lower())
-                        query_terms.append(s_term)
+                for b in (clean_base, core_base):
+                    if not b:
+                        continue
+                    for s_term in _generate_season_queries(b, sn_val):
+                        if s_term.lower() not in seen_queries:
+                            seen_queries.add(s_term.lower())
+                            query_terms.append(s_term)
 
     if wanted_episodes and len(wanted_episodes) <= 6:
         for ep in wanted_episodes:
@@ -739,7 +794,9 @@ async def _collect_candidates(
                 "rel": rel, "match": match, "quality": quality, "indexer": indexer,
             })
 
-    return candidates
+    res = list(candidates)
+    res.query_terms = query_terms
+    return res
 
 
 async def _do_search_and_grab(
@@ -791,18 +848,29 @@ async def _do_search_and_grab(
     search_terms = ", ".join(f"«{a.text}»" for a in alias_candidates)
 
     candidates = await _collect_candidates(db, show, indexers, wanted_episodes=wanted_episodes)
+    query_terms = getattr(candidates, "query_terms", [])
 
     # Фильтр по минимальному числу сидов
     if settings.min_seeds and settings.min_seeds > 0:
         candidates = [c for c in candidates if c["rel"].seeders >= settings.min_seeds]
+
+    sample_queries = ", ".join(f"«{q}»" for q in query_terms[:4])
+    if len(query_terms) > 4:
+        sample_queries += f" (+ещё {len(query_terms) - 4})"
+    query_info = f" по {len(query_terms)} запросам ({sample_queries})" if query_terms else f" по алиасам ({search_terms})"
 
     log_release_event(
         stage="search",
         level="info" if candidates else "warning",
         show_title=show.title,
         show_id=show.id,
-        message=f"Поиск по алиасам ({search_terms}) в {len(indexers)} трекерах: найдено {len(candidates)} подходящих кандидатов",
-        details={"candidates_count": len(candidates), "indexers_count": len(indexers), "wanted_episodes_count": len(wanted_episodes)},
+        message=f"Поиск{query_info} в {len(indexers)} трекерах: найдено {len(candidates)} подходящих кандидатов",
+        details={
+            "candidates_count": len(candidates),
+            "indexers_count": len(indexers),
+            "wanted_episodes_count": len(wanted_episodes),
+            "queries": query_terms[:25] if query_terms else [a.text for a in alias_candidates],
+        },
         db=db,
     )
 
