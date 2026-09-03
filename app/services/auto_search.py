@@ -942,7 +942,9 @@ async def _collect_candidates(
 
     key_bases = cores + [cb for cb in clean_bases if cb.lower() not in [c.lower() for c in cores]]
 
-    # 2. Сезонные запросы (ТВ-X, X сезон, SX, Xth Season, паки) для разыскиваемых сезонов
+    # 2. Формируем высокоэффективные поисковые запросы
+    # Базовые названия (чистые тайтлы) гарантированно включаем в первые же запросы,
+    # так как именно по ним трекеры возвращают полные паки всех сезонов.
     if wanted_episodes:
         wanted_seasons = {
             ep.season_number
@@ -951,23 +953,33 @@ async def _collect_candidates(
         }
         is_anime = getattr(show, "content_type", "series") == "anime"
         for sn in sorted(wanted_seasons):
-            season_query_lists = [_generate_season_queries(b, sn, is_anime=is_anime) for b in key_bases]
-            if season_query_lists:
-                max_sq = max(len(l) for l in season_query_lists)
-                for idx in range(max_sq):
-                    for q_list in season_query_lists:
-                        if idx < len(q_list):
-                            _add_query(q_list[idx])
+            # Самые результативные сезонные запросы
+            for b in key_bases:
+                _add_query(f"{b} Season {sn}")
+                _add_query(f"{b} Сезон {sn}")
+                _add_query(f"{b} S{sn:02d}")
+                _add_query(f"{b} {sn} сезон")
+                if is_anime:
+                    _add_query(f"{b} (ТВ-{sn})")
+                    _add_query(f"{b} ТВ-{sn}")
 
-    # 3. Базовые названия (без сезона)
+    # Базовые названия тайтла — обязательны для поиска полных коллекций и паков
     for b in key_bases:
         _add_query(b)
 
-    # 4. Полные оригинальные алиасы
     for alias in alias_candidates:
         _add_query(alias.text)
 
-    # 5. Конкретные серии при небольшом количестве
+    # Мультисезонные паки при sn > 1
+    if wanted_episodes:
+        for sn in sorted(wanted_seasons):
+            if sn > 1:
+                for b in key_bases:
+                    _add_query(f"{b} S01-S{sn:02d}")
+                    _add_query(f"{b} 1-{sn} сезон")
+                    _add_query(f"{b} Seasons 1-{sn}")
+
+    # Конкретные серии при малом количестве
     if wanted_episodes and len(wanted_episodes) <= 6:
         for ep in wanted_episodes:
             for b in key_bases[:2]:
@@ -1120,6 +1132,10 @@ async def _do_search_and_grab(
         message=f"Поиск{query_info} в {len(indexers)} трекерах: найдено {len(candidates)} подходящих кандидатов",
         details={
             "candidates_count": len(candidates),
+            "candidates": [
+                f"[{c['quality'].name}] {c['rel'].title} (сиды: {c['rel'].seeders})"
+                for c in candidates[:20]
+            ],
             "indexers_count": len(indexers),
             "wanted_episodes_count": len(wanted_episodes),
             "queries": query_terms[:25] if query_terms else [a.text for a in alias_candidates],
