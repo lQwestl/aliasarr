@@ -6869,54 +6869,56 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   border-radius: 9999px !important;
 }
 
-[data-design="vanguard"] .btn-icon-only,
-[data-design="vanguard"] #poster-options-btn {
-  width: 38px !important;
-  height: 38px !important;
-  min-height: 38px !important;
-  min-width: 38px !important;
-  max-width: 38px !important;
-  padding: 0 !important;
-  border-radius: 10px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0 !important;
-}
+@media (min-width: 769px) {
+  [data-design="vanguard"] .btn-icon-only,
+  [data-design="vanguard"] #poster-options-btn {
+    width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
 
-[data-design="vanguard"] .btn-icon-only.btn-small {
-  width: 28px !important;
-  height: 28px !important;
-  min-height: 28px !important;
-  min-width: 28px !important;
-  max-width: 28px !important;
-  border-radius: 8px !important;
-}
+  [data-design="vanguard"] .btn-icon-only.btn-small {
+    width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    border-radius: 8px !important;
+  }
 
-[data-design="vanguard"] #poster-options-btn svg,
-[data-design="vanguard"] #poster-options-btn i,
-[data-design="vanguard"] #poster-options-btn .lucide {
-  width: 18px !important;
-  height: 18px !important;
-  display: block !important;
-  stroke-width: 2.2px !important;
-}
+  [data-design="vanguard"] #poster-options-btn svg,
+  [data-design="vanguard"] #poster-options-btn i,
+  [data-design="vanguard"] #poster-options-btn .lucide {
+    width: 18px !important;
+    height: 18px !important;
+    display: block !important;
+    stroke-width: 2.2px !important;
+  }
 
-[data-design="vanguard"] .view-switcher-btn {
-  height: 38px !important;
-  min-height: 38px !important;
-  padding: 0 14px !important;
-  border-radius: 9999px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  font-size: 13px !important;
-}
+  [data-design="vanguard"] .view-switcher-btn {
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 14px !important;
+    border-radius: 9999px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-size: 13px !important;
+  }
 
-[data-design="vanguard"] .view-switcher-btn svg,
-[data-design="vanguard"] .view-switcher-btn i {
-  width: 16px !important;
-  height: 16px !important;
+  [data-design="vanguard"] .view-switcher-btn svg,
+  [data-design="vanguard"] .view-switcher-btn i {
+    width: 16px !important;
+    height: 16px !important;
+  }
 }
 
 [data-design="vanguard"] .btn-primary {
@@ -7018,28 +7020,30 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
-[data-design="vanguard"] .toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+@media (min-width: 769px) {
+  [data-design="vanguard"] .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
-[data-design="vanguard"] .toolbar .input {
-  height: 38px;
-  box-sizing: border-box;
-}
+  [data-design="vanguard"] .toolbar .input {
+    height: 38px;
+    box-sizing: border-box;
+  }
 
-[data-design="vanguard"] .toolbar .btn-group {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
+  [data-design="vanguard"] .toolbar .btn-group {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
 
-[data-design="vanguard"] .toolbar .btn-group .btn {
-  height: 38px !important;
-  min-height: 38px !important;
-  padding: 0 14px !important;
-  border-radius: 9999px !important;
+  [data-design="vanguard"] .toolbar .btn-group .btn {
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 14px !important;
+    border-radius: 9999px !important;
+  }
 }
 
 [data-design="vanguard"] .sidebar {
@@ -7605,6 +7609,364 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   color: #0284c7;
   border: 1px solid rgba(2, 132, 199, 0.25);
 }
+
+/* =============================================================================
+   VANGUARD LUXE MOBILE OVERRIDES (@media (max-width: 768px))
+   Ensures 100% parity with Classic mobile UX and eliminates layout glitches:
+   - Full-width stacked buttons and toolbars
+   - Large full-width poster-options button with icon and title
+   - Dropdown view/category/monitor switchers
+   - 50%/50% side-by-side action pairs
+   - No horizontal overflows, clipping, or uneven heights
+   ============================================================================= */
+@media (max-width: 768px) {
+  /* 1. Header Row & Action Buttons (1 Column, 100% Width) */
+  [data-design="vanguard"] .header-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  [data-design="vanguard"] #tab-library .header-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+  [data-design="vanguard"] #tab-library .header-actions .btn {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    height: auto !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    box-sizing: border-box !important;
+    padding: 10px 16px !important;
+    border-radius: 12px !important;
+  }
+
+  /* 2. Library Toolbar & Inputs */
+  [data-design="vanguard"] .toolbar {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  [data-design="vanguard"] .toolbar > input,
+  [data-design="vanguard"] .toolbar .input {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 42px !important;
+    height: auto !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+  }
+  [data-design="vanguard"] #library-category-btns,
+  [data-design="vanguard"] #library-monitor-btns,
+  [data-design="vanguard"] .toolbar .btn-group {
+    display: none !important;
+  }
+
+  /* 3. Category, Monitor & View Switchers (Full Width Dropdowns) */
+  [data-design="vanguard"] #category-switcher,
+  [data-design="vanguard"] #monitor-switcher,
+  [data-design="vanguard"] #view-switcher,
+  [data-design="vanguard"] .view-switcher {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+  [data-design="vanguard"] .view-switcher-btn {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    height: auto !important;
+    font-size: 13.5px !important;
+    box-sizing: border-box !important;
+    border-radius: 12px !important;
+    padding: 10px 16px !important;
+  }
+  [data-design="vanguard"] .view-switcher-menu {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    right: 0 !important;
+    left: 0 !important;
+    border-radius: 12px !important;
+  }
+  [data-design="vanguard"] .view-switcher-menu button {
+    width: 100% !important;
+    padding: 11px 14px !important;
+    font-size: 13.5px !important;
+    text-align: left !important;
+    box-sizing: border-box !important;
+    border-radius: 8px !important;
+  }
+
+  /* 4. Poster Options Button (100% Width with Large Icon and Label) */
+  [data-design="vanguard"] #poster-options-btn,
+  [data-design="vanguard"] .btn-icon-only#poster-options-btn,
+  [data-design="vanguard"] button#poster-options-btn {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 42px !important;
+    height: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: 10px 16px !important;
+    box-sizing: border-box !important;
+    font-size: 13.5px !important;
+    border-radius: 12px !important;
+    flex-shrink: 0 !important;
+  }
+  [data-design="vanguard"] #poster-options-btn svg,
+  [data-design="vanguard"] #poster-options-btn i,
+  [data-design="vanguard"] #poster-options-btn .lucide {
+    width: 22px !important;
+    height: 22px !important;
+    stroke-width: 2.2px !important;
+    flex-shrink: 0 !important;
+    display: inline-block !important;
+  }
+  [data-design="vanguard"] #poster-options-btn .poster-options-btn-label {
+    display: inline !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    color: var(--text) !important;
+  }
+
+  /* 5. Sticky Header & Clean Spacings */
+  [data-design="vanguard"] .panel-sticky-header {
+    margin: 0 0 12px 0 !important;
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+  }
+
+  /* 6. Release Logs, Journal, Events Toolbars */
+  [data-design="vanguard"] .release-logs-toolbar,
+  [data-design="vanguard"] .journal-toolbar,
+  [data-design="vanguard"] .events-toolbar {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  [data-design="vanguard"] .release-logs-toolbar > select,
+  [data-design="vanguard"] .release-logs-toolbar > input,
+  [data-design="vanguard"] .journal-toolbar > select,
+  [data-design="vanguard"] .events-toolbar > select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    min-height: 42px !important;
+    border-radius: 10px !important;
+  }
+  [data-design="vanguard"] #release-logs-refresh-btn,
+  [data-design="vanguard"] #release-logs-download-btn,
+  [data-design="vanguard"] #journal-download-btn,
+  [data-design="vanguard"] #journal-clear-btn,
+  [data-design="vanguard"] #events-sort-btn,
+  [data-design="vanguard"] #events-refresh-btn {
+    flex: 1 1 calc(50% - 4px) !important;
+    width: auto !important;
+    max-width: calc(50% - 4px) !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+    padding: 8px 12px !important;
+  }
+  [data-design="vanguard"] #release-logs-clear-btn {
+    width: 100% !important;
+    flex: 1 0 100% !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+  }
+  [data-design="vanguard"] .release-logs-toolbar .desktop-spacer,
+  [data-design="vanguard"] .journal-toolbar .desktop-spacer,
+  [data-design="vanguard"] .events-toolbar .desktop-spacer {
+    display: none !important;
+  }
+
+  /* 7. General Settings API Key */
+  [data-design="vanguard"] .api-key-actions-row {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  [data-design="vanguard"] #btn-copy-apikey,
+  [data-design="vanguard"] #regenerate-key-btn {
+    flex: 1 1 calc(50% - 4px) !important;
+    width: auto !important;
+    max-width: calc(50% - 4px) !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+  }
+  [data-design="vanguard"] #btn-api-docs {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+  }
+
+  /* 8. Notification Form Actions */
+  [data-design="vanguard"] .nt-actions-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  [data-design="vanguard"] .nt-actions-row .btn {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    font-size: 13.5px !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+  }
+
+  /* 9. Quality Settings */
+  [data-design="vanguard"] #btn-quality-guide,
+  [data-design="vanguard"] .btn-quality-guide {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    font-size: 13.5px !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+    margin-top: 8px !important;
+  }
+  [data-design="vanguard"] .cf-guide-btn {
+    display: none !important;
+  }
+  [data-design="vanguard"] .cf-header-actions {
+    width: 100% !important;
+    margin-top: 8px !important;
+  }
+  [data-design="vanguard"] #btn-add-custom-format {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    font-size: 13.5px !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+  }
+
+  /* 10. Backup Actions */
+  [data-design="vanguard"] .backup-actions-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  [data-design="vanguard"] .backup-actions-row > .btn-primary,
+  [data-design="vanguard"] .backup-actions-row > .btn-secondary:not(#btn-backup-schedule) {
+    flex: 1 1 calc(50% - 4px) !important;
+    width: auto !important;
+    max-width: calc(50% - 4px) !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+  }
+  [data-design="vanguard"] #btn-backup-schedule,
+  [data-design="vanguard"] #backup-delete-selected-btn {
+    width: 100% !important;
+    flex: 1 0 100% !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+    border-radius: 10px !important;
+  }
+
+  /* 11. Modal Sheets (Full-Screen, Solid, Seamless) */
+  [data-design="vanguard"] .modal-overlay,
+  [data-design="vanguard"] #show-modal.modal-overlay,
+  [data-design="vanguard"] #interactive-search-modal.modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    background: var(--panel) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    z-index: 1000 !important;
+    display: none !important;
+    padding: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  [data-design="vanguard"] .modal-overlay.active {
+    display: block !important;
+  }
+  [data-design="vanguard"] .modal {
+    position: relative !important;
+    width: 100% !important;
+    width: 100vw !important;
+    max-width: 100% !important;
+    max-width: 100vw !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: max(16px, env(safe-area-inset-top, 16px)) 14px calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: visible !important;
+    box-sizing: border-box !important;
+    display: block !important;
+    background: var(--panel) !important;
+    z-index: 1001 !important;
+  }
+  [data-design="vanguard"] #interactive-search-modal .modal {
+    max-height: none !important;
+    height: auto !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background: var(--panel) !important;
+  }
+  [data-design="vanguard"] .interactive-search-body {
+    background: var(--panel) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    flex: none !important;
+    overflow-y: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  /* 12. Cards & Buttons */
+  [data-design="vanguard"] .card {
+    border-radius: 14px !important;
+    padding: 14px !important;
+  }
+  [data-design="vanguard"] .form-row {
+    width: 100% !important;
+  }
+  [data-design="vanguard"] .btn-small {
+    height: auto !important;
+  }
+}
+
 
 
 
