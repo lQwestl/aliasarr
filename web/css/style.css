@@ -785,10 +785,7 @@ body::before {
 }
 
 @media (max-width: 1024px) {
-  .panel-sticky-header,
-  [data-design="vanguard"] .panel-sticky-header,
-  [data-theme="dracula"][data-design="vanguard"] .panel-sticky-header,
-  [data-theme="light"][data-design="vanguard"] .panel-sticky-header {
+  .panel-sticky-header {
     position: relative !important;
     top: auto !important;
     z-index: 1 !important;
@@ -7843,32 +7840,46 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 
   /* 5. Sticky Header Tiles & Clean Spacings (Consistent across all tabs) */
-  [data-design="vanguard"] .panel-sticky-header {
+  [data-design="vanguard"] .panel-sticky-header,
+  [data-theme="dracula"][data-design="vanguard"] .panel-sticky-header,
+  [data-theme="light"][data-design="vanguard"] .panel-sticky-header,
+  [data-theme="obsidian"][data-design="vanguard"] .panel-sticky-header {
     margin: 0 0 16px 0 !important;
-    padding: 16px 14px 14px 14px !important;
+    padding: 18px 16px 16px 16px !important;
     border-radius: 18px !important;
     box-sizing: border-box !important;
     width: 100% !important;
     max-width: 100% !important;
   }
 
-  [data-design="vanguard"] .panel-header {
+  [data-design="vanguard"] .panel-header,
+  [data-theme="dracula"][data-design="vanguard"] .panel-header,
+  [data-theme="light"][data-design="vanguard"] .panel-header,
+  [data-theme="obsidian"][data-design="vanguard"] .panel-header {
     margin-bottom: 12px !important;
-    padding-bottom: 0 !important;
+    padding: 0 !important;
     border-bottom: none !important;
     width: 100% !important;
     box-sizing: border-box !important;
+  }
+
+  [data-design="vanguard"] .panel-sticky-header .panel-header {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
   }
 
   [data-design="vanguard"] .panel-header:last-child {
     margin-bottom: 0 !important;
   }
 
-  [data-design="vanguard"] .panel-header h1 {
-    font-size: 24px !important;
+  [data-design="vanguard"] .panel-header h1,
+  [data-theme="dracula"][data-design="vanguard"] .panel-header h1,
+  [data-theme="light"][data-design="vanguard"] .panel-header h1,
+  [data-theme="obsidian"][data-design="vanguard"] .panel-header h1 {
+    font-size: 23px !important;
     font-weight: 700 !important;
-    margin: 0 0 4px 0 !important;
-    padding: 0 2px !important;
+    margin: 0 0 6px 0 !important;
+    padding: 0 !important;
     line-height: 1.25 !important;
     letter-spacing: -0.02em !important;
     display: block !important;
@@ -7876,18 +7887,41 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     word-break: break-word !important;
   }
 
-  [data-design="vanguard"] .panel-header .subtitle {
+  [data-design="vanguard"] .panel-header .subtitle,
+  [data-theme="dracula"][data-design="vanguard"] .panel-header .subtitle,
+  [data-theme="light"][data-design="vanguard"] .panel-header .subtitle,
+  [data-theme="obsidian"][data-design="vanguard"] .panel-header .subtitle {
     font-size: 12.5px !important;
-    line-height: 1.4 !important;
+    line-height: 1.45 !important;
     color: var(--text-muted) !important;
-    margin: 0 0 8px 0 !important;
-    padding: 0 2px !important;
+    margin: 0 !important;
+    padding: 0 !important;
     display: block !important;
     text-align: left !important;
   }
 
   [data-design="vanguard"] .panel-header:last-child .subtitle:last-child {
     margin-bottom: 2px !important;
+  }
+
+  [data-design="vanguard"] .header-row,
+  [data-theme="dracula"][data-design="vanguard"] .header-row,
+  [data-theme="light"][data-design="vanguard"] .header-row,
+  [data-theme="obsidian"][data-design="vanguard"] .header-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  [data-design="vanguard"] .header-row > div:first-child {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   /* 6. Release Logs, Journal, Events Toolbars */
