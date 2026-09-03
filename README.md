@@ -1,6 +1,6 @@
 # Aliasarr
 
-[![Release: v2.0.0](https://img.shields.io/badge/Release-v2.0.0-blue.svg)](https://github.com/lQwestl/aliasarr/releases/tag/v2.0.0)
+[![Release: v2.1.0](https://img.shields.io/badge/Release-v2.1.0-blue.svg)](https://github.com/lQwestl/aliasarr/releases/tag/v2.1.0)
 [![CI](https://github.com/lQwestl/aliasarr/actions/workflows/ci.yml/badge.svg)](https://github.com/lQwestl/aliasarr/actions/workflows/ci.yml)
 [![Docker Hub / GHCR](https://img.shields.io/badge/Docker-ghcr.io%2Flqwestl%2Faliasarr-2496ED?logo=docker)](https://github.com/lQwestl/aliasarr/pkgs/container/aliasarr)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](http://www.gnu.org/licenses/gpl.html)

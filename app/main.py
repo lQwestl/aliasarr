@@ -62,7 +62,7 @@ from fastapi.openapi.utils import get_openapi
 app = FastAPI(
     title="Aliasarr API",
     description="Backend API для Aliasarr — системы управления медиатекой с мультиязычными алиасами, парсером сезонов и контролем торрент-клиентов.",
-    version="2.0.0",
+    version="2.1.0",
     docs_url="/docs",
     redoc_url=None,
     openapi_url="/openapi.json",
@@ -89,7 +89,7 @@ def custom_openapi():
 
     schema = get_openapi(
         title="Aliasarr",
-        version="2.0.0",
+        version="2.1.0",
         description=desc,
         routes=app.routes,
     )
