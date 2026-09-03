@@ -577,13 +577,22 @@ def _extract_core_title(text: str) -> Optional[str]:
     return None
 
 
+def _ordinal_en(n: int) -> str:
+    if 11 <= (n % 100) <= 13:
+        return f"{n}th"
+    return f"{n}" + {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+
+
 def _generate_season_queries(base: str, sn: int) -> list[str]:
-    """Генерирует умный и компактный список сезонных запросов (включая ТВ-X, 4 сезон, S04, паки)."""
+    """Генерирует умный и компактный список сезонных запросов (включая ТВ-X, 4 сезон, 4th Season, S04, паки)."""
+    ord_en = _ordinal_en(sn)
     terms = [
         f"{base} (ТВ-{sn})",
         f"{base} ТВ-{sn}",
-        f"{base} S{sn:02d}",
         f"{base} {sn} сезон",
+        f"{base} {sn}-й сезон",
+        f"{base} S{sn:02d}",
+        f"{base} {ord_en} Season",
         f"{base} Season {sn}",
         f"{base} TV-{sn}",
     ]
@@ -629,7 +638,7 @@ async def _collect_candidates(
         if core_a:
             _add_query(core_a)
 
-    # 2. Сезонные запросы (ТВ-4, 4 сезон, S04, паки) для разыскиваемых сезонов
+    # 2. Сезонные запросы (ТВ-4, 4 сезон, 4th Season, S04, паки) для разыскиваемых сезонов
     if wanted_episodes:
         wanted_seasons = {
             ep.season_number
@@ -637,14 +646,22 @@ async def _collect_candidates(
             if ep.season_number is not None and ep.season_number > 0
         }
         for sn in sorted(wanted_seasons):
-            for alias in alias_candidates[:3]:
+            season_queries_by_base = []
+            for alias in alias_candidates[:4]:
                 raw_base = alias.text.strip()
                 clean_base = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", raw_base, flags=re.IGNORECASE).strip()
                 core_base = _extract_core_title(clean_base)
-                bases_to_try = [b for b in (core_base, clean_base, raw_base) if b]
-                for base in bases_to_try:
-                    for s_term in _generate_season_queries(base, sn):
-                        _add_query(s_term)
+                for b in (core_base, clean_base, raw_base):
+                    if b and b not in [sq[0] for sq in season_queries_by_base]:
+                        season_queries_by_base.append((b, _generate_season_queries(b, sn)))
+
+            # Чередуем запросы от разных алиасов (round-robin), чтобы в топ попали ТВ-4, 4 сезон, S04 для всех версий названий
+            if season_queries_by_base:
+                max_len = max(len(terms) for _, terms in season_queries_by_base)
+                for idx in range(max_len):
+                    for _, terms in season_queries_by_base:
+                        if idx < len(terms):
+                            _add_query(terms[idx])
 
     # 3. Обработка меток (ТВ-X) из названий аниме (например, Shikimori "Re:Zero ... (ТВ-4)")
     for alias in alias_candidates:
@@ -676,8 +693,8 @@ async def _collect_candidates(
     seen_guids: set[str] = set()
     candidates: list[dict] = []
 
-    # Ограничиваем список запросов самыми результативными (не более 16)
-    active_queries = query_terms[:16]
+    # Ограничиваем список запросов самыми результативными (до 20)
+    active_queries = query_terms[:20]
 
     # Опрашиваем каждый индексатор параллельно со строгим ограничением по времени
     async def _fetch_indexer(idx: Indexer, terms: list[str]):

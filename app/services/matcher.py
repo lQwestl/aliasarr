@@ -264,8 +264,11 @@ def extract_title_segments(release_name: str) -> list[str]:
         r"""
         (?:
             \s*\(|\s*\[|\s*[-–]\s*\d
-        |   [._\s]\b(?:S\d{1,3}(?:[-_.\s]*E\d{1,3})?|E\d{1,3}|EP\d{1,3}|Seasons?[-_.:\s]*\d|Сез(?:он(?:ы|а)?)?[-_.:\s]*\d)\b
-        |   \b(?:\d{1,3}(?:\s*[-–~]\s*\d{1,3})?\s*(?:сезон(?:ы|а)?|seasons?))\b
+        |   [._\s]\b(?:S\d{1,3}(?:[-_.\s]*E\d{1,3})?|E\d{1,3}|EP\d{1,3}|Seasons?[-_.:\s]*\d|Сез(?:он(?:ы|а|ов)?)?[-_.:\s]*\d)\b
+        |   \b(?:\d{1,3}(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?\s*(?:[-–~]\s*\d{1,3})?\s*(?:сезон(?:ы|а|ов)?|seasons?|sezon(?:y|i|a)?))\b
+        |   \b(?:Season|Сезон|sezon)\s*\d{1,3}\b
+        |   \b(?:ТВ|TV)[\s\-_]?\d{1,2}\b
+        |   \b(?:Part|Часть|Cour|Кур)\s*\d{1,2}\b
         |   [._\s]\b(?:Complete|Full\b|19\d\d|20\d\d|1080p|720p|2160p|480p|576p|BDRip|WEB-?DL|WEBRip|HDTV|Remux)\b
         )
         """,

@@ -533,6 +533,30 @@ class TestQualityAndMatcher(unittest.TestCase):
         self.assertFalse(m_dorama.matched, "Дорама 2012 года НЕ должна матчиться с аниме 1999 года")
         self.assertTrue(m_anime.matched, "Аниме 1999 года должно успешно матчиться")
 
+    def test_rezero_season4_complex_naming(self):
+        from types import SimpleNamespace
+        from app.services.parser import parse_episode, ReleaseKind
+
+        aliases = [
+            AliasCandidate(alias_id=1, text="Re: ZERO, Starting Life in Another World", language="en", priority=10),
+            AliasCandidate(alias_id=2, text="Re:Zero — жизнь в альтернативном мире с нуля", language="ru", priority=20),
+            AliasCandidate(alias_id=3, text="Re:Zero kara Hajimeru Isekai Seikatsu", language="ja", priority=30),
+        ]
+
+        test_titles = [
+            "Re:Zero — жизнь в альтернативном мире с нуля (ТВ-4)",
+            "Re:Zero kara Hajimeru Isekai Seikatsu 4th Season",
+            "Re:ZERO -Starting Life in Another World- Season 4",
+            "Re:Zero — жизнь в альтернативном мире с нуля (ТВ-4) / Re:Zero kara Hajimeru Isekai Seikatsu 4th Season | Re:ZERO -Starting Life in Another World- Season 4",
+        ]
+
+        for t in test_titles:
+            m = match_release(t, 77, aliases, content_type="anime")
+            self.assertTrue(m.matched, f"Failed to match: {t}")
+            p = parse_episode(t)
+            self.assertEqual(p.kind, ReleaseKind.SEASON_PACK, f"Wrong kind for: {t}")
+            self.assertEqual(p.seasons, [4], f"Wrong season for: {t}")
+
 
 if __name__ == "__main__":
     unittest.main()
