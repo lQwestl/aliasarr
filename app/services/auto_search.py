@@ -597,6 +597,20 @@ def _generate_season_queries(base: str, sn: int) -> list[str]:
         f"{base} Part {sn}",
         f"{base} Часть {sn}",
     ]
+    # Для сезонов > 1 добавляем запросы на полные паки: без пробелов (1-4) и с пробелами (1 - 4)
+    if sn > 1:
+        terms.extend([
+            f"{base} 1-{sn} сезон",
+            f"{base} 1 - {sn} сезон",
+            f"{base} Сезоны 1-{sn}",
+            f"{base} Сезоны 1 - {sn}",
+            f"{base} S01-S{sn:02d}",
+            f"{base} S1-{sn}",
+            f"{base} Seasons 1-{sn}",
+            f"{base} 1-{sn}",
+            f"{base} 1 - {sn}",
+        ])
+
     # Английские порядковые (1st, 2nd, 3rd, 4th Season)
     if 11 <= (sn % 100) <= 13:
         ord_s = f"{sn}th"
