@@ -5750,6 +5750,142 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     font-weight: 500 !important;
     color: var(--text) !important;
   }
+
+  /* Release Logs Toolbar on Mobile */
+  .release-logs-toolbar {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .release-logs-toolbar > select,
+  .release-logs-toolbar > input {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  #release-logs-refresh-btn,
+  #release-logs-download-btn {
+    flex: 1 1 calc(50% - 4px) !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+  }
+  #release-logs-clear-btn {
+    width: 100% !important;
+    flex: 1 0 100% !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+  }
+  .release-logs-toolbar .desktop-spacer {
+    display: none !important;
+  }
+
+  /* Journal Toolbar on Mobile */
+  .journal-toolbar {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .journal-toolbar > select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  #journal-download-btn,
+  #journal-clear-btn {
+    flex: 1 1 calc(50% - 4px) !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+  }
+  .journal-toolbar .desktop-spacer {
+    display: none !important;
+  }
+
+  /* Events Toolbar on Mobile */
+  .events-toolbar {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .events-toolbar > select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  #events-sort-btn,
+  #events-refresh-btn {
+    flex: 1 1 calc(50% - 4px) !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+  }
+  .events-toolbar .desktop-spacer {
+    display: none !important;
+  }
+
+  /* Notification Form Actions on Mobile */
+  .nt-actions-row {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .nt-actions-row .btn {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Quality Settings on Mobile */
+  #btn-quality-guide,
+  .btn-quality-guide {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    font-size: 13.5px !important;
+    box-sizing: border-box !important;
+    margin-top: 8px;
+  }
+  .cf-header-actions {
+    width: 100% !important;
+    margin-top: 8px;
+  }
+  #btn-add-custom-format {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    font-size: 13.5px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* General Settings API Key on Mobile */
+  .api-key-actions-row {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  #btn-copy-apikey,
+  #regenerate-key-btn {
+    flex: 1 1 calc(50% - 4px) !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    box-sizing: border-box !important;
+  }
+  #btn-api-docs {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    box-sizing: border-box !important;
+  }
 }
 
 /* Extra small devices (< 380px) */

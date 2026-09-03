@@ -503,10 +503,6 @@
               <h1 data-i18n="tab.activity">Активность</h1>
               <p class="subtitle" data-i18n="subtitle.activity">Текущие загрузки во всех download clients</p>
             </div>
-            <div class="header-actions">
-              <button class="btn btn-secondary" onclick="loadQueue()"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
-              <button class="btn btn-primary" onclick="triggerManualCheckDownloads()"><i data-lucide="folder-check" class="ico-sm"></i> <span data-i18n="activity.check_and_import">Проверить и перенести</span></button>
-            </div>
           </div>
         </header>
       </div>
@@ -831,14 +827,14 @@
             <label><span data-i18n="settings.apikey_label">API-ключ</span> <span class="hint" data-i18n="settings.apikey_hint">используется этим интерфейсом и внешними клиентами для запросов к серверу</span></label>
             <div class="api-key-container" style="display:flex; flex-direction:column; gap:8px;">
               <input id="setting-apikey" class="input mono" type="text" readonly style="width:100%;">
-              <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button class="btn btn-secondary btn-small" onclick="copyApiKey()" data-i18n="common.copy"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="common.copy">Копировать</span></button>
+              <div class="api-key-actions-row" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-secondary btn-small" id="btn-copy-apikey" onclick="copyApiKey()" data-i18n="common.copy"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="common.copy">Копировать</span></button>
                 <button class="btn btn-secondary btn-small" id="regenerate-key-btn" onclick="regenerateApiKey(this)" data-i18n="settings.btn_regenerate_key"><i data-lucide="refresh-cw" class="ico-xs"></i> <span data-i18n="settings.btn_regenerate_key">↻ Новый ключ</span></button>
               </div>
             </div>
             <p class="hint" id="apikey-source-hint"></p>
             <div style="margin-top: 10px;">
-              <button class="btn btn-secondary btn-small" onclick="window.open('/docs', '_blank')">
+              <button class="btn btn-secondary btn-small" id="btn-api-docs" onclick="window.open('/docs', '_blank')">
                 <i data-lucide="book-open" class="ico-sm" style="margin-right:6px; vertical-align:middle;"></i> <span data-i18n="settings.btn_api_docs">Справочник API</span>
               </button>
             </div>
@@ -1917,7 +1913,7 @@
             <h2 style="margin:0; font-size:18px; font-weight:600;"><i data-lucide="award" class="ico-sm" style="vertical-align:middle; margin-right:6px; color:var(--accent);"></i><span data-i18n="quality.settings_title">Профили и форматы качества</span></h2>
             <p class="subtitle" style="margin:4px 0 0 0;" data-i18n="quality.settings_subtitle">Настройка предпочтительного качества, порогов апгрейда и скоринга релизов</p>
           </div>
-          <a href="/wiki#section-qualities" target="_blank" onclick="openQualityGuide(event, 'section-qualities')" class="btn btn-secondary" style="display:inline-flex; align-items:center; gap:8px;" title="Открыть полное руководство по профилям качества, форматам качества и Release Title Regex в новой вкладке" data-i18n-title="cf.guide_btn_title">
+          <a id="btn-quality-guide" href="/wiki#section-qualities" target="_blank" onclick="openQualityGuide(event, 'section-qualities')" class="btn btn-secondary btn-quality-guide" style="display:inline-flex; align-items:center; gap:8px;" title="Открыть полное руководство по профилям качества, форматам качества и Release Title Regex в новой вкладке" data-i18n-title="cf.guide_btn_title">
             <i data-lucide="book-open" class="ico-sm"></i> <span data-i18n="cf.guide_btn">Справочник качества</span>
           </a>
         </div>
@@ -1967,11 +1963,8 @@
               <h3 style="margin:0;"><i data-lucide="sparkles" class="ico-sm"></i> <span data-i18n="cf.title">Форматы качества</span></h3>
               <p class="hint" style="margin:4px 0 0 0;" data-i18n="cf.subtitle">Правила распознавания и приоритезации релизов (HDR, TrueHD, Proper, Preferred Groups)</p>
             </div>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <a href="/wiki#section-qualities" target="_blank" onclick="openQualityGuide(event, 'section-qualities')" class="btn btn-secondary btn-small" style="gap:6px;" title="Справочник по Regex и форматам качества" data-i18n-title="cf.guide_btn_title">
-                <i data-lucide="book-open" class="ico-xs"></i> <span data-i18n="cf.guide_btn">Справочник</span>
-              </a>
-              <button class="btn btn-primary btn-small" onclick="openAddCustomFormatModal()"><i data-lucide="plus" class="ico-sm"></i> <span data-i18n="cf.add_btn">Добавить формат</span></button>
+            <div class="cf-header-actions" style="display:flex; gap:8px; align-items:center;">
+              <button id="btn-add-custom-format" class="btn btn-primary btn-small" onclick="openAddCustomFormatModal()"><i data-lucide="plus" class="ico-sm"></i> <span data-i18n="cf.add_btn">Добавить формат</span></button>
             </div>
           </div>
           <div class="table-responsive">
@@ -2234,7 +2227,7 @@
               <label class="checkbox-row"><input id="nt-on-episode-file-delete" type="checkbox"> <span data-i18n="nt.on_file_delete">При удалении файла</span></label>
               <label class="checkbox-row"><input id="nt-on-backup" type="checkbox"> <span data-i18n="nt.on_backup">При создании бэкапа</span></label>
             </div>
-            <div class="form-row" style="margin-top:12px;">
+            <div class="form-row nt-actions-row" style="margin-top:12px;">
               <button class="btn btn-secondary" onclick="testNotificationAdhoc(this)" data-i18n="common.test">Тест</button>
               <button class="btn btn-secondary" id="nt-cancel-btn" onclick="resetNotificationForm()" data-i18n="common.cancel">Отменить</button>
               <button class="btn btn-primary" id="nt-submit-btn" onclick="submitNotification()" data-i18n="common.apply">Применить</button>
@@ -2260,7 +2253,7 @@
           <p class="subtitle" data-i18n="subtitle.events">Информация, предупреждения и ошибки приложения</p>
         </header>
 
-        <div class="form-row" style="margin-bottom:0; flex-wrap:wrap;">
+        <div class="form-row events-toolbar" style="margin-bottom:0; flex-wrap:wrap;">
           <select id="events-level-filter" class="input" style="max-width:220px" onchange="loadEvents(1)">
             <option value="all" data-i18n="events.filter_all">Все события</option>
             <option value="info" data-i18n="events.filter_info">Информация</option>
@@ -2270,8 +2263,8 @@
           <label class="hint" style="margin:0;" data-i18n="events.page_size">Размер страницы:</label>
           <input id="events-page-size" class="input" type="number" min="5" value="50" style="max-width:110px" onchange="loadEvents(1)">
           <button class="btn btn-secondary btn-small" onclick="toggleEventsSort()" id="events-sort-btn" data-i18n="events.sort_time">Время ↓</button>
-          <div style="flex:1"></div>
-          <button class="btn btn-secondary btn-small" onclick="loadEvents(EVENTS_STATE.page)" data-i18n="common.refresh">↻ Обновить</button>
+          <div class="desktop-spacer" style="flex:1"></div>
+          <button class="btn btn-secondary btn-small" id="events-refresh-btn" onclick="loadEvents(EVENTS_STATE.page)" data-i18n="common.refresh">↻ Обновить</button>
         </div>
       </div>
 
@@ -2292,7 +2285,7 @@
           <p class="subtitle" data-i18n="subtitle.journal">Логи приложения (info / warn / debug). Записи старше срока хранения удаляются автоматически.</p>
         </header>
 
-        <div class="form-row" style="margin-bottom:0; flex-wrap:wrap;">
+        <div class="form-row journal-toolbar" style="margin-bottom:0; flex-wrap:wrap;">
           <select id="journal-level-filter" class="input" style="max-width:220px" onchange="loadJournal(1)">
             <option value="all" data-i18n="journal.filter_all">Все уровни</option>
             <option value="debug">Debug</option>
@@ -2300,9 +2293,9 @@
             <option value="warning">Warn</option>
             <option value="error">Error</option>
           </select>
-          <div style="flex:1"></div>
-          <button class="btn btn-secondary btn-small" onclick="downloadJournal()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
-          <button class="btn btn-danger btn-small" onclick="clearJournal()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
+          <div class="desktop-spacer" style="flex:1"></div>
+          <button class="btn btn-secondary btn-small" id="journal-download-btn" onclick="downloadJournal()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
+          <button class="btn btn-danger btn-small" id="journal-clear-btn" onclick="clearJournal()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
         </div>
       </div>
 
@@ -2334,7 +2327,7 @@
           </div>
         </header>
 
-        <div class="form-row" style="margin-bottom:0; flex-wrap:wrap; gap:10px;">
+        <div class="form-row release-logs-toolbar" style="margin-bottom:0; flex-wrap:wrap; gap:10px;">
           <select id="release-logs-stage-filter" class="input" style="max-width:180px" onchange="loadReleaseLogs(1)">
             <option value="all" data-i18n="release_logs.filter_all_stages">Все этапы</option>
             <option value="search">Поиск (Search)</option>
@@ -2355,9 +2348,9 @@
 
           <input type="text" id="release-logs-search" class="input" style="max-width:260px" placeholder="Поиск по тайтлу или раздаче…" data-i18n-placeholder="release_logs.search_placeholder" onkeydown="if(event.key==='Enter') loadReleaseLogs(1)">
           
-          <button class="btn btn-secondary btn-small" onclick="loadReleaseLogs(1)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
+          <button class="btn btn-secondary btn-small" id="release-logs-refresh-btn" onclick="loadReleaseLogs(1)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
 
-          <div style="flex:1"></div>
+          <div class="desktop-spacer" style="flex:1"></div>
 
           <button class="btn btn-secondary btn-small" id="release-logs-download-btn" onclick="downloadReleaseLogs()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
           <button class="btn btn-danger btn-small" id="release-logs-clear-btn" onclick="clearReleaseLogs()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
