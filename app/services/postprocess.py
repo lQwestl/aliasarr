@@ -1139,8 +1139,9 @@ def process_download(
             # 0. Приоритетное сопоставление по названию серии (актуально при несовпадении нумерации в релизах,
             # например когда спешл включен как 01, сдвигая серии 02..20 на 1)
             fname_no_ext = os.path.splitext(filename)[0]
-            from app.services.matcher import normalize_title_words, calc_title_match
+            from app.services.matcher import normalize_title_words, calc_title_match, get_show_title_words
             fname_words = set(normalize_title_words(fname_no_ext))
+            show_words = get_show_title_words(show)
 
             if len(fname_words) >= 1:
                 best_match_key = (0.0, 0)
@@ -1160,7 +1161,7 @@ def process_download(
 
                 for d_ep in title_pool:
                     if d_ep.title and len(d_ep.title.strip()) >= 3:
-                        score, matched_count = calc_title_match(d_ep.title, fname_words)
+                        score, matched_count = calc_title_match(d_ep.title, fname_words, show_words=show_words)
                         match_key = (score, matched_count)
                         if score >= 0.7 and match_key > best_match_key:
                             best_match_key = match_key

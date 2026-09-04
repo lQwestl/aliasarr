@@ -280,6 +280,27 @@ class TestAutoSearch(unittest.TestCase):
         # S05E01 DP Christmas Special — спешл, должна быть 0!
         self.assertEqual(auto_search.evaluate_torrent_file_priority("S05E01 DP Christmas Special.avi", 0, wanted_eps, all_show_episodes=all_show_eps), 0)
 
+        # 5. Сериал с титульной серией (например, Daredevil -> S01E13 "Daredevil")
+        # Файлы S01E01..S01E13 не должны ложно сопоставляться с S01E13 только из-за названия тайтла в файле
+        dd_episodes = [
+            Episode(id=i, show_id=10, season_number=1, episode_number=i, title="Daredevil" if i == 13 else f"Episode {i}")
+            for i in range(1, 14)
+        ]
+        dd_show_words = {"marvels", "daredevil", "сорвиголова"}
+        matched_eps = []
+        for i in range(1, 14):
+            fname = f"Marvel's.Daredevil.S01E{i:02d}.1080p.BDRip.Rus.Eng.CasStudio.TV.mkv"
+            prio = auto_search.evaluate_torrent_file_priority(
+                fname, i - 1, dd_episodes, all_show_episodes=dd_episodes,
+                out_matched_episodes=matched_eps, show_words=dd_show_words,
+            )
+            self.assertEqual(prio, 1)
+
+        self.assertEqual(len(matched_eps), 13)
+        matched_pairs = {(e.season_number, e.episode_number) for e in matched_eps}
+        expected_pairs = {(1, i) for i in range(1, 14)}
+        self.assertEqual(matched_pairs, expected_pairs)
+
     def test_wrong_season_release_not_grabbed_for_absolute_numbering(self):
         """Релиз без явного сезона в названии не должен ошибочно захватываться для 2 сезона."""
         show = make_show(self.session, title="My Hero Academia")

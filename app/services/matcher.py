@@ -795,15 +795,71 @@ def normalize_title_words(text: Optional[str]) -> list[str]:
     return clean
 
 
-def calc_title_match(ep_title: Optional[str], fname_words: set[str]) -> tuple[float, int]:
+_GENERIC_EPISODE_WORDS = {
+    "pilot", "special", "specials", "preview", "trailer", "uncut", "remastered",
+    "repack", "sample", "complete", "season", "episode", "part", "cour", "edition",
+    "version", "bonus", "extra", "extras", "intro", "outro", "prologue", "epilogue",
+    "ova", "ona", "oad", "movie", "film", "short", "series",
+}
+
+
+def calc_title_match(
+    ep_title: Optional[str],
+    fname_words: set[str],
+    show_words: Optional[set[str]] = None,
+) -> tuple[float, int]:
     """
     Вычисляет долю совпадения слов названия эпизода в множестве слов имени файла.
     Возвращает (score, matched_words_count).
+
+    Параметр show_words: множество нормализованных слов из названия тайтла и его алиасов.
+    Если передан, слова названия эпизода, полностью совпадающие с названием шоу
+    (например, эпизод "Daredevil" в сериале "Marvel's Daredevil"), не считаются
+    за подтверждающие совпадение названия эпизода, чтобы избежать ложных срабатываний
+    на всех файлах раздачи.
     """
     words = normalize_title_words(ep_title)
     if not words:
         return (0.0, 0)
-    matched = sum(1 for w in words if w in fname_words)
-    return (matched / len(words), matched)
+
+    eval_words = words
+    if show_words:
+        eval_words = [w for w in words if w not in show_words]
+        if not eval_words:
+            # Название серии целиком состоит из слов названия тайтла (например, эпизод "Daredevil" в сериале "Marvel's Daredevil")
+            return (0.0, 0)
+
+    # Если в оцениваемом названии серии только 1 слово:
+    # 1. Оно не должно быть короче 4 символов (если не цифра)
+    # 2. Не должно быть общеупотребительным служебным словом (pilot, special, etc.)
+    if len(eval_words) == 1:
+        single_w = eval_words[0]
+        if (len(single_w) < 4 and not single_w.isdigit()) or single_w in _GENERIC_EPISODE_WORDS:
+            return (0.0, 0)
+
+    matched = sum(1 for w in eval_words if w in fname_words)
+    return (matched / len(eval_words), matched)
+
+
+def get_show_title_words(show: Any) -> set[str]:
+    """
+    Извлекает нормализованные слова из названия тайтла, оригинального названия и всех алиасов.
+    """
+    if not show:
+        return set()
+    words = set()
+    title = getattr(show, "title", None)
+    if title:
+        words.update(normalize_title_words(title))
+    orig_title = getattr(show, "original_title", None)
+    if orig_title:
+        words.update(normalize_title_words(orig_title))
+    aliases = getattr(show, "aliases", None)
+    if aliases:
+        for a in aliases:
+            text = getattr(a, "text", None) or (a if isinstance(a, str) else None)
+            if text:
+                words.update(normalize_title_words(text))
+    return words
 
 

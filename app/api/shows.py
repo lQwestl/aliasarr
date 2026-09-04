@@ -1648,9 +1648,10 @@ def scan_for_manual_import(
                 matched_ep = episodes[0]
         else:
             # 0. Приоритетное сопоставление по названию серии (актуально при несовпадении нумерации в релизах)
-            from app.services.matcher import normalize_title_words, calc_title_match
+            from app.services.matcher import normalize_title_words, calc_title_match, get_show_title_words
             fname_no_ext = os.path.splitext(filename)[0]
             fname_words = set(normalize_title_words(fname_no_ext))
+            show_words = get_show_title_words(show)
             if len(fname_words) >= 1:
                 candidate_pool = [e for e in episodes if e.id not in used_scan_ep_ids]
                 target_s = parsed.season
@@ -1660,7 +1661,7 @@ def scan_for_manual_import(
                 best_scan_ep = None
                 for ep in candidate_pool:
                     if ep.title and len(ep.title.strip()) >= 3:
-                        score, matched_count = calc_title_match(ep.title, fname_words)
+                        score, matched_count = calc_title_match(ep.title, fname_words, show_words=show_words)
                         match_key = (score, matched_count)
                         if score >= 0.7 and match_key > best_match_key:
                             best_match_key = match_key

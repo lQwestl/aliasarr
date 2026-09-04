@@ -305,18 +305,23 @@ async def check_downloads(db: Session) -> list[dict]:
         _MISSING_TORRENT_POLL_COUNTS.pop(torrent_hash, None)
         t, dc_row = entry
 
-        # Разовая сверка селективной загрузки активной раздачи (если файлов в клиенте меньше, чем серий в базе)
-        if torrent_hash not in _RECONCILED_TORRENTS and len(eps) > 1:
+        # Разовая сверка селективной загрузки активной раздачи
+        if torrent_hash not in _RECONCILED_TORRENTS:
             _RECONCILED_TORRENTS.add(torrent_hash)
             try:
                 client = get_client(dc_row)
                 full_t = await client.get_torrent(torrent_hash)
                 if full_t and full_t.files:
                     from app.services.auto_search import evaluate_torrent_file_priority
+                    from app.services.matcher import get_show_title_words
                     show_id = eps[0].show_id
                     show_obj = db.get(Show, show_id) if show_id else None
                     all_show_eps = db.query(Episode).filter(Episode.show_id == show_id).all() if show_id else eps
                     show_ova_mode = getattr(show_obj, "ova_mode", "auto") or "auto"
+                    show_words = get_show_title_words(show_obj)
+
+                    # Для сверки используем все серии тайтла, чтобы восстановить серии, ошибочно отвязанные от раздачи
+                    target_reconcile_eps = all_show_eps if all_show_eps else eps
 
                     matched_eps = []
                     for f in full_t.files:
@@ -325,16 +330,33 @@ async def check_downloads(db: Session) -> list[dict]:
                         evaluate_torrent_file_priority(
                             file_name=f.name,
                             file_index=f.index,
-                            target_episodes=eps,
+                            target_episodes=target_reconcile_eps,
                             content_type=getattr(show_obj, "content_type", "series") if show_obj else "series",
                             ova_mode=show_ova_mode,
                             torrent_name=getattr(full_t, "name", "") or "",
                             all_show_episodes=all_show_eps,
                             out_matched_episodes=matched_eps,
+                            show_words=show_words,
                         )
                     if matched_eps:
                         actually_matched_ids = {e.id for e in matched_eps if getattr(e, "id", None) is not None}
                         actually_matched_pairs = {(e.season_number, e.episode_number) for e in matched_eps}
+
+                        # 1. Восстанавливаем/привязываем серии, которые реально загружаются в клиенте, но не были привязаны к раздаче
+                        for m_ep in matched_eps:
+                            if m_ep.status == EpisodeStatus.WANTED or (m_ep.status == EpisodeStatus.DOWNLOADING and not m_ep.torrent_hash):
+                                m_ep.status = EpisodeStatus.DOWNLOADING
+                                m_ep.torrent_hash = torrent_hash
+                                m_ep.download_client_id = dc_row.id
+                                m_ep.download_progress = t.progress
+                                db.add(m_ep)
+                                progress_changed = True
+                                logger.info(
+                                    "DownloadsMonitor: Серия S%02dE%02d («%s») привязана к активной раздаче %s (прогресс %.1f%%)",
+                                    m_ep.season_number, m_ep.episode_number, m_ep.title or "", torrent_hash, (t.progress or 0.0) * 100,
+                                )
+
+                        # 2. Серии из eps, которых реально нет в загружаемых файлах раздачи, возвращаем в WANTED
                         uncovered = [
                             e for e in eps
                             if (e.id and e.id not in actually_matched_ids) and (e.season_number, e.episode_number) not in actually_matched_pairs
@@ -355,9 +377,11 @@ async def check_downloads(db: Session) -> list[dict]:
                                     "DownloadsMonitor: Серия S%02dE%02d («%s») не загружается в раздаче %s — статус возвращен в 'в поиске'",
                                     u_ep.season_number, u_ep.episode_number, u_ep.title or "", torrent_hash,
                                 )
-                            db.commit()
                             progress_changed = True
-                            eps = [e for e in eps if e not in uncovered]
+
+                        if progress_changed:
+                            db.commit()
+                        eps = [e for e in all_show_eps if e.torrent_hash == torrent_hash and e.status == EpisodeStatus.DOWNLOADING]
             except Exception as rec_err:
                 logger.debug("DownloadsMonitor: Ошибка при сверке файлов раздачи %s: %s", torrent_hash, rec_err)
 

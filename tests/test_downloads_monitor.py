@@ -468,6 +468,62 @@ class TestDownloadsMonitor(unittest.TestCase):
             self.assertFalse(mock_postprocess.called)
             self.assertEqual(results, [])
 
+    def test_reconciliation_heals_unlinked_downloading_episodes(self):
+        from app.services.downloads_monitor import _RECONCILED_TORRENTS
+
+        _RECONCILED_TORRENTS.clear()
+
+        # Создаем шоу и 13 эпизодов (Daredevil Season 1)
+        show = SimpleNamespace(id=1, title="Marvel's Daredevil", content_type="series", ova_mode="auto", aliases=[])
+        episodes = [
+            SimpleNamespace(
+                id=i,
+                show_id=1,
+                season_number=1,
+                episode_number=i,
+                title="Daredevil" if i == 13 else f"Episode {i}",
+                status="downloading" if i == 13 else "wanted",
+                torrent_hash="hash-dd1" if i == 13 else None,
+                download_client_id=1 if i == 13 else None,
+                download_progress=0.05 if i == 13 else 0.0,
+                air_date=None,
+            )
+            for i in range(1, 14)
+        ]
+
+        db_mock = MagicMock()
+        db_mock.query.return_value.filter.return_value.all.side_effect = [
+            [episodes[12]],  # downloading eps query: only ep 13
+            [SimpleNamespace(id=1, enabled=True, name="Transmission", type="transmission")],  # active clients
+            episodes,  # all_show_eps query inside reconciliation
+        ]
+        db_mock.get.return_value = show
+
+        files = [
+            SimpleNamespace(index=i - 1, name=f"Marvel's.Daredevil.S01E{i:02d}.1080p.mkv", wanted=True)
+            for i in range(1, 14)
+        ]
+        torrent = TorrentInfo(
+            hash="hash-dd1",
+            name="Marvel's.Daredevil.S01.1080p",
+            progress=0.15,
+            state="downloading",
+            save_path="/downloads/Marvel's.Daredevil.S01.1080p",
+            size=10000000000,
+            files=files,
+        )
+
+        settings = SimpleNamespace(root_folder="", root_folder_series="", rename_template_series="", season_folder_template_series="")
+        with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+             patch("app.services.downloads_monitor.get_client", return_value=FakeClient([torrent])):
+            results = asyncio.run(check_downloads(db_mock))
+
+        # Все 13 эпизодов должны быть переведены в downloading и привязаны к hash-dd1!
+        for ep in episodes:
+            self.assertEqual(ep.status, "downloading")
+            self.assertEqual(ep.torrent_hash, "hash-dd1")
+            self.assertEqual(ep.download_progress, 0.15)
+
 
 if __name__ == "__main__":
     unittest.main()

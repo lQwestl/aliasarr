@@ -113,6 +113,7 @@ def evaluate_torrent_file_priority(
     torrent_name: str = "",
     all_show_episodes: Optional[list[Episode]] = None,
     out_matched_episodes: Optional[list[Any]] = None,
+    show_words: Optional[set[str]] = None,
 ) -> int:
     """
     Определяет приоритет скачивания файла торрента (1 = скачивать, 0 = не скачивать).
@@ -165,7 +166,7 @@ def evaluate_torrent_file_priority(
     )
 
     target_keys = {(ep.season_number, ep.episode_number) for ep in target_episodes}
-    target_abs = {ep.absolute_number for ep in target_episodes if ep.absolute_number is not None}
+    target_abs = {ep.absolute_number for ep in target_episodes if getattr(ep, "absolute_number", None) is not None}
     target_seasons = {ep.season_number for ep in target_episodes}
     has_wanted_specials = any(ep.season_number == 0 for ep in target_episodes)
 
@@ -178,10 +179,20 @@ def evaluate_torrent_file_priority(
         from app.services.matcher import normalize_title_words, calc_title_match
         fname_words = set(normalize_title_words(os.path.splitext(base_name)[0]))
 
+        effective_show_words = show_words
+        if effective_show_words is None and torrent_name:
+            effective_show_words = set(normalize_title_words(torrent_name))
+
         best_ep = None
         best_match_key = (0.0, 0)
+
+        already_matched_ids = {e.id for e in out_matched_episodes if getattr(e, "id", None) is not None} if out_matched_episodes else set()
+        already_matched_pairs = {(e.season_number, e.episode_number) for e in out_matched_episodes} if out_matched_episodes else set()
+
         for ep in all_show_episodes:
-            score, matched_count = calc_title_match(getattr(ep, "title", None), fname_words)
+            if getattr(ep, "id", None) in already_matched_ids or (ep.season_number, ep.episode_number) in already_matched_pairs:
+                continue
+            score, matched_count = calc_title_match(getattr(ep, "title", None), fname_words, show_words=effective_show_words)
             match_key = (score, matched_count)
             if score >= 0.7 and match_key > best_match_key:
                 best_match_key = match_key
@@ -498,6 +509,8 @@ async def _limit_torrent_files_to_episodes(
         except Exception as e:
             logger.debug("Не удалось загрузить эпизоды тайтла для пофайлового сопоставления: %s", e)
     show_ova_mode = getattr(show_obj, "ova_mode", "auto") or "auto"
+    from app.services.matcher import get_show_title_words
+    show_words = get_show_title_words(show_obj)
 
     unwanted_indices = []
     wanted_indices = []
@@ -516,6 +529,7 @@ async def _limit_torrent_files_to_episodes(
             torrent_name=t_name,
             all_show_episodes=all_show_episodes,
             out_matched_episodes=matched_target_eps,
+            show_words=show_words,
         )
         if prio > 0:
             wanted_indices.append(f.index)
