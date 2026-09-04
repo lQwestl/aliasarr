@@ -1685,7 +1685,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #queue-table th:nth-child(3),
 #queue-table td:nth-child(3) {
-  width: 100px;
+  width: 110px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(4),
@@ -6643,7 +6643,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   letter-spacing: 0.02em;
 }
 
-.queue-progress-size-badge {
+.queue-progress-size-badge,
+.queue-size-badge {
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;

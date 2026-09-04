@@ -8447,7 +8447,7 @@ async function loadQueue() {
             </div>
           </td>
           <td><span class="badge badge-secondary">${escapeHtml(i.download_client)}</span></td>
-          <td class="mono" style="font-size:12px;">${formatSize(i.size)}</td>
+          <td><span class="badge badge-secondary queue-size-badge">${formatSize(i.size)}</span></td>
           <td>
             <div class="queue-speed-badge">${speedStr}</div>
             <div class="queue-eta-badge">${etaStr !== "—" ? `ETA: ${etaStr}` : ""}</div>
