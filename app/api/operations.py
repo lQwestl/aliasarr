@@ -164,43 +164,83 @@ def get_health_check(db: Session = Depends(get_db)):
                 "key": f"disk_{p_path}",
                 "level": lvl,
                 "title": f"Диск: {p_label}",
-                "message": f"Свободно {_fmt_sz(free_gb)} из {_fmt_sz(total_gb)} ({used_pct}% занято)",
+                "message": f"Свободно {_fmt_sz(free_gb)}",
+                "free_formatted": _fmt_sz(free_gb),
+                "total_formatted": _fmt_sz(total_gb),
+                "free_gb": round(free_gb, 1),
+                "total_gb": round(total_gb, 1),
                 "used_pct": used_pct,
+                "free_pct": round(free_pct, 1),
+                "path": p_path,
             })
         except Exception:
             pass
 
     # 2. Индексаторы
-    idx_total = db.query(Indexer).count()
-    indexers_enabled = db.query(Indexer).filter(Indexer.enabled == True).count()  # noqa: E712
+    indexers = db.query(Indexer).order_by(Indexer.name.asc()).all()
+    idx_items = [
+        {
+            "id": idx.id,
+            "name": idx.name,
+            "enabled": bool(idx.enabled),
+            "last_check_ok": idx.last_check_ok,
+            "type": idx.type,
+        }
+        for idx in indexers
+    ]
+    indexers_enabled = sum(1 for idx in idx_items if idx["enabled"])
     checks.append({
         "key": "indexers",
         "level": "ok" if indexers_enabled else "warn",
         "title": "Индексаторы",
-        "message": f"Включено {indexers_enabled} из {idx_total} трекеров" if indexers_enabled
+        "message": f"Включено {indexers_enabled} из {len(idx_items)} трекеров" if indexers_enabled
         else "Нет ни одного включённого индексатора — поиск релизов не работает",
+        "items": idx_items,
     })
 
     # 3. Загрузчики (Download Clients)
-    dc_total = db.query(DownloadClient).count()
-    dc_enabled = db.query(DownloadClient).filter(DownloadClient.enabled == True).count()  # noqa: E712
+    dc_list = db.query(DownloadClient).order_by(DownloadClient.name.asc()).all()
+    dc_items = [
+        {
+            "id": dc.id,
+            "name": dc.name,
+            "type": dc.type,
+            "enabled": bool(dc.enabled),
+            "is_default": bool(dc.is_default),
+        }
+        for dc in dc_list
+    ]
+    dc_enabled = sum(1 for dc in dc_items if dc["enabled"])
+    enabled_names = [f"{dc['name']} ({dc['type']})" for dc in dc_items if dc["enabled"]]
     checks.append({
         "key": "download_clients",
         "level": "ok" if dc_enabled else "warn",
         "title": "Загрузчики",
-        "message": f"Включено {dc_enabled} из {dc_total} клиентов загрузки" if dc_enabled
-        else "Нет активных download-клиентов — захваченные релизы не будут скачиваться",
+        "message": f"Включено {dc_enabled} из {len(dc_items)} клиентов: {', '.join(enabled_names)}" if enabled_names
+        else "Нет активных клиентов загрузки",
+        "items": dc_items,
     })
 
     # 4. Источники метаданных
-    md_total = db.query(MetadataSource).count()
-    md_enabled = db.query(MetadataSource).filter(MetadataSource.enabled == True).count()  # noqa: E712
+    md_sources = db.query(MetadataSource).order_by(MetadataSource.name.asc()).all()
+    md_items = [
+        {
+            "id": md.id,
+            "name": md.name,
+            "type": str(getattr(md, "type", "")),
+            "enabled": bool(md.enabled),
+        }
+        for md in md_sources
+    ]
+    enabled_sources = [md for md in md_items if md["enabled"]]
+    enabled_names = [md["name"] for md in enabled_sources]
     checks.append({
         "key": "metadata",
-        "level": "ok" if md_enabled else "warn",
+        "level": "ok" if enabled_sources else "warn",
         "title": "Метаданные",
-        "message": f"Активно {md_enabled} источников (SkyHook, TheTVDB, TVMaze, TMDB)" if md_enabled
+        "message": f"Активно {len(enabled_sources)} источников: {', '.join(enabled_names)}" if enabled_names
         else "Нет активных источников метаданных",
+        "items": md_items,
     })
 
     # 5. Планировщик фоновых задач
@@ -212,21 +252,29 @@ def get_health_check(db: Session = Depends(get_db)):
     })
 
     # 6. Профили качества
+    profiles = db.query(QualityProfile).order_by(QualityProfile.name.asc()).all()
+    profile_items = []
+    for p in profiles:
+        cnt = db.query(Show).filter(Show.quality_profile_id == p.id).count()
+        profile_items.append({
+            "id": p.id,
+            "name": p.name,
+            "shows_count": cnt,
+        })
     shows_without_profile = db.query(Show).filter(Show.quality_profile_id.is_(None)).count()
     if shows_without_profile:
-        checks.append({
-            "key": "profiles",
-            "level": "warn",
-            "title": "Профили качества",
-            "message": f"Видео без профиля качества: {shows_without_profile} (разрешено любое качество)",
+        profile_items.append({
+            "id": 0,
+            "name": "Без профиля (любое)",
+            "shows_count": shows_without_profile,
         })
-    else:
-        checks.append({
-            "key": "profiles",
-            "level": "ok",
-            "title": "Профили качества",
-            "message": "Все тайтлы библиотеки привязаны к профилям качества",
-        })
+    checks.append({
+        "key": "profiles",
+        "level": "ok",
+        "title": "Профили качества",
+        "message": f"Настроено {len(profiles)} профилей качества",
+        "items": profile_items,
+    })
 
     has_error = any(c.get("level") == "error" for c in checks)
     has_warn = any(c.get("level") == "warn" for c in checks)

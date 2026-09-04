@@ -3727,8 +3727,11 @@ async function loadDashboard() {
     const el = document.getElementById("dash-calendar");
     el.innerHTML = entries.map(e => `
       <div class="simple-list-row" onclick="openShowModal(${e.show_id})" style="cursor:pointer;" title="${escapeHtml(e.show_title)}">
-        <span>${escapeHtml(e.show_title)} ${e.season != null && e.episode != null ? `<span class="muted">S${pad(e.season)}E${pad(e.episode)}</span>` : ''}</span>
-        <span class="muted">${formatDateOnly(e.air_date)}</span>
+        <div style="display:flex; align-items:center; gap:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;">
+          <span style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(e.show_title)}</span>
+          ${e.season != null && e.episode != null ? `<span class="badge badge-teal mono" style="font-size:11px; padding:2px 6px; flex-shrink:0;">S${pad(e.season)}E${pad(e.episode)}</span>` : ''}
+        </div>
+        <span class="badge badge-secondary mono" style="font-size:11px; padding:2px 8px; flex-shrink:0; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="calendar" class="ico-xs"></i> ${formatDateOnly(e.air_date)}</span>
       </div>`).join("") || `<div class="simple-list-empty">${t("dash.no_upcoming")}</div>`;
   } catch (e) {}
 
@@ -3737,8 +3740,11 @@ async function loadDashboard() {
     const el = document.getElementById("dash-history");
     el.innerHTML = entries.map(e => `
       <div class="simple-list-row" ${e.show_id ? `onclick="openShowModal(${e.show_id})" style="cursor:pointer;" title="${escapeHtml(e.show_title_snapshot || e.show_title || '')}"` : ''}>
-        <span>${escapeHtml(e.show_title_snapshot || e.release_title || e.show_title || '—')}</span>
-        <span class="muted">${formatDateTZ(e.created_at, { hour: undefined, minute: undefined })}</span>
+        <div style="display:flex; align-items:center; gap:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;">
+          <i data-lucide="download" class="ico-xs" style="color:var(--teal); flex-shrink:0;"></i>
+          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(e.show_title_snapshot || e.release_title || e.show_title || '—')}</span>
+        </div>
+        <span class="badge badge-secondary mono" style="font-size:11px; padding:2px 8px; flex-shrink:0; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="clock" class="ico-xs"></i> ${formatDateTZ(e.created_at, { hour: undefined, minute: undefined })}</span>
       </div>`).join("") || `<div class="simple-list-empty">${t("dash.no_grabs")}</div>`;
   } catch (e) {}
 
@@ -3763,42 +3769,42 @@ async function loadSystemAbout() {
       {
         icon: "tag",
         label: isRu ? "Версия" : "Version",
-        val: `<span class="badge-teal mono">v${escapeHtml(info.version || '1.0.0')} (${escapeHtml(info.branch || 'main')})</span>`,
+        val: `<span class="badge badge-teal mono" style="font-size:12px; padding:3px 8px; font-weight:600;"><i data-lucide="tag" class="ico-xs"></i> v${escapeHtml(info.version || '1.0.0')} (${escapeHtml(info.branch || 'main')})</span>`,
       },
       {
         icon: "box",
         label: isRu ? "Среда выполнения" : "Runtime",
-        val: `<span class="mono">${escapeHtml(info.runtime || 'Docker')}</span>`,
+        val: `<span class="badge badge-secondary mono" style="font-size:12px; padding:3px 8px;"><i data-lucide="box" class="ico-xs"></i> ${escapeHtml(info.runtime || 'Docker')}</span>`,
       },
       {
         icon: "terminal",
         label: "Python",
-        val: `<span class="mono">${escapeHtml(info.python_version || '3.11')}</span>`,
+        val: `<span class="badge badge-secondary mono" style="font-size:12px; padding:3px 8px;"><i data-lucide="terminal" class="ico-xs"></i> ${escapeHtml(info.python_version || '3.11')}</span>`,
       },
       {
         icon: "database",
         label: isRu ? "База данных" : "Database",
-        val: `<span class="mono">${escapeHtml(info.database_type || 'SQLite')} ${escapeHtml(info.database_version || '')} (${info.database_size_formatted || '0 B'})</span>`,
+        val: `<span class="badge badge-secondary mono" style="font-size:12px; padding:3px 8px;"><i data-lucide="database" class="ico-xs"></i> ${escapeHtml(info.database_type || 'SQLite')} ${escapeHtml(info.database_version || '')} (${info.database_size_formatted || '0 B'})</span>`,
       },
       {
         icon: "folder",
         label: isRu ? "Каталог настроек" : "AppData Dir",
-        val: `<span class="mono" title="${escapeHtml(info.config_directory || '')}">${escapeHtml(info.config_directory || '/config')}</span>`,
+        val: `<span class="badge badge-secondary mono" style="font-size:12px; padding:3px 8px;" title="${escapeHtml(info.config_directory || '')}"><i data-lucide="folder" class="ico-xs"></i> ${escapeHtml(info.config_directory || '/config')}</span>`,
       },
       {
         icon: "clock",
         label: isRu ? "Время работы" : "Uptime",
-        val: `<span>${escapeHtml(isRu ? info.uptime_formatted : info.uptime_formatted_en)}</span>`,
+        val: `<span class="badge badge-ok" style="font-size:12px; padding:3px 8px;"><i data-lucide="clock" class="ico-xs"></i> ${escapeHtml(isRu ? info.uptime_formatted : info.uptime_formatted_en)}</span>`,
       },
       {
         icon: "globe",
         label: isRu ? "Часовой пояс" : "Timezone",
-        val: `<span>${escapeHtml(info.timezone || 'UTC')}</span>`,
+        val: `<span class="badge badge-secondary mono" style="font-size:12px; padding:3px 8px;"><i data-lucide="globe" class="ico-xs"></i> ${escapeHtml(info.timezone || 'UTC')}</span>`,
       },
       {
         icon: info.ssl_enabled ? "shield-check" : "globe",
         label: isRu ? "Режим подключения" : "Connection Mode",
-        val: `<span class="mono" style="color:${info.ssl_enabled ? 'var(--teal)' : 'inherit'}">${escapeHtml(isRu ? info.mode : info.mode_en)}</span>`,
+        val: `<span class="badge ${info.ssl_enabled ? 'badge-ok' : 'badge-secondary'} mono" style="font-size:12px; padding:3px 8px;"><i data-lucide="${info.ssl_enabled ? 'shield-check' : 'globe'}" class="ico-xs"></i> ${escapeHtml(isRu ? info.mode : info.mode_en)}</span>`,
       },
     ];
 
@@ -3824,17 +3830,17 @@ async function loadSystemAbout() {
 function formatHealthMessage(msg) {
   if (CURRENT_LANG !== "en") return msg;
   return (msg || "")
-    .replace(/^Свободно (.+?) из (.+?) \((\d+(?:\.\d+)?)% занято\)/i, "Free $1 of $2 ($3% used)")
-    .replace(/^Свободно (.+?) из (.+?) \((\d+(?:\.\d+)?)% свободно\)/i, "Free $1 of $2 ($3% free)")
+    .replace(/^Свободно (.+)/i, "Free $1")
     .replace(/^Включено (\d+) из (\d+) трекеров/i, "Enabled $1 of $2 trackers")
     .replace(/^Нет ни одного включённого индексатора.*/i, "No enabled indexers — release searching will not work")
-    .replace(/^Включено (\d+) из (\d+) клиентов загрузки/i, "Enabled $1 of $2 download clients")
-    .replace(/^Нет активных download-клиентов.*/i, "No active download clients — grabbed releases will not be downloaded")
-    .replace(/^Активно (\d+) источников.*/i, "Active $1 metadata sources (SkyHook, TheTVDB, TVMaze, TMDB)")
+    .replace(/^Включено (\d+) из (\d+) клиентов: (.+)/i, "Enabled $1 of $2 clients: $3")
+    .replace(/^Включено: (.+)/i, "Enabled: $1")
+    .replace(/^Нет активных клиентов загрузки/i, "No active download clients")
+    .replace(/^Активно (\d+) источников: (.+)/i, "Active $1 sources: $2")
     .replace(/^Нет активных источников метаданных/i, "No active metadata sources")
     .replace(/^Служба автоматической проверки загрузок и трекеров работает/i, "Automatic downloads and tracker monitoring service active")
-    .replace(/^Все тайтлы библиотеки привязаны к профилям качества/i, "All titles in library are assigned to quality profiles")
-    .replace(/^Видео без профиля качества: (\d+).*/i, "Videos without quality profile: $1 (any quality allowed)");
+    .replace(/^Настроено (\d+) профилей качества/i, "Configured $1 quality profiles")
+    .replace(/^Все тайтлы библиотеки привязаны к профилям качества/i, "All titles in library are assigned to quality profiles");
 }
 
 function formatHealthTitle(title) {
@@ -3857,6 +3863,11 @@ function formatHealthTitle(title) {
     return t;
   }
   return title;
+}
+
+async function testIndexerFromDashboard(button, id) {
+  await testIndexer(button, id);
+  await loadHealthCheck();
 }
 
 async function loadHealthCheck() {
@@ -3884,15 +3895,208 @@ async function loadHealthCheck() {
     if (checks.length > 0) {
       el.innerHTML = checks.map(c => {
         const lvl = c.level || 'ok';
-        let progressHtml = "";
-        if (c.used_pct !== undefined) {
+        const key = c.key || '';
+
+        // 1. DISKS: Display only free space with clean badges
+        if (key.startsWith('disk_')) {
+          const freeText = c.free_formatted ? `${CURRENT_LANG === 'en' ? 'Free:' : 'Свободно:'} ${c.free_formatted}` : escapeHtml(formatHealthMessage(c.message));
           const fillColor = lvl === 'error' ? 'var(--danger)' : (lvl === 'warn' ? '#fbbf24' : 'var(--teal)');
-          progressHtml = `
-            <div class="health-progress-bar">
-              <div class="health-progress-fill" style="width:${Math.min(100, Math.max(0, c.used_pct))}%; background:${fillColor};"></div>
+          return `
+            <div class="health-item">
+              <div class="health-item-header">
+                <div class="health-item-title">
+                  <i data-lucide="hard-drive" class="ico-xs" style="color:var(--teal)"></i>
+                  <span>${escapeHtml(formatHealthTitle(c.title || "Диск"))}</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span class="badge badge-teal mono" style="font-size:11.5px; padding:2px 8px; font-weight:600;">
+                    ${freeText}
+                  </span>
+                  <span class="badge ${lvl === 'error' ? 'badge-error' : (lvl === 'warn' ? 'badge-warn' : 'badge-ok')}" style="font-size:10.5px; padding:2px 6px;">
+                    ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Low Space' : 'Мало места') : (lvl === 'warn' ? (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание') : (CURRENT_LANG === 'en' ? 'OK' : 'Норма'))}
+                  </span>
+                </div>
+              </div>
+              ${c.used_pct !== undefined ? `
+                <div class="health-progress-bar" style="margin-top:6px;">
+                  <div class="health-progress-fill" style="width:${Math.min(100, Math.max(0, c.used_pct))}%; background:${fillColor};"></div>
+                </div>
+              ` : ''}
             </div>
           `;
         }
+
+        // 2. INDEXERS: Names, availability badges, check button
+        if (key === 'indexers') {
+          const items = Array.isArray(c.items) ? c.items : [];
+          let itemsHtml = "";
+          if (items.length > 0) {
+            itemsHtml = `
+              <div style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
+                ${items.map(idx => {
+                  let statusBadge = "";
+                  if (!idx.enabled) {
+                    statusBadge = `<span class="badge badge-ghost" style="font-size:10.5px; padding:1px 6px;">${CURRENT_LANG === 'en' ? 'Disabled' : 'Отключен'}</span>`;
+                  } else if (idx.last_check_ok === true) {
+                    statusBadge = `<span class="badge badge-ok" style="font-size:10.5px; padding:1px 6px;"><i data-lucide="check-circle" class="ico-xs"></i> ${CURRENT_LANG === 'en' ? 'Available' : 'Доступен'}</span>`;
+                  } else if (idx.last_check_ok === false) {
+                    statusBadge = `<span class="badge badge-danger" style="font-size:10.5px; padding:1px 6px;"><i data-lucide="x-circle" class="ico-xs"></i> ${CURRENT_LANG === 'en' ? 'Unavailable' : 'Недоступен'}</span>`;
+                  } else {
+                    statusBadge = `<span class="badge badge-secondary" style="font-size:10.5px; padding:1px 6px;"><i data-lucide="help-circle" class="ico-xs"></i> ${CURRENT_LANG === 'en' ? 'Untested' : 'Не проверен'}</span>`;
+                  }
+                  return `
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:5px 8px; background:rgba(255,255,255,0.03); border-radius:6px; border:1px solid rgba(255,255,255,0.04);">
+                      <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+                        <i data-lucide="search" class="ico-xs" style="color:var(--teal); flex-shrink:0;"></i>
+                        <span style="font-weight:500; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(idx.name)}</span>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                        ${statusBadge}
+                        <button class="btn btn-secondary btn-small" style="padding: 2px 8px; height: 24px; min-height: 24px; font-size: 11px; display:inline-flex; align-items:center; gap:4px;" onclick="testIndexerFromDashboard(this, ${idx.id})" title="${CURRENT_LANG === 'en' ? 'Check connection' : 'Проверить доступность'}">
+                          <i data-lucide="play" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Check' : 'Проверить'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            `;
+          }
+          return `
+            <div class="health-item">
+              <div class="health-item-header">
+                <div class="health-item-title">
+                  <i data-lucide="search" class="ico-xs" style="color:var(--teal)"></i>
+                  <span>${escapeHtml(formatHealthTitle(c.title || "Индексаторы"))}</span>
+                </div>
+                <span class="badge ${lvl === 'error' ? 'badge-error' : (lvl === 'warn' ? 'badge-warn' : 'badge-ok')}" style="font-size:10.5px; padding:2px 6px;">
+                  ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Error' : 'Ошибка') : (lvl === 'warn' ? (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание') : (CURRENT_LANG === 'en' ? 'OK' : 'Норма'))}
+                </span>
+              </div>
+              <div class="health-item-msg" style="margin-top:2px;">${escapeHtml(formatHealthMessage(c.message))}</div>
+              ${itemsHtml}
+            </div>
+          `;
+        }
+
+        // 3. DOWNLOAD CLIENTS: Show names and type badges
+        if (key === 'download_clients') {
+          const items = Array.isArray(c.items) ? c.items : [];
+          let itemsHtml = "";
+          if (items.length > 0) {
+            itemsHtml = `
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+                ${items.map(dc => {
+                  if (dc.enabled) {
+                    return `
+                      <span class="badge badge-secondary" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; font-size:12px;">
+                        <i data-lucide="download-cloud" class="ico-xs" style="color:var(--teal)"></i>
+                        <strong>${escapeHtml(dc.name)}</strong>
+                        <span class="badge badge-teal mono" style="font-size:10px; padding:1px 5px;">${escapeHtml(dc.type)}</span>
+                        ${dc.is_default ? `<span class="badge badge-purple" style="font-size:10px; padding:1px 5px;">${CURRENT_LANG === 'en' ? 'Default' : 'Основной'}</span>` : ''}
+                      </span>
+                    `;
+                  } else {
+                    return `
+                      <span class="badge badge-ghost" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; font-size:12px;">
+                        <i data-lucide="download-cloud" class="ico-xs" style="opacity:0.5;"></i>
+                        <span>${escapeHtml(dc.name)}</span>
+                        <span class="hint" style="font-size:10px;">(${CURRENT_LANG === 'en' ? 'Disabled' : 'Отключен'})</span>
+                      </span>
+                    `;
+                  }
+                }).join("")}
+              </div>
+            `;
+          }
+          return `
+            <div class="health-item">
+              <div class="health-item-header">
+                <div class="health-item-title">
+                  <i data-lucide="download-cloud" class="ico-xs" style="color:var(--teal)"></i>
+                  <span>${escapeHtml(formatHealthTitle(c.title || "Загрузчики"))}</span>
+                </div>
+                <span class="badge ${lvl === 'error' ? 'badge-error' : (lvl === 'warn' ? 'badge-warn' : 'badge-ok')}" style="font-size:10.5px; padding:2px 6px;">
+                  ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Error' : 'Ошибка') : (lvl === 'warn' ? (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание') : (CURRENT_LANG === 'en' ? 'OK' : 'Норма'))}
+                </span>
+              </div>
+              <div class="health-item-msg" style="margin-top:2px;">${escapeHtml(formatHealthMessage(c.message))}</div>
+              ${itemsHtml}
+            </div>
+          `;
+        }
+
+        // 4. METADATA SOURCES: Show enabled source badges
+        if (key === 'metadata') {
+          const items = Array.isArray(c.items) ? c.items : [];
+          let itemsHtml = "";
+          if (items.length > 0) {
+            itemsHtml = `
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+                ${items.filter(m => m.enabled).map(m => `
+                  <span class="badge badge-secondary" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; font-size:12px;">
+                    <i data-lucide="database" class="ico-xs" style="color:var(--teal)"></i>
+                    <strong>${escapeHtml(m.name)}</strong>
+                    <span class="badge badge-teal mono" style="font-size:10px; padding:1px 5px;">${escapeHtml(m.type || 'api')}</span>
+                  </span>
+                `).join("")}
+              </div>
+            `;
+          }
+          return `
+            <div class="health-item">
+              <div class="health-item-header">
+                <div class="health-item-title">
+                  <i data-lucide="database" class="ico-xs" style="color:var(--teal)"></i>
+                  <span>${escapeHtml(formatHealthTitle(c.title || "Метаданные"))}</span>
+                </div>
+                <span class="badge ${lvl === 'error' ? 'badge-error' : (lvl === 'warn' ? 'badge-warn' : 'badge-ok')}" style="font-size:10.5px; padding:2px 6px;">
+                  ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Error' : 'Ошибка') : (lvl === 'warn' ? (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание') : (CURRENT_LANG === 'en' ? 'OK' : 'Норма'))}
+                </span>
+              </div>
+              <div class="health-item-msg" style="margin-top:2px;">${escapeHtml(formatHealthMessage(c.message))}</div>
+              ${itemsHtml}
+            </div>
+          `;
+        }
+
+        // 5. QUALITY PROFILES: Show badges for each profile and connected show count
+        if (key === 'profiles') {
+          const items = Array.isArray(c.items) ? c.items : [];
+          let itemsHtml = "";
+          if (items.length > 0) {
+            itemsHtml = `
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+                ${items.map(p => `
+                  <span class="badge badge-secondary" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; font-size:12px;">
+                    <i data-lucide="award" class="ico-xs" style="color:var(--teal)"></i>
+                    <strong>${escapeHtml(p.name)}</strong>
+                    <span class="badge badge-teal mono" style="font-size:10.5px; padding:1px 6px; font-weight:600;">
+                      ${p.shows_count} ${CURRENT_LANG === 'en' ? (p.shows_count === 1 ? 'title' : 'titles') : 'тайтлов'}
+                    </span>
+                  </span>
+                `).join("")}
+              </div>
+            `;
+          }
+          return `
+            <div class="health-item">
+              <div class="health-item-header">
+                <div class="health-item-title">
+                  <i data-lucide="award" class="ico-xs" style="color:var(--teal)"></i>
+                  <span>${escapeHtml(formatHealthTitle(c.title || "Профили качества"))}</span>
+                </div>
+                <span class="badge badge-ok" style="font-size:10.5px; padding:2px 6px;">
+                  ${CURRENT_LANG === 'en' ? 'OK' : 'Норма'}
+                </span>
+              </div>
+              <div class="health-item-msg" style="margin-top:2px;">${escapeHtml(formatHealthMessage(c.message))}</div>
+              ${itemsHtml}
+            </div>
+          `;
+        }
+
+        // Default item (e.g. background monitor)
         return `
           <div class="health-item">
             <div class="health-item-header">
@@ -3905,7 +4109,6 @@ async function loadHealthCheck() {
               </span>
             </div>
             <div class="health-item-msg">${escapeHtml(formatHealthMessage(c.message))}</div>
-            ${progressHtml}
           </div>
         `;
       }).join("");
