@@ -160,6 +160,7 @@ def _to_settings_out(settings, is_owner: bool = False) -> SettingsOut:
         username=settings.username,
         language=settings.language,
         theme=settings.theme,
+        scrollbar_mode=getattr(settings, "scrollbar_mode", "autohide") or "autohide",
         min_seeds=settings.min_seeds,
         prefer_most_seeded=settings.prefer_most_seeded,
         monitor_interval_minutes=settings.monitor_interval_minutes,
