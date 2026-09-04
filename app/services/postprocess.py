@@ -17,6 +17,8 @@ import shutil
 
 logger = logging.getLogger("aliasarr.postprocess")
 
+from app.services.release_log_service import log_release_event
+
 try:
     from sqlalchemy.orm import Session
     from app.models.db import Episode, EpisodeStatus, Show
@@ -1321,6 +1323,25 @@ def process_download(
                             "Пропуск импорта: файл %s сопоставлен с серией S%02dE%02d, которая уже скачана и не входит в целевой список раздачи",
                             file_path, episode.season_number, episode.episode_number,
                         )
+                        log_release_event(
+                            stage="import",
+                            level="warning",
+                            show_title=show.title,
+                            show_id=show.id,
+                            release_title=os.path.basename(file_path),
+                            indexer="Postprocess",
+                            message=(
+                                f"Импорт пропущен: файл «{os.path.basename(file_path)}» сопоставлен с серией "
+                                f"S{episode.season_number:02d}E{episode.episode_number:02d}, которая уже скачана и не входит в целевой список раздачи."
+                            ),
+                            details={
+                                "file": file_path,
+                                "season": episode.season_number,
+                                "episode": episode.episode_number,
+                                "torrent_hash": torrent_hash,
+                            },
+                            db=db,
+                        )
                         results.append({
                             "file": file_path,
                             "status": "skipped",
@@ -1341,6 +1362,29 @@ def process_download(
                         logger.warning(
                             "Защита от понижения качества: %s (%s, ранг %d) не может заменить существующий файл %s (%s, ранг %d)",
                             file_path, quality, new_q.rank, episode.file_path, existing_quality_str, old_q.rank,
+                        )
+                        log_release_event(
+                            stage="import",
+                            level="warning",
+                            show_title=show.title,
+                            show_id=show.id,
+                            release_title=os.path.basename(file_path),
+                            indexer="Postprocess",
+                            message=(
+                                f"Защита от даунгрейда качества: файл «{os.path.basename(file_path)}» ({quality}, ранг {new_q.rank}) "
+                                f"отклонен для серии S{episode.season_number:02d}E{episode.episode_number:02d}, "
+                                f"так как существующий файл уже имеет более высокое качество {existing_quality_str} (ранг {old_q.rank})."
+                            ),
+                            details={
+                                "file": file_path,
+                                "existing_file": episode.file_path,
+                                "incoming_quality": quality,
+                                "existing_quality": existing_quality_str,
+                                "season": episode.season_number,
+                                "episode": episode.episode_number,
+                                "torrent_hash": torrent_hash,
+                            },
+                            db=db,
                         )
                         results.append({
                             "file": file_path,
@@ -1518,6 +1562,28 @@ def process_download(
                 "episode": actual_ep_num,
                 "is_upgrade": is_upgrade,
             })
+            log_release_event(
+                stage="import",
+                level="success",
+                show_title=show.title,
+                show_id=show.id,
+                release_title=os.path.basename(file_path),
+                indexer="Postprocess",
+                message=(
+                    f"Импорт успешен: серия S{season_num:02d}E{actual_ep_num:02d} перемещена в «{os.path.basename(dest_video_path)}» "
+                    f"(качество: {quality}, апгрейд: {'да' if is_upgrade else 'нет'})."
+                ),
+                details={
+                    "source": file_path,
+                    "dest": dest_video_path,
+                    "season": season_num,
+                    "episode": actual_ep_num,
+                    "quality": quality,
+                    "is_upgrade": is_upgrade,
+                    "torrent_hash": torrent_hash,
+                },
+                db=db,
+            )
 
     # Сбрасываем серии, которые были привязаны к этой загрузке, ТОЛЬКО если хотя бы один файл был успешно импортирован
     # (т.е. раздача действительно завершилась и была обработана, а не упала с ошибкой или пустым списком файлов).
@@ -1854,6 +1920,27 @@ def process_movie_download(
                 pass
 
     apply_media_permissions(movie_root, is_dir=True, recursive=True)
+
+    log_release_event(
+        stage="import",
+        level="success",
+        show_title=show.title,
+        show_id=show.id,
+        release_title=os.path.basename(main_file),
+        indexer="Postprocess",
+        message=(
+            f"Импорт фильма успешен: «{show.title}» перемещён в «{os.path.basename(dest_video_path)}» "
+            f"(качество: {quality}, апгрейд: {'да' if is_upgrade else 'нет'})."
+        ),
+        details={
+            "source": main_file,
+            "dest": dest_video_path,
+            "quality": quality,
+            "is_upgrade": is_upgrade,
+            "torrent_hash": torrent_hash,
+        },
+        db=db,
+    )
 
     db.commit()
     return [{"file": main_file, "status": "imported", "dest": dest_video_path, "season": 1, "episode": 1, "is_upgrade": is_upgrade}]

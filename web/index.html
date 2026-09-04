@@ -2369,6 +2369,7 @@
             <option value="search">Поиск (Search)</option>
             <option value="match">Сопоставление (Match)</option>
             <option value="filter">Фильтрация (Filter)</option>
+            <option value="decision">Решения (Decision)</option>
             <option value="grab">Захват / Клиент (Grab)</option>
             <option value="download">Мониторинг (Download)</option>
             <option value="import">Импорт (Import)</option>
@@ -2385,6 +2386,7 @@
           <input type="text" id="release-logs-search" class="input" style="max-width:260px" placeholder="Поиск по тайтлу или раздаче…" data-i18n-placeholder="release_logs.search_placeholder" onkeydown="if(event.key==='Enter') loadReleaseLogs(1)">
           
           <button class="btn btn-secondary btn-small" id="release-logs-refresh-btn" onclick="loadReleaseLogs(1)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
+          <button class="btn btn-secondary btn-small" id="release-logs-client-btn" onclick="openDownloadClientLogsModal()"><i data-lucide="server" class="ico-sm"></i> <span data-i18n="release_logs.btn_client_logs">Логи загрузчика</span></button>
 
           <div class="desktop-spacer" style="flex:1"></div>
 
@@ -3519,7 +3521,7 @@
 </nav>
 
 <div id="modal-release-log-detail" class="modal-overlay">
-  <div class="modal modal-medium" style="max-width: 720px; width: 95%;">
+  <div class="modal modal-medium" style="max-width: 880px; width: 95%;">
     <button class="modal-close" onclick="closeModal('modal-release-log-detail')"><i data-lucide="x"></i></button>
     <div class="modal-header" style="margin-bottom: 16px;">
       <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
@@ -3527,11 +3529,30 @@
         <span data-i18n="release_logs.modal_title">Детали обработки релиза</span>
       </h3>
     </div>
-    <div class="modal-body" style="padding: 4px 0;">
+    <div class="modal-body" style="padding: 4px 0; max-height: 75vh; overflow-y: auto;">
       <div id="release-log-detail-body" class="form-col" style="gap:12px;"></div>
     </div>
     <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
       <button class="btn btn-secondary" onclick="closeModal('modal-release-log-detail')" data-i18n="common.close">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-download-client-logs" class="modal-overlay">
+  <div class="modal modal-medium" style="max-width: 860px; width: 95%;">
+    <button class="modal-close" onclick="closeModal('modal-download-client-logs')"><i data-lucide="x"></i></button>
+    <div class="modal-header" style="margin-bottom: 16px; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+        <i data-lucide="server" class="ico-sm" style="color:var(--accent)"></i>
+        <span data-i18n="release_logs.client_modal_title">Логи и диагностика загрузчиков (Transmission / qBittorrent)</span>
+      </h3>
+      <button class="btn btn-secondary btn-small" onclick="loadDownloadClientLogs()"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
+    </div>
+    <div class="modal-body" style="padding: 4px 0; max-height: 70vh; overflow-y:auto;">
+      <div id="download-client-logs-body" class="form-col" style="gap:12px;"></div>
+    </div>
+    <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-download-client-logs')" data-i18n="common.close">Закрыть</button>
     </div>
   </div>
 </div>

@@ -359,6 +359,23 @@ async def check_downloads(db: Session) -> list[dict]:
                                     "DownloadsMonitor: В раздаче %s отключено %d нежелательных файлов в клиенте",
                                     torrent_hash, len(currently_wanted_unwanted),
                                 )
+                                log_release_event(
+                                    stage="download",
+                                    level="info",
+                                    show_title=getattr(db.get(Show, eps[0].show_id), "title", None) if eps else None,
+                                    show_id=eps[0].show_id if eps else None,
+                                    release_title=getattr(t, "name", torrent_hash),
+                                    indexer="DownloadsMonitor",
+                                    message=(
+                                        f"DownloadsMonitor: Самовосстановление: в раздаче «{getattr(t, 'name', torrent_hash)}» "
+                                        f"обнаружено и отключено в клиенте {len(currently_wanted_unwanted)} нежелательных файлов."
+                                    ),
+                                    details={
+                                        "torrent_hash": torrent_hash,
+                                        "disabled_file_indices": currently_wanted_unwanted,
+                                    },
+                                    db=db,
+                                )
                             except Exception as set_err:
                                 logger.debug("DownloadsMonitor: Не удалось отключить файлы в %s: %s", torrent_hash, set_err)
 
@@ -488,6 +505,28 @@ async def check_downloads(db: Session) -> list[dict]:
         if not show:
             continue
 
+        log_release_event(
+            stage="download",
+            level="info",
+            show_title=show.title,
+            show_id=show.id,
+            release_title=getattr(t, "name", torrent_hash),
+            indexer="DownloadsMonitor",
+            message=(
+                f"DownloadsMonitor: Раздача «{getattr(t, 'name', torrent_hash)}» завершила загрузку байт (100%, "
+                f"left_until_done={left_done if left_done is not None else 0}, клиент: {dc_row.name}, статус: {state_str}). "
+                "Проверка файлов на диске перед запуском импорта..."
+            ),
+            details={
+                "torrent_hash": torrent_hash,
+                "progress": t.progress,
+                "left_until_done": left_done,
+                "state": state_str,
+                "client": dc_row.name,
+            },
+            db=db,
+        )
+
         is_specials_only = bool(eps and all(ep.season_number == 0 for ep in eps))
         if is_specials_only:
             # Спецвыпуски (Сезон 0) скачаны на 100%.
@@ -573,6 +612,21 @@ async def check_downloads(db: Session) -> list[dict]:
                 "Торрент %s («%s») завершён в клиенте (100%%), но целевые файлы отсутствуют на диске (%s). "
                 "Запускаем принудительную перепроверку целостности (recheck) и возобновляем загрузку.",
                 torrent_hash, show.title, download_path,
+            )
+            log_release_event(
+                stage="download",
+                level="warning",
+                show_title=show.title,
+                show_id=show.id,
+                release_title=getattr(t, "name", torrent_hash),
+                indexer="DownloadsMonitor",
+                message=(
+                    f"DownloadsMonitor: Внимание: раздача «{getattr(t, 'name', torrent_hash)}» завершена в клиенте, "
+                    f"но видеофайлы на диске отсутствуют ({download_path}). "
+                    "Запущена принудительная перепроверка (recheck) и возобновление раздачи."
+                ),
+                details={"torrent_hash": torrent_hash, "download_path": download_path},
+                db=db,
             )
             if client:
                 try:

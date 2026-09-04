@@ -114,6 +114,7 @@ def evaluate_torrent_file_priority(
     all_show_episodes: Optional[list[Episode]] = None,
     out_matched_episodes: Optional[list[Any]] = None,
     show_words: Optional[set[str]] = None,
+    out_file_reasons: Optional[dict[int, str]] = None,
 ) -> int:
     """
     Определяет приоритет скачивания файла торрента (1 = скачивать, 0 = не скачивать).
@@ -129,6 +130,11 @@ def evaluate_torrent_file_priority(
     """
     import os
     import re
+
+    def _set_res(prio: int, reason: str) -> int:
+        if out_file_reasons is not None:
+            out_file_reasons[file_index] = reason
+        return prio
 
     AUDIO_EXTS = {".mka", ".aac", ".ac3", ".dts", ".eac3", ".flac", ".mp3", ".m4a", ".wav", ".opus"}
     FONT_EXTS = {".ttf", ".otf", ".ttc", ".woff", ".woff2", ".eot"}
@@ -148,15 +154,15 @@ def evaluate_torrent_file_priority(
     if content_type == "movie":
         if ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}:
             if "/sample" in fname_lower or fname_lower.endswith("-sample.mkv"):
-                return 0
-            return 1
+                return _set_res(0, "Видеосэмпл к фильму (ОТКЛЮЧЕН)")
+            return _set_res(1, "Основной видеофайл фильма (ВКЛЮЧЕН)")
         if ext in extra_extensions or "/fonts/" in fname_lower or fname_lower.startswith("fonts/") or "/attachments/" in fname_lower:
-            return 1 if import_extra_files else 0
-        return 0
+            return _set_res(1 if import_extra_files else 0, "Сопутствующий файл/шрифты фильма (ВКЛЮЧЕН)" if import_extra_files else "Сопутствующий файл (ОТКЛЮЧЕН настройками)")
+        return _set_res(0, "Неподдерживаемый формат файла (ОТКЛЮЧЕН)")
 
     # 1. Шрифты для субтитров аниме и сериалов — всегда оставляем, если включен импорт доп. файлов
     if ext in FONT_EXTS or "/fonts/" in fname_lower or fname_lower.startswith("fonts/") or "/attachments/" in fname_lower:
-        return 1 if import_extra_files else 0
+        return _set_res(1 if import_extra_files else 0, "Шрифты для субтитров (ВКЛЮЧЕН)" if import_extra_files else "Шрифты субтитров (ОТКЛЮЧЕН настройками)")
 
     # Проверяем, является ли это папкой с аудио/озвучкой/звуком (Sound [...], Audio [...], Озвучка [...], Звук [...], OST)
     is_audio_folder = any(
@@ -164,6 +170,25 @@ def evaluate_torrent_file_priority(
             "/sound", "sound/", "/audio", "audio/", "/озвучк", "озвучк/", "/звук", "звук/", "/ost", "ost/", "/soundtrack", "soundtrack/"
         )
     )
+
+    # Проверка на сэмпл видеофайл (для любых типов контента)
+    is_sample_video = (
+        fname_lower.startswith("sample/") or
+        "/sample/" in fname_lower or
+        fname_lower.endswith("/sample.mkv") or
+        fname_lower.endswith("/sample.avi") or
+        fname_lower.endswith("/sample.mp4") or
+        fname_lower in ("sample.mkv", "sample.avi", "sample.mp4") or
+        fname_lower.endswith("-sample.mkv") or
+        fname_lower.endswith("_sample.mkv") or
+        fname_lower.endswith(".sample.mkv") or
+        fname_lower.endswith("-sample.avi") or
+        fname_lower.endswith("_sample.avi") or
+        fname_lower.endswith("-sample.mp4") or
+        fname_lower.endswith("_sample.mp4")
+    )
+    if is_sample_video:
+        return _set_res(0, "Видеосэмпл / реклама (ОТКЛЮЧЕН)")
 
     target_keys = {(ep.season_number, ep.episode_number) for ep in target_episodes}
     target_abs = {ep.absolute_number for ep in target_episodes if getattr(ep, "absolute_number", None) is not None}
@@ -249,9 +274,9 @@ def evaluate_torrent_file_priority(
                         best_ep
                     )
                     out_matched_episodes.append(matched_target)
-                return 1
+                return _set_res(1, f"Сопоставлен по названию серии «{best_ep.title}» -> S{best_ep.season_number:02d}E{best_ep.episode_number:02d} (ВКЛЮЧЕН, разыскивается)")
             if not any((season, ep_n) in target_keys for ep_n in episodes):
-                return 0
+                return _set_res(0, f"Сопоставлен по названию серии «{best_ep.title}» -> S{best_ep.season_number:02d}E{best_ep.episode_number:02d} (ОТКЛЮЧЕН, серия уже скачана/не разыскивается)")
 
     is_special_file = (
         (parsed and (parsed.season == 0 or parsed.matched_pattern in ("season_pack:ova_ona", "leading_num_special"))) or
@@ -262,45 +287,45 @@ def evaluate_torrent_file_priority(
     # 2. Не-видео файлы (субтитры, аудиодорожки, nfo, папки Sound / Audio / OST)
     if ext in extra_extensions or is_audio_folder:
         if not import_extra_files:
-            return 0
+            return _set_res(0, "Импорт сопутствующих файлов отключен в настройках (ОТКЛЮЧЕН)")
         if not episodes:
             # Общие субтитры/аудио/nfo без явного номера серии в названии (например, общая папка Sound / Subs / OST)
-            return 1
+            return _set_res(1, "Общие сопутствующие файлы (субтитры/аудио) (ВКЛЮЧЕН)")
 
         for ep_num in episodes:
             if 101 <= ep_num <= 9999:
                 s_div, e_mod = divmod(ep_num, 100)
                 if (s_div, e_mod) in target_keys:
-                    return 1
+                    return _set_res(1, f"Сопутствующий файл к серии S{s_div:02d}E{e_mod:02d} (ВКЛЮЧЕН)")
 
             if is_special_file:
                 allow_ova_as_s1 = (ova_mode == "season_1") or (
                     ova_mode == "auto" and not has_wanted_specials and any(sn == 1 for sn, _ in target_keys)
                 )
                 if allow_ova_as_s1 and ((1, ep_num) in target_keys or ep_num in target_abs):
-                    return 1
+                    return _set_res(1, f"Сопутствующий файл к OVA/S01E{ep_num:02d} (ВКЛЮЧЕН)")
                 if (0, ep_num) in target_keys or has_wanted_specials:
-                    return 1
+                    return _set_res(1, f"Сопутствующий файл к спецвыпуску S00E{ep_num:02d} (ВКЛЮЧЕН)")
             elif season is not None:
                 if season in target_seasons:
                     if (season, ep_num) in target_keys:
-                        return 1
+                        return _set_res(1, f"Сопутствующий файл к серии S{season:02d}E{ep_num:02d} (ВКЛЮЧЕН)")
                     if ep_num in target_abs:
-                        return 1
+                        return _set_res(1, f"Сопутствующий файл к серии {ep_num} (ВКЛЮЧЕН)")
                     if is_part_2 and 1 <= ep_num <= 12:
                         if (season, ep_num + 12) in target_keys:
-                            return 1
+                            return _set_res(1, f"Сопутствующий файл к Part 2 S{season:02d}E{ep_num + 12:02d} (ВКЛЮЧЕН)")
             else:
                 if ep_num in target_abs:
-                    return 1
+                    return _set_res(1, f"Сопутствующий файл к серии {ep_num} (ВКЛЮЧЕН)")
                 for s in target_seasons:
                     if s > 0 and (s, ep_num) in target_keys:
-                        return 1
+                        return _set_res(1, f"Сопутствующий файл к серии S{s:02d}E{ep_num:02d} (ВКЛЮЧЕН)")
                 if is_part_2 and 1 <= ep_num <= 12:
                     for s in target_seasons:
                         if s > 0 and ((s, ep_num + 12) in target_keys or (ep_num + 12) in target_abs):
-                            return 1
-        return 0
+                            return _set_res(1, f"Сопутствующий файл к серии Part 2 E{ep_num + 12:02d} (ВКЛЮЧЕН)")
+        return _set_res(0, f"Сопутствующий файл к неразыскиваемой серии (ОТКЛЮЧЕН)")
 
     # 3. Видеофайлы (.mkv, .mp4, .avi, .ts, etc.)
     if ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}:
@@ -315,9 +340,9 @@ def evaluate_torrent_file_priority(
                             matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (1, ep_num) or getattr(ep, "absolute_number", None) == ep_num), None)
                             if matched:
                                 out_matched_episodes.append(matched)
-                        return 1
+                        return _set_res(1, f"OVA определена как Сезон 1 Серия {ep_num} (ВКЛЮЧЕН, разыскивается)")
             if not has_wanted_specials:
-                return 0
+                return _set_res(0, f"Спецвыпуск / OVA (ОТКЛЮЧЕН, спецвыпуски не разыскиваются)")
             if episodes:
                 for ep_num in episodes:
                     if (0, ep_num) in target_keys:
@@ -325,14 +350,14 @@ def evaluate_torrent_file_priority(
                             matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (0, ep_num)), None)
                             if matched:
                                 out_matched_episodes.append(matched)
-                        return 1
+                        return _set_res(1, f"Спецвыпуск S00E{ep_num:02d} (ВКЛЮЧЕН, разыскивается)")
             if has_wanted_specials:
                 if out_matched_episodes is not None:
                     matched = next((ep for ep in target_episodes if ep.season_number == 0), None)
                     if matched:
                         out_matched_episodes.append(matched)
-                return 1
-            return 0
+                return _set_res(1, f"Спецвыпуск (Сезон 0) (ВКЛЮЧЕН)")
+            return _set_res(0, f"Спецвыпуск не входит в разыскиваемые (ОТКЛЮЧЕН)")
 
         # Основной сезон (Season 1..N)
         if not episodes:
@@ -340,8 +365,8 @@ def evaluate_torrent_file_priority(
             if len(target_episodes) == 1 and not re.search(r"\bs\d+|\be\d+|\bep\d+", fname_lower):
                 if out_matched_episodes is not None:
                     out_matched_episodes.append(target_episodes[0])
-                return 1
-            return 0
+                return _set_res(1, f"Видеофайл сопоставлен с единственной искомой серией S{target_episodes[0].season_number:02d}E{target_episodes[0].episode_number:02d} (ВКЛЮЧЕН)")
+            return _set_res(0, "Не удалось определить номер серии в видеофайле (ОТКЛЮЧЕН)")
 
         for ep_num in episodes:
             # 1. Формат 3-4 цифры (501 -> Сезон 5 Серия 1, 1204 -> Сезон 12 Серия 4)
@@ -352,7 +377,7 @@ def evaluate_torrent_file_priority(
                         matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (s_div, e_mod)), None)
                         if matched:
                             out_matched_episodes.append(matched)
-                    return 1
+                    return _set_res(1, f"Серия S{s_div:02d}E{e_mod:02d} (ВКЛЮЧЕН, разыскивается)")
 
             # 2. При известном сезоне (проверяем только если сезон среди разыскиваемых)
             if season is not None:
@@ -362,20 +387,20 @@ def evaluate_torrent_file_priority(
                             matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (season, ep_num)), None)
                             if matched:
                                 out_matched_episodes.append(matched)
-                        return 1
+                        return _set_res(1, f"Серия S{season:02d}E{ep_num:02d} (ВКЛЮЧЕН, разыскивается)")
                     if ep_num in target_abs:
                         if out_matched_episodes is not None:
                             matched = next((ep for ep in target_episodes if getattr(ep, "absolute_number", None) == ep_num), None)
                             if matched:
                                 out_matched_episodes.append(matched)
-                        return 1
+                        return _set_res(1, f"Серия {ep_num} (абсолютная нумерация) (ВКЛЮЧЕН, разыскивается)")
                     if is_part_2 and 1 <= ep_num <= 12:
                         if (season, ep_num + 12) in target_keys:
                             if out_matched_episodes is not None:
                                 matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (season, ep_num + 12)), None)
                                 if matched:
                                     out_matched_episodes.append(matched)
-                            return 1
+                            return _set_res(1, f"Серия Part 2 S{season:02d}E{ep_num + 12:02d} (ВКЛЮЧЕН, разыскивается)")
             else:
                 # 3. Если сезон не указан явно в имени файла, сопоставляем по сквозной нумерации или регулярным сезонам (s > 0)
                 if ep_num in target_abs:
@@ -383,14 +408,14 @@ def evaluate_torrent_file_priority(
                         matched = next((ep for ep in target_episodes if getattr(ep, "absolute_number", None) == ep_num), None)
                         if matched:
                             out_matched_episodes.append(matched)
-                    return 1
+                    return _set_res(1, f"Серия {ep_num} (абсолютная нумерация) (ВКЛЮЧЕН, разыскивается)")
                 for s in target_seasons:
                     if s > 0 and (s, ep_num) in target_keys:
                         if out_matched_episodes is not None:
                             matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (s, ep_num)), None)
                             if matched:
                                 out_matched_episodes.append(matched)
-                        return 1
+                        return _set_res(1, f"Серия S{s:02d}E{ep_num:02d} (ВКЛЮЧЕН, разыскивается)")
                 if is_part_2 and 1 <= ep_num <= 12:
                     for s in target_seasons:
                         if s > 0 and ((s, ep_num + 12) in target_keys or (ep_num + 12) in target_abs):
@@ -398,11 +423,12 @@ def evaluate_torrent_file_priority(
                                 matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (s, ep_num + 12) or getattr(ep, "absolute_number", None) == (ep_num + 12)), None)
                                 if matched:
                                     out_matched_episodes.append(matched)
-                            return 1
-        return 0
+                            return _set_res(1, f"Серия Part 2 E{ep_num + 12:02d} (ВКЛЮЧЕН, разыскивается)")
+        s_desc = f"S{season:02d}" if season is not None else "сезон ?"
+        return _set_res(0, f"Серия ({s_desc}, серии {episodes}) не входит в список разыскиваемых (ОТКЛЮЧЕН)")
 
     # Все прочие неизвестные файлы
-    return 0
+    return _set_res(0, "Неизвестный или неразыскиваемый тип файла (ОТКЛЮЧЕН)")
 
 
 async def _ensure_movie_files_wanted(dl_client, torrent_hash: str) -> None:
@@ -519,6 +545,7 @@ async def _limit_torrent_files_to_episodes(
     unwanted_indices = []
     wanted_indices = []
     matched_target_eps = []
+    file_reasons: dict[int, str] = {}
 
     t_name = getattr(torrent, "name", "") or ""
     for f in torrent.files:
@@ -534,6 +561,7 @@ async def _limit_torrent_files_to_episodes(
             all_show_episodes=all_show_episodes,
             out_matched_episodes=matched_target_eps,
             show_words=show_words,
+            out_file_reasons=file_reasons,
         )
         if prio > 0:
             wanted_indices.append(f.index)
@@ -601,8 +629,16 @@ async def _limit_torrent_files_to_episodes(
             with SessionLocal() as s_db:
                 db_show = s_db.get(Show, show_id) if show_id else None
                 if db_show:
-                    wanted_names = [torrent.files[i].name.replace("\\", "/") for i in wanted_indices]
-                    unwanted_names = [torrent.files[i].name.replace("\\", "/") for i in unwanted_indices]
+                    file_decisions = [
+                        {
+                            "index": f.index,
+                            "name": f.name.replace("\\", "/"),
+                            "status": "WANTED" if f.index in wanted_indices else "UNWANTED",
+                            "reason": file_reasons.get(f.index, "Включен" if f.index in wanted_indices else "Отключен"),
+                        }
+                        for f in torrent.files
+                    ]
+                    matched_eps_str = ", ".join(sorted(set(f"S{e.season_number:02d}E{e.episode_number:02d}" for e in matched_target_eps)))
                     log_release_event(
                         stage="download",
                         level="info",
@@ -611,13 +647,16 @@ async def _limit_torrent_files_to_episodes(
                         release_title=getattr(torrent, "name", "") or torrent_hash,
                         indexer="DownloadClient",
                         message=(
-                            f"Раздача '{getattr(torrent, 'name', '') or torrent_hash}': включено серий: {len(wanted_indices)}, "
-                            f"отключено файлов: {len(unwanted_indices)}."
+                            f"Пофайловый выбор для раздачи '{getattr(torrent, 'name', '') or torrent_hash}': "
+                            f"включено {len(wanted_indices)} из {len(torrent.files)} файлов "
+                            f"(серии: {matched_eps_str or 'не определены'}), отключено файлов: {len(unwanted_indices)}."
                         ),
                         details={
                             "torrent_hash": torrent_hash,
-                            "wanted_files": wanted_names,
-                            "unwanted_files": unwanted_names[:15],
+                            "wanted_files_count": len(wanted_indices),
+                            "unwanted_files_count": len(unwanted_indices),
+                            "matched_episodes": matched_eps_str,
+                            "file_decisions": file_decisions[:100],
                         },
                         db=s_db,
                     )
@@ -851,10 +890,12 @@ async def search_and_grab_show(
 
 
 class CandidateList(list):
-    """Список кандидатов с сохранённым списком сгенерированных поисковых запросов."""
-    def __init__(self, items=(), query_terms=None):
+    """Список кандидатов с сохранённым списком сгенерированных поисковых запросов и статистикой."""
+    def __init__(self, items=(), query_terms=None, indexer_stats=None, rejected_candidates=None):
         super().__init__(items)
         self.query_terms = query_terms or []
+        self.indexer_stats = indexer_stats or {}
+        self.rejected_candidates = rejected_candidates or []
 
 
 def _extract_core_title(text: str) -> Optional[str]:
@@ -1014,6 +1055,8 @@ async def _collect_candidates(
 
     seen_guids: set[str] = set()
     candidates: list[dict] = []
+    indexer_stats: dict[str, int] = {}
+    rejected_candidates: list[dict] = []
 
     active_queries = query_terms[:16]
 
@@ -1041,6 +1084,9 @@ async def _collect_candidates(
         if not isinstance(item, tuple):
             continue
         indexer, releases = item
+        idx_name = getattr(indexer, "name", "Indexer")
+        indexer_stats[idx_name] = indexer_stats.get(idx_name, 0) + len(releases)
+
         for rel in releases:
             if not rel or not getattr(rel, "guid", None):
                 continue
@@ -1059,6 +1105,11 @@ async def _collect_candidates(
                 download_url=dl_url,
                 title=getattr(rel, "title", None),
             ):
+                rejected_candidates.append({
+                    "title": rel.title,
+                    "indexer": idx_name,
+                    "reason": "Ранее отклонён пользователем или системой",
+                })
                 continue
 
             match = match_release(
@@ -1070,17 +1121,30 @@ async def _collect_candidates(
                 show_year=getattr(show, "year", None),
             )
             if not match.matched:
+                score_val = getattr(match, "score", 0.0) or 0.0
+                if score_val > 0.2:
+                    rejected_candidates.append({
+                        "title": rel.title,
+                        "indexer": idx_name,
+                        "reason": f"Название не сопоставлено (схожесть {int(score_val * 100)}% ниже порога)",
+                    })
                 continue
 
             quality = parse_quality(rel.title)
             if not is_allowed(quality, allowed_qualities):
+                rejected_candidates.append({
+                    "title": rel.title,
+                    "indexer": idx_name,
+                    "quality": quality.name,
+                    "reason": f"Качество «{quality.name}» не разрешено профилем качества",
+                })
                 continue
 
             candidates.append({
                 "rel": rel, "match": match, "quality": quality, "indexer": indexer,
             })
 
-    return CandidateList(candidates, query_terms=query_terms)
+    return CandidateList(candidates, query_terms=query_terms, indexer_stats=indexer_stats, rejected_candidates=rejected_candidates)
 
 
 async def _do_search_and_grab(
@@ -1143,17 +1207,28 @@ async def _do_search_and_grab(
         sample_queries += f" (+ещё {len(query_terms) - 4})"
     query_info = f" по {len(query_terms)} запросам ({sample_queries})" if query_terms else f" по алиасам ({search_terms})"
 
+    indexer_stats = getattr(candidates, "indexer_stats", {})
+    rejected_cands = getattr(candidates, "rejected_candidates", [])
+    indexer_summary = ", ".join(f"{name}: {cnt}" for name, cnt in indexer_stats.items() if cnt > 0) or f"{len(indexers)} трекерах"
+
+    search_msg = f"Поиск{query_info} в {indexer_summary}: найдено {len(candidates)} подходящих кандидатов"
+    if rejected_cands:
+        search_msg += f" (отклонено фильтрами: {len(rejected_cands)})"
+
     log_release_event(
         stage="search",
         level="info" if candidates else "warning",
         show_title=show.title,
         show_id=show.id,
-        message=f"Поиск{query_info} в {len(indexers)} трекерах: найдено {len(candidates)} подходящих кандидатов",
+        message=search_msg,
         details={
             "candidates_count": len(candidates),
+            "rejected_count": len(rejected_cands),
+            "indexer_stats": indexer_stats,
+            "rejected_sample": rejected_cands[:25],
             "candidates": [
-                f"[{c['quality'].name}] {c['rel'].title} (сиды: {c['rel'].seeders})"
-                for c in candidates[:20]
+                f"[{c['quality'].name}] {c['rel'].title} (сиды: {c['rel'].seeders}, {getattr(c['indexer'], 'name', 'Indexer')})"
+                for c in candidates[:25]
             ],
             "indexers_count": len(indexers),
             "wanted_episodes_count": len(wanted_episodes),
@@ -1498,6 +1573,53 @@ async def _do_search_and_grab(
         )
 
     scored_candidates.sort(key=candidate_sort_key, reverse=True)
+
+    # Логируем этап принятия решений (Decision Stage): победитель и ранжирование
+    decision_chain = []
+    for rank_idx, c in enumerate(scored_candidates[:8], 1):
+        c_eps = sorted({f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in c["covered"]})
+        decision_chain.append({
+            "rank": rank_idx,
+            "title": c["rel"].title,
+            "quality": c["quality"].name,
+            "quality_rank": c["quality"].rank,
+            "cf_score": c.get("cf_score", 0),
+            "seeders": c["rel"].seeders,
+            "indexer": getattr(c.get("indexer"), "name", "Indexer"),
+            "covered_count": len(c["covered"]),
+            "episodes": c_eps[:12],
+            "is_winner": (rank_idx == 1),
+        })
+
+    winner = scored_candidates[0]
+    winner_eps = sorted({f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in winner["covered"]})
+    ep_cov_str = f"{len(winner['covered'])} серий [{', '.join(winner_eps[:8])}{'...' if len(winner_eps) > 8 else ''}]" if show.content_type != "movie" else "Фильм"
+
+    decision_msg = (
+        f"Принято решение о выборе релиза: победил кандидат №1 «{winner['rel'].title}» "
+        f"({winner['quality'].name}, ранг: {winner['quality'].rank}, CF: {winner.get('cf_score', 0)}, "
+        f"сиды: {winner['rel'].seeders}, закрывает {ep_cov_str}). "
+        f"Всего кандидатов: {len(scored_candidates)}."
+    )
+    log_release_event(
+        stage="decision",
+        level="info",
+        show_title=show.title,
+        show_id=show.id,
+        release_title=winner["rel"].title,
+        indexer=getattr(winner.get("indexer"), "name", "Torznab"),
+        message=decision_msg,
+        details={
+            "winner_rank": 1,
+            "winner_title": winner["rel"].title,
+            "winner_quality": winner["quality"].name,
+            "winner_seeders": winner["rel"].seeders,
+            "winner_episodes": winner_eps,
+            "ranking_table": decision_chain,
+            "total_candidates": len(scored_candidates),
+        },
+        db=db,
+    )
 
     # Жадный алгоритм захвата без дубликатов:
     # - Если один релиз закрывает все сезоны/серии, он скачивается в единственном экземпляре.

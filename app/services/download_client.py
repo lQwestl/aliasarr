@@ -93,6 +93,14 @@ class BaseDownloadClient:
         """Принудительно запускает перепроверку целостности и наличия файлов торрента (hash check / verify)."""
         pass
 
+    async def get_client_logs(self, limit: int = 100) -> list[dict]:
+        """Возвращает список недавних записей журнала демона/приложения загрузчика."""
+        return []
+
+    async def get_client_diagnostics(self) -> dict:
+        """Возвращает диагностические данные загрузчика (версия, сессия, активные торренты)."""
+        return {}
+
 
 def _normalize_client_url(host: str, port: int, default_port: int = 8080) -> str:
     host_str = (host or "localhost").strip()
@@ -498,6 +506,74 @@ class QBittorrentClient(BaseDownloadClient):
                     await asyncio.to_thread(self._sync_client.torrents_recheck, torrent_hashes=torrent_hash)
                 except Exception:
                     pass
+
+    async def get_client_logs(self, limit: int = 100) -> list[dict]:
+        """Получает журнал работы qBittorrent через /api/v2/log/main."""
+        logs = []
+        try:
+            async with httpx.AsyncClient(timeout=10.0, cookies=self._cookies) as client:
+                await self._ensure_auth(client)
+                resp = await client.get(
+                    f"{self._base_url}/api/v2/log/main",
+                    params={"normal": "true", "info": "true", "warning": "true", "critical": "true", "last_known_id": "-1"},
+                    cookies=self._cookies,
+                )
+                if resp.status_code == 200:
+                    raw_logs = resp.json()
+                    for item in raw_logs:
+                        t_val = item.get("type", 1)
+                        lvl = "error" if t_val >= 8 else ("warning" if t_val >= 4 else "info")
+                        ts = item.get("timestamp")
+                        ts_str = ""
+                        if ts:
+                            try:
+                                import datetime as dt
+                                ts_sec = ts / 1000.0 if ts > 10**11 else float(ts)
+                                ts_str = dt.datetime.fromtimestamp(ts_sec, dt.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                            except Exception:
+                                ts_str = str(ts)
+                        logs.append({
+                            "id": item.get("id"),
+                            "timestamp": ts_str,
+                            "level": lvl,
+                            "message": item.get("message", ""),
+                            "category": "qbittorrent",
+                        })
+        except Exception as exc:
+            logger.debug("qBittorrent get_client_logs failed: %s", exc)
+        return logs[-limit:]
+
+    async def get_client_diagnostics(self) -> dict:
+        """Возвращает диагностические данные qBittorrent."""
+        diag = {"client_type": "qbittorrent", "connected": False}
+        try:
+            async with httpx.AsyncClient(timeout=10.0, cookies=self._cookies) as client:
+                await self._ensure_auth(client)
+                ver_resp = await client.get(f"{self._base_url}/api/v2/app/version", cookies=self._cookies)
+                api_resp = await client.get(f"{self._base_url}/api/v2/app/webapiVersion", cookies=self._cookies)
+                torrents = await self.list_torrents()
+                diag.update({
+                    "connected": True,
+                    "version": ver_resp.text.strip() if ver_resp.status_code == 200 else "unknown",
+                    "webapi_version": api_resp.text.strip() if api_resp.status_code == 200 else "unknown",
+                    "total_torrent_count": len(torrents),
+                    "torrents": [
+                        {
+                            "hash": t.hash,
+                            "name": t.name,
+                            "state": t.state,
+                            "progress": round(t.progress * 100, 1),
+                            "left_until_done": t.left_until_done,
+                            "size": t.size,
+                            "download_speed": t.download_speed,
+                            "upload_speed": t.upload_speed,
+                        }
+                        for t in torrents
+                    ],
+                })
+        except Exception as exc:
+            diag["error"] = str(exc)
+        return diag
 
 
 class TransmissionClient(BaseDownloadClient):
@@ -936,6 +1012,68 @@ class TransmissionClient(BaseDownloadClient):
                     await asyncio.to_thread(self._sync_client.verify_torrent, torrent_hash)
                 except Exception:
                     pass
+
+    async def get_client_logs(self, limit: int = 100) -> list[dict]:
+        """Получает журнал работы Transmission через RPC message-get."""
+        logs = []
+        try:
+            res = await self._rpc_call("message-get", {})
+            raw_msgs = res.get("messages", []) if isinstance(res, dict) else []
+            for m in raw_msgs:
+                level_num = m.get("level", 2)
+                lvl = "error" if level_num == 1 else ("info" if level_num == 2 else "debug")
+                ts = m.get("timestamp")
+                ts_str = ""
+                if ts:
+                    try:
+                        import datetime as dt
+                        ts_str = dt.datetime.fromtimestamp(ts, dt.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                    except Exception:
+                        ts_str = str(ts)
+                logs.append({
+                    "id": m.get("id"),
+                    "timestamp": ts_str,
+                    "level": lvl,
+                    "message": m.get("message", ""),
+                    "category": m.get("category", "") or m.get("name", "transmission"),
+                })
+        except Exception as exc:
+            logger.debug("Transmission get_client_logs failed: %s", exc)
+        return logs[-limit:]
+
+    async def get_client_diagnostics(self) -> dict:
+        """Возвращает диагностические данные Transmission."""
+        diag = {"client_type": "transmission", "connected": False}
+        try:
+            session_info = await self._rpc_call("session-get", {})
+            stats_info = await self._rpc_call("session-stats", {})
+            torrents = await self.list_torrents()
+            diag.update({
+                "connected": True,
+                "version": session_info.get("version", "unknown"),
+                "rpc_version": session_info.get("rpc-version", "unknown"),
+                "download_dir": session_info.get("download-dir", ""),
+                "active_torrent_count": stats_info.get("activeTorrentCount", 0),
+                "total_torrent_count": stats_info.get("torrentCount", len(torrents)),
+                "download_speed": stats_info.get("downloadSpeed", 0),
+                "upload_speed": stats_info.get("uploadSpeed", 0),
+                "torrents": [
+                    {
+                        "hash": t.hash,
+                        "name": t.name,
+                        "state": t.state,
+                        "progress": round(t.progress * 100, 1),
+                        "left_until_done": t.left_until_done,
+                        "size": t.size,
+                        "download_speed": t.download_speed,
+                        "upload_speed": t.upload_speed,
+                    }
+                    for t in torrents
+                ],
+            })
+        except Exception as exc:
+            diag["error"] = str(exc)
+        return diag
 
 
 class DelugeClient(BaseDownloadClient):
