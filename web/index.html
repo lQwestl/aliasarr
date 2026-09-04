@@ -2227,17 +2227,17 @@
           </div>
         </header>
 
-        <div class="logs-tabs settings-tabs">
-          <button class="logs-tab-btn settings-tab-btn active" data-logs-tab="audit"><i data-lucide="shield-check" class="ico-xs"></i><span data-i18n="nav.audit">Аудит</span></button>
-          <button class="logs-tab-btn settings-tab-btn" data-logs-tab="events"><i data-lucide="radio" class="ico-xs"></i><span data-i18n="nav.events">События</span></button>
-          <button class="logs-tab-btn settings-tab-btn" data-logs-tab="journal"><i data-lucide="scroll-text" class="ico-xs"></i><span data-i18n="nav.journal">Журнал</span></button>
-          <button class="logs-tab-btn settings-tab-btn" data-logs-tab="release-logs"><i data-lucide="file-search" class="ico-xs"></i><span data-i18n="nav.release_logs">Релиз логи</span></button>
-          <button class="logs-tab-btn settings-tab-btn" data-logs-tab="dataset-harvester"><i data-lucide="sparkles" class="ico-xs"></i><span data-i18n="nav.dataset_harvester">Логи для улучшения и парсера</span></button>
+        <div class="logs-tabs">
+          <button class="logs-tab-btn active" data-logs-tab="audit"><i data-lucide="shield-check" class="ico-xs"></i><span data-i18n="nav.audit">Аудит</span></button>
+          <button class="logs-tab-btn" data-logs-tab="events"><i data-lucide="radio" class="ico-xs"></i><span data-i18n="nav.events">События</span></button>
+          <button class="logs-tab-btn" data-logs-tab="journal"><i data-lucide="scroll-text" class="ico-xs"></i><span data-i18n="nav.journal">Журнал</span></button>
+          <button class="logs-tab-btn" data-logs-tab="release-logs"><i data-lucide="file-search" class="ico-xs"></i><span data-i18n="nav.release_logs">Релиз логи</span></button>
+          <button class="logs-tab-btn" data-logs-tab="dataset-harvester"><i data-lucide="sparkles" class="ico-xs"></i><span data-i18n="nav.dataset_harvester">Логи для улучшения и парсера</span></button>
         </div>
       </div>
 
       <!-- 1. ПОДПАНЕЛЬ АУДИТА -->
-      <div id="logs-audit" class="logs-panel settings-panel active">
+      <div id="logs-audit" class="logs-panel active">
         <div class="card" style="margin-bottom:14px; padding: 12px 16px;">
           <div class="form-row" style="flex-wrap:wrap; gap:12px; align-items:center;">
             <input id="audit-search" class="input" placeholder="Поиск по описанию/действию..." style="max-width:320px;" oninput="debounceAuditSearch()" data-i18n-placeholder="audit.search_placeholder">
@@ -2280,7 +2280,7 @@
       </div>
 
       <!-- 2. ПОДПАНЕЛЬ СОБЫТИЙ -->
-      <div id="logs-events" class="logs-panel settings-panel">
+      <div id="logs-events" class="logs-panel">
         <div class="form-row events-toolbar" style="margin-bottom:14px; flex-wrap:wrap;">
           <select id="events-level-filter" class="input" style="max-width:220px" onchange="loadEvents(1)">
             <option value="all" data-i18n="events.filter_all">Все события</option>
@@ -2305,7 +2305,7 @@
       </div>
 
       <!-- 3. ПОДПАНЕЛЬ ЖУРНАЛА -->
-      <div id="logs-journal" class="logs-panel settings-panel">
+      <div id="logs-journal" class="logs-panel">
         <div class="form-row journal-toolbar" style="margin-bottom:14px; flex-wrap:wrap;">
           <select id="journal-level-filter" class="input" style="max-width:220px" onchange="loadJournal(1)">
             <option value="all" data-i18n="journal.filter_all">Все уровни</option>
@@ -2338,7 +2338,7 @@
       </div>
 
       <!-- 4. ПОДПАНЕЛЬ РЕЛИЗ ЛОГОВ -->
-      <div id="logs-release-logs" class="logs-panel settings-panel">
+      <div id="logs-release-logs" class="logs-panel">
         <div class="form-row release-logs-toolbar" style="margin-bottom:14px; flex-wrap:wrap; gap:10px;">
           <select id="release-logs-stage-filter" class="input" style="max-width:180px" onchange="loadReleaseLogs(1)">
             <option value="all" data-i18n="release_logs.filter_all_stages">Все этапы</option>
@@ -2389,7 +2389,7 @@
       </div>
 
       <!-- 5. ПОДПАНЕЛЬ ЛОГОВ ДЛЯ УЛУЧШЕНИЯ И ПАРСЕРА (DATASET HARVESTER) -->
-      <div id="logs-dataset-harvester" class="logs-panel settings-panel">
+      <div id="logs-dataset-harvester" class="logs-panel">
         <!-- ПАНЕЛЬ УПРАВЛЕНИЯ И ЗАПУСКА СБОРА -->
         <div class="panel dataset-panel" style="padding: 16px 20px; margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--radius, 12px);">
           <div class="dataset-inputs-grid">

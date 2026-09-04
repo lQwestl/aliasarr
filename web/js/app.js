@@ -3591,11 +3591,11 @@ document.querySelectorAll(".logs-tab-btn").forEach(btn => {
   });
 });
 
-document.querySelectorAll(".settings-tab-btn").forEach(btn => {
+document.querySelectorAll("#tab-settings .settings-tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".settings-tab-btn").forEach(b => b.classList.toggle("active", b === btn));
+    document.querySelectorAll("#tab-settings .settings-tab-btn").forEach(b => b.classList.toggle("active", b === btn));
     const targetTab = btn.dataset.settingsTab;
-    document.querySelectorAll(".settings-panel").forEach(p =>
+    document.querySelectorAll("#tab-settings .settings-panel").forEach(p =>
       p.classList.toggle("active", p.id === "settings-" + targetTab)
     );
     if (targetTab === "metadata") loadMetadataSources();
