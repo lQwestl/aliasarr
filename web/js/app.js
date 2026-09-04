@@ -3735,9 +3735,11 @@ async function loadDashboard() {
       <div class="simple-list-row" onclick="openShowModal(${e.show_id})" style="cursor:pointer;" title="${escapeHtml(e.show_title || '')}">
         <div style="display:flex; align-items:center; gap:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 0; min-width:0;">
           <span style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;">${escapeHtml(e.show_title || '—')}</span>
-          ${e.season != null && e.episode != null ? `<span class="badge badge-teal mono" style="font-size:11px; padding:2px 6px; flex-shrink:0;">S${pad(e.season)}E${pad(e.episode)}</span>` : ''}
         </div>
-        <span class="badge badge-secondary mono dash-date-badge" style="font-size:11px; padding:2px 8px; flex-shrink:0; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="calendar" class="ico-xs"></i> ${formatDateOnly(e.air_date)}</span>
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+          ${e.season != null && e.episode != null ? `<span class="badge badge-teal mono" style="font-size:11px; padding:2px 6px; flex-shrink:0;">S${pad(e.season)}E${pad(e.episode)}</span>` : ''}
+          <span class="badge badge-secondary mono dash-date-badge" style="font-size:11px; padding:2px 8px; flex-shrink:0; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="calendar" class="ico-xs"></i> ${formatDateOnly(e.air_date)}</span>
+        </div>
       </div>`).join("") || `<div class="simple-list-empty">${t("dash.no_upcoming")}</div>`;
   } catch (e) {}
 
