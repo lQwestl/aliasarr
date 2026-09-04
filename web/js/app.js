@@ -3724,26 +3724,30 @@ async function loadDashboard() {
     const entries = (await api("/api/v1/calendar?days_forward=10&days_back=0")).slice(0, 6);
     const el = document.getElementById("dash-calendar");
     el.innerHTML = entries.map(e => `
-      <div class="simple-list-row" onclick="openShowModal(${e.show_id})" style="cursor:pointer;" title="${escapeHtml(e.show_title)}">
-        <div style="display:flex; align-items:center; gap:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;">
-          <span style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(e.show_title)}</span>
+      <div class="simple-list-row" onclick="openShowModal(${e.show_id})" style="cursor:pointer;" title="${escapeHtml(e.show_title || '')}">
+        <div style="display:flex; align-items:center; gap:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 0; min-width:0;">
+          <span style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;">${escapeHtml(e.show_title || '—')}</span>
           ${e.season != null && e.episode != null ? `<span class="badge badge-teal mono" style="font-size:11px; padding:2px 6px; flex-shrink:0;">S${pad(e.season)}E${pad(e.episode)}</span>` : ''}
         </div>
-        <span class="badge badge-secondary mono" style="font-size:11px; padding:2px 8px; flex-shrink:0; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="calendar" class="ico-xs"></i> ${formatDateOnly(e.air_date)}</span>
+        <span class="badge badge-secondary mono dash-date-badge" style="font-size:11px; padding:2px 8px; flex-shrink:0; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="calendar" class="ico-xs"></i> ${formatDateOnly(e.air_date)}</span>
       </div>`).join("") || `<div class="simple-list-empty">${t("dash.no_upcoming")}</div>`;
   } catch (e) {}
 
   try {
     const entries = (await api("/api/v1/history?limit=6"));
     const el = document.getElementById("dash-history");
-    el.innerHTML = entries.map(e => `
-      <div class="simple-list-row" ${e.show_id ? `onclick="openShowModal(${e.show_id})" style="cursor:pointer;" title="${escapeHtml(e.show_title_snapshot || e.show_title || '')}"` : ''}>
-        <div style="display:flex; align-items:center; gap:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0;">
-          <i data-lucide="download" class="ico-xs" style="color:var(--teal); flex-shrink:0;"></i>
-          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(e.show_title_snapshot || e.release_title || e.show_title || '—')}</span>
-        </div>
-        <span class="badge badge-secondary mono" style="font-size:11px; padding:2px 8px; flex-shrink:0; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="clock" class="ico-xs"></i> ${formatDateTZ(e.created_at, { hour: undefined, minute: undefined })}</span>
-      </div>`).join("") || `<div class="simple-list-empty">${t("dash.no_grabs")}</div>`;
+    el.innerHTML = entries.map(e => {
+      const titleText = e.show_title_snapshot || e.show_title || e.release_title || '—';
+      const fullTooltip = e.release_title || e.show_title_snapshot || e.show_title || '';
+      return `
+        <div class="simple-list-row" ${e.show_id ? `onclick="openShowModal(${e.show_id})" style="cursor:pointer;"` : ''} title="${escapeHtml(fullTooltip)}">
+          <div style="display:flex; align-items:center; gap:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 0; min-width:0;">
+            <i data-lucide="download" class="ico-xs" style="color:var(--teal); flex-shrink:0;"></i>
+            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;">${escapeHtml(titleText)}</span>
+          </div>
+          <span class="badge badge-secondary mono dash-date-badge" style="font-size:11px; padding:2px 8px; flex-shrink:0; display:inline-flex; align-items:center; gap:5px;"><i data-lucide="clock" class="ico-xs"></i> ${formatDateTZ(e.created_at, { hour: undefined, minute: undefined })}</span>
+        </div>`;
+    }).join("") || `<div class="simple-list-empty">${t("dash.no_grabs")}</div>`;
   } catch (e) {}
 
   loadSystemAbout();
@@ -3763,46 +3767,71 @@ async function loadSystemAbout() {
     }
 
     const isRu = CURRENT_LANG !== "en";
+    const versionVal = `v${escapeHtml(info.version || '1.0.0')} (${escapeHtml(info.branch || 'main')})`;
+    const runtimeVal = escapeHtml(info.runtime || 'Docker');
+    const pythonVal = escapeHtml(info.python_version || '3.11');
+    const dbVal = `${escapeHtml(info.database_type || 'SQLite')}${info.database_version ? ` ${escapeHtml(info.database_version)}` : ''}${info.database_size_formatted ? ` (${info.database_size_formatted})` : ''}`;
+    const configVal = escapeHtml(info.config_directory || '/config');
+    const uptimeVal = escapeHtml(isRu ? info.uptime_formatted : info.uptime_formatted_en);
+    const tzVal = escapeHtml(info.timezone || 'UTC');
+    const modeVal = escapeHtml(isRu ? info.mode : info.mode_en);
+
     const rows = [
       {
         icon: "tag",
         label: isRu ? "Версия" : "Version",
-        val: `<span class="badge badge-teal mono" style="font-size:12px; padding:3px 8px; font-weight:600;"><i data-lucide="tag" class="ico-xs"></i> v${escapeHtml(info.version || '1.0.0')} (${escapeHtml(info.branch || 'main')})</span>`,
+        title: versionVal,
+        badgeClass: "badge-teal",
+        val: `<i data-lucide="tag" class="ico-xs"></i><span>${versionVal}</span>`,
       },
       {
         icon: "box",
         label: isRu ? "Среда выполнения" : "Runtime",
-        val: `<span class="badge badge-secondary mono" style="font-size:12px; padding:3px 8px;"><i data-lucide="box" class="ico-xs"></i> ${escapeHtml(info.runtime || 'Docker')}</span>`,
+        title: runtimeVal,
+        badgeClass: "badge-secondary",
+        val: `<i data-lucide="box" class="ico-xs"></i><span>${runtimeVal}</span>`,
       },
       {
         icon: "terminal",
         label: "Python",
-        val: `<span class="badge badge-secondary mono" style="font-size:12px; padding:3px 8px;"><i data-lucide="terminal" class="ico-xs"></i> ${escapeHtml(info.python_version || '3.11')}</span>`,
+        title: pythonVal,
+        badgeClass: "badge-secondary",
+        val: `<i data-lucide="terminal" class="ico-xs"></i><span>${pythonVal}</span>`,
       },
       {
         icon: "database",
         label: isRu ? "База данных" : "Database",
-        val: `<span class="badge badge-secondary mono" style="font-size:12px; padding:3px 8px;"><i data-lucide="database" class="ico-xs"></i> ${escapeHtml(info.database_type || 'SQLite')} ${escapeHtml(info.database_version || '')} (${info.database_size_formatted || '0 B'})</span>`,
+        title: dbVal,
+        badgeClass: "badge-secondary",
+        val: `<i data-lucide="database" class="ico-xs"></i><span>${dbVal}</span>`,
       },
       {
         icon: "folder",
         label: isRu ? "Каталог настроек" : "AppData Dir",
-        val: `<span class="badge badge-secondary mono" style="font-size:12px; padding:3px 8px;" title="${escapeHtml(info.config_directory || '')}"><i data-lucide="folder" class="ico-xs"></i> ${escapeHtml(info.config_directory || '/config')}</span>`,
+        title: configVal,
+        badgeClass: "badge-secondary",
+        val: `<i data-lucide="folder" class="ico-xs"></i><span>${configVal}</span>`,
       },
       {
         icon: "clock",
         label: isRu ? "Время работы" : "Uptime",
-        val: `<span class="badge badge-ok" style="font-size:12px; padding:3px 8px;"><i data-lucide="clock" class="ico-xs"></i> ${escapeHtml(isRu ? info.uptime_formatted : info.uptime_formatted_en)}</span>`,
+        title: uptimeVal,
+        badgeClass: "badge-ok",
+        val: `<i data-lucide="clock" class="ico-xs"></i><span>${uptimeVal}</span>`,
       },
       {
         icon: "globe",
         label: isRu ? "Часовой пояс" : "Timezone",
-        val: `<span class="badge badge-secondary mono" style="font-size:12px; padding:3px 8px;"><i data-lucide="globe" class="ico-xs"></i> ${escapeHtml(info.timezone || 'UTC')}</span>`,
+        title: tzVal,
+        badgeClass: "badge-secondary",
+        val: `<i data-lucide="globe" class="ico-xs"></i><span>${tzVal}</span>`,
       },
       {
         icon: info.ssl_enabled ? "shield-check" : "globe",
         label: isRu ? "Режим подключения" : "Connection Mode",
-        val: `<span class="badge ${info.ssl_enabled ? 'badge-ok' : 'badge-secondary'} mono" style="font-size:12px; padding:3px 8px;"><i data-lucide="${info.ssl_enabled ? 'shield-check' : 'globe'}" class="ico-xs"></i> ${escapeHtml(isRu ? info.mode : info.mode_en)}</span>`,
+        title: modeVal,
+        badgeClass: info.ssl_enabled ? "badge-ok" : "badge-secondary",
+        val: `<i data-lucide="${info.ssl_enabled ? 'shield-check' : 'globe'}" class="ico-xs"></i><span>${modeVal}</span>`,
       },
     ];
 
@@ -3812,7 +3841,11 @@ async function loadSystemAbout() {
           <i data-lucide="${r.icon}"></i>
           <span>${r.label}</span>
         </span>
-        <span class="about-val">${r.val}</span>
+        <span class="about-val">
+          <span class="badge ${r.badgeClass} mono" style="font-size:12px; padding:3px 8px;" title="${escapeHtml(r.title)}">
+            ${r.val}
+          </span>
+        </span>
       </div>
     `).join("");
 
