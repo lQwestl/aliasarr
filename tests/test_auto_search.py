@@ -793,5 +793,79 @@ class TestSeasonQueries(unittest.TestCase):
         self.assertEqual(len(matched_eps_19), 1)
         self.assertEqual(matched_eps_19[0].id, ep18.id)  # Должна сопоставиться именно Casablankman II!
 
+    def test_evaluate_torrent_file_priority_cross_season_isolation(self):
+        """Проверяет, что серия с титульным названием из 1-го сезона (S01E13 'Daredevil') не перехватывает файлы 3-го сезона."""
+        from types import SimpleNamespace
+        from app.services.auto_search import evaluate_torrent_file_priority
+
+        s1e13 = SimpleNamespace(id=13, show_id=1, season_number=1, episode_number=13, title="Daredevil", absolute_number=None)
+        s3e01 = SimpleNamespace(id=31, show_id=1, season_number=3, episode_number=1, title="Resurrection", absolute_number=None)
+        s3e02 = SimpleNamespace(id=32, show_id=1, season_number=3, episode_number=2, title="Please", absolute_number=None)
+        all_eps = [s1e13, s3e01, s3e02]
+        target_s3 = [s3e01, s3e02]
+
+        matched = []
+        prio = evaluate_torrent_file_priority(
+            "Daredevil.S03E01.WEB-DL.1080p.mkv", 0, target_s3,
+            torrent_name="Daredevil.S03.WEB-DL.1080p",
+            all_show_episodes=all_eps,
+            out_matched_episodes=matched,
+            show_words={"daredevil", "сорвиголова"},
+        )
+        self.assertEqual(prio, 1)
+        self.assertEqual(len(matched), 1)
+        self.assertEqual(matched[0].id, s3e01.id)
+        self.assertEqual(matched[0].season_number, 3)
+        self.assertEqual(matched[0].episode_number, 1)
+
+    @unittest.skipUnless(HAS_DEPS, "Requires sqlalchemy and models")
+    def test_disjoint_episodes_cancels_even_without_part1_keyword(self):
+        """Проверяет, что если раздача содержит только серии 1-5, а запрошены были серии 6-7,
+        раздача отменяется и удаляется даже без ключевого слова 'part 1' в названии (кейс Star Trek)."""
+        show = make_show(self.session, "Star Trek SNW")
+        ep6 = make_episode(self.session, show, season=4, episode=6, status=EpisodeStatus.DOWNLOADING)
+        ep6.torrent_hash = "hash-fake-pack"
+        ep7 = make_episode(self.session, show, season=4, episode=7, status=EpisodeStatus.DOWNLOADING)
+        ep7.torrent_hash = "hash-fake-pack"
+        self.session.commit()
+
+        class MockTorrentClient:
+            def __init__(self):
+                self.removed = []
+            async def get_torrent(self, torrent_hash):
+                from app.services.download_client import TorrentInfo, TorrentFile
+                files = [
+                    TorrentFile(index=0, name="Star.Trek.S04E01.720p.mkv", size=1000, progress=0.0, priority=1),
+                    TorrentFile(index=1, name="Star.Trek.S04E02.720p.mkv", size=1000, progress=0.0, priority=1),
+                ]
+                return TorrentInfo(
+                    hash=torrent_hash,
+                    name="Star.Trek.Strange.New.Worlds.S04E01-10.720p.WEB-DL",
+                    progress=0.0,
+                    state="downloading",
+                    save_path="",
+                    size=2000,
+                    files=files,
+                )
+            async def remove_torrent(self, torrent_hash, delete_files=False):
+                self.removed.append(torrent_hash)
+
+        mock_client = MockTorrentClient()
+        asyncio.run(auto_search._limit_torrent_files_to_episodes(
+            mock_client,
+            "hash-fake-pack",
+            [ep6, ep7],
+            db=self.session,
+            content_type="series",
+        ))
+
+        self.assertIn("hash-fake-pack", mock_client.removed)
+        self.session.refresh(ep6)
+        self.session.refresh(ep7)
+        self.assertEqual(ep6.status, EpisodeStatus.WANTED)
+        self.assertEqual(ep7.status, EpisodeStatus.WANTED)
+        self.assertIsNone(ep6.torrent_hash)
+        self.assertIsNone(ep7.torrent_hash)
+
 
 

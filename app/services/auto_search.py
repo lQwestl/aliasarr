@@ -173,44 +173,6 @@ def evaluate_torrent_file_priority(
     base_name = os.path.basename(file_name)
     dir_name = os.path.dirname(file_name)
 
-    # 0. Сопоставление по названиям серий (актуально при несовпадении нумерации в релизах,
-    # например когда спешл/рождественский выпуск включен как E01, смещая нумерацию всех серий на 1)
-    if all_show_episodes:
-        from app.services.matcher import normalize_title_words, calc_title_match
-        fname_words = set(normalize_title_words(os.path.splitext(base_name)[0]))
-
-        effective_show_words = show_words
-        if effective_show_words is None and torrent_name:
-            effective_show_words = set(normalize_title_words(torrent_name))
-
-        best_ep = None
-        best_match_key = (0.0, 0)
-
-        already_matched_ids = {e.id for e in out_matched_episodes if getattr(e, "id", None) is not None} if out_matched_episodes else set()
-        already_matched_pairs = {(e.season_number, e.episode_number) for e in out_matched_episodes} if out_matched_episodes else set()
-
-        for ep in all_show_episodes:
-            if getattr(ep, "id", None) in already_matched_ids or (ep.season_number, ep.episode_number) in already_matched_pairs:
-                continue
-            score, matched_count = calc_title_match(getattr(ep, "title", None), fname_words, show_words=effective_show_words)
-            match_key = (score, matched_count)
-            if score >= 0.7 and match_key > best_match_key:
-                best_match_key = match_key
-                best_ep = ep
-
-        if best_ep is not None:
-            target_ids = {ep.id for ep in target_episodes if getattr(ep, "id", None) is not None}
-            target_pairs = {(ep.season_number, ep.episode_number) for ep in target_episodes}
-            if (best_ep.id and best_ep.id in target_ids) or (best_ep.season_number, best_ep.episode_number) in target_pairs:
-                if out_matched_episodes is not None:
-                    matched_target = next(
-                        (ep for ep in target_episodes if (getattr(ep, "id", None) and ep.id == best_ep.id) or (ep.season_number, ep.episode_number) == (best_ep.season_number, best_ep.episode_number)),
-                        best_ep
-                    )
-                    out_matched_episodes.append(matched_target)
-                return 1
-            return 0
-
     # 1. Сначала разбираем имя самого файла (basename)
     parsed = parse_episode(base_name)
     episodes = parsed.episodes if (parsed and parsed.episodes) else []
@@ -248,6 +210,48 @@ def evaluate_torrent_file_priority(
             episodes = parsed_full.episodes
             if season is None and parsed_full.season is not None:
                 season = parsed_full.season
+
+    # 0. Сопоставление по названиям серий (актуально при несовпадении нумерации в релизах,
+    # например когда спешл/рождественский выпуск включен как E01, смещая нумерацию всех серий на 1)
+    if all_show_episodes:
+        from app.services.matcher import normalize_title_words, calc_title_match
+        fname_words = set(normalize_title_words(os.path.splitext(base_name)[0]))
+
+        effective_show_words = show_words
+        if effective_show_words is None and torrent_name:
+            effective_show_words = set(normalize_title_words(torrent_name))
+
+        best_ep = None
+        best_match_key = (0.0, 0)
+
+        already_matched_ids = {e.id for e in out_matched_episodes if getattr(e, "id", None) is not None} if out_matched_episodes else set()
+        already_matched_pairs = {(e.season_number, e.episode_number) for e in out_matched_episodes} if out_matched_episodes else set()
+
+        for ep in all_show_episodes:
+            if getattr(ep, "id", None) in already_matched_ids or (ep.season_number, ep.episode_number) in already_matched_pairs:
+                continue
+            # Если у файла явно определён сезон, не сопоставляем серии из других сезонов
+            if season is not None and ep.season_number != season:
+                continue
+            score, matched_count = calc_title_match(getattr(ep, "title", None), fname_words, show_words=effective_show_words)
+            match_key = (score, matched_count)
+            if score >= 0.7 and match_key > best_match_key:
+                best_match_key = match_key
+                best_ep = ep
+
+        if best_ep is not None:
+            target_ids = {ep.id for ep in target_episodes if getattr(ep, "id", None) is not None}
+            target_pairs = {(ep.season_number, ep.episode_number) for ep in target_episodes}
+            if (best_ep.id and best_ep.id in target_ids) or (best_ep.season_number, best_ep.episode_number) in target_pairs:
+                if out_matched_episodes is not None:
+                    matched_target = next(
+                        (ep for ep in target_episodes if (getattr(ep, "id", None) and ep.id == best_ep.id) or (ep.season_number, ep.episode_number) == (best_ep.season_number, best_ep.episode_number)),
+                        best_ep
+                    )
+                    out_matched_episodes.append(matched_target)
+                return 1
+            if not any((season, ep_n) in target_keys for ep_n in episodes):
+                return 0
 
     is_special_file = (
         (parsed and (parsed.season == 0 or parsed.matched_pattern in ("season_pack:ova_ona", "leading_num_special"))) or
@@ -638,9 +642,13 @@ async def _limit_torrent_files_to_episodes(
 
         is_explicitly_wrong_part = bool(
             disjoint_episodes and not any(
-                (ep.episode_number in disjoint_episodes or (ep.absolute_number and ep.absolute_number in disjoint_episodes))
+                (
+                    ep.episode_number in disjoint_episodes
+                    or (ep.absolute_number and ep.absolute_number in disjoint_episodes)
+                    or (any(kw in t_name.lower() for kw in ("part 2", "cour 2", "часть 2", "кур 2")) and (ep.episode_number - 12) in disjoint_episodes)
+                )
                 for ep in target_eps
-            ) and any(kw in t_name.lower() for kw in ("part 1", "part 2", "part 3", "part 4", "cour 1", "cour 2", "часть 1", "часть 2"))
+            )
         )
 
         if video_files and not is_explicitly_wrong_part:

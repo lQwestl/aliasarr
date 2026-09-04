@@ -1178,17 +1178,21 @@ def process_download(
                         (ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number == parsed.season and ep.episode_number == ep_num),
                         None,
                     )
-                    # Проверка смещения кура / части (Part 2 offset), когда серии в раздаче начинаются с 1
+                    # Проверка смещения кура / части (Part 2 offset), только когда в релизе явно указана часть 2 / кур 2
                     if episode is None:
-                        same_season_dl_eps = [ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number == parsed.season]
-                        if same_season_dl_eps:
-                            min_dl_ep = min(ep.episode_number for ep in same_season_dl_eps)
-                            if min_dl_ep > 1:
-                                offset = min_dl_ep - 1
-                                episode = next(
-                                    (ep for ep in same_season_dl_eps if ep.episode_number == (ep_num + offset)),
-                                    None,
-                                )
+                        hints_str = " ".join(str(h) for h in context_hints if h).lower() if context_hints else ""
+                        dir_or_file_lower = (file_path + " " + (download_path or "") + " " + hints_str).lower()
+                        is_part_2 = bool(re.search(r"\b(?:part|cour|часть|кур)\s*(?:2|ii|02)\b", dir_or_file_lower))
+                        if is_part_2:
+                            same_season_dl_eps = [ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number == parsed.season]
+                            if same_season_dl_eps:
+                                min_dl_ep = min(ep.episode_number for ep in same_season_dl_eps)
+                                if min_dl_ep > 1:
+                                    offset = min_dl_ep - 1
+                                    episode = next(
+                                        (ep for ep in same_season_dl_eps if ep.episode_number == (ep_num + offset)),
+                                        None,
+                                    )
                     # Только если серии с таким номером нет в сезоне (например, аниме с абсолютной нумерацией в подпапке сезона)
                     if episode is None and getattr(show, "content_type", "series") == "anime":
                         episode = next(

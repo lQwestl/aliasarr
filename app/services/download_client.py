@@ -58,6 +58,7 @@ class TorrentInfo:
     ratio: float = 0.0
     protocol: str = "torrent"
     files: list[TorrentFile] = field(default_factory=list)
+    left_until_done: Optional[int] = None
 
 
 class BaseDownloadClient:
@@ -593,9 +594,23 @@ class TransmissionClient(BaseDownloadClient):
         except Exception:
             return ""
 
+    TRANSMISSION_STATUS_MAP = {
+        0: "stopped",
+        1: "check_wait",
+        2: "checking",
+        3: "download_wait",
+        4: "downloading",
+        5: "seed_wait",
+        6: "seeding",
+    }
+
     async def list_torrents(self) -> list[TorrentInfo]:
         try:
-            fields = ["id", "hashString", "name", "percentDone", "status", "downloadDir", "totalSize", "rateDownload", "rateUpload", "eta", "secondsSeeding", "uploadRatio"]
+            fields = [
+                "id", "hashString", "name", "percentDone", "leftUntilDone", "sizeWhenDone",
+                "isFinished", "status", "downloadDir", "totalSize", "rateDownload", "rateUpload",
+                "eta", "secondsSeeding", "uploadRatio"
+            ]
             res = await self._rpc_call("torrent-get", {"fields": fields})
             torrents = res.get("torrents", [])
             result = []
@@ -605,12 +620,29 @@ class TransmissionClient(BaseDownloadClient):
                 eta = t.get("eta")
                 if eta and (eta < 0 or eta >= 8640000):
                     eta = None
+
+                left_until_done = t.get("leftUntilDone")
+                size_when_done = t.get("sizeWhenDone", 0) or 0
+                is_finished = bool(t.get("isFinished", False))
+                status_val = t.get("status")
+
+                if is_finished or status_val in (5, 6) or (left_until_done is not None and left_until_done == 0 and size_when_done > 0):
+                    progress = 1.0
+                elif size_when_done > 0 and left_until_done is not None:
+                    progress = max(0.0, min(1.0, float(size_when_done - left_until_done) / float(size_when_done)))
+                else:
+                    progress = float(t.get("percentDone", 0) or 0)
+
+                status_str = self.TRANSMISSION_STATUS_MAP.get(status_val, str(status_val if status_val is not None else "downloading")).lower()
+                if status_val == 0 and progress >= 0.999:
+                    status_str = "pausedup"
+
                 result.append(
                     TorrentInfo(
                         hash=t.get("hashString", ""),
                         name=t.get("name", ""),
-                        progress=float(t.get("percentDone", 0) or 0),
-                        state=str(t.get("status", "downloading")).lower(),
+                        progress=progress,
+                        state=status_str,
                         save_path=t.get("downloadDir", ""),
                         size=int(t.get("totalSize", 0) or 0),
                         download_speed=int(dlspeed),
@@ -618,6 +650,7 @@ class TransmissionClient(BaseDownloadClient):
                         eta=int(eta) if eta is not None else None,
                         seeding_time=int(t.get("secondsSeeding", 0) or 0),
                         ratio=float(t.get("uploadRatio", 0.0) or 0.0),
+                        left_until_done=int(left_until_done) if left_until_done is not None else None,
                     )
                 )
             return result
@@ -636,13 +669,33 @@ class TransmissionClient(BaseDownloadClient):
                 eta = getattr(t, "eta", None)
                 if eta and (eta < 0 or eta >= 8640000):
                     eta = None
+
+                left_until_done = getattr(t, "left_until_done", None)
+                if left_until_done is None:
+                    left_until_done = getattr(t, "leftUntilDone", None)
+                size_when_done = getattr(t, "size_when_done", 0) or getattr(t, "sizeWhenDone", 0) or 0
+                is_finished = getattr(t, "is_finished", False) or getattr(t, "isFinished", False)
+                status_raw = getattr(t, "status", "downloading")
+                status_str = str(status_raw).lower()
+
+                if is_finished or status_str in ("seeding", "seed_wait", "seed", "5", "6") or (left_until_done is not None and left_until_done == 0 and size_when_done > 0):
+                    progress = 1.0
+                elif size_when_done > 0 and left_until_done is not None:
+                    progress = max(0.0, min(1.0, float(size_when_done - left_until_done) / float(size_when_done)))
+                else:
+                    progress = (t.progress or 0) / 100
+
+                if status_str in ("stopped", "paused", "0") and progress >= 0.999:
+                    status_str = "pausedup"
+
                 result.append(
                     TorrentInfo(
-                        hash=t.hashString, name=t.name, progress=(t.progress or 0) / 100,
-                        state=str(t.status), save_path=t.download_dir, size=t.total_size,
+                        hash=t.hashString, name=t.name, progress=progress,
+                        state=status_str, save_path=t.download_dir, size=t.total_size,
                         download_speed=dlspeed, upload_speed=upspeed, eta=eta,
                         seeding_time=int(getattr(t, "seconds_seeding", 0) or getattr(t, "secondsSeeding", 0) or 0),
                         ratio=float(getattr(t, "ratio", 0.0) or getattr(t, "upload_ratio", 0.0) or 0.0),
+                        left_until_done=int(left_until_done) if left_until_done is not None else None,
                     )
                 )
             return result
@@ -651,7 +704,11 @@ class TransmissionClient(BaseDownloadClient):
 
     async def get_torrent(self, torrent_hash: str) -> Optional[TorrentInfo]:
         try:
-            fields = ["id", "hashString", "name", "percentDone", "status", "downloadDir", "totalSize", "rateDownload", "rateUpload", "eta", "secondsSeeding", "uploadRatio", "files", "fileStats"]
+            fields = [
+                "id", "hashString", "name", "percentDone", "leftUntilDone", "sizeWhenDone",
+                "isFinished", "status", "downloadDir", "totalSize", "rateDownload", "rateUpload",
+                "eta", "secondsSeeding", "uploadRatio", "files", "fileStats"
+            ]
             res = await self._rpc_call("torrent-get", {"fields": fields, "ids": [torrent_hash]})
             torrents = res.get("torrents", [])
             if not torrents:
@@ -684,11 +741,28 @@ class TransmissionClient(BaseDownloadClient):
             eta = t.get("eta")
             if eta and (eta < 0 or eta >= 8640000):
                 eta = None
+
+            left_until_done = t.get("leftUntilDone")
+            size_when_done = t.get("sizeWhenDone", 0) or 0
+            is_finished = bool(t.get("isFinished", False))
+            status_val = t.get("status")
+
+            if is_finished or status_val in (5, 6) or (left_until_done is not None and left_until_done == 0 and size_when_done > 0):
+                progress = 1.0
+            elif size_when_done > 0 and left_until_done is not None:
+                progress = max(0.0, min(1.0, float(size_when_done - left_until_done) / float(size_when_done)))
+            else:
+                progress = float(t.get("percentDone", 0) or 0)
+
+            status_str = self.TRANSMISSION_STATUS_MAP.get(status_val, str(status_val if status_val is not None else "downloading")).lower()
+            if status_val == 0 and progress >= 0.999:
+                status_str = "pausedup"
+
             return TorrentInfo(
                 hash=t.get("hashString", ""),
                 name=t.get("name", ""),
-                progress=float(t.get("percentDone", 0) or 0),
-                state=str(t.get("status", "downloading")).lower(),
+                progress=progress,
+                state=status_str,
                 save_path=t.get("downloadDir", ""),
                 size=int(t.get("totalSize", 0) or 0),
                 download_speed=int(dlspeed),
@@ -697,6 +771,7 @@ class TransmissionClient(BaseDownloadClient):
                 seeding_time=int(t.get("secondsSeeding", 0) or 0),
                 ratio=float(t.get("uploadRatio", 0.0) or 0.0),
                 files=file_infos,
+                left_until_done=int(left_until_done) if left_until_done is not None else None,
             )
         except Exception as exc:
             logger.warning("Ошибка get_torrent в Transmission: %s", exc)
@@ -724,11 +799,30 @@ class TransmissionClient(BaseDownloadClient):
             eta = getattr(t, "eta", None)
             if eta and (eta < 0 or eta >= 8640000):
                 eta = None
+
+            left_until_done = getattr(t, "left_until_done", None)
+            if left_until_done is None:
+                left_until_done = getattr(t, "leftUntilDone", None)
+            size_when_done = getattr(t, "size_when_done", 0) or getattr(t, "sizeWhenDone", 0) or 0
+            is_finished = getattr(t, "is_finished", False) or getattr(t, "isFinished", False)
+            status_raw = getattr(t, "status", "downloading")
+            status_str = str(status_raw).lower()
+
+            if is_finished or status_str in ("seeding", "seed_wait", "seed", "5", "6") or (left_until_done is not None and left_until_done == 0 and size_when_done > 0):
+                progress = 1.0
+            elif size_when_done > 0 and left_until_done is not None:
+                progress = max(0.0, min(1.0, float(size_when_done - left_until_done) / float(size_when_done)))
+            else:
+                progress = (t.progress or 0) / 100
+
+            if status_str in ("stopped", "paused", "0") and progress >= 0.999:
+                status_str = "pausedup"
+
             return TorrentInfo(
                 hash=t.hashString,
                 name=t.name,
-                progress=(t.progress or 0) / 100,
-                state=str(t.status),
+                progress=progress,
+                state=status_str,
                 save_path=t.download_dir,
                 size=t.total_size,
                 download_speed=dlspeed,
@@ -737,6 +831,7 @@ class TransmissionClient(BaseDownloadClient):
                 seeding_time=int(getattr(t, "seconds_seeding", 0) or 0),
                 ratio=float(getattr(t, "ratio", 0.0) or 0.0),
                 files=file_infos,
+                left_until_done=int(left_until_done) if left_until_done is not None else None,
             )
         except Exception:
             return None

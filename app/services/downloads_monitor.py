@@ -307,11 +307,11 @@ async def check_downloads(db: Session) -> list[dict]:
 
         # Разовая сверка селективной загрузки активной раздачи
         if torrent_hash not in _RECONCILED_TORRENTS:
-            _RECONCILED_TORRENTS.add(torrent_hash)
             try:
                 client = get_client(dc_row)
                 full_t = await client.get_torrent(torrent_hash)
                 if full_t and full_t.files:
+                    _RECONCILED_TORRENTS.add(torrent_hash)
                     from app.services.auto_search import evaluate_torrent_file_priority
                     from app.services.matcher import get_show_title_words
                     show_id = eps[0].show_id
@@ -320,14 +320,17 @@ async def check_downloads(db: Session) -> list[dict]:
                     show_ova_mode = getattr(show_obj, "ova_mode", "auto") or "auto"
                     show_words = get_show_title_words(show_obj)
 
-                    # Для сверки используем все серии тайтла, чтобы восстановить серии, ошибочно отвязанные от раздачи
-                    target_reconcile_eps = all_show_eps if all_show_eps else eps
+                    # Для сверки используем серии этой раздачи + нескачанные серии (WANTED/UNAIRED), исключая уже скачанные
+                    target_reconcile_eps = [
+                        e for e in all_show_eps
+                        if e.torrent_hash == torrent_hash or e.status in (EpisodeStatus.DOWNLOADING, EpisodeStatus.WANTED, EpisodeStatus.UNAIRED)
+                    ] if all_show_eps else eps
 
                     matched_eps = []
+                    wanted_indices = []
+                    unwanted_indices = []
                     for f in full_t.files:
-                        if getattr(f, "wanted", True) is False:
-                            continue
-                        evaluate_torrent_file_priority(
+                        prio = evaluate_torrent_file_priority(
                             file_name=f.name,
                             file_index=f.index,
                             target_episodes=target_reconcile_eps,
@@ -338,6 +341,27 @@ async def check_downloads(db: Session) -> list[dict]:
                             out_matched_episodes=matched_eps,
                             show_words=show_words,
                         )
+                        if prio > 0:
+                            wanted_indices.append(f.index)
+                        else:
+                            unwanted_indices.append(f.index)
+
+                    # Если в клиенте скачиваются нежелательные файлы, отключаем их
+                    if unwanted_indices and hasattr(client, "set_files_wanted_unwanted"):
+                        currently_wanted_unwanted = [
+                            f.index for f in full_t.files
+                            if f.index in unwanted_indices and getattr(f, "priority", 1) > 0
+                        ]
+                        if currently_wanted_unwanted:
+                            try:
+                                await client.set_files_wanted_unwanted(torrent_hash, wanted_indices, currently_wanted_unwanted)
+                                logger.info(
+                                    "DownloadsMonitor: В раздаче %s отключено %d нежелательных файлов в клиенте",
+                                    torrent_hash, len(currently_wanted_unwanted),
+                                )
+                            except Exception as set_err:
+                                logger.debug("DownloadsMonitor: Не удалось отключить файлы в %s: %s", torrent_hash, set_err)
+
                     if matched_eps:
                         actually_matched_ids = {e.id for e in matched_eps if getattr(e, "id", None) is not None}
                         actually_matched_pairs = {(e.season_number, e.episode_number) for e in matched_eps}
@@ -395,24 +419,29 @@ async def check_downloads(db: Session) -> list[dict]:
             db.add(ep)
 
         state_str = str(t.state).lower()
-        _DOWNLOADING_STATES = {
+        _ACTIVELY_DOWNLOADING_STATES = {
             "downloading", "stalleddl", "forceddl", "queueddl", "checkingdl",
             "allocating", "metadl", "moving", "4", "checking", "check pending",
-            "download", "download_wait", "check_wait", "stopped", "paused",
-            "0", "1", "2", "3",
+            "download", "download_wait", "check_wait", "1", "2", "3", "pauseddl"
         }
         _SEEDING_COMPLETED_STATES = {
             "completed", "seeding", "pausedup", "stalledup", "forcedup",
             "queuedup", "uploading", "100%", "finished", "seed", "complete", "6", "5",
         }
+        _STOPPED_STATES = {"stopped", "paused", "0"}
 
-        # Раздача завершена ТОЛЬКО если прогресс >= 0.999 (100%). Никакого импорта при progress < 100%!
-        if state_str in _DOWNLOADING_STATES:
+        left_done = getattr(t, "left_until_done", None)
+        has_finished_bytes = (t.progress >= 0.999) or (left_done is not None and left_done == 0 and t.size > 0)
+
+        # Раздача завершена:
+        if state_str in _ACTIVELY_DOWNLOADING_STATES:
             is_done = False
         elif state_str in _SEEDING_COMPLETED_STATES:
-            is_done = (t.progress >= 0.999)
+            is_done = has_finished_bytes
+        elif state_str in _STOPPED_STATES:
+            is_done = has_finished_bytes
         else:
-            is_done = (t.progress >= 0.999)
+            is_done = has_finished_bytes
 
         if not is_done:
             continue
@@ -420,7 +449,7 @@ async def check_downloads(db: Session) -> list[dict]:
         # Проверка лимита времени раздачи (Seed Time Limit / Ratio Limit)
         seed_time_limit_min = getattr(dc_row, "seed_time_limit", None)
         seed_ratio_limit = getattr(dc_row, "seed_ratio_limit", None)
-        is_actively_seeding = state_str in ("seeding", "uploading", "forcedup", "queuedup", "stalledup", "seed")
+        is_actively_seeding = state_str in ("seeding", "uploading", "forcedup", "queuedup", "stalledup", "seed", "6", "5")
 
         if is_actively_seeding:
             time_reached = False

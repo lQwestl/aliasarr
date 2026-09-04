@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import shutil
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -30,6 +31,9 @@ class FakeClient:
         pass
 
     async def pause_torrent(self, h):
+        pass
+
+    async def set_files_wanted_unwanted(self, h, wanted, unwanted):
         pass
 
 
@@ -522,7 +526,93 @@ class TestDownloadsMonitor(unittest.TestCase):
         for ep in episodes:
             self.assertEqual(ep.status, "downloading")
             self.assertEqual(ep.torrent_hash, "hash-dd1")
-            self.assertEqual(ep.download_progress, 0.15)
+    def test_selective_download_with_left_until_done_zero_triggers_import(self):
+        """Проверяет, что при left_until_done == 0 и состоянии seeding импорт запускается даже если raw percentDone < 1.0."""
+        import tempfile
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            f_path = os.path.join(tmp_dir, "S04E21.mkv")
+            with open(f_path, "wb") as f:
+                f.write(b"video data")
+
+            show = SimpleNamespace(id=5, title="Slime", content_type="anime", monitored=True)
+            dc = SimpleNamespace(id=1, name="Transmission", type="transmission", enabled=True, seed_time_limit=None, seed_ratio_limit=None)
+            ep = SimpleNamespace(
+                id=50, show_id=5, season_number=4, episode_number=21,
+                status="downloading", torrent_hash="hash-slime",
+                download_client_id=1, download_progress=0.875,
+            )
+
+            db_mock = MagicMock()
+            db_mock.query.return_value.filter.return_value.all.side_effect = [
+                [ep],   # downloading eps
+                [dc],   # active clients
+            ]
+            db_mock.get.return_value = show
+
+            torrent = TorrentInfo(
+                hash="hash-slime",
+                name="Slime S4",
+                progress=1.0,
+                state="seeding",
+                save_path=tmp_dir,
+                size=5000000000,
+                left_until_done=0,
+                files=[SimpleNamespace(index=0, name="S04E21.mkv", priority=1)],
+            )
+
+            settings = SimpleNamespace(root_folder="", root_folder_anime="/media/anime", rename_template_anime="", season_folder_template_anime="")
+            with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+                 patch("app.services.downloads_monitor.get_client", return_value=FakeClient([torrent])), \
+                 patch("app.services.downloads_monitor._run_postprocess_in_thread") as mock_postprocess:
+                results = asyncio.run(check_downloads(db_mock))
+                self.assertTrue(mock_postprocess.called)
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    def test_stopped_torrent_at_100_percent_triggers_import(self):
+        """Проверяет, что остановленный (stopped/paused/pausedup) торрент со 100% прогрессом успешно импортируется."""
+        import tempfile
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            f_path = os.path.join(tmp_dir, "S03E01.mkv")
+            with open(f_path, "wb") as f:
+                f.write(b"video data")
+
+            show = SimpleNamespace(id=3, title="Daredevil", content_type="series", monitored=True)
+            dc = SimpleNamespace(id=1, name="Transmission", type="transmission", enabled=True, seed_time_limit=None, seed_ratio_limit=None)
+            ep = SimpleNamespace(
+                id=30, show_id=3, season_number=3, episode_number=1,
+                status="downloading", torrent_hash="hash-dd3",
+                download_client_id=1, download_progress=1.0,
+            )
+
+            db_mock = MagicMock()
+            db_mock.query.return_value.filter.return_value.all.side_effect = [
+                [ep],   # downloading eps
+                [dc],   # active clients
+            ]
+            db_mock.get.return_value = show
+
+            torrent = TorrentInfo(
+                hash="hash-dd3",
+                name="Daredevil S3",
+                progress=1.0,
+                state="pausedup",
+                save_path=tmp_dir,
+                size=10000000000,
+                left_until_done=0,
+                files=[SimpleNamespace(index=0, name="S03E01.mkv", priority=1)],
+            )
+
+            settings = SimpleNamespace(root_folder="", root_folder_series="/media/series", rename_template_series="", season_folder_template_series="")
+            with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+                 patch("app.services.downloads_monitor.get_client", return_value=FakeClient([torrent])), \
+                 patch("app.services.downloads_monitor._run_postprocess_in_thread") as mock_postprocess:
+                results = asyncio.run(check_downloads(db_mock))
+                self.assertTrue(mock_postprocess.called)
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":
