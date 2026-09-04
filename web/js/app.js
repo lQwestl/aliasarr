@@ -7523,7 +7523,23 @@ async function forceSearchShow(button, showId) {
         result = await api(`/api/v1/shows/${sId}/search`, { method: "POST" });
       }
       const count = (result.grabbed || []).length;
-      toast(count ? `${t("dash.wanted")}: ${count}` : (result.message || result.status || t("common.none")));
+      if (result.message) {
+        toast(result.message);
+      } else if (count > 0) {
+        const relTitles = [...new Set(
+          result.grabbed
+            .map(g => (typeof g === "string" ? g : (g.release || g.title || "")))
+            .filter(Boolean)
+        )];
+        if (relTitles.length > 0) {
+          const relText = relTitles.length <= 2 ? relTitles.join(", ") : `${relTitles.slice(0, 2).join(", ")} (+${relTitles.length - 2})`;
+          toast(CURRENT_LANG === "en" ? `Grabbed ${count} ep(s): ${relText}` : `Захвачено ${count} серий: ${relText}`);
+        } else {
+          toast(CURRENT_LANG === "en" ? `Grabbed ${count} episode(s)` : `Захвачено серий: ${count}`);
+        }
+      } else {
+        toast(result.status || t("common.none"));
+      }
       await refreshShowModal();
       loadShows();
     } catch (e) {
@@ -8283,7 +8299,24 @@ async function finishWizard(button) {
         toast(CURRENT_LANG === "en" ? "Starting auto-search…" : "Запуск автопоиска…");
         api(`/api/v1/shows/${showId}/search`, { method: "POST" }).then(res => {
           if (res && res.grabbed && res.grabbed.length > 0) {
-            toast((CURRENT_LANG === "en" ? "Grabbed release: " : "Захвачен релиз: ") + res.grabbed.map(g => g.title || g).join(", "));
+            const relTitles = [...new Set(
+              res.grabbed
+                .map(g => (typeof g === "string" ? g : (g.release || g.title || "")))
+                .filter(Boolean)
+            )];
+            const epCount = res.grabbed.length;
+            if (relTitles.length > 0) {
+              const relText = relTitles.length <= 2 ? relTitles.join(", ") : `${relTitles.slice(0, 2).join(", ")} (+${relTitles.length - 2})`;
+              if (epCount > 1) {
+                toast(CURRENT_LANG === "en" ? `Grabbed release (${epCount} eps): ${relText}` : `Захвачен релиз (${epCount} серий): ${relText}`);
+              } else {
+                toast((CURRENT_LANG === "en" ? "Grabbed release: " : "Захвачен релиз: ") + relText);
+              }
+            } else {
+              toast(CURRENT_LANG === "en" ? `Grabbed ${epCount} episode(s)` : `Захвачено серий: ${epCount}`);
+            }
+          } else if (res && res.status) {
+            toast(res.status);
           }
           loadShows();
         }).catch(err => {
@@ -8757,14 +8790,21 @@ async function triggerAutoSearchForCalEvent(showId, episodeId) {
   try {
     let res;
     if (episodeId) {
-      res = await api(`/api/v1/shows/${showId}/search-episode`, {
+      res = await api(`/api/v1/shows/${showId}/search-episodes`, {
         method: "POST",
         body: JSON.stringify({ episode_ids: [episodeId] }),
       });
     } else {
       res = await api(`/api/v1/shows/${showId}/search`, { method: "POST" });
     }
-    toast(res.grabbed ? "Релиз успешно захвачен!" : (res.message || "Поиск завершён"));
+    const hasGrabbed = Array.isArray(res?.grabbed) ? res.grabbed.length > 0 : Boolean(res?.grabbed);
+    if (res?.message) {
+      toast(res.message);
+    } else if (hasGrabbed) {
+      toast(CURRENT_LANG === "en" ? "Release successfully grabbed!" : "Релиз успешно захвачен!");
+    } else {
+      toast(res?.status || (CURRENT_LANG === "en" ? "Search completed, no suitable releases found" : "Поиск завершён, подходящих релизов не найдено"));
+    }
     loadCalendar();
   } catch (e) {
     toast("Ошибка автопоиска: " + e.message, true);

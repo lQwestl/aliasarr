@@ -1663,7 +1663,7 @@ async def _do_search_and_grab(
             for ep in covered:
                 grabbed.append({
                     "episode_id": ep.id, "season": ep.season_number, "episode": ep.episode_number,
-                    "release": rel.title, "score": c["score"], "seeders": rel.seeders,
+                    "release": rel.title, "title": rel.title, "score": c["score"], "seeders": rel.seeders,
                 })
 
         except Exception as exc:

@@ -1012,6 +1012,7 @@ class SearchEpisodesIn(BaseModel):
     episode_ids: list[int]
 
 
+@router.post("/{show_id}/search-episode")
 @router.post("/{show_id}/search-episodes")
 async def search_selected_episodes(
     show_id: int,
