@@ -322,7 +322,7 @@ def _compute_stats(records: list[dict]) -> dict:
             if (db_m.get("wanted_overlap") or 0) > 0:
                 wanted_overlap_count += 1
 
-    acc = round((parsed_success / video_titles * 100), 1) if video_titles > 0 else 100.0
+    acc = round((parsed_success / video_titles * 100), 1) if video_titles > 0 else 0.0
 
     return {
         "total_records": total,

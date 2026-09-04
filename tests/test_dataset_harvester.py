@@ -68,5 +68,14 @@ class TestDatasetHarvester(unittest.TestCase):
         # Accuracy: 2 / 3 = 66.7%
         self.assertEqual(stats["accuracy_pct"], 66.7)
 
+    def test_compute_stats_empty(self):
+        if not HAS_DEPS:
+            self.skipTest("FastAPI not installed in host test environment")
+        stats = _compute_stats([])
+        self.assertEqual(stats["total_records"], 0)
+        self.assertEqual(stats["video_titles"], 0)
+        self.assertEqual(stats["parsed_success"], 0)
+        self.assertEqual(stats["accuracy_pct"], 0.0)
+
 if __name__ == "__main__":
     unittest.main()
