@@ -30,6 +30,7 @@ env/
 # IDE & OS
 .DS_Store
 */.DS_Store
+transm/
 .idea/
 .vscode/
 *.swp

@@ -59,6 +59,8 @@ class TorrentInfo:
     protocol: str = "torrent"
     files: list[TorrentFile] = field(default_factory=list)
     left_until_done: Optional[int] = None
+    error: Optional[int] = None
+    error_string: Optional[str] = None
 
 
 class BaseDownloadClient:
@@ -562,8 +564,11 @@ class QBittorrentClient(BaseDownloadClient):
                             "hash": t.hash,
                             "name": t.name,
                             "state": t.state,
+                            "status_str": t.state,
                             "progress": round(t.progress * 100, 1),
+                            "percent_done": round(t.progress, 4),
                             "left_until_done": t.left_until_done,
+                            "is_finished": t.progress >= 0.999 or (t.left_until_done is not None and t.left_until_done == 0),
                             "size": t.size,
                             "download_speed": t.download_speed,
                             "upload_speed": t.upload_speed,
@@ -685,7 +690,7 @@ class TransmissionClient(BaseDownloadClient):
             fields = [
                 "id", "hashString", "name", "percentDone", "leftUntilDone", "sizeWhenDone",
                 "isFinished", "status", "downloadDir", "totalSize", "rateDownload", "rateUpload",
-                "eta", "secondsSeeding", "uploadRatio"
+                "eta", "secondsSeeding", "uploadRatio", "error", "errorString"
             ]
             res = await self._rpc_call("torrent-get", {"fields": fields})
             torrents = res.get("torrents", [])
@@ -727,6 +732,8 @@ class TransmissionClient(BaseDownloadClient):
                         seeding_time=int(t.get("secondsSeeding", 0) or 0),
                         ratio=float(t.get("uploadRatio", 0.0) or 0.0),
                         left_until_done=int(left_until_done) if left_until_done is not None else None,
+                        error=int(t.get("error", 0) or 0) if t.get("error") is not None else None,
+                        error_string=str(t.get("errorString", "") or "") or None,
                     )
                 )
             return result
@@ -1014,15 +1021,16 @@ class TransmissionClient(BaseDownloadClient):
                     pass
 
     async def get_client_logs(self, limit: int = 100) -> list[dict]:
-        """Получает журнал работы Transmission через RPC message-get."""
+        """Получает журнал работы Transmission через RPC message-get, парсинг локального transmission.log или анализ ошибок торрентов."""
         logs = []
+        # 1. Попытка через RPC message-get (если поддерживается клиентом/форком)
         try:
             res = await self._rpc_call("message-get", {})
             raw_msgs = res.get("messages", []) if isinstance(res, dict) else []
             for m in raw_msgs:
                 level_num = m.get("level", 2)
                 lvl = "error" if level_num == 1 else ("info" if level_num == 2 else "debug")
-                ts = m.get("timestamp")
+                ts = m.get("timestamp") or m.get("date")
                 ts_str = ""
                 if ts:
                     try:
@@ -1037,8 +1045,79 @@ class TransmissionClient(BaseDownloadClient):
                     "message": m.get("message", ""),
                     "category": m.get("category", "") or m.get("name", "transmission"),
                 })
-        except Exception as exc:
-            logger.debug("Transmission get_client_logs failed: %s", exc)
+        except Exception:
+            pass
+
+        # 2. Попытка прочитать файл журнала с диска, если он смонтирован или доступен
+        if not logs:
+            candidate_paths = [
+                "/downloads/transmission.log",
+                "/config/transmission.log",
+                "/var/log/transmission/transmission.log",
+                "/var/log/transmission-daemon/transmission-daemon.log",
+                os.path.expanduser("~/.config/transmission-daemon/transmission.log"),
+            ]
+            try:
+                session_info = await self._rpc_call("session-get", {})
+                if session_info.get("download-dir"):
+                    candidate_paths.append(os.path.join(session_info["download-dir"], "transmission.log"))
+                if session_info.get("config-dir"):
+                    candidate_paths.append(os.path.join(session_info["config-dir"], "transmission.log"))
+            except Exception:
+                pass
+
+            log_regex = re.compile(r"^\[(?P<ts>[^\]]+)\]\s+(?P<lvl>\w+)\s+(?:(?P<name>[^:]+):\s+)?(?P<msg>.*)$")
+            lvl_map = {"CRT": "error", "ERR": "error", "WRN": "warning", "dbg": "debug", "trc": "debug", "inf": "info"}
+
+            for p in candidate_paths:
+                if os.path.isfile(p):
+                    try:
+                        with open(p, "r", encoding="utf-8", errors="replace") as f:
+                            lines = f.readlines()[-limit:]
+                        for line in lines:
+                            line = line.strip()
+                            if not line:
+                                continue
+                            m = log_regex.match(line)
+                            if m:
+                                raw_lvl = m.group("lvl")
+                                logs.append({
+                                    "timestamp": m.group("ts"),
+                                    "level": lvl_map.get(raw_lvl, "info"),
+                                    "category": (m.group("name") or "transmission").strip(),
+                                    "message": m.group("msg").strip(),
+                                })
+                            else:
+                                logs.append({
+                                    "timestamp": "",
+                                    "level": "info",
+                                    "category": "transmission",
+                                    "message": line,
+                                })
+                        if logs:
+                            break
+                    except Exception as err:
+                        logger.debug("Не удалось прочитать logfile %s: %s", p, err)
+
+        # 3. Дополнительно: если логов нет, сбор предупреждений и ошибок по всем торрентам
+        if not logs:
+            try:
+                import datetime as dt
+                now_str = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                torrents = await self.list_torrents()
+                for t in torrents:
+                    if getattr(t, "error_string", None):
+                        err_code = getattr(t, "error", 0)
+                        lvl = "error" if (err_code and err_code >= 2) else "warning"
+                        logs.append({
+                            "timestamp": now_str,
+                            "level": lvl,
+                            "category": "torrent",
+                            "message": f"[{getattr(t, 'name', '')}] {t.error_string}",
+                        })
+            except Exception:
+                pass
+
         return logs[-limit:]
 
     async def get_client_diagnostics(self) -> dict:
@@ -1048,8 +1127,36 @@ class TransmissionClient(BaseDownloadClient):
             session_info = await self._rpc_call("session-get", {})
             stats_info = await self._rpc_call("session-stats", {})
             torrents = await self.list_torrents()
+            diag_torrents = []
+            for t in torrents:
+                raw_prog = getattr(t, "progress", None)
+                if raw_prog is None or not isinstance(raw_prog, (int, float)):
+                    raw_pd = getattr(t, "percent_done", 0.0)
+                    raw_prog = float(raw_pd) if isinstance(raw_pd, (int, float)) else 0.0
+                else:
+                    raw_prog = float(raw_prog)
+
+                left_done = getattr(t, "left_until_done", None)
+                is_fin = bool(getattr(t, "is_finished", False) or raw_prog >= 0.999 or (left_done is not None and left_done == 0))
+                diag_torrents.append({
+                    "hash": getattr(t, "hash", ""),
+                    "name": getattr(t, "name", ""),
+                    "state": getattr(t, "state", ""),
+                    "status_str": getattr(t, "state", ""),
+                    "progress": round(raw_prog * 100, 1),
+                    "percent_done": round(raw_prog, 4),
+                    "left_until_done": left_done,
+                    "is_finished": is_fin,
+                    "size": getattr(t, "size", 0),
+                    "download_speed": getattr(t, "download_speed", 0),
+                    "upload_speed": getattr(t, "upload_speed", 0),
+                    "error": getattr(t, "error", None),
+                    "error_string": getattr(t, "error_string", None),
+                })
+
             diag.update({
                 "connected": True,
+                "status": "ok",
                 "version": session_info.get("version", "unknown"),
                 "rpc_version": session_info.get("rpc-version", "unknown"),
                 "download_dir": session_info.get("download-dir", ""),
@@ -1057,22 +1164,11 @@ class TransmissionClient(BaseDownloadClient):
                 "total_torrent_count": stats_info.get("torrentCount", len(torrents)),
                 "download_speed": stats_info.get("downloadSpeed", 0),
                 "upload_speed": stats_info.get("uploadSpeed", 0),
-                "torrents": [
-                    {
-                        "hash": t.hash,
-                        "name": t.name,
-                        "state": t.state,
-                        "progress": round(t.progress * 100, 1),
-                        "left_until_done": t.left_until_done,
-                        "size": t.size,
-                        "download_speed": t.download_speed,
-                        "upload_speed": t.upload_speed,
-                    }
-                    for t in torrents
-                ],
+                "torrents": diag_torrents,
             })
         except Exception as exc:
             diag["error"] = str(exc)
+            diag["status"] = "error"
         return diag
 
 

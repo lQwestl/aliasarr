@@ -13144,14 +13144,26 @@ async function loadDownloadClientLogs() {
         `;
 
         if (torrents.length > 0) {
-          const torrentRows = torrents.slice(0, 20).map(t => {
-            const pct = Math.round((t.percent_done || 0) * 100);
-            const isDone = t.is_finished || t.left_until_done === 0 || pct === 100;
-            const statusLabel = isDone ? (isRu ? "Завершён" : "Done") : (escapeHtml(t.status_str || "Downloading"));
+          const torrentRows = torrents.slice(0, 30).map(t => {
+            const isDone = t.is_finished || t.left_until_done === 0 || t.state === "seeding" || t.state === "pausedup" || t.status_str === "seeding" || t.status_str === "pausedup";
+            let rawPct = 0;
+            if (t.progress != null && t.progress > 0) {
+              rawPct = t.progress;
+            } else if (t.percent_done != null && t.percent_done > 0) {
+              rawPct = t.percent_done <= 1.0 ? t.percent_done * 100 : t.percent_done;
+            }
+            let pct = Math.min(100, Math.max(0, Math.round(rawPct)));
+            if (isDone && (t.left_until_done === 0 || t.is_finished || t.state === "seeding" || t.state === "pausedup")) {
+              pct = 100;
+            }
+            const statusLabel = isDone ? (isRu ? "Завершён" : "Done") : (escapeHtml(t.status_str || t.state || "Downloading"));
             const badgeColor = isDone ? "#34d399" : "#60a5fa";
             return `
               <tr>
-                <td style="font-size:12px; font-weight:500; word-break:break-all;">${escapeHtml(t.name || "—")}</td>
+                <td style="font-size:12px; font-weight:500; word-break:break-all;">
+                  ${escapeHtml(t.name || "—")}
+                  ${t.error_string ? `<div style="color:var(--danger); font-size:11px; margin-top:2px;">⚠️ ${escapeHtml(t.error_string)}</div>` : ""}
+                </td>
                 <td style="width:140px; text-align:center;">
                   <div style="display:flex; align-items:center; gap:6px;">
                     <div style="flex:1; background:rgba(255,255,255,0.1); border-radius:4px; height:6px; overflow:hidden;">
@@ -13221,10 +13233,18 @@ async function loadDownloadClientLogs() {
           </div>
         `;
       } else {
+        const isTransmission = (client.client_type || client.type || "").toLowerCase().includes("transmission");
+        const hintText = isTransmission
+          ? (isRu 
+              ? "Демон Transmission 4.x по умолчанию пишет логи в консоль контейнера (stdout/stderr). Чтобы системный журнал отображался прямо здесь, запустите transmission-daemon с параметром <code>--logfile /downloads/transmission.log</code> или смонтируйте logfile в каталог загрузок/конфига." 
+              : "Transmission 4.x daemon outputs logs to container console (stdout/stderr). To display daemon logs here, start transmission-daemon with <code>--logfile /downloads/transmission.log</code> or mount the log file into the downloads/config directory.")
+          : (isRu 
+              ? "Журнал демона пуст или RPC-метод клиента не вернул записей." 
+              : "Daemon log buffer is empty or client returned no records.");
         logsHtml = `
-          <div style="margin-top:10px; padding:8px 10px; background:var(--panel-alt); border-radius:6px; border:1px solid var(--border); font-size:12px; color:var(--text-muted);">
-            <i data-lucide="info" class="ico-sm" style="display:inline-block; vertical-align:middle; margin-right:4px;"></i>
-            ${isRu ? "Журнал демона пуст или RPC-метод клиента (message-get / log) не возвращает буфер сообщений." : "Daemon log buffer is empty or client RPC method (message-get / log) returned no records."}
+          <div style="margin-top:10px; padding:10px 12px; background:var(--panel-alt); border-radius:6px; border:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.4;">
+            <i data-lucide="info" class="ico-sm" style="display:inline-block; vertical-align:middle; margin-right:6px; color:var(--accent);"></i>
+            ${hintText}
           </div>
         `;
       }
