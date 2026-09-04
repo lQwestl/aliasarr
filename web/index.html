@@ -24,6 +24,7 @@
 
       var hash = (window.location.hash || "").replace("#", "");
       var targetTab = hash || localStorage.getItem("aliasarr_last_tab") || "dashboard";
+      if (["audit", "events", "journal", "release-logs", "dataset-harvester"].indexOf(targetTab) !== -1) targetTab = "logs";
       if (targetTab && targetTab !== "dashboard") {
         var style = document.createElement("style");
         style.id = "initial-tab-style";
@@ -91,12 +92,8 @@
       <button class="nav-item" data-tab="activity"><i data-lucide="activity" class="nav-ico"></i><span data-i18n="nav.activity">Активность</span></button>
       <button class="nav-item" data-tab="calendar"><i data-lucide="calendar" class="nav-ico"></i><span data-i18n="nav.calendar">Календарь</span></button>
       <button class="nav-item" data-tab="history"><i data-lucide="history" class="nav-ico"></i><span data-i18n="nav.history">История</span></button>
-      <button class="nav-item" data-tab="audit"><i data-lucide="shield-check" class="nav-ico"></i><span data-i18n="nav.audit">Аудит</span></button>
       <button class="nav-item" data-tab="settings"><i data-lucide="settings" class="nav-ico"></i><span data-i18n="nav.settings">Настройки</span></button>
-      <button class="nav-item" data-tab="events"><i data-lucide="radio" class="nav-ico"></i><span data-i18n="nav.events">События</span></button>
-      <button class="nav-item" data-tab="journal"><i data-lucide="scroll-text" class="nav-ico"></i><span data-i18n="nav.journal">Журнал</span></button>
-      <button class="nav-item" data-tab="release-logs" id="nav-release-logs" style="display:none;"><i data-lucide="file-search" class="nav-ico"></i><span data-i18n="nav.release_logs">Релиз логи</span></button>
-      <button class="nav-item" data-tab="dataset-harvester" id="nav-dataset-harvester"><i data-lucide="sparkles" class="nav-ico"></i><span data-i18n="nav.dataset_harvester">Логи для улучшения</span></button>
+      <button class="nav-item" data-tab="logs" id="nav-logs"><i data-lucide="file-text" class="nav-ico"></i><span data-i18n="nav.logs">Логи</span></button>
       <button class="nav-item" data-tab="backup"><i data-lucide="archive" class="nav-ico"></i><span data-i18n="nav.backup">Бэкап</span></button>
       <a href="/wiki" target="_blank" rel="noopener noreferrer" class="nav-item-wiki" id="nav-wiki" title="База знаний и документация" data-i18n-title="nav.wiki_tooltip" onclick="openWiki(event)">
         <i data-lucide="book-open" class="nav-ico"></i>
@@ -757,59 +754,6 @@
           <tbody></tbody>
         </table>
       </div>
-    </section>
-
-    <!-- АУДИТ -->
-    <section id="tab-audit" class="tab-panel">
-      <div class="panel-sticky-header">
-        <header class="panel-header">
-          <div class="header-row">
-            <div>
-              <h1 data-i18n="nav.audit">Аудит</h1>
-              <p class="subtitle" data-i18n="audit.subtitle">Журнал всех действий пользователей и событий безопасности</p>
-            </div>
-            <button class="btn btn-secondary" onclick="loadAuditLogs()" data-i18n="common.refresh"><i data-lucide="refresh-cw"></i> Обновить</button>
-          </div>
-        </header>
-
-        <div class="card" style="margin-bottom:0; padding: 12px 16px;">
-          <div class="form-row" style="flex-wrap:wrap; gap:12px; align-items:center;">
-            <input id="audit-search" class="input" placeholder="Поиск по описанию/действию..." style="max-width:320px;" oninput="debounceAuditSearch()" data-i18n-placeholder="audit.search_placeholder">
-            <select id="audit-filter-action" class="input" style="max-width:240px;" onchange="loadAuditLogs(1)">
-              <option value="" data-i18n="audit.all_actions">Все действия</option>
-              <option value="auth.login" data-i18n="audit.action_login">Вход (Login)</option>
-              <option value="auth.logout" data-i18n="audit.action_logout">Выход (Logout)</option>
-              <option value="auth.password_change" data-i18n="audit.action_password_change">Смена пароля</option>
-              <option value="auth.login_failed" data-i18n="audit.action_login_failed">Неудачный вход</option>
-              <option value="user.create" data-i18n="audit.action_user_create">Создание пользователя</option>
-              <option value="user.update" data-i18n="audit.action_user_update">Изменение пользователя</option>
-              <option value="user.delete" data-i18n="audit.action_user_delete">Удаление пользователя</option>
-              <option value="user.password_reset" data-i18n="audit.action_password_reset">Сброс пароля</option>
-              <option value="settings.update" data-i18n="audit.action_settings_update">Настройки системы</option>
-              <option value="settings.security_update" data-i18n="audit.action_security_update">Настройки безопасности</option>
-              <option value="show.add" data-i18n="audit.action_show_create">Добавление шоу</option>
-              <option value="show.delete" data-i18n="audit.action_show_delete">Удаление шоу</option>
-              <option value="release.grab" data-i18n="audit.action_release_grab">Захват релиза</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="table-responsive">
-        <table class="data-table" id="audit-table">
-          <thead>
-            <tr>
-              <th data-i18n="audit.col_time">Время</th>
-              <th data-i18n="audit.col_user">Пользователь</th>
-              <th data-i18n="audit.col_action">Действие</th>
-              <th data-i18n="audit.col_description">Описание</th>
-              <th data-i18n="audit.col_ip">IP-адрес</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div id="audit-pagination" class="pagination-row" style="margin-top:16px; display:flex; justify-content:space-between; align-items:center;"></div>
     </section>
 
     <!-- НАСТРОЙКИ -->
@@ -2271,19 +2215,73 @@
 
     </section>
 
-    <!-- СОБЫТИЯ -->
-    <section id="tab-events" class="tab-panel">
+    <!-- ЛОГИ (Аудит, События, Журнал, Релиз логи, Логи для улучшения и парсера) -->
+    <section id="tab-logs" class="tab-panel">
       <div class="panel-sticky-header">
         <header class="panel-header">
           <div class="header-row">
             <div>
-              <h1 data-i18n="tab.events">События</h1>
-              <p class="subtitle" data-i18n="subtitle.events">Информация, предупреждения и ошибки приложения</p>
+              <h1 data-i18n="tab.logs">Логи</h1>
+              <p class="subtitle" data-i18n="subtitle.logs">Аудит действий, системные события, журнал работы, релиз-логи и выборка парсера</p>
             </div>
           </div>
         </header>
 
-        <div class="form-row events-toolbar" style="margin-bottom:0; flex-wrap:wrap;">
+        <div class="logs-tabs settings-tabs">
+          <button class="logs-tab-btn settings-tab-btn active" data-logs-tab="audit"><i data-lucide="shield-check" class="ico-xs"></i><span data-i18n="nav.audit">Аудит</span></button>
+          <button class="logs-tab-btn settings-tab-btn" data-logs-tab="events"><i data-lucide="radio" class="ico-xs"></i><span data-i18n="nav.events">События</span></button>
+          <button class="logs-tab-btn settings-tab-btn" data-logs-tab="journal"><i data-lucide="scroll-text" class="ico-xs"></i><span data-i18n="nav.journal">Журнал</span></button>
+          <button class="logs-tab-btn settings-tab-btn" data-logs-tab="release-logs"><i data-lucide="file-search" class="ico-xs"></i><span data-i18n="nav.release_logs">Релиз логи</span></button>
+          <button class="logs-tab-btn settings-tab-btn" data-logs-tab="dataset-harvester"><i data-lucide="sparkles" class="ico-xs"></i><span data-i18n="nav.dataset_harvester">Логи для улучшения и парсера</span></button>
+        </div>
+      </div>
+
+      <!-- 1. ПОДПАНЕЛЬ АУДИТА -->
+      <div id="logs-audit" class="logs-panel settings-panel active">
+        <div class="card" style="margin-bottom:14px; padding: 12px 16px;">
+          <div class="form-row" style="flex-wrap:wrap; gap:12px; align-items:center;">
+            <input id="audit-search" class="input" placeholder="Поиск по описанию/действию..." style="max-width:320px;" oninput="debounceAuditSearch()" data-i18n-placeholder="audit.search_placeholder">
+            <select id="audit-filter-action" class="input" style="max-width:240px;" onchange="loadAuditLogs(1)">
+              <option value="" data-i18n="audit.all_actions">Все действия</option>
+              <option value="auth.login" data-i18n="audit.action_login">Вход (Login)</option>
+              <option value="auth.logout" data-i18n="audit.action_logout">Выход (Logout)</option>
+              <option value="auth.password_change" data-i18n="audit.action_password_change">Смена пароля</option>
+              <option value="auth.login_failed" data-i18n="audit.action_login_failed">Неудачный вход</option>
+              <option value="user.create" data-i18n="audit.action_user_create">Создание пользователя</option>
+              <option value="user.update" data-i18n="audit.action_user_update">Изменение пользователя</option>
+              <option value="user.delete" data-i18n="audit.action_user_delete">Удаление пользователя</option>
+              <option value="user.password_reset" data-i18n="audit.action_password_reset">Сброс пароля</option>
+              <option value="settings.update" data-i18n="audit.action_settings_update">Настройки системы</option>
+              <option value="settings.security_update" data-i18n="audit.action_security_update">Настройки безопасности</option>
+              <option value="show.add" data-i18n="audit.action_show_create">Добавление шоу</option>
+              <option value="show.delete" data-i18n="audit.action_show_delete">Удаление шоу</option>
+              <option value="release.grab" data-i18n="audit.action_release_grab">Захват релиза</option>
+            </select>
+            <div class="desktop-spacer" style="flex:1"></div>
+            <button class="btn btn-secondary btn-small" onclick="loadAuditLogs(1)" data-i18n="common.refresh"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table" id="audit-table">
+            <thead>
+              <tr>
+                <th data-i18n="audit.col_time">Время</th>
+                <th data-i18n="audit.col_user">Пользователь</th>
+                <th data-i18n="audit.col_action">Действие</th>
+                <th data-i18n="audit.col_description">Описание</th>
+                <th data-i18n="audit.col_ip">IP-адрес</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="audit-pagination" class="pagination-row" style="margin-top:16px; display:flex; justify-content:space-between; align-items:center;"></div>
+      </div>
+
+      <!-- 2. ПОДПАНЕЛЬ СОБЫТИЙ -->
+      <div id="logs-events" class="logs-panel settings-panel">
+        <div class="form-row events-toolbar" style="margin-bottom:14px; flex-wrap:wrap;">
           <select id="events-level-filter" class="input" style="max-width:220px" onchange="loadEvents(1)">
             <option value="all" data-i18n="events.filter_all">Все события</option>
             <option value="info" data-i18n="events.filter_info">Информация</option>
@@ -2294,32 +2292,21 @@
           <input id="events-page-size" class="input" type="number" min="5" value="50" style="max-width:110px" onchange="loadEvents(1)">
           <button class="btn btn-secondary btn-small" onclick="toggleEventsSort()" id="events-sort-btn" data-i18n="events.sort_time">Время ↓</button>
           <div class="desktop-spacer" style="flex:1"></div>
-          <button class="btn btn-secondary btn-small" id="events-refresh-btn" onclick="loadEvents(EVENTS_STATE.page)" data-i18n="common.refresh">↻ Обновить</button>
+          <button class="btn btn-secondary btn-small" id="events-refresh-btn" onclick="loadEvents(EVENTS_STATE.page)" data-i18n="common.refresh"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
         </div>
+
+        <div class="table-responsive">
+          <table class="data-table" id="events-table">
+            <thead><tr><th style="width:180px;" data-i18n="events.col_time">Время</th><th style="width:160px;" data-i18n="events.col_component">Компонент</th><th data-i18n="events.col_message">Сообщение</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="form-row" id="events-pagination" style="justify-content:center; margin-top:14px;"></div>
       </div>
 
-      <div class="table-responsive">
-        <table class="data-table" id="events-table">
-          <thead><tr><th style="width:180px;" data-i18n="events.col_time">Время</th><th style="width:160px;" data-i18n="events.col_component">Компонент</th><th data-i18n="events.col_message">Сообщение</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="form-row" id="events-pagination" style="justify-content:center; margin-top:14px;"></div>
-    </section>
-
-    <!-- ЖУРНАЛ -->
-    <section id="tab-journal" class="tab-panel">
-      <div class="panel-sticky-header">
-        <header class="panel-header">
-          <div class="header-row">
-            <div>
-              <h1 data-i18n="tab.journal">Журнал</h1>
-              <p class="subtitle" data-i18n="subtitle.journal">Логи приложения (info / warn / debug). Записи старше срока хранения удаляются автоматически.</p>
-            </div>
-          </div>
-        </header>
-
-        <div class="form-row journal-toolbar" style="margin-bottom:0; flex-wrap:wrap;">
+      <!-- 3. ПОДПАНЕЛЬ ЖУРНАЛА -->
+      <div id="logs-journal" class="logs-panel settings-panel">
+        <div class="form-row journal-toolbar" style="margin-bottom:14px; flex-wrap:wrap;">
           <select id="journal-level-filter" class="input" style="max-width:220px" onchange="loadJournal(1)">
             <option value="all" data-i18n="journal.filter_all">Все уровни</option>
             <option value="debug">Debug</option>
@@ -2331,39 +2318,28 @@
           <button class="btn btn-secondary btn-small" id="journal-download-btn" onclick="downloadJournal()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
           <button class="btn btn-danger btn-small" id="journal-clear-btn" onclick="clearJournal()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
         </div>
-      </div>
 
-      <div class="table-responsive">
-        <table class="data-table" id="journal-table">
-          <thead><tr><th style="width:180px;" data-i18n="journal.col_time">Время</th><th style="width:90px;" data-i18n="journal.col_level">Уровень</th><th style="width:160px;" data-i18n="journal.col_component">Компонент</th><th data-i18n="journal.col_message">Сообщение</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="form-row" id="journal-pagination" style="justify-content:center; margin-top:14px;"></div>
+        <div class="table-responsive">
+          <table class="data-table" id="journal-table">
+            <thead><tr><th style="width:180px;" data-i18n="journal.col_time">Время</th><th style="width:90px;" data-i18n="journal.col_level">Уровень</th><th style="width:160px;" data-i18n="journal.col_component">Компонент</th><th data-i18n="journal.col_message">Сообщение</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="form-row" id="journal-pagination" style="justify-content:center; margin-top:14px;"></div>
 
-      <div class="card" style="margin-top:20px;">
-        <h3 data-i18n="journal.retention_title">Хранение</h3>
-        <div class="form-col">
-          <label><span data-i18n="journal.retention_label">Хранить записи журнала и событий</span> <span class="hint">(дней)</span></label>
-          <input id="journal-retention-days" class="input" type="number" min="1" style="max-width:160px">
-          <div><button class="btn btn-primary" onclick="saveJournalRetention()" data-i18n="common.save">Сохранить</button></div>
+        <div class="card" style="margin-top:20px;">
+          <h3 data-i18n="journal.retention_title">Хранение</h3>
+          <div class="form-col">
+            <label><span data-i18n="journal.retention_label">Хранить записи журнала и событий</span> <span class="hint">(дней)</span></label>
+            <input id="journal-retention-days" class="input" type="number" min="1" style="max-width:160px">
+            <div><button class="btn btn-primary" onclick="saveJournalRetention()" data-i18n="common.save">Сохранить</button></div>
+          </div>
         </div>
       </div>
-    </section>
 
-    <!-- РЕЛИЗ ЛОГИ (Логирование логики релизов - только для Главного Админа) -->
-    <section id="tab-release-logs" class="tab-panel">
-      <div class="panel-sticky-header">
-        <header class="panel-header">
-          <div class="header-row">
-            <div>
-              <h1 data-i18n="tab.release_logs">Релиз логи</h1>
-              <p class="subtitle" data-i18n="subtitle.release_logs">Диагностический журнал работы движка релизов: поиск, сопоставление, парсинг серий, принятие решений, вызовы загрузчика и импорт.</p>
-            </div>
-          </div>
-        </header>
-
-        <div class="form-row release-logs-toolbar" style="margin-bottom:0; flex-wrap:wrap; gap:10px;">
+      <!-- 4. ПОДПАНЕЛЬ РЕЛИЗ ЛОГОВ -->
+      <div id="logs-release-logs" class="logs-panel settings-panel">
+        <div class="form-row release-logs-toolbar" style="margin-bottom:14px; flex-wrap:wrap; gap:10px;">
           <select id="release-logs-stage-filter" class="input" style="max-width:180px" onchange="loadReleaseLogs(1)">
             <option value="all" data-i18n="release_logs.filter_all_stages">Все этапы</option>
             <option value="search">Поиск (Search)</option>
@@ -2389,41 +2365,31 @@
 
           <div class="desktop-spacer" style="flex:1"></div>
 
+          <button class="btn btn-secondary btn-small" id="release-logs-client-btn" onclick="openDownloadClientLogsModal()"><i data-lucide="hard-drive" class="ico-sm"></i> <span>Логи загрузчика</span></button>
           <button class="btn btn-secondary btn-small" id="release-logs-download-btn" onclick="downloadReleaseLogs()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
           <button class="btn btn-danger btn-small" id="release-logs-clear-btn" onclick="clearReleaseLogs()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
         </div>
+
+        <div class="table-responsive">
+          <table class="data-table" id="release-logs-table">
+            <thead>
+              <tr>
+                <th style="width:145px;" data-i18n="release_logs.col_time">Время</th>
+                <th style="width:90px;" data-i18n="release_logs.col_stage">Этап</th>
+                <th style="width:85px;" data-i18n="release_logs.col_level">Статус</th>
+                <th style="width:160px;" data-i18n="release_logs.col_show">Тайтл</th>
+                <th data-i18n="release_logs.col_message">Сообщение и принятое решение</th>
+                <th style="width:100px; text-align:center;" data-i18n="common.actions">Действия</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="form-row" id="release-logs-pagination" style="justify-content:center; margin-top:14px;"></div>
       </div>
 
-      <div class="table-responsive">
-        <table class="data-table" id="release-logs-table">
-          <thead>
-            <tr>
-              <th style="width:145px;" data-i18n="release_logs.col_time">Время</th>
-              <th style="width:90px;" data-i18n="release_logs.col_stage">Этап</th>
-              <th style="width:85px;" data-i18n="release_logs.col_level">Статус</th>
-              <th style="width:160px;" data-i18n="release_logs.col_show">Тайтл</th>
-              <th data-i18n="release_logs.col_message">Сообщение и принятое решение</th>
-              <th style="width:100px; text-align:center;" data-i18n="common.actions">Действия</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="form-row" id="release-logs-pagination" style="justify-content:center; margin-top:14px;"></div>
-    </section>
-
-    <!-- ЛОГИ ДЛЯ ОБУЧЕНИЯ И УЛУЧШЕНИЯ ПАРСЕРА (DATASET HARVESTER) -->
-    <section id="tab-dataset-harvester" class="tab-panel">
-      <div class="panel-sticky-header">
-        <header class="panel-header">
-          <div class="header-row">
-            <div>
-              <h1 data-i18n="tab.dataset_harvester">Логи для улучшения и обучения парсера</h1>
-              <p class="subtitle" data-i18n="subtitle.dataset_harvester">Автоматический сбор раздач с трекеров (Jackett / Prowlarr) для проверки качества распознавания и выявления краевых случаев</p>
-            </div>
-          </div>
-        </header>
-
+      <!-- 5. ПОДПАНЕЛЬ ЛОГОВ ДЛЯ УЛУЧШЕНИЯ И ПАРСЕРА (DATASET HARVESTER) -->
+      <div id="logs-dataset-harvester" class="logs-panel settings-panel">
         <!-- ПАНЕЛЬ УПРАВЛЕНИЯ И ЗАПУСКА СБОРА -->
         <div class="panel dataset-panel" style="padding: 16px 20px; margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--radius, 12px);">
           <div class="dataset-inputs-grid">
@@ -2507,7 +2473,7 @@
         </div>
 
         <!-- ТУЛБАР ФИЛЬТРАЦИИ ТАБЛИЦЫ -->
-        <div class="form-row dataset-toolbar" style="margin-bottom:0; flex-wrap:wrap; gap:10px;">
+        <div class="form-row dataset-toolbar" style="margin-bottom:14px; flex-wrap:wrap; gap:10px;">
           <select id="dataset-filter-select" class="input" style="max-width:240px" onchange="loadDatasetData(1)">
             <option value="all">Все записи</option>
             <option value="approved">🟢 Одобрено DecisionEngine</option>
@@ -2525,104 +2491,104 @@
 
           <div class="desktop-spacer" style="flex:1"></div>
         </div>
+
+        <!-- КАРТОЧКИ СТАТИСТИКИ -->
+        <div class="backup-stats-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
+          <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
+            <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(0, 240, 255, 0.1); color: var(--teal, #00F0FF); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <i data-lucide="database" class="ico-sm"></i>
+            </div>
+            <div>
+              <div class="hint" style="font-size: 10px; text-transform: uppercase;">Собрано записей</div>
+              <div style="font-size: 16px; font-weight: 700;" id="dataset-stat-total">—</div>
+              <div class="hint" style="font-size: 10px;" id="dataset-stat-video">— видео</div>
+            </div>
+          </div>
+
+          <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
+            <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(16px, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <i data-lucide="check-circle-2" class="ico-sm"></i>
+            </div>
+            <div>
+              <div class="hint" style="font-size: 10px; text-transform: uppercase;">Точность парсера</div>
+              <div style="font-size: 16px; font-weight: 700; color: #10b981;" id="dataset-stat-accuracy">—%</div>
+              <div class="hint" style="font-size: 10px;" id="dataset-stat-parsed-count">— распознано</div>
+            </div>
+          </div>
+
+          <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
+            <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <i data-lucide="thumbs-up" class="ico-sm"></i>
+            </div>
+            <div>
+              <div class="hint" style="font-size: 10px; text-transform: uppercase;">Одобрено движком</div>
+              <div style="font-size: 16px; font-weight: 700; color: #3b82f6;" id="dataset-stat-approved">—</div>
+              <div class="hint" style="font-size: 10px;" id="dataset-stat-wanted-overlap">— с разыскиваемыми</div>
+            </div>
+          </div>
+
+          <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
+            <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); color: #ef4444; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <i data-lucide="shield-x" class="ico-sm"></i>
+            </div>
+            <div>
+              <div class="hint" style="font-size: 10px; text-transform: uppercase;">Отклонено движком</div>
+              <div style="font-size: 16px; font-weight: 700; color: #ef4444;" id="dataset-stat-rejected">—</div>
+              <div class="hint" style="font-size: 10px;">не подошли параметры</div>
+            </div>
+          </div>
+
+          <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
+            <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <i data-lucide="filter" class="ico-sm"></i>
+            </div>
+            <div>
+              <div class="hint" style="font-size: 10px; text-transform: uppercase;">Не-видео контент</div>
+              <div style="font-size: 16px; font-weight: 700;" id="dataset-stat-non-video">—</div>
+              <div class="hint" style="font-size: 10px;">игры, OST, манга</div>
+            </div>
+          </div>
+
+          <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
+            <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(168, 85, 247, 0.1); color: #a855f7; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <i data-lucide="alert-triangle" class="ico-sm"></i>
+            </div>
+            <div>
+              <div class="hint" style="font-size: 10px; text-transform: uppercase;">Не распознано</div>
+              <div style="font-size: 16px; font-weight: 700; color: #a855f7;" id="dataset-stat-unknown">—</div>
+              <div class="hint" style="font-size: 10px;">краевые случаи</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ТАБЛИЦА СОБРАННЫХ ДАННЫХ -->
+        <div class="table-responsive">
+          <table class="data-table" id="dataset-table">
+            <colgroup>
+              <col class="col-query">
+              <col class="col-title">
+              <col class="col-size">
+              <col class="col-episodes">
+              <col class="col-match">
+              <col class="col-decision">
+              <col class="col-actions">
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="col-query">Запрос / Трекер</th>
+                <th class="col-title">Заголовок раздачи с трекера</th>
+                <th class="col-size">Размер / Качество</th>
+                <th class="col-episodes">Серии (Парсер)</th>
+                <th class="col-match">Сопоставление с БД</th>
+                <th class="col-decision">DecisionEngine</th>
+                <th class="col-actions" style="text-align:center;">Действия</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="form-row" id="dataset-pagination" style="justify-content:center; margin-top:14px;"></div>
       </div>
-
-      <!-- КАРТОЧКИ СТАТИСТИКИ -->
-      <div class="backup-stats-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
-        <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
-          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(0, 240, 255, 0.1); color: var(--teal, #00F0FF); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i data-lucide="database" class="ico-sm"></i>
-          </div>
-          <div>
-            <div class="hint" style="font-size: 10px; text-transform: uppercase;">Собрано записей</div>
-            <div style="font-size: 16px; font-weight: 700;" id="dataset-stat-total">—</div>
-            <div class="hint" style="font-size: 10px;" id="dataset-stat-video">— видео</div>
-          </div>
-        </div>
-
-        <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
-          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i data-lucide="check-circle-2" class="ico-sm"></i>
-          </div>
-          <div>
-            <div class="hint" style="font-size: 10px; text-transform: uppercase;">Точность парсера</div>
-            <div style="font-size: 16px; font-weight: 700; color: #10b981;" id="dataset-stat-accuracy">—%</div>
-            <div class="hint" style="font-size: 10px;" id="dataset-stat-parsed-count">— распознано</div>
-          </div>
-        </div>
-
-        <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
-          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i data-lucide="thumbs-up" class="ico-sm"></i>
-          </div>
-          <div>
-            <div class="hint" style="font-size: 10px; text-transform: uppercase;">Одобрено движком</div>
-            <div style="font-size: 16px; font-weight: 700; color: #3b82f6;" id="dataset-stat-approved">—</div>
-            <div class="hint" style="font-size: 10px;" id="dataset-stat-wanted-overlap">— с разыскиваемыми</div>
-          </div>
-        </div>
-
-        <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
-          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); color: #ef4444; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i data-lucide="shield-x" class="ico-sm"></i>
-          </div>
-          <div>
-            <div class="hint" style="font-size: 10px; text-transform: uppercase;">Отклонено движком</div>
-            <div style="font-size: 16px; font-weight: 700; color: #ef4444;" id="dataset-stat-rejected">—</div>
-            <div class="hint" style="font-size: 10px;">не подошли параметры</div>
-          </div>
-        </div>
-
-        <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
-          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i data-lucide="filter" class="ico-sm"></i>
-          </div>
-          <div>
-            <div class="hint" style="font-size: 10px; text-transform: uppercase;">Не-видео контент</div>
-            <div style="font-size: 16px; font-weight: 700;" id="dataset-stat-non-video">—</div>
-            <div class="hint" style="font-size: 10px;">игры, OST, манга</div>
-          </div>
-        </div>
-
-        <div class="panel" style="padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px;">
-          <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(168, 85, 247, 0.1); color: #a855f7; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i data-lucide="alert-triangle" class="ico-sm"></i>
-          </div>
-          <div>
-            <div class="hint" style="font-size: 10px; text-transform: uppercase;">Не распознано</div>
-            <div style="font-size: 16px; font-weight: 700; color: #a855f7;" id="dataset-stat-unknown">—</div>
-            <div class="hint" style="font-size: 10px;">краевые случаи</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ТАБЛИЦА СОБРАННЫХ ДАННЫХ -->
-      <div class="table-responsive">
-        <table class="data-table" id="dataset-table">
-          <colgroup>
-            <col class="col-query">
-            <col class="col-title">
-            <col class="col-size">
-            <col class="col-episodes">
-            <col class="col-match">
-            <col class="col-decision">
-            <col class="col-actions">
-          </colgroup>
-          <thead>
-            <tr>
-              <th class="col-query">Запрос / Трекер</th>
-              <th class="col-title">Заголовок раздачи с трекера</th>
-              <th class="col-size">Размер / Качество</th>
-              <th class="col-episodes">Серии (Парсер)</th>
-              <th class="col-match">Сопоставление с БД</th>
-              <th class="col-decision">DecisionEngine</th>
-              <th class="col-actions" style="text-align:center;">Действия</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="form-row" id="dataset-pagination" style="justify-content:center; margin-top:14px;"></div>
     </section>
 
     <!-- BACKUP (Резервное копирование и восстановление) -->

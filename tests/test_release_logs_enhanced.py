@@ -3,7 +3,11 @@ from __future__ import annotations
 import unittest
 from dataclasses import dataclass
 from typing import Optional
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch, MagicMock
+
 from app.services.auto_search import evaluate_torrent_file_priority
+from app.services.download_client import TransmissionClient, QBittorrentClient
 
 
 @dataclass
@@ -96,6 +100,98 @@ class TestReleaseLogsEnhanced(unittest.TestCase):
         )
         self.assertEqual(prio_sub_unwanted, 0)
         self.assertIn("ОТКЛЮЧЕН", out_reasons[1])
+
+    async def async_test_transmission_logs_and_diagnostics(self):
+        client = TransmissionClient(host="127.0.0.1", port=9091, username="", password="")
+
+        # Mock _rpc_call
+        client._rpc_call = AsyncMock(side_effect=[
+            # 1. get_client_logs: message-get
+            {"messages": [{"timestamp": 1700000000, "level": 2, "name": "RPC", "message": "Listening on port 9091"}]},
+            # 2. get_client_diagnostics: session-get
+            {"version": "4.0.5", "download-dir-free-space": 50000000000, "download-dir": "/downloads"},
+            # 3. get_client_diagnostics: session-stats
+            {"downloadSpeed": 102400, "uploadSpeed": 51200, "torrentCount": 2, "activeTorrentCount": 1},
+        ])
+
+        # Mock list_torrents for diagnostics
+        client.list_torrents = AsyncMock(return_value=[
+            {"id": "hash1", "name": "Show.S01", "progress": 0.85, "state": "downloading", "size": 1000000000}
+        ])
+
+        logs = await client.get_client_logs(limit=10)
+        self.assertEqual(len(logs), 1)
+        self.assertEqual(logs[0]["message"], "Listening on port 9091")
+
+        diag = await client.get_client_diagnostics()
+        self.assertEqual(diag["version"], "4.0.5")
+        self.assertEqual(diag["free_space_bytes"], 50000000000)
+        self.assertEqual(diag["download_speed_b_s"], 102400)
+        self.assertEqual(len(diag["torrents"]), 1)
+
+    def test_transmission_logs_and_diagnostics(self):
+        import asyncio
+        asyncio.run(self.async_test_transmission_logs_and_diagnostics())
+
+    async def async_test_qbittorrent_logs_and_diagnostics(self):
+        client = QBittorrentClient(host="127.0.0.1", port=8080, username="admin", password="adminadmin")
+        client._cookies = {"SID": "fake_sid"}
+
+        mock_resp_logs = MagicMock()
+        mock_resp_logs.status_code = 200
+        mock_resp_logs.json.return_value = [
+            {"id": 1, "message": "qBittorrent v4.6.0 started", "timestamp": 1700000000, "type": 1}
+        ]
+        mock_resp_logs.raise_for_status = MagicMock()
+
+        mock_resp_ver = MagicMock()
+        mock_resp_ver.status_code = 200
+        mock_resp_ver.text = "v4.6.0"
+        mock_resp_ver.raise_for_status = MagicMock()
+
+        mock_resp_api = MagicMock()
+        mock_resp_api.status_code = 200
+        mock_resp_api.text = "2.9.2"
+        mock_resp_api.raise_for_status = MagicMock()
+
+        mock_resp_info = MagicMock()
+        mock_resp_info.status_code = 200
+        mock_resp_info.json.return_value = {
+            "connection_status": "connected",
+            "dl_info_speed": 204800,
+            "up_info_speed": 102400,
+            "free_space_on_disk": 100000000000,
+        }
+        mock_resp_info.raise_for_status = MagicMock()
+
+        mock_httpx = MagicMock()
+        mock_client_instance = AsyncMock()
+        mock_httpx.AsyncClient.return_value.__aenter__.return_value = mock_client_instance
+        mock_client_instance.get.side_effect = [
+            mock_resp_logs,
+            mock_resp_ver,
+            mock_resp_api,
+            mock_resp_info,
+        ]
+
+        with patch("app.services.download_client.httpx", mock_httpx):
+            client.list_torrents = AsyncMock(return_value=[
+                {"id": "qhash1", "name": "Anime.Movie", "progress": 1.0, "state": "pausedUP", "size": 2000000000}
+            ])
+
+            logs = await client.get_client_logs(limit=10)
+            self.assertEqual(len(logs), 1)
+            self.assertEqual(logs[0]["message"], "qBittorrent v4.6.0 started")
+
+            diag = await client.get_client_diagnostics()
+            self.assertEqual(diag["version"], "v4.6.0")
+            self.assertEqual(diag["webapi_version"], "2.9.2")
+            self.assertEqual(diag["download_speed_b_s"], 204800)
+            self.assertEqual(len(diag["torrents"]), 1)
+
+    def test_qbittorrent_logs_and_diagnostics(self):
+        import asyncio
+        asyncio.run(self.async_test_qbittorrent_logs_and_diagnostics())
 
 
 if __name__ == "__main__":

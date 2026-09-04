@@ -864,7 +864,8 @@ body::before {
   margin-top: 6px;
 }
 
-.panel-sticky-header .settings-tabs {
+.panel-sticky-header .settings-tabs,
+.panel-sticky-header .logs-tabs {
   margin-top: 6px;
   margin-bottom: 0;
 }
@@ -2109,8 +2110,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .template-row-header { margin-bottom: 6px; }
 .template-row-label { font-weight: 600; font-size: 13px; }
 
-/* ---------- SETTINGS TABS ---------- */
-.settings-tabs { 
+/* ---------- SETTINGS & LOGS TABS ---------- */
+.settings-tabs, .logs-tabs { 
   display: flex; 
   flex-wrap: wrap;
   gap: 8px; 
@@ -2118,7 +2119,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   border-bottom: 1px solid var(--border); 
   padding-bottom: 12px;
 }
-.settings-tab-btn, .template-cat-btn {
+.settings-tab-btn, .logs-tab-btn, .template-cat-btn {
   background: var(--panel); 
   border: 1px solid var(--border); 
   color: var(--text-muted); 
@@ -2137,20 +2138,20 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   gap: 8px;
   transition: all 0.15s ease;
 }
-.settings-tab-btn:hover, .template-cat-btn:hover { 
+.settings-tab-btn:hover, .logs-tab-btn:hover, .template-cat-btn:hover { 
   background: var(--panel-alt); 
   color: var(--text); 
   border-color: var(--border-hover, rgba(255, 255, 255, 0.18)); 
 }
-.settings-tab-btn.active, .template-cat-btn.active { 
+.settings-tab-btn.active, .logs-tab-btn.active, .template-cat-btn.active { 
   background: var(--panel-alt); 
   color: var(--teal, #00F0FF); 
   border-color: rgba(0, 240, 255, 0.4); 
   font-weight: 600;
   box-shadow: 0 0 12px rgba(0, 240, 255, 0.12); 
 }
-.settings-panel { display: none; }
-.settings-panel.active { display: block; animation: fadeIn 0.2s ease; }
+.settings-panel, .logs-panel { display: none; }
+.settings-panel.active, .logs-panel.active { display: block; animation: fadeIn 0.2s ease; }
 
 /* ---------- MODAL ---------- */
 .modal-overlay {
@@ -4689,8 +4690,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     font-size: 12px;
   }
 
-  /* Settings Tabs 2x4 Grid on Mobile (2 per row, 4 rows, 100% full width) */
-  .settings-tabs {
+  /* Settings & Logs Tabs 2-Column Grid on Mobile (2 per row, 100% full width) */
+  .settings-tabs,
+  .logs-tabs {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 8px !important;
@@ -4703,7 +4705,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     overflow-x: visible !important;
     flex-wrap: wrap !important;
   }
-  .settings-tab-btn {
+  .settings-tab-btn,
+  .logs-tab-btn {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
@@ -4723,6 +4726,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     background: var(--panel-alt) !important;
     color: var(--text-muted) !important;
     margin: 0 !important;
+  }
+  .logs-tab-btn:last-child {
+    grid-column: span 2 !important;
   }
   .settings-tab-btn i,
   .settings-tab-btn svg {
@@ -7220,7 +7226,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   padding: 18px 22px;
 }
 
-[data-design="vanguard"] .settings-tabs {
+[data-design="vanguard"] .settings-tabs,
+[data-design="vanguard"] .logs-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -7228,7 +7235,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   margin-bottom: 0;
 }
 
-[data-design="vanguard"] .settings-tab-btn {
+[data-design="vanguard"] .settings-tab-btn,
+[data-design="vanguard"] .logs-tab-btn {
   border-radius: 9999px !important;
   padding: 7px 16px !important;
   font-size: 13px !important;
@@ -7242,12 +7250,14 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1) !important;
 }
 
-[data-design="vanguard"] .settings-tab-btn:hover {
+[data-design="vanguard"] .settings-tab-btn:hover,
+[data-design="vanguard"] .logs-tab-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text);
 }
 
-[data-design="vanguard"] .settings-tab-btn.active {
+[data-design="vanguard"] .settings-tab-btn.active,
+[data-design="vanguard"] .logs-tab-btn.active {
   background: linear-gradient(135deg, rgba(0, 240, 255, 0.16) 0%, rgba(99, 102, 241, 0.12) 100%) !important;
   color: var(--teal, #00F0FF) !important;
   border-color: rgba(0, 240, 255, 0.35) !important;
@@ -8486,8 +8496,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     color: #1e293b !important;
   }
 
-  /* 15. Settings Sub-Tabs 2x4 Grid (2 per row, 4 rows, 100% full width) */
-  [data-design="vanguard"] #tab-settings .settings-tabs {
+  /* 15. Settings & Logs Sub-Tabs 2-Column Grid on Mobile */
+  [data-design="vanguard"] #tab-settings .settings-tabs,
+  [data-design="vanguard"] #tab-logs .logs-tabs,
+  [data-design="vanguard"] #tab-logs .settings-tabs {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 8px !important;
@@ -8502,7 +8514,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     border-bottom: none !important;
   }
 
-  [data-design="vanguard"] #tab-settings .settings-tab-btn {
+  [data-design="vanguard"] #tab-settings .settings-tab-btn,
+  [data-design="vanguard"] #tab-logs .logs-tab-btn,
+  [data-design="vanguard"] #tab-logs .settings-tab-btn {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
@@ -8525,13 +8539,16 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 
   [data-design="vanguard"] #tab-settings .settings-tab-btn i,
-  [data-design="vanguard"] #tab-settings .settings-tab-btn svg {
+  [data-design="vanguard"] #tab-settings .settings-tab-btn svg,
+  [data-design="vanguard"] #tab-logs .logs-tab-btn i,
+  [data-design="vanguard"] #tab-logs .logs-tab-btn svg {
     width: 16px !important;
     height: 16px !important;
     flex-shrink: 0 !important;
   }
 
-  [data-design="vanguard"] #tab-settings .settings-tab-btn span {
+  [data-design="vanguard"] #tab-settings .settings-tab-btn span,
+  [data-design="vanguard"] #tab-logs .logs-tab-btn span {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
@@ -8539,20 +8556,28 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     max-width: calc(100% - 24px) !important;
   }
 
-  [data-design="vanguard"] #tab-settings .settings-tab-btn.active {
+  [data-design="vanguard"] #tab-settings .settings-tab-btn.active,
+  [data-design="vanguard"] #tab-logs .logs-tab-btn.active,
+  [data-design="vanguard"] #tab-logs .settings-tab-btn.active {
     background: linear-gradient(135deg, rgba(0, 240, 255, 0.16) 0%, rgba(99, 102, 241, 0.12) 100%) !important;
     color: var(--teal, #00F0FF) !important;
     border-color: rgba(0, 240, 255, 0.35) !important;
     box-shadow: 0 0 16px rgba(0, 240, 255, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
   }
 
-  [data-theme="light"][data-design="vanguard"] #tab-settings .settings-tab-btn {
+  [data-design="vanguard"] #tab-logs .logs-tab-btn:last-child {
+    grid-column: span 2 !important;
+  }
+
+  [data-theme="light"][data-design="vanguard"] #tab-settings .settings-tab-btn,
+  [data-theme="light"][data-design="vanguard"] #tab-logs .logs-tab-btn {
     background: #ffffff !important;
     border: 1px solid #cbd5e1 !important;
     color: #475569 !important;
   }
 
-  [data-theme="light"][data-design="vanguard"] #tab-settings .settings-tab-btn.active {
+  [data-theme="light"][data-design="vanguard"] #tab-settings .settings-tab-btn.active,
+  [data-theme="light"][data-design="vanguard"] #tab-logs .logs-tab-btn.active {
     background: rgba(2, 132, 199, 0.12) !important;
     color: #0284c7 !important;
     border-color: #0284c7 !important;
@@ -8832,6 +8857,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     width: 100% !important;
   }
 
+  #logs-dataset-harvester .backup-stats-grid,
   #tab-dataset-harvester .backup-stats-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;
@@ -8941,6 +8967,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     grid-column: span 1;
   }
 
+  #logs-dataset-harvester .backup-stats-grid,
   #tab-dataset-harvester .backup-stats-grid {
     grid-template-columns: 1fr !important;
   }

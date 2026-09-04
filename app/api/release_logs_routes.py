@@ -8,7 +8,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.db import ReleaseLog, User
+from app.models.db import ReleaseLog, User, DownloadClient
+from app.services.download_client import get_client
 from app.services.user_service import require_permission, require_any_permission, get_current_user
 
 router = APIRouter(prefix="/api/v1/release-logs", tags=["release-logs"])
@@ -77,6 +78,38 @@ def list_release_logs(
     return ReleaseLogsPageOut(items=items, total=total, page=page, page_size=page_size)
 
 
+@router.get("/download-client-logs")
+async def get_download_client_logs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_any_permission("view_release_logs", "manage_release_logs")),
+):
+    """Возвращает живые диагностические логи и статус всех настроенных активных загрузчиков."""
+    clients = db.query(DownloadClient).filter(DownloadClient.enabled == True).all()  # noqa: E712
+    result = []
+
+    for dc_row in clients:
+        client_info = {
+            "id": dc_row.id,
+            "name": dc_row.name,
+            "type": dc_row.type,
+            "host": dc_row.host,
+            "port": dc_row.port,
+            "diagnostics": {},
+            "logs": [],
+            "error": None,
+        }
+        try:
+            client_inst = get_client(dc_row)
+            client_info["diagnostics"] = await client_inst.get_client_diagnostics()
+            client_info["logs"] = await client_inst.get_client_logs(limit=60)
+        except Exception as exc:
+            client_info["error"] = str(exc)
+
+        result.append(client_info)
+
+    return {"clients": result}
+
+
 @router.delete("")
 def clear_release_logs(
     db: Session = Depends(get_db),
@@ -89,11 +122,11 @@ def clear_release_logs(
 
 
 @router.get("/export")
-def export_release_logs(
+async def export_release_logs(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_any_permission("view_release_logs", "manage_release_logs")),
 ):
-    """Выгрузить все логи релизов в текстовый файл (.txt) для анализа и отладки."""
+    """Выгрузить все логи релизов и диагностику загрузчиков в текстовый файл (.txt) для анализа и отладки."""
     logs = db.query(ReleaseLog).order_by(ReleaseLog.created_at.asc()).limit(5000).all()
     lines = []
     lines.append("=== ALIASARR RELEASE LOGS DUMP ===")
@@ -121,6 +154,47 @@ def export_release_logs(
             except Exception:
                 pass
         lines.append("-" * 40)
+
+    # Append Download Clients Diagnostics and RPC logs
+    lines.append("\n\n" + "=" * 50)
+    lines.append("=== DOWNLOAD CLIENTS DIAGNOSTICS & STATUS ===")
+    lines.append("=" * 50 + "\n")
+
+    try:
+        clients = db.query(DownloadClient).filter(DownloadClient.enabled == True).all()  # noqa: E712
+        if not clients:
+            lines.append("No active download clients configured.\n")
+        for dc_row in clients:
+            lines.append(f"Client: {dc_row.name} ({dc_row.type}) at {dc_row.host}:{dc_row.port}")
+            try:
+                client_inst = get_client(dc_row)
+                diag = await client_inst.get_client_diagnostics()
+                if diag:
+                    lines.append(f"  Version: {diag.get('version') or diag.get('webapi_version') or 'N/A'}")
+                    lines.append(f"  Download Speed: {diag.get('download_speed_b_s', 0)} B/s, Upload Speed: {diag.get('upload_speed_b_s', 0)} B/s")
+                    if diag.get('free_space_bytes') is not None:
+                        lines.append(f"  Free Space: {diag.get('free_space_bytes')} bytes")
+                    torrents = diag.get("torrents", [])
+                    lines.append(f"  Torrents Count: {len(torrents)}")
+                    if torrents:
+                        lines.append("  Torrents in Client:")
+                        for t in torrents[:30]:
+                            pct = round((t.get('progress') or 0) * 100)
+                            lines.append(f"    - [{t.get('state', 'unknown')}] {t.get('name', t.get('id', '—'))} ({pct}%, size: {t.get('size')} bytes)")
+
+                logs = await client_inst.get_client_logs(limit=50)
+                if logs:
+                    lines.append("\n  === Recent Daemon Logs ===")
+                    for entry in logs:
+                        t_str = entry.get("timestamp") or entry.get("time") or ""
+                        msg = entry.get("message") or ""
+                        lvl = entry.get("level") or entry.get("type") or ""
+                        lines.append(f"    [{t_str}] [lvl:{lvl}] {msg}")
+            except Exception as exc:
+                lines.append(f"  Client Error: {exc}")
+            lines.append("-" * 40)
+    except Exception as exc:
+        lines.append(f"Error gathering client diagnostics: {exc}")
 
     content = "\n".join(lines)
     return Response(

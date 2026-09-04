@@ -126,10 +126,11 @@ const TRANSLATIONS = {
     "nav.history": "История",
     "nav.audit": "Аудит",
     "nav.settings": "Настройки",
+    "nav.logs": "Логи",
     "nav.events": "События",
     "nav.journal": "Журнал",
     "nav.release_logs": "Релиз логи",
-    "nav.dataset_harvester": "Логи для улучшения",
+    "nav.dataset_harvester": "Логи для улучшения и парсера",
     "nav.backup": "Бэкап",
     "nav.wiki": "Wiki",
     "nav.wiki_tooltip": "База знаний и руководство пользователя",
@@ -141,10 +142,11 @@ const TRANSLATIONS = {
     "tab.history": "История",
     "tab.audit": "Аудит",
     "tab.settings": "Настройки",
+    "tab.logs": "Логи",
     "tab.events": "События",
     "tab.journal": "Журнал",
     "tab.release_logs": "Релиз логи",
-    "tab.dataset_harvester": "Логи для улучшения и обучения парсера",
+    "tab.dataset_harvester": "Логи для улучшения и парсера",
     "tab.backup": "Бэкап",
 
     // Subtitles
@@ -160,6 +162,7 @@ const TRANSLATIONS = {
     "subtitle.dataset_harvester": "Автоматический сбор раздач с трекеров (Jackett / Prowlarr) для проверки качества распознавания и выявления краевых случаев",
     "subtitle.backup": "Резервное копирование настроек приложения (индексаторы, загрузчики, профили качества, шаблоны и т.д.)",
     "subtitle.settings": "Конфигурация системы, интеграций и безопасности",
+    "subtitle.logs": "Аудит действий, системные события, журнал работы, релиз-логи и выборка парсера",
 
     // Release Logs
     "release_logs.filter_all_stages": "Все этапы",
@@ -1166,10 +1169,11 @@ const TRANSLATIONS = {
     "nav.history": "History",
     "nav.audit": "Audit",
     "nav.settings": "Settings",
+    "nav.logs": "Logs",
     "nav.events": "Events",
     "nav.journal": "Journal",
     "nav.release_logs": "Release Logs",
-    "nav.dataset_harvester": "Learning Logs",
+    "nav.dataset_harvester": "Improvement & Parser Logs",
     "nav.backup": "Backup",
     "nav.wiki": "Wiki",
     "nav.wiki_tooltip": "Knowledge Base & User Documentation",
@@ -1181,10 +1185,11 @@ const TRANSLATIONS = {
     "tab.history": "History",
     "tab.audit": "Audit",
     "tab.settings": "Settings",
+    "tab.logs": "Logs",
     "tab.events": "Events",
     "tab.journal": "Journal",
     "tab.release_logs": "Release Logs",
-    "tab.dataset_harvester": "Logs for Improvement & Parser Training",
+    "tab.dataset_harvester": "Improvement & Parser Logs",
     "tab.backup": "Backup",
 
     // Subtitles
@@ -1200,6 +1205,7 @@ const TRANSLATIONS = {
     "subtitle.dataset_harvester": "Automated release harvester from indexers (Jackett / Prowlarr) to benchmark and enhance parser patterns",
     "subtitle.backup": "Backup application settings (indexers, download clients, quality profiles, templates, etc.)",
     "subtitle.settings": "System configuration, integrations, and security",
+    "subtitle.logs": "Audit logs, system events, journal, release logs, and parser dataset",
 
     // Release Logs
     "release_logs.filter_all_stages": "All Stages",
@@ -2427,32 +2433,36 @@ function applyUserPermissionsToUI() {
   const navHistory = document.querySelector('.sidebar nav [data-tab="history"]');
   if (navHistory) navHistory.style.display = hasPermission("view_history") ? "" : "none";
 
-  const navEvents = document.querySelector('.sidebar nav [data-tab="events"]');
-  if (navEvents) navEvents.style.display = hasPermission("view_events") ? "" : "none";
+  const canSeeEvents = hasPermission("view_events");
+  const canSeeJournal = hasPermission("view_journal");
+  const canSeeAudit = hasPermission("view_audit");
+  const canSeeRelLogs = hasPermission("view_release_logs") || hasPermission("manage_release_logs");
+  const canSeeDataset = hasPermission("manage_settings") || hasPermission("manual_search") || hasPermission("view_release_logs");
+  const canSeeLogs = canSeeAudit || canSeeEvents || canSeeJournal || canSeeRelLogs || canSeeDataset;
 
-  const navJournal = document.querySelector('.sidebar nav [data-tab="journal"]');
-  if (navJournal) navJournal.style.display = hasPermission("view_journal") ? "" : "none";
+  const navLogs = document.querySelector('.sidebar nav [data-tab="logs"]');
+  if (navLogs) navLogs.style.display = canSeeLogs ? "" : "none";
 
-  const navAudit = document.querySelector('.sidebar nav [data-tab="audit"]');
-  if (navAudit) navAudit.style.display = hasPermission("view_audit") ? "" : "none";
+  const tabLogsAudit = document.querySelector('#tab-logs .logs-tab-btn[data-logs-tab="audit"]');
+  if (tabLogsAudit) tabLogsAudit.style.display = canSeeAudit ? "" : "none";
 
-  const navReleaseLogs = document.querySelector('.sidebar nav [data-tab="release-logs"]');
-  if (navReleaseLogs) {
-    const canSeeRelLogs = hasPermission("view_release_logs") || hasPermission("manage_release_logs");
-    navReleaseLogs.style.display = canSeeRelLogs ? "" : "none";
-  }
+  const tabLogsEvents = document.querySelector('#tab-logs .logs-tab-btn[data-logs-tab="events"]');
+  if (tabLogsEvents) tabLogsEvents.style.display = canSeeEvents ? "" : "none";
 
-  const navDatasetHarvester = document.querySelector('.sidebar nav [data-tab="dataset-harvester"]');
-  if (navDatasetHarvester) {
-    const canSeeDataset = hasPermission("manage_settings") || hasPermission("manual_search") || hasPermission("view_release_logs");
-    navDatasetHarvester.style.display = canSeeDataset ? "" : "none";
-  }
+  const tabLogsJournal = document.querySelector('#tab-logs .logs-tab-btn[data-logs-tab="journal"]');
+  if (tabLogsJournal) tabLogsJournal.style.display = canSeeJournal ? "" : "none";
+
+  const tabLogsRelease = document.querySelector('#tab-logs .logs-tab-btn[data-logs-tab="release-logs"]');
+  if (tabLogsRelease) tabLogsRelease.style.display = canSeeRelLogs ? "" : "none";
+
+  const tabLogsDataset = document.querySelector('#tab-logs .logs-tab-btn[data-logs-tab="dataset-harvester"]');
+  if (tabLogsDataset) tabLogsDataset.style.display = canSeeDataset ? "" : "none";
 
   const btnRelLogsClear = document.getElementById("release-logs-clear-btn");
   if (btnRelLogsClear) btnRelLogsClear.style.display = hasPermission("manage_release_logs") ? "" : "none";
 
   const btnRelLogsDl = document.getElementById("release-logs-download-btn");
-  if (btnRelLogsDl) btnRelLogsDl.style.display = (hasPermission("view_release_logs") || hasPermission("manage_release_logs")) ? "" : "none";
+  if (btnRelLogsDl) btnRelLogsDl.style.display = canSeeRelLogs ? "" : "none";
 
   const navBackup = document.querySelector('.sidebar nav [data-tab="backup"]');
   if (navBackup) navBackup.style.display = hasPermission("manage_backups") ? "" : "none";
@@ -2508,26 +2518,20 @@ function applyUserPermissionsToUI() {
     calendar: "view_calendar",
     activity: "view_activity",
     history: "view_history",
-    events: "view_events",
-    journal: "view_journal",
-    "release-logs": "view_release_logs",
-    "dataset-harvester": "manual_search",
-    audit: "view_audit",
+    logs: "view_logs",
     backup: "manage_backups",
   };
 
   const isCurrentTabAllowed = currentActiveTab === "settings"
     ? canSeeSettings
-    : currentActiveTab === "release-logs"
-    ? (hasPermission("view_release_logs") || hasPermission("manage_release_logs"))
-    : currentActiveTab === "dataset-harvester"
-    ? (hasPermission("manage_settings") || hasPermission("manual_search") || hasPermission("view_release_logs"))
+    : currentActiveTab === "logs" || ["events", "journal", "audit", "release-logs", "dataset-harvester"].includes(currentActiveTab)
+    ? canSeeLogs
     : (tabPermMap[currentActiveTab] ? hasPermission(tabPermMap[currentActiveTab]) : true);
 
   if (!isCurrentTabAllowed) {
-    const candidateTabs = ["dashboard", "library", "calendar", "activity", "history", "events", "journal", "release-logs", "dataset-harvester", "audit", "backup", "settings"];
+    const candidateTabs = ["dashboard", "library", "calendar", "activity", "history", "logs", "backup", "settings"];
     for (const t of candidateTabs) {
-      const allowed = t === "settings" ? canSeeSettings : (t === "release-logs" ? (hasPermission("view_release_logs") || hasPermission("manage_release_logs")) : (t === "dataset-harvester" ? (hasPermission("manage_settings") || hasPermission("manual_search") || hasPermission("view_release_logs")) : hasPermission(tabPermMap[t])));
+      const allowed = t === "settings" ? canSeeSettings : (t === "logs" ? canSeeLogs : hasPermission(tabPermMap[t]));
       if (allowed && t !== currentActiveTab) {
         switchTab(t);
         break;
@@ -3476,8 +3480,43 @@ function closeMobileMenu() {
 window.addEventListener("resize", updateMobileState);
 window.addEventListener("orientationchange", updateMobileState);
 
+function switchLogsSubTab(subTabId) {
+  if (!subTabId) subTabId = "audit";
+  const targetPanel = document.getElementById("logs-" + subTabId);
+  if (!targetPanel) return;
+
+  document.querySelectorAll(".logs-tab-btn").forEach(b => b.classList.toggle("active", b.dataset.logsTab === subTabId));
+  document.querySelectorAll(".logs-panel").forEach(p => p.classList.toggle("active", p.id === "logs-" + subTabId));
+
+  try {
+    localStorage.setItem("aliasarr_last_logs_tab", subTabId);
+  } catch (e) {}
+
+  if (subTabId === "audit") loadAuditLogs(1);
+  else if (subTabId === "events") loadEvents();
+  else if (subTabId === "journal") loadJournal();
+  else if (subTabId === "release-logs") loadReleaseLogs(1);
+  else if (subTabId === "dataset-harvester") loadDatasetHarvester(1);
+
+  if (subTabId !== "dataset-harvester" && typeof DATASET_HARVEST_INTERVAL !== "undefined" && DATASET_HARVEST_INTERVAL) {
+    clearInterval(DATASET_HARVEST_INTERVAL);
+    DATASET_HARVEST_INTERVAL = null;
+  }
+
+  if (window.lucide && lucide.createIcons) lucide.createIcons();
+}
+
 function switchTab(tabId) {
   if (!tabId || typeof tabId !== "string" || tabId === "undefined") return;
+
+  // Handle direct navigation to previous log subtabs
+  const logSubTabs = ["audit", "events", "journal", "release-logs", "dataset-harvester"];
+  let targetSubTab = null;
+  if (logSubTabs.includes(tabId)) {
+    targetSubTab = tabId;
+    tabId = "logs";
+  }
+
   const targetPanel = document.getElementById("tab-" + tabId);
   if (!targetPanel) return;
 
@@ -3521,15 +3560,13 @@ function switchTab(tabId) {
 
   if (tabId === "calendar") loadCalendar();
   if (tabId === "history") loadHistory();
-  if (tabId === "audit") loadAuditLogs(1);
   if (tabId === "settings") loadAllSettings();
-  if (tabId === "events") loadEvents();
-  if (tabId === "journal") loadJournal();
-  if (tabId === "release-logs") loadReleaseLogs(1);
-  if (tabId === "dataset-harvester") loadDatasetHarvester(1);
   if (tabId === "backup") loadBackups();
 
-  if (tabId !== "dataset-harvester" && typeof DATASET_HARVEST_INTERVAL !== "undefined" && DATASET_HARVEST_INTERVAL) {
+  if (tabId === "logs") {
+    const activeSub = targetSubTab || localStorage.getItem("aliasarr_last_logs_tab") || "audit";
+    switchLogsSubTab(activeSub);
+  } else if (typeof DATASET_HARVEST_INTERVAL !== "undefined" && DATASET_HARVEST_INTERVAL) {
     clearInterval(DATASET_HARVEST_INTERVAL);
     DATASET_HARVEST_INTERVAL = null;
   }
@@ -3546,6 +3583,12 @@ function switchTab(tabId) {
 
 document.querySelectorAll(".nav-item[data-tab]").forEach(btn => {
   btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+});
+
+document.querySelectorAll(".logs-tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    switchLogsSubTab(btn.dataset.logsTab);
+  });
 });
 
 document.querySelectorAll(".settings-tab-btn").forEach(btn => {
@@ -13072,6 +13115,173 @@ async function clearReleaseLogs() {
     loadReleaseLogs(1);
   } catch (e) {
     toast("Ошибка: " + e.message, true);
+  }
+}
+
+async function openDownloadClientLogsModal() {
+  openModal("modal-download-client-logs");
+  await loadDownloadClientLogs();
+}
+
+async function loadDownloadClientLogs() {
+  const body = document.getElementById("download-client-logs-body");
+  if (!body) return;
+  const isRu = CURRENT_LANG !== "en";
+  body.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);"><i data-lucide="loader-2" class="ico-sm spin"></i> ${t("common.loading")}</div>`;
+  if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+
+  try {
+    const data = await api("/api/v1/release-logs/download-client-logs");
+    const clients = data.clients || [];
+
+    if (clients.length === 0) {
+      body.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);">${isRu ? "Нет активных настроенных загрузчиков (Transmission / qBittorrent)" : "No active configured download clients found"}</div>`;
+      return;
+    }
+
+    body.innerHTML = clients.map(cl => {
+      const diag = cl.diagnostics || {};
+      const logs = cl.logs || [];
+      const hasError = !!cl.error;
+
+      let diagHtml = "";
+      if (hasError) {
+        diagHtml = `
+          <div class="card" style="background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.3); padding:12px; margin-bottom:12px;">
+            <div style="color:var(--danger); font-weight:600; font-size:13px; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="alert-circle" class="ico-sm"></i>
+              <span>${isRu ? "Ошибка подключения к клиенту:" : "Client Connection Error:"} ${escapeHtml(cl.error)}</span>
+            </div>
+          </div>
+        `;
+      } else {
+        const speedDown = diag.download_speed_b_s ? formatSize(diag.download_speed_b_s) + "/s" : "0 B/s";
+        const speedUp = diag.upload_speed_b_s ? formatSize(diag.upload_speed_b_s) + "/s" : "0 B/s";
+        const freeSpace = diag.free_space_bytes != null ? formatSize(diag.free_space_bytes) : "—";
+        const torrentsCount = diag.torrents_count ?? (Array.isArray(diag.torrents) ? diag.torrents.length : 0);
+
+        diagHtml = `
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; margin-bottom:12px;">
+            <div class="panel" style="padding:8px 10px; border:1px solid var(--border); border-radius:6px;">
+              <div class="hint" style="font-size:10px; text-transform:uppercase;">${isRu ? "Статус" : "Status"}</div>
+              <div style="font-size:13px; font-weight:600; color:#10b981;">● ${isRu ? "В сети" : "Online"}</div>
+              <div class="hint" style="font-size:10px;">${escapeHtml(diag.version ? "v" + diag.version : cl.type)}</div>
+            </div>
+            <div class="panel" style="padding:8px 10px; border:1px solid var(--border); border-radius:6px;">
+              <div class="hint" style="font-size:10px; text-transform:uppercase;">${isRu ? "Раздач" : "Torrents"}</div>
+              <div style="font-size:13px; font-weight:600;">${torrentsCount}</div>
+              <div class="hint" style="font-size:10px;">${diag.active_torrents != null ? diag.active_torrents + " " + (isRu ? "активных" : "active") : ""}</div>
+            </div>
+            <div class="panel" style="padding:8px 10px; border:1px solid var(--border); border-radius:6px;">
+              <div class="hint" style="font-size:10px; text-transform:uppercase;">${isRu ? "Скорость" : "Speed"}</div>
+              <div style="font-size:12px; font-weight:600; color:#38bdf8;">↓ ${speedDown}</div>
+              <div class="hint" style="font-size:11px; color:#a78bfa;">↑ ${speedUp}</div>
+            </div>
+            <div class="panel" style="padding:8px 10px; border:1px solid var(--border); border-radius:6px;">
+              <div class="hint" style="font-size:10px; text-transform:uppercase;">${isRu ? "Свободно на диске" : "Free Space"}</div>
+              <div style="font-size:13px; font-weight:600;">${freeSpace}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      let logsHtml = "";
+      if (logs.length === 0) {
+        logsHtml = `
+          <div style="font-size:12px; color:var(--text-muted); font-style:italic; padding:12px; background:rgba(0,0,0,0.25); border-radius:6px; border:1px solid var(--border);">
+            ${isRu ? "Демон-логи пустые или RPC-журнал не включен в демоне загрузчика" : "Daemon log is empty or RPC logging is disabled"}
+          </div>
+        `;
+      } else {
+        const logEntries = logs.map(l => {
+          let timeStr = "";
+          if (l.timestamp || l.time) {
+            const d = new Date((l.timestamp || l.time) * 1000);
+            timeStr = d.toLocaleTimeString();
+          }
+          const lvlClass = (l.type === 4 || l.level === 4 || l.type === 8 || l.level === 8) ? "color:#f87171;" : ((l.type === 2 || l.level === 2) ? "color:#38bdf8;" : "color:var(--text-muted);");
+          return `<div style="font-size:11px; line-height:1.4; margin-bottom:3px; word-break:break-all;"><span style="color:var(--text-muted);">${timeStr}</span> <span style="${lvlClass}">[${escapeHtml(l.name || "daemon")}]</span> ${escapeHtml(l.message || "")}</div>`;
+        }).join("");
+
+        logsHtml = `
+          <div class="table-responsive" style="max-height:220px; overflow-y:auto; background:rgba(0,0,0,0.35); padding:10px; border-radius:6px; border:1px solid var(--border); font-family:var(--font-mono);">
+            ${logEntries}
+          </div>
+        `;
+      }
+
+      let torrentsTableHtml = "";
+      if (Array.isArray(diag.torrents) && diag.torrents.length > 0) {
+        const tRows = diag.torrents.slice(0, 20).map(t => {
+          const pct = Math.round((t.progress || 0) * 100);
+          return `
+            <tr>
+              <td style="font-size:11.5px; word-break:break-all;">${escapeHtml(t.name || t.id || "—")}</td>
+              <td style="font-size:11px; text-align:center; white-space:nowrap;">${escapeHtml(t.state || "—")}</td>
+              <td style="text-align:center; white-space:nowrap; width:100px;">
+                <div style="font-size:11px; font-weight:600; margin-bottom:2px;">${pct}%</div>
+                <div style="width:100%; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden;">
+                  <div style="width:${pct}%; height:100%; background:${pct === 100 ? '#10b981' : '#38bdf8'};"></div>
+                </div>
+              </td>
+              <td style="font-size:11px; text-align:right; white-space:nowrap;" class="mono">${t.size != null ? formatSize(t.size) : "—"}</td>
+            </tr>
+          `;
+        }).join("");
+
+        torrentsTableHtml = `
+          <details style="margin-top:10px; background:var(--panel-alt); border-radius:6px; border:1px solid var(--border); padding:8px 12px;">
+            <summary style="cursor:pointer; font-size:12px; color:var(--text-muted); font-weight:600; user-select:none;">
+              ${isRu ? "Список текущих торрентов в клиенте" : "Current Torrents List in Client"} (${diag.torrents.length})
+            </summary>
+            <div class="table-responsive" style="max-height:200px; overflow-y:auto; margin-top:8px;">
+              <table class="data-table" style="font-size:11px; margin:0; width:100%;">
+                <thead>
+                  <tr>
+                    <th>${isRu ? "Название раздачи" : "Name"}</th>
+                    <th style="text-align:center; width:90px;">${isRu ? "Статус" : "State"}</th>
+                    <th style="text-align:center; width:100px;">${isRu ? "Прогресс" : "Progress"}</th>
+                    <th style="text-align:right; width:80px;">${isRu ? "Размер" : "Size"}</th>
+                  </tr>
+                </thead>
+                <tbody>${tRows}</tbody>
+              </table>
+            </div>
+          </details>
+        `;
+      }
+
+      return `
+        <div class="card" style="margin-bottom:16px; padding:14px 18px; border:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div style="font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px;">
+              <i data-lucide="hard-drive" class="ico-sm" style="color:var(--accent)"></i>
+              <span>${escapeHtml(cl.name)}</span>
+              <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:#818cf8; font-size:11px; text-transform:uppercase;">${escapeHtml(cl.type)}</span>
+            </div>
+            <span class="hint mono" style="font-size:11px;">${escapeHtml(cl.host)}:${cl.port}</span>
+          </div>
+
+          ${diagHtml}
+          
+          <div style="margin-top:10px;">
+            <div style="font-size:12px; font-weight:600; color:var(--text); margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="scroll" class="ico-xs"></i>
+              <span>${isRu ? "Последние записи журнала демона (RPC Logs):" : "Recent Daemon RPC Logs:"}</span>
+            </div>
+            ${logsHtml}
+          </div>
+
+          ${torrentsTableHtml}
+        </div>
+      `;
+    }).join("");
+
+    if (typeof lucide !== "undefined" && lucide.createIcons) {
+      lucide.createIcons();
+    }
+  } catch (e) {
+    body.innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">${isRu ? "Ошибка получения логов загрузчика:" : "Error fetching download client logs:"} ${escapeHtml(e.message)}</div>`;
   }
 }
 
