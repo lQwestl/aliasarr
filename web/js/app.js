@@ -62,6 +62,59 @@ function loadDesignSettings() {
   updateDesignSettingsUI();
 }
 
+// ---------- ПОЛОСЫ ПРОКРУТКИ (autohide / styled / hidden / native) ----------
+let _SCROLLBAR_TIMER = null;
+let _SCROLLBAR_LISTENER_BOUND = false;
+
+function _initScrollbarAutoHide() {
+  if (_SCROLLBAR_LISTENER_BOUND) return;
+  _SCROLLBAR_LISTENER_BOUND = true;
+
+  const onActivity = () => {
+    if (document.documentElement.getAttribute("data-scrollbar") !== "autohide") return;
+    document.documentElement.classList.add("is-scrolling");
+    if (_SCROLLBAR_TIMER) clearTimeout(_SCROLLBAR_TIMER);
+    _SCROLLBAR_TIMER = setTimeout(() => {
+      document.documentElement.classList.remove("is-scrolling");
+    }, 1000);
+  };
+
+  window.addEventListener("wheel", onActivity, { passive: true, capture: true });
+  window.addEventListener("scroll", onActivity, { passive: true, capture: true });
+  window.addEventListener("touchmove", onActivity, { passive: true, capture: true });
+}
+
+function applyScrollbarMode(mode, isUserAction = false) {
+  const m = mode || "autohide";
+  document.documentElement.setAttribute("data-scrollbar", m);
+  try { localStorage.setItem("aliasarr_scrollbar", m); } catch (e) {}
+
+  const select = document.getElementById("setting-scrollbar");
+  if (select && select.value !== m) {
+    select.value = m;
+  }
+
+  if (m === "autohide") {
+    _initScrollbarAutoHide();
+  } else {
+    document.documentElement.classList.remove("is-scrolling");
+  }
+
+  if (isUserAction) {
+    const labels = {
+      autohide: CURRENT_LANG === "en" ? "Auto-hide on scroll" : "Автоскрытие при прокрутке",
+      styled: CURRENT_LANG === "en" ? "Themed (Always visible)" : "Стилизованные (всегда видны)",
+      hidden: CURRENT_LANG === "en" ? "Hidden (No bars)" : "Скрытые (без полос)",
+      native: CURRENT_LANG === "en" ? "Native (Browser default)" : "Системные (по умолчанию)",
+    };
+    toast((CURRENT_LANG === "en" ? "Scrollbars: " : "Полосы прокрутки: ") + (labels[m] || m));
+  }
+}
+
+function selectScrollbarMode(mode) {
+  applyScrollbarMode(mode, true);
+}
+
 // ---------- ЯЗЫК (ru/en) ----------
 const TRANSLATIONS = {
   ru: {
@@ -422,6 +475,11 @@ const TRANSLATIONS = {
     "settings.theme_obsidian": "Обсидиан (Obsidian Aurora)",
     "settings.theme_dracula": "Дракула",
     "settings.theme_light": "Полярный день",
+    "settings.scrollbar": "Полосы прокрутки",
+    "settings.scrollbar_autohide": "Автоскрытие при прокрутке",
+    "settings.scrollbar_styled": "Стилизованные (всегда видны)",
+    "settings.scrollbar_hidden": "Скрытые (без полос)",
+    "settings.scrollbar_native": "Системные (по умолчанию)",
     "settings.timezone": "Часовой пояс",
     "settings.timezone_hint": "(единый для календаря, журнала и событий)",
     "settings.folders_title": "Папки и переименование по категориям",
@@ -1457,6 +1515,11 @@ const TRANSLATIONS = {
     "settings.theme_obsidian": "Obsidian Aurora",
     "settings.theme_dracula": "Dracula",
     "settings.theme_light": "Polar Day",
+    "settings.scrollbar": "Scrollbars",
+    "settings.scrollbar_autohide": "Auto-hide on scroll",
+    "settings.scrollbar_styled": "Themed (Always visible)",
+    "settings.scrollbar_hidden": "Hidden (No bars)",
+    "settings.scrollbar_native": "Native (Browser default)",
     "settings.timezone": "Timezone",
     "settings.timezone_hint": "(unified for calendar, journal, and events)",
     "settings.folders_title": "Folders & Category Renaming",
@@ -9344,6 +9407,7 @@ async function loadGeneralSettings() {
 
     applyTheme(s.theme || "dark");
     applyLanguage(s.language || "ru");
+    applyScrollbarMode(s.scrollbar_mode || localStorage.getItem("aliasarr_scrollbar") || "autohide");
 
     const hintEl = document.getElementById("apikey-source-hint");
     const regenBtn = document.getElementById("regenerate-key-btn");
@@ -9371,17 +9435,20 @@ async function saveInterfaceSettings(btn) {
     try {
       const language = document.getElementById("setting-language").value;
       const theme = document.getElementById("setting-theme").value;
+      const scrollbar_mode = document.getElementById("setting-scrollbar")?.value || "autohide";
       const timezone = document.getElementById("setting-timezone").value;
       await api("/api/v1/settings", {
         method: "PUT",
         body: JSON.stringify({
           language,
           theme,
+          scrollbar_mode,
           timezone,
         }),
       });
       applyTheme(theme);
       applyLanguage(language);
+      applyScrollbarMode(scrollbar_mode);
       APP_TIMEZONE = timezone;
       localStorage.setItem("vbeacon_timezone", APP_TIMEZONE);
       refreshActiveTab();
@@ -14146,6 +14213,9 @@ async function startApp() {
     if (s && s.theme) {
       applyTheme(s.theme);
     }
+    if (s && s.scrollbar_mode) {
+      applyScrollbarMode(s.scrollbar_mode);
+    }
     if (s && s.timezone) {
       APP_TIMEZONE = s.timezone;
       localStorage.setItem("vbeacon_timezone", APP_TIMEZONE);
@@ -14165,11 +14235,12 @@ async function startApp() {
   }
 }
 
-// Применяем язык/тему из localStorage сразу, не дожидаясь ответа /api/v1/settings —
+// Применяем язык/тему/дизайн/скроллбар из localStorage сразу, не дожидаясь ответа /api/v1/settings —
 // они всё равно будут перезаписаны актуальными значениями в loadGeneralSettings().
 try {
   applyTheme(localStorage.getItem("vbeacon_theme") || "dark");
   applyDesign(localStorage.getItem("aliasarr_design") || "classic");
+  applyScrollbarMode(localStorage.getItem("aliasarr_scrollbar") || "autohide");
   applyLanguage(localStorage.getItem("vbeacon_lang") || "ru");
   updateMobileState();
 } catch (e) {}

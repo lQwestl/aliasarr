@@ -44,6 +44,7 @@ class SettingsOut(BaseModel):
 
     language: str   # ru | en
     theme: str      # dark | light
+    scrollbar_mode: str = "autohide"  # autohide | styled | hidden | native
 
     min_seeds: int
     prefer_most_seeded: bool
@@ -101,6 +102,7 @@ class SettingsUpdate(BaseModel):
 
     language: Optional[str] = None
     theme: Optional[str] = None
+    scrollbar_mode: Optional[str] = None
 
     min_seeds: Optional[int] = None
     prefer_most_seeded: Optional[bool] = None
@@ -274,6 +276,10 @@ def update_settings(
         if payload.theme not in ("dark", "light", "dracula", "obsidian"):
             raise HTTPException(400, "theme должна быть 'dark', 'obsidian', 'dracula' или 'light'")
         settings.theme = payload.theme
+    if payload.scrollbar_mode is not None:
+        if payload.scrollbar_mode not in ("autohide", "styled", "hidden", "native"):
+            raise HTTPException(400, "scrollbar_mode должен быть 'autohide', 'styled', 'hidden' или 'native'")
+        settings.scrollbar_mode = payload.scrollbar_mode
 
     if payload.min_seeds is not None:
         if payload.min_seeds < 0:

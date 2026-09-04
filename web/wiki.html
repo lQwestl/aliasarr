@@ -16,6 +16,8 @@
       document.documentElement.setAttribute("data-theme", theme);
       var design = localStorage.getItem("aliasarr_design") || "classic";
       document.documentElement.setAttribute("data-design", design);
+      var scrollbar = localStorage.getItem("aliasarr_scrollbar") || "autohide";
+      document.documentElement.setAttribute("data-scrollbar", scrollbar);
       var lang = localStorage.getItem("aliasarr_lang") || "ru";
       document.documentElement.setAttribute("lang", lang);
     } catch (e) {}
@@ -2313,6 +2315,21 @@
     }
   }
   checkWikiAuth();
+
+  (function initWikiScrollbar() {
+    let timer = null;
+    const onActivity = () => {
+      if (document.documentElement.getAttribute("data-scrollbar") !== "autohide") return;
+      document.documentElement.classList.add("is-scrolling");
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        document.documentElement.classList.remove("is-scrolling");
+      }, 1000);
+    };
+    window.addEventListener("wheel", onActivity, { passive: true, capture: true });
+    window.addEventListener("scroll", onActivity, { passive: true, capture: true });
+    window.addEventListener("touchmove", onActivity, { passive: true, capture: true });
+  })();
 </script>
 </body>
 </html>

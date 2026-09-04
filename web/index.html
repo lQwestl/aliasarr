@@ -17,6 +17,8 @@
       document.documentElement.setAttribute("data-theme", theme);
       var design = localStorage.getItem("aliasarr_design") || "classic";
       document.documentElement.setAttribute("data-design", design);
+      var scrollbar = localStorage.getItem("aliasarr_scrollbar") || "autohide";
+      document.documentElement.setAttribute("data-scrollbar", scrollbar);
       var lang = localStorage.getItem("aliasarr_lang") || localStorage.getItem("vbeacon_lang") || "ru";
       document.documentElement.setAttribute("lang", lang);
 
@@ -869,6 +871,13 @@
               <option value="obsidian" data-i18n="settings.theme_obsidian">Обсидиан (Obsidian Aurora)</option>
               <option value="dracula" data-i18n="settings.theme_dracula">Дракула</option>
               <option value="light" data-i18n="settings.theme_light">Полярный день</option>
+            </select>
+            <label data-i18n="settings.scrollbar">Полосы прокрутки</label>
+            <select id="setting-scrollbar" class="input" style="max-width:240px" onchange="selectScrollbarMode(this.value)">
+              <option value="autohide" data-i18n="settings.scrollbar_autohide">Автоскрытие при прокрутке</option>
+              <option value="styled" data-i18n="settings.scrollbar_styled">Стилизованные (всегда видны)</option>
+              <option value="hidden" data-i18n="settings.scrollbar_hidden">Скрытые (без полос)</option>
+              <option value="native" data-i18n="settings.scrollbar_native">Системные (по умолчанию)</option>
             </select>
             <label class="hint"><span data-i18n="settings.timezone">Часовой пояс</span> <span class="hint" data-i18n="settings.timezone_hint">(единый для календаря, журнала и событий)</span></label>
             <select id="setting-timezone" class="input" style="max-width:280px">

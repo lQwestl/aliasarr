@@ -20,6 +20,10 @@
   --font-display: 'Outfit', sans-serif;
   --font-body: 'Outfit', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.22);
+  --scrollbar-thumb-hover: var(--teal);
+  --scrollbar-track: transparent;
+  --scrollbar-width: 8px;
 }
 
 /* Obsidian Aurora Theme (Awwwards-Tier OLED Obsidian & Ethereal Mint/Violet) */
@@ -42,6 +46,8 @@
   --radius: 14px;
   --radius-sm: 9px;
   --radius-lg: 20px;
+  --scrollbar-thumb: rgba(0, 245, 212, 0.28);
+  --scrollbar-thumb-hover: #00F5D4;
 }
 
 [data-theme="obsidian"] body::before {
@@ -77,6 +83,8 @@
   --accent: #bd93f9;
   --danger: #ff5555;
   --gradient: linear-gradient(135deg, var(--teal), var(--violet));
+  --scrollbar-thumb: rgba(189, 147, 249, 0.28);
+  --scrollbar-thumb-hover: #ff79c6;
 }
 
 /* Light Theme (Daylight Clean) */
@@ -94,6 +102,8 @@
   --accent: #6366f1;
   --danger: #dc2626;
   --gradient: linear-gradient(135deg, #0284c7, #6366f1);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.22);
+  --scrollbar-thumb-hover: var(--teal);
 }
 
 [data-theme="light"] body::before {
@@ -122,6 +132,88 @@
 }
 
 * { box-sizing: border-box; }
+
+/* =============================================================================
+   SCROLLBAR SYSTEMS: autohide (default) / styled / hidden / native
+   ============================================================================= */
+
+/* 1. AUTOHIDE (Dynamic: invisible at rest, smooth fade-in on scroll, fade-out on idle) */
+[data-scrollbar="autohide"] {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+[data-scrollbar="autohide"] * {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.35s ease;
+}
+[data-scrollbar="autohide"] ::-webkit-scrollbar {
+  width: var(--scrollbar-width, 8px);
+  height: var(--scrollbar-width, 8px);
+}
+[data-scrollbar="autohide"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-scrollbar="autohide"] ::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-width 0.2s ease;
+}
+[data-scrollbar="autohide"].is-scrolling,
+[data-scrollbar="autohide"].is-scrolling * {
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+[data-scrollbar="autohide"].is-scrolling ::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+}
+[data-scrollbar="autohide"] ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover) !important;
+  border-width: 1px;
+}
+
+/* 2. STYLED (Always visible custom sleek scrollbar) */
+[data-scrollbar="styled"] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+[data-scrollbar="styled"] * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+[data-scrollbar="styled"] ::-webkit-scrollbar {
+  width: var(--scrollbar-width, 8px);
+  height: var(--scrollbar-width, 8px);
+}
+[data-scrollbar="styled"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-scrollbar="styled"] ::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background-color 0.2s ease, border-width 0.2s ease;
+}
+[data-scrollbar="styled"] ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+  border-width: 1px;
+}
+
+/* 3. HIDDEN (No scrollbars at all, scrolling still works) */
+[data-scrollbar="hidden"],
+[data-scrollbar="hidden"] * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+[data-scrollbar="hidden"]::-webkit-scrollbar,
+[data-scrollbar="hidden"] *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
 
 html, body { transition: background-color 0.2s ease, color 0.2s ease; }
 
@@ -6885,6 +6977,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   --radius: 18px;
   --radius-sm: 10px;
   --radius-lg: 24px;
+  --scrollbar-thumb: rgba(0, 240, 255, 0.28);
+  --scrollbar-thumb-hover: var(--teal);
+  --scrollbar-width: 6px;
 }
 
 [data-design="vanguard"] * {
