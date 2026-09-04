@@ -255,10 +255,11 @@ class TestReleaseLogsEnhanced(unittest.IsolatedAsyncioTestCase):
         if not HAS_FASTAPI:
             self.skipTest("FastAPI not installed in host runner")
         import asyncio
+        from types import SimpleNamespace
         from unittest.mock import MagicMock
 
         db = MagicMock()
-        mock_dc = MagicMock(id=1, name="Transmission", type="transmission", host="127.0.0.1", port=9091, enabled=True)
+        mock_dc = SimpleNamespace(id=1, name="Transmission", type="transmission", host="127.0.0.1", port=9091, enabled=True)
         db.query.return_value.filter.return_value.all.return_value = [mock_dc]
 
         with patch("app.services.download_client.get_client") as mock_get_c:
