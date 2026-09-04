@@ -2215,21 +2215,20 @@
 
     </section>
 
-    <!-- ЛОГИ (Аудит, События, Журнал, Релиз логи, Логи для улучшения парсера) -->
+    <!-- ЛОГИ (Аудит, Журнал, Релиз логи, Логи для улучшения парсера) -->
     <section id="tab-logs" class="tab-panel">
       <div class="panel-sticky-header">
         <header class="panel-header">
           <div class="header-row">
             <div>
               <h1 data-i18n="tab.logs">Логи</h1>
-              <p class="subtitle" data-i18n="subtitle.logs">Аудит действий, системные события, журнал работы, релиз-логи и улучшение парсера</p>
+              <p class="subtitle" data-i18n="subtitle.logs">Аудит действий, журнал работы, релиз-логи и улучшение парсера</p>
             </div>
           </div>
         </header>
 
         <div class="logs-tabs">
           <button class="logs-tab-btn active" data-logs-tab="audit"><i data-lucide="shield-check" class="ico-xs"></i><span data-i18n="nav.audit">Аудит</span></button>
-          <button class="logs-tab-btn" data-logs-tab="events"><i data-lucide="radio" class="ico-xs"></i><span data-i18n="nav.events">События</span></button>
           <button class="logs-tab-btn" data-logs-tab="journal"><i data-lucide="scroll-text" class="ico-xs"></i><span data-i18n="nav.journal">Журнал</span></button>
           <button class="logs-tab-btn" data-logs-tab="release-logs"><i data-lucide="file-search" class="ico-xs"></i><span data-i18n="nav.release_logs">Релиз логи</span></button>
           <button class="logs-tab-btn" data-logs-tab="dataset-harvester"><i data-lucide="sparkles" class="ico-xs"></i><span data-i18n="nav.dataset_harvester">Логи для улучшения парсера</span></button>
@@ -2279,41 +2278,18 @@
         <div id="audit-pagination" class="pagination-row" style="margin-top:16px; display:flex; justify-content:space-between; align-items:center;"></div>
       </div>
 
-      <!-- 2. ПОДПАНЕЛЬ СОБЫТИЙ -->
-      <div id="logs-events" class="logs-panel">
-        <div class="form-row events-toolbar" style="margin-bottom:14px; flex-wrap:wrap;">
-          <select id="events-level-filter" class="input" style="max-width:220px" onchange="loadEvents(1)">
-            <option value="all" data-i18n="events.filter_all">Все события</option>
-            <option value="info" data-i18n="events.filter_info">Информация</option>
-            <option value="warning" data-i18n="events.filter_warning">Предупреждения</option>
-            <option value="error" data-i18n="events.filter_error">Ошибки</option>
-          </select>
-          <label class="hint" style="margin:0;" data-i18n="events.page_size">Размер страницы:</label>
-          <input id="events-page-size" class="input" type="number" min="5" value="50" style="max-width:110px" onchange="loadEvents(1)">
-          <button class="btn btn-secondary btn-small" onclick="toggleEventsSort()" id="events-sort-btn" data-i18n="events.sort_time">Время ↓</button>
-          <div class="desktop-spacer" style="flex:1"></div>
-          <button class="btn btn-secondary btn-small" id="events-refresh-btn" onclick="loadEvents(EVENTS_STATE.page)" data-i18n="common.refresh"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
-        </div>
-
-        <div class="table-responsive">
-          <table class="data-table" id="events-table">
-            <thead><tr><th style="width:180px;" data-i18n="events.col_time">Время</th><th style="width:160px;" data-i18n="events.col_component">Компонент</th><th data-i18n="events.col_message">Сообщение</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="form-row" id="events-pagination" style="justify-content:center; margin-top:14px;"></div>
-      </div>
-
-      <!-- 3. ПОДПАНЕЛЬ ЖУРНАЛА -->
+      <!-- 2. ПОДПАНЕЛЬ ЖУРНАЛА -->
       <div id="logs-journal" class="logs-panel">
-        <div class="form-row journal-toolbar" style="margin-bottom:14px; flex-wrap:wrap;">
-          <select id="journal-level-filter" class="input" style="max-width:220px" onchange="loadJournal(1)">
+        <div class="form-row journal-toolbar" style="margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+          <select id="journal-level-filter" class="input" style="max-width:200px" onchange="loadJournal(1)">
             <option value="all" data-i18n="journal.filter_all">Все уровни</option>
             <option value="debug">Debug</option>
             <option value="info">Info</option>
-            <option value="warning">Warn</option>
-            <option value="error">Error</option>
+            <option value="warning">Warn (Предупреждения)</option>
+            <option value="error">Error (Ошибки)</option>
           </select>
+          <input type="text" id="journal-search" class="input" style="max-width:260px" placeholder="Поиск по логам…" onkeydown="if(event.key==='Enter') loadJournal(1)">
+          <button class="btn btn-secondary btn-small" id="journal-refresh-btn" onclick="loadJournal(1)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
           <div class="desktop-spacer" style="flex:1"></div>
           <button class="btn btn-secondary btn-small" id="journal-download-btn" onclick="downloadJournal()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
           <button class="btn btn-danger btn-small" id="journal-clear-btn" onclick="clearJournal()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
@@ -2330,7 +2306,7 @@
         <div class="card" style="margin-top:20px;">
           <h3 data-i18n="journal.retention_title">Хранение</h3>
           <div class="form-col">
-            <label><span data-i18n="journal.retention_label">Хранить записи журнала и событий</span> <span class="hint">(дней)</span></label>
+            <label><span data-i18n="journal.retention_label">Хранить записи журнала</span> <span class="hint">(дней)</span></label>
             <input id="journal-retention-days" class="input" type="number" min="1" style="max-width:160px">
             <div><button class="btn btn-primary" onclick="saveJournalRetention()" data-i18n="common.save">Сохранить</button></div>
           </div>

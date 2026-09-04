@@ -11,6 +11,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import Response
 from pydantic import BaseModel
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -178,17 +179,36 @@ def list_events(
 @router.get("/journal", response_model=LogsPageOut)
 def list_journal(
     level: str = "all",
+    search: Optional[str] = None,
     page: int = 1,
     page_size: int = 100,
     sort: str = "desc",
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("view_journal")),
 ):
-    """Раздел "Журнал": info/warn/debug логи самого приложения."""
+    """Раздел "Журнал": info/warn/debug/error логи самого приложения."""
     levels = None if level == "all" else [level]
     if levels and levels[0] not in JOURNAL_LEVELS:
         raise HTTPException(400, "Некорректный уровень лога")
-    items, total = _query_logs(db, levels or JOURNAL_LEVELS, page, max(1, page_size), sort)
+    
+    q = db.query(LogEntry)
+    if levels:
+        q = q.filter(LogEntry.level.in_(levels))
+    elif JOURNAL_LEVELS:
+        q = q.filter(LogEntry.level.in_(JOURNAL_LEVELS))
+        
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        q = q.filter(
+            or_(
+                LogEntry.message.ilike(term),
+                LogEntry.component.ilike(term),
+            )
+        )
+        
+    total = q.count()
+    order_col = LogEntry.created_at.desc() if sort != "asc" else LogEntry.created_at.asc()
+    items = q.order_by(order_col).offset((page - 1) * page_size).limit(page_size).all()
     return LogsPageOut(items=items, total=total, page=page, page_size=page_size)
 
 
@@ -216,13 +236,17 @@ def download_journal(
 
 @router.delete("/journal")
 def clear_journal(
+    mode: str = "all",  # "all" or "debug"
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_journal")),
 ):
-    # Удаляем только debug логи, чтобы не стирать важные события (info, warning, error)
-    db.query(LogEntry).filter(LogEntry.level == "debug").delete()
+    """Очистка журнала: mode='all' (все логи) или mode='debug' (только debug)."""
+    if mode == "debug":
+        deleted = db.query(LogEntry).filter(LogEntry.level == "debug").delete()
+    else:
+        deleted = db.query(LogEntry).delete()
     db.commit()
-    return {"success": True}
+    return {"success": True, "deleted": deleted}
 
 
 @router.post("/journal/purge-old")

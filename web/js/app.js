@@ -2319,7 +2319,6 @@ function applyLanguage(lang) {
     else if (tabId === "calendar") loadCalendar();
     else if (tabId === "history") loadHistory();
     else if (tabId === "activity") loadQueue();
-    else if (tabId === "events") loadEvents(EVENTS_STATE.page);
     else if (tabId === "journal") loadJournal(JOURNAL_STATE.page);
     else if (tabId === "backup") loadBackups();
   }
@@ -3493,8 +3492,7 @@ function switchLogsSubTab(subTabId) {
   } catch (e) {}
 
   if (subTabId === "audit") loadAuditLogs(1);
-  else if (subTabId === "events") loadEvents();
-  else if (subTabId === "journal") loadJournal();
+  else if (subTabId === "journal") loadJournal(1);
   else if (subTabId === "release-logs") loadReleaseLogs(1);
   else if (subTabId === "dataset-harvester") loadDatasetHarvester(1);
 
@@ -12710,14 +12708,6 @@ function loadAllSettings() {
   if (hasDownloaders) loadDownloadClients();
 }
 
-// ---------- СОБЫТИЯ ----------
-const EVENTS_STATE = { page: 1, sort: "desc" };
-
-function toggleEventsSort() {
-  EVENTS_STATE.sort = EVENTS_STATE.sort === "desc" ? "asc" : "desc";
-  document.getElementById("events-sort-btn").textContent = (CURRENT_LANG === "en" ? "Time " : "Время ") + (EVENTS_STATE.sort === "desc" ? "↓" : "↑");
-  loadEvents(1);
-}
 
 function eventLevelLabel(level) {
   if (CURRENT_LANG === "en") {
@@ -12878,25 +12868,6 @@ function translateLogMessage(msg) {
   return s;
 }
 
-async function loadEvents(page) {
-  if (page) EVENTS_STATE.page = page;
-  const level = document.getElementById("events-level-filter").value;
-  const pageSize = Number(document.getElementById("events-page-size").value) || 50;
-  const tbody = document.querySelector("#events-table tbody");
-  try {
-    const data = await api(`/api/v1/events?level=${level}&page=${EVENTS_STATE.page}&page_size=${pageSize}&sort=${EVENTS_STATE.sort}`);
-    tbody.innerHTML = data.items.map(ev => `
-      <tr>
-        <td class="mono col-time" style="font-size:11.5px; white-space:nowrap;">${formatDateTZ(ev.created_at)}</td>
-        <td class="col-comp" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><strong>${escapeHtml(ev.component)}</strong></td>
-        <td class="col-msg" style="word-break:break-word; overflow-wrap:anywhere; white-space:normal; line-height:1.45;"><span class="status-pill status-${ev.level === "error" ? "missing" : ev.level === "warning" ? "unaired" : "downloaded"}" style="margin-right:8px; vertical-align:middle;">${eventLevelLabel(ev.level)}</span><span style="vertical-align:middle;">${escapeHtml(translateLogMessage(ev.message))}</span></td>
-      </tr>`).join("") || `<tr><td colspan="3" style="color:var(--text-muted)">—</td></tr>`;
-    renderPagination("events-pagination", EVENTS_STATE.page, pageSize, data.total, loadEvents);
-  } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="3" style="color:var(--danger)">${CURRENT_LANG === "en" ? "Loading error:" : "Ошибка загрузки:"} ${escapeHtml(e.message)}</td></tr>`;
-  }
-}
-
 function renderPagination(containerId, page, pageSize, total, loadFn) {
   const el = document.getElementById(containerId);
   if (!el) return;
@@ -12909,22 +12880,49 @@ function renderPagination(containerId, page, pageSize, total, loadFn) {
   `;
 }
 
-// ---------- ЖУРНАЛ ----------
+// ---------- ЖУРНАЛ (JOURNAL) ----------
 const JOURNAL_STATE = { page: 1 };
 
 async function loadJournal(page) {
   if (page) JOURNAL_STATE.page = page;
-  const level = document.getElementById("journal-level-filter").value;
+  const levelEl = document.getElementById("journal-level-filter");
+  const level = levelEl ? levelEl.value : "all";
+  const searchEl = document.getElementById("journal-search");
+  const search = searchEl ? searchEl.value.trim() : "";
   const tbody = document.querySelector("#journal-table tbody");
+  if (!tbody) return;
+
+  const params = new URLSearchParams({
+    level: level,
+    page: JOURNAL_STATE.page.toString(),
+    page_size: "100",
+    sort: "desc",
+  });
+  if (search) params.set("search", search);
+
   try {
-    const data = await api(`/api/v1/journal?level=${level}&page=${JOURNAL_STATE.page}&page_size=100&sort=desc`);
-    tbody.innerHTML = data.items.map(ev => `
-      <tr>
-        <td class="mono col-time">${formatDateTZ(ev.created_at)}</td>
-        <td class="col-level"><span class="status-pill status-${ev.level === "error" ? "missing" : ev.level === "warning" ? "unaired" : "downloaded"}">${ev.level.toUpperCase()}</span></td>
-        <td class="col-comp"><strong>${escapeHtml(ev.component)}</strong></td>
-        <td class="mono col-msg" style="font-size:12px; word-break:break-word;">${escapeHtml(translateLogMessage(ev.message))}</td>
-      </tr>`).join("") || `<tr><td colspan="4" style="color:var(--text-muted)">—</td></tr>`;
+    const data = await api(`/api/v1/journal?${params.toString()}`);
+    if (!data || !data.items || data.items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 28px; color:var(--text-muted);">${CURRENT_LANG === "en" ? "No log entries found" : "Нет записей в журнале"}</td></tr>`;
+      renderPagination("journal-pagination", 1, 100, 0, loadJournal);
+      return;
+    }
+
+    tbody.innerHTML = data.items.map(ev => {
+      let pillClass = "downloaded";
+      if (ev.level === "error") pillClass = "missing";
+      else if (ev.level === "warning") pillClass = "unaired";
+      else if (ev.level === "debug") pillClass = "unmonitored";
+
+      return `
+        <tr>
+          <td class="mono col-time" style="font-size:11.5px; white-space:nowrap;">${formatDateTZ(ev.created_at)}</td>
+          <td class="col-level"><span class="status-pill status-${pillClass}">${ev.level.toUpperCase()}</span></td>
+          <td class="col-comp" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><strong>${escapeHtml(ev.component)}</strong></td>
+          <td class="mono col-msg" style="font-size:12px; word-break:break-word; overflow-wrap:anywhere; line-height:1.45;">${escapeHtml(translateLogMessage(ev.message))}</td>
+        </tr>
+      `;
+    }).join("");
     renderPagination("journal-pagination", JOURNAL_STATE.page, 100, data.total, loadJournal);
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="4" style="color:var(--danger)">${CURRENT_LANG === "en" ? "Loading error:" : "Ошибка загрузки:"} ${escapeHtml(e.message)}</td></tr>`;
@@ -12932,12 +12930,14 @@ async function loadJournal(page) {
 
   try {
     const s = await api("/api/v1/settings");
-    document.getElementById("journal-retention-days").value = s.log_retention_days ?? 14;
+    const retEl = document.getElementById("journal-retention-days");
+    if (retEl) retEl.value = s.log_retention_days ?? 14;
   } catch (e) {}
 }
 
 async function downloadJournal() {
-  const level = document.getElementById("journal-level-filter").value;
+  const levelEl = document.getElementById("journal-level-filter");
+  const level = levelEl ? levelEl.value : "all";
   try {
     const resp = await fetch(`/api/v1/journal/download?level=${level}`, { headers: { "X-Api-Key": API_KEY } });
     if (!resp.ok) throw new Error("HTTP " + resp.status);
@@ -12948,17 +12948,21 @@ async function downloadJournal() {
     a.download = `aliasarr_journal_${new Date().toISOString().slice(0, 10)}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-  } catch (e) { toast("Ошибка скачивания: " + e.message, true); }
+  } catch (e) { toast((CURRENT_LANG === "en" ? "Download error: " : "Ошибка скачивания: ") + e.message, true); }
 }
 
 async function clearJournal() {
-  const confirmed = await confirmModal(t("common.delete") + "?");
+  const confirmed = await confirmModal(
+    CURRENT_LANG === "en"
+      ? "Are you sure you want to clear all journal log entries?"
+      : "Вы уверены, что хотите полностью очистить журнал логов?"
+  );
   if (!confirmed) return;
   try {
-    await api("/api/v1/journal", { method: "DELETE" });
+    await api("/api/v1/journal?mode=all", { method: "DELETE" });
     toast(CURRENT_LANG === "en" ? "Journal cleared" : "Журнал очищен");
     loadJournal(1);
-  } catch (e) { toast("Ошибка: " + e.message, true); }
+  } catch (e) { toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true); }
 }
 
 async function saveJournalRetention() {
@@ -12968,7 +12972,7 @@ async function saveJournalRetention() {
       body: JSON.stringify({ log_retention_days: Number(document.getElementById("journal-retention-days").value) || 14 }),
     });
     toast(t("settings.toast_saved"));
-  } catch (e) { toast("Ошибка: " + e.message, true); }
+  } catch (e) { toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true); }
 }
 
 // ---------- РЕЛИЗ ЛОГИ (RELEASE LOGS) ----------
