@@ -3523,6 +3523,28 @@ function escapeHtml(s) {
   return (s || "").toString().replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
+function formatShowTitleWithYear(title, year) {
+  if (!title) return "";
+  const t = String(title).trim();
+  if (!year) return t;
+  const y = String(year).trim();
+  if (t.endsWith(`(${y})`) || t.endsWith(` ${y}`)) {
+    return t;
+  }
+  return `${t} (${y})`;
+}
+
+function renderShowTitleHtml(title, year) {
+  if (!title) return "";
+  const t = String(title).trim();
+  if (!year) return escapeHtml(t);
+  const y = String(year).trim();
+  if (t.endsWith(`(${y})`) || t.endsWith(` ${y}`)) {
+    return escapeHtml(t);
+  }
+  return `${escapeHtml(t)} <span class="hint">(${escapeHtml(y)})</span>`;
+}
+
 function formatSize(bytes) {
   if (!bytes || bytes <= 0) return "0 B";
   const units = ["B", "KiB", "MiB", "GiB", "TiB"];
@@ -4376,7 +4398,7 @@ function renderShowCard(show) {
 
   let infoHtml = "";
   if (POSTER_OPTIONS.title) {
-    infoHtml += `<div class="show-title">${escapeHtml(show.title)}${show.year ? ` (${show.year})` : ""}</div>`;
+    infoHtml += `<div class="show-title">${escapeHtml(formatShowTitleWithYear(show.title, show.year))}</div>`;
   }
   if (POSTER_OPTIONS.monitored) {
     const mtext = show.monitored ? t("dash.monitored") : t("dash.unmonitored");
@@ -4430,7 +4452,7 @@ function renderShowTableRow(show) {
           </span>
         `}
       </td>
-      <td>${escapeHtml(show.title)}${show.year ? ` <span class="hint">(${show.year})</span>` : ""}</td>
+      <td>${renderShowTitleHtml(show.title, show.year)}</td>
       <td>${show.network ? escapeHtml(show.network) : "—"}</td>
       <td>${escapeHtml(qualityProfileName(show.quality_profile_id))}</td>
       <td class="mono">${nextAiring}</td>
@@ -4465,7 +4487,7 @@ function renderShowOverviewRow(show) {
   if (POSTER_OPTIONS.title || POSTER_OPTIONS.monitored) {
     titleRowHtml = `
       <div class="overview-title-row">
-        ${POSTER_OPTIONS.title ? `<span class="overview-title">${escapeHtml(show.title)}${show.year ? ` (${show.year})` : ""}</span>` : ""}
+        ${POSTER_OPTIONS.title ? `<span class="overview-title">${escapeHtml(formatShowTitleWithYear(show.title, show.year))}</span>` : ""}
         ${POSTER_OPTIONS.monitored ? `<span class="show-monitored-pill ${mClass}"><i data-lucide="${mIcon}" class="ico-xs"></i><span>${escapeHtml(mtext)}</span></span>` : ""}
       </div>`;
   }
@@ -4974,7 +4996,7 @@ async function refreshShowModal() {
           </div>` : ""}
         </div>
         <div class="show-detail-meta">
-          <h2>${escapeHtml(show.title)}${show.year ? ` (${show.year})` : ""}</h2>
+          <h2>${escapeHtml(formatShowTitleWithYear(show.title, show.year))}</h2>
           <div class="alias-manager" id="alias-manager-${show.id}">
             ${renderAliasChips(show, canManageLib)}
           </div>
@@ -7102,7 +7124,7 @@ function renderGlobalManualImportView(data) {
         `<option value="">${t("manual_import.select_show")}</option>`,
         ...shows.map(s => {
           const sel = s.id === file.matched_show_id ? "selected" : "";
-          return `<option value="${s.id}" ${sel}>${escapeHtml(s.title)}${s.year ? ` (${s.year})` : ""}</option>`;
+          return `<option value="${s.id}" ${sel}>${escapeHtml(formatShowTitleWithYear(s.title, s.year))}</option>`;
         })
       ].join("");
 
@@ -7117,7 +7139,7 @@ function renderGlobalManualImportView(data) {
         ...currentShowEps.map(ep => {
           let label = "";
           if (isMovie) {
-            label = `${escapeHtml(showMeta?.title || ep.title || (CURRENT_LANG === 'en' ? 'Movie' : 'Фильм'))}${showMeta?.year ? ` (${showMeta.year})` : ""}`;
+            label = `${escapeHtml(formatShowTitleWithYear(showMeta?.title || ep.title || (CURRENT_LANG === 'en' ? 'Movie' : 'Фильм'), showMeta?.year))}`;
           } else if (ep.season_number === 0) {
             label = `${CURRENT_LANG === 'en' ? 'Special' : 'Спецвыпуск'} ${ep.episode_number}: ${escapeHtml(ep.title || "—")}`;
           } else if (isAnime && ep.absolute_number != null) {
@@ -7220,7 +7242,7 @@ function renderGlobalManualImportView(data) {
         <span class="bulk-label"><i data-lucide="tv" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Show:' : 'Тайтл:'}</span></span>
         <select id="global-bulk-show-select" class="input input-small" style="max-width: 220px;">
           <option value="">— ${CURRENT_LANG === 'en' ? 'Select show' : 'Выберите тайтл'} —</option>
-          ${shows.map(s => `<option value="${s.id}">${escapeHtml(s.title)}${s.year ? ` (${s.year})` : ""}</option>`).join("")}
+          ${shows.map(s => `<option value="${s.id}">${escapeHtml(formatShowTitleWithYear(s.title, s.year))}</option>`).join("")}
         </select>
         <button type="button" class="btn btn-secondary btn-small" onclick="applyGlobalBulkShow()">
           <i data-lucide="check" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Assign to selected' : 'Назначить для выбранных'}</span>
@@ -7281,7 +7303,7 @@ function onGlobalManualImportShowChange(idx) {
     ...showEps.map(ep => {
       let label = "";
       if (isMovie) {
-        label = `${escapeHtml(showMeta?.title || ep.title || (CURRENT_LANG === 'en' ? 'Movie' : 'Фильм'))}${showMeta?.year ? ` (${showMeta.year})` : ""}`;
+        label = `${escapeHtml(formatShowTitleWithYear(showMeta?.title || ep.title || (CURRENT_LANG === 'en' ? 'Movie' : 'Фильм'), showMeta?.year))}`;
       } else if (ep.season_number === 0) {
         label = `${CURRENT_LANG === 'en' ? 'Special' : 'Спецвыпуск'} ${ep.episode_number}: ${escapeHtml(ep.title || "—")}`;
       } else if (isAnime && ep.absolute_number != null) {
@@ -8169,7 +8191,7 @@ function renderWizardStep3Content() {
   const currentType = WIZARD_STATE.contentType || "series";
 
   content.innerHTML = `
-    <p><strong>${escapeHtml(title)}</strong> ${isMetadata && WIZARD_STATE.selectedResult.year ? `(${WIZARD_STATE.selectedResult.year})` : ""}</p>
+    <p><strong>${escapeHtml(formatShowTitleWithYear(title, isMetadata && WIZARD_STATE.selectedResult ? WIZARD_STATE.selectedResult.year : null))}</strong></p>
     <div class="form-col">
       <label>${t("wizard.category_label")} <span class="hint">${t("wizard.category_hint")}</span></label>
       <div class="chip-select" id="wizard-content-type-chips">
@@ -8681,7 +8703,7 @@ function openCalendarEventModal(eKey) {
       <div class="cal-ev-modal-header">
         <img class="cal-ev-modal-poster" src="${escapeHtml(posterUrl)}" alt="${escapeHtml(e.show_title || '')}" onerror="this.src='/static/img/no-poster.svg'">
         <div class="cal-ev-modal-info">
-          <div class="cal-ev-modal-title">${escapeHtml(e.show_title || '')} ${e.year ? `<span style="font-size:14px; font-weight:normal; color:var(--text-muted);">(${e.year})</span>` : ""}</div>
+          <div class="cal-ev-modal-title">${renderShowTitleHtml(e.show_title || '', e.year)}</div>
           <div class="cal-ev-modal-sub">${epLabel ? `${epLabel} ${e.title ? "— " + escapeHtml(e.title) : ""}` : (e.title ? escapeHtml(e.title) : "")}</div>
           <div class="cal-ev-modal-badges">
             ${badgesHtml}
@@ -9152,7 +9174,7 @@ function renderCalendarAgendaList(byDay, rangeStart, rangeEnd) {
             </div>
             <div class="cal-card-body">
               <div class="cal-card-header">
-                <div class="cal-card-title" title="${escapeHtml(e.show_title)}">${escapeHtml(cardTitle)} ${e.year ? `<span class="cal-card-year">(${e.year})</span>` : ''}</div>
+                <div class="cal-card-title" title="${escapeHtml(e.show_title)}">${renderShowTitleHtml(cardTitle, e.year)}</div>
                 <div class="cal-card-badges">
                   ${movieBadge}
                   ${iconHtml ? `<span class="cal-badge-finale" title="${isPremiere ? t('calendar.premiere') : (isSeriesFinale ? t('calendar.series_finale') : t('calendar.season_finale'))}">${iconHtml}</span>` : ""}
@@ -12796,9 +12818,9 @@ async function loadDatasetHarvester(page = 1) {
           shows.forEach(s => {
             const opt = document.createElement("option");
             opt.value = s.id;
-            const y = s.year ? ` (${s.year})` : "";
+            const formattedTitle = formatShowTitleWithYear(s.title, s.year);
             const t = s.content_type === "movie" ? " [Фильм]" : " [Сериал]";
-            opt.textContent = `${s.title}${y}${t}`;
+            opt.textContent = `${formattedTitle}${t}`;
             showSelect.appendChild(opt);
           });
         }

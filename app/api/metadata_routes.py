@@ -467,13 +467,15 @@ async def import_show(
         from app.services.settings_service import get_or_create_settings
         from app.services.postprocess import get_show_default_path, sanitize_filename
         import os as _os
+        import re as _re
 
         settings = get_or_create_settings(db)
+        title_no_year = _re.sub(r"\s*\(\d{4}\)$|\s+\d{4}$", "", details.title or "").strip()
         if payload.path:
             p = payload.path.strip().rstrip("/\\")
             base_p = _os.path.basename(p).lower()
             if base_p in ("test", "movies", "films", "downloads", "data", "media", "video") or not base_p:
-                subfolder = sanitize_filename(f"{details.title} ({show_year})" if show_year else details.title)
+                subfolder = sanitize_filename(f"{title_no_year} ({show_year})" if show_year else details.title)
                 final_path = _os.path.join(p, subfolder)
             else:
                 final_path = payload.path.strip()
@@ -502,9 +504,14 @@ async def import_show(
         db.flush()
 
         added_aliases = set()
-        if details.title and details.title.strip():
-            db.add(Alias(show_id=show.id, text=details.title.strip(), language="en", source=source_type_str, priority=1))
-            added_aliases.add(details.title.strip().lower())
+        clean_title = (details.title or "").strip()
+        if clean_title:
+            db.add(Alias(show_id=show.id, text=clean_title, language="en", source=source_type_str, priority=1))
+            added_aliases.add(clean_title.lower())
+            if title_no_year and title_no_year.lower() not in added_aliases:
+                added_aliases.add(title_no_year.lower())
+                db.add(Alias(show_id=show.id, text=title_no_year, language="en", source=source_type_str, priority=1))
+
         for i, alias_text in enumerate(details.aliases):
             if alias_text and alias_text.strip() and alias_text.strip().lower() not in added_aliases:
                 clean_alias = alias_text.strip()

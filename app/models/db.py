@@ -130,6 +130,7 @@ class Show(Base):
     aliases: Mapped[list["Alias"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     episodes: Mapped[list["Episode"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     tracked_releases: Mapped[list["TrackedRelease"]] = relationship(back_populates="show", cascade="all, delete-orphan")
+    download_history: Mapped[list["DownloadHistory"]] = relationship(back_populates="show", cascade="all, delete-orphan")
 
 
 class Alias(Base):
@@ -267,14 +268,16 @@ class DownloadHistory(Base):
     __tablename__ = "download_history"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False, index=True)
-    episode_id: Mapped[Optional[int]] = mapped_column(ForeignKey("episodes.id"), nullable=True)
+    show_id: Mapped[int] = mapped_column(ForeignKey("shows.id", ondelete="CASCADE"), nullable=False, index=True)
+    episode_id: Mapped[Optional[int]] = mapped_column(ForeignKey("episodes.id", ondelete="CASCADE"), nullable=True)
     release_title: Mapped[str] = mapped_column(String(1000), nullable=False)
     indexer_id: Mapped[Optional[int]] = mapped_column(ForeignKey("indexers.id"), nullable=True)
     event_type: Mapped[str] = mapped_column(String(50), default="grabbed")  # grabbed|imported|failed
     matched_alias: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # по какому алиасу нашли релиз
     show_title_snapshot: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # имя шоу на момент захвата
     created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow, index=True)
+
+    show: Mapped[Optional["Show"]] = relationship(back_populates="download_history")
 
 
 class DownloadClient(Base):

@@ -52,6 +52,27 @@ def title_the(title: str) -> str:
     return title
 
 
+def clean_show_title_and_year(title: str, year: Optional[int] = None) -> tuple[str, Optional[int]]:
+    """
+    Удаляет дублирующийся год из названия тайтла, если год уже указан отдельно или извлекается из названия.
+    Например:
+      'Severance (2022)', 2022 -> ('Severance', 2022)
+      'Severance (2022)', None -> ('Severance', 2022)
+      'Blade Runner 2049', 2017 -> ('Blade Runner 2049', 2017)
+      '2001: A Space Odyssey', 1968 -> ('2001: A Space Odyssey', 1968)
+    """
+    if not title:
+        return "", year
+    t = title.strip()
+    m = re.search(r"\s+[\(\[](\d{4})[\)\]]$", t)
+    if m:
+        extracted = int(m.group(1))
+        if 1900 <= extracted <= 2100:
+            if year is None or year == extracted:
+                return t[:m.start()].strip(), year or extracted
+    return t, year
+
+
 class FileNameBuilder:
     @staticmethod
     def build_file_name(

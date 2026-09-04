@@ -48,6 +48,7 @@ from app.services.postprocess import (
 )
 from app.services.matcher import build_alias_candidates, match_release
 from app.services.quality import parse_quality, detect_file_quality
+from app.services.organizer import clean_show_title_and_year
 from app.services.settings_service import get_or_create_settings
 from app.services.user_service import require_permission, require_any_permission, get_current_user
 
@@ -162,15 +163,17 @@ async def create_show(
     if payload.content_type not in ("movie", "series", "anime"):
         raise HTTPException(400, "content_type должен быть movie, series или anime")
 
+    clean_title, clean_year = clean_show_title_and_year(payload.title, payload.year)
+
     settings = get_or_create_settings(db)
     final_path = payload.path or get_show_default_path(
-        Show(title=payload.title, year=payload.year, content_type=payload.content_type),
+        Show(title=clean_title, year=clean_year, content_type=payload.content_type),
         settings,
     )
 
     show = Show(
-        title=payload.title,
-        year=payload.year,
+        title=clean_title,
+        year=clean_year,
         metadata_source=payload.metadata_source,
         metadata_id=payload.metadata_id,
         overview=payload.overview,
@@ -190,6 +193,12 @@ async def create_show(
             p = alias_in.priority if alias_in.priority is not None else current_p
             db.add(Alias(show_id=show.id, text=alias_in.text, language=alias_in.language, source=alias_in.source, priority=p))
             current_p += 1
+
+    clean_p_title = (payload.title or "").strip()
+    clean_no_yr = re.sub(r"\s*\(\d{4}\)$|\s+\d{4}$", "", clean_p_title).strip()
+    if clean_no_yr and clean_no_yr.lower() not in added_aliases:
+        added_aliases.add(clean_no_yr.lower())
+        db.add(Alias(show_id=show.id, text=clean_no_yr, language="en", source="auto", priority=1))
 
     # Для фильмов создаём одну запись Episode (S01E01) для мониторинга и поиска
     if payload.content_type == "movie":
@@ -345,6 +354,15 @@ async def delete_show(
             except Exception as exc:
                 pass
 
+    # 3. Очищаем зависимые записи истории загрузок, слежения и логов перед удалением шоу
+    try:
+        from app.models.db import DownloadHistory, TrackedRelease, ReleaseLog
+        db.query(DownloadHistory).filter(DownloadHistory.show_id == show.id).delete(synchronize_session=False)
+        db.query(TrackedRelease).filter(TrackedRelease.show_id == show.id).delete(synchronize_session=False)
+        db.query(ReleaseLog).filter(ReleaseLog.show_id == show.id).delete(synchronize_session=False)
+    except Exception:
+        pass
+
     db.delete(show)
     db.commit()
 
@@ -406,6 +424,15 @@ async def delete_content(
                     shutil.rmtree(show_path, ignore_errors=True)
                 except Exception:
                     pass
+
+        # Очищаем зависимые записи истории загрузок, слежения и логов перед удалением шоу
+        try:
+            from app.models.db import DownloadHistory, TrackedRelease, ReleaseLog
+            db.query(DownloadHistory).filter(DownloadHistory.show_id == show.id).delete(synchronize_session=False)
+            db.query(TrackedRelease).filter(TrackedRelease.show_id == show.id).delete(synchronize_session=False)
+            db.query(ReleaseLog).filter(ReleaseLog.show_id == show.id).delete(synchronize_session=False)
+        except Exception:
+            pass
 
         db.delete(show)
         db.commit()
@@ -595,6 +622,12 @@ def update_show(
     if not show:
         raise HTTPException(404, "Show not found")
     dumped = payload.model_dump(exclude_unset=True)
+    if "title" in dumped or "year" in dumped:
+        new_title, new_year = clean_show_title_and_year(dumped.get("title", show.title), dumped.get("year", show.year))
+        if "title" in dumped:
+            dumped["title"] = new_title
+        if "year" in dumped:
+            dumped["year"] = new_year
     for field, value in dumped.items():
         setattr(show, field, value)
     if "ova_mode" in dumped or "content_type" in dumped:

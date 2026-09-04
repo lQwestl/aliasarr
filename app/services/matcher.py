@@ -89,7 +89,7 @@ NON_VIDEO_KEYWORDS = re.compile(
     r"\b(?:extra|bonus|featurette|behind[-_\s]the[-_\s]scenes|making[-_\s]of|interview|deleted[-_\s]scene|бонус(?:ы)?|допы|дополнительные\s*материалы)\b|"
     r"\bclean[-_\s]?(?:op|ed|opening|ending)\b|"
     r"\bopenings?\s*(?:&|and)\s*endings?\b|"
-    r"\b(?:rus|eng|jap|jpn|ukr|ger|fra|spa)?\s*(?:sound|audio|soundtracks?|ost|audio[-\s]?tracks?|чистый\s*звук|звуковые\s*дорожки|звуковая\s*дорожка|переводы\s*\(аниме\)|аудиодорожк[иа]|звуковые\s*файлы|sound\s*pack|audio\s*pack|только\s*звук|только\s*аудио|озвучка\s*отдельно|аудиокниг[иа]|audiobooks?)\b|"
+    r"\b(?:rus|eng|jap|jpn|ukr|ger|fra|spa)?\s*(?:soundtracks?|\bost\b|audio[-\s]?tracks?|чистый\s*звук|звуковые\s*дорожки|звуковая\s*дорожка|переводы\s*\(аниме\)|аудиодорожк[иа]|звуковые\s*файлы|sound\s*pack|audio\s*pack|только\s*звук|только\s*аудио|sound\s*only|audio\s*only|озвучка\s*отдельно|аудиокниг[иа]|audiobooks?)\b|"
     r"\[(?:audio|sound|soundtrack|ost|audio[-\s]?tracks?|звук|аудиодорожки|звуковые\s*дорожки|озвучка\s*отдельно|art|арт|сканы|scans|wallpapers|обои|jpg|png)\]|"
     r"\((?:audio|sound|soundtrack|ost|audio[-\s]?tracks?|звук|аудиодорожки|звуковые\s*дорожки|озвучка\s*отдельно|art|арт|сканы|scans|wallpapers|обои)\)|"
     r"\b(?:rus|eng|jap|jpn|ukr)?\s*(?:subs?\s*only|только\s*субтитры|только\s*сабы|subtitles?\s*pack|пак\s*субтитров)\b|"
@@ -198,6 +198,12 @@ def build_alias_candidates(show, db=None) -> list[AliasCandidate]:
     if "/" in show_title or "|" in show_title:
         title_parts.extend([p.strip() for p in re.split(r"\s*[/|]\s*", show_title) if p.strip()])
 
+    # Если название шоу содержит год (например "Scrubs (2026)"), автоматически добавляем чистое имя ("Scrubs")
+    for tp in list(title_parts):
+        no_yr = re.sub(r"\s*\(\d{4}\)$|\s+\d{4}$", "", tp).strip()
+        if no_yr and no_yr != tp and no_yr not in title_parts:
+            title_parts.append(no_yr)
+
     for tp in title_parts:
         title_norm = normalize_title(tp)
         if title_norm and title_norm not in seen_normalized:
@@ -223,6 +229,11 @@ def build_alias_candidates(show, db=None) -> list[AliasCandidate]:
         sub_parts = [a_text]
         if "/" in a_text or "|" in a_text:
             sub_parts.extend([p.strip() for p in re.split(r"\s*[/|]\s*", a_text) if p.strip()])
+
+        for part in list(sub_parts):
+            no_yr = re.sub(r"\s*\(\d{4}\)$|\s+\d{4}$", "", part).strip()
+            if no_yr and no_yr != part and no_yr not in sub_parts:
+                sub_parts.append(no_yr)
 
         lang_str = alias.language.value if hasattr(getattr(alias, "language", None), "value") else (str(alias.language) if getattr(alias, "language", None) else "ru")
         prio = getattr(alias, "priority", 100) or 100

@@ -315,7 +315,7 @@ _EXTRA_RELEASE_RE = re.compile(
 
 # Релизы НЕ-видео контента (чистый звук, аудиодорожки, саундтреки, сабы, манга, артбуки и т.д.)
 _NON_VIDEO_RELEASE_RE = re.compile(
-    r"\b(?:rus|eng|jap|jpn|ukr|ger|fra|spa)?\s*(?:sound|audio|soundtracks?|ost|audio[-\s]?tracks?|чистый\s*звук|звуковые\s*дорожки|аудиодорожк[иа]|звуковые\s*файлы|sound\s*pack|audio\s*pack|только\s*звук|только\s*аудио|озвучка\s*отдельно)\b|"
+    r"\b(?:rus|eng|jap|jpn|ukr|ger|fra|spa)?\s*(?:soundtracks?|\bost\b|audio[-\s]?tracks?|чистый\s*звук|звуковые\s*дорожки|аудиодорожк[иа]|звуковые\s*файлы|sound\s*pack|audio\s*pack|только\s*звук|только\s*аудио|sound\s*only|audio\s*only|озвучка\s*отдельно)\b|"
     r"\[(?:audio|sound|soundtrack|ost|audio[-\s]?tracks?|звук|аудиодорожки|озвучка\s*отдельно)\]|"
     r"\((?:audio|sound|soundtrack|ost|audio[-\s]?tracks?|звук|аудиодорожки|озвучка\s*отдельно)\)|"
     r"\b(?:rus|eng|jap|jpn|ukr)?\s*(?:subs?\s*only|только\s*субтитры|только\s*сабы|subtitles?\s*pack|пак\s*субтитров)\b|"

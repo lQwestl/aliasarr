@@ -925,9 +925,17 @@ async def _collect_candidates(
         if clean_a:
             if clean_a.lower() not in [b.lower() for b in clean_bases]:
                 clean_bases.append(clean_a)
+            # Также добавляем чистое название без года в скобках (например "Scrubs" из "Scrubs (2026)")
+            no_yr = re.sub(r"\s*\(\d{4}\)$|\s+\d{4}$", "", clean_a).strip()
+            if no_yr and no_yr.lower() not in [b.lower() for b in clean_bases]:
+                clean_bases.append(no_yr)
             core_a = _extract_core_title(clean_a)
             if core_a and core_a.lower() not in [c.lower() for c in cores]:
                 cores.append(core_a)
+            if no_yr:
+                core_noyr = _extract_core_title(no_yr)
+                if core_noyr and core_noyr.lower() not in [c.lower() for c in cores]:
+                    cores.append(core_noyr)
 
     key_bases = cores + [cb for cb in clean_bases if cb.lower() not in [c.lower() for c in cores]]
 

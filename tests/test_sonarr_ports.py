@@ -277,6 +277,29 @@ class TestSonarrPorts(unittest.TestCase):
         self.assertFalse(r_music.approved)
         self.assertTrue(any("видео" in rej for rej in r_music.rejections))
 
+    def test_clean_show_title_and_year(self):
+        from app.services.organizer import clean_show_title_and_year
+
+        # Year in parentheses matching year param
+        t1, y1 = clean_show_title_and_year("Severance (2022)", 2022)
+        self.assertEqual(t1, "Severance")
+        self.assertEqual(y1, 2022)
+
+        # Year in parentheses without year param
+        t2, y2 = clean_show_title_and_year("Severance (2022)", None)
+        self.assertEqual(t2, "Severance")
+        self.assertEqual(y2, 2022)
+
+        # Title with number that is part of the name without parens
+        t3, y3 = clean_show_title_and_year("Blade Runner 2049", 2017)
+        self.assertEqual(t3, "Blade Runner 2049")
+        self.assertEqual(y3, 2017)
+
+        # Title with year at the beginning
+        t4, y4 = clean_show_title_and_year("2001: A Space Odyssey", 1968)
+        self.assertEqual(t4, "2001: A Space Odyssey")
+        self.assertEqual(y4, 1968)
+
 
 if __name__ == "__main__":
     unittest.main()

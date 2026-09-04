@@ -257,7 +257,7 @@ def get_show_default_path(show: Show, settings) -> str:
         return show.path.strip()
     if show.content_type == "movie":
         root = settings.root_folder_movies or settings.root_folder or ""
-        folder = f"{sanitize_filename(show.title)} ({show.year})" if show.year else sanitize_filename(show.title)
+        folder = f"{sanitize_filename(_title_without_year(show.title))} ({show.year})" if show.year else sanitize_filename(show.title)
     elif show.content_type == "anime":
         root = settings.root_folder_anime or settings.root_folder or ""
         folder = sanitize_filename(show.title)
@@ -326,9 +326,9 @@ def render_sonarr_token(
     elif token_norm in ("series cleantitle", "movie cleantitle"):
         val = _clean_title(show_title)
     elif token_norm in ("series titleyear", "movie titleyear"):
-        val = f"{show_title} ({year})" if year else show_title
+        val = f"{_title_without_year(show_title)} ({year})" if year else show_title
     elif token_norm in ("series cleantitleyear", "movie cleantitleyear"):
-        val = f"{_clean_title(show_title)} {year}" if year else _clean_title(show_title)
+        val = f"{_clean_title(_title_without_year(show_title))} {year}" if year else _clean_title(show_title)
     elif token_norm == "series titlewithoutyear":
         val = _title_without_year(show_title)
     elif token_norm == "series cleantitlewithoutyear":
