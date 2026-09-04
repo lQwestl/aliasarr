@@ -2380,8 +2380,16 @@ function closeModal(id) {
   if (!document.querySelector(".modal-overlay.active, .modal.active")) {
     document.body.classList.remove("modal-open");
   }
-  if (id === "show-modal" && typeof SHOW_MODAL_POLL_INTERVAL !== 'undefined' && SHOW_MODAL_POLL_INTERVAL) {
-    clearInterval(SHOW_MODAL_POLL_INTERVAL);
+  if (id === "show-modal") {
+    if (typeof SHOW_MODAL_POLL_INTERVAL !== 'undefined' && SHOW_MODAL_POLL_INTERVAL) {
+      clearInterval(SHOW_MODAL_POLL_INTERVAL);
+      SHOW_MODAL_POLL_INTERVAL = null;
+    }
+    const bannerContainer = document.getElementById("show-modal-task-banner");
+    if (bannerContainer) {
+      bannerContainer.style.display = "none";
+      bannerContainer.innerHTML = "";
+    }
   }
 }
 
@@ -5175,6 +5183,7 @@ async function openShowModal(showId) {
   CURRENT_SHOW_ID = showId;
   const content = document.getElementById("show-modal-content");
   content.innerHTML = `<p>${t("common.loading")}</p>`;
+  updateShowModalTaskBanner(CURRENT_ACTIVE_TASKS);
   openModal("show-modal");
   await refreshShowModal();
   
@@ -5182,8 +5191,10 @@ async function openShowModal(showId) {
   SHOW_MODAL_POLL_INTERVAL = setInterval(async () => {
     if (!document.getElementById("show-modal").classList.contains("active")) {
       clearInterval(SHOW_MODAL_POLL_INTERVAL);
+      SHOW_MODAL_POLL_INTERVAL = null;
       return;
     }
+    updateShowModalTaskBanner(CURRENT_ACTIVE_TASKS);
     try {
       const [show, episodes, queue] = await Promise.all([
         api(`/api/v1/shows/${showId}`),
@@ -5467,6 +5478,8 @@ async function refreshShowModal() {
     if (typeof lucide !== "undefined" && lucide.createIcons) {
       lucide.createIcons();
     }
+
+    updateShowModalTaskBanner(CURRENT_ACTIVE_TASKS);
 
     if (show && show.content_type !== "movie") {
       checkSpecialsImportStatus(show.id);
@@ -14630,6 +14643,96 @@ function renderTasksPopup(data) {
   if (window.lucide) lucide.createIcons();
 }
 
+function updateShowModalTaskBanner(tasks) {
+  if (typeof CURRENT_SHOW_ID === "undefined" || !CURRENT_SHOW_ID) {
+    const bannerContainer = document.getElementById("show-modal-task-banner");
+    if (bannerContainer) {
+      bannerContainer.style.display = "none";
+      bannerContainer.innerHTML = "";
+    }
+    return;
+  }
+  const showModal = document.getElementById("show-modal");
+  if (!showModal || !showModal.classList.contains("active")) {
+    return;
+  }
+
+  const running = tasks || (typeof CURRENT_ACTIVE_TASKS !== "undefined" ? CURRENT_ACTIVE_TASKS : []) || [];
+  const showObj = (typeof CACHED_SHOWS !== "undefined" && CACHED_SHOWS) ? CACHED_SHOWS.find(s => s.id === CURRENT_SHOW_ID) : null;
+  const activeTask = running.find(t => 
+    (t.show_id && t.show_id === CURRENT_SHOW_ID) ||
+    (showObj && (
+      (t.title && t.title.toLowerCase().includes((showObj.title || "").toLowerCase())) ||
+      (t.message && t.message.toLowerCase().includes((showObj.title || "").toLowerCase()))
+    ))
+  );
+
+  let bannerContainer = document.getElementById("show-modal-task-banner");
+  if (!bannerContainer) {
+    const modalWide = showModal.querySelector(".modal");
+    const content = document.getElementById("show-modal-content");
+    if (modalWide && content) {
+      bannerContainer = document.createElement("div");
+      bannerContainer.id = "show-modal-task-banner";
+      bannerContainer.className = "show-modal-task-banner-container";
+      modalWide.insertBefore(bannerContainer, content);
+    }
+  }
+  if (!bannerContainer) return;
+
+  // Очищаем старые баннеры внутри show-modal-content если они остались от предыдущих версий
+  const oldInlineBanner = document.getElementById(`show-import-banner-${CURRENT_SHOW_ID}`);
+  if (oldInlineBanner) oldInlineBanner.remove();
+
+  if (activeTask) {
+    const pct = Math.min(100, Math.max(0, Math.round((activeTask.progress || 0) * 100)));
+    const taskTitle = translateLogMessage(activeTask.title || activeTask.name);
+    const msg = translateLogMessage(activeTask.message) || "";
+
+    let banner = bannerContainer.querySelector(".show-import-banner");
+    if (!banner) {
+      bannerContainer.innerHTML = `
+        <div class="show-import-banner" id="show-modal-import-banner-inner">
+          <div class="show-import-header">
+            <div class="show-import-title">
+              <div class="tasks-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;"></div>
+              <span class="show-import-title-text">${escapeHtml(taskTitle)}</span>
+            </div>
+            <span class="show-import-pct">${pct}%</span>
+          </div>
+          <div class="show-import-track">
+            <div class="show-import-fill" style="width: ${pct}%"></div>
+          </div>
+          <div class="show-import-msg" style="${msg ? '' : 'display:none;'}">${escapeHtml(msg)}</div>
+        </div>
+      `;
+    } else {
+      // Плавное обновление существующих элементов без перерисовки DOM дерева
+      const titleEl = banner.querySelector(".show-import-title-text");
+      const pctEl = banner.querySelector(".show-import-pct");
+      const fillEl = banner.querySelector(".show-import-fill");
+      const msgEl = banner.querySelector(".show-import-msg");
+
+      if (titleEl && titleEl.textContent !== taskTitle) titleEl.textContent = taskTitle;
+      if (pctEl && pctEl.textContent !== `${pct}%`) pctEl.textContent = `${pct}%`;
+      if (fillEl) fillEl.style.width = `${pct}%`;
+      if (msgEl) {
+        if (msg) {
+          if (msgEl.textContent !== msg) msgEl.textContent = msg;
+          msgEl.style.display = "block";
+        } else {
+          msgEl.textContent = "";
+          msgEl.style.display = "none";
+        }
+      }
+    }
+    bannerContainer.style.display = "block";
+  } else {
+    bannerContainer.style.display = "none";
+    bannerContainer.innerHTML = "";
+  }
+}
+
 function updateLibraryTasksProgress(data) {
   const running = data.running || [];
   const hadTasksBefore = Boolean(window._HAD_RUNNING_TASKS);
@@ -14658,16 +14761,23 @@ function updateLibraryTasksProgress(data) {
           if (!overlay) {
             overlay = document.createElement("div");
             overlay.className = "poster-import-overlay";
+            overlay.innerHTML = `
+              <div class="poster-import-spinner"></div>
+              <div class="poster-import-title">${escapeHtml(taskLabel)}</div>
+              <div class="poster-import-pct">${pct}%</div>
+              <div class="poster-import-bar-track">
+                <div class="poster-import-bar-fill" style="width: ${pct}%;"></div>
+              </div>
+            `;
             card.querySelector(".show-poster")?.appendChild(overlay);
+          } else {
+            const titleEl = overlay.querySelector(".poster-import-title");
+            const pctEl = overlay.querySelector(".poster-import-pct");
+            const fillEl = overlay.querySelector(".poster-import-bar-fill");
+            if (titleEl && titleEl.textContent !== taskLabel) titleEl.textContent = taskLabel;
+            if (pctEl && pctEl.textContent !== `${pct}%`) pctEl.textContent = `${pct}%`;
+            if (fillEl) fillEl.style.width = `${pct}%`;
           }
-          overlay.innerHTML = `
-            <div class="poster-import-spinner"></div>
-            <div class="poster-import-title">${escapeHtml(taskLabel)}</div>
-            <div class="poster-import-pct">${pct}%</div>
-            <div class="poster-import-bar-track">
-              <div class="poster-import-bar-fill" style="width: ${pct}%;"></div>
-            </div>
-          `;
           if (posterProgress) {
             posterProgress.className = "poster-progress status-importing";
             if (progressText) {
@@ -14739,46 +14849,7 @@ function updateLibraryTasksProgress(data) {
   }
 
   // 2. Обновление прогресс-бара внутри модального окна карточки фильма/сериала/аниме (Show Detail Modal)
-  if (typeof CURRENT_SHOW_ID !== "undefined" && CURRENT_SHOW_ID) {
-    const showModal = document.getElementById("show-modal");
-    if (showModal && showModal.classList.contains("active")) {
-      const showObj = (typeof CACHED_SHOWS !== "undefined" && CACHED_SHOWS) ? CACHED_SHOWS.find(s => s.id === CURRENT_SHOW_ID) : null;
-      const activeTask = running.find(t => 
-        (t.show_id && t.show_id === CURRENT_SHOW_ID) ||
-        (showObj && (
-          (t.title && t.title.toLowerCase().includes((showObj.title || "").toLowerCase())) ||
-          (t.message && t.message.toLowerCase().includes((showObj.title || "").toLowerCase()))
-        ))
-      );
-      const content = document.getElementById("show-modal-content");
-      let banner = document.getElementById(`show-import-banner-${CURRENT_SHOW_ID}`);
-      if (activeTask && content) {
-        const pct = Math.min(100, Math.max(0, Math.round((activeTask.progress || 0) * 100)));
-        const msg = escapeHtml(translateLogMessage(activeTask.message) || "");
-        if (!banner) {
-          banner = document.createElement("div");
-          banner.id = `show-import-banner-${CURRENT_SHOW_ID}`;
-          banner.className = "show-import-banner";
-          content.prepend(banner);
-        }
-        banner.innerHTML = `
-          <div class="show-import-header">
-            <div class="show-import-title">
-              <div class="tasks-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;"></div>
-              <span>${escapeHtml(translateLogMessage(activeTask.title || activeTask.name))}</span>
-            </div>
-            <span class="show-import-pct">${pct}%</span>
-          </div>
-          <div class="show-import-track">
-            <div class="show-import-fill" style="width: ${pct}%"></div>
-          </div>
-          ${msg ? `<div class="show-import-msg">${msg}</div>` : ""}
-        `;
-      } else if (banner) {
-        banner.remove();
-      }
-    }
-  }
+  updateShowModalTaskBanner(running);
 }
 
 function toggleTasksPopup(event) {

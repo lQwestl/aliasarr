@@ -765,6 +765,11 @@ body::before {
 }
 
 /* Show Detail Modal Import Banner */
+.show-modal-task-banner-container {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .show-import-banner {
   background: linear-gradient(135deg, rgba(14, 116, 144, 0.25), rgba(15, 23, 42, 0.4));
   border: 1px solid rgba(45, 212, 191, 0.4);
@@ -773,7 +778,9 @@ body::before {
   margin-top: 2px;
   margin-bottom: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 .show-import-header {
   display: flex;
