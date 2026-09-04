@@ -1149,7 +1149,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .show-info { padding: 12px; text-align: left; border-top: 2px solid var(--border); }
-.show-title { font-family: var(--font-display); font-weight: 700; font-size: 15px; margin-bottom: 6px; text-transform: uppercase; }
+.show-title { font-family: var(--font-display); font-weight: 700; font-size: 15px; margin-bottom: 6px; text-transform: none; }
 
 /* Card Monitored Status Pill */
 .show-monitored-badge-wrap {
