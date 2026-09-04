@@ -88,49 +88,12 @@ def clear_release_logs(
     return {"success": True, "deleted": count, "message": f"Очищено записей: {count}"}
 
 
-@router.get("/download-client-logs")
-async def get_download_client_logs(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_any_permission("view_release_logs", "manage_release_logs")),
-):
-    """Получить диагностику и недавний журнал сообщений от активных клиентов загрузки (Transmission, qBittorrent)."""
-    from app.models.db import DownloadClient
-    from app.services.download_client import get_client
-
-    active_clients = db.query(DownloadClient).filter(DownloadClient.enabled == True).all()
-    if not active_clients:
-        active_clients = db.query(DownloadClient).all()
-
-    results = []
-    for dc in active_clients:
-        client_info = {
-            "id": dc.id,
-            "name": dc.name,
-            "client_name": dc.name,
-            "type": dc.type,
-            "client_type": dc.type,
-            "host": f"{dc.host}:{dc.port}",
-            "enabled": bool(dc.enabled),
-            "diagnostics": {},
-            "logs": [],
-        }
-        try:
-            client = get_client(dc)
-            client_info["diagnostics"] = await client.get_client_diagnostics()
-            client_info["logs"] = await client.get_client_logs(limit=100)
-        except Exception as e:
-            client_info["error"] = str(e)
-            client_info["diagnostics"] = {"connected": False, "status": "error", "error": str(e)}
-        results.append(client_info)
-    return {"clients": results}
-
-
 @router.get("/export")
-async def export_release_logs(
+def export_release_logs(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_any_permission("view_release_logs", "manage_release_logs")),
 ):
-    """Выгрузить все логи релизов и диагностику загрузчиков в текстовый файл (.txt) для анализа и отладки."""
+    """Выгрузить все логи релизов в текстовый файл (.txt) для анализа и отладки."""
     logs = db.query(ReleaseLog).order_by(ReleaseLog.created_at.asc()).limit(5000).all()
     lines = []
     lines.append("=== ALIASARR RELEASE LOGS DUMP ===")
@@ -158,45 +121,6 @@ async def export_release_logs(
             except Exception:
                 pass
         lines.append("-" * 40)
-
-    # Добавляем диагностику и логи всех активных клиентов загрузки (Transmission, qBittorrent)
-    from app.models.db import DownloadClient
-    from app.services.download_client import get_client
-
-    active_dc_rows = db.query(DownloadClient).filter(DownloadClient.enabled == True).all()
-    if active_dc_rows:
-        lines.append("\n" + "=" * 60)
-        lines.append("=== DOWNLOAD CLIENTS DIAGNOSTICS & STATUS ===")
-        lines.append("=" * 60)
-        for dc in active_dc_rows:
-            lines.append(f"\n[DOWNLOAD CLIENT: {dc.name} ({dc.type.upper()}) | {dc.host}:{dc.port}]")
-            try:
-                client = get_client(dc)
-                diag = await client.get_client_diagnostics()
-                if diag:
-                    lines.append(f"  Connected: {diag.get('connected', False)}")
-                    lines.append(f"  Version: {diag.get('version', 'unknown')}")
-                    if "download_dir" in diag:
-                        lines.append(f"  Download Dir: {diag.get('download_dir')}")
-                    if "download_speed" in diag or "upload_speed" in diag:
-                        lines.append(f"  Speeds: DL {diag.get('download_speed', 0)} B/s, UL {diag.get('upload_speed', 0)} B/s")
-                    torrents = diag.get("torrents", [])
-                    lines.append(f"  Total Torrents in client: {len(torrents)}")
-                    if torrents:
-                        lines.append("  Torrents Snapshot:")
-                        for t in torrents:
-                            lines.append(
-                                f"    * [{t.get('state', '').upper()}] {t.get('name')} (hash: {t.get('hash')}): "
-                                f"Progress: {t.get('progress')}%, Left: {t.get('left_until_done')} bytes, Size: {t.get('size')} bytes"
-                            )
-
-                c_logs = await client.get_client_logs(limit=100)
-                if c_logs:
-                    lines.append(f"\n  --- Recent Daemon Logs ({len(c_logs)} entries) ---")
-                    for cl in c_logs:
-                        lines.append(f"  [{cl.get('timestamp')}] [{cl.get('level', '').upper()}] [{cl.get('category', '')}] {cl.get('message')}")
-            except Exception as dc_err:
-                lines.append(f"  Failed to retrieve diagnostics from client '{dc.name}': {dc_err}")
 
     content = "\n".join(lines)
     return Response(
