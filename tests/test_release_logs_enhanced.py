@@ -9,6 +9,12 @@ from app.services import download_client
 from app.services.download_client import TransmissionClient, QBittorrentClient
 from app.services.auto_search import evaluate_torrent_file_priority
 
+try:
+    from app.api.release_logs_routes import get_download_client_logs
+    HAS_FASTAPI = True
+except ImportError:
+    HAS_FASTAPI = False
+
 
 @dataclass
 class MockEpisode:
@@ -243,6 +249,30 @@ class TestReleaseLogsEnhanced(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(prio_sub_unwanted, 0)
         self.assertIn("ОТКЛЮЧЕН", out_reasons[1])
+
+
+    def test_get_download_client_logs_endpoint_format(self):
+        if not HAS_FASTAPI:
+            self.skipTest("FastAPI not installed in host runner")
+        import asyncio
+        from unittest.mock import MagicMock
+
+        db = MagicMock()
+        mock_dc = MagicMock(id=1, name="Transmission", type="transmission", host="127.0.0.1", port=9091, enabled=True)
+        db.query.return_value.filter.return_value.all.return_value = [mock_dc]
+
+        with patch("app.services.download_client.get_client") as mock_get_c:
+            mock_c = AsyncMock()
+            mock_c.get_client_diagnostics.return_value = {"connected": True, "version": "4.0.3"}
+            mock_c.get_client_logs.return_value = [{"level": "info", "message": "hello"}]
+            mock_get_c.return_value = mock_c
+
+            resp = asyncio.run(get_download_client_logs(db=db, current_user=MagicMock()))
+            self.assertIn("clients", resp)
+            self.assertEqual(len(resp["clients"]), 1)
+            self.assertEqual(resp["clients"][0]["name"], "Transmission")
+            self.assertEqual(resp["clients"][0]["client_name"], "Transmission")
+            self.assertTrue(resp["clients"][0]["diagnostics"]["connected"])
 
 
 if __name__ == "__main__":

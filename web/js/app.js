@@ -13085,7 +13085,7 @@ async function loadDownloadClientLogs() {
 
   try {
     const data = await api("/api/v1/release-logs/download-client-logs");
-    const clients = data.clients || [];
+    const clients = Array.isArray(data) ? data : (data.clients || []);
 
     if (clients.length === 0) {
       container.innerHTML = `
@@ -13099,14 +13099,20 @@ async function loadDownloadClientLogs() {
     }
 
     container.innerHTML = clients.map(client => {
-      const isOk = !client.error && client.diagnostics && client.diagnostics.status !== "error";
-      const statusBadge = isOk
-        ? `<span class="badge badge-ok" style="font-size:11px; padding:2px 8px;">${isRu ? "Подключен" : "Connected"}</span>`
-        : `<span class="badge badge-error" style="font-size:11px; padding:2px 8px;">${isRu ? "Ошибка связи" : "Connection Error"}</span>`;
+      const isConnected = !client.error && client.diagnostics && (client.diagnostics.connected === true || client.diagnostics.status === "ok");
+      let statusBadge = "";
+      if (client.enabled === false) {
+        statusBadge = `<span class="badge" style="background:rgba(255,255,255,0.08); color:var(--text-muted); font-size:11px; padding:2px 8px;">${isRu ? "Отключен в настройках" : "Disabled"}</span>`;
+      } else if (isConnected) {
+        statusBadge = `<span class="badge badge-ok" style="font-size:11px; padding:2px 8px;">${isRu ? "Подключен" : "Connected"}</span>`;
+      } else {
+        statusBadge = `<span class="badge badge-error" style="font-size:11px; padding:2px 8px;">${isRu ? "Ошибка связи" : "Connection Error"}</span>`;
+      }
 
       let diagHtml = "";
-      if (client.error) {
-        diagHtml = `<div class="badge-error" style="padding:10px; border-radius:6px; font-size:12px; margin-top:8px;">${escapeHtml(client.error)}</div>`;
+      if (client.error || (client.diagnostics && client.diagnostics.error)) {
+        const errText = client.error || client.diagnostics.error;
+        diagHtml = `<div class="badge-error" style="padding:10px; border-radius:6px; font-size:12px; margin-top:8px;"><i data-lucide="alert-circle" class="ico-sm" style="display:inline-block; vertical-align:middle; margin-right:4px;"></i>${escapeHtml(errText)}</div>`;
       } else if (client.diagnostics) {
         const diag = client.diagnostics;
         const version = diag.version || diag.app_version || "—";
@@ -13228,8 +13234,9 @@ async function loadDownloadClientLogs() {
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <div style="display:flex; align-items:center; gap:8px;">
               <i data-lucide="server" class="ico-sm" style="color:var(--accent)"></i>
-              <strong style="font-size:14px;">${escapeHtml(client.client_name || "Download Client")}</strong>
-              <span class="badge-tag" style="background:rgba(255,255,255,0.08); text-transform:uppercase; font-size:10.5px;">${escapeHtml(client.client_type || "")}</span>
+              <strong style="font-size:14px;">${escapeHtml(client.client_name || client.name || "Download Client")}</strong>
+              <span class="badge-tag" style="background:rgba(255,255,255,0.08); text-transform:uppercase; font-size:10.5px;">${escapeHtml(client.client_type || client.type || "")}</span>
+              ${client.host ? `<span class="mono hint" style="font-size:11px;">(${escapeHtml(client.host)})</span>` : ""}
             </div>
             <div>${statusBadge}</div>
           </div>

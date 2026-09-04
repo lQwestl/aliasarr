@@ -98,13 +98,19 @@ async def get_download_client_logs(
     from app.services.download_client import get_client
 
     active_clients = db.query(DownloadClient).filter(DownloadClient.enabled == True).all()
+    if not active_clients:
+        active_clients = db.query(DownloadClient).all()
+
     results = []
     for dc in active_clients:
         client_info = {
             "id": dc.id,
             "name": dc.name,
+            "client_name": dc.name,
             "type": dc.type,
+            "client_type": dc.type,
             "host": f"{dc.host}:{dc.port}",
+            "enabled": bool(dc.enabled),
             "diagnostics": {},
             "logs": [],
         }
@@ -114,8 +120,9 @@ async def get_download_client_logs(
             client_info["logs"] = await client.get_client_logs(limit=100)
         except Exception as e:
             client_info["error"] = str(e)
+            client_info["diagnostics"] = {"connected": False, "status": "error", "error": str(e)}
         results.append(client_info)
-    return results
+    return {"clients": results}
 
 
 @router.get("/export")
