@@ -130,7 +130,7 @@ const TRANSLATIONS = {
     "nav.events": "События",
     "nav.journal": "Журнал",
     "nav.release_logs": "Релиз логи",
-    "nav.dataset_harvester": "Логи для улучшения и парсера",
+    "nav.dataset_harvester": "Логи для улучшения парсера",
     "nav.backup": "Бэкап",
     "nav.wiki": "Wiki",
     "nav.wiki_tooltip": "База знаний и руководство пользователя",
@@ -146,7 +146,7 @@ const TRANSLATIONS = {
     "tab.events": "События",
     "tab.journal": "Журнал",
     "tab.release_logs": "Релиз логи",
-    "tab.dataset_harvester": "Логи для улучшения и парсера",
+    "tab.dataset_harvester": "Логи для улучшения парсера",
     "tab.backup": "Бэкап",
 
     // Subtitles
@@ -162,7 +162,7 @@ const TRANSLATIONS = {
     "subtitle.dataset_harvester": "Автоматический сбор раздач с трекеров (Jackett / Prowlarr) для проверки качества распознавания и выявления краевых случаев",
     "subtitle.backup": "Резервное копирование настроек приложения (индексаторы, загрузчики, профили качества, шаблоны и т.д.)",
     "subtitle.settings": "Конфигурация системы, интеграций и безопасности",
-    "subtitle.logs": "Аудит действий, системные события, журнал работы, релиз-логи и выборка парсера",
+    "subtitle.logs": "Аудит действий, системные события, журнал работы, релиз-логи и улучшение парсера",
 
     // Release Logs
     "release_logs.filter_all_stages": "Все этапы",
@@ -1173,7 +1173,7 @@ const TRANSLATIONS = {
     "nav.events": "Events",
     "nav.journal": "Journal",
     "nav.release_logs": "Release Logs",
-    "nav.dataset_harvester": "Improvement & Parser Logs",
+    "nav.dataset_harvester": "Parser Improvement Logs",
     "nav.backup": "Backup",
     "nav.wiki": "Wiki",
     "nav.wiki_tooltip": "Knowledge Base & User Documentation",
@@ -1189,7 +1189,7 @@ const TRANSLATIONS = {
     "tab.events": "Events",
     "tab.journal": "Journal",
     "tab.release_logs": "Release Logs",
-    "tab.dataset_harvester": "Improvement & Parser Logs",
+    "tab.dataset_harvester": "Parser Improvement Logs",
     "tab.backup": "Backup",
 
     // Subtitles
@@ -1205,7 +1205,7 @@ const TRANSLATIONS = {
     "subtitle.dataset_harvester": "Automated release harvester from indexers (Jackett / Prowlarr) to benchmark and enhance parser patterns",
     "subtitle.backup": "Backup application settings (indexers, download clients, quality profiles, templates, etc.)",
     "subtitle.settings": "System configuration, integrations, and security",
-    "subtitle.logs": "Audit logs, system events, journal, release logs, and parser dataset",
+    "subtitle.logs": "Audit logs, system events, journal, release logs, and parser improvements",
 
     // Release Logs
     "release_logs.filter_all_stages": "All Stages",
