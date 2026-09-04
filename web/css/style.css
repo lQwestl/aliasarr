@@ -1695,7 +1695,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #queue-table th:nth-child(5),
 #queue-table td:nth-child(5) {
-  width: 170px;
+  width: 180px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(6),
@@ -2560,7 +2560,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   letter-spacing: 0.02em;
 }
 
-.badge-primary, .badge-teal {
+.badge-primary, .badge-teal, .badge-accent {
   background: rgba(45, 212, 191, 0.15);
   color: var(--teal, #00F0FF);
   border-color: rgba(45, 212, 191, 0.3);
@@ -6623,16 +6623,32 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .queue-progress-bar-wrap {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 140px;
+  gap: 6px;
+  min-width: 150px;
 }
 
 .queue-progress-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  align-items: center;
+  gap: 6px;
+}
+
+.queue-progress-pct-badge {
   font-family: var(--font-mono);
-  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1.5px 7px;
+  border-radius: var(--radius-sm, 6px);
+  letter-spacing: 0.02em;
+}
+
+.queue-progress-size-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1.5px 7px;
+  border-radius: var(--radius-sm, 6px);
 }
 
 .queue-speed-badge {

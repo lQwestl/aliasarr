@@ -8423,6 +8423,21 @@ async function loadQueue() {
         : (CURRENT_LANG === "en" ? "Pause download" : "Приостановить раздачу");
       const toggleIcon = isPaused ? "play" : "pause";
 
+      const progressVal = Math.min(100, Math.max(0, pct(i.progress)));
+      const isDone = progressVal >= 100 || (i.progress != null && i.progress >= 0.999);
+      const downloadedBytes = isDone ? (i.size || 0) : ((i.size || 0) * (i.progress || 0));
+
+      let pctBadgeClass = "badge-primary";
+      if (isDone) {
+        pctBadgeClass = "badge-success";
+      } else if (isPaused) {
+        pctBadgeClass = "badge-secondary";
+      }
+
+      const progressFillStyle = isDone
+        ? "width:100%; background:#10b981;"
+        : `width:${progressVal}%;`;
+
       return `
         <tr>
           <td>
@@ -8439,10 +8454,12 @@ async function loadQueue() {
           </td>
           <td>
             <div class="queue-progress-bar-wrap">
-              <div class="queue-progress-bar"><div class="queue-progress-fill" style="width:${pct(i.progress)}%"></div></div>
+              <div class="queue-progress-bar">
+                <div class="queue-progress-fill" style="${progressFillStyle}"></div>
+              </div>
               <div class="queue-progress-meta">
-                <span>${pct(i.progress)}%</span>
-                <span>${formatSize(i.size * (i.progress || 0))}</span>
+                <span class="badge ${pctBadgeClass} queue-progress-pct-badge">${progressVal}%</span>
+                <span class="badge badge-secondary queue-progress-size-badge" title="${formatSize(downloadedBytes)} / ${formatSize(i.size || 0)}">${formatSize(downloadedBytes)}</span>
               </div>
             </div>
           </td>
