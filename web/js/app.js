@@ -3911,6 +3911,21 @@ async function testIndexerFromDashboard(button, id) {
   await loadHealthCheck();
 }
 
+function getMetadataTypeDisplay(type) {
+  if (!type) return "API";
+  const typeStr = (type && typeof type === "object" && type.value) ? type.value : String(type);
+  const typeLabels = {
+    skyhook: "Sonarr SkyHook",
+    radarr: "Radarr SkyHook",
+    tmdb: "TMDB",
+    thetvdb: "TheTVDB",
+    tvmaze: "TVMaze",
+    anilist: "AniList",
+    custom: "Custom",
+  };
+  return typeLabels[typeStr.toLowerCase()] || typeStr;
+}
+
 async function loadHealthCheck() {
   const el = document.getElementById("health-checks");
   const healthBadge = document.getElementById("dash-health-badge");
@@ -3953,9 +3968,11 @@ async function loadHealthCheck() {
                   <span class="badge badge-teal mono" style="font-size:11.5px; padding:2px 8px; font-weight:600;">
                     ${freeText}
                   </span>
-                  <span class="badge ${lvl === 'error' ? 'badge-error' : (lvl === 'warn' ? 'badge-warn' : 'badge-ok')}" style="font-size:10.5px; padding:2px 6px;">
-                    ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Low Space' : 'Мало места') : (lvl === 'warn' ? (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание') : (CURRENT_LANG === 'en' ? 'OK' : 'Норма'))}
-                  </span>
+                  ${lvl !== 'ok' ? `
+                    <span class="badge ${lvl === 'error' ? 'badge-error' : 'badge-warn'}" style="font-size:10.5px; padding:2px 6px;">
+                      ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Low Space' : 'Мало места') : (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание')}
+                    </span>
+                  ` : ''}
                 </div>
               </div>
               ${c.used_pct !== undefined ? `
@@ -4010,9 +4027,11 @@ async function loadHealthCheck() {
                   <i data-lucide="search" class="ico-xs" style="color:var(--teal)"></i>
                   <span>${escapeHtml(formatHealthTitle(c.title || "Индексаторы"))}</span>
                 </div>
-                <span class="badge ${lvl === 'error' ? 'badge-error' : (lvl === 'warn' ? 'badge-warn' : 'badge-ok')}" style="font-size:10.5px; padding:2px 6px;">
-                  ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Error' : 'Ошибка') : (lvl === 'warn' ? (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание') : (CURRENT_LANG === 'en' ? 'OK' : 'Норма'))}
-                </span>
+                ${lvl !== 'ok' ? `
+                  <span class="badge ${lvl === 'error' ? 'badge-error' : 'badge-warn'}" style="font-size:10.5px; padding:2px 6px;">
+                    ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Error' : 'Ошибка') : (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание')}
+                  </span>
+                ` : ''}
               </div>
               <div class="health-item-msg" style="margin-top:2px;">${escapeHtml(formatHealthMessage(c.message))}</div>
               ${itemsHtml}
@@ -4057,9 +4076,11 @@ async function loadHealthCheck() {
                   <i data-lucide="download-cloud" class="ico-xs" style="color:var(--teal)"></i>
                   <span>${escapeHtml(formatHealthTitle(c.title || "Загрузчики"))}</span>
                 </div>
-                <span class="badge ${lvl === 'error' ? 'badge-error' : (lvl === 'warn' ? 'badge-warn' : 'badge-ok')}" style="font-size:10.5px; padding:2px 6px;">
-                  ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Error' : 'Ошибка') : (lvl === 'warn' ? (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание') : (CURRENT_LANG === 'en' ? 'OK' : 'Норма'))}
-                </span>
+                ${lvl !== 'ok' ? `
+                  <span class="badge ${lvl === 'error' ? 'badge-error' : 'badge-warn'}" style="font-size:10.5px; padding:2px 6px;">
+                    ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Error' : 'Ошибка') : (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание')}
+                  </span>
+                ` : ''}
               </div>
               <div class="health-item-msg" style="margin-top:2px;">${escapeHtml(formatHealthMessage(c.message))}</div>
               ${itemsHtml}
@@ -4067,7 +4088,7 @@ async function loadHealthCheck() {
           `;
         }
 
-        // 4. METADATA SOURCES: Show enabled source badges
+        // 4. METADATA SOURCES: Show enabled source badges with friendly type labels
         if (key === 'metadata') {
           const items = Array.isArray(c.items) ? c.items : [];
           let itemsHtml = "";
@@ -4078,7 +4099,7 @@ async function loadHealthCheck() {
                   <span class="badge badge-secondary" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; font-size:12px;">
                     <i data-lucide="database" class="ico-xs" style="color:var(--teal)"></i>
                     <strong>${escapeHtml(m.name)}</strong>
-                    <span class="badge badge-teal mono" style="font-size:10px; padding:1px 5px;">${escapeHtml(m.type || 'api')}</span>
+                    <span class="badge badge-teal mono" style="font-size:10px; padding:1px 5px;">${escapeHtml(getMetadataTypeDisplay(m.type_display || m.type))}</span>
                   </span>
                 `).join("")}
               </div>
@@ -4091,9 +4112,11 @@ async function loadHealthCheck() {
                   <i data-lucide="database" class="ico-xs" style="color:var(--teal)"></i>
                   <span>${escapeHtml(formatHealthTitle(c.title || "Метаданные"))}</span>
                 </div>
-                <span class="badge ${lvl === 'error' ? 'badge-error' : (lvl === 'warn' ? 'badge-warn' : 'badge-ok')}" style="font-size:10.5px; padding:2px 6px;">
-                  ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Error' : 'Ошибка') : (lvl === 'warn' ? (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание') : (CURRENT_LANG === 'en' ? 'OK' : 'Норма'))}
-                </span>
+                ${lvl !== 'ok' ? `
+                  <span class="badge ${lvl === 'error' ? 'badge-error' : 'badge-warn'}" style="font-size:10.5px; padding:2px 6px;">
+                    ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Error' : 'Ошибка') : (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание')}
+                  </span>
+                ` : ''}
               </div>
               <div class="health-item-msg" style="margin-top:2px;">${escapeHtml(formatHealthMessage(c.message))}</div>
               ${itemsHtml}
@@ -4127,9 +4150,11 @@ async function loadHealthCheck() {
                   <i data-lucide="award" class="ico-xs" style="color:var(--teal)"></i>
                   <span>${escapeHtml(formatHealthTitle(c.title || "Профили качества"))}</span>
                 </div>
-                <span class="badge badge-ok" style="font-size:10.5px; padding:2px 6px;">
-                  ${CURRENT_LANG === 'en' ? 'OK' : 'Норма'}
-                </span>
+                ${lvl !== 'ok' ? `
+                  <span class="badge ${lvl === 'error' ? 'badge-error' : 'badge-warn'}" style="font-size:10.5px; padding:2px 6px;">
+                    ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Error' : 'Ошибка') : (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание')}
+                  </span>
+                ` : ''}
               </div>
               <div class="health-item-msg" style="margin-top:2px;">${escapeHtml(formatHealthMessage(c.message))}</div>
               ${itemsHtml}
@@ -4145,9 +4170,11 @@ async function loadHealthCheck() {
                 <span class="health-dot health-${lvl}"></span>
                 <span>${escapeHtml(formatHealthTitle(c.title || "Статус"))}</span>
               </div>
-              <span class="badge ${lvl === 'error' ? 'badge-error' : (lvl === 'warn' ? 'badge-warn' : 'badge-ok')}" style="font-size:10.5px; padding:2px 6px;">
-                ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Error' : 'Ошибка') : (lvl === 'warn' ? (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание') : (CURRENT_LANG === 'en' ? 'OK' : 'Норма'))}
-              </span>
+              ${lvl !== 'ok' ? `
+                <span class="badge ${lvl === 'error' ? 'badge-error' : 'badge-warn'}" style="font-size:10.5px; padding:2px 6px;">
+                  ${lvl === 'error' ? (CURRENT_LANG === 'en' ? 'Error' : 'Ошибка') : (CURRENT_LANG === 'en' ? 'Warning' : 'Внимание')}
+                </span>
+              ` : ''}
             </div>
             <div class="health-item-msg">${escapeHtml(formatHealthMessage(c.message))}</div>
           </div>
@@ -12139,15 +12166,7 @@ async function loadMetadataSources() {
     const items = await api("/api/v1/metadata-sources");
     CACHED_METADATA_SOURCES = items || [];
     tbody.innerHTML = (items && items.length > 0) ? items.map(m => {
-      const typeStr = (m.type && m.type.value) ? m.type.value : (m.type || "tmdb");
-      const typeLabels = {
-        skyhook: "Sonarr SkyHook",
-        radarr: "Radarr SkyHook",
-        tmdb: "TMDB",
-        thetvdb: "TheTVDB",
-        tvmaze: "TVMaze",
-      };
-      const typeDisplay = typeLabels[typeStr.toLowerCase()] || typeStr;
+      const typeDisplay = getMetadataTypeDisplay(m.type);
       return `
       <tr>
         <td><strong>${escapeHtml(m.name)}</strong></td>

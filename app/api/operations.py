@@ -222,12 +222,26 @@ def get_health_check(db: Session = Depends(get_db)):
     })
 
     # 4. Источники метаданных
+    def _md_type_label(t: str) -> str:
+        tl = str(t).lower()
+        mapping = {
+            "skyhook": "Sonarr SkyHook",
+            "radarr": "Radarr SkyHook",
+            "tmdb": "TMDB",
+            "thetvdb": "TheTVDB",
+            "tvmaze": "TVMaze",
+            "anilist": "AniList",
+            "custom": "Custom",
+        }
+        return mapping.get(tl, str(t))
+
     md_sources = db.query(MetadataSource).order_by(MetadataSource.name.asc()).all()
     md_items = [
         {
             "id": md.id,
             "name": md.name,
             "type": str(getattr(md, "type", "")),
+            "type_display": _md_type_label(getattr(md, "type", "")),
             "enabled": bool(md.enabled),
         }
         for md in md_sources
