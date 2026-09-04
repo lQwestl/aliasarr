@@ -241,7 +241,7 @@ class QBittorrentClient(BaseDownloadClient):
             self._sync_client = qbittorrentapi.Client(
                 host=self._base_url, username=self._username, password=self._password,
             )
-        except ImportError:
+        except Exception:
             self._sync_client = None
 
     async def _ensure_auth(self, client: httpx.AsyncClient) -> None:
@@ -588,7 +588,7 @@ class TransmissionClient(BaseDownloadClient):
             self._sync_client = transmission_rpc.Client(
                 host=host, port=port, username=username, password=password,
             )
-        except ImportError:
+        except Exception:
             self._sync_client = None
 
     async def _rpc_call(self, method: str, arguments: Optional[dict] = None) -> dict:

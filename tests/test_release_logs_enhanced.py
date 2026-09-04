@@ -20,6 +20,15 @@ class MockEpisode:
 
 
 class TestReleaseLogsEnhanced(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        super().setUp()
+        self._patch_tr = patch.dict("sys.modules", {"transmission_rpc": None})
+        self._patch_tr.start()
+
+    def tearDown(self):
+        self._patch_tr.stop()
+        super().tearDown()
+
     async def test_transmission_get_client_logs(self):
         client = TransmissionClient(
             host="localhost",

@@ -661,6 +661,18 @@ class TestAutoSearch(unittest.TestCase):
         self.assertEqual(prio_ost, 1, "Общий аудиофайл/OST из папки Sound должен скачиваться")
 
 class TestSeasonQueries(unittest.TestCase):
+    def setUp(self):
+        if not HAS_DEPS:
+            self.skipTest("Requires sqlalchemy and models")
+        self.engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+        Base.metadata.create_all(bind=self.engine)
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+
+    def tearDown(self):
+        if hasattr(self, "session") and self.session:
+            self.session.close()
+
     def test_season_queries_generation_and_core_title(self):
         import asyncio
         from unittest.mock import MagicMock
