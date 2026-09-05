@@ -11938,8 +11938,13 @@ async function testIndexer(button, id) {
 async function removeIndexer(id) {
   const confirmed = await confirmModal(t("common.delete") + "?");
   if (!confirmed) return;
-  await api(`/api/v1/indexers/${id}`, { method: "DELETE" });
-  loadIndexers();
+  try {
+    await api(`/api/v1/indexers/${id}`, { method: "DELETE" });
+    toast(CURRENT_LANG === "en" ? "Indexer deleted" : "Индексатор удалён");
+    loadIndexers();
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + (e.message || e), true);
+  }
 }
 
 // =============================================================================
@@ -12185,8 +12190,13 @@ async function testDownloadClient(button, id) {
 async function removeDownloadClient(id) {
   const confirmed = await confirmModal(t("common.delete") + "?");
   if (!confirmed) return;
-  await api(`/api/v1/download-clients/${id}`, { method: "DELETE" });
-  loadDownloadClients();
+  try {
+    await api(`/api/v1/download-clients/${id}`, { method: "DELETE" });
+    toast(CURRENT_LANG === "en" ? "Download client deleted" : "Загрузчик удалён");
+    loadDownloadClients();
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + (e.message || e), true);
+  }
 }
 
 // =============================================================================
@@ -12318,8 +12328,13 @@ async function submitQualityProfile() {
 async function removeQualityProfile(id) {
   const confirmed = await confirmModal(t("common.delete") + "?");
   if (!confirmed) return;
-  await api(`/api/v1/quality-profiles/${id}`, { method: "DELETE" });
-  loadQualityProfiles();
+  try {
+    await api(`/api/v1/quality-profiles/${id}`, { method: "DELETE" });
+    toast(CURRENT_LANG === "en" ? "Quality profile deleted" : "Профиль качества удалён");
+    loadQualityProfiles();
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + (e.message || e), true);
+  }
 }
 
 // =============================================================================
@@ -12793,8 +12808,13 @@ async function submitMetadataSource() {
 async function removeMetadataSource(id) {
   const confirmed = await confirmModal(t("common.delete") + "?");
   if (!confirmed) return;
-  await api(`/api/v1/metadata-sources/${id}`, { method: "DELETE" });
-  loadMetadataSources();
+  try {
+    await api(`/api/v1/metadata-sources/${id}`, { method: "DELETE" });
+    toast(CURRENT_LANG === "en" ? "Metadata source deleted" : "Источник метаданных удалён");
+    loadMetadataSources();
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + (e.message || e), true);
+  }
 }
 
 // =============================================================================
@@ -13212,8 +13232,13 @@ async function testNotification(button, id) {
 async function removeNotification(id) {
   const confirmed = await confirmModal(t("common.delete") + "?");
   if (!confirmed) return;
-  await api(`/api/v1/notifications/${id}`, { method: "DELETE" });
-  loadNotifications();
+  try {
+    await api(`/api/v1/notifications/${id}`, { method: "DELETE" });
+    toast(CURRENT_LANG === "en" ? "Notification deleted" : "Уведомление удалено");
+    loadNotifications();
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + (e.message || e), true);
+  }
 }
 
 function loadAllSettings() {

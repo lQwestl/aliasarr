@@ -329,6 +329,16 @@ def delete_quality_profile(
     profile = db.get(QualityProfile, profile_id)
     if not profile:
         raise HTTPException(404, "Profile not found")
+
+    assigned_shows = db.query(Show).filter(Show.quality_profile_id == profile_id).all()
+    if assigned_shows:
+        show_names = ", ".join(f"«{s.title}»" for s in assigned_shows[:3])
+        more_suffix = f" и ещё {len(assigned_shows) - 3}" if len(assigned_shows) > 3 else ""
+        raise HTTPException(
+            400,
+            detail=f"Нельзя удалить профиль качества «{profile.name}», так как он назначен тайтлам: {show_names}{more_suffix}. Сначала смените профиль качества у этих тайтлов.",
+        )
+
     db.delete(profile)
     db.commit()
 

@@ -239,6 +239,32 @@ class TestUpgradeFeature(unittest.TestCase):
         self.assertEqual(found.cutoff_quality, "Bluray-1080p")
         self.assertEqual(found.cutoff_score, 250)
 
+    def test_delete_quality_profile_assigned_to_shows_blocks_with_message(self):
+        from app.api.operations import delete_quality_profile
+        from fastapi import HTTPException
+        from types import SimpleNamespace
+
+        admin_user = SimpleNamespace(id=1, username="admin", role="admin")
+
+        show = Show(title="Better Call Saul", quality_profile_id=self.profile.id, monitored=True, content_type="series")
+        self.db.add(show)
+        self.db.commit()
+
+        # Should raise HTTPException with 400 and clear message
+        with self.assertRaises(HTTPException) as ctx:
+            delete_quality_profile(self.profile.id, self.db, admin_user)
+
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertIn("Better Call Saul", ctx.exception.detail)
+        self.assertIn("Нельзя удалить профиль", ctx.exception.detail)
+
+        # After unassigning, deletion should succeed
+        show.quality_profile_id = None
+        self.db.commit()
+
+        delete_quality_profile(self.profile.id, self.db, admin_user)
+        self.assertIsNone(self.db.get(QualityProfile, self.profile.id))
+
 
 if __name__ == "__main__":
     unittest.main()
