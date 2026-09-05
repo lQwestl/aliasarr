@@ -2174,6 +2174,12 @@ async def refresh_show_metadata(db, show) -> dict:
     db.commit()
     db.refresh(show)
 
+    try:
+        from app.services.blocklist_service import relink_blocklist_for_show
+        relink_blocklist_for_show(db, show)
+    except Exception as exc:
+        logger.debug("Ошибка связывания черного списка для шоу %s: %s", show.id, exc)
+
     return {
         "updated": changed,
         "show_id": show.id,

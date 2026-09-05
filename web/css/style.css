@@ -9248,6 +9248,256 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 }
 
+/* ==========================================================================
+   BLOCKLIST STYLES
+   ========================================================================== */
+.blocklist-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 18px;
+}
 
+.blocklist-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 
+.blocklist-stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-muted);
+}
 
+.blocklist-stat-badge strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.blocklist-search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+  min-width: 240px;
+}
+
+.blocklist-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.blocklist-search-input {
+  width: 100%;
+  padding-left: 36px;
+  padding-right: 32px;
+}
+
+.blocklist-search-clear-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.blocklist-search-clear-btn:hover {
+  color: var(--text);
+}
+
+.blocklist-layout {
+  display: grid;
+  grid-template-columns: 290px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .blocklist-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.blocklist-shows-sidebar {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 210px);
+  overflow-y: auto;
+}
+
+.blocklist-shows-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.blocklist-section-heading {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.blocklist-shows-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.blocklist-show-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+}
+
+.blocklist-show-item:hover {
+  background: var(--panel-alt);
+  border-color: var(--border-hover);
+}
+
+.blocklist-show-item.active {
+  background: rgba(0, 240, 255, 0.1);
+  border-color: var(--teal);
+}
+
+[data-theme="obsidian"] .blocklist-show-item.active {
+  background: rgba(0, 245, 212, 0.12);
+  border-color: var(--teal);
+}
+
+.blocklist-show-poster {
+  width: 36px;
+  height: 52px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--panel-alt);
+  flex-shrink: 0;
+}
+
+.blocklist-show-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.blocklist-show-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.blocklist-show-meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.blocklist-main-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.blocklist-main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.blocklist-current-title-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.blocklist-current-title-info h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.blocklist-release-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 13.5px;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.blocklist-release-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.blocklist-reason-badge {
+  font-size: 11.5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 42, 77, 0.12);
+  color: #ff6b81;
+  border: 1px solid rgba(255, 42, 77, 0.25);
+  line-height: 1.4;
+  word-break: break-word;
+  display: inline-block;
+}
+
+.blocklist-hash-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--panel-alt);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}

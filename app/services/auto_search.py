@@ -785,8 +785,19 @@ async def _limit_torrent_files_to_episodes(
                 add_rejected_release_for_show(show_id, t_name)
             try:
                 from app.database import SessionLocal
+                from app.services import blocklist_service
                 with SessionLocal() as s_db:
                     db_show = s_db.get(Show, show_id)
+                    block_reason = f"В раздаче отсутствуют запрошенные серии ({requested_ep_str})"
+                    blocklist_service.add_to_blocklist(
+                        s_db,
+                        release_title=t_name or torrent_hash,
+                        reason=block_reason,
+                        show=db_show,
+                        show_id=show_id,
+                        torrent_hash=torrent_hash,
+                        size=getattr(torrent, "size", None),
+                    )
                     if db_show:
                         log_release_event(
                             stage="grab",
@@ -1109,6 +1120,24 @@ async def _collect_candidates(
             infohash = getattr(rel, "infohash", None)
             guid_str = str(rel.guid) if getattr(rel, "guid", None) else None
             dl_url = str(getattr(rel, "download_url", "")) if getattr(rel, "download_url", None) else None
+            # Проверяем, не находится ли релиз в постоянном черном списке (Blocklist)
+            from app.services import blocklist_service
+            is_blocked, block_reason = blocklist_service.is_release_blocked(
+                db,
+                show=show,
+                title=getattr(rel, "title", None),
+                torrent_hash=infohash,
+                guid=guid_str,
+                download_url=dl_url,
+            )
+            if is_blocked:
+                rejected_candidates.append({
+                    "title": rel.title,
+                    "indexer": idx_name,
+                    "reason": f"В черном списке: {block_reason}",
+                })
+                continue
+
             if is_release_rejected_for_show(
                 show.id,
                 infohash=infohash,
@@ -1119,7 +1148,7 @@ async def _collect_candidates(
                 rejected_candidates.append({
                     "title": rel.title,
                     "indexer": idx_name,
-                    "reason": "Ранее отклонён пользователем или системой",
+                    "reason": "В черном списке текущей сессии",
                 })
                 continue
 

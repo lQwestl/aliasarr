@@ -19,6 +19,7 @@ import datetime as dt
 import enum
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     DateTime,
     Enum as SAEnum,
@@ -131,6 +132,12 @@ class Show(Base):
     episodes: Mapped[list["Episode"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     tracked_releases: Mapped[list["TrackedRelease"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     download_history: Mapped[list["DownloadHistory"]] = relationship(back_populates="show", cascade="all, delete-orphan")
+    blocklist_entries: Mapped[list["Blocklist"]] = relationship(
+        "Blocklist",
+        back_populates="show",
+        foreign_keys="Blocklist.show_id",
+        primaryjoin="Show.id == foreign(Blocklist.show_id)",
+    )
 
 
 class Alias(Base):
@@ -534,3 +541,33 @@ class Session(Base):
     user_agent: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
     user: Mapped[Optional["User"]] = relationship(back_populates="sessions")
+
+
+class Blocklist(Base):
+    """Таблица заблокированных релизов (Черный список).
+    
+    Хранит информацию о релизах, которые были отклонены (например, фальшивые паки, битые торренты,
+    или заблокированные вручную).
+    При удалении тайтла записи сохраняются (show_id -> NULL, но tmdb_id, imdb_id и show_title остаются).
+    При повторном добавлении тайтла записи автоматически привязываются обратно.
+    """
+
+    __tablename__ = "blocklist"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    show_id: Mapped[Optional[int]] = mapped_column(ForeignKey("shows.id", ondelete="SET NULL"), nullable=True, index=True)
+    show_title: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, index=True)
+    tmdb_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    imdb_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    torrent_hash: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    guid: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, index=True)
+    download_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    release_title: Mapped[str] = mapped_column(String(1000), nullable=False, index=True)
+    indexer: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    reason: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    quality: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    size: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow, index=True)
+
+    show: Mapped[Optional["Show"]] = relationship("Show", back_populates="blocklist_entries")
+

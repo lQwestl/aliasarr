@@ -121,6 +121,7 @@ const TRANSLATIONS = {
     // Navigation & Tabs
     "nav.dashboard": "Дашборд",
     "nav.library": "Библиотека",
+    "nav.blocklist": "Черный список",
     "nav.activity": "Активность",
     "nav.calendar": "Календарь",
     "nav.history": "История",
@@ -137,6 +138,8 @@ const TRANSLATIONS = {
     "nav.add_video": "+ Добавить видео",
     "tab.dashboard": "Дашборд",
     "tab.library": "Библиотека",
+    "tab.blocklist": "Черный список",
+    "subtitle.blocklist": "Заблокированные раздачи, исключенные из автопоиска и загрузки",
     "tab.activity": "Активность",
     "tab.calendar": "Календарь",
     "tab.history": "История",
@@ -1287,6 +1290,7 @@ const TRANSLATIONS = {
     // Navigation & Tabs
     "nav.dashboard": "Dashboard",
     "nav.library": "Library",
+    "nav.blocklist": "Blocklist",
     "nav.activity": "Activity",
     "nav.calendar": "Calendar",
     "nav.history": "History",
@@ -1303,6 +1307,8 @@ const TRANSLATIONS = {
     "nav.add_video": "+ Add Video",
     "tab.dashboard": "Dashboard",
     "tab.library": "Library",
+    "tab.blocklist": "Blocklist",
+    "subtitle.blocklist": "Blocked releases excluded from auto-search and downloads",
     "tab.activity": "Activity",
     "tab.calendar": "Calendar",
     "tab.history": "History",
@@ -3812,6 +3818,7 @@ function switchTab(tabId) {
 
   if (tabId === "calendar") loadCalendar();
   if (tabId === "history") loadHistory();
+  if (tabId === "blocklist") loadBlocklist();
   if (tabId === "settings") loadAllSettings();
   if (tabId === "backup") loadBackups();
 
@@ -5657,6 +5664,9 @@ async function refreshShowModal() {
               </button>
               <button type="button" class="btn btn-secondary btn-small" onclick="fixShowPermissions(this, ${show.id})" title="${CURRENT_LANG === 'en' ? 'Fix permissions (chmod 777/666 for Jellyfin/Plex)' : 'Исправить права доступа (chmod 777/666 для Jellyfin/Plex)'}">
                 <i data-lucide="shield-check" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Permissions' : 'Права доступа'}</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-small" onclick="openShowBlocklistModal(${show.id})" title="${CURRENT_LANG === 'en' ? 'Show blocklisted releases for this title' : 'Черный список раздач для этого тайтла'}">
+                <i data-lucide="shield-alert" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Blocklist' : 'Черный список'}</span>
               </button>
             </div>` : ""}
             <div class="show-detail-path-info">
@@ -15287,9 +15297,304 @@ async function startApp() {
   } else {
     switchTab("dashboard");
   }
-  
+
   if (window.lucide) {
     lucide.createIcons();
+  }
+}
+
+/* ====================================================================
+ * BLOCKLIST (ЧЕРНЫЙ СПИСОК РАЗДАЧ)
+ * ==================================================================== */
+let BLOCKLIST_DATA = [];
+let SELECTED_BLOCKLIST_SHOW_ID = "all";
+let BLOCKLIST_SEARCH_QUERY = "";
+
+function openShowBlocklistModal(showId) {
+  closeModal("show-modal");
+  switchTab("blocklist");
+  selectBlocklistShow(showId);
+}
+
+async function loadBlocklist(preferredShowId) {
+  if (preferredShowId !== undefined && preferredShowId !== null) {
+    SELECTED_BLOCKLIST_SHOW_ID = preferredShowId;
+  }
+
+  const tableBody = document.getElementById("blocklist-table-body");
+  if (tableBody) {
+    tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:32px; color:var(--text-muted);"><i data-lucide="loader-2" class="spin ico-md" style="display:inline-block; vertical-align:middle; margin-right:8px;"></i>${CURRENT_LANG === "en" ? "Loading blocklist..." : "Загрузка черного списка..."}</td></tr>`;
+    if (window.lucide) lucide.createIcons();
+  }
+
+  try {
+    const [items, shows] = await Promise.all([
+      api("/api/v1/blocklist"),
+      (!CACHED_SHOWS || !CACHED_SHOWS.length) ? api("/api/v1/shows").catch(() => []) : Promise.resolve(CACHED_SHOWS)
+    ]);
+    BLOCKLIST_DATA = Array.isArray(items) ? items : [];
+    if (Array.isArray(shows) && shows.length) {
+      CACHED_SHOWS = shows;
+    }
+  } catch (err) {
+    console.error("Failed to load blocklist:", err);
+    showToast(CURRENT_LANG === "en" ? "Failed to load blocklist" : "Не удалось загрузить черный список", "error");
+    BLOCKLIST_DATA = [];
+  }
+
+  renderBlocklist();
+}
+
+function selectBlocklistShow(showId) {
+  SELECTED_BLOCKLIST_SHOW_ID = showId;
+  renderBlocklist();
+}
+
+function onBlocklistSearchInput() {
+  const input = document.getElementById("blocklist-search-input");
+  filterBlocklist(input ? input.value : "");
+}
+
+function filterBlocklist(query) {
+  BLOCKLIST_SEARCH_QUERY = (query || "").toLowerCase().trim();
+  const clearBtn = document.getElementById("blocklist-search-clear");
+  if (clearBtn) {
+    clearBtn.style.display = BLOCKLIST_SEARCH_QUERY ? "inline-flex" : "none";
+  }
+  renderBlocklist();
+}
+
+function clearBlocklistSearch() {
+  const input = document.getElementById("blocklist-search-input");
+  if (input) input.value = "";
+  filterBlocklist("");
+}
+
+function renderBlocklist() {
+  const totalCountEl = document.getElementById("blocklist-total-count");
+  const showsCountEl = document.getElementById("blocklist-shows-count");
+  const sidebarCountBadge = document.getElementById("blocklist-sidebar-count-badge");
+  const sidebarList = document.getElementById("blocklist-shows-list");
+  const currentTitleEl = document.getElementById("blocklist-current-title");
+  const currentCountEl = document.getElementById("blocklist-current-count");
+  const clearShowBtn = document.getElementById("blocklist-clear-show-btn");
+  const emptyWrap = document.getElementById("blocklist-empty");
+  const tableWrap = document.getElementById("blocklist-table-wrap");
+  const tableBody = document.getElementById("blocklist-table-body");
+
+  const showsMap = {};
+  if (Array.isArray(CACHED_SHOWS)) {
+    for (const s of CACHED_SHOWS) {
+      showsMap[s.id] = s;
+    }
+  }
+
+  // Group counts per show
+  const showCounts = {};
+  for (const item of BLOCKLIST_DATA) {
+    const sid = item.show_id != null ? item.show_id : "unlinked";
+    showCounts[sid] = (showCounts[sid] || 0) + 1;
+  }
+
+  const uniqueShowIds = Object.keys(showCounts);
+  if (totalCountEl) totalCountEl.textContent = BLOCKLIST_DATA.length;
+  if (showsCountEl) showsCountEl.textContent = uniqueShowIds.length;
+  if (sidebarCountBadge) sidebarCountBadge.textContent = uniqueShowIds.length;
+
+  // Render Sidebar
+  if (sidebarList) {
+    let sidebarHtml = `
+      <div class="blocklist-show-item ${SELECTED_BLOCKLIST_SHOW_ID === 'all' ? 'active' : ''}" onclick="selectBlocklistShow('all')">
+        <div class="blocklist-show-thumb placeholder"><i data-lucide="layers" class="ico-sm"></i></div>
+        <div class="blocklist-show-name">${CURRENT_LANG === "en" ? "All releases" : "Все раздачи"}</div>
+        <span class="blocklist-show-badge">${BLOCKLIST_DATA.length}</span>
+      </div>
+    `;
+
+    for (const sid of uniqueShowIds) {
+      const count = showCounts[sid];
+      let title = "";
+      let posterUrl = "";
+      if (sid === "unlinked") {
+        title = CURRENT_LANG === "en" ? "Other / Unlinked" : "Другие / Без привязки";
+      } else {
+        const sObj = showsMap[sid];
+        title = sObj ? (sObj.title || `Show #${sid}`) : (CURRENT_LANG === "en" ? `Show #${sid}` : `Тайтл #${sid}`);
+        posterUrl = sObj?.poster_url || "";
+      }
+
+      const isActive = String(SELECTED_BLOCKLIST_SHOW_ID) === String(sid);
+      const thumbHtml = posterUrl
+        ? `<img src="${escapeHtml(posterUrl)}" class="blocklist-show-thumb" alt="" onerror="this.outerHTML='<div class=\\\'blocklist-show-thumb placeholder\\\'>${escapeHtml(title.slice(0, 1))}</div>'"/>`
+        : `<div class="blocklist-show-thumb placeholder">${escapeHtml(title.slice(0, 1))}</div>`;
+
+      sidebarHtml += `
+        <div class="blocklist-show-item ${isActive ? 'active' : ''}" onclick="selectBlocklistShow('${escapeHtml(String(sid))}')">
+          ${thumbHtml}
+          <div class="blocklist-show-name" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
+          <span class="blocklist-show-badge">${count}</span>
+        </div>
+      `;
+    }
+
+    sidebarList.innerHTML = sidebarHtml;
+  }
+
+  // Header Title
+  let currentHeaderTitle = CURRENT_LANG === "en" ? "All releases" : "Все раздачи";
+  if (SELECTED_BLOCKLIST_SHOW_ID !== "all") {
+    if (SELECTED_BLOCKLIST_SHOW_ID === "unlinked") {
+      currentHeaderTitle = CURRENT_LANG === "en" ? "Other / Unlinked" : "Другие / Без привязки";
+    } else {
+      const sObj = showsMap[SELECTED_BLOCKLIST_SHOW_ID];
+      currentHeaderTitle = sObj ? (sObj.title || `Show #${SELECTED_BLOCKLIST_SHOW_ID}`) : `Тайтл #${SELECTED_BLOCKLIST_SHOW_ID}`;
+    }
+  }
+
+  if (currentTitleEl) currentTitleEl.textContent = currentHeaderTitle;
+
+  // Filter items
+  let filtered = BLOCKLIST_DATA.filter(item => {
+    if (SELECTED_BLOCKLIST_SHOW_ID !== "all") {
+      if (SELECTED_BLOCKLIST_SHOW_ID === "unlinked") {
+        if (item.show_id != null) return false;
+      } else {
+        if (String(item.show_id) !== String(SELECTED_BLOCKLIST_SHOW_ID)) return false;
+      }
+    }
+    if (BLOCKLIST_SEARCH_QUERY) {
+      const q = BLOCKLIST_SEARCH_QUERY;
+      const tName = (item.torrent_name || "").toLowerCase();
+      const rTitle = (item.release_title || "").toLowerCase();
+      const idx = (item.indexer || "").toLowerCase();
+      const rsn = (item.reason || "").toLowerCase();
+      const hash = (item.torrent_hash || "").toLowerCase();
+      if (!tName.includes(q) && !rTitle.includes(q) && !idx.includes(q) && !rsn.includes(q) && !hash.includes(q)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  if (currentCountEl) currentCountEl.textContent = filtered.length;
+
+  // Clear show button visibility
+  if (clearShowBtn) {
+    if (SELECTED_BLOCKLIST_SHOW_ID !== "all" && filtered.length > 0) {
+      clearShowBtn.style.display = "inline-flex";
+    } else {
+      clearShowBtn.style.display = "none";
+    }
+  }
+
+  // Toggle table vs empty state
+  if (filtered.length === 0) {
+    if (emptyWrap) emptyWrap.style.display = "block";
+    if (tableWrap) tableWrap.style.display = "none";
+  } else {
+    if (emptyWrap) emptyWrap.style.display = "none";
+    if (tableWrap) tableWrap.style.display = "block";
+
+    if (tableBody) {
+      tableBody.innerHTML = filtered.map(item => {
+        const sid = item.show_id;
+        const sObj = sid != null ? showsMap[sid] : null;
+        const showTitle = sObj ? (sObj.title || `Show #${sid}`) : (sid != null ? `Тайтл #${sid}` : "");
+        const relTitle = item.release_title || item.torrent_name || "—";
+        const dateStr = item.created_at ? new Date(item.created_at).toLocaleString() : "—";
+
+        return `
+          <tr>
+            <td>
+              <div class="blocklist-release-info">
+                <div class="blocklist-release-name font-medium" title="${escapeHtml(relTitle)}">${escapeHtml(relTitle)}</div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:3px; flex-wrap:wrap;">
+                  ${item.torrent_hash ? `
+                    <div class="blocklist-release-hash text-muted">
+                      <code class="mono-code">${escapeHtml(item.torrent_hash.slice(0, 10))}...</code>
+                      <button type="button" class="btn-icon-xs" onclick="navigator.clipboard.writeText('${escapeHtml(item.torrent_hash)}'); showToast('${CURRENT_LANG === 'en' ? 'Hash copied' : 'Хеш скопирован'}')" title="${CURRENT_LANG === 'en' ? 'Copy hash' : 'Скопировать хеш'}">
+                        <i data-lucide="copy" class="ico-xs"></i>
+                      </button>
+                    </div>` : ""}
+                  ${sid != null ? `
+                    <a href="javascript:void(0)" onclick="openShowModal(${sid})" class="blocklist-show-link" title="${escapeHtml(showTitle)}">
+                      <i data-lucide="film" class="ico-xs"></i> <span>${escapeHtml(showTitle)}</span>
+                    </a>` : ""}
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge badge-secondary mono-code">${escapeHtml(item.indexer || "—")}</span>
+            </td>
+            <td>
+              <span class="badge badge-teal mono-code">${escapeHtml(item.quality || "—")}</span>
+            </td>
+            <td>
+              <span class="badge badge-warning" title="${escapeHtml(item.reason || '')}">
+                <i data-lucide="alert-circle" class="ico-xs"></i> <span>${escapeHtml(item.reason || (CURRENT_LANG === 'en' ? 'Blocked' : 'Заблокировано'))}</span>
+              </span>
+              <div class="text-muted text-xs" style="margin-top:3px;">${escapeHtml(dateStr)}</div>
+            </td>
+            <td style="text-align:right;">
+              <button type="button" class="btn btn-secondary btn-small blocklist-delete-btn" onclick="removeBlocklistItem(${item.id})" title="${CURRENT_LANG === 'en' ? 'Unblock and remove from blocklist' : 'Разблокировать и удалить из черного списка'}">
+                <i data-lucide="trash-2" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Unblock' : 'Разблокировать'}</span>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+  }
+
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+}
+
+async function removeBlocklistItem(id) {
+  try {
+    await api(`/api/v1/blocklist/${id}`, { method: "DELETE" });
+    showToast(CURRENT_LANG === "en" ? "Release unblocked and removed from blocklist" : "Раздача разблокирована и удалена из черного списка");
+    BLOCKLIST_DATA = BLOCKLIST_DATA.filter(x => x.id !== id);
+    renderBlocklist();
+  } catch (err) {
+    console.error("Failed to delete blocklist item:", err);
+    showToast(err.message || (CURRENT_LANG === "en" ? "Failed to delete item" : "Ошибка удаления из черного списка"), "error");
+  }
+}
+
+async function confirmClearCurrentShowBlocklist() {
+  const showId = SELECTED_BLOCKLIST_SHOW_ID;
+  if (showId === "all") return;
+  const msg = CURRENT_LANG === "en"
+    ? "Are you sure you want to remove all blocked releases for this title?"
+    : "Вы действительно хотите удалить все заблокированные раздачи для этого тайтла?";
+  if (!confirm(msg)) return;
+
+  try {
+    const q = showId === "unlinked" ? "" : `?show_id=${encodeURIComponent(showId)}`;
+    const res = await api(`/api/v1/blocklist${q}`, { method: "DELETE" });
+    showToast(res?.message || (CURRENT_LANG === "en" ? "Blocklist cleared for title" : "Черный список тайтла очищен"));
+    await loadBlocklist(showId);
+  } catch (err) {
+    console.error("Failed to clear blocklist for show:", err);
+    showToast(err.message || (CURRENT_LANG === "en" ? "Failed to clear blocklist" : "Ошибка очистки черного списка"), "error");
+  }
+}
+
+async function confirmClearAllBlocklist() {
+  const msg = CURRENT_LANG === "en"
+    ? "Are you sure you want to completely clear the entire blocklist?"
+    : "Вы действительно хотите полностью очистить весь черный список раздач?";
+  if (!confirm(msg)) return;
+
+  try {
+    const res = await api("/api/v1/blocklist", { method: "DELETE" });
+    showToast(res?.message || (CURRENT_LANG === "en" ? "All blocklist items removed" : "Все записи черного списка удалены"));
+    await loadBlocklist("all");
+  } catch (err) {
+    console.error("Failed to clear all blocklist items:", err);
+    showToast(err.message || (CURRENT_LANG === "en" ? "Failed to clear blocklist" : "Ошибка очистки черного списка"), "error");
   }
 }
 

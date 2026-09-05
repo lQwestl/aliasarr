@@ -89,6 +89,7 @@
     <nav class="nav">
       <button class="nav-item" data-tab="dashboard"><i data-lucide="layout-dashboard" class="nav-ico"></i><span data-i18n="nav.dashboard">Дашборд</span></button>
       <button class="nav-item" data-tab="library"><i data-lucide="library" class="nav-ico"></i><span data-i18n="nav.library">Библиотека</span></button>
+      <button class="nav-item" data-tab="blocklist"><i data-lucide="shield-alert" class="nav-ico"></i><span data-i18n="nav.blocklist">Черный список</span></button>
       <button class="nav-item" data-tab="activity"><i data-lucide="activity" class="nav-ico"></i><span data-i18n="nav.activity">Активность</span></button>
       <button class="nav-item" data-tab="calendar"><i data-lucide="calendar" class="nav-ico"></i><span data-i18n="nav.calendar">Календарь</span></button>
       <button class="nav-item" data-tab="history"><i data-lucide="history" class="nav-ico"></i><span data-i18n="nav.history">История</span></button>
@@ -491,6 +492,100 @@
           <!-- Alphabet links generated via JS -->
         </div>
       </div> <!-- #library-layout -->
+    </section>
+
+    <!-- ЧЕРНЫЙ СПИСОК -->
+    <section id="tab-blocklist" class="tab-panel">
+      <div class="panel-sticky-header">
+        <header class="panel-header">
+          <div class="header-row">
+            <div>
+              <h1 data-i18n="tab.blocklist">Черный список</h1>
+              <p class="subtitle" data-i18n="subtitle.blocklist">Заблокированные раздачи, исключенные из автопоиска и загрузки</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn btn-secondary" onclick="loadBlocklist()" title="Обновить список" id="blocklist-refresh-btn">
+                <i data-lucide="refresh-cw"></i>
+                <span data-i18n="common.refresh">Обновить</span>
+              </button>
+              <button class="btn btn-danger" onclick="confirmClearAllBlocklist()" title="Очистить весь черный список" id="blocklist-clear-all-btn">
+                <i data-lucide="trash-2"></i>
+                <span>Очистить всё</span>
+              </button>
+            </div>
+          </div>
+        </header>
+      </div>
+
+      <!-- Фильтры и статистика -->
+      <div class="blocklist-toolbar">
+        <div class="blocklist-stats">
+          <div class="blocklist-stat-badge">
+            <i data-lucide="shield-alert" class="ico-xs text-danger"></i>
+            <span>Раздач в списке: <strong id="blocklist-total-count">0</strong></span>
+          </div>
+          <div class="blocklist-stat-badge">
+            <i data-lucide="film" class="ico-xs text-info"></i>
+            <span>Тайтлов с блокировками: <strong id="blocklist-shows-count">0</strong></span>
+          </div>
+        </div>
+        <div class="blocklist-search-wrap">
+          <i data-lucide="search" class="blocklist-search-icon"></i>
+          <input type="text" id="blocklist-search-input" class="input blocklist-search-input" placeholder="Поиск по названию раздачи, хэшу или причине..." oninput="onBlocklistSearchInput()">
+          <button id="blocklist-search-clear" class="blocklist-search-clear-btn" onclick="clearBlocklistSearch()" style="display:none;">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Главная область: сайдбар тайтлов слева + раздачи справа -->
+      <div class="blocklist-layout">
+        <aside class="blocklist-shows-sidebar">
+          <div class="blocklist-shows-header">
+            <span class="blocklist-section-heading">Тайтлы</span>
+            <span id="blocklist-sidebar-count-badge" class="badge badge-secondary">0</span>
+          </div>
+          <div class="blocklist-shows-list" id="blocklist-shows-list">
+            <!-- Список тайтлов генерируется JS -->
+          </div>
+        </aside>
+
+        <main class="blocklist-main-panel">
+          <div class="blocklist-main-header">
+            <div class="blocklist-current-title-info">
+              <h3 id="blocklist-current-title">Все раздачи</h3>
+              <span id="blocklist-current-count" class="badge badge-primary">0</span>
+            </div>
+            <button id="blocklist-clear-show-btn" class="btn btn-sm btn-outline-danger" onclick="confirmClearCurrentShowBlocklist()" style="display:none;">
+              <i data-lucide="trash"></i>
+              <span>Очистить для тайтла</span>
+            </button>
+          </div>
+
+          <div id="blocklist-empty" class="empty-state" style="display:none;">
+            <i data-lucide="shield-check" class="empty-state-icon text-success" style="width:48px;height:48px;margin-bottom:12px;opacity:0.8;"></i>
+            <p style="font-size:15px; font-weight:600;">Черный список пуст</p>
+            <p class="text-muted" style="font-size:13px;">Ни одна раздача не заблокирована. Система автоматически занесет сюда раздачи, если в них не окажется нужных файлов.</p>
+          </div>
+
+          <div class="table-responsive" id="blocklist-table-wrap">
+            <table class="data-table" id="blocklist-table">
+              <thead>
+                <tr>
+                  <th style="width:40%;">Раздача / Тайтл</th>
+                  <th style="width:12%;">Трекер</th>
+                  <th style="width:12%;">Качество</th>
+                  <th style="width:24%;">Причина блокировки</th>
+                  <th style="width:12%; text-align:right;">Действие</th>
+                </tr>
+              </thead>
+              <tbody id="blocklist-table-body">
+                <!-- Записи раздач генерируются JS -->
+              </tbody>
+            </table>
+          </div>
+        </main>
+      </div>
     </section>
 
     <!-- АКТИВНОСТЬ / ОЧЕРЕДЬ -->

@@ -428,10 +428,23 @@ async def check_downloads(db: Session) -> list[dict]:
 
                     if not matched_eps:
                         # В раздаче вообще нет ни одной нужной серии для тайтла
+                        from app.services import blocklist_service
+                        try:
+                            blocklist_service.add_to_blocklist(
+                                db,
+                                release_title=getattr(t, "name", torrent_hash),
+                                reason="Раздача не содержит ни одной нужной серии для тайтла",
+                                show=show_obj,
+                                show_id=show_obj.id if show_obj else None,
+                                torrent_hash=torrent_hash,
+                                size=getattr(t, "size", None),
+                            )
+                        except Exception as b_err:
+                            logger.debug("DownloadsMonitor: Не удалось занести в черный список: %s", b_err)
                         try:
                             await client.remove_torrent(torrent_hash, delete_files=True)
                             logger.warning(
-                                "DownloadsMonitor: Раздача %s не содержит ни одной нужной серии для «%s». Раздача удалена из клиента.",
+                                "DownloadsMonitor: Раздача %s не содержит ни одной нужной серии для «%s». Раздача удалена из клиента и добавлена в черный список.",
                                 torrent_hash, getattr(show_obj, "title", torrent_hash),
                             )
                         except Exception as rem_err:
@@ -724,11 +737,24 @@ async def check_downloads(db: Session) -> list[dict]:
                             ep.download_client_id = None
                             ep.download_progress = 0.0
                             db.add(ep)
+                    from app.services import blocklist_service
+                    try:
+                        blocklist_service.add_to_blocklist(
+                            db,
+                            release_title=getattr(t, "name", torrent_hash),
+                            reason="Раздача не содержала запрошенных серий (все файлы уже скачаны или не запрошены)",
+                            show=show,
+                            show_id=show.id if show else None,
+                            torrent_hash=torrent_hash,
+                            size=getattr(t, "size", None),
+                        )
+                    except Exception as b_err:
+                        logger.debug("DownloadsMonitor: Не удалось добавить раздачу %s в черный список: %s", torrent_hash, b_err)
                     try:
                         client = get_client(dc_row)
                         await client.remove_torrent(torrent_hash, delete_files=True)
                         logger.info(
-                            "DownloadsMonitor: Раздача %s не содержала новых файлов для «%s» и была удалена из клиента.",
+                            "DownloadsMonitor: Раздача %s не содержала новых файлов для «%s», удалена из клиента и добавлена в черный список.",
                             torrent_hash, show.title,
                         )
                     except Exception as rem_err:
