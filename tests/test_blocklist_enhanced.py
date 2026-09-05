@@ -124,6 +124,28 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(res3["success"])
             self.assertEqual(res3["deleted_count"], 15)
 
+    def test_update_blocklist_entry(self):
+        from app.models.db import Blocklist, Show
+        from app.services.blocklist_service import update_blocklist_entry
+        mock_db = MagicMock()
+        existing = Blocklist(id=5, release_title="Old.Title", reason="Old reason", show_id=1)
+        mock_db.get.side_effect = lambda model, ident: existing if model == Blocklist and ident == 5 else (Show(id=2, title="New Show") if model == Show and ident == 2 else None)
+
+        updated = update_blocklist_entry(
+            mock_db,
+            item_id=5,
+            release_title="New.Title.1080p",
+            reason="New updated reason",
+            show_id=2,
+            torrent_hash="1122334455667788990011223344556677889900",
+        )
+        self.assertIsNotNone(updated)
+        self.assertEqual(updated.release_title, "New.Title.1080p")
+        self.assertEqual(updated.reason, "New updated reason")
+        self.assertEqual(updated.show_id, 2)
+        self.assertEqual(updated.show_title, "New Show")
+        mock_db.commit.assert_called()
+
     async def test_limit_torrent_files_cancellation_adds_to_blocklist(self):
         from app.models.db import Show, Episode, EpisodeStatus
         from app.services.auto_search import _limit_torrent_files_to_episodes

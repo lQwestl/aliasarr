@@ -15405,11 +15405,44 @@ function openAddBlocklistForCurrentShow() {
   }
 }
 
-function setBlocklistQuickReason(reasonText) {
-  const reasonInput = document.getElementById("add-blocklist-reason");
+function setBlocklistQuickReason(mode, text) {
+  let targetId = "add-blocklist-reason";
+  let reasonText = mode;
+  if (text !== undefined) {
+    targetId = (mode === "edit") ? "edit-blocklist-reason" : "add-blocklist-reason";
+    reasonText = text;
+  }
+  const reasonInput = document.getElementById(targetId);
   if (reasonInput) {
     reasonInput.value = reasonText;
     reasonInput.focus();
+  }
+}
+
+function onAddBlocklistShowChange(val) {
+  const bannerEl = document.getElementById("add-blocklist-target-show-banner");
+  if (!val) {
+    if (bannerEl) {
+      bannerEl.innerHTML = "";
+      bannerEl.style.display = "none";
+    }
+    return;
+  }
+  const showObj = (CACHED_SHOWS || []).find(s => String(s.id) === String(val));
+  if (showObj && bannerEl) {
+    const posterUrl = showObj.poster_url || "/static/img/no-poster.png";
+    bannerEl.innerHTML = `
+      <img src="${escapeHtml(posterUrl)}" class="blocklist-modal-target-poster" alt="" onerror="this.onerror=null;this.src='/static/img/no-poster.png';">
+      <div class="blocklist-modal-target-info">
+        <div class="blocklist-modal-target-title">${escapeHtml(showObj.title)}${showObj.year ? ` <span class="text-muted">(${showObj.year})</span>` : ""}</div>
+        <div class="blocklist-modal-target-subtitle">${CURRENT_LANG === "en" ? "Adding block for this title" : "Блокировка для выбранного тайтла"}</div>
+      </div>
+      <button type="button" class="btn btn-sm btn-ghost" onclick="toggleAddBlocklistShowSelector(true)" title="${CURRENT_LANG === "en" ? "Change title" : "Выбрать другой тайтл"}">
+        <i data-lucide="edit-2" class="ico-xs"></i>
+        <span>${CURRENT_LANG === "en" ? "Change" : "Изменить"}</span>
+      </button>
+    `;
+    if (window.lucide) lucide.createIcons({ root: bannerEl });
   }
 }
 
@@ -15749,9 +15782,14 @@ function renderBlocklist() {
               <div class="text-muted text-xs" style="margin-top:3px;">${escapeHtml(dateStr)}</div>
             </td>
             <td style="text-align:right;">
-              <button type="button" class="btn btn-secondary btn-small blocklist-delete-btn" onclick="removeBlocklistItem(${item.id})" title="${CURRENT_LANG === 'en' ? 'Unblock and remove from blocklist' : 'Разблокировать и удалить из черного списка'}">
-                <i data-lucide="trash-2" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Unblock' : 'Разблокировать'}</span>
-              </button>
+              <div class="blocklist-actions-cell">
+                <button type="button" class="btn btn-secondary btn-small" onclick="openEditBlocklistModal(${item.id})" title="${CURRENT_LANG === 'en' ? 'Edit blocked release' : 'Редактировать запись'}">
+                  <i data-lucide="edit-3" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Edit' : 'Изменить'}</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-small blocklist-delete-btn" onclick="removeBlocklistItem(${item.id})" title="${CURRENT_LANG === 'en' ? 'Unblock and remove from blocklist' : 'Разблокировать и удалить из черного списка'}">
+                  <i data-lucide="trash-2" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Unblock' : 'Разблокировать'}</span>
+                </button>
+              </div>
             </td>
           </tr>
         `;

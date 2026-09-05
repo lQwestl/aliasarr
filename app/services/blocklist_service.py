@@ -245,6 +245,70 @@ def remove_from_blocklist(db: Session, item_id: int) -> bool:
         return False
 
 
+def update_blocklist_entry(
+    db: Session,
+    item_id: int,
+    release_title: Optional[str] = None,
+    reason: Optional[str] = None,
+    show_id: Optional[int] = None,
+    torrent_hash: Optional[str] = None,
+    guid: Optional[str] = None,
+    download_url: Optional[str] = None,
+    indexer: Optional[str] = None,
+    quality: Optional[str] = None,
+    size: Optional[int] = None,
+) -> Optional[Blocklist]:
+    """Обновляет существующую запись в черном списке."""
+    item = db.get(Blocklist, item_id)
+    if not item:
+        return None
+
+    if release_title is not None and release_title.strip():
+        item.release_title = release_title.strip()
+    if reason is not None:
+        item.reason = reason.strip()
+    if torrent_hash is not None:
+        item.torrent_hash = torrent_hash.strip().lower() if torrent_hash.strip() else None
+    if guid is not None:
+        item.guid = str(guid).strip().lower() if str(guid).strip() else None
+    if download_url is not None:
+        item.download_url = str(download_url).strip() if str(download_url).strip() else None
+    if indexer is not None:
+        item.indexer = str(indexer).strip() if str(indexer).strip() else None
+    if quality is not None:
+        item.quality = str(quality).strip() if str(quality).strip() else None
+    if size is not None:
+        item.size = size
+
+    # Обновление привязки к тайтлу
+    if show_id is not None:
+        if show_id in (0, -1, None) or str(show_id) in ("0", ""):
+            item.show_id = None
+            item.show_title = None
+            item.tmdb_id = None
+            item.imdb_id = None
+        else:
+            show = db.get(Show, int(show_id))
+            if show:
+                item.show_id = show.id
+                item.show_title = show.title
+                item.tmdb_id = getattr(show, "tmdb_id", None)
+                item.imdb_id = getattr(show, "imdb_id", None)
+            else:
+                item.show_id = int(show_id)
+
+    db.add(item)
+    try:
+        db.commit()
+        db.refresh(item)
+        logger.info("Запись #%d в черном списке обновлена", item_id)
+        return item
+    except Exception as exc:
+        db.rollback()
+        logger.warning("Не удалось обновить запись #%d в черном списке: %s", item_id, exc)
+        return None
+
+
 def clear_blocklist_for_show(db: Session, show_id_or_title: Optional[str | int] = None, *, show_id: Optional[int] = None) -> int:
     """Удаляет все записи черного списка для конкретного шоу."""
     target = show_id if show_id is not None else show_id_or_title

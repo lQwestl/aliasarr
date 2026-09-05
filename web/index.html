@@ -3669,16 +3669,16 @@
       </h3>
     </div>
     <div class="modal-body form-col" style="gap:14px;">
-      <!-- Карточка выбранного тайтла при добавлении из конкретного тайтла -->
+      <!-- Компактная карточка выбранного тайтла при наличии -->
       <div id="add-blocklist-target-show-banner" class="blocklist-modal-target-show" style="display:none;"></div>
 
-      <!-- Селектор тайтла при общем добавлении -->
+      <!-- Селектор тайтла -->
       <div class="form-group" id="add-blocklist-show-group">
-        <label for="add-blocklist-show" style="display:block; margin-bottom:6px; font-weight:500;">Тайтл (опционально):</label>
-        <select id="add-blocklist-show" class="input" style="width:100%;">
+        <label for="add-blocklist-show" style="display:block; margin-bottom:6px; font-weight:500;">Тайтл (сериал / фильм):</label>
+        <select id="add-blocklist-show" class="input" style="width:100%;" onchange="onAddBlocklistShowChange(this.value)">
           <option value="">Глобальная блокировка (для всех тайтлов)</option>
         </select>
-        <p class="hint" style="font-size:12px; margin-top:4px;">Если выбрать сериал/фильм, релиз будет исключаться только при его поиске.</p>
+        <p class="hint" style="font-size:12px; margin-top:4px;">Если выбрать сериал/фильм, релиз будет блокироваться только для него.</p>
       </div>
 
       <div class="form-group">
@@ -3691,17 +3691,68 @@
         <input type="text" id="add-blocklist-reason" class="input" style="width:100%;" placeholder="Например: Отсутствуют серии / Битая озвучка / Фейк">
         <div class="blocklist-quick-reasons-wrap">
           <span class="blocklist-quick-reasons-label">Быстрый выбор:</span>
-          <button type="button" class="blocklist-quick-btn" onclick="setBlocklistQuickReason('Отсутствуют нужные серии')">Отсутствуют серии</button>
-          <button type="button" class="blocklist-quick-btn" onclick="setBlocklistQuickReason('Неверная или битая озвучка')">Битая озвучка</button>
-          <button type="button" class="blocklist-quick-btn" onclick="setBlocklistQuickReason('Фейк / Заглушка')">Фейк</button>
-          <button type="button" class="blocklist-quick-btn" onclick="setBlocklistQuickReason('Плохое качество видео / звука')">Плохое качество</button>
-          <button type="button" class="blocklist-quick-btn" onclick="setBlocklistQuickReason('Несоответствие сезона или эпизодов')">Не тот сезон</button>
+          <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('add', 'Отсутствуют нужные серии')">Отсутствуют серии</span>
+          <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('add', 'Неверная или битая озвучка')">Битая озвучка</span>
+          <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('add', 'Фейк / Заглушка')">Фейк</span>
+          <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('add', 'Плохое качество видео / звука')">Плохое качество</span>
+          <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('add', 'Несоответствие сезона или эпизодов')">Не тот сезон</span>
         </div>
       </div>
     </div>
     <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
       <button class="btn btn-secondary" onclick="closeModal('modal-add-blocklist')">Отмена</button>
       <button class="btn btn-danger" onclick="submitAddBlocklist(this)">Заблокировать</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-edit-blocklist" class="modal-overlay">
+  <div class="modal modal-medium" style="max-width: 560px; width: 95%;">
+    <button class="modal-close" onclick="closeModal('modal-edit-blocklist')"><i data-lucide="x"></i></button>
+    <div class="modal-header" style="margin-bottom: 16px;">
+      <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+        <i data-lucide="edit-3" class="ico-sm" style="color:var(--teal)"></i>
+        <span>Редактировать заблокированный релиз</span>
+      </h3>
+    </div>
+    <div class="modal-body form-col" style="gap:14px;">
+      <input type="hidden" id="edit-blocklist-id" value="">
+
+      <!-- Селектор тайтла -->
+      <div class="form-group" id="edit-blocklist-show-group">
+        <label for="edit-blocklist-show" style="display:block; margin-bottom:6px; font-weight:500;">Тайтл (сериал / фильм):</label>
+        <select id="edit-blocklist-show" class="input" style="width:100%;">
+          <option value="">Глобальная блокировка (для всех тайтлов)</option>
+        </select>
+        <p class="hint" style="font-size:12px; margin-top:4px;">Если выбрать сериал/фильм, релиз будет исключаться только при его поиске.</p>
+      </div>
+
+      <div class="form-group">
+        <label for="edit-blocklist-title" style="display:block; margin-bottom:6px; font-weight:500;">Название релиза <span class="text-danger">*</span>:</label>
+        <input type="text" id="edit-blocklist-title" class="input" style="width:100%;" placeholder="Название релиза">
+      </div>
+
+      <div class="form-group">
+        <label for="edit-blocklist-hash" style="display:block; margin-bottom:6px; font-weight:500;">Инфохэш торрента (опционально):</label>
+        <input type="text" id="edit-blocklist-hash" class="input" style="width:100%;" placeholder="40-символьный SHA1 хэш">
+      </div>
+
+      <div class="form-group">
+        <label for="edit-blocklist-reason" style="display:block; margin-bottom:6px; font-weight:500;">Причина блокировки:</label>
+        <input type="text" id="edit-blocklist-reason" class="input" style="width:100%;" placeholder="Причина блокировки">
+        <div class="blocklist-quick-reasons-wrap">
+          <span class="blocklist-quick-reasons-label">Быстрый выбор:</span>
+          <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('edit', 'Отсутствуют нужные серии')">Отсутствуют серии</span>
+          <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('edit', 'Неверная или битая озвучка')">Битая озвучка</span>
+          <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('edit', 'Фейк / Заглушка')">Фейк</span>
+          <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('edit', 'Плохое качество видео / звука')">Плохое качество</span>
+          <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('edit', 'Несоответствие сезона или эпизодов')">Не тот сезон</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-edit-blocklist')">Отмена</button>
+      <button class="btn btn-primary" onclick="submitEditBlocklist(this)">Сохранить</button>
     </div>
   </div>
 </div>
