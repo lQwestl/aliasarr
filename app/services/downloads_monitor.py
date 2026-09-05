@@ -18,10 +18,13 @@ import logging
 import os
 
 try:
+    from sqlalchemy import and_, or_
     from sqlalchemy.orm import Session
     from app.database import SessionLocal
     from app.models.db import DownloadClient, Episode, EpisodeStatus, Show
 except ImportError:
+    def and_(*args): return args
+    def or_(*args): return args
     Session = object
     SessionLocal = None
     class _MockCol:
@@ -238,7 +241,12 @@ async def check_downloads(db: Session) -> list[dict]:
     settings = get_or_create_settings(db)
     downloading = (
         db.query(Episode)
-        .filter(Episode.status == EpisodeStatus.DOWNLOADING, Episode.torrent_hash.isnot(None))
+        .filter(
+            or_(
+                Episode.status == EpisodeStatus.DOWNLOADING,
+                and_(Episode.torrent_hash.isnot(None), Episode.status == EpisodeStatus.DOWNLOADED),
+            )
+        )
         .all()
     )
     if not downloading:
@@ -303,6 +311,11 @@ async def check_downloads(db: Session) -> list[dict]:
                         ep.status = EpisodeStatus.UNAIRED
                     else:
                         ep.status = EpisodeStatus.WANTED
+                    db.add(ep)
+                    progress_changed = True
+                elif ep.status == EpisodeStatus.DOWNLOADED:
+                    ep.torrent_hash = None
+                    ep.download_progress = 1.0
                     db.add(ep)
                     progress_changed = True
             logger.info("Раздача %s удалена из загрузчика. Серии переведены в статус поиска.", torrent_hash)

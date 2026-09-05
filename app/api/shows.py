@@ -1282,9 +1282,13 @@ def sync_show_disk(
                     matched_ep = match_special_episode(file_path, specials, parsed)
 
             if matched_ep:
-                matched_ep.status = EpisodeStatus.DOWNLOADED
+                is_active_download = (
+                    matched_ep.status == EpisodeStatus.DOWNLOADING and bool(matched_ep.torrent_hash)
+                )
+                if not is_active_download:
+                    matched_ep.status = EpisodeStatus.DOWNLOADED
+                    matched_ep.download_progress = 1.0
                 matched_ep.file_path = file_path
-                matched_ep.download_progress = 1.0
                 matched_ep.downloaded_quality = q_info.name
                 matched_ep.video_codec = q_info.video_codec
                 matched_ep.audio_codec = q_info.audio_codec
