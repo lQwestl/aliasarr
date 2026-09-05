@@ -561,6 +561,7 @@ class Blocklist(Base):
     imdb_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
     torrent_hash: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
     guid: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, index=True)
+    page_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     download_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     release_title: Mapped[str] = mapped_column(String(1000), nullable=False, index=True)
     indexer: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)

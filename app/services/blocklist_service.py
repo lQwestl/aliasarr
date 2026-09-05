@@ -24,6 +24,117 @@ from app.models.db import Blocklist, Show
 logger = logging.getLogger("aliasarr.blocklist")
 
 
+def _resolve_release_details(
+    db: Session,
+    torrent_hash: Optional[str] = None,
+    show_id: Optional[int] = None,
+    guid: Optional[str] = None,
+) -> dict[str, Any]:
+    """
+    Автоматически восстанавливает ссылку на страницу раздачи в браузере (page_url),
+    настоящее название релиза, трекер, ссылку скачивания и качество из связанных таблиц
+    TrackedRelease, ReleaseLog и DownloadHistory.
+    """
+    resolved = {
+        "page_url": None,
+        "download_url": None,
+        "release_title": None,
+        "indexer": None,
+        "quality": None,
+        "guid": None,
+        "size": None,
+    }
+    norm_hash = torrent_hash.lower().strip() if torrent_hash else None
+    norm_guid = str(guid).strip() if guid else None
+
+    # 1. Поиск в TrackedRelease
+    if norm_hash or norm_guid:
+        try:
+            from app.models.db import TrackedRelease, Indexer
+            q_tr = db.query(TrackedRelease)
+            if norm_hash:
+                tr = q_tr.filter(func.lower(TrackedRelease.infohash) == norm_hash).first()
+            elif norm_guid:
+                tr = q_tr.filter(func.lower(TrackedRelease.topic_guid) == norm_guid.lower()).first()
+            else:
+                tr = None
+
+            if tr:
+                if tr.topic_url and tr.topic_url.startswith(("http://", "https://")):
+                    resolved["page_url"] = tr.topic_url
+                if tr.topic_guid:
+                    resolved["guid"] = tr.topic_guid
+                    if not resolved["page_url"] and tr.topic_guid.startswith(("http://", "https://")):
+                        resolved["page_url"] = tr.topic_guid
+                if tr.indexer_id:
+                    idx = db.get(Indexer, tr.indexer_id)
+                    if idx and idx.name:
+                        resolved["indexer"] = idx.name
+        except Exception as e:
+            logger.debug("Ошибка поиска в TrackedRelease: %s", e)
+
+    # 2. Поиск в ReleaseLog
+    if norm_hash or norm_guid:
+        try:
+            from app.models.db import ReleaseLog
+            rlogs = (
+                db.query(ReleaseLog)
+                .filter(
+                    ReleaseLog.details.isnot(None),
+                    ReleaseLog.stage.in_(["grab", "search", "decision", "download", "import"]),
+                )
+                .order_by(ReleaseLog.id.desc())
+                .limit(150)
+                .all()
+            )
+            for rlog in rlogs:
+                details = rlog.details or {}
+                log_hash = str(details.get("torrent_hash") or "").lower().strip()
+                log_page = str(details.get("page_url") or "").strip()
+                log_down = str(details.get("download_url") or "").strip()
+
+                is_match = (norm_hash and log_hash == norm_hash)
+                if not is_match and norm_guid and (log_page.lower() == norm_guid.lower() or log_down.lower() == norm_guid.lower()):
+                    is_match = True
+
+                if is_match:
+                    if log_page and log_page.startswith(("http://", "https://")):
+                        resolved["page_url"] = log_page
+                    if log_down and log_down.startswith(("http://", "https://")):
+                        resolved["download_url"] = log_down
+                    if rlog.release_title and not re.match(r"^[a-fA-F0-9]{40}$", rlog.release_title.strip()):
+                        resolved["release_title"] = rlog.release_title.strip()
+                    if rlog.indexer and not resolved["indexer"]:
+                        resolved["indexer"] = rlog.indexer
+                    if details.get("quality"):
+                        resolved["quality"] = details["quality"]
+                    break
+        except Exception as e:
+            logger.debug("Ошибка поиска в ReleaseLog: %s", e)
+
+    # 3. Поиск в DownloadHistory
+    if show_id and not resolved["release_title"]:
+        try:
+            from app.models.db import DownloadHistory, Indexer
+            dh = (
+                db.query(DownloadHistory)
+                .filter(DownloadHistory.show_id == show_id)
+                .order_by(DownloadHistory.id.desc())
+                .first()
+            )
+            if dh:
+                if dh.release_title and not re.match(r"^[a-fA-F0-9]{40}$", dh.release_title.strip()):
+                    resolved["release_title"] = dh.release_title
+                if dh.indexer_id and not resolved["indexer"]:
+                    idx = db.get(Indexer, dh.indexer_id)
+                    if idx and idx.name:
+                        resolved["indexer"] = idx.name
+        except Exception as e:
+            logger.debug("Ошибка поиска в DownloadHistory: %s", e)
+
+    return resolved
+
+
 def add_to_blocklist(
     db: Session,
     release_title: str,
@@ -36,9 +147,11 @@ def add_to_blocklist(
     indexer: Optional[str] = None,
     quality: Optional[str] = None,
     size: Optional[int] = None,
+    page_url: Optional[str] = None,
 ) -> Blocklist:
     """
-    Добавляет релиз в черный список с сохранением метаданных тайтла.
+    Добавляет релиз в черный список с сохранением метаданных тайтла и автоматическим
+    восстановлением ссылки на страницу раздачи в браузере (page_url).
     """
     if not show and show_id:
         show = db.get(Show, show_id)
@@ -49,16 +162,32 @@ def add_to_blocklist(
     cur_imdb_id = getattr(show, "imdb_id", None) if show else None
 
     norm_hash = torrent_hash.lower().strip() if torrent_hash else None
-    norm_guid = str(guid).lower().strip() if guid else None
+    norm_guid = str(guid).strip() if guid else None
     norm_url = str(download_url).strip() if download_url else None
+    norm_page = str(page_url).strip() if page_url else None
     clean_title = release_title.strip() if release_title else "Unknown Release"
+
+    # Автоматически восстанавливаем страницу трекера, красивое название и индекс, если не переданы
+    details = _resolve_release_details(db, torrent_hash=norm_hash, show_id=cur_show_id, guid=norm_guid)
+    if not norm_page and details.get("page_url"):
+        norm_page = details["page_url"]
+    if not norm_page and norm_guid and norm_guid.startswith(("http://", "https://")):
+        norm_page = norm_guid
+    if not norm_url and details.get("download_url"):
+        norm_url = details["download_url"]
+    if not indexer and details.get("indexer"):
+        indexer = details["indexer"]
+    if not quality and details.get("quality"):
+        quality = details["quality"]
+    if (clean_title == "Unknown Release" or re.match(r"^[a-fA-F0-9]{40}$", clean_title)) and details.get("release_title"):
+        clean_title = details["release_title"]
 
     q = db.query(Blocklist)
     conditions = []
     if norm_hash:
         conditions.append(func.lower(Blocklist.torrent_hash) == norm_hash)
     if norm_guid:
-        conditions.append(func.lower(Blocklist.guid) == norm_guid)
+        conditions.append(func.lower(Blocklist.guid) == norm_guid.lower())
     if cur_show_id:
         conditions.append(and_(Blocklist.show_id == cur_show_id, func.lower(Blocklist.release_title) == clean_title.lower()))
     elif cur_show_title:
@@ -71,12 +200,18 @@ def add_to_blocklist(
                 existing.reason = reason
             if not existing.torrent_hash and norm_hash:
                 existing.torrent_hash = norm_hash
+            if not getattr(existing, "page_url", None) and norm_page:
+                existing.page_url = norm_page
+            if not existing.download_url and norm_url:
+                existing.download_url = norm_url
             if not existing.indexer and indexer:
                 existing.indexer = indexer
             if not existing.quality and quality:
                 existing.quality = quality
             if not existing.size and size:
                 existing.size = size
+            if (re.match(r"^[a-fA-F0-9]{40}$", existing.release_title) or existing.release_title == "Unknown Release") and clean_title != "Unknown Release":
+                existing.release_title = clean_title
             db.add(existing)
             try:
                 db.commit()
@@ -92,6 +227,7 @@ def add_to_blocklist(
         imdb_id=cur_imdb_id,
         torrent_hash=norm_hash,
         guid=norm_guid,
+        page_url=norm_page,
         download_url=norm_url,
         release_title=clean_title,
         indexer=indexer,
@@ -105,8 +241,8 @@ def add_to_blocklist(
         db.commit()
         db.refresh(entry)
         logger.info(
-            "Релиз «%s» занесен в черный список (тайтл: %s, хэш: %s, причина: %s)",
-            clean_title, cur_show_title or cur_show_id or "Global", norm_hash or "-", reason,
+            "Релиз «%s» занесен в черный список (тайтл: %s, хэш: %s, URL: %s, причина: %s)",
+            clean_title, cur_show_title or cur_show_id or "Global", norm_hash or "-", norm_page or "-", reason,
         )
     except Exception as exc:
         db.rollback()
@@ -259,6 +395,8 @@ def update_blocklist_entry(
     indexer: Optional[str] = None,
     quality: Optional[str] = None,
     size: Optional[int] = None,
+    page_url: Optional[str] = None,
+    clear_page_url: bool = False,
     entry_id: Optional[int] = None,
 ) -> Optional[Blocklist]:
     """Обновляет существующую запись в черном списке."""
@@ -283,6 +421,10 @@ def update_blocklist_entry(
         item.torrent_hash = None
     elif torrent_hash is not None:
         item.torrent_hash = torrent_hash.strip().lower() if torrent_hash.strip() else None
+    if clear_page_url:
+        item.page_url = None
+    elif page_url is not None:
+        item.page_url = page_url.strip() if page_url.strip() else None
     if guid is not None:
         item.guid = str(guid).strip().lower() if str(guid).strip() else None
     if download_url is not None:
@@ -412,6 +554,23 @@ def get_blocklist_entries(
         poster_url = getattr(show_obj, "poster_url", None) if show_obj else None
         show_title = it.show_title or (show_obj.title if show_obj else "Глобальная блокировка")
 
+        # Resolve page_url if not explicitly set
+        p_url = it.page_url
+        if not p_url and it.guid and str(it.guid).startswith(("http://", "https://")):
+            p_url = it.guid
+        if not p_url and (it.torrent_hash or it.guid):
+            details = _resolve_release_details(db, torrent_hash=it.torrent_hash, show_id=it.show_id, guid=it.guid)
+            if details.get("page_url"):
+                p_url = details["page_url"]
+                try:
+                    it.page_url = p_url
+                    if not it.indexer and details.get("indexer"):
+                        it.indexer = details["indexer"]
+                    db.add(it)
+                    db.commit()
+                except Exception:
+                    db.rollback()
+
         result.append({
             "id": it.id,
             "show_id": it.show_id,
@@ -421,6 +580,7 @@ def get_blocklist_entries(
             "poster_url": poster_url,
             "torrent_hash": it.torrent_hash,
             "guid": it.guid,
+            "page_url": p_url,
             "download_url": it.download_url,
             "release_title": it.release_title,
             "indexer": it.indexer,

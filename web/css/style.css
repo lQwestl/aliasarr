@@ -9710,6 +9710,38 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   font-size: 11px;
 }
 
+.blocklist-link-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  color: var(--teal);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.blocklist-link-chip:hover {
+  background: rgba(0, 245, 212, 0.12);
+  border-color: var(--teal);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+[data-theme="obsidian"] .blocklist-link-chip {
+  background: rgba(0, 245, 212, 0.08);
+  border-color: rgba(0, 245, 212, 0.22);
+}
+
+[data-theme="obsidian"] .blocklist-link-chip:hover {
+  background: rgba(0, 245, 212, 0.2);
+  border-color: var(--teal);
+  box-shadow: 0 2px 8px rgba(0, 245, 212, 0.25);
+}
+
 .btn-icon-xxs {
   width: 18px;
   height: 18px;

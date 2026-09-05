@@ -15737,6 +15737,14 @@ function renderBlocklist() {
           </div>
         ` : "";
 
+        const linkUrl = item.page_url || (item.guid && (item.guid.startsWith("http://") || item.guid.startsWith("https://")) ? item.guid : "");
+        const linkChip = linkUrl ? `
+          <a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer" class="blocklist-link-chip" title="${CURRENT_LANG === 'en' ? 'Open release page on tracker' : 'Открыть страницу раздачи на трекере'}">
+            <i data-lucide="external-link" class="ico-xxs"></i>
+            <span>${escapeHtml(item.indexer || (CURRENT_LANG === 'en' ? 'Release page' : 'Страница раздачи'))}</span>
+          </a>
+        ` : "";
+
         return `
           <tr>
             <td>
@@ -15749,6 +15757,7 @@ function renderBlocklist() {
                   <div class="blocklist-release-meta-row">
                     ${showChip}
                     ${hashChip}
+                    ${linkChip}
                   </div>
                 </div>
               </div>
@@ -15851,6 +15860,8 @@ function openAddBlocklistModal(targetShowId = null) {
 
   const titleInput = document.getElementById("add-blocklist-title");
   if (titleInput) titleInput.value = "";
+  const urlInput = document.getElementById("add-blocklist-url");
+  if (urlInput) urlInput.value = "";
   const reasonInput = document.getElementById("add-blocklist-reason");
   if (reasonInput) reasonInput.value = "";
   openModal("modal-add-blocklist");
@@ -15863,6 +15874,8 @@ async function submitAddBlocklist(btn) {
     showToast(CURRENT_LANG === "en" ? "Enter release title or torrent hash" : "Укажите название релиза или хэш торрента", "warning");
     return;
   }
+  const urlInput = document.getElementById("add-blocklist-url");
+  const rawUrl = urlInput ? urlInput.value.trim() : "";
   const showSelect = document.getElementById("add-blocklist-show");
   const showIdVal = showSelect && showSelect.value ? parseInt(showSelect.value, 10) : null;
   const reasonInput = document.getElementById("add-blocklist-reason");
@@ -15877,6 +15890,7 @@ async function submitAddBlocklist(btn) {
         body: JSON.stringify({
           release_title: rawTitle,
           torrent_hash: isHash ? rawTitle.toLowerCase() : null,
+          page_url: rawUrl || null,
           show_id: showIdVal,
           reason: reason
         })
@@ -15913,6 +15927,9 @@ function openEditBlocklistModal(id) {
   const hashInput = document.getElementById("edit-blocklist-hash");
   if (hashInput) hashInput.value = item.torrent_hash || "";
 
+  const urlInput = document.getElementById("edit-blocklist-url");
+  if (urlInput) urlInput.value = item.page_url || "";
+
   const reasonInput = document.getElementById("edit-blocklist-reason");
   if (reasonInput) reasonInput.value = item.reason || "";
 
@@ -15934,6 +15951,9 @@ async function submitEditBlocklist(btn) {
   const hashInput = document.getElementById("edit-blocklist-hash");
   const rawHash = hashInput ? hashInput.value.trim().toLowerCase() : "";
 
+  const urlInput = document.getElementById("edit-blocklist-url");
+  const rawUrl = urlInput ? urlInput.value.trim() : "";
+
   const showSelect = document.getElementById("edit-blocklist-show");
   const showIdVal = (showSelect && showSelect.value !== "") ? parseInt(showSelect.value, 10) : null;
 
@@ -15947,6 +15967,7 @@ async function submitEditBlocklist(btn) {
         body: JSON.stringify({
           release_title: rawTitle,
           torrent_hash: rawHash || null,
+          page_url: rawUrl || null,
           show_id: showIdVal,
           reason: reasonVal
         })

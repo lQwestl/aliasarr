@@ -28,6 +28,7 @@ class ManualBlockRequest(BaseModel):
     show_id: Optional[int] = None
     torrent_hash: Optional[str] = None
     guid: Optional[str] = None
+    page_url: Optional[str] = None
     download_url: Optional[str] = None
     indexer: Optional[str] = None
     quality: Optional[str] = None
@@ -40,6 +41,7 @@ class UpdateBlockRequest(BaseModel):
     show_id: Optional[int] = None
     torrent_hash: Optional[str] = None
     guid: Optional[str] = None
+    page_url: Optional[str] = None
     download_url: Optional[str] = None
     indexer: Optional[str] = None
     quality: Optional[str] = None
@@ -89,6 +91,7 @@ def add_manual_block(
         show_id=req.show_id,
         torrent_hash=req.torrent_hash,
         guid=req.guid,
+        page_url=req.page_url,
         download_url=req.download_url,
         indexer=req.indexer,
         quality=req.quality,
@@ -99,7 +102,7 @@ def add_manual_block(
         db,
         action="blocklist_add",
         description=f"Релиз «{req.release_title}» добавлен в черный список",
-        details={"id": entry.id, "show_id": req.show_id, "hash": req.torrent_hash},
+        details={"id": entry.id, "show_id": req.show_id, "hash": req.torrent_hash, "page_url": req.page_url},
     )
 
     return {"status": "ok", "id": entry.id, "message": "Релиз добавлен в черный список"}
@@ -115,6 +118,7 @@ def update_blocklist_item(
     """Редактировать существующую запись в черном списке."""
     clear_show = "show_id" in req.__fields_set__ and (req.show_id is None or req.show_id in (0, -1))
     clear_hash = "torrent_hash" in req.__fields_set__ and not req.torrent_hash
+    clear_page = "page_url" in req.__fields_set__ and not req.page_url
     entry = blocklist_service.update_blocklist_entry(
         db=db,
         item_id=item_id,
@@ -125,6 +129,8 @@ def update_blocklist_item(
         torrent_hash=req.torrent_hash,
         clear_torrent_hash=clear_hash,
         guid=req.guid,
+        page_url=req.page_url,
+        clear_page_url=clear_page,
         download_url=req.download_url,
         indexer=req.indexer,
         quality=req.quality,

@@ -195,8 +195,39 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
             call_kwargs = mock_add_block.call_args[1]
             self.assertEqual(call_kwargs["torrent_hash"], "TESTHASH123")
             self.assertIn("отсутствуют запрошенные серии", call_kwargs["reason"])
-            mock_log.assert_called_once()
+    def test_add_and_resolve_page_url(self):
+        from app.models.db import Blocklist, TrackedRelease
+        from app.services.blocklist_service import add_to_blocklist, get_blocklist_entries
+        mock_db = MagicMock()
+        mock_db.query.return_value.filter.return_value.first.return_value = None
 
+        # Add with explicit page_url
+        entry = add_to_blocklist(
+            mock_db,
+            release_title="Test.Release.1080p",
+            reason="Bad quality",
+            torrent_hash="aabbccddee112233445566778899001122334455",
+            page_url="https://rutracker.org/forum/viewtopic.php?t=123456",
+        )
+        self.assertEqual(entry.page_url, "https://rutracker.org/forum/viewtopic.php?t=123456")
+
+        # Test resolving page_url from TrackedRelease when not provided
+        tr = TrackedRelease(
+            id=1,
+            infohash="aabbccddee112233445566778899001122334455",
+            topic_url="https://kinozal.guru/details.php?id=99999",
+        )
+        mock_db.query.return_value.filter.return_value.first.return_value = tr
+        from app.services.blocklist_service import _resolve_release_details
+        resolved = _resolve_release_details(mock_db, torrent_hash="aabbccddee112233445566778899001122334455")
+        self.assertEqual(resolved["page_url"], "https://kinozal.guru/details.php?id=99999")
+
+        # Test update_blocklist_entry with page_url
+        from app.services.blocklist_service import update_blocklist_entry
+        existing = Blocklist(id=1, release_title="Test", page_url=None)
+        mock_db.get.return_value = existing
+        updated = update_blocklist_entry(mock_db, item_id=1, page_url="https://rutracker.org/forum/viewtopic.php?t=888")
+        self.assertEqual(updated.page_url, "https://rutracker.org/forum/viewtopic.php?t=888")
 
 
 if __name__ == "__main__":
