@@ -123,6 +123,10 @@ class TestUpgradeFeature(unittest.TestCase):
         self.db.add(dc)
         self.db.commit()
 
+        from app.models.db import Alias
+        self.db.add(Alias(show_id=show.id, text="Breaking Bad"))
+        self.db.commit()
+
         # Mock download client and torznab releases
         class MockDC:
             async def add_torrent(self, url, category=None, save_path=None):
@@ -152,8 +156,8 @@ class TestUpgradeFeature(unittest.TestCase):
              patch("app.services.auto_search.get_client", lambda row: fake_dc):
             res = asyncio.run(auto_search.search_and_grab_show(self.db, show, wanted_only=False))
 
-        self.assertTrue(res.get("success"))
-        self.assertGreater(res.get("grabbed_count", 0), 0)
+        self.assertIn("grabbed", res)
+        self.assertGreater(len(res["grabbed"]), 0)
         self.db.refresh(ep1)
         self.assertEqual(ep1.status, EpisodeStatus.DOWNLOADING)
         self.assertEqual(ep1.torrent_hash, "test-hash-upgrade-123")
