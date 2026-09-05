@@ -90,6 +90,12 @@ class TestQualityAndMatcher(unittest.TestCase):
             ("Show.S01E01.DVD.iso", "DVD-480p", "DVD", "480p"),
             ("Movie.CAM.avi", "CAM-480p", "CAM", "480p"),
             ("Movie.Telesync.avi", "Telesync-480p", "Telesync", "480p"),
+            ("Show.S01E01.WEB-DLRip.x264.mkv", "WEBDL-480p", "WEBDL", "480p"),
+            ("Show.S01E01.WEBDLRip.x264.avi", "WEBDL-480p", "WEBDL", "480p"),
+            ("Show.S01E01.WEB-DL.Rip.x264.mkv", "WEBDL-480p", "WEBDL", "480p"),
+            ("Severance - S1-2E1-19 - 2022-2025 MVO (LostFilm) WEBDL-Rip - RUSSIAN", "WEBDL-480p", "WEBDL", "480p"),
+            ("Show.S01E01.WEBRip.avi", "WEBRip-480p", "WEBRip", "480p"),
+            ("Show.S01E01.1080p.WEB-DLRip.mkv", "WEBDL-1080p", "WEBDL", "1080p"),
         ]
         for name, exp_qname, exp_source, exp_res in cases:
             q = parse_quality(name)

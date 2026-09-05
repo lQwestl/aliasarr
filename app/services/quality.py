@@ -64,6 +64,11 @@ QUALITY_ALIASES = {
     "HDTV-576P": "HDTV-480p",
     "WEBRIP-576P": "WEBRip-480p",
     "WEBDL-576P": "WEBDL-480p",
+    "WEBDLRIP": "WEBDL-480p",
+    "WEBDL-RIP": "WEBDL-480p",
+    "WEB-DLRIP": "WEBDL-480p",
+    "WEB-DL-RIP": "WEBDL-480p",
+    "WEBRIP": "WEBRip-480p",
 }
 
 # Регулярные выражения источников (Sources)
@@ -71,7 +76,7 @@ _REMUX_RE = re.compile(r"\b(remux|bdremux|bd[-_. ]?remux|uhd[-_. ]?remux|4k[-_. 
 _BDRIP_RE = re.compile(r"\b(bdrip|bd[-_. ]?rip)\b", re.IGNORECASE)
 _BRRIP_RE = re.compile(r"\b(brrip|br[-_. ]?rip)\b", re.IGNORECASE)
 _BLURAY_RE = re.compile(r"\b(bluray|blu-ray|bdmux|bd(?!$)|hd-?dvd|bdmv|uhd[-_. ]?disc|uhd[-_. ]?blu[-_. ]?ray|uhd[-_. ]?bd|4k[-_. ]?bluray|4k[-_. ]?blu-ray|bdiso|blurayiso)\b", re.IGNORECASE)
-_WEBDL_RE = re.compile(r"\b(web[-_. ]?dl(?:mux)?|webdl|amazonhd|ituneshd|netflixu?hd|webhd|hbomaxhd|disneyhd|[. ]web[. ](?:[xh][ .]?26[456]|avc|hevc|ddp?[ .]?5[. ]1))\b", re.IGNORECASE)
+_WEBDL_RE = re.compile(r"\b(web[-_. ]?dl(?:mux|[-_. ]?rip)?|webdlrip|webdl|amazonhd|ituneshd|netflixu?hd|webhd|hbomaxhd|disneyhd|[. ]web[. ](?:[xh][ .]?26[456]|avc|hevc|ddp?[ .]?5[. ]1))\b", re.IGNORECASE)
 _WEBRIP_RE = re.compile(r"\b(webrip|web-rip|web\b)", re.IGNORECASE)
 _HDTV_RE = re.compile(r"\b(hdtv|pdtv|dsr)\b", re.IGNORECASE)
 _TVRIP_RE = re.compile(r"\b(tvrip|satrip|dtvrip)\b", re.IGNORECASE)
@@ -189,7 +194,18 @@ def parse_quality(release_name: str) -> QualityInfo:
         if has_explicit_res:
             canonical_name = f"{source}-{resolution}"
         else:
-            canonical_name = f"{source}-1080p" if source != "HDTV" else "HDTV-720p"
+            is_rip = bool(
+                re.search(
+                    r"\b(web[-_. ]?dl[-_. ]?rip|webdlrip|web[-_. ]?rip|webrip|rip|xvid|divx|\.avi)\b",
+                    release_name,
+                    re.IGNORECASE,
+                )
+            )
+            if is_rip and source in ("WEBDL", "WEBRip"):
+                resolution = "480p"
+                canonical_name = f"{source}-480p"
+            else:
+                canonical_name = f"{source}-1080p" if source != "HDTV" else "HDTV-720p"
     elif source in ("DVDRip", "DVD", "TVRip", "SDTV", "CAM", "Telesync", "Telecine", "Workprint"):
         canonical_name = f"{source}-480p"
     else:
