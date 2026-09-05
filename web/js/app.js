@@ -3645,6 +3645,12 @@ function toast(message, isError = false) {
   }, 4000);
 }
 
+function showToast(message, type = "info") {
+  const isError = type === "error" || type === true || type === "warning";
+  toast(message, isError);
+}
+window.showToast = showToast;
+
 function showInlineStatus(elementId, message, isSuccess = true) {
   const el = document.getElementById(elementId);
   if (!el) return;
@@ -15383,23 +15389,35 @@ function setBlocklistPosterSize(size) {
   renderBlocklist();
 }
 
-function openBlocklistPosterOptionsModal() {
-  const sizeSelect = document.getElementById("blocklist-opt-poster-size");
-  if (sizeSelect) sizeSelect.value = BLOCKLIST_OPTIONS.posterSize || "small";
-  const tableCheck = document.getElementById("blocklist-opt-show-table-poster");
-  if (tableCheck) tableCheck.checked = BLOCKLIST_OPTIONS.showTablePoster !== false;
-  openModal("modal-blocklist-poster-options");
-}
-
-function applyBlocklistOptions() {
-  const sizeSelect = document.getElementById("blocklist-opt-poster-size");
-  const tableCheck = document.getElementById("blocklist-opt-show-table-poster");
-  BLOCKLIST_OPTIONS.posterSize = sizeSelect ? sizeSelect.value : "small";
-  BLOCKLIST_OPTIONS.showTablePoster = tableCheck ? tableCheck.checked : true;
+function toggleBlocklistTablePosters() {
+  BLOCKLIST_OPTIONS.showTablePoster = !(BLOCKLIST_OPTIONS.showTablePoster !== false);
   try {
     localStorage.setItem("aliasarr_blocklist_options", JSON.stringify(BLOCKLIST_OPTIONS));
   } catch (e) {}
   renderBlocklist();
+}
+
+function openAddBlocklistForCurrentShow() {
+  if (SELECTED_BLOCKLIST_SHOW_ID !== "all" && SELECTED_BLOCKLIST_SHOW_ID !== "unlinked") {
+    openAddBlocklistModal(SELECTED_BLOCKLIST_SHOW_ID);
+  } else {
+    openAddBlocklistModal();
+  }
+}
+
+function setBlocklistQuickReason(reasonText) {
+  const reasonInput = document.getElementById("add-blocklist-reason");
+  if (reasonInput) {
+    reasonInput.value = reasonText;
+    reasonInput.focus();
+  }
+}
+
+function toggleAddBlocklistShowSelector(showSelector) {
+  const bannerEl = document.getElementById("add-blocklist-target-show-banner");
+  const groupEl = document.getElementById("add-blocklist-show-group");
+  if (bannerEl) bannerEl.style.display = showSelector ? "none" : "flex";
+  if (groupEl) groupEl.style.display = showSelector ? "block" : "none";
 }
 
 function openShowBlocklistModal(showId) {
@@ -15597,6 +15615,29 @@ function renderBlocklist() {
     }
   }
 
+  // Add for current show button visibility
+  const addShowBtn = document.getElementById("blocklist-add-show-btn");
+  if (addShowBtn) {
+    if (SELECTED_BLOCKLIST_SHOW_ID !== "all" && SELECTED_BLOCKLIST_SHOW_ID !== "unlinked") {
+      addShowBtn.style.display = "inline-flex";
+    } else {
+      addShowBtn.style.display = "none";
+    }
+  }
+
+  // Toggle table posters button state
+  const toggleTableBtn = document.getElementById("blocklist-toggle-table-posters-btn");
+  if (toggleTableBtn) {
+    const isTablePosterActive = BLOCKLIST_OPTIONS.showTablePoster !== false;
+    toggleTableBtn.classList.toggle("active", isTablePosterActive);
+    const labelEl = document.getElementById("blocklist-toggle-table-posters-label");
+    if (labelEl) {
+      labelEl.textContent = isTablePosterActive
+        ? (CURRENT_LANG === "en" ? "Posters: ON" : "Обложки: Вкл")
+        : (CURRENT_LANG === "en" ? "Posters: OFF" : "Обложки: Выкл");
+    }
+  }
+
   // Toggle table vs empty state
   if (filtered.length === 0) {
     if (emptyWrap) emptyWrap.style.display = "block";
@@ -15770,12 +15811,47 @@ async function confirmClearAllBlocklist() {
   }
 }
 
-function openAddBlocklistModal() {
+function openAddBlocklistModal(targetShowId = null) {
   const showSelect = document.getElementById("add-blocklist-show");
+  const bannerEl = document.getElementById("add-blocklist-target-show-banner");
+  const groupEl = document.getElementById("add-blocklist-show-group");
+
+  const effectiveShowId = (targetShowId !== null && targetShowId !== undefined && targetShowId !== "all" && targetShowId !== "unlinked")
+    ? targetShowId
+    : ((SELECTED_BLOCKLIST_SHOW_ID !== "all" && SELECTED_BLOCKLIST_SHOW_ID !== "unlinked") ? SELECTED_BLOCKLIST_SHOW_ID : null);
+
   if (showSelect) {
     showSelect.innerHTML = `<option value="">${CURRENT_LANG === "en" ? "Global block (all shows)" : "Глобальная блокировка (для всех тайтлов)"}</option>` +
-      (CACHED_SHOWS || []).map(s => `<option value="${s.id}" ${SELECTED_BLOCKLIST_SHOW_ID == s.id ? "selected" : ""}>${escapeHtml(s.title)}${s.year ? ` (${s.year})` : ""}</option>`).join("");
+      (CACHED_SHOWS || []).map(s => `<option value="${s.id}" ${effectiveShowId == s.id ? "selected" : ""}>${escapeHtml(s.title)}${s.year ? ` (${s.year})` : ""}</option>`).join("");
   }
+
+  const showObj = effectiveShowId ? (CACHED_SHOWS || []).find(s => s.id == effectiveShowId) : null;
+  if (showObj) {
+    const posterUrl = showObj.poster_url || "/static/img/no-poster.png";
+    if (bannerEl) {
+      bannerEl.innerHTML = `
+        <img src="${posterUrl}" class="blocklist-modal-target-poster" alt="" onerror="this.onerror=null;this.src='/static/img/no-poster.png';">
+        <div class="blocklist-modal-target-info">
+          <div class="blocklist-modal-target-title">${escapeHtml(showObj.title)}${showObj.year ? ` <span class="text-muted">(${showObj.year})</span>` : ""}</div>
+          <div class="blocklist-modal-target-subtitle">${CURRENT_LANG === "en" ? "Adding block for this title" : "Блокировка для выбранного тайтла"}</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-ghost" onclick="toggleAddBlocklistShowSelector(true)" title="${CURRENT_LANG === "en" ? "Change title" : "Выбрать другой тайтл"}">
+          <i data-lucide="edit-2" class="ico-xs"></i>
+          <span>${CURRENT_LANG === "en" ? "Change" : "Изменить"}</span>
+        </button>
+      `;
+      bannerEl.style.display = "flex";
+      if (window.lucide) lucide.createIcons({ root: bannerEl });
+    }
+    if (groupEl) groupEl.style.display = "none";
+  } else {
+    if (bannerEl) {
+      bannerEl.innerHTML = "";
+      bannerEl.style.display = "none";
+    }
+    if (groupEl) groupEl.style.display = "block";
+  }
+
   const titleInput = document.getElementById("add-blocklist-title");
   if (titleInput) titleInput.value = "";
   const reasonInput = document.getElementById("add-blocklist-reason");

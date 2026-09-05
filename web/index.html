@@ -508,10 +508,6 @@
                 <i data-lucide="plus"></i>
                 <span>Заблокировать релиз</span>
               </button>
-              <button class="btn btn-secondary btn-icon-only" id="blocklist-poster-options-btn" onclick="openBlocklistPosterOptionsModal()" title="Опции постера" data-i18n-title="poster_opt.btn_title">
-                <i data-lucide="sliders-horizontal"></i>
-                <span class="poster-options-btn-label" data-i18n="poster_opt.btn_title">Опции постера</span>
-              </button>
               <button class="btn btn-secondary" onclick="loadBlocklist()" title="Обновить список" id="blocklist-refresh-btn">
                 <i data-lucide="refresh-cw"></i>
                 <span data-i18n="common.refresh">Обновить</span>
@@ -567,10 +563,20 @@
               <h3 id="blocklist-current-title">Все раздачи</h3>
               <span id="blocklist-current-count" class="badge badge-primary">0</span>
             </div>
-            <button id="blocklist-clear-show-btn" class="btn btn-sm btn-outline-danger" onclick="confirmClearCurrentShowBlocklist()" style="display:none;">
-              <i data-lucide="trash"></i>
-              <span>Очистить для тайтла</span>
-            </button>
+            <div class="blocklist-main-actions">
+              <button type="button" id="blocklist-toggle-table-posters-btn" class="btn btn-sm btn-secondary blocklist-poster-toggle-btn" onclick="toggleBlocklistTablePosters()" title="Показывать мини-постер тайтла в таблице раздач">
+                <i data-lucide="image" class="ico-xs"></i>
+                <span id="blocklist-toggle-table-posters-label">Обложки в таблице</span>
+              </button>
+              <button type="button" id="blocklist-add-show-btn" class="btn btn-sm btn-primary" onclick="openAddBlocklistForCurrentShow()" style="display:none;" title="Добавить блокировку для этого тайтла">
+                <i data-lucide="plus" class="ico-xs"></i>
+                <span>Добавить</span>
+              </button>
+              <button type="button" id="blocklist-clear-show-btn" class="btn btn-sm btn-outline-danger" onclick="confirmClearCurrentShowBlocklist()" style="display:none;" title="Очистить все заблокированные раздачи этого тайтла">
+                <i data-lucide="trash" class="ico-xs"></i>
+                <span>Очистить для тайтла</span>
+              </button>
+            </div>
           </div>
 
           <div id="blocklist-empty" class="empty-state" style="display:none;">
@@ -3663,58 +3669,39 @@
       </h3>
     </div>
     <div class="modal-body form-col" style="gap:14px;">
-      <div class="form-group">
+      <!-- Карточка выбранного тайтла при добавлении из конкретного тайтла -->
+      <div id="add-blocklist-target-show-banner" class="blocklist-modal-target-show" style="display:none;"></div>
+
+      <!-- Селектор тайтла при общем добавлении -->
+      <div class="form-group" id="add-blocklist-show-group">
         <label for="add-blocklist-show" style="display:block; margin-bottom:6px; font-weight:500;">Тайтл (опционально):</label>
         <select id="add-blocklist-show" class="input" style="width:100%;">
           <option value="">Глобальная блокировка (для всех тайтлов)</option>
         </select>
         <p class="hint" style="font-size:12px; margin-top:4px;">Если выбрать сериал/фильм, релиз будет исключаться только при его поиске.</p>
       </div>
+
       <div class="form-group">
         <label for="add-blocklist-title" style="display:block; margin-bottom:6px; font-weight:500;">Название релиза или инфохэш <span class="text-danger">*</span>:</label>
         <input type="text" id="add-blocklist-title" class="input" style="width:100%;" placeholder="Например: Release.Name.S01.1080p или 40-символьный хэш">
       </div>
+
       <div class="form-group">
         <label for="add-blocklist-reason" style="display:block; margin-bottom:6px; font-weight:500;">Причина блокировки:</label>
         <input type="text" id="add-blocklist-reason" class="input" style="width:100%;" placeholder="Например: Отсутствуют серии / Битая озвучка / Фейк">
+        <div class="blocklist-quick-reasons-wrap">
+          <span class="blocklist-quick-reasons-label">Быстрый выбор:</span>
+          <button type="button" class="blocklist-quick-btn" onclick="setBlocklistQuickReason('Отсутствуют нужные серии')">Отсутствуют серии</button>
+          <button type="button" class="blocklist-quick-btn" onclick="setBlocklistQuickReason('Неверная или битая озвучка')">Битая озвучка</button>
+          <button type="button" class="blocklist-quick-btn" onclick="setBlocklistQuickReason('Фейк / Заглушка')">Фейк</button>
+          <button type="button" class="blocklist-quick-btn" onclick="setBlocklistQuickReason('Плохое качество видео / звука')">Плохое качество</button>
+          <button type="button" class="blocklist-quick-btn" onclick="setBlocklistQuickReason('Несоответствие сезона или эпизодов')">Не тот сезон</button>
+        </div>
       </div>
     </div>
     <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
       <button class="btn btn-secondary" onclick="closeModal('modal-add-blocklist')">Отмена</button>
       <button class="btn btn-danger" onclick="submitAddBlocklist(this)">Заблокировать</button>
-    </div>
-  </div>
-</div>
-
-<div id="modal-blocklist-poster-options" class="modal-overlay">
-  <div class="modal modal-small" style="max-width: 440px;">
-    <button class="modal-close" onclick="closeModal('modal-blocklist-poster-options')"><i data-lucide="x"></i></button>
-    <div class="modal-header">
-      <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
-        <i data-lucide="sliders-horizontal" class="ico-sm text-teal"></i>
-        <span>Опции постеров</span>
-      </h3>
-    </div>
-    <div class="modal-body form-col" style="gap:16px; margin-top:16px;">
-      <div class="form-group">
-        <label for="blocklist-opt-poster-size" style="display:block; margin-bottom:6px; font-weight:500;">Размер постеров в списке тайтлов:</label>
-        <select id="blocklist-opt-poster-size" class="input" style="width:100%;" onchange="applyBlocklistOptions()">
-          <option value="small">Маленький (Компактный 36×52)</option>
-          <option value="medium">Средний (50×72)</option>
-          <option value="large">Большой (68×98)</option>
-          <option value="none">Без постера (Только текст)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="checkbox-row" style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer;">
-          <input type="checkbox" id="blocklist-opt-show-table-poster" onchange="applyBlocklistOptions()">
-          <span style="color:var(--text); font-weight:500;">Показывать мини-постер тайтла в таблице раздач</span>
-        </label>
-        <p class="hint" style="font-size:12px; margin-top:4px; margin-left:24px; color:var(--text-muted);">Отображает аккуратную миниатюру слева от названия релиза при наличии привязки к тайтлу.</p>
-      </div>
-    </div>
-    <div class="modal-footer" style="display:flex; justify-content:flex-end; margin-top:20px;">
-      <button class="btn btn-secondary" onclick="closeModal('modal-blocklist-poster-options')">Закрыть</button>
     </div>
   </div>
 </div>
