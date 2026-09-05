@@ -789,9 +789,9 @@ async def _limit_torrent_files_to_episodes(
                 add_rejected_release_for_show(effective_show_id, t_name)
 
         try:
-            from app.database import SessionLocal
             from app.services import blocklist_service
-            with SessionLocal() as s_db:
+
+            def _save_blocklist_and_log(s_db):
                 db_show = s_db.get(Show, effective_show_id) if effective_show_id else None
                 block_reason = f"В раздаче отсутствуют запрошенные серии ({requested_ep_str})"
                 blocklist_service.add_to_blocklist(
@@ -818,6 +818,13 @@ async def _limit_torrent_files_to_episodes(
                         details={"torrent_hash": torrent_hash, "requested_episodes": requested_ep_str, "files": file_sample},
                         db=s_db,
                     )
+
+            if db and hasattr(db, "is_active") and db.is_active:
+                _save_blocklist_and_log(db)
+            else:
+                from app.database import SessionLocal
+                with SessionLocal() as s_db:
+                    _save_blocklist_and_log(s_db)
 
             if effective_show_id:
                 async def _retry_next_candidate(s_id: int, ep_ids: set[int]):

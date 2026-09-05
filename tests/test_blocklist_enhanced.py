@@ -146,10 +146,19 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
 
         mock_db = MagicMock()
         mock_db.is_active = True
-        mock_db.get.return_value = ep
+
+        def _mock_get(model, ident):
+            if model == Episode:
+                return ep
+            if model == Show:
+                return show
+            return None
+
+        mock_db.get.side_effect = _mock_get
 
         with patch("app.services.blocklist_service.add_to_blocklist") as mock_add_block, \
-             patch("app.services.auto_search.log_release_event") as mock_log:
+             patch("app.services.auto_search.log_release_event") as mock_log, \
+             patch("asyncio.create_task"):
 
             await _limit_torrent_files_to_episodes(
                 mock_dl,

@@ -12,7 +12,19 @@ from app.models.db import Base
 logger = logging.getLogger("aliasarr.database")
 
 # По умолчанию SQLite в /config (том Docker), опционально Postgres через DATABASE_URL
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////config/aliasarr.db")
+def _get_default_database_url() -> str:
+    url = os.getenv("DATABASE_URL")
+    if url:
+        return url
+    if os.path.isdir("/config"):
+        return "sqlite:////config/aliasarr.db"
+    data_dir = os.path.join(os.getcwd(), "data")
+    if os.path.isdir(data_dir):
+        return f"sqlite:///{os.path.join(data_dir, 'aliasarr.db')}"
+    return "sqlite:///aliasarr.db"
+
+
+DATABASE_URL = _get_default_database_url()
 
 is_sqlite = DATABASE_URL.startswith("sqlite")
 
