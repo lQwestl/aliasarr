@@ -9603,7 +9603,7 @@ function openCalendarDayMoreModal(dayKey) {
         <i data-lucide="calendar" class="ico-sm" style="color:var(--teal)"></i>
         <span>${escapeHtml(capDate)}</span>
       </div>
-      <span class="badge badge-teal mono" style="font-size:11px; padding:2px 8px;">${events.length} ${CURRENT_LANG === 'en' ? (events.length === 1 ? 'event' : 'events') : 'релизов'}</span>
+      <span class="badge badge-teal mono" style="font-size:11px; padding:2px 8px; flex-shrink:0;">${events.length} ${CURRENT_LANG === 'en' ? (events.length === 1 ? 'event' : 'events') : 'релизов'}</span>
     </div>
     <div class="cal-day-events-list">
       ${eventsHtml}
