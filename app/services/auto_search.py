@@ -1003,55 +1003,67 @@ async def _collect_candidates(
     key_bases = cores + [cb for cb in clean_bases if cb.lower() not in [c.lower() for c in cores]]
 
     # 2. Формируем высокоэффективные поисковые запросы
-    # Базовые названия (чистые тайтлы) гарантированно включаем в первые же запросы,
-    # так как именно по ним трекеры возвращают полные паки всех сезонов.
-    if wanted_episodes:
-        wanted_seasons = {
-            ep.season_number
-            for ep in wanted_episodes
-            if ep.season_number is not None and ep.season_number > 0
-        }
-        is_anime = getattr(show, "content_type", "series") == "anime"
-        for sn in sorted(wanted_seasons):
-            # Самые результативные сезонные запросы
-            for b in key_bases:
-                _add_query(f"{b} Season {sn}")
-                _add_query(f"{b} Сезон {sn}")
-                _add_query(f"{b} S{sn:02d}")
-                _add_query(f"{b} {sn} сезон")
-                if is_anime:
-                    _add_query(f"{b} (ТВ-{sn})")
-                    _add_query(f"{b} ТВ-{sn}")
-
-    # Базовые названия тайтла — обязательны для поиска полных коллекций и паков
-    for b in key_bases:
-        _add_query(b)
-
-    for alias in alias_candidates:
-        _add_query(alias.text)
-
-    # Мультисезонные паки при sn > 1
-    if wanted_episodes:
-        for sn in sorted(wanted_seasons):
-            if sn > 1:
+    if show.content_type == "movie":
+        # Для фильмов формируем только кино-запросы: базовое название, название с годом
+        for b in key_bases:
+            _add_query(b)
+            if show.year:
+                _add_query(f"{b} {show.year}")
+                _add_query(f"{b} ({show.year})")
+        for alias in alias_candidates:
+            _add_query(alias.text)
+            if show.year and str(show.year) not in alias.text:
+                _add_query(f"{alias.text} {show.year}")
+                _add_query(f"{alias.text} ({show.year})")
+    else:
+        # Для сериалов и аниме - сезонные запросы и мультисезоны
+        if wanted_episodes:
+            wanted_seasons = {
+                ep.season_number
+                for ep in wanted_episodes
+                if ep.season_number is not None and ep.season_number > 0
+            }
+            is_anime = getattr(show, "content_type", "series") == "anime"
+            for sn in sorted(wanted_seasons):
+                # Самые результативные сезонные запросы
                 for b in key_bases:
-                    _add_query(f"{b} S01-S{sn:02d}")
-                    _add_query(f"{b} 1-{sn} сезон")
-                    _add_query(f"{b} Seasons 1-{sn}")
+                    _add_query(f"{b} Season {sn}")
+                    _add_query(f"{b} Сезон {sn}")
+                    _add_query(f"{b} S{sn:02d}")
+                    _add_query(f"{b} {sn} сезон")
+                    if is_anime:
+                        _add_query(f"{b} (ТВ-{sn})")
+                        _add_query(f"{b} ТВ-{sn}")
 
-    # Конкретные серии при малом количестве
-    if wanted_episodes and len(wanted_episodes) <= 6:
-        for ep in wanted_episodes:
-            for b in key_bases[:2]:
-                if ep.absolute_number is not None:
-                    for fmt in (f"{b} {ep.absolute_number}", f"{b} {ep.absolute_number:02d}", f"{b} - {ep.absolute_number}"):
-                        _add_query(fmt)
-                elif ep.season_number == 0:
-                    for fmt in (f"{b} OVA", f"{b} Special", f"{b} S00E{ep.episode_number:02d}"):
-                        _add_query(fmt)
-                else:
-                    for fmt in (f"{b} S{ep.season_number:02d}E{ep.episode_number:02d}", f"{b} {ep.episode_number:02d}"):
-                        _add_query(fmt)
+        # Базовые названия тайтла — обязательны для поиска полных коллекций и паков
+        for b in key_bases:
+            _add_query(b)
+
+        for alias in alias_candidates:
+            _add_query(alias.text)
+
+        # Мультисезонные паки при sn > 1
+        if wanted_episodes:
+            for sn in sorted(wanted_seasons):
+                if sn > 1:
+                    for b in key_bases:
+                        _add_query(f"{b} S01-S{sn:02d}")
+                        _add_query(f"{b} 1-{sn} сезон")
+                        _add_query(f"{b} Seasons 1-{sn}")
+
+        # Конкретные серии при малом количестве
+        if wanted_episodes and len(wanted_episodes) <= 6:
+            for ep in wanted_episodes:
+                for b in key_bases[:2]:
+                    if ep.absolute_number is not None:
+                        for fmt in (f"{b} {ep.absolute_number}", f"{b} {ep.absolute_number:02d}", f"{b} - {ep.absolute_number}"):
+                            _add_query(fmt)
+                    elif ep.season_number == 0:
+                        for fmt in (f"{b} OVA", f"{b} Special", f"{b} S00E{ep.episode_number:02d}"):
+                            _add_query(fmt)
+                    else:
+                        for fmt in (f"{b} S{ep.season_number:02d}E{ep.episode_number:02d}", f"{b} {ep.episode_number:02d}"):
+                            _add_query(fmt)
 
     seen_guids: set[str] = set()
     candidates: list[dict] = []
@@ -1271,8 +1283,16 @@ async def _do_search_and_grab(
         if is_non_video_release(rel.title, categories=getattr(rel, "categories", None)):
             return False
 
-        # Фильмы: ориентируемся только на совпадение по алиасу.
+        # Фильмы: ориентируемся на совпадение по алиасу и исключаем сериалы
         if show.content_type == "movie":
+            from app.services.parser import detect_season_label
+            s_lbl = detect_season_label(rel.title)
+            if s_lbl["type"] in ("numbered", "range", "complete", "final", "ova_ona"):
+                return False
+            if parsed.season is not None or (parsed.seasons and len(parsed.seasons) > 0):
+                return False
+            if parsed.kind == ReleaseKind.SEASON_PACK or (parsed.episodes and len(parsed.episodes) > 1):
+                return False
             return True
 
         # Вычисляем смещение для Part 2 / Cour 2 (Split-Cour)

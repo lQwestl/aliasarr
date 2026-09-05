@@ -723,12 +723,13 @@ class TransmissionClient(BaseDownloadClient):
                 is_finished = bool(t.get("isFinished", False))
                 status_val = t.get("status")
 
-                if is_finished or status_val in (5, 6) or (left_until_done is not None and left_until_done == 0 and size_when_done > 0):
+                pct_done = float(t.get("percentDone", 0) or 0)
+                if is_finished or status_val in (5, 6) or pct_done >= 0.999:
                     progress = 1.0
-                elif size_when_done > 0 and left_until_done is not None:
+                elif size_when_done > 0 and left_until_done is not None and (size_when_done - left_until_done) > 0:
                     progress = max(0.0, min(1.0, float(size_when_done - left_until_done) / float(size_when_done)))
                 else:
-                    progress = float(t.get("percentDone", 0) or 0)
+                    progress = pct_done
 
                 status_str = self.TRANSMISSION_STATUS_MAP.get(status_val, str(status_val if status_val is not None else "downloading")).lower()
                 if status_val == 0 and progress >= 0.999:

@@ -508,8 +508,32 @@ def match_release(
                             score=score, parsed=parsed,
                         )
 
-    # Для фильмов: номера в названии («Эпизод 4», «Часть 2») — часть названия франшизы, а не серии сериала
+    # Защита от сериалов, сезон-паков и эпизодов при поиске фильма
     if content_type == "movie":
+        from app.services.parser import detect_season_label
+        s_lbl = detect_season_label(release_name)
+        if s_lbl["type"] in ("numbered", "range", "complete", "final", "ova_ona"):
+            return MatchResult(
+                matched=False, show_id=None, alias_id=None, alias_text=None,
+                score=score, parsed=parsed,
+            )
+        if parsed.season is not None or (parsed.seasons and len(parsed.seasons) > 0):
+            return MatchResult(
+                matched=False, show_id=None, alias_id=None, alias_text=None,
+                score=score, parsed=parsed,
+            )
+        if parsed.kind == ReleaseKind.SEASON_PACK or (parsed.episodes and len(parsed.episodes) > 1):
+            return MatchResult(
+                matched=False, show_id=None, alias_id=None, alias_text=None,
+                score=score, parsed=parsed,
+            )
+        if re.search(r"\bS\d{1,2}(?:E\d{1,3})?\b|\bSeason\s*\d+\b|\bСезон\s*\d+\b|\b\d+\s*сезон\b|\b\d+[-_]\d+\s*сери[ияй]\b|\bсери[ияй]\s*\d+[-_]\d+\b|\bE\d{2,}\b|\b\d+\s*сери[ия]\b", release_name, re.IGNORECASE):
+            return MatchResult(
+                matched=False, show_id=None, alias_id=None, alias_text=None,
+                score=score, parsed=parsed,
+            )
+
+        # Для фильмов: сбрасываем структуру в чистый movie-релиз
         parsed = ParsedRelease(
             kind=ReleaseKind.EPISODE,
             season=None,

@@ -823,6 +823,36 @@ class TestQualityAndMatcher(unittest.TestCase):
         self.assertTrue(decision.approved, f"Decision rejected: {decision.rejections}")
         self.assertEqual(decision.rejections, [])
 
+    def test_movie_matcher_rejects_tv_series_and_season_packs(self):
+        aliases = [
+            AliasCandidate(alias_id=1, text="Mayday", language="en", priority=10),
+            AliasCandidate(alias_id=2, text="Мэйдэй", language="ru", priority=20),
+        ]
+        
+        # 1. TV Series Season Pack (Mayday S26) - MUST be rejected for movie
+        rel_s26 = "Расследования авиакатастроф / Mayday / Air Crash Investigation (S26) (01-10 серии из 10) [2026, Документальный, HEVC, SDR, WEB-DL 2160p]"
+        res_s26 = match_release(rel_s26, show_id=1, aliases=aliases, content_type="movie", show_year=2026)
+        self.assertFalse(res_s26.matched, "TV series S26 pack must NOT match a movie")
+
+        # 2. TV Series Single Episode (Mayday S01E01) - MUST be rejected for movie
+        rel_s01e01 = "Mayday.S01E01.1080p.WEB-DL.Rus.Eng.mkv"
+        res_s01e01 = match_release(rel_s01e01, show_id=1, aliases=aliases, content_type="movie", show_year=2026)
+        self.assertFalse(res_s01e01.matched, "TV series episode S01E01 must NOT match a movie")
+
+        # 3. Legitimate Movie Release - MUST match
+        rel_movie = "Mayday (2026) 2160p WEB-DL HDR10 HEVC DDP5.1-GROUP"
+        res_movie = match_release(rel_movie, show_id=1, aliases=aliases, content_type="movie", show_year=2026)
+        self.assertTrue(res_movie.matched, "Legitimate movie release must match")
+
+        # 4. Movie with Episode in title (e.g. Star Wars: Episode IV)
+        sw_aliases = [
+            AliasCandidate(alias_id=10, text="Star Wars: Episode IV - A New Hope", language="en", priority=10),
+            AliasCandidate(alias_id=11, text="Звёздные войны: Эпизод 4 - Новая надежда", language="ru", priority=20),
+        ]
+        rel_sw = "Star Wars: Episode IV - A New Hope (1977) 1080p BDRip"
+        res_sw = match_release(rel_sw, show_id=10, aliases=sw_aliases, content_type="movie", show_year=1977)
+        self.assertTrue(res_sw.matched, "Movie with Episode IV in official title must match")
+
 
 if __name__ == "__main__":
     unittest.main()
