@@ -247,7 +247,7 @@ def remove_from_blocklist(db: Session, item_id: int) -> bool:
 
 def update_blocklist_entry(
     db: Session,
-    item_id: int,
+    item_id: Optional[int] = None,
     release_title: Optional[str] = None,
     reason: Optional[str] = None,
     show_id: Optional[int] = None,
@@ -259,9 +259,19 @@ def update_blocklist_entry(
     indexer: Optional[str] = None,
     quality: Optional[str] = None,
     size: Optional[int] = None,
+    entry_id: Optional[int] = None,
 ) -> Optional[Blocklist]:
     """Обновляет существующую запись в черном списке."""
-    item = db.get(Blocklist, item_id)
+    target_id = item_id if item_id is not None else entry_id
+    if target_id is None:
+        return None
+
+    item = getattr(db, "get", lambda *args: None)(Blocklist, target_id)
+    if not item:
+        try:
+            item = db.query(Blocklist).filter(Blocklist.id == target_id).first()
+        except Exception:
+            item = None
     if not item:
         return None
 
@@ -304,11 +314,11 @@ def update_blocklist_entry(
     try:
         db.commit()
         db.refresh(item)
-        logger.info("Запись #%d в черном списке обновлена", item_id)
+        logger.info("Запись #%d в черном списке обновлена", item.id)
         return item
     except Exception as exc:
         db.rollback()
-        logger.warning("Не удалось обновить запись #%d в черном списке: %s", item_id, exc)
+        logger.warning("Не удалось обновить запись #%d в черном списке: %s", item.id, exc)
         return None
 
 

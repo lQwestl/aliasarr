@@ -180,7 +180,7 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
 
         with patch("app.services.blocklist_service.add_to_blocklist") as mock_add_block, \
              patch("app.services.auto_search.log_release_event") as mock_log, \
-             patch("asyncio.create_task"):
+             patch("asyncio.create_task", side_effect=lambda coro: (coro.close(), MagicMock())[1]):
 
             await _limit_torrent_files_to_episodes(
                 mock_dl,
