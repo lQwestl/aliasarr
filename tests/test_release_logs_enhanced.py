@@ -299,6 +299,34 @@ class TestBlocklistService(unittest.TestCase):
         self.assertEqual(deleted, 12)
         mock_db.commit.assert_called_once()
 
+    def test_update_blocklist_entry(self):
+        from app.services.blocklist_service import update_blocklist_entry
+        from app.models.db import BlocklistEntry
+        mock_db = MagicMock()
+        entry = BlocklistEntry(
+            id=7,
+            release_title="Old Title",
+            torrent_hash="OLDHASH",
+            reason="Old reason",
+            show_id=1,
+        )
+        mock_db.query.return_value.filter.return_value.first.return_value = entry
+
+        res = update_blocklist_entry(
+            mock_db,
+            entry_id=7,
+            release_title="New Title",
+            torrent_hash="NEWHASH",
+            reason="New reason",
+            show_id=2,
+        )
+        self.assertIsNotNone(res)
+        self.assertEqual(entry.release_title, "New Title")
+        self.assertEqual(entry.torrent_hash, "newhash")
+        self.assertEqual(entry.reason, "New reason")
+        self.assertEqual(entry.show_id, 2)
+        mock_db.commit.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

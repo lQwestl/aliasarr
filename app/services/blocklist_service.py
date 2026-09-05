@@ -251,7 +251,9 @@ def update_blocklist_entry(
     release_title: Optional[str] = None,
     reason: Optional[str] = None,
     show_id: Optional[int] = None,
+    clear_show_id: bool = False,
     torrent_hash: Optional[str] = None,
+    clear_torrent_hash: bool = False,
     guid: Optional[str] = None,
     download_url: Optional[str] = None,
     indexer: Optional[str] = None,
@@ -267,7 +269,9 @@ def update_blocklist_entry(
         item.release_title = release_title.strip()
     if reason is not None:
         item.reason = reason.strip()
-    if torrent_hash is not None:
+    if clear_torrent_hash:
+        item.torrent_hash = None
+    elif torrent_hash is not None:
         item.torrent_hash = torrent_hash.strip().lower() if torrent_hash.strip() else None
     if guid is not None:
         item.guid = str(guid).strip().lower() if str(guid).strip() else None
@@ -281,21 +285,20 @@ def update_blocklist_entry(
         item.size = size
 
     # Обновление привязки к тайтлу
-    if show_id is not None:
-        if show_id in (0, -1, None) or str(show_id) in ("0", ""):
-            item.show_id = None
-            item.show_title = None
-            item.tmdb_id = None
-            item.imdb_id = None
+    if clear_show_id or (show_id is not None and (show_id in (0, -1) or str(show_id) in ("0", ""))):
+        item.show_id = None
+        item.show_title = None
+        item.tmdb_id = None
+        item.imdb_id = None
+    elif show_id is not None:
+        show = db.get(Show, int(show_id))
+        if show:
+            item.show_id = show.id
+            item.show_title = show.title
+            item.tmdb_id = getattr(show, "tmdb_id", None)
+            item.imdb_id = getattr(show, "imdb_id", None)
         else:
-            show = db.get(Show, int(show_id))
-            if show:
-                item.show_id = show.id
-                item.show_title = show.title
-                item.tmdb_id = getattr(show, "tmdb_id", None)
-                item.imdb_id = getattr(show, "imdb_id", None)
-            else:
-                item.show_id = int(show_id)
+            item.show_id = int(show_id)
 
     db.add(item)
     try:

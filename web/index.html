@@ -2460,6 +2460,7 @@
 
           <div class="desktop-spacer" style="flex:1"></div>
 
+          <button class="btn btn-secondary btn-small" id="release-logs-client-btn" onclick="openDownloadClientLogsModal()"><i data-lucide="hard-drive" class="ico-sm"></i> <span data-i18n="release_logs.btn_client_logs">Логи загрузчика</span></button>
           <button class="btn btn-secondary btn-small" id="release-logs-download-btn" onclick="downloadReleaseLogs()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
           <button class="btn btn-danger btn-small" id="release-logs-clear-btn" onclick="clearReleaseLogs()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
         </div>
@@ -3669,13 +3670,10 @@
       </h3>
     </div>
     <div class="modal-body form-col" style="gap:14px;">
-      <!-- Компактная карточка выбранного тайтла при наличии -->
-      <div id="add-blocklist-target-show-banner" class="blocklist-modal-target-show" style="display:none;"></div>
-
       <!-- Селектор тайтла -->
       <div class="form-group" id="add-blocklist-show-group">
         <label for="add-blocklist-show" style="display:block; margin-bottom:6px; font-weight:500;">Тайтл (сериал / фильм):</label>
-        <select id="add-blocklist-show" class="input" style="width:100%;" onchange="onAddBlocklistShowChange(this.value)">
+        <select id="add-blocklist-show" class="input" style="width:100%;">
           <option value="">Глобальная блокировка (для всех тайтлов)</option>
         </select>
         <p class="hint" style="font-size:12px; margin-top:4px;">Если выбрать сериал/фильм, релиз будет блокироваться только для него.</p>

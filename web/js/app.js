@@ -2600,7 +2600,16 @@ async function api(path, options = {}) {
   }
   if (!resp.ok) {
     let detail = "";
-    try { const body = await resp.json(); detail = body.detail || body.error || ""; } catch (e) {}
+    try {
+      const body = await resp.json();
+      if (typeof body.detail === "object" && body.detail !== null) {
+        detail = Array.isArray(body.detail)
+          ? body.detail.map(d => (d && d.msg) ? d.msg : JSON.stringify(d)).join(", ")
+          : JSON.stringify(body.detail);
+      } else {
+        detail = body.detail || body.error || body.message || "";
+      }
+    } catch (e) {}
     throw new Error(detail || `HTTP ${resp.status}`);
   }
   if (resp.status === 204) return null;
@@ -15420,38 +15429,13 @@ function setBlocklistQuickReason(mode, text) {
 }
 
 function onAddBlocklistShowChange(val) {
-  const bannerEl = document.getElementById("add-blocklist-target-show-banner");
-  if (!val) {
-    if (bannerEl) {
-      bannerEl.innerHTML = "";
-      bannerEl.style.display = "none";
-    }
-    return;
-  }
-  const showObj = (CACHED_SHOWS || []).find(s => String(s.id) === String(val));
-  if (showObj && bannerEl) {
-    const posterUrl = showObj.poster_url || "/static/img/no-poster.png";
-    bannerEl.innerHTML = `
-      <img src="${escapeHtml(posterUrl)}" class="blocklist-modal-target-poster" alt="" onerror="this.onerror=null;this.src='/static/img/no-poster.png';">
-      <div class="blocklist-modal-target-info">
-        <div class="blocklist-modal-target-title">${escapeHtml(showObj.title)}${showObj.year ? ` <span class="text-muted">(${showObj.year})</span>` : ""}</div>
-        <div class="blocklist-modal-target-subtitle">${CURRENT_LANG === "en" ? "Adding block for this title" : "Блокировка для выбранного тайтла"}</div>
-      </div>
-      <button type="button" class="btn btn-sm btn-ghost" onclick="toggleAddBlocklistShowSelector(true)" title="${CURRENT_LANG === "en" ? "Change title" : "Выбрать другой тайтл"}">
-        <i data-lucide="edit-2" class="ico-xs"></i>
-        <span>${CURRENT_LANG === "en" ? "Change" : "Изменить"}</span>
-      </button>
-    `;
-    if (window.lucide) lucide.createIcons({ root: bannerEl });
-  }
+  // Selector is now always visible directly
 }
 
 function toggleAddBlocklistShowSelector(showSelector) {
-  const bannerEl = document.getElementById("add-blocklist-target-show-banner");
-  const groupEl = document.getElementById("add-blocklist-show-group");
-  if (bannerEl) bannerEl.style.display = showSelector ? "none" : "flex";
-  if (groupEl) groupEl.style.display = showSelector ? "block" : "none";
+  // Selector is now always visible directly
 }
+
 
 function openShowBlocklistModal(showId) {
   closeModal("show-modal");
@@ -15851,43 +15835,18 @@ async function confirmClearAllBlocklist() {
 
 function openAddBlocklistModal(targetShowId = null) {
   const showSelect = document.getElementById("add-blocklist-show");
-  const bannerEl = document.getElementById("add-blocklist-target-show-banner");
   const groupEl = document.getElementById("add-blocklist-show-group");
+  if (groupEl) groupEl.style.display = "block";
 
+  // targetShowId is only used when explicitly passed (e.g. from openAddBlocklistForCurrentShow)
   const effectiveShowId = (targetShowId !== null && targetShowId !== undefined && targetShowId !== "all" && targetShowId !== "unlinked")
     ? targetShowId
-    : ((SELECTED_BLOCKLIST_SHOW_ID !== "all" && SELECTED_BLOCKLIST_SHOW_ID !== "unlinked") ? SELECTED_BLOCKLIST_SHOW_ID : null);
+    : null;
 
   if (showSelect) {
     showSelect.innerHTML = `<option value="">${CURRENT_LANG === "en" ? "Global block (all shows)" : "Глобальная блокировка (для всех тайтлов)"}</option>` +
       (CACHED_SHOWS || []).map(s => `<option value="${s.id}" ${effectiveShowId == s.id ? "selected" : ""}>${escapeHtml(s.title)}${s.year ? ` (${s.year})` : ""}</option>`).join("");
-  }
-
-  const showObj = effectiveShowId ? (CACHED_SHOWS || []).find(s => s.id == effectiveShowId) : null;
-  if (showObj) {
-    const posterUrl = showObj.poster_url || "/static/img/no-poster.png";
-    if (bannerEl) {
-      bannerEl.innerHTML = `
-        <img src="${posterUrl}" class="blocklist-modal-target-poster" alt="" onerror="this.onerror=null;this.src='/static/img/no-poster.png';">
-        <div class="blocklist-modal-target-info">
-          <div class="blocklist-modal-target-title">${escapeHtml(showObj.title)}${showObj.year ? ` <span class="text-muted">(${showObj.year})</span>` : ""}</div>
-          <div class="blocklist-modal-target-subtitle">${CURRENT_LANG === "en" ? "Adding block for this title" : "Блокировка для выбранного тайтла"}</div>
-        </div>
-        <button type="button" class="btn btn-sm btn-ghost" onclick="toggleAddBlocklistShowSelector(true)" title="${CURRENT_LANG === "en" ? "Change title" : "Выбрать другой тайтл"}">
-          <i data-lucide="edit-2" class="ico-xs"></i>
-          <span>${CURRENT_LANG === "en" ? "Change" : "Изменить"}</span>
-        </button>
-      `;
-      bannerEl.style.display = "flex";
-      if (window.lucide) lucide.createIcons({ root: bannerEl });
-    }
-    if (groupEl) groupEl.style.display = "none";
-  } else {
-    if (bannerEl) {
-      bannerEl.innerHTML = "";
-      bannerEl.style.display = "none";
-    }
-    if (groupEl) groupEl.style.display = "block";
+    showSelect.disabled = false;
   }
 
   const titleInput = document.getElementById("add-blocklist-title");
@@ -15924,10 +15883,80 @@ async function submitAddBlocklist(btn) {
       });
       showToast(CURRENT_LANG === "en" ? "Release added to blocklist" : "Релиз добавлен в черный список", "success");
       closeModal("modal-add-blocklist");
-      await loadBlocklist(showIdVal || "all");
+      await loadBlocklist(showIdVal ? String(showIdVal) : (SELECTED_BLOCKLIST_SHOW_ID || "all"));
     } catch (err) {
       console.error("Failed to add to blocklist:", err);
       showToast((CURRENT_LANG === "en" ? "Failed to add to blocklist: " : "Ошибка при добавлении в черный список: ") + (err.message || err), "error");
+    }
+  });
+}
+
+function openEditBlocklistModal(id) {
+  const item = (BLOCKLIST_DATA || []).find(x => x.id === id);
+  if (!item) {
+    showToast(CURRENT_LANG === "en" ? "Blocklist item not found" : "Запись не найдена в черном списке", "error");
+    return;
+  }
+
+  const idInput = document.getElementById("edit-blocklist-id");
+  if (idInput) idInput.value = item.id;
+
+  const showSelect = document.getElementById("edit-blocklist-show");
+  if (showSelect) {
+    showSelect.innerHTML = `<option value="">${CURRENT_LANG === "en" ? "Global block (all shows)" : "Глобальная блокировка (для всех тайтлов)"}</option>` +
+      (CACHED_SHOWS || []).map(s => `<option value="${s.id}" ${item.show_id == s.id ? "selected" : ""}>${escapeHtml(s.title)}${s.year ? ` (${s.year})` : ""}</option>`).join("");
+  }
+
+  const titleInput = document.getElementById("edit-blocklist-title");
+  if (titleInput) titleInput.value = item.release_title || "";
+
+  const hashInput = document.getElementById("edit-blocklist-hash");
+  if (hashInput) hashInput.value = item.torrent_hash || "";
+
+  const reasonInput = document.getElementById("edit-blocklist-reason");
+  if (reasonInput) reasonInput.value = item.reason || "";
+
+  openModal("modal-edit-blocklist");
+}
+
+async function submitEditBlocklist(btn) {
+  const idInput = document.getElementById("edit-blocklist-id");
+  const itemId = idInput ? parseInt(idInput.value, 10) : null;
+  if (!itemId) return;
+
+  const titleInput = document.getElementById("edit-blocklist-title");
+  const rawTitle = titleInput ? titleInput.value.trim() : "";
+  if (!rawTitle) {
+    showToast(CURRENT_LANG === "en" ? "Enter release title" : "Укажите название релиза", "warning");
+    return;
+  }
+
+  const hashInput = document.getElementById("edit-blocklist-hash");
+  const rawHash = hashInput ? hashInput.value.trim().toLowerCase() : "";
+
+  const showSelect = document.getElementById("edit-blocklist-show");
+  const showIdVal = (showSelect && showSelect.value !== "") ? parseInt(showSelect.value, 10) : null;
+
+  const reasonInput = document.getElementById("edit-blocklist-reason");
+  const reasonVal = reasonInput && reasonInput.value.trim() ? reasonInput.value.trim() : "Заблокировано вручную пользователем";
+
+  await withLoading(btn, async () => {
+    try {
+      await api(`/api/v1/blocklist/${itemId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          release_title: rawTitle,
+          torrent_hash: rawHash || null,
+          show_id: showIdVal,
+          reason: reasonVal
+        })
+      });
+      showToast(CURRENT_LANG === "en" ? "Blocked release updated" : "Запись в черном списке обновлена", "success");
+      closeModal("modal-edit-blocklist");
+      await loadBlocklist(SELECTED_BLOCKLIST_SHOW_ID || "all");
+    } catch (err) {
+      console.error("Failed to update blocklist item:", err);
+      showToast((CURRENT_LANG === "en" ? "Failed to update: " : "Ошибка при сохранении: ") + (err.message || err), "error");
     }
   });
 }

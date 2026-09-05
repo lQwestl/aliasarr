@@ -113,13 +113,17 @@ def update_blocklist_item(
     current_user: Optional[User] = Depends(require_any_permission("manage_library", "manual_search")),
 ):
     """Редактировать существующую запись в черном списке."""
+    clear_show = "show_id" in req.__fields_set__ and (req.show_id is None or req.show_id in (0, -1))
+    clear_hash = "torrent_hash" in req.__fields_set__ and not req.torrent_hash
     entry = blocklist_service.update_blocklist_entry(
         db=db,
         item_id=item_id,
         release_title=req.release_title,
         reason=req.reason,
         show_id=req.show_id,
+        clear_show_id=clear_show,
         torrent_hash=req.torrent_hash,
+        clear_torrent_hash=clear_hash,
         guid=req.guid,
         download_url=req.download_url,
         indexer=req.indexer,
