@@ -15346,6 +15346,61 @@ async function startApp() {
 let BLOCKLIST_DATA = [];
 let SELECTED_BLOCKLIST_SHOW_ID = "all";
 let BLOCKLIST_SEARCH_QUERY = "";
+let BLOCKLIST_OPTIONS = {
+  posterSize: "small", // "small" | "medium" | "large" | "none"
+  showTablePoster: true
+};
+try {
+  const saved = localStorage.getItem("aliasarr_blocklist_options");
+  if (saved) BLOCKLIST_OPTIONS = { ...BLOCKLIST_OPTIONS, ...JSON.parse(saved) };
+} catch (e) {}
+
+function renderBlocklistPosterSwitcher() {
+  const container = document.getElementById("blocklist-poster-size-switcher");
+  if (!container) return;
+  const current = BLOCKLIST_OPTIONS.posterSize || "small";
+  container.innerHTML = `
+    <button type="button" class="btn-icon-xs ${current === 'small' ? 'active' : ''}" onclick="setBlocklistPosterSize('small')" title="${CURRENT_LANG === 'en' ? 'Small posters (36×52)' : 'Маленькие постеры (36×52)'}">
+      <i data-lucide="layout-grid" class="ico-xs"></i>
+    </button>
+    <button type="button" class="btn-icon-xs ${current === 'medium' ? 'active' : ''}" onclick="setBlocklistPosterSize('medium')" title="${CURRENT_LANG === 'en' ? 'Medium posters (50×72)' : 'Средние постеры (50×72)'}">
+      <i data-lucide="square" class="ico-xs"></i>
+    </button>
+    <button type="button" class="btn-icon-xs ${current === 'large' ? 'active' : ''}" onclick="setBlocklistPosterSize('large')" title="${CURRENT_LANG === 'en' ? 'Large posters (68×98)' : 'Большие постеры (68×98)'}">
+      <i data-lucide="maximize-2" class="ico-xs"></i>
+    </button>
+    <button type="button" class="btn-icon-xs ${current === 'none' ? 'active' : ''}" onclick="setBlocklistPosterSize('none')" title="${CURRENT_LANG === 'en' ? 'Hide posters' : 'Скрыть постеры'}">
+      <i data-lucide="list" class="ico-xs"></i>
+    </button>
+  `;
+}
+
+function setBlocklistPosterSize(size) {
+  BLOCKLIST_OPTIONS.posterSize = size;
+  try {
+    localStorage.setItem("aliasarr_blocklist_options", JSON.stringify(BLOCKLIST_OPTIONS));
+  } catch (e) {}
+  renderBlocklist();
+}
+
+function openBlocklistPosterOptionsModal() {
+  const sizeSelect = document.getElementById("blocklist-opt-poster-size");
+  if (sizeSelect) sizeSelect.value = BLOCKLIST_OPTIONS.posterSize || "small";
+  const tableCheck = document.getElementById("blocklist-opt-show-table-poster");
+  if (tableCheck) tableCheck.checked = BLOCKLIST_OPTIONS.showTablePoster !== false;
+  openModal("modal-blocklist-poster-options");
+}
+
+function applyBlocklistOptions() {
+  const sizeSelect = document.getElementById("blocklist-opt-poster-size");
+  const tableCheck = document.getElementById("blocklist-opt-show-table-poster");
+  BLOCKLIST_OPTIONS.posterSize = sizeSelect ? sizeSelect.value : "small";
+  BLOCKLIST_OPTIONS.showTablePoster = tableCheck ? tableCheck.checked : true;
+  try {
+    localStorage.setItem("aliasarr_blocklist_options", JSON.stringify(BLOCKLIST_OPTIONS));
+  } catch (e) {}
+  renderBlocklist();
+}
 
 function openShowBlocklistModal(showId) {
   closeModal("show-modal");
@@ -15414,6 +15469,8 @@ function clearBlocklistSearch() {
 }
 
 function renderBlocklist() {
+  renderBlocklistPosterSwitcher();
+
   const totalCountEl = document.getElementById("blocklist-total-count");
   const showsCountEl = document.getElementById("blocklist-shows-count");
   const sidebarCountBadge = document.getElementById("blocklist-sidebar-count-badge");
@@ -15446,11 +15503,18 @@ function renderBlocklist() {
 
   // Render Sidebar
   if (sidebarList) {
+    const posterSize = BLOCKLIST_OPTIONS.posterSize || "small";
+    sidebarList.className = "blocklist-shows-list size-" + posterSize;
+
+    const isAllActive = SELECTED_BLOCKLIST_SHOW_ID === "all";
+    const allIcon = `<div class="blocklist-show-poster placeholder"><i data-lucide="layers" class="ico-sm"></i></div>`;
     let sidebarHtml = `
-      <div class="blocklist-show-item ${SELECTED_BLOCKLIST_SHOW_ID === 'all' ? 'active' : ''}" onclick="selectBlocklistShow('all')">
-        <div class="blocklist-show-thumb placeholder"><i data-lucide="layers" class="ico-sm"></i></div>
-        <div class="blocklist-show-name">${CURRENT_LANG === "en" ? "All releases" : "Все раздачи"}</div>
-        <span class="blocklist-show-badge">${BLOCKLIST_DATA.length}</span>
+      <div class="blocklist-show-item ${isAllActive ? 'active' : ''}" onclick="selectBlocklistShow('all')">
+        ${posterSize !== 'none' ? allIcon : ''}
+        <div class="blocklist-show-info">
+          <div class="blocklist-show-title" title="${CURRENT_LANG === 'en' ? 'All releases' : 'Все раздачи'}">${CURRENT_LANG === "en" ? "All releases" : "Все раздачи"}</div>
+        </div>
+        <span class="blocklist-show-badge badge badge-secondary">${BLOCKLIST_DATA.length}</span>
       </div>
     `;
 
@@ -15458,24 +15522,27 @@ function renderBlocklist() {
       const count = showCounts[sid];
       let title = "";
       let posterUrl = "";
+      const sObj = sid !== "unlinked" ? showsMap[sid] : null;
       if (sid === "unlinked") {
         title = CURRENT_LANG === "en" ? "Other / Unlinked" : "Другие / Без привязки";
       } else {
-        const sObj = showsMap[sid];
         title = sObj ? (sObj.title || `Show #${sid}`) : (CURRENT_LANG === "en" ? `Show #${sid}` : `Тайтл #${sid}`);
         posterUrl = sObj?.poster_url || "";
       }
 
       const isActive = String(SELECTED_BLOCKLIST_SHOW_ID) === String(sid);
       const thumbHtml = posterUrl
-        ? `<img src="${escapeHtml(posterUrl)}" class="blocklist-show-thumb" alt="" onerror="this.outerHTML='<div class=\\\'blocklist-show-thumb placeholder\\\'>${escapeHtml(title.slice(0, 1))}</div>'"/>`
-        : `<div class="blocklist-show-thumb placeholder">${escapeHtml(title.slice(0, 1))}</div>`;
+        ? `<img src="${escapeHtml(posterUrl)}" class="blocklist-show-poster" alt="" onerror="this.outerHTML='<div class=\\\'blocklist-show-poster placeholder\\\'>${escapeHtml(title.slice(0, 1))}</div>'"/>`
+        : `<div class="blocklist-show-poster placeholder"><i data-lucide="film" class="ico-sm text-muted"></i></div>`;
 
       sidebarHtml += `
         <div class="blocklist-show-item ${isActive ? 'active' : ''}" onclick="selectBlocklistShow('${escapeHtml(String(sid))}')">
-          ${thumbHtml}
-          <div class="blocklist-show-name" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
-          <span class="blocklist-show-badge">${count}</span>
+          ${posterSize !== 'none' ? thumbHtml : ''}
+          <div class="blocklist-show-info">
+            <div class="blocklist-show-title" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
+            ${sObj?.year ? `<div class="blocklist-show-meta">${sObj.year}</div>` : ""}
+          </div>
+          <span class="blocklist-show-badge badge badge-secondary">${count}</span>
         </div>
       `;
     }
@@ -15543,26 +15610,88 @@ function renderBlocklist() {
         const sid = item.show_id;
         const sObj = sid != null ? showsMap[sid] : null;
         const showTitle = sObj ? (sObj.title || `Show #${sid}`) : (sid != null ? `Тайтл #${sid}` : "");
+        const posterUrl = sObj?.poster_url || "";
         const relTitle = item.release_title || item.torrent_name || "—";
         const dateStr = item.created_at ? new Date(item.created_at).toLocaleString() : "—";
+        const isHashOnly = /^[a-fA-F0-9]{40}$/.test(relTitle.trim()) || (item.torrent_hash && relTitle.trim().toLowerCase() === item.torrent_hash.trim().toLowerCase());
+
+        // Cell poster thumbnail
+        let cellPosterHtml = "";
+        if (BLOCKLIST_OPTIONS.showTablePoster !== false) {
+          if (posterUrl) {
+            cellPosterHtml = `
+              <div class="blocklist-row-poster-wrap" onclick="openShowModal(${sid})" title="${escapeHtml(showTitle)}">
+                <img src="${escapeHtml(posterUrl)}" class="blocklist-row-poster" alt="" onerror="this.parentElement.innerHTML='<div class=\\\'blocklist-row-poster placeholder\\\'><i data-lucide=\\\'film\\\' class=\\\'ico-xs text-muted\\\'></i></div>'"/>
+              </div>
+            `;
+          } else if (sid != null) {
+            cellPosterHtml = `
+              <div class="blocklist-row-poster-wrap placeholder" onclick="openShowModal(${sid})" title="${escapeHtml(showTitle)}">
+                <div class="blocklist-row-poster placeholder"><i data-lucide="film" class="ico-xs text-muted"></i></div>
+              </div>
+            `;
+          } else {
+            cellPosterHtml = `
+              <div class="blocklist-row-poster-wrap placeholder">
+                <div class="blocklist-row-poster placeholder"><i data-lucide="shield-alert" class="ico-xs text-danger"></i></div>
+              </div>
+            `;
+          }
+        }
+
+        // Title and Chips
+        let titleHtml = "";
+        if (isHashOnly) {
+          if (showTitle) {
+            titleHtml = `
+              <div class="blocklist-release-name font-semibold" style="cursor:pointer;" onclick="openShowModal(${sid})" title="${escapeHtml(showTitle)}">
+                <span>${escapeHtml(showTitle)}</span>
+                ${sObj?.year ? `<span class="text-muted text-xs font-normal" style="margin-left:4px;">(${sObj.year})</span>` : ""}
+              </div>
+            `;
+          } else {
+            titleHtml = `
+              <div class="blocklist-release-name font-semibold text-muted">
+                <i data-lucide="hash" class="ico-xs"></i> <span>${CURRENT_LANG === "en" ? "Blocked by hash" : "Блокировка по хэшу"}</span>
+              </div>
+            `;
+          }
+        } else {
+          titleHtml = `<div class="blocklist-release-name font-medium" title="${escapeHtml(relTitle)}">${escapeHtml(relTitle)}</div>`;
+        }
+
+        const showChip = (sid != null && !isHashOnly) ? `
+          <a href="javascript:void(0)" onclick="openShowModal(${sid})" class="blocklist-show-chip" title="${escapeHtml(showTitle)}">
+            <i data-lucide="film" class="ico-xs"></i>
+            <span class="blocklist-show-chip-title">${escapeHtml(showTitle)}</span>
+            ${sObj?.year ? `<span class="blocklist-show-chip-year">(${sObj.year})</span>` : ""}
+            <i data-lucide="external-link" class="ico-xxs blocklist-show-chip-arrow"></i>
+          </a>
+        ` : "";
+
+        const hashChip = item.torrent_hash ? `
+          <div class="blocklist-hash-chip">
+            <i data-lucide="hash" class="ico-xxs text-muted"></i>
+            <code class="mono-code">${escapeHtml(item.torrent_hash.slice(0, 8))}...${escapeHtml(item.torrent_hash.slice(-4))}</code>
+            <button type="button" class="btn-icon-xxs" onclick="navigator.clipboard.writeText('${escapeHtml(item.torrent_hash)}'); showToast('${CURRENT_LANG === 'en' ? 'Hash copied' : 'Хеш скопирован'}')" title="${CURRENT_LANG === 'en' ? 'Copy hash' : 'Скопировать хеш'}">
+              <i data-lucide="copy" class="ico-xxs"></i>
+            </button>
+          </div>
+        ` : "";
 
         return `
           <tr>
             <td>
-              <div class="blocklist-release-info">
-                <div class="blocklist-release-name font-medium" title="${escapeHtml(relTitle)}">${escapeHtml(relTitle)}</div>
-                <div style="display:flex; align-items:center; gap:8px; margin-top:3px; flex-wrap:wrap;">
-                  ${item.torrent_hash ? `
-                    <div class="blocklist-release-hash text-muted">
-                      <code class="mono-code">${escapeHtml(item.torrent_hash.slice(0, 10))}...</code>
-                      <button type="button" class="btn-icon-xs" onclick="navigator.clipboard.writeText('${escapeHtml(item.torrent_hash)}'); showToast('${CURRENT_LANG === 'en' ? 'Hash copied' : 'Хеш скопирован'}')" title="${CURRENT_LANG === 'en' ? 'Copy hash' : 'Скопировать хеш'}">
-                        <i data-lucide="copy" class="ico-xs"></i>
-                      </button>
-                    </div>` : ""}
-                  ${sid != null ? `
-                    <a href="javascript:void(0)" onclick="openShowModal(${sid})" class="blocklist-show-link" title="${escapeHtml(showTitle)}">
-                      <i data-lucide="film" class="ico-xs"></i> <span>${escapeHtml(showTitle)}</span>
-                    </a>` : ""}
+              <div class="blocklist-release-cell">
+                ${cellPosterHtml}
+                <div class="blocklist-release-info">
+                  <div class="blocklist-release-title-row">
+                    ${titleHtml}
+                  </div>
+                  <div class="blocklist-release-meta-row">
+                    ${showChip}
+                    ${hashChip}
+                  </div>
                 </div>
               </div>
             </td>

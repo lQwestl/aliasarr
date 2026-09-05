@@ -508,6 +508,10 @@
                 <i data-lucide="plus"></i>
                 <span>Заблокировать релиз</span>
               </button>
+              <button class="btn btn-secondary btn-icon-only" id="blocklist-poster-options-btn" onclick="openBlocklistPosterOptionsModal()" title="Опции постера" data-i18n-title="poster_opt.btn_title">
+                <i data-lucide="sliders-horizontal"></i>
+                <span class="poster-options-btn-label" data-i18n="poster_opt.btn_title">Опции постера</span>
+              </button>
               <button class="btn btn-secondary" onclick="loadBlocklist()" title="Обновить список" id="blocklist-refresh-btn">
                 <i data-lucide="refresh-cw"></i>
                 <span data-i18n="common.refresh">Обновить</span>
@@ -546,8 +550,11 @@
       <div class="blocklist-layout">
         <aside class="blocklist-shows-sidebar">
           <div class="blocklist-shows-header">
-            <span class="blocklist-section-heading">Тайтлы</span>
-            <span id="blocklist-sidebar-count-badge" class="badge badge-secondary">0</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="blocklist-section-heading">Тайтлы</span>
+              <span id="blocklist-sidebar-count-badge" class="badge badge-secondary">0</span>
+            </div>
+            <div class="blocklist-poster-switcher" id="blocklist-poster-size-switcher"></div>
           </div>
           <div class="blocklist-shows-list" id="blocklist-shows-list">
             <!-- Список тайтлов генерируется JS -->
@@ -3675,6 +3682,39 @@
     <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
       <button class="btn btn-secondary" onclick="closeModal('modal-add-blocklist')">Отмена</button>
       <button class="btn btn-danger" onclick="submitAddBlocklist(this)">Заблокировать</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-blocklist-poster-options" class="modal-overlay">
+  <div class="modal modal-small" style="max-width: 440px;">
+    <button class="modal-close" onclick="closeModal('modal-blocklist-poster-options')"><i data-lucide="x"></i></button>
+    <div class="modal-header">
+      <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+        <i data-lucide="sliders-horizontal" class="ico-sm text-teal"></i>
+        <span>Опции постеров</span>
+      </h3>
+    </div>
+    <div class="modal-body form-col" style="gap:16px; margin-top:16px;">
+      <div class="form-group">
+        <label for="blocklist-opt-poster-size" style="display:block; margin-bottom:6px; font-weight:500;">Размер постеров в списке тайтлов:</label>
+        <select id="blocklist-opt-poster-size" class="input" style="width:100%;" onchange="applyBlocklistOptions()">
+          <option value="small">Маленький (Компактный 36×52)</option>
+          <option value="medium">Средний (50×72)</option>
+          <option value="large">Большой (68×98)</option>
+          <option value="none">Без постера (Только текст)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="checkbox-row" style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer;">
+          <input type="checkbox" id="blocklist-opt-show-table-poster" onchange="applyBlocklistOptions()">
+          <span style="color:var(--text); font-weight:500;">Показывать мини-постер тайтла в таблице раздач</span>
+        </label>
+        <p class="hint" style="font-size:12px; margin-top:4px; margin-left:24px; color:var(--text-muted);">Отображает аккуратную миниатюру слева от названия релиза при наличии привязки к тайтлу.</p>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex; justify-content:flex-end; margin-top:20px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-blocklist-poster-options')">Закрыть</button>
     </div>
   </div>
 </div>
