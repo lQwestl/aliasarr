@@ -1385,6 +1385,86 @@ def set_episode_status(
     return {"episode_id": episode_id, "status": episode.status.value, "monitored": episode.monitored}
 
 
+@router.post("/episodes/{episode_id}/upgrade")
+def toggle_episode_upgrade(
+    episode_id: int,
+    requested: Optional[bool] = Query(None, description="Явное значение (true/false) или None для инверсии"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    """Переключает статус явного запроса на улучшение качества (upgrade) для серии."""
+    episode = db.get(Episode, episode_id)
+    if not episode:
+        raise HTTPException(404, "Episode not found")
+
+    if requested is not None:
+        episode.upgrade_requested = bool(requested)
+    else:
+        episode.upgrade_requested = not getattr(episode, "upgrade_requested", False)
+
+    # Если включен апгрейд — серия обязательно должна мониториться
+    if episode.upgrade_requested:
+        episode.monitored = True
+
+    db.add(episode)
+    db.commit()
+    return {
+        "episode_id": episode_id,
+        "upgrade_requested": episode.upgrade_requested,
+        "monitored": episode.monitored,
+        "status": episode.status.value if hasattr(episode.status, "value") else str(episode.status),
+    }
+
+
+@router.post("/shows/{show_id}/upgrade")
+def toggle_show_upgrade(
+    show_id: int,
+    requested: Optional[bool] = Query(None, description="Явное значение (true/false) или None для инверсии"),
+    season: Optional[int] = Query(None, description="Номер сезона (если нужно переключить только конкретный сезон)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    """Переключает статус явного запроса на улучшение качества (upgrade) для фильма, сезона или всего сериала."""
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Show not found")
+
+    q = db.query(Episode).filter(Episode.show_id == show_id)
+    if season is not None:
+        q = q.filter(Episode.season_number == season)
+    episodes = q.all()
+
+    if requested is not None:
+        target_state = bool(requested)
+    else:
+        if season is not None:
+            # Если хотя бы у одной серии в сезоне выключен — включаем, иначе выключаем
+            has_disabled = any(not getattr(e, "upgrade_requested", False) for e in episodes)
+            target_state = has_disabled
+        else:
+            target_state = not getattr(show, "upgrade_requested", False)
+
+    for ep in episodes:
+        ep.upgrade_requested = target_state
+        if target_state:
+            ep.monitored = True
+        db.add(ep)
+
+    if season is None:
+        show.upgrade_requested = target_state
+        if target_state:
+            show.monitored = True
+        db.add(show)
+
+    db.commit()
+    return {
+        "show_id": show_id,
+        "season": season,
+        "upgrade_requested": target_state,
+        "updated_episodes": len(episodes),
+    }
+
+
 @router.post("/episodes/{episode_id}/search")
 async def search_and_grab_episode(
     episode_id: int,

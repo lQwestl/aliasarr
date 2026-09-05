@@ -5049,12 +5049,16 @@ function renderShowCard(show) {
     const mtext = show.monitored ? t("dash.monitored") : t("dash.unmonitored");
     const mClass = show.monitored ? "monitored" : "unmonitored";
     const mIcon = show.monitored ? "bookmark-check" : "bookmark-x";
+    const upgradePill = (show.upgrade_requested || show.has_upgrade_pending)
+      ? `<span class="show-upgrade-pill" title="${CURRENT_LANG === 'en' ? 'Quality upgrade pending' : 'Ожидает обновления качества'}"><i data-lucide="sparkles" class="ico-xs"></i></span>`
+      : "";
     infoHtml += `
       <div class="show-monitored-badge-wrap">
         <span class="show-monitored-pill ${mClass}">
           <i data-lucide="${mIcon}" class="ico-xs"></i>
           <span>${escapeHtml(mtext)}</span>
         </span>
+        ${upgradePill}
       </div>
     `;
   }
@@ -5134,6 +5138,7 @@ function renderShowOverviewRow(show) {
       <div class="overview-title-row">
         ${POSTER_OPTIONS.title ? `<span class="overview-title">${escapeHtml(formatShowTitleWithYear(show.title, show.year))}</span>` : ""}
         ${POSTER_OPTIONS.monitored ? `<span class="show-monitored-pill ${mClass}"><i data-lucide="${mIcon}" class="ico-xs"></i><span>${escapeHtml(mtext)}</span></span>` : ""}
+        ${(show.upgrade_requested || show.has_upgrade_pending) ? `<span class="show-upgrade-pill" title="${CURRENT_LANG === 'en' ? 'Quality upgrade pending' : 'Ожидает обновления качества'}"><i data-lucide="sparkles" class="ico-xs"></i></span>` : ""}
       </div>`;
   }
 
@@ -5729,6 +5734,9 @@ async function refreshShowModal() {
           <i data-lucide="download" class="ico-sm"></i> <span id="btn-show-download-selected-label">${CURRENT_LANG === 'en' ? 'Download selected' : 'Скачать выбранные серии'}</span>
         </button>` : ""}
         ${canManageLib ? `
+        <button class="btn btn-secondary btn-small ${show.upgrade_requested || show.has_upgrade_pending ? 'btn-upgrade-active' : ''}" onclick="toggleShowUpgrade(${show.id})" title="${show.upgrade_requested || show.has_upgrade_pending ? (CURRENT_LANG === 'en' ? 'Quality upgrade enabled (click to disable)' : 'Обновление качества включено (нажмите для отмены)') : (CURRENT_LANG === 'en' ? 'Mark for quality upgrade' : 'Поставить на обновление качества')}">
+          <i data-lucide="sparkles" class="ico-sm"></i> <span>${show.upgrade_requested || show.has_upgrade_pending ? (CURRENT_LANG === 'en' ? 'Upgrading' : 'На обновлении') : (CURRENT_LANG === 'en' ? 'To Upgrade' : 'На обновление')}</span>
+        </button>
         <button class="btn btn-secondary btn-small" onclick="toggleMonitored(this, ${show.id}, ${!show.monitored})">
           <i data-lucide="${show.monitored ? 'pause' : 'play'}" class="ico-sm"></i> <span>${show.monitored ? t("action.unmonitor") : t("action.monitor")}</span>
         </button>
@@ -6010,6 +6018,10 @@ function renderMovieBlock(show, ep, canManageLib = true) {
   const hasFile = Boolean(ep.has_file || ep.file_path);
   const isUpgrading = Boolean(ep.status === "downloading" && hasFile);
   const isFreshDownloading = Boolean(ep.status === "downloading" && !hasFile);
+  const upgradeRequested = Boolean(ep.upgrade_requested || show.upgrade_requested);
+  const upgradeBadge = upgradeRequested
+    ? `<span class="badge-upgrade-pending" title="${CURRENT_LANG === 'en' ? 'Marked for quality upgrade (searching better release)' : 'Ожидает улучшения качества (поиск лучшего релиза)'}"><i data-lucide="sparkles" class="ico-xxs"></i> <span>${CURRENT_LANG === 'en' ? 'Upgrade pending' : 'Ожидает обновления'}</span></span>`
+    : "";
 
   let statusHtml = "";
   const pct = Math.min(100, Math.max(0, (ep.download_progress || 0) * 100)).toFixed(1);
@@ -6078,6 +6090,7 @@ function renderMovieBlock(show, ep, canManageLib = true) {
               ${hasFileBadge}
               ${mediaInfoBadges ? `<div class="ep-mediainfo-tags">${mediaInfoBadges}</div>` : ""}
               ${statusHtml}
+              ${upgradeBadge}
             </div>
             <div class="ep-actions">
               <button class="btn-icon-only" title="Интерактивный поиск фильма" onclick="openInteractiveSearch(${show.id}, null, null)">
@@ -6085,7 +6098,9 @@ function renderMovieBlock(show, ep, canManageLib = true) {
               </button>
               ${canManageLib ? `
               <button class="btn-icon-only ${monitored ? "active" : ""}" title="${monitored ? t("action.unmonitor") : t("action.monitor")}"
-                onclick="toggleEpisodeMonitor(${ep.id}, ${monitored})"><i data-lucide="bookmark" class="ico-xs"></i></button>` : ""}
+                onclick="toggleEpisodeMonitor(${ep.id}, ${monitored})"><i data-lucide="bookmark" class="ico-xs"></i></button>
+              <button class="btn-icon-only ${upgradeRequested ? "active btn-upgrade-active" : ""}" title="${upgradeRequested ? (CURRENT_LANG === 'en' ? 'Quality upgrade enabled (click to disable)' : 'Обновление качества включено (нажмите для отмены)') : (CURRENT_LANG === 'en' ? 'Mark for quality upgrade' : 'Поставить на обновление качества')}"
+                onclick="toggleEpisodeUpgrade(${ep.id}, ${upgradeRequested})"><i data-lucide="sparkles" class="ico-xs"></i></button>` : ""}
             </div>
           </div>
         </div>
@@ -6147,6 +6162,7 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
           </div>
           ${canManageLib ? `
           <div class="season-icon-buttons">
+            <button class="btn-icon-only" title="${CURRENT_LANG === 'en' ? 'Mark season for quality upgrade' : 'Поставить весь сезон на обновление качества'}" onclick="toggleSeasonUpgrade(${seasonNumber}, ${targetShowId})"><i data-lucide="sparkles" class="ico-xs"></i></button>
             <button class="btn-icon-only" title="${t("action.monitor_season")}" onclick="setSeasonMonitor(${seasonNumber}, true)"><i data-lucide="bookmark" class="ico-xs"></i></button>
             <button class="btn-icon-only" title="${t("action.unmonitor_season")}" onclick="setSeasonMonitor(${seasonNumber}, false)"><i data-lucide="bookmark-minus" class="ico-xs"></i></button>
             <button class="btn-icon-only" title="${t("show.delete_season_action")}" onclick="deleteShow(${targetShowId}, ${seasonNumber}, null)" style="color:var(--danger);"><i data-lucide="trash-2" class="ico-xs"></i></button>
@@ -6176,6 +6192,10 @@ function renderEpisodeRow(ep, canManageLib = true, show = null) {
   const hasFile = Boolean(ep.has_file || ep.file_path);
   const isUpgrading = Boolean(ep.status === "downloading" && hasFile);
   const isFreshDownloading = Boolean(ep.status === "downloading" && !hasFile);
+  const upgradeRequested = Boolean(ep.upgrade_requested || (show && show.upgrade_requested));
+  const upgradeBadge = upgradeRequested
+    ? `<span class="badge-upgrade-pending" title="${CURRENT_LANG === 'en' ? 'Marked for quality upgrade (searching better release)' : 'Ожидает улучшения качества (поиск лучшего релиза)'}"><i data-lucide="sparkles" class="ico-xxs"></i> <span>${CURRENT_LANG === 'en' ? 'Upgrade pending' : 'Ожидает обновления'}</span></span>`
+    : "";
 
   let statusHtml = "";
   const pct = Math.min(100, Math.max(0, (ep.download_progress || 0) * 100)).toFixed(1);
@@ -6251,6 +6271,7 @@ function renderEpisodeRow(ep, canManageLib = true, show = null) {
           ${hasFileBadge}
           ${mediaInfoBadges ? `<div class="ep-mediainfo-tags">${mediaInfoBadges}</div>` : ""}
           ${statusHtml}
+          ${upgradeBadge}
         </div>
         <div class="ep-actions">
           ${canSearch ? `
@@ -6260,6 +6281,8 @@ function renderEpisodeRow(ep, canManageLib = true, show = null) {
           ${canManageLib ? `
           <button class="btn-icon-only ${monitored ? "active" : ""}" title="${monitored ? t("action.unmonitor") : t("action.monitor")}"
             onclick="toggleEpisodeMonitor(${ep.id}, ${monitored})"><i data-lucide="bookmark" class="ico-xs"></i></button>
+          <button class="btn-icon-only ${upgradeRequested ? "active btn-upgrade-active" : ""}" title="${upgradeRequested ? (CURRENT_LANG === 'en' ? 'Quality upgrade enabled (click to disable)' : 'Обновление качества включено (нажмите для отмены)') : (CURRENT_LANG === 'en' ? 'Mark for quality upgrade' : 'Поставить на обновление качества')}"
+            onclick="toggleEpisodeUpgrade(${ep.id}, ${upgradeRequested})"><i data-lucide="sparkles" class="ico-xs"></i></button>
           <button class="btn-icon-only" title="${t("show.delete_episode_action")}" onclick="deleteShow(${showId}, null, ${ep.id})" style="color:var(--danger);"><i data-lucide="trash-2" class="ico-xs"></i></button>` : ""}
         </div>
       </div>
@@ -6862,6 +6885,52 @@ async function setSeasonMonitor(seasonNumber, value) {
     toast(`${t("common.confirm")}: ${result.affected}`);
     await refreshShowModal();
   } catch (e) { toast("Ошибка: " + e.message, true); }
+}
+
+async function toggleShowUpgrade(targetShowId = null) {
+  const sid = targetShowId || CURRENT_SHOW_ID;
+  if (!sid) return;
+  try {
+    const res = await api(`/api/v1/shows/${sid}/upgrade`, { method: "POST" });
+    const isNow = res.upgrade_requested;
+    toast(isNow ? (CURRENT_LANG === "en" ? "Show marked for quality upgrade" : "Тайтл поставлен на обновление качества") : (CURRENT_LANG === "en" ? "Quality upgrade disabled" : "Обновление качества для тайтла отменено"));
+    await refreshShowModal();
+    if (typeof loadShows === "function") {
+      loadShows(false).catch(() => {});
+    }
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + (e.message || e), true);
+  }
+}
+
+async function toggleSeasonUpgrade(seasonNumber, targetShowId = null) {
+  const sid = targetShowId || CURRENT_SHOW_ID;
+  if (!sid) return;
+  try {
+    const res = await api(`/api/v1/shows/${sid}/upgrade?season=${seasonNumber}`, { method: "POST" });
+    const isNow = res.upgrade_requested;
+    toast(isNow ? (CURRENT_LANG === "en" ? `Season ${seasonNumber} marked for quality upgrade` : `Сезон ${seasonNumber} поставлен на обновление качества`) : (CURRENT_LANG === "en" ? `Quality upgrade disabled for season ${seasonNumber}` : `Обновление качества отменено для сезона ${seasonNumber}`));
+    await refreshShowModal();
+    if (typeof loadShows === "function") {
+      loadShows(false).catch(() => {});
+    }
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + (e.message || e), true);
+  }
+}
+
+async function toggleEpisodeUpgrade(episodeId, currentUpgradeRequested) {
+  const newRequested = !currentUpgradeRequested;
+  try {
+    await api(`/api/v1/episodes/${episodeId}/upgrade?requested=${newRequested}`, { method: "POST" });
+    toast(newRequested ? (CURRENT_LANG === "en" ? "Episode marked for quality upgrade" : "Серия поставлена на обновление качества") : (CURRENT_LANG === "en" ? "Quality upgrade disabled for episode" : "Обновление качества отменено"));
+    await refreshShowModal();
+    if (typeof loadShows === "function") {
+      loadShows(false).catch(() => {});
+    }
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + (e.message || e), true);
+  }
 }
 
 async function toggleEpisodeMonitor(episodeId, currentlyMonitored) {

@@ -1207,36 +1207,43 @@ async def _do_search_and_grab(
     episode_ids: Optional[set[int]] = None,
     wanted_only: bool = False,
 ) -> dict:
+    quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
+    upgrade_allowed = getattr(quality_profile, "upgrade_allowed", False) if quality_profile else False
+
     if episode_ids:
         wanted_episodes = db.query(Episode).filter(Episode.show_id == show.id, Episode.id.in_(episode_ids)).all()
     else:
+        upgrade_eligible = and_(
+            Episode.status == EpisodeStatus.DOWNLOADED,
+            Episode.monitored == True,
+            or_(
+                Episode.upgrade_requested == True,
+                getattr(show, "upgrade_requested", False) == True,
+                and_(not wanted_only, upgrade_allowed == True),
+            ),
+        )
+
         if show.content_type == "movie":
             # Для фильмов: если шоу отслеживается (monitored), поиск должен охватывать фильм
-            # независимо от того, наступила ли уже дата премьеры (WANTED или UNAIRED)
-            quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
-            upgrade_allowed = getattr(quality_profile, "upgrade_allowed", False) if quality_profile else False
+            # независимо от того, наступила ли уже дата премьеры (WANTED или UNAIRED), плюс апгрейды
             if show.monitored:
-                if upgrade_allowed:
-                    status_filter = or_(
-                        Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.UNAIRED]),
-                        and_(Episode.status == EpisodeStatus.DOWNLOADED, Episode.monitored == True),
-                    )
-                else:
-                    status_filter = Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.UNAIRED])
-            else:
-                status_filter = Episode.status == EpisodeStatus.WANTED
-        elif wanted_only:
-            status_filter = Episode.status == EpisodeStatus.WANTED
-        else:
-            quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
-            upgrade_allowed = getattr(quality_profile, "upgrade_allowed", False) if quality_profile else False
-            if show.monitored and upgrade_allowed:
                 status_filter = or_(
-                    Episode.status == EpisodeStatus.WANTED,
-                    and_(Episode.status == EpisodeStatus.DOWNLOADED, Episode.monitored == True),
+                    Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.UNAIRED]),
+                    upgrade_eligible,
                 )
             else:
-                status_filter = Episode.status == EpisodeStatus.WANTED
+                status_filter = or_(Episode.status == EpisodeStatus.WANTED, upgrade_eligible)
+        else:
+            if show.monitored:
+                status_filter = or_(
+                    Episode.status == EpisodeStatus.WANTED,
+                    upgrade_eligible,
+                )
+            else:
+                status_filter = or_(
+                    Episode.status == EpisodeStatus.WANTED,
+                    and_(Episode.upgrade_requested == True, Episode.status == EpisodeStatus.DOWNLOADED),
+                )
         wanted_episodes = db.query(Episode).filter(Episode.show_id == show.id, status_filter).all()
 
     # Для сериалов и аниме исключаем из фонового автопоиска серии, чья премьера еще не состоялась в реальности
@@ -1541,11 +1548,12 @@ async def _do_search_and_grab(
         final_covered = []
         for ep in covered:
             if ep.status == EpisodeStatus.DOWNLOADED:
-                if wanted_only:
+                has_explicit_upgrade = bool(getattr(ep, "upgrade_requested", False) or getattr(show, "upgrade_requested", False))
+                if wanted_only and not has_explicit_upgrade:
                     continue
                 if not getattr(ep, "monitored", True):
                     continue
-                if not quality_profile or not getattr(quality_profile, "upgrade_allowed", False):
+                if not has_explicit_upgrade and (not quality_profile or not getattr(quality_profile, "upgrade_allowed", False)):
                     continue
                 
                 # Определяем текущее качество имеющегося файла
@@ -1960,25 +1968,30 @@ async def _do_search_and_grab(
 
 
 async def run_wanted_search(db: Session) -> list[dict]:
-    """Запускает поиск/захват для всех мониторящихся шоу с wanted-сериями."""
+    """Запускает поиск/захват для всех мониторящихся шоу с wanted-сериями или запросом на улучшение качества."""
     from app.services.task_manager import task_manager
     async with task_manager.track(
         name="wanted_search",
-        title="Автопоиск разыскиваемых релизов (Wanted)",
+        title="Автопоиск разыскиваемых релизов и улучшений качества",
         message="Проверка библиотеки...",
     ) as w_task:
         wanted_shows_ids = [
             r[0] for r in db.query(Episode.show_id).join(Show, Show.id == Episode.show_id).filter(
                 Show.monitored == True,  # noqa: E712
-                Episode.status == EpisodeStatus.WANTED,
+                Episode.monitored == True,  # noqa: E712
+                or_(
+                    Episode.status == EpisodeStatus.WANTED,
+                    and_(Episode.status == EpisodeStatus.DOWNLOADED, Episode.upgrade_requested == True),
+                    Show.upgrade_requested == True,
+                )
             ).distinct().all()
         ]
         if not wanted_shows_ids:
-            w_task.complete("Поиск завершён: нет разыскиваемых релизов (Wanted)")
+            w_task.complete("Поиск завершён: нет разыскиваемых релизов или релизов на обновление")
             return []
 
         shows = db.query(Show).filter(Show.id.in_(wanted_shows_ids)).all()
-        w_task.update(message=f"Поиск для {len(shows)} тайтлов с разыскиваемыми сериями...")
+        w_task.update(message=f"Поиск для {len(shows)} тайтлов с разыскиваемыми сериями / обновлениями...")
         results = []
         total_grabbed = 0
         for idx, show in enumerate(shows, 1):
@@ -1987,7 +2000,7 @@ async def run_wanted_search(db: Session) -> list[dict]:
                 progress=round(idx / max(1, len(shows)), 2),
             )
             try:
-                result = await search_and_grab_show(db, show, wanted_only=True)
+                result = await search_and_grab_show(db, show, wanted_only=False)
                 if result.get("grabbed"):
                     results.append(result)
                     total_grabbed += len(result["grabbed"])

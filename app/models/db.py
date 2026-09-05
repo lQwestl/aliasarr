@@ -127,6 +127,8 @@ class Show(Base):
     calendar_waiting_dismissed: Mapped[bool] = mapped_column(Boolean, default=False)
     # Время последней полной синхронизации метаданных из сети
     last_metadata_refresh_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
+    # Флаг явного запроса на улучшение качества (автопоиск лучшего качества до достижения Cutoff)
+    upgrade_requested: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
     aliases: Mapped[list["Alias"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     episodes: Mapped[list["Episode"]] = relationship(back_populates="show", cascade="all, delete-orphan")
@@ -168,6 +170,7 @@ class Episode(Base):
     air_date: Mapped[Optional[dt.date]] = mapped_column(DateTime, nullable=True, index=True)
     status: Mapped[EpisodeStatus] = mapped_column(SAEnum(EpisodeStatus), default=EpisodeStatus.MISSING, index=True)
     monitored: Mapped[bool] = mapped_column(Boolean, default=True)
+    upgrade_requested: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     file_path: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
 
     # Привязка к активной загрузке в клиенте

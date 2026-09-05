@@ -86,6 +86,7 @@ def _attach_computed_fields(db: Session, shows: list[Show]) -> list[ShowOut]:
         and_(Episode.file_path.isnot(None), Episode.file_path != "")
     )
     downloading_condition = (Episode.status == EpisodeStatus.DOWNLOADING)
+    upgrade_condition = (Episode.upgrade_requested == True)
 
     stats_rows = (
         db.query(
@@ -94,13 +95,14 @@ def _attach_computed_fields(db: Session, shows: list[Show]) -> list[ShowOut]:
             func.count(Episode.id),
             func.sum(case((dl_condition, 1), else_=0)),
             func.sum(case((downloading_condition, 1), else_=0)),
+            func.sum(case((upgrade_condition, 1), else_=0)),
         )
         .filter(Episode.show_id.in_(show_ids))
         .group_by(Episode.show_id)
         .all()
     )
     stats = {
-        row[0]: (row[1] or 0, row[2] or 0, int(row[3] or 0), int(row[4] or 0))
+        row[0]: (row[1] or 0, row[2] or 0, int(row[3] or 0), int(row[4] or 0), int(row[5] or 0))
         for row in stats_rows
     }
 
@@ -115,11 +117,13 @@ def _attach_computed_fields(db: Session, shows: list[Show]) -> list[ShowOut]:
     out = []
     for show in shows:
         item = ShowOut.model_validate(show)
-        s_count, ep_c, dl_c, dling_c = stats.get(show.id, (0, 0, 0, 0))
+        s_count, ep_c, dl_c, dling_c, upg_c = stats.get(show.id, (0, 0, 0, 0, 0))
         item.seasons_count = s_count
         item.episodes_count = ep_c
         item.downloaded_episodes_count = dl_c
         item.downloading_episodes_count = dling_c
+        item.has_upgrade_pending = bool(getattr(show, "upgrade_requested", False) or upg_c > 0)
+        item.upgrade_requested = bool(getattr(show, "upgrade_requested", False))
         item.next_airing = next_airing.get(show.id) or show.premiere_date
         out.append(item)
     return out

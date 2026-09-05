@@ -2119,6 +2119,53 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .template-row-header { margin-bottom: 6px; }
 .template-row-label { font-weight: 600; font-size: 13px; }
 
+/* ---------- UPGRADE STATUS BADGES & BUTTONS ---------- */
+.badge-upgrade-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+[data-theme="light"] .badge-upgrade-pending {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #b45309;
+}
+
+.btn-icon-only.btn-upgrade-active,
+.btn-upgrade-active {
+  color: #fbbf24 !important;
+  background: rgba(245, 158, 11, 0.18) !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+}
+
+.btn-icon-only.btn-upgrade-active:hover,
+.btn-upgrade-active:hover {
+  background: rgba(245, 158, 11, 0.28) !important;
+  border-color: #fbbf24 !important;
+}
+
+.show-upgrade-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
 /* ---------- SETTINGS & LOGS TABS ---------- */
 .settings-tabs, .logs-tabs { 
   display: flex; 

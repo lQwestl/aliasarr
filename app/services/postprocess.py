@@ -1510,6 +1510,14 @@ def process_download(
                         episode.file_size_bytes = os.path.getsize(dest_video_path)
                     except Exception:
                         pass
+                if show and show.quality_profile_id:
+                    from app.models.db import QualityProfile
+                    qp = db.get(QualityProfile, show.quality_profile_id)
+                    if qp and qp.cutoff_quality:
+                        from app.services.quality import parse_quality
+                        c_cutoff = parse_quality(qp.cutoff_quality)
+                        if q_info.rank >= c_cutoff.rank:
+                            episode.upgrade_requested = False
                 db.add(episode)
                 try:
                     db.commit()
@@ -1890,6 +1898,16 @@ def process_movie_download(
                 episode.file_size_bytes = os.path.getsize(dest_video_path)
             except Exception:
                 pass
+        if show and show.quality_profile_id:
+            from app.models.db import QualityProfile
+            qp = db.get(QualityProfile, show.quality_profile_id)
+            if qp and qp.cutoff_quality:
+                from app.services.quality import parse_quality
+                c_cutoff = parse_quality(qp.cutoff_quality)
+                if q_info.rank >= c_cutoff.rank:
+                    episode.upgrade_requested = False
+                    show.upgrade_requested = False
+                    db.add(show)
         db.add(episode)
 
     # Очищаем оставшиеся пустые поддиректории в download_path, если это была специальная папка раздачи

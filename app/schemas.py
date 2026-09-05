@@ -72,6 +72,7 @@ class ShowUpdate(BaseModel):
     expected_year: Optional[int] = None
     expected_quarter: Optional[int] = None
     in_calendar: Optional[bool] = None
+    upgrade_requested: Optional[bool] = None
 
 
 class ShowOut(BaseModel):
@@ -83,6 +84,8 @@ class ShowOut(BaseModel):
     poster_url: Optional[str] = None
     path: Optional[str] = None
     monitored: bool = True
+    upgrade_requested: bool = False
+    has_upgrade_pending: bool = False
     quality_profile_id: Optional[int] = None
     created_at: Optional[dt.datetime] = None
     last_search_at: Optional[dt.datetime] = None
@@ -119,6 +122,7 @@ class EpisodeOut(BaseModel):
     air_date: Optional[dt.datetime] = None
     status: Optional[str] = "wanted"
     monitored: Optional[bool] = True
+    upgrade_requested: bool = False
     download_progress: Optional[float] = 0.0
     torrent_hash: Optional[str] = None
     file_path: Optional[str] = None
