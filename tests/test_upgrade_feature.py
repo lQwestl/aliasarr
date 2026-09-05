@@ -7,6 +7,8 @@ Unit tests for upgrade_requested functionality:
 from __future__ import annotations
 
 import asyncio
+import os
+import tempfile
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -26,6 +28,7 @@ try:
     )
     from app.services import auto_search
     from app.services.torznab import TorznabRelease
+    from app.services.postprocess import process_download
     HAS_DEPS = True
 except ImportError:
     HAS_DEPS = False
@@ -136,7 +139,7 @@ class TestUpgradeFeature(unittest.TestCase):
                 download_url="http://fake.local/bb_s01e01_1080p.torrent",
                 page_url="http://fake.local/view/1",
                 seeders=10,
-                size=1500000000,
+                size_bytes=1500000000,
             )
         ]
 
@@ -151,44 +154,46 @@ class TestUpgradeFeature(unittest.TestCase):
         self.assertEqual(ep1.torrent_hash, "test-hash-upgrade-123")
 
     def test_postprocess_resets_upgrade_requested_on_reaching_cutoff(self):
-        from app.services.postprocess import _process_single_episode
-        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as root_folder, tempfile.TemporaryDirectory() as dl_folder:
+            show = Show(
+                title="Breaking Bad",
+                quality_profile_id=self.profile.id,
+                monitored=True,
+                content_type="series",
+                path=os.path.join(root_folder, "Breaking Bad")
+            )
+            self.db.add(show)
+            self.db.commit()
 
-        show = Show(title="Breaking Bad", quality_profile_id=self.profile.id, monitored=True, content_type="series")
-        self.db.add(show)
-        self.db.commit()
+            ep1 = Episode(
+                show_id=show.id,
+                season_number=1,
+                episode_number=1,
+                status=EpisodeStatus.DOWNLOADING,
+                downloaded_quality="SDTV",
+                monitored=True,
+                upgrade_requested=True
+            )
+            self.db.add(ep1)
+            self.db.commit()
 
-        ep1 = Episode(
-            show_id=show.id,
-            season_number=1,
-            episode_number=1,
-            status=EpisodeStatus.DOWNLOADING,
-            downloaded_quality="SDTV",
-            monitored=True,
-            upgrade_requested=True
-        )
-        self.db.add(ep1)
-        self.db.commit()
+            # Create a mock 1080p video file in download directory
+            dummy_file = os.path.join(dl_folder, "Breaking.Bad.S01E01.1080p.WEB-DL.mkv")
+            with open(dummy_file, "wb") as f:
+                f.write(b"dummy video data")
 
-        # Simulate importing a 1080p file which meets cutoff "WEBDL-1080p"
-        media_file = SimpleNamespace(
-            quality="WEBDL-1080p",
-            season=1,
-            episode=1,
-            dynamic_range=None,
-            video_codec="H.264",
-            audio_codec="AC3",
-            release_group="TestGroup",
-            languages=[],
-        )
+            process_download(
+                db=self.db,
+                show=show,
+                download_path=dl_folder,
+                rename_template="{show.title} - S{season:02d}E{episode:02d}",
+                root_folder=root_folder,
+            )
 
-        with patch("app.services.postprocess.organize_and_import_file", return_value="/media/shows/Breaking Bad/S01E01.mkv"):
-            _process_single_episode(self.db, show, ep1, media_file, "/tmp/src/file.mkv", True)
-
-        self.db.refresh(ep1)
-        self.assertEqual(ep1.status, EpisodeStatus.DOWNLOADED)
-        self.assertEqual(ep1.downloaded_quality, "WEBDL-1080p")
-        self.assertFalse(ep1.upgrade_requested, "upgrade_requested should be reset to False after reaching cutoff quality")
+            self.db.refresh(ep1)
+            self.assertEqual(ep1.status, EpisodeStatus.DOWNLOADED)
+            self.assertEqual(ep1.downloaded_quality, "WEBDL-1080p")
+            self.assertFalse(ep1.upgrade_requested, "upgrade_requested should be reset to False after reaching cutoff quality")
 
 
 if __name__ == "__main__":
