@@ -8964,6 +8964,7 @@ let CALENDAR_SETTINGS = loadCalendarSettings();
 let CALENDAR_ANCHOR = new Date();
 CALENDAR_ANCHOR.setHours(0, 0, 0, 0);
 let CALENDAR_EVENTS_MAP = {};
+let CALENDAR_BY_DAY_MAP = {};
 
 async function openCalendarSettingsModal() {
   document.getElementById("cal-set-collapse-multi").checked = CALENDAR_SETTINGS.collapse_multi;
@@ -9123,9 +9124,9 @@ function openCalendarEventModal(eKey) {
 
   let releaseBadgesHtml = "";
   if (isMovie && e.release_types && e.release_types.length) {
-    if (e.release_types.includes("cinemas")) releaseBadgesHtml += `<span class="cal-release-badge cal-badge-cinema">🎬 ${t("calendar.badge_cinema")}</span>`;
-    if (e.release_types.includes("digital")) releaseBadgesHtml += `<span class="cal-release-badge cal-badge-digital">💻 ${t("calendar.badge_digital")}</span>`;
-    if (e.release_types.includes("physical")) releaseBadgesHtml += `<span class="cal-release-badge cal-badge-physical">💿 ${t("calendar.badge_physical")}</span>`;
+    if (e.release_types.includes("cinemas")) releaseBadgesHtml += `<span class="cal-release-badge cal-badge-cinema"><i data-lucide="clapperboard" class="ico-xs"></i><span>${t("calendar.badge_cinema")}</span></span>`;
+    if (e.release_types.includes("digital")) releaseBadgesHtml += `<span class="cal-release-badge cal-badge-digital"><i data-lucide="monitor" class="ico-xs"></i><span>${t("calendar.badge_digital")}</span></span>`;
+    if (e.release_types.includes("physical")) releaseBadgesHtml += `<span class="cal-release-badge cal-badge-physical"><i data-lucide="disc" class="ico-xs"></i><span>${t("calendar.badge_physical")}</span></span>`;
   }
 
   const canManage = hasPermission("manage_library") || hasPermission("manage_calendar");
@@ -9346,6 +9347,7 @@ async function loadCalendar() {
       const key = tzDayKey(d);
       (byDay[key] = byDay[key] || []).push(e);
     });
+    CALENDAR_BY_DAY_MAP = byDay;
 
     if (view === "month" || view === "week") {
       if (window.innerWidth <= 768) {
@@ -9411,9 +9413,10 @@ function renderCalendarGrid(startDate, numDays, byDay) {
     const maxShown = CALENDAR_SETTINGS.collapse_multi ? 3 : events.length;
     const shown = events.slice(0, maxShown);
     const restCount = events.length - shown.length;
+    const moreLabel = t("calendar.more_events", { count: restCount });
 
     const eventsHtml = shown.map(e => renderCalendarEventChip(e)).join("") +
-      (restCount > 0 ? `<div class="calendar-event-more">+${restCount} ${t("calendar.more_events")}</div>` : "");
+      (restCount > 0 ? `<div class="calendar-event-more" onclick="openCalendarDayMoreModal('${escapeHtml(key)}')" title="${escapeHtml(moreLabel)}"><i data-lucide="layers" class="ico-xs"></i><span>${escapeHtml(moreLabel)}</span></div>` : "");
 
     cells += `<div class="calendar-day-cell ${outside ? "outside-month" : ""} ${isToday ? "is-today" : ""}">
       <div class="calendar-day-number">${d.getDate()}</div>
@@ -9528,6 +9531,96 @@ async function promptEditCalendarDate(episodeId, showId, showTitle) {
     }
     loadCalendar();
   } catch (e) { toast("Ошибка: " + e.message, true); }
+}
+
+function openCalendarDayMoreModal(dayKey) {
+  const events = (CALENDAR_BY_DAY_MAP && CALENDAR_BY_DAY_MAP[dayKey]) || [];
+  if (!events || events.length === 0) return;
+
+  const sampleDate = events[0]?.air_date ? new Date(events[0].air_date) : new Date(dayKey);
+  const formattedDate = sampleDate.toLocaleDateString(CURRENT_LANG === "en" ? "en-US" : "ru-RU", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+  const capDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+
+  const eventsHtml = events.map(e => {
+    const isMovie = e.content_type === "movie";
+    const isAnime = e.content_type === "anime";
+    const eKey = `${e.show_id}_${e.episode_id || 'prem'}`;
+    const epLabel = (e.season != null && e.episode != null)
+      ? `S${pad2(e.season)}E${pad2(e.episode)}${e.absolute_episode ? ` (${e.absolute_episode})` : ''}` : "";
+    const displayEpTitle = e.title || (isMovie ? t("calendar.movie_premiere") : "TBA");
+
+    let movieBadge = "";
+    if (isMovie && e.release_types && e.release_types.length) {
+      if (e.release_types.includes("cinemas") && CALENDAR_SETTINGS.show_cinema !== false) {
+        movieBadge = `<span class="cal-release-badge cal-badge-cinema"><i data-lucide="clapperboard" class="ico-xs"></i><span>${t("calendar.badge_cinema")}</span></span>`;
+      } else if (e.release_types.includes("digital") && CALENDAR_SETTINGS.show_digital !== false) {
+        movieBadge = `<span class="cal-release-badge cal-badge-digital"><i data-lucide="monitor" class="ico-xs"></i><span>${t("calendar.badge_digital")}</span></span>`;
+      } else if (e.release_types.includes("physical")) {
+        movieBadge = `<span class="cal-release-badge cal-badge-physical"><i data-lucide="disc" class="ico-xs"></i><span>${t("calendar.badge_physical")}</span></span>`;
+      }
+    }
+
+    let timeStr = "";
+    if (e.air_date) {
+      const d = new Date(e.air_date);
+      const dEnd = new Date(d.getTime() + 24 * 60000);
+      timeStr = `${calFormatTime(d)} - ${calFormatTime(dEnd)}`;
+    }
+
+    const posterUrl = e.poster_url || "/static/img/no-poster.svg";
+
+    return `
+      <div class="cal-day-event-row status-${e.status}" onclick="closeModal('calendar-day-modal'); openCalendarEventModal('${eKey}')" title="${escapeHtml(e.show_title || '')}">
+        <img src="${escapeHtml(posterUrl)}" alt="" style="width:36px; height:50px; object-fit:cover; border-radius:4px; flex-shrink:0; background:var(--panel);" onerror="this.src='/static/img/no-poster.svg'">
+        <div style="display:flex; flex-direction:column; gap:2px; flex:1 1 0; min-width:0; overflow:hidden;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-weight:700; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(e.show_title || '—')}</span>
+            ${movieBadge}
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            ${epLabel ? `<strong style="color:var(--text); font-family:var(--font-mono);">${epLabel}</strong> — ` : ""}${escapeHtml(displayEpTitle)}
+          </div>
+          <div style="font-size:11px; font-family:var(--font-mono); opacity:0.75;">
+            ${timeStr}
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0;">
+          <span class="status-pill status-${e.status}" style="font-size:11px; padding:2px 8px;">${escapeHtml(calStatusLabel(e.status))}</span>
+          <i data-lucide="chevron-right" class="ico-xs" style="color:var(--text-muted)"></i>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const modalHtml = `
+    <div class="cal-day-modal-header">
+      <div class="cal-day-modal-title">
+        <i data-lucide="calendar" class="ico-sm" style="color:var(--teal)"></i>
+        <span>${escapeHtml(capDate)}</span>
+      </div>
+      <span class="badge badge-teal mono" style="font-size:11px; padding:2px 8px;">${events.length} ${CURRENT_LANG === 'en' ? (events.length === 1 ? 'event' : 'events') : 'релизов'}</span>
+    </div>
+    <div class="cal-day-events-list">
+      ${eventsHtml}
+    </div>
+  `;
+
+  const container = document.getElementById("cal-day-modal-content");
+  if (container) {
+    container.innerHTML = modalHtml;
+    if (window.lucide) {
+      lucide.createIcons({
+        nameAttr: 'data-lucide',
+        attrs: { stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }
+      });
+    }
+    openModal("calendar-day-modal");
+  }
 }
 
 function renderCalendarAgendaList(byDay, rangeStart, rangeEnd) {

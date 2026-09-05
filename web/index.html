@@ -582,6 +582,14 @@
       </div>
     </div>
 
+    <!-- Модальное окно просмотра всех событий дня в календаре -->
+    <div id="calendar-day-modal" class="modal-overlay">
+      <div class="modal modal-medium" style="max-width: 580px;">
+        <button class="modal-close" onclick="closeModal('calendar-day-modal')"><i data-lucide="x"></i></button>
+        <div id="cal-day-modal-content"></div>
+      </div>
+    </div>
+
     <!-- Модальное окно iCalendar (iCal Feed) -->
     <div id="calendar-ical-modal" class="modal-overlay">
       <div class="modal modal-medium" style="max-width: 560px;">

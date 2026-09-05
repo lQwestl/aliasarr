@@ -3685,6 +3685,89 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .cal-badge-digital { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
 .cal-badge-physical { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
 
+.calendar-event-more {
+  margin-top: 2px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--teal);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.calendar-event-more:hover {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: var(--teal);
+  transform: translateY(-1px);
+}
+
+/* Calendar Day Events Modal */
+.cal-day-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.cal-day-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cal-day-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.cal-day-event-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--panel-alt);
+  border-radius: 8px;
+  border-left: 3px solid var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.cal-day-event-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(2px);
+}
+.cal-day-event-row.status-unaired { border-left-color: #3b82f6; }
+.cal-day-event-row.status-unmonitored { border-left-color: #4b5563; opacity: 0.8; }
+.cal-day-event-row.status-on_air { border-left-color: #f59e0b; }
+.cal-day-event-row.status-missing { border-left-color: var(--danger); }
+.cal-day-event-row.status-downloading { border-left-color: var(--violet); }
+.cal-day-event-row.status-downloaded { border-left-color: #10b981; }
+
+.cal-ev-modal-badges .cal-release-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.cal-ev-modal-badges .cal-release-badge i,
+.cal-ev-modal-badges .cal-release-badge svg {
+  width: 13px;
+  height: 13px;
+}
+
 /* Calendar Legend */
 .calendar-legend {
   display: flex;
