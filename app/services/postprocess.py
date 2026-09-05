@@ -1662,6 +1662,7 @@ def process_movie_download(
     rename_template: str,
     root_folder: str,
     specific_files: Optional[list[str]] = None,
+    torrent_hash: Optional[str] = None,
     progress_callback: Optional[Callable[[float, str], None]] = None,
 ) -> list[dict]:
     """
@@ -1941,6 +1942,27 @@ def process_movie_download(
         },
         db=db,
     )
+
+    if torrent_hash:
+        try:
+            target_hash_lower = (torrent_hash or "").strip().lower()
+            unlinked_eps = (
+                db.query(Episode)
+                .filter(
+                    Episode.show_id == show.id,
+                    or_(
+                        Episode.torrent_hash == torrent_hash,
+                        func.lower(Episode.torrent_hash) == target_hash_lower,
+                    ),
+                )
+                .all()
+            )
+            for u_ep in unlinked_eps:
+                u_ep.torrent_hash = None
+                u_ep.download_client_id = None
+                db.add(u_ep)
+        except Exception:
+            pass
 
     db.commit()
     return [{"file": main_file, "status": "imported", "dest": dest_video_path, "season": 1, "episode": 1, "is_upgrade": is_upgrade}]

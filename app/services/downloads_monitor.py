@@ -202,7 +202,14 @@ def _run_postprocess_in_thread(
             return []
         if is_movie:
             return process_movie_download(
-                thread_db, show_obj, download_path, template, root_folder, specific_files=specific_files, progress_callback=cb,
+                thread_db,
+                show_obj,
+                download_path,
+                template,
+                root_folder,
+                specific_files=specific_files,
+                torrent_hash=torrent_hash,
+                progress_callback=cb,
             )
         else:
             return process_download(
