@@ -81,25 +81,28 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(count_all, 10)
 
     def test_get_blocked_shows_summary(self):
-        from app.models.db import Show
+        from app.models.db import Blocklist, Show
         from app.services.blocklist_service import get_blocked_shows_summary
+        import datetime as dt
         mock_db = MagicMock()
-        # Mock group_by result
-        mock_db.query.return_value.group_by.return_value.all.return_value = [
-            (10, 5),
-            (None, 2),
-        ]
         show = Show(id=10, title="Naruto", poster_url="/posters/naruto.jpg", year=2002)
+        item1 = Blocklist(id=1, show_id=10, release_title="Naruto.E01", created_at=dt.datetime(2026, 9, 1))
+        item2 = Blocklist(id=2, show_id=10, release_title="Naruto.E02", created_at=dt.datetime(2026, 9, 2))
+        item3 = Blocklist(id=3, show_id=None, show_title="Без привязки к тайтлу", release_title="Unknown.Release", created_at=dt.datetime(2026, 9, 3))
+
+        mock_db.query.return_value.all.return_value = [item1, item2, item3]
         mock_db.get.return_value = show
 
         summary = get_blocked_shows_summary(mock_db)
         self.assertEqual(len(summary), 2)
-        self.assertEqual(summary[0]["show_id"], 10)
-        self.assertEqual(summary[0]["show_title"], "Naruto")
-        self.assertEqual(summary[0]["blocked_count"], 5)
-        self.assertEqual(summary[1]["show_id"], None)
-        self.assertEqual(summary[1]["show_title"], "Без привязки к тайтлу")
-        self.assertEqual(summary[1]["blocked_count"], 2)
+        show_summary = next(s for s in summary if s["show_id"] == 10)
+        self.assertEqual(show_summary["count"], 2)
+        self.assertEqual(show_summary["show_title"], "Naruto")
+        self.assertEqual(show_summary["year"], 2002)
+
+        unlinked_summary = next(s for s in summary if s["show_id"] is None)
+        self.assertEqual(unlinked_summary["count"], 1)
+        self.assertEqual(unlinked_summary["show_title"], "Без привязки к тайтлу")
 
     async def test_blocklist_routes_delete_and_list(self):
         from app.models.db import User
@@ -127,7 +130,7 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
         mock_dl = AsyncMock()
         mock_file = MagicMock()
         mock_file.index = 0
-        mock_file.name = "Completely.Unrelated.Movie.mkv"
+        mock_file.name = "Sample.Anime.S01E01.1080p.mkv"
         mock_file.size = 1000000
 
         mock_torrent = MagicMock()
@@ -139,7 +142,7 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
         mock_dl.remove_torrent = AsyncMock()
 
         show = Show(id=20, title="Sample Anime", content_type="anime")
-        ep = Episode(id=100, show_id=20, season_number=1, episode_number=1, status=EpisodeStatus.DOWNLOADING, torrent_hash="TESTHASH123")
+        ep = Episode(id=100, show_id=20, season_number=1, episode_number=10, status=EpisodeStatus.DOWNLOADING, torrent_hash="TESTHASH123")
 
         mock_db = MagicMock()
         mock_db.is_active = True
