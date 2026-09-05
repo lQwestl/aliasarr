@@ -63,6 +63,11 @@ logger = logging.getLogger("aliasarr.auto_search")
 _SHOW_REJECTED_HASHES: dict[int, set[str]] = {}
 
 
+def add_rejected_release_for_show(show_id: int, identifier: str) -> None:
+    if show_id and identifier:
+        _SHOW_REJECTED_HASHES.setdefault(show_id, set()).add(identifier.lower())
+
+
 def reject_release_for_show(
     show_id: int,
     infohash: Optional[str] = None,

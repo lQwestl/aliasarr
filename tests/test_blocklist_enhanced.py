@@ -394,7 +394,8 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
              patch("app.services.blocklist_service.is_release_blocked") as mock_is_blocked, \
              patch("app.services.auto_search.log_release_event"):
 
-            from app.services.matcher import MatchResult, ParsedTitle, ReleaseKind
+            from app.services.matcher import MatchResult
+            from app.services.parser import ParsedTitle, ReleaseKind
             from app.services.quality import QualityInfo
             from app.services.auto_search import CandidateList
 

@@ -370,7 +370,7 @@ def is_release_blocked(
     cur_show_title = show.title if show else None
 
     # Пытаемся извлечь стандартизированный hex инфохэш из любого источника
-    norm_hash = extract_infohash(torrent_hash)
+    norm_hash = extract_infohash(torrent_hash) or (torrent_hash.lower().strip() if torrent_hash else None)
     if not norm_hash:
         norm_hash = extract_infohash(guid)
     if not norm_hash:
