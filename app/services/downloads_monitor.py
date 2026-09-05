@@ -715,6 +715,27 @@ async def check_downloads(db: Session) -> list[dict]:
                         logger.warning("Не удалось отправить уведомление об импорте: %s", e)
                 else:
                     t_task.complete("Нет новых файлов для импорта")
+                    import datetime as dt
+                    today = dt.date.today()
+                    for ep in eps:
+                        if ep.status == EpisodeStatus.DOWNLOADING and ep.torrent_hash == torrent_hash:
+                            air_d = ep.air_date
+                            if isinstance(air_d, dt.datetime):
+                                air_d = air_d.date()
+                            ep.status = EpisodeStatus.UNAIRED if (air_d and air_d > today) else EpisodeStatus.WANTED
+                            ep.torrent_hash = None
+                            ep.download_client_id = None
+                            ep.download_progress = 0.0
+                            db.add(ep)
+                    try:
+                        client = get_client(dc_row)
+                        await client.remove_torrent(torrent_hash, delete_files=True)
+                        logger.info(
+                            "DownloadsMonitor: Раздача %s не содержала новых файлов для «%s» и была удалена из клиента.",
+                            torrent_hash, show.title,
+                        )
+                    except Exception as rem_err:
+                        logger.debug("DownloadsMonitor: Не удалось удалить ненужную раздачу %s: %s", torrent_hash, rem_err)
 
                 # Проверка лимита времени раздачи (Seed Time Limit / Ratio Limit) ПОСЛЕ завершения импорта
                 state_str = str(getattr(t, "state", "")).lower()

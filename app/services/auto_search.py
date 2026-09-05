@@ -1196,7 +1196,47 @@ async def _do_search_and_grab(
             else:
                 status_filter = Episode.status == EpisodeStatus.WANTED
         wanted_episodes = db.query(Episode).filter(Episode.show_id == show.id, status_filter).all()
+
+    # Для сериалов и аниме исключаем из фонового автопоиска серии, чья премьера еще не состоялась в реальности
+    if show.content_type != "movie" and not episode_ids and wanted_episodes:
+        import datetime as dt
+        today = dt.date.today()
+        # Определяем минимальную известную дату будущей премьеры в каждом сезоне
+        future_season_min_dates: dict[int, dt.date] = {}
+        for ep in db.query(Episode).filter(Episode.show_id == show.id).all():
+            air_d = ep.air_date
+            if isinstance(air_d, dt.datetime):
+                air_d = air_d.date()
+            if air_d and air_d > today:
+                s_num = ep.season_number or 1
+                if s_num not in future_season_min_dates or air_d < future_season_min_dates[s_num]:
+                    future_season_min_dates[s_num] = air_d
+
+        filtered_wanted = []
+        for ep in wanted_episodes:
+            air_d = ep.air_date
+            if isinstance(air_d, dt.datetime):
+                air_d = air_d.date()
+            is_future = bool(air_d and air_d > today)
+            if not is_future and air_d is None:
+                # Если дата серии не указана, но в этом сезоне уже есть более ранняя серия в будущем
+                s_num = ep.season_number or 1
+                if s_num in future_season_min_dates:
+                    is_future = True
+
+            if is_future:
+                if ep.status != EpisodeStatus.UNAIRED:
+                    ep.status = EpisodeStatus.UNAIRED
+                    db.add(ep)
+                continue
+            filtered_wanted.append(ep)
+        wanted_episodes = filtered_wanted
+
     if not wanted_episodes:
+        try:
+            db.commit()
+        except Exception:
+            pass
         return {"show_id": show.id, "grabbed": [], "reason": "no_wanted_episodes"}
 
     indexers = db.query(Indexer).filter(Indexer.enabled == True).all()  # noqa: E712
