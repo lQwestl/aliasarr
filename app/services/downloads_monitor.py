@@ -276,6 +276,51 @@ async def check_downloads(db: Session) -> list[dict]:
 
     for torrent_hash, eps in episodes_by_hash.items():
         entry = torrents_by_hash.get(torrent_hash)
+        show_id = eps[0].show_id if eps else None
+        show_obj = db.get(Show, show_id) if show_id else None
+
+        # Проверяем, не заблокирован ли данный торрент в черном списке (Blocklist)
+        from app.services.blocklist_service import is_release_blocked
+        is_blocked, block_reason = is_release_blocked(
+            db,
+            show=show_obj,
+            show_id=show_id,
+            torrent_hash=torrent_hash,
+            title=getattr(entry[0], "name", None) if entry else None,
+        )
+        if is_blocked:
+            logger.warning(
+                "DownloadsMonitor: Раздача %s для тайтла «%s» находится в черном списке (%s). Немедленно удаляем из загрузчика.",
+                torrent_hash, getattr(show_obj, "title", show_id), block_reason,
+            )
+            if entry:
+                t, dc_row = entry
+                try:
+                    client = get_client(dc_row)
+                    await client.remove_torrent(torrent_hash, delete_files=True)
+                except Exception as rem_exc:
+                    logger.debug("DownloadsMonitor: Не удалось удалить заблокированный торрент %s: %s", torrent_hash, rem_exc)
+
+            today = dt.date.today()
+            for ep in eps:
+                if ep.status == EpisodeStatus.DOWNLOADING:
+                    ep.torrent_hash = None
+                    ep.download_client_id = None
+                    ep.download_progress = 0.0
+                    if getattr(ep, "file_path", None):
+                        ep.status = EpisodeStatus.DOWNLOADED
+                    else:
+                        air_d = getattr(ep, "air_date", None)
+                        if isinstance(air_d, dt.datetime):
+                            air_d = air_d.date()
+                        if air_d and air_d > today:
+                            ep.status = EpisodeStatus.UNAIRED
+                        else:
+                            ep.status = EpisodeStatus.WANTED
+                    db.add(ep)
+                    progress_changed = True
+            continue
+
         if not entry:
             # Если хотя бы один клиент не ответил (ошибка/таймаут), не сбрасываем серии — возможно раздача там
             client_id = eps[0].download_client_id if eps else None
@@ -292,20 +337,23 @@ async def check_downloads(db: Session) -> list[dict]:
 
             _MISSING_TORRENT_POLL_COUNTS.pop(torrent_hash, None)
             _RECONCILED_TORRENTS.discard(torrent_hash)
-            # Торрент действительно удален из загрузчика: сбрасываем в WANTED / UNAIRED
+            # Торрент действительно удален из загрузчика: сбрасываем в WANTED / UNAIRED / DOWNLOADED
             today = dt.date.today()
             for ep in eps:
                 if ep.status == EpisodeStatus.DOWNLOADING:
                     ep.torrent_hash = None
                     ep.download_client_id = None
                     ep.download_progress = 0.0
-                    air_d = ep.air_date
-                    if isinstance(air_d, dt.datetime):
-                        air_d = air_d.date()
-                    if air_d and air_d > today:
-                        ep.status = EpisodeStatus.UNAIRED
+                    if getattr(ep, "file_path", None):
+                        ep.status = EpisodeStatus.DOWNLOADED
                     else:
-                        ep.status = EpisodeStatus.WANTED
+                        air_d = getattr(ep, "air_date", None)
+                        if isinstance(air_d, dt.datetime):
+                            air_d = air_d.date()
+                        if air_d and air_d > today:
+                            ep.status = EpisodeStatus.UNAIRED
+                        else:
+                            ep.status = EpisodeStatus.WANTED
                     db.add(ep)
                     progress_changed = True
             logger.info("Раздача %s удалена из загрузчика. Серии переведены в статус поиска.", torrent_hash)
@@ -324,8 +372,6 @@ async def check_downloads(db: Session) -> list[dict]:
                     _RECONCILED_TORRENTS.add(torrent_hash)
                     from app.services.auto_search import evaluate_torrent_file_priority
                     from app.services.matcher import get_show_title_words
-                    show_id = eps[0].show_id
-                    show_obj = db.get(Show, show_id) if show_id else None
                     all_show_eps = db.query(Episode).filter(Episode.show_id == show_id).all() if show_id else eps
                     show_ova_mode = getattr(show_obj, "ova_mode", "auto") or "auto"
                     show_words = get_show_title_words(show_obj)
@@ -389,6 +435,8 @@ async def check_downloads(db: Session) -> list[dict]:
                             except Exception as set_err:
                                 logger.debug("DownloadsMonitor: Не удалось отключить файлы в %s: %s", torrent_hash, set_err)
 
+                    actually_matched_ids: set[int] = set()
+                    actually_matched_pairs: set[tuple[int, int]] = set()
                     if matched_eps:
                         actually_matched_ids = {e.id for e in matched_eps if getattr(e, "id", None) is not None}
                         actually_matched_pairs = {(e.season_number, e.episode_number) for e in matched_eps}
@@ -407,7 +455,7 @@ async def check_downloads(db: Session) -> list[dict]:
                                     m_ep.season_number, m_ep.episode_number, m_ep.title or "", torrent_hash, (t.progress or 0.0) * 100,
                                 )
 
-                    # 2. Серии из eps, которых реально нет в загружаемых файлах раздачи, возвращаем в WANTED/UNAIRED
+                    # 2. Серии из eps, которых реально нет в загружаемых файлах раздачи, возвращаем в WANTED/UNAIRED/DOWNLOADED
                     uncovered = [
                         e for e in eps
                         if (e.id and e.id not in actually_matched_ids) and (e.season_number, e.episode_number) not in actually_matched_pairs
@@ -415,17 +463,22 @@ async def check_downloads(db: Session) -> list[dict]:
                     if uncovered:
                         today = dt.date.today()
                         for u_ep in uncovered:
-                            air_d = u_ep.air_date
+                            air_d = getattr(u_ep, "air_date", None)
                             if isinstance(air_d, dt.datetime):
                                 air_d = air_d.date()
-                            u_ep.status = EpisodeStatus.UNAIRED if (air_d and air_d > today) else EpisodeStatus.WANTED
+                            if getattr(u_ep, "file_path", None):
+                                u_ep.status = EpisodeStatus.DOWNLOADED
+                            elif air_d and air_d > today:
+                                u_ep.status = EpisodeStatus.UNAIRED
+                            else:
+                                u_ep.status = EpisodeStatus.WANTED
                             u_ep.torrent_hash = None
                             u_ep.download_client_id = None
                             u_ep.download_progress = 0.0
                             db.add(u_ep)
                             logger.info(
-                                "DownloadsMonitor: Серия S%02dE%02d («%s») не загружается в раздаче %s — статус возвращен в 'в поиске'",
-                                u_ep.season_number, u_ep.episode_number, u_ep.title or "", torrent_hash,
+                                "DownloadsMonitor: Серия S%02dE%02d («%s») не загружается в раздаче %s — статус возвращен",
+                                u_ep.season_number, u_ep.episode_number, getattr(u_ep, "title", "") or "", torrent_hash,
                             )
                         progress_changed = True
 

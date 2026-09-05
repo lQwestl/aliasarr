@@ -63,9 +63,18 @@ logger = logging.getLogger("aliasarr.auto_search")
 _SHOW_REJECTED_HASHES: dict[int, set[str]] = {}
 
 
-def add_rejected_release_for_show(show_id: int, identifier: str) -> None:
-    if show_id and identifier:
-        _SHOW_REJECTED_HASHES.setdefault(show_id, set()).add(identifier.lower())
+def reject_release_for_show(
+    show_id: int,
+    infohash: Optional[str] = None,
+    guid: Optional[str] = None,
+    download_url: Optional[str] = None,
+    title: Optional[str] = None,
+) -> None:
+    if not show_id:
+        return
+    for val in (infohash, guid, download_url, title):
+        if val:
+            add_rejected_release_for_show(show_id, str(val))
 
 
 def is_release_rejected_for_show(
@@ -1131,7 +1140,8 @@ async def _collect_candidates(
             seen_guids.add(rel.guid)
 
             # Проверяем, не был ли этот релиз ранее отклонён для этого тайтла
-            infohash = getattr(rel, "infohash", None)
+            from app.services.blocklist_service import extract_infohash
+            infohash = getattr(rel, "infohash", None) or extract_infohash(getattr(rel, "download_url", None)) or extract_infohash(getattr(rel, "guid", None))
             guid_str = str(rel.guid) if getattr(rel, "guid", None) else None
             dl_url = str(getattr(rel, "download_url", "")) if getattr(rel, "download_url", None) else None
             # Проверяем, не находится ли релиз в постоянном черном списке (Blocklist)
@@ -1797,6 +1807,51 @@ async def _do_search_and_grab(
             torrent_hash = await dl_client.add_torrent(rel.download_url, download_client_row.category, save_path)
             if not torrent_hash:
                 raise RuntimeError(f"Загрузчик '{download_client_row.name}' не подтвердил добавление раздачи (хэш не получен)")
+
+            # Проверяем полученный от клиента реальный инфохэш в черном списке (Blocklist)
+            from app.services import blocklist_service
+            is_blocked, block_reason = blocklist_service.is_release_blocked(
+                db,
+                show=show,
+                title=rel.title,
+                torrent_hash=torrent_hash,
+                guid=str(rel.guid) if getattr(rel, "guid", None) else None,
+                download_url=str(getattr(rel, "download_url", "")) if getattr(rel, "download_url", None) else None,
+            )
+            if is_blocked:
+                logger.warning(
+                    "Релиз «%s» (инфохэш %s) отклонен: находится в черном списке (%s). Немедленно удаляем из загрузчика.",
+                    rel.title, torrent_hash, block_reason,
+                )
+                try:
+                    await dl_client.remove_torrent(torrent_hash, delete_files=True)
+                except Exception as rem_err:
+                    logger.debug("Не удалось удалить заблокированный торрент %s: %s", torrent_hash, rem_err)
+
+                log_release_event(
+                    stage="grab",
+                    level="warning",
+                    show_title=show.title,
+                    show_id=show.id,
+                    release_title=rel.title,
+                    indexer=getattr(indexer, "name", "Torznab"),
+                    message=f"Релиз «{rel.title}» был передан в загрузчик, но его инфохэш ({torrent_hash}) находится в черном списке ({block_reason}). Раздача немедленно удалена из загрузчика.",
+                    details={
+                        "torrent_hash": torrent_hash,
+                        "block_reason": block_reason,
+                        "client": download_client_row.name,
+                    },
+                    db=db,
+                )
+                reject_release_for_show(
+                    show.id,
+                    infohash=torrent_hash,
+                    guid=str(rel.guid) if getattr(rel, "guid", None) else None,
+                    download_url=str(getattr(rel, "download_url", "")) if getattr(rel, "download_url", None) else None,
+                    title=rel.title,
+                )
+                continue
+
             is_movie = show.content_type == "movie"
             yr_str = f" ({show.year})" if show.year else ""
             if is_movie:

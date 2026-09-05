@@ -75,6 +75,9 @@ class DecisionEngine:
         settings: Optional[AppSettings] = None,
         quality_profile: Optional[QualityProfile] = None,
         categories: Optional[List[int]] = None,
+        torrent_hash: Optional[str] = None,
+        guid: Optional[str] = None,
+        download_url: Optional[str] = None,
     ) -> DecisionResult:
         """
         Полная оценка релиза по всем спецификациям Decision Engine.
@@ -85,6 +88,20 @@ class DecisionEngine:
         from app.services.matcher import is_non_video_release, build_alias_candidates, match_release
         if is_non_video_release(title, categories=categories):
             rejections.append("Релиз не является видео-контентом (игры/консоли/ROM/софт/музыка/книги)")
+
+        # 0.1. Проверка блокировок (ReleaseRestrictionsSpecification / Blocklist)
+        from app.services.blocklist_service import is_release_blocked, extract_infohash
+        eff_hash = extract_infohash(torrent_hash) or extract_infohash(guid) or extract_infohash(download_url)
+        is_blocked, block_reason = is_release_blocked(
+            db=db,
+            show=show,
+            title=title,
+            torrent_hash=eff_hash,
+            guid=guid,
+            download_url=download_url,
+        )
+        if is_blocked:
+            rejections.append(f"Релиз находится в черном списке: {block_reason}")
 
         # 1. Извлечение метаданных
         quality = parse_quality(title)

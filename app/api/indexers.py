@@ -446,6 +446,21 @@ async def search_releases_for_show(
                 categories=getattr(rel, "categories", None),
             )
 
+            # Проверка в черном списке (Blocklist)
+            from app.services.blocklist_service import is_release_blocked, extract_infohash
+            rel_hash = getattr(rel, "infohash", None) or extract_infohash(getattr(rel, "download_url", None)) or extract_infohash(getattr(rel, "guid", None))
+            is_blocked, block_reason = is_release_blocked(
+                db,
+                show=show,
+                title=rel.title,
+                torrent_hash=rel_hash,
+                guid=rel.guid,
+                download_url=rel.download_url,
+            )
+            if is_blocked:
+                decision.approved = False
+                decision.rejections.append(f"В черном списке: {block_reason}")
+
             pub_iso, age_days = _parse_release_age_and_date(getattr(rel, "pub_date", None))
 
             results.append(
@@ -507,6 +522,20 @@ async def grab_release(
     if not show:
         raise HTTPException(404, "Show not found")
 
+    # Предварительная проверка в черном списке
+    from app.services.blocklist_service import is_release_blocked, extract_infohash
+    pre_hash = extract_infohash(payload.download_url) or extract_infohash(payload.page_url)
+    is_blocked_pre, block_reason_pre = is_release_blocked(
+        db,
+        show=show,
+        title=payload.release_title,
+        torrent_hash=pre_hash,
+        guid=payload.page_url,
+        download_url=payload.download_url,
+    )
+    if is_blocked_pre:
+        raise HTTPException(400, f"Релиз заблокирован в черном списке: {block_reason_pre}")
+
     download_client_row = (
         db.query(DownloadClient)
         .filter(DownloadClient.enabled == True)  # noqa: E712
@@ -528,6 +557,22 @@ async def grab_release(
         torrent_hash = await client.add_torrent(payload.download_url, download_client_row.category, save_path)
     except Exception as exc:
         raise HTTPException(502, f"Не удалось отправить релиз в download client: {exc}")
+
+    # Проверка реального инфохэша после добавления в клиент
+    is_blocked_post, block_reason_post = is_release_blocked(
+        db,
+        show=show,
+        title=payload.release_title,
+        torrent_hash=torrent_hash,
+        guid=payload.page_url,
+        download_url=payload.download_url,
+    )
+    if is_blocked_post:
+        try:
+            await client.remove_torrent(torrent_hash, delete_files=True)
+        except Exception:
+            pass
+        raise HTTPException(400, f"Релиз отклонен (инфохэш {torrent_hash} находится в черном списке: {block_reason_post})")
 
     # Привязываем серии к торренту
     target_episodes: list[Episode] = []
