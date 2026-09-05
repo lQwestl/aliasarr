@@ -351,7 +351,7 @@
               <p class="subtitle" data-i18n="subtitle.library">Все ваши фильмы, сериалы и аниме, с алиасами на всех языках</p>
             </div>
             <div class="header-actions" style="display:flex;gap:8px;">
-              <button id="btn-library-bulk-toggle" class="btn btn-secondary" onclick="toggleLibraryBulkMode()" title="Выбрать тайтлы и массово редактировать"><i data-lucide="check-square" class="ico-sm"></i> <span>Выбрать тайтлы</span></button>
+              <button id="btn-library-bulk-toggle" class="btn btn-secondary" onclick="toggleLibraryBulkMode()" title="Выбрать тайтлы и массово редактировать" data-i18n-title="library.bulk_btn_title"><i data-lucide="check-square" class="ico-sm"></i> <span data-i18n="library.bulk_btn">Выбрать тайтлы</span></button>
               <button class="btn btn-primary" onclick="openAddShowWizard()" data-i18n="nav.add_video">+ Добавить видео</button>
             </div>
           </div>
@@ -418,48 +418,48 @@
               <span id="library-bulk-count-text">Выбрано: 0 из 0</span>
             </span>
             <button class="btn btn-secondary btn-small" id="btn-library-bulk-select-all" onclick="toggleLibraryBulkSelectAll()">
-              <i data-lucide="check" class="ico-xs"></i> <span>Выбрать все</span>
+              <i data-lucide="check" class="ico-xs"></i> <span data-i18n="library.bulk_select_all">Выбрать все</span>
             </button>
           </div>
           <div class="bulk-bar-actions">
             <!-- Quality Profile dropdown & apply -->
             <div class="bulk-action-item">
               <select id="library-bulk-quality-select" class="input input-small" style="max-width: 170px;">
-                <option value="">— Профиль качества —</option>
+                <option value="" data-i18n="library.bulk_profile_placeholder">— Профиль качества —</option>
               </select>
-              <button class="btn btn-secondary btn-small" onclick="applyBulkQualityToShows()" title="Применить профиль качества">
-                <i data-lucide="check" class="ico-xs"></i> <span>Применить</span>
+              <button class="btn btn-secondary btn-small" onclick="applyBulkQualityToShows()" title="Применить профиль качества" data-i18n-title="library.bulk_apply">
+                <i data-lucide="check" class="ico-xs"></i> <span data-i18n="library.bulk_apply">Применить</span>
               </button>
             </div>
             <!-- Category dropdown & apply -->
             <div class="bulk-action-item">
               <select id="library-bulk-category-select" class="input input-small" style="max-width: 140px;">
-                <option value="">— Категория —</option>
-                <option value="movie">Фильмы</option>
-                <option value="series">Сериалы</option>
-                <option value="anime">Аниме</option>
+                <option value="" data-i18n="library.bulk_category_placeholder">— Категория —</option>
+                <option value="movie" data-i18n="library.filter_movies">Фильмы</option>
+                <option value="series" data-i18n="library.filter_series">Сериалы</option>
+                <option value="anime" data-i18n="library.filter_anime">Аниме</option>
               </select>
-              <button class="btn btn-secondary btn-small" onclick="applyBulkCategoryToShows()" title="Сменить категорию">
-                <i data-lucide="folder-sync" class="ico-xs"></i> <span>Сменить</span>
+              <button class="btn btn-secondary btn-small" onclick="applyBulkCategoryToShows()" title="Сменить категорию" data-i18n-title="library.bulk_change">
+                <i data-lucide="folder-sync" class="ico-xs"></i> <span data-i18n="library.bulk_change">Сменить</span>
               </button>
             </div>
             <!-- Monitored buttons -->
             <div class="bulk-action-item">
-              <button class="btn btn-secondary btn-small" onclick="applyBulkMonitoringToShows(true)" title="Включить мониторинг">
-                <i data-lucide="bookmark-check" class="ico-xs" style="color:var(--success)"></i> <span>Мониторить</span>
+              <button class="btn btn-secondary btn-small" onclick="applyBulkMonitoringToShows(true)" title="Включить мониторинг" data-i18n-title="library.bulk_monitor">
+                <i data-lucide="bookmark-check" class="ico-xs" style="color:var(--success)"></i> <span data-i18n="library.bulk_monitor">Мониторить</span>
               </button>
-              <button class="btn btn-secondary btn-small" onclick="applyBulkMonitoringToShows(false)" title="Выключить мониторинг">
-                <i data-lucide="bookmark-x" class="ico-xs" style="color:var(--text-muted)"></i> <span>Снять</span>
+              <button class="btn btn-secondary btn-small" onclick="applyBulkMonitoringToShows(false)" title="Выключить мониторинг" data-i18n-title="library.bulk_unmonitor">
+                <i data-lucide="bookmark-x" class="ico-xs" style="color:var(--text-muted)"></i> <span data-i18n="library.bulk_unmonitor">Снять</span>
               </button>
             </div>
             <!-- Delete -->
-            <button class="btn btn-danger btn-small" onclick="applyBulkDeleteShows()" title="Удалить выбранные тайтлы">
-              <i data-lucide="trash-2" class="ico-xs"></i> <span>Удалить</span>
+            <button class="btn btn-danger btn-small" onclick="applyBulkDeleteShows()" title="Удалить выбранные тайтлы" data-i18n-title="library.bulk_delete">
+              <i data-lucide="trash-2" class="ico-xs"></i> <span data-i18n="library.bulk_delete">Удалить</span>
             </button>
           </div>
           <div class="bulk-bar-right">
             <button class="btn btn-secondary btn-small" onclick="toggleLibraryBulkMode(false)">
-              <i data-lucide="x" class="ico-xs"></i> <span>Готово</span>
+              <i data-lucide="x" class="ico-xs"></i> <span data-i18n="library.bulk_done">Готово</span>
             </button>
           </div>
         </div>
@@ -2412,41 +2412,41 @@
 
             <button class="btn btn-danger" id="dataset-stop-btn" onclick="stopDatasetHarvest()" style="display: none;">
               <i data-lucide="square" class="ico-sm"></i>
-              <span>Остановить</span>
+              <span data-i18n="harvester.btn_stop">Остановить</span>
             </button>
 
-            <button class="btn btn-secondary" id="dataset-download-unknown-btn" onclick="downloadDatasetJson('unknown')" title="Скачать компактный JSON только с нераспознанными раздачами (для отправки ассистенту)">
+            <button class="btn btn-secondary" id="dataset-download-unknown-btn" onclick="downloadDatasetJson('unknown')" title="Скачать компактный JSON только с нераспознанными раздачами (для отправки ассистенту)" data-i18n-title="harvester.btn_download_unknown">
               <i data-lucide="file-question" class="ico-sm"></i>
-              <span>Неизвестные (~30 КБ)</span>
+              <span data-i18n="harvester.btn_download_unknown">Неизвестные (~30 КБ)</span>
             </button>
 
-            <button class="btn btn-secondary" id="dataset-download-btn" onclick="downloadDatasetJson('all')" title="Скачать полный JSON датасета">
+            <button class="btn btn-secondary" id="dataset-download-btn" onclick="downloadDatasetJson('all')" title="Скачать полный JSON датасета" data-i18n-title="harvester.btn_download_all">
               <i data-lucide="download" class="ico-sm"></i>
-              <span>Скачать всё (.json)</span>
+              <span data-i18n="harvester.btn_download_all">Скачать всё (.json)</span>
             </button>
 
-            <button class="btn btn-danger" id="dataset-clear-btn" onclick="clearDatasetRecords()" title="Очистить устаревшие собранные логи">
+            <button class="btn btn-danger" id="dataset-clear-btn" onclick="clearDatasetRecords()" title="Очистить устаревшие собранные логи" data-i18n-title="harvester.btn_clear">
               <i data-lucide="trash-2" class="ico-sm"></i>
-              <span>Очистить</span>
+              <span data-i18n="harvester.btn_clear">Очистить</span>
             </button>
           </div>
 
           <!-- Безопасный режим Dry-Run -->
           <div style="font-size: 12px; color: var(--teal, #00F0FF); margin-top: 10px; display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: rgba(0, 240, 255, 0.04); border-radius: 6px; border: 1px dashed rgba(0, 240, 255, 0.2);">
             <i data-lucide="shield-check" class="ico-xs" style="flex-shrink:0;"></i>
-            <span><strong>Безопасная симуляция (Dry-Run):</strong> Раздачи только анализируются и сопоставляются с сериями из базы в памяти. <u>Никакой контент в торрент-клиент не добавляется и не скачивается.</u></span>
+            <span><strong data-i18n="harvester.dry_run_title">Безопасная симуляция (Dry-Run):</strong> <span data-i18n="harvester.dry_run_text">Раздачи только анализируются и сопоставляются с сериями из базы в памяти. Никакой контент в торрент-клиент не добавляется и не скачивается.</span></span>
           </div>
 
           <!-- Поле ручного ввода тайтлов (активно при выборе 'custom') -->
           <div id="dataset-custom-query-wrap" style="display: none; margin-top: 12px;">
-            <label class="label" style="font-size: 12px; margin-bottom: 4px; display: block;">Тайтлы для поиска (через запятую или построчно):</label>
-            <textarea id="dataset-custom-query" class="input" rows="2" style="resize: vertical;" placeholder="Например: Re:Zero, Клеватесс, Bleach, Судьба: Ночь схватки, Табакошка..."></textarea>
+            <label class="label" style="font-size: 12px; margin-bottom: 4px; display: block;" data-i18n="harvester.custom_query_label">Тайтлы для поиска (через запятую или построчно):</label>
+            <textarea id="dataset-custom-query" class="input" rows="2" style="resize: vertical;" placeholder="Например: Re:Zero, Клеватесс, Bleach, Судьба: Ночь схватки, Табакошка..." data-i18n-placeholder="harvester.custom_query_placeholder"></textarea>
           </div>
 
           <!-- Индикатор активного сбора / прогресс -->
           <div id="dataset-progress-wrap" style="display: none; margin-top: 12px; padding: 10px 14px; background: rgba(0, 240, 255, 0.05); border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 8px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
-              <span id="dataset-progress-status" style="font-weight: 600; color: var(--teal, #00F0FF);"><i data-lucide="loader-2" class="ico-sm spin"></i> Выполняется сбор раздач...</span>
+              <span id="dataset-progress-status" style="font-weight: 600; color: var(--teal, #00F0FF);"><i data-lucide="loader-2" class="ico-sm spin"></i> <span data-i18n="harvester.progress_collecting">Выполняется сбор раздач...</span></span>
               <span id="dataset-progress-count" class="mono" style="font-size: 12px;">0 / 0</span>
             </div>
             <div style="width: 100%; height: 6px; background: var(--bg-card, #1c1e24); border-radius: 3px; overflow: hidden;">
@@ -2458,19 +2458,19 @@
         <!-- ТУЛБАР ФИЛЬТРАЦИИ ТАБЛИЦЫ -->
         <div class="form-row dataset-toolbar" style="margin-bottom:14px; flex-wrap:wrap; gap:10px;">
           <select id="dataset-filter-select" class="input" style="max-width:240px" onchange="loadDatasetData(1)">
-            <option value="all">Все записи</option>
-            <option value="approved">🟢 Одобрено DecisionEngine</option>
-            <option value="rejected">🔴 Отклонено DecisionEngine</option>
-            <option value="wanted_eps">🎯 Закрывает разыскиваемые серии</option>
-            <option value="video">Только видео-релизы</option>
-            <option value="unknown">Не распознано (Unknown)</option>
-            <option value="multi_part">Сплит-куры (Part 2+)</option>
-            <option value="non_video">Не-видео (отфильтровано)</option>
+            <option value="all" data-i18n="harvester.filter_all">Все записи</option>
+            <option value="approved" data-i18n="harvester.filter_approved">🟢 Одобрено DecisionEngine</option>
+            <option value="rejected" data-i18n="harvester.filter_rejected">🔴 Отклонено DecisionEngine</option>
+            <option value="wanted_eps" data-i18n="harvester.filter_wanted_eps">🎯 Закрывает разыскиваемые серии</option>
+            <option value="video" data-i18n="harvester.filter_video">Только видео-релизы</option>
+            <option value="unknown" data-i18n="harvester.filter_unknown">Не распознано (Unknown)</option>
+            <option value="multi_part" data-i18n="harvester.filter_multi_part">Сплит-куры (Part 2+)</option>
+            <option value="non_video" data-i18n="harvester.filter_non_video">Не-видео (отфильтровано)</option>
           </select>
 
-          <input type="text" id="dataset-search-input" class="input" style="max-width:280px" placeholder="Поиск по названию или трекеру…" onkeydown="if(event.key==='Enter') loadDatasetData(1)">
+          <input type="text" id="dataset-search-input" class="input" style="max-width:280px" placeholder="Поиск по названию или трекеру…" data-i18n-placeholder="harvester.search_placeholder" onkeydown="if(event.key==='Enter') loadDatasetData(1)">
           
-          <button class="btn btn-secondary btn-small" onclick="loadDatasetData(1)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span>Обновить</span></button>
+          <button class="btn btn-secondary btn-small" onclick="loadDatasetData(1)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
 
           <div class="desktop-spacer" style="flex:1"></div>
         </div>
@@ -2482,7 +2482,7 @@
               <i data-lucide="database" class="ico-sm"></i>
             </div>
             <div>
-              <div class="hint" style="font-size: 10px; text-transform: uppercase;">Собрано записей</div>
+              <div class="hint" style="font-size: 10px; text-transform: uppercase;" data-i18n="harvester.stat_total">Собрано записей</div>
               <div style="font-size: 16px; font-weight: 700;" id="dataset-stat-total">—</div>
               <div class="hint" style="font-size: 10px;" id="dataset-stat-video">— видео</div>
             </div>
@@ -2493,7 +2493,7 @@
               <i data-lucide="check-circle-2" class="ico-sm"></i>
             </div>
             <div>
-              <div class="hint" style="font-size: 10px; text-transform: uppercase;">Точность парсера</div>
+              <div class="hint" style="font-size: 10px; text-transform: uppercase;" data-i18n="harvester.stat_accuracy">Точность парсера</div>
               <div style="font-size: 16px; font-weight: 700; color: #10b981;" id="dataset-stat-accuracy">—%</div>
               <div class="hint" style="font-size: 10px;" id="dataset-stat-parsed-count">— распознано</div>
             </div>
@@ -2504,7 +2504,7 @@
               <i data-lucide="thumbs-up" class="ico-sm"></i>
             </div>
             <div>
-              <div class="hint" style="font-size: 10px; text-transform: uppercase;">Одобрено движком</div>
+              <div class="hint" style="font-size: 10px; text-transform: uppercase;" data-i18n="harvester.stat_approved">Одобрено движком</div>
               <div style="font-size: 16px; font-weight: 700; color: #3b82f6;" id="dataset-stat-approved">—</div>
               <div class="hint" style="font-size: 10px;" id="dataset-stat-wanted-overlap">— с разыскиваемыми</div>
             </div>
@@ -2515,9 +2515,9 @@
               <i data-lucide="shield-x" class="ico-sm"></i>
             </div>
             <div>
-              <div class="hint" style="font-size: 10px; text-transform: uppercase;">Отклонено движком</div>
+              <div class="hint" style="font-size: 10px; text-transform: uppercase;" data-i18n="harvester.stat_rejected">Отклонено движком</div>
               <div style="font-size: 16px; font-weight: 700; color: #ef4444;" id="dataset-stat-rejected">—</div>
-              <div class="hint" style="font-size: 10px;">не подошли параметры</div>
+              <div class="hint" style="font-size: 10px;" data-i18n="harvester.stat_rejected_hint">не подошли параметры</div>
             </div>
           </div>
 
@@ -2526,9 +2526,9 @@
               <i data-lucide="filter" class="ico-sm"></i>
             </div>
             <div>
-              <div class="hint" style="font-size: 10px; text-transform: uppercase;">Не-видео контент</div>
+              <div class="hint" style="font-size: 10px; text-transform: uppercase;" data-i18n="harvester.stat_non_video">Не-видео контент</div>
               <div style="font-size: 16px; font-weight: 700;" id="dataset-stat-non-video">—</div>
-              <div class="hint" style="font-size: 10px;">игры, OST, манга</div>
+              <div class="hint" style="font-size: 10px;" data-i18n="harvester.stat_non_video_hint">игры, OST, манга</div>
             </div>
           </div>
 
@@ -2537,9 +2537,9 @@
               <i data-lucide="alert-triangle" class="ico-sm"></i>
             </div>
             <div>
-              <div class="hint" style="font-size: 10px; text-transform: uppercase;">Не распознано</div>
+              <div class="hint" style="font-size: 10px; text-transform: uppercase;" data-i18n="harvester.stat_unknown">Не распознано</div>
               <div style="font-size: 16px; font-weight: 700; color: #a855f7;" id="dataset-stat-unknown">—</div>
-              <div class="hint" style="font-size: 10px;">краевые случаи</div>
+              <div class="hint" style="font-size: 10px;" data-i18n="harvester.stat_unknown_hint">краевые случаи</div>
             </div>
           </div>
         </div>
@@ -2558,13 +2558,13 @@
             </colgroup>
             <thead>
               <tr>
-                <th class="col-query">Запрос / Трекер</th>
-                <th class="col-title">Заголовок раздачи с трекера</th>
-                <th class="col-size">Размер / Качество</th>
-                <th class="col-episodes">Серии (Парсер)</th>
-                <th class="col-match">Сопоставление с БД</th>
-                <th class="col-decision">DecisionEngine</th>
-                <th class="col-actions" style="text-align:center;">Действия</th>
+                <th class="col-query" data-i18n="harvester.col_query">Запрос / Трекер</th>
+                <th class="col-title" data-i18n="harvester.col_title">Заголовок раздачи с трекера</th>
+                <th class="col-size" data-i18n="harvester.col_size">Размер / Качество</th>
+                <th class="col-episodes" data-i18n="harvester.col_episodes">Серии (Парсер)</th>
+                <th class="col-match" data-i18n="harvester.col_match">Сопоставление с БД</th>
+                <th class="col-decision" data-i18n="harvester.col_decision">DecisionEngine</th>
+                <th class="col-actions" style="text-align:center;" data-i18n="harvester.col_actions">Действия</th>
               </tr>
             </thead>
             <tbody></tbody>

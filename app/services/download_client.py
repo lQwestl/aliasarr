@@ -512,6 +512,8 @@ class QBittorrentClient(BaseDownloadClient):
                     pass
 
     async def get_client_logs(self, limit: int = 100) -> list[dict]:
+        if not httpx:
+            return []
         try:
             async with httpx.AsyncClient(timeout=8.0, cookies=self._cookies) as client:
                 await self._ensure_auth(client)
@@ -542,6 +544,8 @@ class QBittorrentClient(BaseDownloadClient):
             "upload_speed_b_s": 0,
             "torrents": [],
         }
+        if not httpx:
+            return diag
         try:
             async with httpx.AsyncClient(timeout=8.0, cookies=self._cookies) as client:
                 await self._ensure_auth(client)
