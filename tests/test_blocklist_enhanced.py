@@ -366,6 +366,7 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
             m_q = MagicMock()
             if model == Episode:
                 m_q.filter.return_value.all.return_value = [ep]
+                m_q.filter_by.return_value.count.return_value = 1
             elif model == Indexer:
                 m_q.filter.return_value.all.return_value = [indexer]
             elif model == DownloadClient:

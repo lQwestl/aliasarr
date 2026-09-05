@@ -1361,9 +1361,13 @@ async def _do_search_and_grab(
     wanted_count_by_season = {}
     for ep in wanted_episodes:
         if ep.season_number not in total_episodes_by_season:
-            total_episodes_by_season[ep.season_number] = db.query(Episode).filter_by(
-                show_id=show.id, season_number=ep.season_number
-            ).count()
+            try:
+                cnt = db.query(Episode).filter_by(
+                    show_id=show.id, season_number=ep.season_number
+                ).count()
+                total_episodes_by_season[ep.season_number] = cnt if isinstance(cnt, int) else 0
+            except Exception:
+                total_episodes_by_season[ep.season_number] = 0
         wanted_count_by_season[ep.season_number] = wanted_count_by_season.get(ep.season_number, 0) + 1
 
     # Для каждой wanted-серии находим кандидатов, которые её покрывают
@@ -1662,6 +1666,8 @@ async def _do_search_and_grab(
         if not target_s and wanted_seasons_set:
             target_s = min(wanted_seasons_set)
         season_card_total = total_episodes_by_season.get(target_s, 0)
+        if not isinstance(season_card_total, int):
+            season_card_total = 0
 
         if season_lbl.get("type") == "complete" or parsed.matched_pattern in ("season_pack:complete", "season_pack:multi_range"):
             is_full_season = 1
