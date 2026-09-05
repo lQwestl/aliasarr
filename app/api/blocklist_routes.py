@@ -90,6 +90,27 @@ def add_manual_block(
     return {"status": "ok", "id": entry.id, "message": "Релиз добавлен в черный список"}
 
 
+@router.delete("")
+def delete_blocklist_bulk(
+    show_id: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """Очистить черный список (целиком или для указанного тайтла через ?show_id=)."""
+    if show_id:
+        count = blocklist_service.clear_blocklist_for_show(db, show_id)
+        action_name = "blocklist_clear_show"
+        desc = f"Очищен черный список для тайтла {show_id} ({count} записей)"
+        msg = f"Черный список для тайтла очищен ({count} записей)"
+    else:
+        count = blocklist_service.clear_all_blocklist(db)
+        action_name = "blocklist_clear_all"
+        desc = f"Полная очистка черного списка ({count} записей)"
+        msg = f"Весь черный список очищен ({count} записей)"
+
+    audit_action(db, action=action_name, description=desc)
+    return {"status": "ok", "deleted_count": count, "message": msg}
+
+
 @router.delete("/clear-all")
 def clear_entire_blocklist(db: Session = Depends(get_db)):
     """Полная очистка всего черного списка."""
@@ -99,7 +120,7 @@ def clear_entire_blocklist(db: Session = Depends(get_db)):
         action="blocklist_clear_all",
         description=f"Полная очистка черного списка ({count} записей)",
     )
-    return {"status": "ok", "deleted_count": count}
+    return {"status": "ok", "deleted_count": count, "message": f"Весь черный список очищен ({count} записей)"}
 
 
 @router.delete("/show/{show_id_or_title}")

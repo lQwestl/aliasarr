@@ -571,3 +571,7 @@ class Blocklist(Base):
 
     show: Mapped[Optional["Show"]] = relationship("Show", back_populates="blocklist_entries")
 
+
+# Alias for backward-compatibility and alternative naming
+BlocklistEntry = Blocklist
+

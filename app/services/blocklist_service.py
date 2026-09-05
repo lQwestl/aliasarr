@@ -242,44 +242,59 @@ def remove_from_blocklist(db: Session, item_id: int) -> bool:
         return False
 
 
-def clear_blocklist_for_show(db: Session, show_id_or_title: str | int) -> int:
+def clear_blocklist_for_show(db: Session, show_id_or_title: Optional[str | int] = None, *, show_id: Optional[int] = None) -> int:
     """Удаляет все записи черного списка для конкретного шоу."""
-    q = db.query(Blocklist)
-    if isinstance(show_id_or_title, int) or (isinstance(show_id_or_title, str) and show_id_or_title.isdigit()):
-        sid = int(show_id_or_title)
-        items = q.filter(or_(Blocklist.show_id == sid, Blocklist.tmdb_id == sid)).all()
+    target = show_id if show_id is not None else show_id_or_title
+    if target is None:
+        return 0
+
+    if isinstance(target, int) or (isinstance(target, str) and str(target).isdigit()):
+        sid = int(target)
+        filt = or_(Blocklist.show_id == sid, Blocklist.tmdb_id == sid)
     else:
-        title_str = str(show_id_or_title).strip().lower()
-        items = q.filter(func.lower(Blocklist.show_title) == title_str).all()
+        title_str = str(target).strip().lower()
+        filt = func.lower(Blocklist.show_title) == title_str
 
-    count = len(items)
-    for it in items:
-        db.delete(it)
-
-    if count > 0:
+    try:
+        count = db.query(Blocklist).filter(filt).delete()
+        db.commit()
+        logger.info("Удалено %d записей черного списка для тайтла %s", count, target)
+        return count
+    except Exception as exc:
+        db.rollback()
         try:
-            db.commit()
-            logger.info("Удалено %d записей черного списка для тайтла %s", count, show_id_or_title)
-        except Exception as exc:
-            db.rollback()
+            items = db.query(Blocklist).filter(filt).all()
+            count = len(items)
+            for it in items:
+                db.delete(it)
+            if count > 0:
+                db.commit()
+            return count
+        except Exception:
             logger.warning("Ошибка очистки черного списка: %s", exc)
-
-    return count
+            return 0
 
 
 def clear_all_blocklist(db: Session) -> int:
     """Полностью очищает весь черный список."""
-    items = db.query(Blocklist).all()
-    count = len(items)
-    for it in items:
-        db.delete(it)
     try:
+        count = db.query(Blocklist).delete()
         db.commit()
         logger.info("Весь черный список очищен (%d записей удалено)", count)
+        return count
     except Exception as exc:
         db.rollback()
-        logger.warning("Ошибка очистки всего черного списка: %s", exc)
-    return count
+        try:
+            items = db.query(Blocklist).all()
+            count = len(items)
+            for it in items:
+                db.delete(it)
+            if count > 0:
+                db.commit()
+            return count
+        except Exception:
+            logger.warning("Ошибка очистки всего черного списка: %s", exc)
+            return 0
 
 
 def get_blocklist_entries(
