@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services import blocklist_service
-from app.services.audit_service import audit_action
+from app.services.audit_service import log_audit
 
 logger = logging.getLogger("aliasarr.api.blocklist")
 
@@ -80,7 +80,7 @@ def add_manual_block(
         size=req.size,
     )
 
-    audit_action(
+    log_audit(
         db,
         action="blocklist_add",
         description=f"Релиз «{req.release_title}» добавлен в черный список",
@@ -107,7 +107,7 @@ def delete_blocklist_bulk(
         desc = f"Полная очистка черного списка ({count} записей)"
         msg = f"Весь черный список очищен ({count} записей)"
 
-    audit_action(db, action=action_name, description=desc)
+    log_audit(db, action=action_name, description=desc)
     return {"status": "ok", "deleted_count": count, "message": msg}
 
 
@@ -115,7 +115,7 @@ def delete_blocklist_bulk(
 def clear_entire_blocklist(db: Session = Depends(get_db)):
     """Полная очистка всего черного списка."""
     count = blocklist_service.clear_all_blocklist(db)
-    audit_action(
+    log_audit(
         db,
         action="blocklist_clear_all",
         description=f"Полная очистка черного списка ({count} записей)",
@@ -130,7 +130,7 @@ def clear_show_blocklist(
 ):
     """Очистка черного списка для конкретного тайтла."""
     count = blocklist_service.clear_blocklist_for_show(db, show_id_or_title)
-    audit_action(
+    log_audit(
         db,
         action="blocklist_clear_show",
         description=f"Очищен черный список для тайтла {show_id_or_title} ({count} записей)",
@@ -148,7 +148,7 @@ def remove_blocklist_item(
     if not success:
         raise HTTPException(status_code=404, detail="Запись в черном списке не найдена")
 
-    audit_action(
+    log_audit(
         db,
         action="blocklist_remove",
         description=f"Запись #{item_id} удалена из черного списка",

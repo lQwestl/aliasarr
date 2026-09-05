@@ -78,3 +78,7 @@ def log_audit(
         except Exception:
             pass
         return None
+
+
+# Alias for backward compatibility
+audit_action = log_audit
