@@ -531,7 +531,24 @@ async def grab_release(
 
     # Привязываем серии к торренту
     target_episodes: list[Episode] = []
-    if payload.episode_id:
+    if show.content_type == "movie":
+        target_episodes = db.query(Episode).filter(Episode.show_id == show.id).all()
+        if not target_episodes:
+            movie_ep = Episode(
+                show_id=show.id,
+                season_number=1,
+                episode_number=1,
+                title=show.title,
+                status=EpisodeStatus.DOWNLOADING,
+                monitored=True,
+                torrent_hash=torrent_hash,
+                download_client_id=download_client_row.id,
+                download_progress=0.0,
+            )
+            db.add(movie_ep)
+            db.flush()
+            target_episodes = [movie_ep]
+    elif payload.episode_id:
         ep = db.get(Episode, payload.episode_id)
         if ep:
             target_episodes.append(ep)
@@ -575,10 +592,18 @@ async def grab_release(
         if not target_episodes:
             target_episodes = all_season_episodes
 
+    if not target_episodes and show.content_type != "movie":
+        target_episodes = (
+            db.query(Episode)
+            .filter(Episode.show_id == show.id, Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.UNAIRED]))
+            .all()
+        )
+
     for ep in target_episodes:
         ep.status = EpisodeStatus.DOWNLOADING
         ep.torrent_hash = torrent_hash
         ep.download_client_id = download_client_row.id
+        ep.download_progress = 0.0
         db.add(ep)
 
     # Ограничиваем скачивание выбранными сериями для сериалов/аниме, для фильмов — гарантируем включение всех файлов
@@ -651,9 +676,10 @@ async def grab_release(
     title_linked = f'<a href="{payload.page_url}">«{show.title}»</a>' if payload.page_url else f"«{show.title}»"
     await notify_all(db, "grab", f"Захвачен релиз для {title_linked}: {payload.release_title}")
 
-    # После захвата сразу запускаем автопоиск остальных wanted-серий этого шоу
-    # в фоне, не дожидаясь плановой джобы (каждые 15 минут).
-    background_tasks.add_task(_background_search_show, payload.show_id)
+    # Для сериалов: после захвата серии запускаем автопоиск оставшихся wanted-серий этого шоу в фоне.
+    # Для фильмов автопоиск не запускается, так как фильм уже захвачен.
+    if show.content_type != "movie":
+        background_tasks.add_task(_background_search_show, payload.show_id)
 
     return {"grabbed": True, "torrent_hash": torrent_hash}
 
@@ -669,8 +695,8 @@ def _background_search_show(show_id: int) -> None:
         session = SessionLocal()
         try:
             show = session.get(Show, show_id)
-            if show:
-                await search_and_grab_show(session, show)
+            if show and show.content_type != "movie":
+                await search_and_grab_show(session, show, wanted_only=True)
         finally:
             session.close()
 
