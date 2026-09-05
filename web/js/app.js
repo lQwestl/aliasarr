@@ -8572,11 +8572,48 @@ function renderInteractiveReleaseRow(r) {
       <td>${qualityBadge}</td>
       <td>${langBadges} ${groupBadge}</td>
       <td style="text-align:center;">${scoreBadge} ${cfList ? `<div style="margin-top:2px;">${cfList}</div>` : ""}</td>
-      <td style="text-align:right;">
-        <button class="btn ${grabBtnClass} btn-small" onclick='grabRelease(this, ${showId}, ${JSON.stringify(r).replace(/'/g, "&apos;")})'>${grabBtnText}</button>
+      <td style="text-align:right; white-space:nowrap;">
+        <div style="display:inline-flex; align-items:center; gap:4px; justify-content:flex-end;">
+          <button class="btn ${grabBtnClass} btn-small" onclick='grabRelease(this, ${showId}, ${JSON.stringify(r).replace(/'/g, "&apos;")})'>${grabBtnText}</button>
+          <button class="btn btn-secondary btn-small" title="${CURRENT_LANG === 'en' ? 'Add to blocklist' : 'В черный список'}" onclick='blockReleaseFromSearch(this, ${showId}, ${JSON.stringify(r).replace(/'/g, "&apos;")})' style="padding:4px 6px; color:var(--text-muted);"><i data-lucide="shield-alert" class="ico-xs"></i></button>
+        </div>
       </td>
     </tr>
   `;
+}
+
+async function blockReleaseFromSearch(btn, showId, result) {
+  const reason = prompt(
+    CURRENT_LANG === "en" ? "Reason for blocking this release:" : "Причина блокировки релиза:",
+    CURRENT_LANG === "en" ? "Rejected by user" : "Отклонено вручную из поиска"
+  );
+  if (reason === null) return;
+
+  await withLoading(btn, async () => {
+    try {
+      await api("/api/v1/blocklist", {
+        method: "POST",
+        body: JSON.stringify({
+          release_title: result.title,
+          torrent_hash: result.info_hash || null,
+          guid: result.guid || null,
+          download_url: result.download_url || null,
+          indexer: result.indexer || null,
+          quality: result.quality || null,
+          size: result.size_bytes || null,
+          show_id: showId,
+          reason: reason || "Отклонено пользователем"
+        })
+      });
+      showToast(CURRENT_LANG === "en" ? "Release added to blocklist" : "Релиз добавлен в черный список", "success");
+      result.rejections = result.rejections || [];
+      result.rejections.push(CURRENT_LANG === "en" ? `[Blocklist] ${reason}` : `[В ЧС] ${reason}`);
+      renderInteractiveSearchTable();
+    } catch (err) {
+      console.error("Failed to block release:", err);
+      showToast(err.message || (CURRENT_LANG === "en" ? "Failed to block release" : "Ошибка при добавлении в черный список"), "error");
+    }
+  });
 }
 
 function renderInteractivePagination(page, totalPages) {
@@ -15603,6 +15640,55 @@ async function confirmClearAllBlocklist() {
     showToast(err.message || (CURRENT_LANG === "en" ? "Failed to clear blocklist" : "Ошибка очистки черного списка"), "error");
   }
 }
+
+function openAddBlocklistModal() {
+  const showSelect = document.getElementById("add-blocklist-show");
+  if (showSelect) {
+    showSelect.innerHTML = `<option value="">${CURRENT_LANG === "en" ? "Global block (all shows)" : "Глобальная блокировка (для всех тайтлов)"}</option>` +
+      (CACHED_SHOWS || []).map(s => `<option value="${s.id}" ${SELECTED_BLOCKLIST_SHOW_ID == s.id ? "selected" : ""}>${escapeHtml(s.title)}${s.year ? ` (${s.year})` : ""}</option>`).join("");
+  }
+  const titleInput = document.getElementById("add-blocklist-title");
+  if (titleInput) titleInput.value = "";
+  const reasonInput = document.getElementById("add-blocklist-reason");
+  if (reasonInput) reasonInput.value = "";
+  openModal("modal-add-blocklist");
+}
+
+async function submitAddBlocklist(btn) {
+  const titleInput = document.getElementById("add-blocklist-title");
+  const rawTitle = titleInput ? titleInput.value.trim() : "";
+  if (!rawTitle) {
+    showToast(CURRENT_LANG === "en" ? "Enter release title or torrent hash" : "Укажите название релиза или хэш торрента", "warning");
+    return;
+  }
+  const showSelect = document.getElementById("add-blocklist-show");
+  const showIdVal = showSelect && showSelect.value ? parseInt(showSelect.value, 10) : null;
+  const reasonInput = document.getElementById("add-blocklist-reason");
+  const reason = reasonInput && reasonInput.value.trim() ? reasonInput.value.trim() : "Заблокировано вручную пользователем";
+
+  const isHash = /^[a-fA-F0-9]{40}$/.test(rawTitle);
+
+  await withLoading(btn, async () => {
+    try {
+      await api("/api/v1/blocklist", {
+        method: "POST",
+        body: JSON.stringify({
+          release_title: rawTitle,
+          torrent_hash: isHash ? rawTitle.toLowerCase() : null,
+          show_id: showIdVal,
+          reason: reason
+        })
+      });
+      showToast(CURRENT_LANG === "en" ? "Release added to blocklist" : "Релиз добавлен в черный список", "success");
+      closeModal("modal-add-blocklist");
+      await loadBlocklist(showIdVal || "all");
+    } catch (err) {
+      console.error("Failed to add to blocklist:", err);
+      showToast((CURRENT_LANG === "en" ? "Failed to add to blocklist: " : "Ошибка при добавлении в черный список: ") + (err.message || err), "error");
+    }
+  });
+}
+
 
 // Применяем язык/тему/дизайн/скроллбар из localStorage сразу, не дожидаясь ответа /api/v1/settings —
 // они всё равно будут перезаписаны актуальными значениями в loadGeneralSettings().

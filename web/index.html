@@ -504,6 +504,10 @@
               <p class="subtitle" data-i18n="subtitle.blocklist">Заблокированные раздачи, исключенные из автопоиска и загрузки</p>
             </div>
             <div class="header-actions">
+              <button class="btn btn-primary" onclick="openAddBlocklistModal()" title="Заблокировать релиз вручную" id="blocklist-add-btn">
+                <i data-lucide="plus"></i>
+                <span>Заблокировать релиз</span>
+              </button>
               <button class="btn btn-secondary" onclick="loadBlocklist()" title="Обновить список" id="blocklist-refresh-btn">
                 <i data-lucide="refresh-cw"></i>
                 <span data-i18n="common.refresh">Обновить</span>
@@ -3638,6 +3642,39 @@
         <button class="btn btn-secondary" onclick="closeModal('modal-preview-rename')" data-i18n="common.cancel">Отмена</button>
         <button class="btn btn-primary" id="btn-execute-rename" onclick="executeRename(this)" data-i18n="show.btn_organize">Организовать</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-add-blocklist" class="modal-overlay">
+  <div class="modal modal-medium" style="max-width: 560px; width: 95%;">
+    <button class="modal-close" onclick="closeModal('modal-add-blocklist')"><i data-lucide="x"></i></button>
+    <div class="modal-header" style="margin-bottom: 16px;">
+      <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+        <i data-lucide="shield-alert" class="ico-sm" style="color:var(--danger)"></i>
+        <span>Заблокировать релиз вручную</span>
+      </h3>
+    </div>
+    <div class="modal-body form-col" style="gap:14px;">
+      <div class="form-group">
+        <label for="add-blocklist-show" style="display:block; margin-bottom:6px; font-weight:500;">Тайтл (опционально):</label>
+        <select id="add-blocklist-show" class="input" style="width:100%;">
+          <option value="">Глобальная блокировка (для всех тайтлов)</option>
+        </select>
+        <p class="hint" style="font-size:12px; margin-top:4px;">Если выбрать сериал/фильм, релиз будет исключаться только при его поиске.</p>
+      </div>
+      <div class="form-group">
+        <label for="add-blocklist-title" style="display:block; margin-bottom:6px; font-weight:500;">Название релиза или инфохэш <span class="text-danger">*</span>:</label>
+        <input type="text" id="add-blocklist-title" class="input" style="width:100%;" placeholder="Например: Release.Name.S01.1080p или 40-символьный хэш">
+      </div>
+      <div class="form-group">
+        <label for="add-blocklist-reason" style="display:block; margin-bottom:6px; font-weight:500;">Причина блокировки:</label>
+        <input type="text" id="add-blocklist-reason" class="input" style="width:100%;" placeholder="Например: Отсутствуют серии / Битая озвучка / Фейк">
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-blocklist')">Отмена</button>
+      <button class="btn btn-danger" onclick="submitAddBlocklist(this)">Заблокировать</button>
     </div>
   </div>
 </div>
