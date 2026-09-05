@@ -589,7 +589,6 @@ async def _limit_torrent_files_to_episodes(
         # и карточка тайтла точно соответствовали реальным файлам в торрент-клиенте.
         if matched_target_eps:
             try:
-                import datetime as dt
                 today = dt.date.today()
                 from app.database import SessionLocal
                 with SessionLocal() as s_db:
@@ -1199,7 +1198,6 @@ async def _do_search_and_grab(
 
     # Для сериалов и аниме исключаем из фонового автопоиска серии, чья премьера еще не состоялась в реальности
     if show.content_type != "movie" and not episode_ids and wanted_episodes:
-        import datetime as dt
         today = dt.date.today()
         # Определяем минимальную известную дату будущей премьеры в каждом сезоне
         future_season_min_dates: dict[int, dt.date] = {}

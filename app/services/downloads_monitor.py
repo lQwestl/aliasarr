@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Optional, List, Dict, Any
 
 import asyncio
+import datetime as dt
 import logging
 import os
 
@@ -289,7 +290,6 @@ async def check_downloads(db: Session) -> list[dict]:
             _MISSING_TORRENT_POLL_COUNTS.pop(torrent_hash, None)
             _RECONCILED_TORRENTS.discard(torrent_hash)
             # Торрент действительно удален из загрузчика: сбрасываем в WANTED / UNAIRED
-            import datetime as dt
             today = dt.date.today()
             for ep in eps:
                 if ep.status == EpisodeStatus.DOWNLOADING:
@@ -410,7 +410,6 @@ async def check_downloads(db: Session) -> list[dict]:
                         if (e.id and e.id not in actually_matched_ids) and (e.season_number, e.episode_number) not in actually_matched_pairs
                     ]
                     if uncovered:
-                        import datetime as dt
                         today = dt.date.today()
                         for u_ep in uncovered:
                             air_d = u_ep.air_date
@@ -550,7 +549,6 @@ async def check_downloads(db: Session) -> list[dict]:
 
             # Если часть серий из этой же группы уже импортирована вручную (статус DOWNLOADED),
             # а оставшиеся зависли на 100% downloading без файла — сбрасываем их в WANTED/UNAIRED
-            import datetime as dt
             today = dt.date.today()
             partially_imported = any(ep.status == EpisodeStatus.DOWNLOADED for ep in eps)
             if partially_imported:
@@ -715,7 +713,6 @@ async def check_downloads(db: Session) -> list[dict]:
                         logger.warning("Не удалось отправить уведомление об импорте: %s", e)
                 else:
                     t_task.complete("Нет новых файлов для импорта")
-                    import datetime as dt
                     today = dt.date.today()
                     for ep in eps:
                         if ep.status == EpisodeStatus.DOWNLOADING and ep.torrent_hash == torrent_hash:
