@@ -744,76 +744,82 @@ async def _limit_torrent_files_to_episodes(
         except Exception as exc:
             logger.warning("Не удалось удалить неподходящую раздачу %s: %s", torrent_hash, exc)
 
-        show_id = None
+        effective_show_id = show_id or (getattr(target_eps[0], "show_id", None) if target_eps else None)
         target_db_ids: set[int] = set()
         try:
             if db and hasattr(db, "is_active") and db.is_active:
                 for ep in target_eps:
                     db_ep = db.get(Episode, ep.id)
-                    if db_ep and db_ep.status == EpisodeStatus.DOWNLOADING and db_ep.torrent_hash == torrent_hash:
-                        show_id = db_ep.show_id
-                        target_db_ids.add(db_ep.id)
-                        db_ep.status = EpisodeStatus.WANTED
-                        db_ep.torrent_hash = None
-                        db_ep.download_client_id = None
-                        db_ep.download_progress = 0.0
-                        db.add(db_ep)
+                    if db_ep:
+                        if not effective_show_id:
+                            effective_show_id = db_ep.show_id
+                        if db_ep.status == EpisodeStatus.DOWNLOADING or db_ep.torrent_hash == torrent_hash:
+                            target_db_ids.add(db_ep.id)
+                            db_ep.status = EpisodeStatus.WANTED
+                            db_ep.torrent_hash = None
+                            db_ep.download_client_id = None
+                            db_ep.download_progress = 0.0
+                            db.add(db_ep)
                 db.commit()
             else:
                 from app.database import SessionLocal
                 with SessionLocal() as s_db:
                     for ep in target_eps:
                         db_ep = s_db.get(Episode, ep.id)
-                        if db_ep and db_ep.status == EpisodeStatus.DOWNLOADING and db_ep.torrent_hash == torrent_hash:
-                            show_id = db_ep.show_id
-                            target_db_ids.add(db_ep.id)
-                            db_ep.status = EpisodeStatus.WANTED
-                            db_ep.torrent_hash = None
-                            db_ep.download_client_id = None
-                            db_ep.download_progress = 0.0
-                            s_db.add(db_ep)
+                        if db_ep:
+                            if not effective_show_id:
+                                effective_show_id = db_ep.show_id
+                            if db_ep.status == EpisodeStatus.DOWNLOADING or db_ep.torrent_hash == torrent_hash:
+                                target_db_ids.add(db_ep.id)
+                                db_ep.status = EpisodeStatus.WANTED
+                                db_ep.torrent_hash = None
+                                db_ep.download_client_id = None
+                                db_ep.download_progress = 0.0
+                                s_db.add(db_ep)
                     s_db.commit()
         except Exception as exc:
             logger.debug("Ошибка сброса статуса серий для неподходящей раздачи: %s", exc)
 
-        # Логируем событие и автоматически запускаем поиск следующего кандидата
-        if show_id and target_db_ids:
+        # Гарантированно заносим раздачу в черный список и список исключений
+        t_name = getattr(torrent, "name", "")
+        if effective_show_id:
             if torrent_hash:
-                add_rejected_release_for_show(show_id, torrent_hash)
-            t_name = getattr(torrent, "name", "")
+                add_rejected_release_for_show(effective_show_id, torrent_hash)
             if t_name:
-                add_rejected_release_for_show(show_id, t_name)
-            try:
-                from app.database import SessionLocal
-                from app.services import blocklist_service
-                with SessionLocal() as s_db:
-                    db_show = s_db.get(Show, show_id)
-                    block_reason = f"В раздаче отсутствуют запрошенные серии ({requested_ep_str})"
-                    blocklist_service.add_to_blocklist(
-                        s_db,
-                        release_title=t_name or torrent_hash,
-                        reason=block_reason,
-                        show=db_show,
-                        show_id=show_id,
-                        torrent_hash=torrent_hash,
-                        size=getattr(torrent, "size", None),
-                    )
-                    if db_show:
-                        log_release_event(
-                            stage="grab",
-                            level="warning",
-                            show_title=db_show.title,
-                            show_id=db_show.id,
-                            release_title=getattr(torrent, "name", "") or torrent_hash,
-                            indexer="DownloadClient",
-                            message=(
-                                f"Раздача '{getattr(torrent, 'name', '') or torrent_hash}' удалена: файлы внутри не соответствуют запрошенным сериям ({requested_ep_str}). "
-                                "Автоматический поиск следующего подходящего релиза..."
-                            ),
-                            details={"torrent_hash": torrent_hash, "requested_episodes": requested_ep_str, "files": file_sample},
-                            db=s_db,
-                        )
+                add_rejected_release_for_show(effective_show_id, t_name)
 
+        try:
+            from app.database import SessionLocal
+            from app.services import blocklist_service
+            with SessionLocal() as s_db:
+                db_show = s_db.get(Show, effective_show_id) if effective_show_id else None
+                block_reason = f"В раздаче отсутствуют запрошенные серии ({requested_ep_str})"
+                blocklist_service.add_to_blocklist(
+                    s_db,
+                    release_title=t_name or torrent_hash,
+                    reason=block_reason,
+                    show=db_show,
+                    show_id=effective_show_id,
+                    torrent_hash=torrent_hash,
+                    size=getattr(torrent, "size", None),
+                )
+                if db_show:
+                    log_release_event(
+                        stage="grab",
+                        level="warning",
+                        show_title=db_show.title,
+                        show_id=db_show.id,
+                        release_title=getattr(torrent, "name", "") or torrent_hash,
+                        indexer="DownloadClient",
+                        message=(
+                            f"Раздача '{getattr(torrent, 'name', '') or torrent_hash}' удалена: файлы внутри не соответствуют запрошенным сериям ({requested_ep_str}). "
+                            "Автоматический поиск следующего подходящего релиза..."
+                        ),
+                        details={"torrent_hash": torrent_hash, "requested_episodes": requested_ep_str, "files": file_sample},
+                        db=s_db,
+                    )
+
+            if effective_show_id:
                 async def _retry_next_candidate(s_id: int, ep_ids: set[int]):
                     try:
                         from app.database import SessionLocal
@@ -824,9 +830,10 @@ async def _limit_torrent_files_to_episodes(
                     except Exception as e:
                         logger.debug("Повторный автопоиск кандидата: %s", e)
 
-                asyncio.create_task(_retry_next_candidate(show_id, explicit_episode_ids or target_db_ids))
-            except Exception as exc:
-                logger.debug("Не удалось запланировать автопоиск следующего кандидата: %s", exc)
+                retry_ids = explicit_episode_ids or target_db_ids or {ep.id for ep in target_eps if getattr(ep, "id", None)}
+                asyncio.create_task(_retry_next_candidate(effective_show_id, retry_ids))
+        except Exception as exc:
+            logger.debug("Не удалось занести в черный список или запланировать автопоиск следующего кандидата: %s", exc)
 
 
 _SHOW_SEARCH_LOCKS: dict[int, asyncio.Lock] = {}
@@ -1821,6 +1828,10 @@ async def _do_search_and_grab(
                 remaining.pop((ep.season_number, ep.episode_number), None)
                 grabbed_seasons.add(ep.season_number)
                 db.add(ep)
+            try:
+                db.commit()
+            except Exception as commit_exc:
+                logger.debug("Commit серий перед запуском выборочной загрузки: %s", commit_exc)
 
             # Для сериалов/аниме запускаем selective download в фоне, для фильмов — гарантируем включение всех файлов
             if torrent_hash:

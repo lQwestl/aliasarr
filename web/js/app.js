@@ -15328,11 +15328,17 @@ async function loadBlocklist(preferredShowId) {
   }
 
   try {
-    const [items, shows] = await Promise.all([
-      api("/api/v1/blocklist"),
+    const [res, shows] = await Promise.all([
+      api("/api/v1/blocklist?limit=500"),
       (!CACHED_SHOWS || !CACHED_SHOWS.length) ? api("/api/v1/shows").catch(() => []) : Promise.resolve(CACHED_SHOWS)
     ]);
-    BLOCKLIST_DATA = Array.isArray(items) ? items : [];
+    if (Array.isArray(res)) {
+      BLOCKLIST_DATA = res;
+    } else if (res && Array.isArray(res.items)) {
+      BLOCKLIST_DATA = res.items;
+    } else {
+      BLOCKLIST_DATA = [];
+    }
     if (Array.isArray(shows) && shows.length) {
       CACHED_SHOWS = shows;
     }
