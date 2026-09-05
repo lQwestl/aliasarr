@@ -25,6 +25,7 @@ from app.models.db import (
     TrackedRelease,
     User,
 )
+from app.schemas import QualityProfileCreate, QualityProfileUpdate, QualityProfileOut
 from app.services.auto_search import run_wanted_search
 from app.services.download_client import get_client
 from app.services.notifications import REQUIRED_NOTIFICATION_FIELDS, notify_all, send_notification
@@ -301,21 +302,6 @@ def get_health_check(db: Session = Depends(get_db)):
 # Quality profiles
 # ---------------------------------------------------------------------------
 
-class QualityProfileIn(BaseModel):
-    name: str
-    allowed_qualities: list[str] = []
-    min_size_mb: Optional[int] = None
-    max_size_mb: Optional[int] = None
-    upgrade_allowed: bool = True
-
-
-class QualityProfileOut(QualityProfileIn):
-    id: int
-
-    class Config:
-        from_attributes = True
-
-
 @router.get("/quality-profiles", response_model=list[QualityProfileOut])
 def list_quality_profiles(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(QualityProfile).all()
@@ -323,7 +309,7 @@ def list_quality_profiles(db: Session = Depends(get_db), current_user: User = De
 
 @router.post("/quality-profiles", response_model=QualityProfileOut, status_code=201)
 def create_quality_profile(
-    payload: QualityProfileIn,
+    payload: QualityProfileCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_settings")),
 ):
@@ -350,14 +336,14 @@ def delete_quality_profile(
 @router.put("/quality-profiles/{profile_id}", response_model=QualityProfileOut)
 def update_quality_profile(
     profile_id: int,
-    payload: QualityProfileIn,
+    payload: QualityProfileUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_settings")),
 ):
     profile = db.get(QualityProfile, profile_id)
     if not profile:
         raise HTTPException(404, "Profile not found")
-    for field, value in payload.model_dump().items():
+    for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(profile, field, value)
     db.add(profile)
     db.commit()

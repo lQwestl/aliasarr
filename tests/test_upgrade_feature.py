@@ -204,6 +204,41 @@ class TestUpgradeFeature(unittest.TestCase):
             self.assertEqual(ep1.downloaded_quality, "WEBDL-1080p")
             self.assertFalse(ep1.upgrade_requested, "upgrade_requested should be reset to False after reaching cutoff quality")
 
+    def test_quality_profile_cutoff_persistence(self):
+        from app.api.operations import create_quality_profile, update_quality_profile, list_quality_profiles
+        from app.schemas import QualityProfileCreate, QualityProfileUpdate
+        from types import SimpleNamespace
+
+        admin_user = SimpleNamespace(id=1, username="admin", role="admin")
+
+        # 1. Create with cutoff_quality and cutoff_score
+        payload_create = QualityProfileCreate(
+            name="Ultra-HD",
+            allowed_qualities=["Bluray-1080p", "Bluray-2160p"],
+            cutoff_quality="Bluray-2160p",
+            cutoff_score=500,
+            upgrade_allowed=True,
+        )
+        created = create_quality_profile(payload_create, self.db, admin_user)
+        self.assertEqual(created.cutoff_quality, "Bluray-2160p")
+        self.assertEqual(created.cutoff_score, 500)
+
+        # 2. Update cutoff_quality and cutoff_score
+        payload_update = QualityProfileUpdate(
+            cutoff_quality="Bluray-1080p",
+            cutoff_score=250,
+        )
+        updated = update_quality_profile(created.id, payload_update, self.db, admin_user)
+        self.assertEqual(updated.cutoff_quality, "Bluray-1080p")
+        self.assertEqual(updated.cutoff_score, 250)
+
+        # 3. List profiles and verify cutoff values are returned
+        profiles = list_quality_profiles(self.db, admin_user)
+        found = next((p for p in profiles if p.id == created.id), None)
+        self.assertIsNotNone(found)
+        self.assertEqual(found.cutoff_quality, "Bluray-1080p")
+        self.assertEqual(found.cutoff_score, 250)
+
 
 if __name__ == "__main__":
     unittest.main()
