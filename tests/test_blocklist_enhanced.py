@@ -62,7 +62,7 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
         from app.services.blocklist_service import remove_from_blocklist
         mock_db = MagicMock()
         existing = Blocklist(id=5, release_title="Sample")
-        mock_db.query.return_value.filter.return_value.first.return_value = existing
+        mock_db.get.return_value = existing
 
         res = remove_from_blocklist(mock_db, 5)
         self.assertTrue(res)
@@ -89,7 +89,7 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
             (10, 5),
             (None, 2),
         ]
-        show = Show(id=10, title="Naruto", poster_url="/posters/naruto.jpg", release_year=2002)
+        show = Show(id=10, title="Naruto", poster_url="/posters/naruto.jpg", year=2002)
         mock_db.get.return_value = show
 
         summary = get_blocked_shows_summary(mock_db)
@@ -125,9 +125,17 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
         from app.models.db import Show, Episode, EpisodeStatus
         from app.services.auto_search import _limit_torrent_files_to_episodes
         mock_dl = AsyncMock()
-        mock_dl.get_torrent_files = AsyncMock(return_value=[
-            {"index": 0, "name": "Completely.Unrelated.Movie.mkv", "size": 1000000}
-        ])
+        mock_file = MagicMock()
+        mock_file.index = 0
+        mock_file.name = "Completely.Unrelated.Movie.mkv"
+        mock_file.size = 1000000
+
+        mock_torrent = MagicMock()
+        mock_torrent.name = "Sample Anime S01 - Wrong Files"
+        mock_torrent.size = 1000000
+        mock_torrent.files = [mock_file]
+
+        mock_dl.get_torrent = AsyncMock(return_value=mock_torrent)
         mock_dl.remove_torrent = AsyncMock()
 
         show = Show(id=20, title="Sample Anime", content_type="anime")
@@ -144,9 +152,7 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
                 mock_dl,
                 "TESTHASH123",
                 [ep],
-                [ep],
                 db=mock_db,
-                torrent=MagicMock(name="Sample Anime S01 - Wrong Files", size=1000000),
             )
 
             mock_dl.remove_torrent.assert_called_once_with("TESTHASH123", delete_files=True)
@@ -156,6 +162,7 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(call_kwargs["torrent_hash"], "TESTHASH123")
             self.assertIn("отсутствуют запрошенные серии", call_kwargs["reason"])
             mock_log.assert_called_once()
+
 
 
 if __name__ == "__main__":

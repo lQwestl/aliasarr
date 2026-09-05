@@ -92,8 +92,9 @@ def add_manual_block(
 
 @router.delete("")
 def delete_blocklist_bulk(
-    show_id: Optional[str] = Query(None),
+    show_id: Optional[str | int] = Query(None),
     db: Session = Depends(get_db),
+    **kwargs,
 ):
     """Очистить черный список (целиком или для указанного тайтла через ?show_id=)."""
     if show_id:
@@ -108,11 +109,11 @@ def delete_blocklist_bulk(
         msg = f"Весь черный список очищен ({count} записей)"
 
     log_audit(db, action=action_name, description=desc)
-    return {"status": "ok", "deleted_count": count, "message": msg}
+    return {"status": "ok", "success": True, "deleted_count": count, "message": msg}
 
 
 @router.delete("/clear-all")
-def clear_entire_blocklist(db: Session = Depends(get_db)):
+def clear_entire_blocklist(db: Session = Depends(get_db), **kwargs):
     """Полная очистка всего черного списка."""
     count = blocklist_service.clear_all_blocklist(db)
     log_audit(
@@ -120,13 +121,14 @@ def clear_entire_blocklist(db: Session = Depends(get_db)):
         action="blocklist_clear_all",
         description=f"Полная очистка черного списка ({count} записей)",
     )
-    return {"status": "ok", "deleted_count": count, "message": f"Весь черный список очищен ({count} записей)"}
+    return {"status": "ok", "success": True, "deleted_count": count, "message": f"Весь черный список очищен ({count} записей)"}
 
 
 @router.delete("/show/{show_id_or_title}")
 def clear_show_blocklist(
     show_id_or_title: str,
     db: Session = Depends(get_db),
+    **kwargs,
 ):
     """Очистка черного списка для конкретного тайтла."""
     count = blocklist_service.clear_blocklist_for_show(db, show_id_or_title)
@@ -135,23 +137,31 @@ def clear_show_blocklist(
         action="blocklist_clear_show",
         description=f"Очищен черный список для тайтла {show_id_or_title} ({count} записей)",
     )
-    return {"status": "ok", "deleted_count": count}
+    return {"status": "ok", "success": True, "deleted_count": count}
 
 
 @router.delete("/{item_id}")
 def remove_blocklist_item(
-    item_id: int,
+    item_id: Optional[int] = None,
+    entry_id: Optional[int] = None,
     db: Session = Depends(get_db),
+    **kwargs,
 ):
     """Удаляет конкретную запись из черного списка (разблокирует релиз)."""
-    success = blocklist_service.remove_from_blocklist(db, item_id)
+    target_id = item_id if item_id is not None else entry_id
+    success = blocklist_service.remove_from_blocklist(db, target_id)
     if not success:
         raise HTTPException(status_code=404, detail="Запись в черном списке не найдена")
 
     log_audit(
         db,
         action="blocklist_remove",
-        description=f"Запись #{item_id} удалена из черного списка",
-        details={"item_id": item_id},
+        description=f"Запись #{target_id} удалена из черного списка",
+        details={"item_id": target_id},
     )
-    return {"status": "ok", "message": "Релиз удален из черного списка"}
+    return {"status": "ok", "success": True, "message": "Релиз удален из черного списка"}
+
+
+# Совместимые псевдонимы для обратной совместимости и юнит-тестов
+delete_blocklist_entry = remove_blocklist_item
+clear_blocklist = delete_blocklist_bulk

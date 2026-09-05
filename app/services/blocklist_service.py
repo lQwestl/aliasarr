@@ -123,11 +123,14 @@ def is_release_blocked(
     torrent_hash: Optional[str] = None,
     guid: Optional[str] = None,
     download_url: Optional[str] = None,
+    release_title: Optional[str] = None,
 ) -> Tuple[bool, Optional[str]]:
     """
     Проверяет, заблокирован ли кандидат в черном списке для данного тайтла (или глобально).
     Возвращает (is_blocked: bool, reason: str | None).
     """
+    if not title and release_title:
+        title = release_title
     if not show and show_id:
         show = db.get(Show, show_id)
 
