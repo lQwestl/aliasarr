@@ -395,13 +395,20 @@ class TestBlocklistEnhanced(unittest.IsolatedAsyncioTestCase):
              patch("app.services.auto_search.log_release_event"):
 
             from app.services.matcher import MatchResult
-            from app.services.parser import ParsedTitle, ReleaseKind
+            from app.services.parser import ParsedRelease, ReleaseKind
             from app.services.quality import QualityInfo
             from app.services.auto_search import CandidateList
 
             mock_cand = {
                 "rel": rel1,
-                "match": MatchResult(matched=True, score=1.0, parsed=ParsedTitle(title="Test Show", season=1, episodes=[1], kind=ReleaseKind.SINGLE_EPISODE)),
+                "match": MatchResult(
+                    matched=True,
+                    show_id=1,
+                    alias_id=None,
+                    alias_text="Test Show",
+                    score=1.0,
+                    parsed=ParsedRelease(kind=ReleaseKind.EPISODE, season=1, episodes=[1]),
+                ),
                 "quality": QualityInfo(name="WEBDL-1080p", rank=10),
                 "indexer": indexer,
                 "covered": [ep],
