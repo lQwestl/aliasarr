@@ -143,8 +143,13 @@ class TestUpgradeFeature(unittest.TestCase):
             )
         ]
 
-        with patch("app.services.auto_search.get_download_client", return_value=MockDC()), \
-             patch("app.services.auto_search.search_all_indexers", return_value=releases):
+        async def _async_return(val):
+            return val
+
+        fake_dc = MockDC()
+
+        with patch("app.services.indexer_service.TorznabIndexerClient.search", lambda self_c, query, categories=None: _async_return(releases)), \
+             patch("app.services.auto_search.get_client", lambda row: fake_dc):
             res = asyncio.run(auto_search.search_and_grab_show(self.db, show, wanted_only=False))
 
         self.assertTrue(res.get("success"))
