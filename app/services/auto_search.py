@@ -1285,7 +1285,6 @@ async def _do_search_and_grab(
 
         # Фильмы: ориентируемся на совпадение по алиасу и исключаем сериалы
         if show.content_type == "movie":
-            from app.services.parser import detect_season_label
             s_lbl = detect_season_label(rel.title)
             if s_lbl["type"] in ("numbered", "range", "complete", "final", "ova_ona"):
                 return False

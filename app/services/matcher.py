@@ -34,7 +34,7 @@ except ImportError:
 
     fuzz = FuzzFallback
 
-from app.services.parser import ParsedRelease, ReleaseKind, parse_episode
+from app.services.parser import ParsedRelease, ReleaseKind, detect_season_label, parse_episode
 
 # Порог уверенности fuzzy-совпадения имени (0-100)
 DEFAULT_FUZZY_THRESHOLD = 82
@@ -440,7 +440,6 @@ def match_release(
             if content_type == "movie":
                 has_matching_year = any(abs(y - show_year) <= 1 for y in rel_years)
             else:
-                from app.services.parser import detect_season_label
                 s_lbl = detect_season_label(release_name)
                 s_num = parsed.season or (s_lbl.get("season") if s_lbl.get("type") == "numbered" else None)
                 s_list = parsed.seasons or (s_lbl.get("seasons") if s_lbl.get("type") == "range" else [])
@@ -472,7 +471,6 @@ def match_release(
             alias_has_movie = bool(MOVIE_KEYWORDS.search(alias.text))
             if not alias_has_movie:
                 # Проверяем, есть ли явная метка сезона (например, Season 1)
-                from app.services.parser import detect_season_label
                 s_lbl = detect_season_label(release_name)
                 if s_lbl["type"] not in ("numbered", "range", "complete", "final"):
                     return MatchResult(
@@ -481,7 +479,6 @@ def match_release(
                     )
 
         # Если релиз не имеет ни сезона, ни серий, ни меток пака (одиночный фильм)
-        from app.services.parser import detect_season_label
         s_lbl = detect_season_label(release_name)
         if parsed.kind == ReleaseKind.UNKNOWN and s_lbl["type"] == "none":
             # Для сериалов/аниме одиночные релизы без сезонов/серий не должны матчиться
@@ -510,7 +507,6 @@ def match_release(
 
     # Защита от сериалов, сезон-паков и эпизодов при поиске фильма
     if content_type == "movie":
-        from app.services.parser import detect_season_label
         s_lbl = detect_season_label(release_name)
         if s_lbl["type"] in ("numbered", "range", "complete", "final", "ova_ona"):
             return MatchResult(
