@@ -47,12 +47,8 @@ class TestUpgradeFeature(unittest.TestCase):
         self.profile = QualityProfile(
             name="HD-1080p",
             cutoff_quality="WEBDL-1080p",
-            items=[
-                {"quality": "SDTV", "allowed": True, "score": 100},
-                {"quality": "WEBDL-720p", "allowed": True, "score": 200},
-                {"quality": "WEBDL-1080p", "allowed": True, "score": 300},
-                {"quality": "Bluray-1080p", "allowed": True, "score": 400},
-            ]
+            allowed_qualities=["SDTV", "WEBDL-720p", "WEBDL-1080p", "Bluray-1080p"],
+            upgrade_allowed=True,
         )
         self.db.add(self.profile)
         self.db.commit()

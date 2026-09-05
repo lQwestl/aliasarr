@@ -6,7 +6,7 @@ import os
 import shutil
 from typing import Optional, List, Dict, Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from pydantic import BaseModel
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
