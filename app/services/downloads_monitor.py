@@ -404,34 +404,48 @@ async def check_downloads(db: Session) -> list[dict]:
                                     m_ep.season_number, m_ep.episode_number, m_ep.title or "", torrent_hash, (t.progress or 0.0) * 100,
                                 )
 
-                        # 2. Серии из eps, которых реально нет в загружаемых файлах раздачи, возвращаем в WANTED
-                        uncovered = [
-                            e for e in eps
-                            if (e.id and e.id not in actually_matched_ids) and (e.season_number, e.episode_number) not in actually_matched_pairs
-                        ]
-                        if uncovered:
-                            import datetime as dt
-                            today = dt.date.today()
-                            for u_ep in uncovered:
-                                air_d = u_ep.air_date
-                                if isinstance(air_d, dt.datetime):
-                                    air_d = air_d.date()
-                                u_ep.status = EpisodeStatus.UNAIRED if (air_d and air_d > today) else EpisodeStatus.WANTED
-                                u_ep.torrent_hash = None
-                                u_ep.download_client_id = None
-                                u_ep.download_progress = 0.0
-                                db.add(u_ep)
-                                logger.info(
-                                    "DownloadsMonitor: Серия S%02dE%02d («%s») не загружается в раздаче %s — статус возвращен в 'в поиске'",
-                                    u_ep.season_number, u_ep.episode_number, u_ep.title or "", torrent_hash,
-                                )
-                            progress_changed = True
+                    # 2. Серии из eps, которых реально нет в загружаемых файлах раздачи, возвращаем в WANTED/UNAIRED
+                    uncovered = [
+                        e for e in eps
+                        if (e.id and e.id not in actually_matched_ids) and (e.season_number, e.episode_number) not in actually_matched_pairs
+                    ]
+                    if uncovered:
+                        import datetime as dt
+                        today = dt.date.today()
+                        for u_ep in uncovered:
+                            air_d = u_ep.air_date
+                            if isinstance(air_d, dt.datetime):
+                                air_d = air_d.date()
+                            u_ep.status = EpisodeStatus.UNAIRED if (air_d and air_d > today) else EpisodeStatus.WANTED
+                            u_ep.torrent_hash = None
+                            u_ep.download_client_id = None
+                            u_ep.download_progress = 0.0
+                            db.add(u_ep)
+                            logger.info(
+                                "DownloadsMonitor: Серия S%02dE%02d («%s») не загружается в раздаче %s — статус возвращен в 'в поиске'",
+                                u_ep.season_number, u_ep.episode_number, u_ep.title or "", torrent_hash,
+                            )
+                        progress_changed = True
 
-                        if progress_changed:
-                            db.commit()
-                        eps = [e for e in all_show_eps if e.torrent_hash == torrent_hash and e.status == EpisodeStatus.DOWNLOADING]
+                    if not matched_eps:
+                        # В раздаче вообще нет ни одной нужной серии для тайтла
+                        try:
+                            await client.remove_torrent(torrent_hash, delete_files=True)
+                            logger.warning(
+                                "DownloadsMonitor: Раздача %s не содержит ни одной нужной серии для «%s». Раздача удалена из клиента.",
+                                torrent_hash, getattr(show_obj, "title", torrent_hash),
+                            )
+                        except Exception as rem_err:
+                            logger.debug("DownloadsMonitor: Не удалось удалить пустую раздачу %s: %s", torrent_hash, rem_err)
+
+                    if progress_changed:
+                        db.commit()
+                    eps = [e for e in all_show_eps if e.torrent_hash == torrent_hash and e.status == EpisodeStatus.DOWNLOADING]
             except Exception as rec_err:
                 logger.debug("DownloadsMonitor: Ошибка при сверке файлов раздачи %s: %s", torrent_hash, rec_err)
+
+        if not eps:
+            continue
 
         for ep in eps:
             if abs((ep.download_progress or 0) - t.progress) > 0.001:
@@ -455,7 +469,8 @@ async def check_downloads(db: Session) -> list[dict]:
         _STOPPED_STATES = {"stopped", "paused", "0"}
 
         left_done = getattr(t, "left_until_done", None)
-        has_finished_bytes = (t.progress >= 0.999) or (left_done is not None and left_done == 0 and t.size > 0)
+        # has_finished_bytes требует прогресс > 0.01 для отсечения отключенных раздач с 0% байт
+        has_finished_bytes = (t.progress >= 0.999) or (left_done is not None and left_done == 0 and t.size > 0 and (t.progress or 0) > 0.01)
 
         # Раздача завершена:
         if state_str in _ACTIVELY_DOWNLOADING_STATES:
@@ -469,44 +484,6 @@ async def check_downloads(db: Session) -> list[dict]:
 
         if not is_done:
             continue
-
-        # Проверка лимита времени раздачи (Seed Time Limit / Ratio Limit)
-        seed_time_limit_min = getattr(dc_row, "seed_time_limit", None)
-        seed_ratio_limit = getattr(dc_row, "seed_ratio_limit", None)
-        is_actively_seeding = state_str in ("seeding", "uploading", "forcedup", "queuedup", "stalledup", "seed", "6", "5")
-
-        if is_actively_seeding:
-            time_reached = False
-            ratio_reached = False
-
-            if seed_time_limit_min is not None and seed_time_limit_min > 0:
-                seeding_sec = getattr(t, "seeding_time", 0) or 0
-                if seeding_sec >= seed_time_limit_min * 60:
-                    time_reached = True
-            elif seed_time_limit_min == 0:
-                time_reached = True
-
-            if seed_ratio_limit is not None and seed_ratio_limit > 0:
-                current_ratio = getattr(t, "ratio", 0.0) or 0.0
-                if current_ratio >= seed_ratio_limit:
-                    ratio_reached = True
-
-            has_any_limit = (seed_time_limit_min is not None and seed_time_limit_min > 0) or (seed_ratio_limit is not None and seed_ratio_limit > 0)
-            if has_any_limit:
-                if not (time_reached or ratio_reached):
-                    # Торрент ещё раздаётся для выполнения установленного лимита
-                    continue
-                else:
-                    # Лимит времени или ratio достигнут — останавливаем раздачу
-                    try:
-                        client = get_client(dc_row)
-                        await client.pause_torrent(torrent_hash)
-                        logger.info(
-                            "Торрент %s достиг лимита раздачи (%s мин / ratio %s). Раздача остановлена перед импортом.",
-                            torrent_hash, seed_time_limit_min, seed_ratio_limit,
-                        )
-                    except Exception as e:
-                        logger.debug("Не удалось поставить торрент %s на паузу: %s", torrent_hash, e)
 
         show = db.get(Show, eps[0].show_id)
         if not show:
@@ -738,6 +715,39 @@ async def check_downloads(db: Session) -> list[dict]:
                         logger.warning("Не удалось отправить уведомление об импорте: %s", e)
                 else:
                     t_task.complete("Нет новых файлов для импорта")
+
+                # Проверка лимита времени раздачи (Seed Time Limit / Ratio Limit) ПОСЛЕ завершения импорта
+                state_str = str(getattr(t, "state", "")).lower()
+                is_actively_seeding = state_str in ("seeding", "uploading", "forcedup", "queuedup", "stalledup", "seed", "6", "5")
+                if is_actively_seeding:
+                    seed_time_limit_min = getattr(dc_row, "seed_time_limit", None)
+                    seed_ratio_limit = getattr(dc_row, "seed_ratio_limit", None)
+                    time_reached = False
+                    ratio_reached = False
+
+                    if seed_time_limit_min is not None and seed_time_limit_min > 0:
+                        seeding_sec = getattr(t, "seeding_time", 0) or 0
+                        if seeding_sec >= seed_time_limit_min * 60:
+                            time_reached = True
+                    elif seed_time_limit_min == 0:
+                        time_reached = True
+
+                    if seed_ratio_limit is not None and seed_ratio_limit > 0:
+                        current_ratio = getattr(t, "ratio", 0.0) or 0.0
+                        if current_ratio >= seed_ratio_limit:
+                            ratio_reached = True
+
+                    has_any_limit = (seed_time_limit_min is not None and seed_time_limit_min > 0) or (seed_ratio_limit is not None and seed_ratio_limit > 0)
+                    if has_any_limit and (time_reached or ratio_reached):
+                        try:
+                            client = get_client(dc_row)
+                            await client.pause_torrent(torrent_hash)
+                            logger.info(
+                                "Торрент %s достиг лимита раздачи (%s мин / ratio %s). Раздача остановлена после импорта.",
+                                torrent_hash, seed_time_limit_min, seed_ratio_limit,
+                            )
+                        except Exception as e:
+                            logger.debug("Не удалось поставить торрент %s на паузу: %s", torrent_hash, e)
 
             except Exception as exc:
                 logger.exception("Ошибка постобработки для видео %s: %s", show.id, exc)

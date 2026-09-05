@@ -447,6 +447,24 @@ class TestParser(unittest.TestCase):
         self.assertEqual(p_ep.season, 4)
         self.assertEqual(p_ep.episodes, list(range(1, 9)))
 
+    def test_ongoing_bracket_ranges_with_greater_than_and_symbols(self):
+        # 1. [01-12 из >24]
+        t1 = "О моём перерождении в слизь (S4, часть 1) / Tensei Shitara Slime Datta Ken 4th Season / That Time I Got Reincarnated as a Slime [TV] [01-12 из >24] [RUS(int), JAP+Sub] [2026, приключения, комедия, фэнтези, WEBRip] [HWP]"
+        p1 = parse_episode(t1)
+        self.assertEqual(p1.season, 4)
+        self.assertEqual(p1.part, 1)
+        self.assertEqual(p1.episodes, list(range(1, 13)))
+
+        # 2. [1-10 из 26]
+        t2 = "Изгнанный реинкарнированный тяжёлый рыцарь не имеет себе равных в знаниях игры | Tsuihou sareta Tensei Juukishi (Juu Kishi) wa Game Chishiki de Musou suru | The Exiled Heavy Knight Knows How to Game the System | Как обмануть систему [TV] [1-10 из 26] [2026] [фэнтези] [WEB-DL] [1080p] [Дублированный, (JAP+SUB)]"
+        p2 = parse_episode(t2)
+        self.assertEqual(p2.episodes, list(range(1, 11)))
+
+        # 3. [01-08 из XX]
+        t3 = "Табакошка / Yani Neko / Chainsmoker Cat [TV] [01-08 из XX] [RUS(int), JAP+Sub] [2026, Сэйнэн, Комедия, WEB-DL] [1080p]"
+        p3 = parse_episode(t3)
+        self.assertEqual(p3.episodes, list(range(1, 9)))
+
 
 if __name__ == "__main__":
     unittest.main()
