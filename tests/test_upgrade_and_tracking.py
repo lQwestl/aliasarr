@@ -133,10 +133,31 @@ class TestUpgradeAndTracking(unittest.IsolatedAsyncioTestCase):
 
         mock_db = MagicMock()
         mock_db.get.side_effect = lambda model, ident: qp if model == QualityProfile and ident == 1 else (show if model == Show and ident == 1 else None)
-        mock_db.query.return_value.filter.return_value.all.return_value = [ep]
-        mock_db.query.return_value.filter.return_value.count.return_value = 0
 
-        with patch("app.services.postprocess.find_release_files", return_value={"video": ["/tmp/Test.Show.S01E01.1080p.BluRay.mkv"], "subtitle": [], "audio": [], "font": []}),              patch("os.path.exists", return_value=True),              patch("os.path.getsize", return_value=2000000000),              patch("shutil.move"),              patch("os.makedirs"),              patch("app.services.postprocess.apply_media_permissions"),              patch("app.services.postprocess.log_release_event"):
+        def _mock_query(model):
+            m_q = MagicMock()
+            if model == Episode:
+                m_q.filter.return_value.all.return_value = [ep]
+                m_q.filter.return_value.order_by.return_value.all.return_value = [ep]
+                m_q.filter.return_value.count.return_value = 0
+            else:
+                m_q.filter.return_value.all.return_value = []
+                m_q.filter.return_value.first.return_value = None
+                m_q.filter_by.return_value.first.return_value = None
+                m_q.filter.return_value.filter.return_value.order_by.return_value.limit.return_value.all.return_value = []
+            return m_q
+
+        mock_db.query.side_effect = _mock_query
+
+        with patch("app.services.postprocess.find_release_files", return_value={"video": ["/tmp/Test.Show.S01E01.1080p.BluRay.mkv"], "subtitle": [], "audio": [], "font": []}), \
+             patch("app.services.settings_service.get_or_create_settings", return_value=MagicMock(download_folder_movies="", download_folder_series="", download_folder_anime="", root_folder="")), \
+             patch("os.path.exists", return_value=True), \
+             patch("os.path.isdir", return_value=False), \
+             patch("os.path.getsize", return_value=2000000000), \
+             patch("shutil.move"), \
+             patch("os.makedirs"), \
+             patch("app.services.postprocess.apply_media_permissions"), \
+             patch("app.services.postprocess.log_release_event"):
 
             results = process_download(
                 mock_db,

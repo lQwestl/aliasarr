@@ -905,7 +905,7 @@ def process_download(
     - обновляет статус Episode -> DOWNLOADED, прогресс 100%, записывает file_path
     """
     results = []
-    show_root = show.path or os.path.join(root_folder, sanitize_filename(show.title))
+    show_root = getattr(show, "path", None) or os.path.join(root_folder, sanitize_filename(getattr(show, "title", "") or "Show"))
     os.makedirs(show_root, exist_ok=True)
 
     release_files = find_release_files(download_path, specific_files=specific_files)
@@ -1096,9 +1096,11 @@ def process_download(
                         parsed.season = dir_s["season"]
                         parsed.kind = ReleaseKind.EPISODE
                         break
-            if parsed.season is None and dl_eps and dl_eps[0].season_number > 0:
-                parsed.season = dl_eps[0].season_number
-                parsed.kind = ReleaseKind.EPISODE
+            if parsed.season is None and dl_eps:
+                dl_first_s = getattr(dl_eps[0], "season_number", None)
+                if isinstance(dl_first_s, int) and dl_first_s > 0:
+                    parsed.season = dl_first_s
+                    parsed.kind = ReleaseKind.EPISODE
 
         if parsed.kind not in (ReleaseKind.EPISODE, ReleaseKind.ABSOLUTE) or not parsed.episodes:
             if len(video_files) == 1:
@@ -1114,9 +1116,12 @@ def process_download(
                         .first()
                     )
                 if candidate_ep:
-                    parsed.episodes = [candidate_ep.episode_number]
-                    parsed.season = candidate_ep.season_number
-                    parsed.kind = ReleaseKind.EPISODE
+                    candidate_ep_num = getattr(candidate_ep, "episode_number", None)
+                    candidate_s_num = getattr(candidate_ep, "season_number", None)
+                    if candidate_ep_num is not None:
+                        parsed.episodes = [candidate_ep_num]
+                        parsed.season = candidate_s_num if isinstance(candidate_s_num, int) else 1
+                        parsed.kind = ReleaseKind.EPISODE
 
         if parsed.kind not in (ReleaseKind.EPISODE, ReleaseKind.ABSOLUTE) or not parsed.episodes:
             results.append({"file": file_path, "status": "skipped", "reason": "не удалось распознать номер серии"})
@@ -1150,20 +1155,22 @@ def process_download(
                 best_match_ep = None
 
                 # Пул кандидатов: сначала неиспользованные серии загрузки (dl_eps)
-                title_pool = [e for e in dl_eps if e.id not in used_episode_ids]
-                target_s = parsed.season if parsed.season is not None else (dl_eps[0].season_number if dl_eps else None)
+                title_pool = [e for e in dl_eps if getattr(e, "id", None) not in used_episode_ids]
+                dl_first_s = getattr(dl_eps[0], "season_number", None) if dl_eps else None
+                target_s = parsed.season if parsed.season is not None else (dl_first_s if isinstance(dl_first_s, int) else None)
                 if target_s is not None and all_show_eps:
                     same_season_extra = [
                         e for e in all_show_eps
-                        if e.season_number == target_s and e.id not in used_episode_ids and e not in title_pool
+                        if getattr(e, "season_number", None) == target_s and getattr(e, "id", None) not in used_episode_ids and e not in title_pool
                     ]
                     title_pool = title_pool + same_season_extra
                 elif all_show_eps and not title_pool:
-                    title_pool = [e for e in all_show_eps if e.id not in used_episode_ids]
+                    title_pool = [e for e in all_show_eps if getattr(e, "id", None) not in used_episode_ids]
 
                 for d_ep in title_pool:
-                    if d_ep.title and len(d_ep.title.strip()) >= 3:
-                        score, matched_count = calc_title_match(d_ep.title, fname_words, show_words=show_words)
+                    d_title = getattr(d_ep, "title", None)
+                    if d_title and len(d_title.strip()) >= 3:
+                        score, matched_count = calc_title_match(d_title, fname_words, show_words=show_words)
                         match_key = (score, matched_count)
                         if score >= 0.7 and match_key > best_match_key:
                             best_match_key = match_key
@@ -1177,7 +1184,7 @@ def process_download(
                 if parsed.season is not None:
                     # Точное совпадение по сезону и номеру серии в этом сезоне (среди свободных)
                     episode = next(
-                        (ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number == parsed.season and ep.episode_number == ep_num),
+                        (ep for ep in dl_eps if getattr(ep, "id", None) not in used_episode_ids and getattr(ep, "season_number", None) == parsed.season and getattr(ep, "episode_number", None) == ep_num),
                         None,
                     )
                     # Проверка смещения кура / части (Part 2 offset), только когда в релизе явно указана часть 2 / кур 2
@@ -1186,54 +1193,54 @@ def process_download(
                         dir_or_file_lower = (file_path + " " + (download_path or "") + " " + hints_str).lower()
                         is_part_2 = bool(re.search(r"\b(?:part|cour|часть|кур)\s*(?:2|ii|02)\b", dir_or_file_lower))
                         if is_part_2:
-                            same_season_dl_eps = [ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number == parsed.season]
+                            same_season_dl_eps = [ep for ep in dl_eps if getattr(ep, "id", None) not in used_episode_ids and getattr(ep, "season_number", None) == parsed.season]
                             if same_season_dl_eps:
-                                min_dl_ep = min(ep.episode_number for ep in same_season_dl_eps)
-                                if min_dl_ep > 1:
+                                min_dl_ep = min((getattr(ep, "episode_number", None) for ep in same_season_dl_eps if isinstance(getattr(ep, "episode_number", None), int)), default=None)
+                                if min_dl_ep and min_dl_ep > 1:
                                     offset = min_dl_ep - 1
                                     episode = next(
-                                        (ep for ep in same_season_dl_eps if ep.episode_number == (ep_num + offset)),
+                                        (ep for ep in same_season_dl_eps if getattr(ep, "episode_number", None) == (ep_num + offset)),
                                         None,
                                     )
                     # Только если серии с таким номером нет в сезоне (например, аниме с абсолютной нумерацией в подпапке сезона)
                     if episode is None and getattr(show, "content_type", "series") == "anime":
                         episode = next(
-                            (ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number == parsed.season and ep.absolute_number == ep_num),
+                            (ep for ep in dl_eps if getattr(ep, "id", None) not in used_episode_ids and getattr(ep, "season_number", None) == parsed.season and getattr(ep, "absolute_number", None) == ep_num),
                             None,
                         )
                 elif is_special_file:
                     episode = next(
-                        (ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number == 0 and ep.episode_number == ep_num),
+                        (ep for ep in dl_eps if getattr(ep, "id", None) not in used_episode_ids and getattr(ep, "season_number", None) == 0 and getattr(ep, "episode_number", None) == ep_num),
                         None,
                     )
                 else:
                     # Обычные серии без маркеров спешлов сопоставляются сначала с 1 сезоном, затем по абсолютной нумерации
                     episode = next(
-                        (ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number == 1 and ep.episode_number == ep_num),
+                        (ep for ep in dl_eps if getattr(ep, "id", None) not in used_episode_ids and getattr(ep, "season_number", None) == 1 and getattr(ep, "episode_number", None) == ep_num),
                         None,
                     )
                     if episode is None:
                         episode = next(
-                            (ep for ep in dl_eps if ep.id not in used_episode_ids and ep.absolute_number == ep_num),
+                            (ep for ep in dl_eps if getattr(ep, "id", None) not in used_episode_ids and getattr(ep, "absolute_number", None) == ep_num),
                             None,
                         )
                     if episode is None:
                         episode = next(
-                            (ep for ep in dl_eps if ep.id not in used_episode_ids and ep.season_number > 0 and ep.episode_number == ep_num),
+                            (ep for ep in dl_eps if getattr(ep, "id", None) not in used_episode_ids and isinstance(getattr(ep, "season_number", None), int) and ep.season_number > 0 and getattr(ep, "episode_number", None) == ep_num),
                             None,
                         )
 
             # 2. Поиск по базе данных
             if episode is None and db:
                 if is_special_file:
-                    specials_for_show = [e for e in all_show_eps if e.season_number == 0 and e.id not in used_episode_ids]
+                    specials_for_show = [e for e in all_show_eps if getattr(e, "season_number", None) == 0 and getattr(e, "id", None) not in used_episode_ids]
                     if specials_for_show:
                         from app.services.matcher import match_special_episode
                         episode = match_special_episode(file_path, specials_for_show, parsed)
 
                 if episode is None and parsed.season is not None:
                     episode = next(
-                        (e for e in all_show_eps if e.id not in used_episode_ids and e.season_number == parsed.season and e.episode_number == ep_num),
+                        (e for e in all_show_eps if getattr(e, "id", None) not in used_episode_ids and getattr(e, "season_number", None) == parsed.season and getattr(e, "episode_number", None) == ep_num),
                         None,
                     )
 
@@ -1241,35 +1248,37 @@ def process_download(
                     # По absolute_number только для аниме или если сезон не был указан в релизе
                     if parsed.season is None or getattr(show, "content_type", "series") == "anime":
                         episode = next(
-                            (e for e in all_show_eps if e.id not in used_episode_ids and getattr(e, "absolute_number", None) == ep_num),
+                            (e for e in all_show_eps if getattr(e, "id", None) not in used_episode_ids and getattr(e, "absolute_number", None) == ep_num),
                             None,
                         )
                     if episode is None:
-                        target_s = dl_eps[0].season_number if (dl_eps and dl_eps[0].season_number > 0) else parsed.season
+                        dl_first_s = getattr(dl_eps[0], "season_number", None) if dl_eps else None
+                        target_s = dl_first_s if (isinstance(dl_first_s, int) and dl_first_s > 0) else parsed.season
                         if target_s is not None:
                             episode = next(
-                                (e for e in all_show_eps if e.id not in used_episode_ids and e.season_number == target_s and e.episode_number == ep_num),
+                                (e for e in all_show_eps if getattr(e, "id", None) not in used_episode_ids and getattr(e, "season_number", None) == target_s and getattr(e, "episode_number", None) == ep_num),
                                 None,
                             )
                     if episode is None and parsed.season is None:
                         episode = next(
-                            (e for e in all_show_eps if e.id not in used_episode_ids and e.season_number == 1 and e.episode_number == ep_num),
+                            (e for e in all_show_eps if getattr(e, "id", None) not in used_episode_ids and getattr(e, "season_number", None) == 1 and getattr(e, "episode_number", None) == ep_num),
                             None,
                         )
 
             if episode:
-                used_episode_ids.add(episode.id)
-                season_num = episode.season_number
-                actual_ep_num = episode.episode_number
-                episode_title = episode.title or ""
-                absolute_num = episode.absolute_number if episode.absolute_number is not None else ep_num
+                used_episode_ids.add(getattr(episode, "id", None))
+                season_num = getattr(episode, "season_number", 1)
+                actual_ep_num = getattr(episode, "episode_number", ep_num)
+                episode_title = getattr(episode, "title", "") or ""
+                absolute_num = getattr(episode, "absolute_number", None) if getattr(episode, "absolute_number", None) is not None else ep_num
             else:
-                season_num = parsed.season if parsed.season is not None else (dl_eps[0].season_number if dl_eps else 1)
+                dl_first_s = getattr(dl_eps[0], "season_number", 1) if dl_eps else 1
+                season_num = parsed.season if parsed.season is not None else (dl_first_s if isinstance(dl_first_s, int) else 1)
                 actual_ep_num = ep_num
                 episode_title = ""
                 absolute_num = ep_num
 
-            is_upgrade = episode is not None and episode.status == EpisodeStatus.DOWNLOADED
+            is_upgrade = episode is not None and getattr(episode, "status", None) == EpisodeStatus.DOWNLOADED
 
             # Определяем целевую папку сезона
             season_folder_name = ""
