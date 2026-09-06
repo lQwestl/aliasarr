@@ -2,7 +2,9 @@ import unittest
 from unittest.mock import MagicMock
 
 try:
-    from app.models.db import Show
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from app.models.db import Base, Show
     from app.schemas import ShowCreate, ShowOut, ShowUpdate
     from app.services.metadata import MetadataShowDetails
     HAS_DEPS = True
@@ -11,9 +13,19 @@ except (ImportError, ModuleNotFoundError):
 
 
 class TestShowLinksAndExternalIds(unittest.TestCase):
-    def test_show_model_external_ids(self):
+    def setUp(self):
         if not HAS_DEPS:
             self.skipTest("Dependencies not installed in host runner")
+        self.engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(self.engine)
+        self.Session = sessionmaker(bind=self.engine)
+        self.db = self.Session()
+
+    def tearDown(self):
+        if HAS_DEPS and hasattr(self, "db"):
+            self.db.close()
+
+    def test_show_model_external_ids(self):
         show = Show(
             title="How to Get to Heaven From Belfast",
             year=2026,
@@ -25,7 +37,16 @@ class TestShowLinksAndExternalIds(unittest.TestCase):
             tvmaze_id=78901,
             tmdb_id=234567,
             trailer_url="https://www.youtube.com/watch?v=sampleTrailer123",
+            monitored=True,
+            upgrade_requested=False,
+            is_searching=False,
+            ova_mode="auto",
+            in_calendar=True,
         )
+        self.db.add(show)
+        self.db.commit()
+        self.db.refresh(show)
+
         self.assertEqual(show.imdb_id, "tt31709373")
         self.assertEqual(show.tvdb_id, 123456)
         self.assertEqual(show.tvmaze_id, 78901)
@@ -34,6 +55,7 @@ class TestShowLinksAndExternalIds(unittest.TestCase):
 
         # Test ShowOut serialization
         show_out = ShowOut.model_validate(show)
+        self.assertIsNotNone(show_out.id)
         self.assertEqual(show_out.imdb_id, "tt31709373")
         self.assertEqual(show_out.tvdb_id, 123456)
         self.assertEqual(show_out.tvmaze_id, 78901)
@@ -42,8 +64,6 @@ class TestShowLinksAndExternalIds(unittest.TestCase):
         self.assertEqual(show_out.metadata_id, "tvdb:123456")
 
     def test_anime_external_ids(self):
-        if not HAS_DEPS:
-            self.skipTest("Dependencies not installed in host runner")
         anime = Show(
             title="Sousou no Frieren",
             year=2023,
@@ -55,19 +75,27 @@ class TestShowLinksAndExternalIds(unittest.TestCase):
             mal_id=52991,
             anilist_id=154587,
             tmdb_id=209867,
+            monitored=True,
+            upgrade_requested=False,
+            is_searching=False,
+            ova_mode="auto",
+            in_calendar=True,
         )
+        self.db.add(anime)
+        self.db.commit()
+        self.db.refresh(anime)
+
         self.assertEqual(anime.shikimori_id, "52991")
         self.assertEqual(anime.anidb_id, 17617)
         self.assertEqual(anime.mal_id, 52991)
         self.assertEqual(anime.anilist_id, 154587)
 
         anime_out = ShowOut.model_validate(anime)
+        self.assertIsNotNone(anime_out.id)
         self.assertEqual(anime_out.shikimori_id, "52991")
         self.assertEqual(anime_out.mal_id, 52991)
 
     def test_metadata_show_details_fields(self):
-        if not HAS_DEPS:
-            self.skipTest("Dependencies not installed in host runner")
         details = MetadataShowDetails(
             external_id="tvdb:12345",
             title="Test Show",
