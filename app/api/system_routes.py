@@ -96,8 +96,8 @@ def get_system_about(
 
     return {
         "app_name": "Aliasarr",
-        "version": "2.2.0",
-        "package_version": "2.2.0 (main)",
+        "version": "2.3.0",
+        "package_version": "2.3.0 (main)",
         "branch": "main",
         "python_version": py_ver,
         "os_name": os_sys,
@@ -291,7 +291,7 @@ class BackupOut(BaseModel):
     size_bytes: int
     created_at: dt.datetime
     backup_type: str = "full"
-    app_version: str = "2.2.0"
+    app_version: str = "2.3.0"
     stats: Optional[dict] = None
 
 
