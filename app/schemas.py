@@ -53,6 +53,15 @@ class ShowCreate(BaseModel):
     quality_profile_id: Optional[int] = None
     content_type: str = "series"  # movie | series | anime
     ova_mode: str = "auto"  # auto | season_1 | specials
+    imdb_id: Optional[str] = None
+    tmdb_id: Optional[int] = None
+    tvdb_id: Optional[int] = None
+    tvmaze_id: Optional[int] = None
+    mal_id: Optional[int] = None
+    anilist_id: Optional[int] = None
+    anidb_id: Optional[int] = None
+    shikimori_id: Optional[str] = None
+    trailer_url: Optional[str] = None
     aliases: list[AliasCreate] = []
 
 
@@ -73,6 +82,17 @@ class ShowUpdate(BaseModel):
     expected_quarter: Optional[int] = None
     in_calendar: Optional[bool] = None
     upgrade_requested: Optional[bool] = None
+    metadata_source: Optional[str] = None
+    metadata_id: Optional[str] = None
+    imdb_id: Optional[str] = None
+    tmdb_id: Optional[int] = None
+    tvdb_id: Optional[int] = None
+    tvmaze_id: Optional[int] = None
+    mal_id: Optional[int] = None
+    anilist_id: Optional[int] = None
+    anidb_id: Optional[int] = None
+    shikimori_id: Optional[str] = None
+    trailer_url: Optional[str] = None
 
 
 class ShowOut(BaseModel):
@@ -101,6 +121,17 @@ class ShowOut(BaseModel):
     expected_year: Optional[int] = None
     expected_quarter: Optional[int] = None
     in_calendar: bool = True
+    metadata_source: str = "tmdb"
+    metadata_id: Optional[str] = None
+    imdb_id: Optional[str] = None
+    tmdb_id: Optional[int] = None
+    tvdb_id: Optional[int] = None
+    tvmaze_id: Optional[int] = None
+    mal_id: Optional[int] = None
+    anilist_id: Optional[int] = None
+    anidb_id: Optional[int] = None
+    shikimori_id: Optional[str] = None
+    trailer_url: Optional[str] = None
     # Вычисляемые поля для табличного вида библиотеки (п.9)
     seasons_count: int = 0
     episodes_count: int = 0

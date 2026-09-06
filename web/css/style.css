@@ -9919,3 +9919,215 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   justify-content: flex-end;
   flex-wrap: nowrap;
 }
+
+/* ==========================================================================
+   External Links Badge & Popover (Sonarr/Radarr Style)
+   ========================================================================== */
+.show-links-dropdown-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.meta-badge.meta-badge-links {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.meta-badge.meta-badge-links:hover,
+.show-links-dropdown-wrapper:hover .meta-badge.meta-badge-links,
+.show-links-dropdown-wrapper .show-links-popover.is-open ~ .meta-badge.meta-badge-links {
+  background: var(--panel-alt);
+  border-color: var(--primary, #3b82f6);
+  color: var(--primary, #3b82f6);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.25);
+}
+
+.show-links-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1100;
+  min-width: 260px;
+  max-width: 440px;
+  background: var(--panel-alt, #18181b);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+  pointer-events: none;
+}
+
+/* Popover Arrow */
+.show-links-popover::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 14px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid var(--panel-alt, #18181b);
+  z-index: 2;
+}
+
+.show-links-popover::after {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 13px;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 7px solid var(--border, rgba(255, 255, 255, 0.15));
+  z-index: 1;
+}
+
+.show-links-dropdown-wrapper:hover .show-links-popover,
+.show-links-popover.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.show-links-popover-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.show-links-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.show-link-item {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #2563eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
+}
+
+.show-link-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(37, 99, 235, 0.45);
+  background: #1d4ed8;
+}
+
+.show-link-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #ffffff !important;
+  text-decoration: none !important;
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.show-link-ext-ico {
+  width: 11px;
+  height: 11px;
+  opacity: 0.85;
+}
+
+.show-link-pill:hover .show-link-ext-ico {
+  opacity: 1;
+}
+
+.show-link-pill-trailer {
+  background: transparent !important;
+}
+
+.show-link-item:has(.show-link-pill-trailer) {
+  background: #dc2626 !important;
+}
+
+.show-link-item:has(.show-link-pill-trailer):hover {
+  background: #b91c1c !important;
+  box-shadow: 0 3px 8px rgba(220, 38, 38, 0.45);
+}
+
+.show-link-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 6px;
+  background: rgba(0, 0, 0, 0.22);
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.show-link-copy-btn:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.show-link-copy-btn .ico-xxs {
+  width: 11px;
+  height: 11px;
+}
+
+/* Theme customizations */
+[data-theme="light"] .show-links-popover {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] .show-links-popover::before {
+  border-bottom-color: #ffffff;
+}
+[data-theme="light"] .show-links-popover::after {
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme="dracula"] .show-link-item:not(:has(.show-link-pill-trailer)) {
+  background: #6272a4;
+}
+[data-theme="dracula"] .show-link-item:not(:has(.show-link-pill-trailer)):hover {
+  background: #7384ba;
+}
+
+[data-theme="obsidian"] .show-link-item:not(:has(.show-link-pill-trailer)) {
+  background: #0284c7;
+}
+[data-theme="obsidian"] .show-link-item:not(:has(.show-link-pill-trailer)):hover {
+  background: #0369a1;
+}
+
+[data-design="vanguard"] .show-link-pill {
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.02em;
+}
+

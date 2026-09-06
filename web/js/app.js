@@ -5583,6 +5583,311 @@ async function openShowModal(showId) {
   }, 1500);
 }
 
+// ---------- EXTERNAL LINKS & DATABASES (Sonarr / Radarr Style) ----------
+
+function getShowExternalLinks(show) {
+  if (!show || !show.title) return [];
+  const links = [];
+  const contentType = show.content_type || "series";
+  const title = (show.title || "").trim();
+  const year = show.year || "";
+  const metaSrc = (show.metadata_source || "").toLowerCase();
+  const metaId = String(show.metadata_id || "").trim();
+
+  // Извлекаем и нормализуем внешние идентификаторы
+  let tmdbId = show.tmdb_id;
+  if (!tmdbId && metaSrc.includes("tmdb") && metaId) {
+    const clean = metaId.replace(/^(tv|movie):/, "").trim();
+    if (/^\d+$/.test(clean)) tmdbId = clean;
+  }
+  if (!tmdbId && metaSrc.includes("radarr") && metaId) {
+    const clean = metaId.replace(/^(movie|tmdb):/, "").trim();
+    if (/^\d+$/.test(clean)) tmdbId = clean;
+  }
+
+  let tvdbId = show.tvdb_id;
+  if (!tvdbId && (metaSrc.includes("tvdb") || metaSrc.includes("skyhook") || metaSrc.includes("sonarr")) && metaId) {
+    const clean = metaId.replace(/^(tvdb|series|sonarr):/, "").trim();
+    if (/^\d+$/.test(clean)) tvdbId = clean;
+  }
+
+  let tvmazeId = show.tvmaze_id;
+  if (!tvmazeId && metaSrc.includes("tvmaze") && metaId) {
+    const clean = metaId.replace(/^tv:/, "").trim();
+    if (/^\d+$/.test(clean)) tvmazeId = clean;
+  }
+
+  let imdbId = show.imdb_id;
+  if (!imdbId && metaId.startsWith("tt")) {
+    imdbId = metaId;
+  }
+
+  const trailerUrl = show.trailer_url;
+
+  if (contentType === "movie") {
+    // 1. TMDB
+    links.push({
+      name: "TMDB",
+      url: tmdbId ? `https://www.themoviedb.org/movie/${tmdbId}` : `https://www.themoviedb.org/search/movie?query=${encodeURIComponent(title)}`,
+      hasDirectId: !!tmdbId,
+      idValue: tmdbId,
+    });
+    // 2. Trakt
+    links.push({
+      name: "Trakt",
+      url: tmdbId ? `https://trakt.tv/search/tmdb/${tmdbId}?id_type=movie` : (imdbId ? `https://trakt.tv/movies/${imdbId}` : `https://trakt.tv/search/movies?query=${encodeURIComponent(title)}`),
+      hasDirectId: !!(tmdbId || imdbId),
+    });
+    // 3. Letterboxd
+    links.push({
+      name: "Letterboxd",
+      url: tmdbId ? `https://letterboxd.com/tmdb/${tmdbId}` : `https://letterboxd.com/search/${encodeURIComponent(title)}/`,
+      hasDirectId: !!tmdbId,
+    });
+    // 4. IMDb
+    links.push({
+      name: "IMDb",
+      url: imdbId ? `https://imdb.com/title/${imdbId}/` : `https://www.imdb.com/find/?q=${encodeURIComponent(title)}&s=tt&ttype=ft`,
+      hasDirectId: !!imdbId,
+      idValue: imdbId,
+    });
+    // 5. MDBList
+    links.push({
+      name: "MDBList",
+      url: imdbId ? `https://mdblist.com/movie/${imdbId}` : (tmdbId ? `https://mdblist.com/movie/${tmdbId}` : `https://mdblist.com/search/?q=${encodeURIComponent(title)}`),
+      hasDirectId: !!(imdbId || tmdbId),
+    });
+    // 6. Кинопоиск
+    links.push({
+      name: CURRENT_LANG === "en" ? "Kinopoisk" : "Кинопоиск",
+      url: `https://www.kinopoisk.ru/index.php?kp_query=${encodeURIComponent(title)}`,
+      hasDirectId: false,
+    });
+    // 7. MovieChat
+    if (imdbId) {
+      links.push({
+        name: "MovieChat",
+        url: `https://moviechat.org/${imdbId}/`,
+        hasDirectId: true,
+      });
+    }
+    // 8. Blu-ray
+    if (imdbId) {
+      links.push({
+        name: "Blu-ray",
+        url: `https://www.blu-ray.com/search/?quicksearch=1&quicksearch_keyword=${encodeURIComponent(imdbId)}&section=theatrical`,
+        hasDirectId: true,
+      });
+    }
+    // 9. Trailer
+    links.push({
+      name: CURRENT_LANG === "en" ? "Trailer" : "Трейлер",
+      url: trailerUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(title + " " + (year || "") + " trailer")}`,
+      isTrailer: true,
+      hasDirectId: !!trailerUrl,
+    });
+  } else if (contentType === "anime") {
+    // 1. Shikimori
+    links.push({
+      name: "Shikimori",
+      url: show.shikimori_id ? `https://shikimori.one/animes/${show.shikimori_id}` : `https://shikimori.one/animes?search=${encodeURIComponent(title)}`,
+      hasDirectId: !!show.shikimori_id,
+      idValue: show.shikimori_id,
+    });
+    // 2. AniDB
+    links.push({
+      name: "AniDB",
+      url: show.anidb_id ? `https://anidb.net/anime/${show.anidb_id}` : `https://anidb.net/anime/?adb.search=${encodeURIComponent(title)}&do.search=1`,
+      hasDirectId: !!show.anidb_id,
+      idValue: show.anidb_id,
+    });
+    // 3. MyAnimeList
+    links.push({
+      name: "MyAnimeList",
+      url: show.mal_id ? `https://myanimelist.net/anime/${show.mal_id}` : `https://myanimelist.net/anime.php?q=${encodeURIComponent(title)}`,
+      hasDirectId: !!show.mal_id,
+      idValue: show.mal_id,
+    });
+    // 4. AniList
+    links.push({
+      name: "AniList",
+      url: show.anilist_id ? `https://anilist.co/anime/${show.anilist_id}` : `https://anilist.co/search/anime?search=${encodeURIComponent(title)}`,
+      hasDirectId: !!show.anilist_id,
+      idValue: show.anilist_id,
+    });
+    // 5. Kitsu
+    links.push({
+      name: "Kitsu",
+      url: `https://kitsu.app/anime?text=${encodeURIComponent(title)}`,
+      hasDirectId: false,
+    });
+    // 6. The TVDB
+    links.push({
+      name: "The TVDB",
+      url: tvdbId ? `https://thetvdb.com/?tab=series&id=${tvdbId}` : `https://thetvdb.com/search?query=${encodeURIComponent(title)}`,
+      hasDirectId: !!tvdbId,
+      idValue: tvdbId,
+    });
+    // 7. TMDB
+    links.push({
+      name: "TMDB",
+      url: tmdbId ? `https://www.themoviedb.org/tv/${tmdbId}` : `https://www.themoviedb.org/search/tv?query=${encodeURIComponent(title)}`,
+      hasDirectId: !!tmdbId,
+      idValue: tmdbId,
+    });
+    // 8. IMDb
+    links.push({
+      name: "IMDb",
+      url: imdbId ? `https://imdb.com/title/${imdbId}/` : `https://www.imdb.com/find/?q=${encodeURIComponent(title)}&s=tt`,
+      hasDirectId: !!imdbId,
+      idValue: imdbId,
+    });
+    // 9. Кинопоиск
+    links.push({
+      name: CURRENT_LANG === "en" ? "Kinopoisk" : "Кинопоиск",
+      url: `https://www.kinopoisk.ru/index.php?kp_query=${encodeURIComponent(title)}`,
+      hasDirectId: false,
+    });
+    // 10. Trailer
+    links.push({
+      name: CURRENT_LANG === "en" ? "Trailer" : "Трейлер",
+      url: trailerUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(title + " anime trailer")}`,
+      isTrailer: true,
+      hasDirectId: !!trailerUrl,
+    });
+  } else {
+    // Series
+    // 1. The TVDB
+    links.push({
+      name: "The TVDB",
+      url: tvdbId ? `https://thetvdb.com/?tab=series&id=${tvdbId}` : `https://thetvdb.com/search?query=${encodeURIComponent(title)}`,
+      hasDirectId: !!tvdbId,
+      idValue: tvdbId,
+    });
+    // 2. Trakt
+    links.push({
+      name: "Trakt",
+      url: imdbId ? `https://trakt.tv/shows/${imdbId}` : `https://trakt.tv/search/shows?query=${encodeURIComponent(title)}`,
+      hasDirectId: !!imdbId,
+    });
+    // 3. TV Maze
+    links.push({
+      name: "TV Maze",
+      url: tvmazeId ? `https://www.tvmaze.com/shows/${tvmazeId}/_` : `https://www.tvmaze.com/search?q=${encodeURIComponent(title)}`,
+      hasDirectId: !!tvmazeId,
+      idValue: tvmazeId,
+    });
+    // 4. IMDb
+    links.push({
+      name: "IMDb",
+      url: imdbId ? `https://imdb.com/title/${imdbId}/` : `https://www.imdb.com/find/?q=${encodeURIComponent(title)}&s=tt&ttype=tv`,
+      hasDirectId: !!imdbId,
+      idValue: imdbId,
+    });
+    // 5. MDBList
+    links.push({
+      name: "MDBList",
+      url: imdbId ? `https://mdblist.com/show/${imdbId}` : (tmdbId ? `https://mdblist.com/show/${tmdbId}` : `https://mdblist.com/search/?q=${encodeURIComponent(title)}`),
+      hasDirectId: !!(imdbId || tmdbId),
+    });
+    // 6. TMDB
+    links.push({
+      name: "TMDB",
+      url: tmdbId ? `https://www.themoviedb.org/tv/${tmdbId}` : `https://www.themoviedb.org/search/tv?query=${encodeURIComponent(title)}`,
+      hasDirectId: !!tmdbId,
+      idValue: tmdbId,
+    });
+    // 7. Кинопоиск
+    links.push({
+      name: CURRENT_LANG === "en" ? "Kinopoisk" : "Кинопоиск",
+      url: `https://www.kinopoisk.ru/index.php?kp_query=${encodeURIComponent(title)}`,
+      hasDirectId: false,
+    });
+    // 8. Trailer
+    links.push({
+      name: CURRENT_LANG === "en" ? "Trailer" : "Трейлер",
+      url: trailerUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(title + " " + (year || "") + " trailer")}`,
+      isTrailer: true,
+      hasDirectId: !!trailerUrl,
+    });
+  }
+
+  return links;
+}
+
+function renderShowLinksBadge(show) {
+  const links = getShowExternalLinks(show);
+  if (!links.length) return "";
+  const showId = show.id || "preview";
+  const linksLabel = CURRENT_LANG === "en" ? "Links" : "Ссылки";
+  const linksTitle = CURRENT_LANG === "en" ? "External resources & databases" : "Внешние ресурсы и базы данных";
+
+  const linksHtml = links.map(link => {
+    const pillClass = link.isTrailer ? "show-link-pill show-link-pill-trailer" : "show-link-pill";
+    return `
+      <div class="show-link-item">
+        <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" class="${pillClass}" title="${escapeHtml(link.name)}">
+          <span>${escapeHtml(link.name)}</span>
+          <i data-lucide="external-link" class="ico-xxs show-link-ext-ico"></i>
+        </a>
+        ${link.idValue ? `
+          <button type="button" class="show-link-copy-btn" onclick="copyShowExternalId(event, '${escapeHtml(String(link.idValue))}')" title="${CURRENT_LANG === 'en' ? 'Copy ID: ' : 'Скопировать ID: '}${escapeHtml(String(link.idValue))}">
+            <i data-lucide="copy" class="ico-xxs"></i>
+          </button>
+        ` : ""}
+      </div>
+    `;
+  }).join("");
+
+  return `
+    <div class="show-links-dropdown-wrapper" id="show-links-wrap-${showId}">
+      <button type="button" class="meta-badge meta-badge-links show-links-trigger" onclick="toggleShowLinksMenu(event, '${showId}')" title="${linksTitle}">
+        <i data-lucide="external-link" class="ico-xs" style="margin-right: 4px; vertical-align: middle;"></i>
+        <span>${linksLabel}</span>
+      </button>
+      <div class="show-links-popover" id="show-links-popover-${showId}">
+        <div class="show-links-popover-header">
+          <span>${linksTitle}</span>
+        </div>
+        <div class="show-links-list">
+          ${linksHtml}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleShowLinksMenu(e, showId) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  const popover = document.getElementById(`show-links-popover-${showId}`);
+  if (!popover) return;
+  const isVisible = popover.classList.contains("is-open");
+  document.querySelectorAll(".show-links-popover.is-open").forEach(el => el.classList.remove("is-open"));
+  if (!isVisible) {
+    popover.classList.add("is-open");
+  }
+}
+
+function copyShowExternalId(e, idVal) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  if (!idVal) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(String(idVal)).then(() => {
+      showToast(CURRENT_LANG === "en" ? `Copied ID: ${idVal}` : `ID скопирован: ${idVal}`, "info");
+    }).catch(() => {
+      showToast(CURRENT_LANG === "en" ? `ID: ${idVal}` : `ID: ${idVal}`, "info");
+    });
+  } else {
+    showToast(CURRENT_LANG === "en" ? `ID: ${idVal}` : `ID: ${idVal}`, "info");
+  }
+}
+
 async function refreshShowModal() {
   const showId = CURRENT_SHOW_ID;
   if (!showId) return;
@@ -5689,6 +5994,7 @@ async function refreshShowModal() {
             ${show.genre ? `<span class="meta-badge">${escapeHtml(show.genre)}</span>` : ""}
             ${show.country ? `<span class="meta-badge">${escapeHtml(show.country)}</span>` : ""}
             ${show.network ? `<span class="meta-badge">${escapeHtml(show.network)}</span>` : ""}
+            ${renderShowLinksBadge(show)}
           </div>
           <div class="show-detail-path">
             ${show.path && canManageLib ? `
@@ -15465,7 +15771,7 @@ function restartTasksPolling(intervalMs) {
   TASKS_POLL_INTERVAL = setInterval(() => loadTasksStatus(false), intervalMs);
 }
 
-// Закрываем всплывающее окно задач при клике вне его
+// Закрываем всплывающее окно задач и вкладыши ссылок при клике вне их
 document.addEventListener("click", (e) => {
   const popup = document.getElementById("tasks-popup");
   const widget = document.getElementById("tasks-status-widget");
@@ -15473,6 +15779,15 @@ document.addEventListener("click", (e) => {
     if (!popup.contains(e.target) && (!widget || !widget.contains(e.target))) {
       popup.style.display = "none";
     }
+  }
+  if (!e.target.closest(".show-links-dropdown-wrapper")) {
+    document.querySelectorAll(".show-links-popover.is-open").forEach(pop => pop.classList.remove("is-open"));
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    document.querySelectorAll(".show-links-popover.is-open").forEach(pop => pop.classList.remove("is-open"));
   }
 });
 

@@ -130,6 +130,17 @@ class Show(Base):
     # Флаг явного запроса на улучшение качества (автопоиск лучшего качества до достижения Cutoff)
     upgrade_requested: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
+    # Внешние идентификаторы баз данных и ресурсов (TMDb, IMDb, TVDB, TVMaze, AniList, MAL, Shikimori...)
+    imdb_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    tmdb_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    tvdb_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, index=True)
+    tvmaze_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    mal_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    anilist_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    anidb_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    shikimori_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    trailer_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+
     aliases: Mapped[list["Alias"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     episodes: Mapped[list["Episode"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     tracked_releases: Mapped[list["TrackedRelease"]] = relationship(back_populates="show", cascade="all, delete-orphan")

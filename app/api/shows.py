@@ -185,6 +185,15 @@ async def create_show(
         path=final_path,
         quality_profile_id=payload.quality_profile_id,
         content_type=payload.content_type,
+        imdb_id=payload.imdb_id,
+        tmdb_id=payload.tmdb_id,
+        tvdb_id=payload.tvdb_id,
+        tvmaze_id=payload.tvmaze_id,
+        mal_id=payload.mal_id,
+        anilist_id=payload.anilist_id,
+        anidb_id=payload.anidb_id,
+        shikimori_id=payload.shikimori_id,
+        trailer_url=payload.trailer_url,
     )
     db.add(show)
     db.flush()  # получаем show.id до коммита

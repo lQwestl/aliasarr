@@ -499,6 +499,15 @@ async def import_show(
             network=details.network,
             content_type=content_type,
             premiere_date=premiere_dt,
+            imdb_id=details.imdb_id,
+            tmdb_id=details.tmdb_id,
+            tvdb_id=details.tvdb_id,
+            tvmaze_id=details.tvmaze_id,
+            mal_id=details.mal_id,
+            anilist_id=details.anilist_id,
+            anidb_id=details.anidb_id,
+            shikimori_id=details.shikimori_id,
+            trailer_url=details.trailer_url,
         )
         db.add(show)
         db.flush()

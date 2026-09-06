@@ -113,6 +113,15 @@ class MetadataShowDetails:
     year: Optional[int] = None
     content_type: Optional[str] = None  # "series" | "movie"
     premiere_date: Optional[str] = None  # ISO-дата премьеры/выхода
+    imdb_id: Optional[str] = None
+    tmdb_id: Optional[int] = None
+    tvdb_id: Optional[int] = None
+    tvmaze_id: Optional[int] = None
+    mal_id: Optional[int] = None
+    anilist_id: Optional[int] = None
+    anidb_id: Optional[int] = None
+    shikimori_id: Optional[str] = None
+    trailer_url: Optional[str] = None
 
 
 import re
@@ -228,7 +237,7 @@ class TMDBClient(BaseMetadataClient):
         async with httpx.AsyncClient(timeout=20) as client:
             resp = await client.get(
                 f"{self.BASE_URL}/movie/{tmdb_id}",
-                params={"language": "en-US", "append_to_response": "alternative_titles,translations,release_dates"},
+                params={"language": "en-US", "append_to_response": "alternative_titles,translations,release_dates,external_ids,videos"},
                 headers=self._headers(),
             )
             resp.raise_for_status()
@@ -307,6 +316,17 @@ class TMDBClient(BaseMetadataClient):
         # Описание сюжета: Русский -> Английский -> Оригинал
         overview = ru_overview or data.get("overview") or eng_overview
 
+        # Внешние идентификаторы и трейлер
+        ext_ids = data.get("external_ids") or {}
+        imdb_id_val = data.get("imdb_id") or ext_ids.get("imdb_id")
+        tmdb_id_int = int(tmdb_id) if str(tmdb_id).isdigit() else None
+        trailer_url_val = None
+        for vid in (data.get("videos") or {}).get("results", []):
+            if isinstance(vid, dict) and vid.get("site") == "YouTube" and vid.get("key"):
+                trailer_url_val = f"https://www.youtube.com/watch?v={vid['key']}"
+                if vid.get("type") == "Trailer":
+                    break
+
         return MetadataShowDetails(
             external_id=f"movie:{tmdb_id}",
             title=title,
@@ -319,13 +339,16 @@ class TMDBClient(BaseMetadataClient):
             genre=", ".join(genres) if genres else None,
             content_type="movie",
             premiere_date=premiere,
+            imdb_id=imdb_id_val,
+            tmdb_id=tmdb_id_int,
+            trailer_url=trailer_url_val,
         )
 
     async def _get_tv_details(self, tmdb_id: str) -> MetadataShowDetails:
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.get(
                 f"{self.BASE_URL}/tv/{tmdb_id}",
-                params={"language": "en-US", "append_to_response": "alternative_titles,translations,external_ids"},
+                params={"language": "en-US", "append_to_response": "alternative_titles,translations,external_ids,videos"},
                 headers=self._headers(),
             )
             resp.raise_for_status()
@@ -430,6 +453,21 @@ class TMDBClient(BaseMetadataClient):
         # Описание сюжета: Русский -> Английский -> Оригинал
         overview = ru_overview or show_data.get("overview") or eng_overview
 
+        # Внешние идентификаторы и трейлер
+        ext_ids = show_data.get("external_ids") or {}
+        imdb_id_val = ext_ids.get("imdb_id")
+        tvdb_id_raw = ext_ids.get("tvdb_id")
+        tvdb_id_int = int(tvdb_id_raw) if str(tvdb_id_raw or "").isdigit() else None
+        tvmaze_id_raw = ext_ids.get("tvmaze_id")
+        tvmaze_id_int = int(tvmaze_id_raw) if str(tvmaze_id_raw or "").isdigit() else None
+        tmdb_id_int = int(tmdb_id) if str(tmdb_id).isdigit() else None
+        trailer_url_val = None
+        for vid in (show_data.get("videos") or {}).get("results", []):
+            if isinstance(vid, dict) and vid.get("site") == "YouTube" and vid.get("key"):
+                trailer_url_val = f"https://www.youtube.com/watch?v={vid['key']}"
+                if vid.get("type") == "Trailer":
+                    break
+
         return MetadataShowDetails(
             external_id=f"tv:{tmdb_id}",
             title=title,
@@ -443,6 +481,11 @@ class TMDBClient(BaseMetadataClient):
             network=", ".join(networks) if networks else None,
             content_type="series",
             premiere_date=premiere,
+            imdb_id=imdb_id_val,
+            tmdb_id=tmdb_id_int,
+            tvdb_id=tvdb_id_int,
+            tvmaze_id=tvmaze_id_int,
+            trailer_url=trailer_url_val,
         )
 
 
@@ -592,6 +635,12 @@ class TVMazeClient(BaseMetadataClient):
         show_type = (data.get("type") or "").lower()
         content_type = "anime" if "animation" in show_type else "series"
 
+        externals = data.get("externals") or {}
+        tvmaze_id_int = int(clean_id) if clean_id.isdigit() else None
+        imdb_id_val = externals.get("imdb")
+        tvdb_id_raw = externals.get("thetvdb")
+        tvdb_id_val = int(tvdb_id_raw) if str(tvdb_id_raw or "").isdigit() else None
+
         return MetadataShowDetails(
             external_id=external_id,
             title=show_name,
@@ -605,6 +654,9 @@ class TVMazeClient(BaseMetadataClient):
             network=network_name,
             content_type=content_type,
             premiere_date=premiere,
+            imdb_id=imdb_id_val,
+            tvdb_id=tvdb_id_val,
+            tvmaze_id=tvmaze_id_int,
         )
 
 
@@ -804,6 +856,11 @@ class SkyHookClient(BaseMetadataClient):
         rating_val = (data.get("rating") or {}).get("value")
         premiere = data.get("firstAired")
 
+        tvdb_id_int = int(tvdb_id) if str(tvdb_id).isdigit() else None
+        tvmaze_id_val = int(data.get("tvMazeId")) if str(data.get("tvMazeId") or "").isdigit() else None
+        imdb_id_val = data.get("imdbId")
+        tmdb_id_val = int(data.get("tmdbId")) if str(data.get("tmdbId") or "").isdigit() else None
+
         return MetadataShowDetails(
             external_id=f"tvdb:{tvdb_id}",
             title=raw_title,
@@ -817,6 +874,10 @@ class SkyHookClient(BaseMetadataClient):
             network=data.get("network"),
             content_type=c_type,
             premiere_date=premiere,
+            imdb_id=imdb_id_val,
+            tmdb_id=tmdb_id_val,
+            tvdb_id=tvdb_id_int,
+            tvmaze_id=tvmaze_id_val,
         )
 
     async def _get_movie_details(self, tmdb_id: str) -> MetadataShowDetails:
@@ -1074,6 +1135,11 @@ class RadarrClient(BaseMetadataClient):
                 genres = data.get("genres", [])
                 genres_str = ", ".join(genres) if isinstance(genres, list) else str(genres or "")
 
+                tmdb_id_val = int(clean_id) if str(clean_id).isdigit() else (int(data.get("tmdbId")) if str(data.get("tmdbId") or "").isdigit() else None)
+                imdb_id_val = data.get("imdbId")
+                yt_id = data.get("youTubeTrailerId")
+                trailer_url_val = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else None
+
                 if title and title.strip():
                     return MetadataShowDetails(
                         external_id=f"movie:{clean_id}",
@@ -1088,6 +1154,9 @@ class RadarrClient(BaseMetadataClient):
                         network=data.get("studio"),
                         content_type="movie",
                         premiere_date=str(premiere)[:10] if premiere else None,
+                        imdb_id=imdb_id_val,
+                        tmdb_id=tmdb_id_val,
+                        trailer_url=trailer_url_val,
                     )
 
         # 3. Fallback на TMDB с сервисным токеном
@@ -1475,6 +1544,8 @@ class TheTVDBClient(BaseMetadataClient):
             except (ValueError, TypeError):
                 rating = None
 
+        tvdb_id_int = int(tvdb_id) if str(tvdb_id).isdigit() else None
+
         return MetadataShowDetails(
             external_id=f"series:{tvdb_id}",
             title=title,
@@ -1488,6 +1559,7 @@ class TheTVDBClient(BaseMetadataClient):
             network=network,
             content_type=content_type,
             premiere_date=premiere,
+            tvdb_id=tvdb_id_int,
         )
 
     async def _get_movie_details(self, tvdb_id: str) -> MetadataShowDetails:
@@ -1604,6 +1676,8 @@ class TheTVDBClient(BaseMetadataClient):
                 rating = float(raw_score)
             except (ValueError, TypeError):
                 rating = None
+
+        tvdb_movie_id_int = int(tvdb_id) if str(tvdb_id).isdigit() else None
 
         return MetadataShowDetails(
             external_id=f"movie:{tvdb_id}",
