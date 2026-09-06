@@ -18,6 +18,7 @@ from app.models.db import (
     Indexer,
     QualityProfile,
     Show,
+    TrackedRelease,
     User,
 )
 from app.schemas import IndexerCreate, IndexerOut, SearchResultOut
@@ -123,8 +124,21 @@ def delete_indexer(
     indexer = db.get(Indexer, indexer_id)
     if not indexer:
         raise HTTPException(404, "Indexer not found")
-    db.delete(indexer)
-    db.commit()
+
+    try:
+        # 1. Удаляем связанные отслеживания релизов
+        db.query(TrackedRelease).filter(TrackedRelease.indexer_id == indexer_id).delete(synchronize_session=False)
+
+        # 2. Обнуляем ссылки в истории загрузок
+        db.query(DownloadHistory).filter(DownloadHistory.indexer_id == indexer_id).update({"indexer_id": None}, synchronize_session=False)
+
+        # 3. Удаляем сам индексатор
+        db.delete(indexer)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Ошибка при удалении индексатора %s: %s", indexer_id, exc)
+        raise HTTPException(500, f"Не удалось удалить индексатор: {exc}")
 
 
 @router.post("/{indexer_id}/test")

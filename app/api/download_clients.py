@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.db import DownloadClient, User
+from app.models.db import DownloadClient, Episode, User
 from app.services.user_service import require_permission, get_current_user
 
 router = APIRouter(prefix="/api/v1/download-clients", tags=["download-clients"])
@@ -68,8 +68,16 @@ def delete_download_client(
     dc = db.get(DownloadClient, dc_id)
     if not dc:
         raise HTTPException(404, "Download client not found")
-    db.delete(dc)
-    db.commit()
+
+    try:
+        # Обнуляем ссылки на загрузчик в сериях
+        db.query(Episode).filter(Episode.download_client_id == dc_id).update({"download_client_id": None}, synchronize_session=False)
+
+        db.delete(dc)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(500, f"Не удалось удалить загрузчик: {exc}")
 
 
 @router.put("/{dc_id}", response_model=DownloadClientOut, summary="Обновить загрузчик")

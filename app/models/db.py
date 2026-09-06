@@ -174,7 +174,7 @@ class Episode(Base):
     file_path: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
 
     # Привязка к активной загрузке в клиенте
-    download_client_id: Mapped[Optional[int]] = mapped_column(ForeignKey("download_clients.id"), nullable=True)
+    download_client_id: Mapped[Optional[int]] = mapped_column(ForeignKey("download_clients.id", ondelete="SET NULL"), nullable=True)
     torrent_hash: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
     download_progress: Mapped[float] = mapped_column(Float, default=0.0)  # 0..1 для прогресс-бара
     downloaded_quality: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
@@ -267,7 +267,7 @@ class TrackedRelease(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False, index=True)
-    indexer_id: Mapped[int] = mapped_column(ForeignKey("indexers.id"), nullable=False)
+    indexer_id: Mapped[Optional[int]] = mapped_column(ForeignKey("indexers.id", ondelete="CASCADE"), nullable=True)
     topic_guid: Mapped[str] = mapped_column(String(500), nullable=False)  # guid/id топика на трекере
     topic_url: Mapped[str] = mapped_column(String(1000), nullable=False)
     infohash: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -286,7 +286,7 @@ class DownloadHistory(Base):
     show_id: Mapped[int] = mapped_column(ForeignKey("shows.id", ondelete="CASCADE"), nullable=False, index=True)
     episode_id: Mapped[Optional[int]] = mapped_column(ForeignKey("episodes.id", ondelete="CASCADE"), nullable=True)
     release_title: Mapped[str] = mapped_column(String(1000), nullable=False)
-    indexer_id: Mapped[Optional[int]] = mapped_column(ForeignKey("indexers.id"), nullable=True)
+    indexer_id: Mapped[Optional[int]] = mapped_column(ForeignKey("indexers.id", ondelete="SET NULL"), nullable=True)
     torrent_hash: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
     event_type: Mapped[str] = mapped_column(String(50), default="grabbed")  # grabbed|imported|failed
     matched_alias: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # по какому алиасу нашли релиз
