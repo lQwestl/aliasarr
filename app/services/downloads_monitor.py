@@ -18,13 +18,16 @@ import logging
 import os
 
 try:
-    from sqlalchemy import and_, or_
+    from sqlalchemy import and_, or_, func
     from sqlalchemy.orm import Session
     from app.database import SessionLocal
-    from app.models.db import DownloadClient, Episode, EpisodeStatus, Show
+    from app.models.db import DownloadClient, Episode, EpisodeStatus, Show, DownloadHistory, Indexer, TrackedRelease
 except ImportError:
     def and_(*args): return args
     def or_(*args): return args
+    class _MockFunc:
+        def lower(self, col): return col
+    func = _MockFunc()
     Session = object
     SessionLocal = None
     class _MockCol:
@@ -33,10 +36,15 @@ except ImportError:
         def isnot(self, other): return self
         def is_(self, other): return self
         def in_(self, other): return self
+        def desc(self): return self
+        def asc(self): return self
     DownloadClient = type("DownloadClient", (), {"id": _MockCol(), "name": _MockCol(), "type": _MockCol(), "enabled": _MockCol()})
     Episode = type("Episode", (), {"id": _MockCol(), "show_id": _MockCol(), "status": _MockCol(), "torrent_hash": _MockCol(), "download_client_id": _MockCol(), "download_progress": _MockCol()})
     EpisodeStatus = type("EpisodeStatus", (), {"DOWNLOADING": "downloading", "DOWNLOADED": "downloaded", "WANTED": "wanted", "MISSING": "missing", "UNAIRED": "unaired"})
     Show = type("Show", (), {"id": _MockCol(), "title": _MockCol(), "content_type": _MockCol(), "path": _MockCol()})
+    DownloadHistory = type("DownloadHistory", (), {"id": _MockCol(), "show_id": _MockCol(), "indexer_id": _MockCol(), "torrent_hash": _MockCol()})
+    Indexer = type("Indexer", (), {"id": _MockCol(), "name": _MockCol(), "enable_seeding": _MockCol(), "seed_ratio_limit": _MockCol(), "seed_time_limit_hours": _MockCol()})
+    TrackedRelease = type("TrackedRelease", (), {"id": _MockCol(), "show_id": _MockCol(), "indexer_id": _MockCol()})
 from app.services.download_client import get_client
 from app.services.postprocess import process_download, process_movie_download
 from app.services.release_log_service import log_release_event
@@ -237,6 +245,93 @@ def _run_postprocess_in_thread(
 _MISSING_TORRENT_POLL_COUNTS: dict[str, int] = {}
 
 
+async def _check_seeding_torrents(db: Session, active_clients: list[DownloadClient]) -> None:
+    """
+    Проверяет активные раздачи в торрент-клиентах, которые продолжают сидироваться после импорта.
+    Когда раздача достигает лимита ratio или времени (заданных в настройках трекера / клиента)
+    или завершается клиентом, раздача удаляется из клиента вместе с временными файлами из /data/downloads.
+    Файлы в медиатеке (хардлинки) остаются в 100% сохранности.
+    """
+    if not active_clients:
+        return
+
+    for dc_row in active_clients:
+        try:
+            client = get_client(dc_row)
+            torrents = await client.list_torrents()
+            for t in torrents:
+                if not getattr(t, "hash", None):
+                    continue
+                th_lower = t.hash.lower()
+                state_str = str(getattr(t, "state", "")).lower()
+
+                # Ищем запись в DownloadHistory
+                dh = (
+                    db.query(DownloadHistory)
+                    .filter(
+                        func.lower(DownloadHistory.torrent_hash) == th_lower,
+                        DownloadHistory.indexer_id.isnot(None),
+                    )
+                    .order_by(DownloadHistory.id.desc())
+                    .first()
+                )
+                if not dh or not dh.indexer_id:
+                    continue
+
+                indexer = db.get(Indexer, dh.indexer_id)
+                if not indexer or not getattr(indexer, "enable_seeding", False):
+                    continue
+
+                # Проверяем лимиты
+                ratio_limit = getattr(indexer, "seed_ratio_limit", None)
+                time_hours_limit = getattr(indexer, "seed_time_limit_hours", None)
+                current_ratio = getattr(t, "ratio", 0.0) or 0.0
+                seeding_sec = getattr(t, "seeding_time", 0) or 0
+
+                reached_ratio = ratio_limit is not None and ratio_limit > 0 and current_ratio >= ratio_limit
+                reached_time = time_hours_limit is not None and time_hours_limit > 0 and seeding_sec >= (time_hours_limit * 3600)
+                is_stopped_by_client = state_str in ("pausedup", "completed", "stopped", "finished", "seed_wait") and (
+                    (ratio_limit is not None and current_ratio >= ratio_limit) or
+                    (time_hours_limit is not None and seeding_sec >= (time_hours_limit * 3600)) or
+                    (ratio_limit is None and time_hours_limit is None and (current_ratio >= 1.0 or seeding_sec > 0))
+                )
+
+                if reached_ratio or reached_time or is_stopped_by_client:
+                    try:
+                        await client.remove_torrent(t.hash, delete_files=True)
+                        logger.info(
+                            "DownloadsMonitor: Лимит сидирования достигнут для «%s» (ratio: %.2f/%s, время: %.1f/%sч). Раздача и временные файлы удалены.",
+                            getattr(t, "name", t.hash), current_ratio, ratio_limit, seeding_sec / 3600, time_hours_limit,
+                        )
+                        show = db.get(Show, dh.show_id) if dh.show_id else None
+                        log_release_event(
+                            stage="download",
+                            level="success",
+                            show_title=getattr(show, "title", None) if show else None,
+                            show_id=dh.show_id,
+                            release_title=getattr(t, "name", t.hash),
+                            indexer=getattr(indexer, "name", "Indexer"),
+                            message=(
+                                f"Сидирование раздачи «{getattr(t, 'name', t.hash)}» успешно завершено по достижению лимита "
+                                f"(ratio: {current_ratio:.2f}{f'/{ratio_limit}' if ratio_limit else ''}, "
+                                f"время: {seeding_sec / 3600:.1f}{f'/{time_hours_limit}' if time_hours_limit else ''} ч). "
+                                "Временные файлы загрузки очищены, файлы в медиатеке в полной сохранности."
+                            ),
+                            details={
+                                "torrent_hash": t.hash,
+                                "ratio": current_ratio,
+                                "ratio_limit": ratio_limit,
+                                "seeding_hours": seeding_sec / 3600,
+                                "time_hours_limit": time_hours_limit,
+                            },
+                            db=db,
+                        )
+                    except Exception as rem_err:
+                        logger.debug("DownloadsMonitor: Не удалось удалить завершенный сидируемый торрент %s: %s", t.hash, rem_err)
+        except Exception as exc:
+            logger.debug("DownloadsMonitor: Ошибка в _check_seeding_torrents для %s: %s", dc_row.name, exc)
+
+
 async def check_downloads(db: Session) -> list[dict]:
     settings = get_or_create_settings(db)
     downloading = (
@@ -244,12 +339,14 @@ async def check_downloads(db: Session) -> list[dict]:
         .filter(Episode.status == EpisodeStatus.DOWNLOADING, Episode.torrent_hash.isnot(None))
         .all()
     )
-    if not downloading:
-        return []
 
     # Собираем все торренты со всех активных загрузчиков
     active_clients = db.query(DownloadClient).filter(DownloadClient.enabled == True).all()  # noqa: E712
     if not active_clients:
+        return []
+
+    if not downloading:
+        await _check_seeding_torrents(db, active_clients)
         return []
 
     torrents_by_hash: dict[str, tuple[any, DownloadClient]] = {}
@@ -268,8 +365,9 @@ async def check_downloads(db: Session) -> list[dict]:
     # Группируем серии по хэшу торрента
     episodes_by_hash: dict[str, list[Episode]] = {}
     for ep in downloading:
-        if ep.torrent_hash:
-            episodes_by_hash.setdefault(ep.torrent_hash.lower(), []).append(ep)
+        th = getattr(ep, "torrent_hash", None)
+        if th:
+            episodes_by_hash.setdefault(th.lower(), []).append(ep)
 
     results = []
     progress_changed = False
@@ -379,7 +477,7 @@ async def check_downloads(db: Session) -> list[dict]:
                     # Для сверки используем серии этой раздачи + нескачанные серии (WANTED/UNAIRED), исключая уже скачанные
                     target_reconcile_eps = [
                         e for e in all_show_eps
-                        if e.torrent_hash == torrent_hash or e.status in (EpisodeStatus.DOWNLOADING, EpisodeStatus.WANTED, EpisodeStatus.UNAIRED)
+                        if getattr(e, "torrent_hash", None) == torrent_hash or e.status in (EpisodeStatus.DOWNLOADING, EpisodeStatus.WANTED, EpisodeStatus.UNAIRED)
                     ] if all_show_eps else eps
 
                     matched_eps = []
@@ -443,7 +541,7 @@ async def check_downloads(db: Session) -> list[dict]:
 
                         # 1. Восстанавливаем/привязываем серии, которые реально загружаются в клиенте, но не были привязаны к раздаче
                         for m_ep in matched_eps:
-                            if m_ep.status == EpisodeStatus.WANTED or (m_ep.status == EpisodeStatus.DOWNLOADING and not m_ep.torrent_hash):
+                            if m_ep.status == EpisodeStatus.WANTED or (m_ep.status == EpisodeStatus.DOWNLOADING and not getattr(m_ep, "torrent_hash", None)):
                                 m_ep.status = EpisodeStatus.DOWNLOADING
                                 m_ep.torrent_hash = torrent_hash
                                 m_ep.download_client_id = dc_row.id
@@ -508,7 +606,7 @@ async def check_downloads(db: Session) -> list[dict]:
 
                     if progress_changed:
                         db.commit()
-                    eps = [e for e in all_show_eps if e.torrent_hash == torrent_hash and e.status == EpisodeStatus.DOWNLOADING]
+                    eps = [e for e in all_show_eps if getattr(e, "torrent_hash", None) == torrent_hash and e.status == EpisodeStatus.DOWNLOADING]
             except Exception as rec_err:
                 logger.debug("DownloadsMonitor: Ошибка при сверке файлов раздачи %s: %s", torrent_hash, rec_err)
 
@@ -847,44 +945,118 @@ async def check_downloads(db: Session) -> list[dict]:
                     except Exception as rem_err:
                         logger.debug("DownloadsMonitor: Не удалось удалить ненужную раздачу %s: %s", torrent_hash, rem_err)
 
-                # Проверка лимита времени раздачи (Seed Time Limit / Ratio Limit) ПОСЛЕ завершения импорта
-                state_str = str(getattr(t, "state", "")).lower()
-                is_actively_seeding = state_str in ("seeding", "uploading", "forcedup", "queuedup", "stalledup", "seed", "6", "5")
-                if is_actively_seeding:
-                    seed_time_limit_min = getattr(dc_row, "seed_time_limit", None)
-                    seed_ratio_limit = getattr(dc_row, "seed_ratio_limit", None)
-                    time_reached = False
-                    ratio_reached = False
+                # Проверка сидирования и лимитов раздачи ПОСЛЕ завершения импорта
+                if imported_items:
+                    indexer_row = None
+                    if torrent_hash:
+                        try:
+                            dh = (
+                                db.query(DownloadHistory)
+                                .filter(
+                                    func.lower(DownloadHistory.torrent_hash) == torrent_hash.lower(),
+                                    DownloadHistory.indexer_id.isnot(None),
+                                )
+                                .order_by(DownloadHistory.id.desc())
+                                .first()
+                            )
+                            if dh and getattr(dh, "indexer_id", None):
+                                potential_idx = db.get(Indexer, dh.indexer_id)
+                                if isinstance(potential_idx, Indexer):
+                                    indexer_row = potential_idx
+                        except Exception:
+                            pass
 
-                    if seed_time_limit_min is not None and seed_time_limit_min > 0:
+                    if not indexer_row and show:
+                        try:
+                            tr = (
+                                db.query(TrackedRelease)
+                                .filter(TrackedRelease.show_id == show.id)
+                                .order_by(TrackedRelease.id.desc())
+                                .first()
+                            )
+                            if tr and getattr(tr, "indexer_id", None):
+                                potential_idx = db.get(Indexer, tr.indexer_id)
+                                if isinstance(potential_idx, Indexer):
+                                    indexer_row = potential_idx
+                        except Exception:
+                            pass
+
+                    is_seeding_enabled = bool(indexer_row and getattr(indexer_row, "enable_seeding", False))
+                    state_str = str(getattr(t, "state", "")).lower()
+
+                    if is_seeding_enabled:
+                        # Сидирование включено для этого трекера
+                        ratio_lim = getattr(indexer_row, "seed_ratio_limit", None)
+                        time_hrs_lim = getattr(indexer_row, "seed_time_limit_hours", None)
+                        curr_ratio = getattr(t, "ratio", 0.0) or 0.0
                         seeding_sec = getattr(t, "seeding_time", 0) or 0
-                        if seeding_sec >= seed_time_limit_min * 60:
-                            time_reached = True
-                    elif seed_time_limit_min == 0:
-                        time_reached = True
 
-                    if seed_ratio_limit is not None and seed_ratio_limit > 0:
-                        current_ratio = getattr(t, "ratio", 0.0) or 0.0
-                        if current_ratio >= seed_ratio_limit:
-                            ratio_reached = True
+                        reached_ratio = ratio_lim is not None and ratio_lim > 0 and curr_ratio >= ratio_lim
+                        reached_time = time_hrs_lim is not None and time_hrs_lim > 0 and seeding_sec >= (time_hrs_lim * 3600)
+                        is_stopped = state_str in ("pausedup", "completed", "stopped", "finished", "seed_wait") and (
+                            (ratio_lim is not None and curr_ratio >= ratio_lim) or
+                            (time_hrs_lim is not None and seeding_sec >= (time_hrs_lim * 3600)) or
+                            (ratio_lim is None and time_hrs_lim is None and (curr_ratio >= 1.0 or seeding_sec > 0))
+                        )
 
-                    has_any_limit = (seed_time_limit_min is not None and seed_time_limit_min > 0) or (seed_ratio_limit is not None and seed_ratio_limit > 0)
-                    if has_any_limit and (time_reached or ratio_reached):
+                        if reached_ratio or reached_time or is_stopped:
+                            try:
+                                client = get_client(dc_row)
+                                await client.remove_torrent(torrent_hash, delete_files=True)
+                                logger.info(
+                                    "DownloadsMonitor: Лимит сидирования достигнут для «%s» сразу после импорта (ratio: %.2f/%s). Раздача удалена.",
+                                    getattr(t, "name", torrent_hash), curr_ratio, ratio_lim,
+                                )
+                            except Exception as rem_e:
+                                logger.debug("DownloadsMonitor: Ошибка удаления завершенного сидирования %s: %s", torrent_hash, rem_e)
+                        else:
+                            logger.info(
+                                "DownloadsMonitor: Раздача «%s» успешно импортирована и продолжает сидироваться (трекер: %s, ratio лимит: %s, время: %sч).",
+                                getattr(t, "name", torrent_hash), getattr(indexer_row, "name", "Indexer"), ratio_lim, time_hrs_lim,
+                            )
+                    elif indexer_row is not None:
+                        # Сидирование для данного трекера явно отключено -> удаляем торрент из клиента
                         try:
                             client = get_client(dc_row)
-                            await client.pause_torrent(torrent_hash)
-                            logger.info(
-                                "Торрент %s достиг лимита раздачи (%s мин / ratio %s). Раздача остановлена после импорта.",
-                                torrent_hash, seed_time_limit_min, seed_ratio_limit,
-                            )
-                        except Exception as e:
-                            logger.debug("Не удалось поставить торрент %s на паузу: %s", torrent_hash, e)
+                            await client.remove_torrent(torrent_hash, delete_files=True)
+                            logger.info("DownloadsMonitor: Раздача %s удалена из клиента после импорта (сидирование отключено).", torrent_hash)
+                        except Exception as rem_e:
+                            logger.debug("DownloadsMonitor: Ошибка удаления торрента %s после импорта: %s", torrent_hash, rem_e)
+                    else:
+                        # Трекер не привязан: проверяем общие настройки клиента dc_row (seed_time_limit / seed_ratio_limit)
+                        dc_time_limit_min = getattr(dc_row, "seed_time_limit", None)
+                        dc_ratio_limit = getattr(dc_row, "seed_ratio_limit", None)
+                        if dc_time_limit_min is not None or dc_ratio_limit is not None:
+                            seeding_sec = getattr(t, "seeding_time", 0) or 0
+                            curr_ratio = getattr(t, "ratio", 0.0) or 0.0
+                            time_reached = (dc_time_limit_min is not None and dc_time_limit_min > 0 and seeding_sec >= dc_time_limit_min * 60) or (dc_time_limit_min == 0)
+                            ratio_reached = (dc_ratio_limit is not None and dc_ratio_limit > 0 and curr_ratio >= dc_ratio_limit)
+                            if time_reached or ratio_reached:
+                                try:
+                                    client = get_client(dc_row)
+                                    if hasattr(client, "pause_torrent"):
+                                        await client.pause_torrent(torrent_hash)
+                                    else:
+                                        await client.remove_torrent(torrent_hash, delete_files=True)
+                                    logger.info("Торрент %s достиг лимита раздачи клиента (%s мин / ratio %s).", torrent_hash, dc_time_limit_min, dc_ratio_limit)
+                                except Exception as e:
+                                    logger.debug("DownloadsMonitor: Не удалось остановить торрент %s: %s", torrent_hash, e)
+                        else:
+                            try:
+                                client = get_client(dc_row)
+                                await client.remove_torrent(torrent_hash, delete_files=True)
+                                logger.info("DownloadsMonitor: Раздача %s удалена из клиента после импорта (сидирование отключено).", torrent_hash)
+                            except Exception as rem_e:
+                                logger.debug("DownloadsMonitor: Ошибка удаления торрента %s после импорта: %s", torrent_hash, rem_e)
 
             except Exception as exc:
                 logger.exception("Ошибка постобработки для видео %s: %s", show.id, exc)
                 t_task.fail(error=str(exc))
             finally:
                 _RECONCILED_TORRENTS.discard(torrent_hash)
+
+    if active_clients:
+        await _check_seeding_torrents(db, active_clients)
 
     if progress_changed or results:
         try:

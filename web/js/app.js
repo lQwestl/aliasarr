@@ -647,6 +647,16 @@ const TRANSLATIONS = {
     "indexers.col_url": "URL",
     "indexers.col_priority": "Приоритет",
     "indexers.col_availability": "Доступность",
+    "indexers.enable_seeding": "Раздавать скачанные файлы (для приватных трекеров с рейтингом)",
+    "indexers.seed_ratio_limit": "Лимит Ratio (коэффициент)",
+    "indexers.seed_time_limit": "Лимит времени раздачи",
+    "indexers.seed_ratio_placeholder": "По умолчанию (без лимита)",
+    "indexers.seed_time_placeholder": "По умолчанию (без лимита)",
+    "indexers.seeding_hint": "При включении сидирования файлы импортируются через Hardlinks (жесткие ссылки, 0 байт места), а раздача в торрент-клиенте продолжается до достижения указанных лимитов.",
+    "settings.hardlinks_title": "Жесткие ссылки (Hardlinks) и сидирование",
+    "settings.hardlinks_hint": "При включенном сидировании на трекере файлы импортируются через жесткие ссылки (os.link), не занимая дополнительного места на диске (0 байт) на файловых системах ZFS / Btrfs / ext4.",
+    "settings.use_hardlinks": "Использовать жесткие ссылки (Hardlinks) вместо копирования",
+    "settings.use_hardlinks_subhint": "Если жесткая ссылка не может быть создана (разные тома/датасеты), будет выполнен автоматический fallback на обычное копирование.",
     "indexers.empty": "Индексаторы не добавлены",
 
     // Download Clients
@@ -1816,6 +1826,16 @@ const TRANSLATIONS = {
     "indexers.col_url": "URL",
     "indexers.col_priority": "Priority",
     "indexers.col_availability": "Availability",
+    "indexers.enable_seeding": "Seed downloaded files (for private / ratio trackers)",
+    "indexers.seed_ratio_limit": "Seed Ratio Limit",
+    "indexers.seed_time_limit": "Seed Time Limit",
+    "indexers.seed_ratio_placeholder": "Default (unlimited)",
+    "indexers.seed_time_placeholder": "Default (unlimited)",
+    "indexers.seeding_hint": "When seeding is enabled, files are imported via Hardlinks (0 extra bytes), and seeding in the torrent client continues until the specified limits are reached.",
+    "settings.hardlinks_title": "Hardlinks & Seeding Management",
+    "settings.hardlinks_hint": "When seeding is enabled on a tracker, files are imported via hardlinks (os.link) taking 0 extra bytes on ZFS / Btrfs / ext4 filesystems.",
+    "settings.use_hardlinks": "Use Hardlinks instead of copying",
+    "settings.use_hardlinks_subhint": "If a hardlink cannot be created (cross-device/dataset), it will automatically fall back to normal copying.",
     "indexers.empty": "No indexers added",
 
     // Download Clients
@@ -10200,6 +10220,8 @@ async function loadGeneralSettings() {
     if (importExtraCb) importExtraCb.checked = s.import_extra_files !== false;
     const extraExtsInp = document.getElementById("setting-extra-file-extensions");
     if (extraExtsInp) extraExtsInp.value = s.extra_file_extensions || "srt, ass, sub, idx, vtt, nfo, mka, ttf, otf, woff";
+    const useHardlinksCb = document.getElementById("setting-use-hardlinks");
+    if (useHardlinksCb) useHardlinksCb.checked = s.use_hardlinks !== false;
 
     document.getElementById("setting-min-seeds").value = s.min_seeds ?? 0;
     document.getElementById("setting-prefer-seeded").checked = !!s.prefer_most_seeded;
@@ -10283,6 +10305,8 @@ async function saveFolderSettings(btn) {
       if (extraCb) body.import_extra_files = extraCb.checked;
       const extraExts = document.getElementById("setting-extra-file-extensions");
       if (extraExts) body.extra_file_extensions = extraExts.value;
+      const hardlinksCb = document.getElementById("setting-use-hardlinks");
+      if (hardlinksCb) body.use_hardlinks = hardlinksCb.checked;
 
       await api("/api/v1/settings", {
         method: "PUT",
@@ -10301,6 +10325,20 @@ async function saveExtraFilesSettings(btn) {
         body: JSON.stringify({
           import_extra_files: document.getElementById("setting-import-extra-files").checked,
           extra_file_extensions: document.getElementById("setting-extra-file-extensions").value,
+        }),
+      });
+      toast(t("settings.toast_saved"));
+    } catch (e) { toast("Ошибка: " + e.message, true); }
+  });
+}
+
+async function saveHardlinksSettings(btn) {
+  await withLoading(btn, async () => {
+    try {
+      await api("/api/v1/settings", {
+        method: "PUT",
+        body: JSON.stringify({
+          use_hardlinks: document.getElementById("setting-use-hardlinks").checked,
         }),
       });
       toast(t("settings.toast_saved"));
@@ -11762,9 +11800,11 @@ async function loadIndexers() {
   const tbody = document.querySelector("#indexers-table tbody");
   try {
     const items = await api("/api/v1/indexers");
-    tbody.innerHTML = items.map(i => `
+    tbody.innerHTML = items.map(i => {
+      const seedingBadge = i.enable_seeding ? `<span class="status-pill status-available" style="margin-left:6px; font-size:11px;" title="${CURRENT_LANG === "en" ? `Seeding enabled (ratio: ${i.seed_ratio_limit ?? '∞'}, time: ${i.seed_time_limit_hours ? i.seed_time_limit_hours + 'h' : '∞'})` : `Раздача включена (ratio: ${i.seed_ratio_limit ?? '∞'}, время: ${i.seed_time_limit_hours ? i.seed_time_limit_hours + 'ч' : '∞'})`}"><i data-lucide="upload-cloud" class="ico-xs"></i> ${CURRENT_LANG === "en" ? "Seed" : "Раздача"}${i.seed_ratio_limit ? ` ${i.seed_ratio_limit}x` : ''}</span>` : "";
+      return `
       <tr>
-        <td>${escapeHtml(i.name)}</td>
+        <td><strong>${escapeHtml(i.name)}</strong>${seedingBadge}</td>
         <td>${escapeHtml(i.type)}</td>
         <td class="mono" style="max-width:220px; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(i.base_url)}</td>
         <td>${i.priority}</td>
@@ -11777,7 +11817,8 @@ async function loadIndexers() {
             <button class="btn-icon-only danger" title="${t("common.delete")}" onclick="removeIndexer(${i.id})"><i data-lucide="trash-2" class="ico-sm"></i></button>
           </div>
         </td>
-      </tr>`).join("") || `<tr><td colspan="6" style="color:var(--text-muted)">—</td></tr>`;
+      </tr>`;
+    }).join("") || `<tr><td colspan="6" style="color:var(--text-muted)">—</td></tr>`;
     if (window.lucide) lucide.createIcons();
   } catch (e) {}
 
@@ -11788,6 +11829,14 @@ async function loadIndexers() {
     document.getElementById("idx-check-retries").value = s.indexer_check_retries ?? 3;
     document.getElementById("idx-check-delay").value = s.indexer_check_retry_delay_seconds ?? 5;
   } catch (e) {}
+}
+
+function toggleIndexerSeedingFields() {
+  const chk = document.getElementById("idx-enable-seeding");
+  const fields = document.getElementById("idx-seeding-fields");
+  if (chk && fields) {
+    fields.style.display = chk.checked ? "block" : "none";
+  }
 }
 
 async function syncIndexerAvailability(button, id) {
@@ -11884,6 +11933,13 @@ function editIndexer(i) {
   document.getElementById("idx-url").value = i.base_url;
   document.getElementById("idx-key").value = i.api_key || "";
   document.getElementById("idx-priority").value = i.priority;
+  const seedingCheck = document.getElementById("idx-enable-seeding");
+  if (seedingCheck) {
+    seedingCheck.checked = !!i.enable_seeding;
+    toggleIndexerSeedingFields();
+    document.getElementById("idx-seed-ratio").value = (i.seed_ratio_limit !== null && i.seed_ratio_limit !== undefined) ? i.seed_ratio_limit : "";
+    document.getElementById("idx-seed-time").value = (i.seed_time_limit_hours !== null && i.seed_time_limit_hours !== undefined) ? i.seed_time_limit_hours : "";
+  }
   onIndexerTypeChange();
   clearInlineStatus("idx-test-result");
   document.getElementById("idx-submit-btn").textContent = t("common.save");
@@ -11897,6 +11953,13 @@ function resetIndexerForm() {
   ["idx-name", "idx-url", "idx-key"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("idx-type").value = "torznab";
   document.getElementById("idx-priority").value = 25;
+  const seedingCheck = document.getElementById("idx-enable-seeding");
+  if (seedingCheck) {
+    seedingCheck.checked = false;
+    toggleIndexerSeedingFields();
+    document.getElementById("idx-seed-ratio").value = "";
+    document.getElementById("idx-seed-time").value = "";
+  }
   onIndexerTypeChange();
   clearInlineStatus("idx-test-result");
   document.getElementById("idx-submit-btn").textContent = t("common.add");
@@ -11904,12 +11967,19 @@ function resetIndexerForm() {
 }
 
 async function submitIndexer() {
+  const enableSeeding = document.getElementById("idx-enable-seeding") ? document.getElementById("idx-enable-seeding").checked : false;
+  const seedRatioVal = document.getElementById("idx-seed-ratio") && document.getElementById("idx-seed-ratio").value !== "" ? parseFloat(document.getElementById("idx-seed-ratio").value) : null;
+  const seedTimeVal = document.getElementById("idx-seed-time") && document.getElementById("idx-seed-time").value !== "" ? parseInt(document.getElementById("idx-seed-time").value, 10) : null;
+
   const payload = {
     name: document.getElementById("idx-name").value.trim(),
     type: document.getElementById("idx-type").value,
     base_url: document.getElementById("idx-url").value.trim(),
     api_key: document.getElementById("idx-key").value.trim() || null,
     priority: Number(document.getElementById("idx-priority").value) || 25,
+    enable_seeding: enableSeeding,
+    seed_ratio_limit: seedRatioVal,
+    seed_time_limit_hours: seedTimeVal,
   };
   if (!payload.name || !payload.base_url) { toast(CURRENT_LANG === "en" ? "Name and URL required" : "Заполните имя и URL", true); return; }
   try {

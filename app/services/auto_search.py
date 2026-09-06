@@ -1865,6 +1865,16 @@ async def _do_search_and_grab(
 
             is_movie = show.content_type == "movie"
             yr_str = f" ({show.year})" if show.year else ""
+
+            # Выставляем лимиты сидирования в торрент-клиенте, если для этого трекера включена раздача
+            if indexer and getattr(indexer, "enable_seeding", False):
+                try:
+                    ratio_lim = getattr(indexer, "seed_ratio_limit", None)
+                    time_hrs = getattr(indexer, "seed_time_limit_hours", None)
+                    time_mins = int(time_hrs * 60) if time_hrs else None
+                    await dl_client.set_seeding_limits(torrent_hash, seed_ratio_limit=ratio_lim, seed_time_limit_minutes=time_mins)
+                except Exception as seed_err:
+                    logger.debug("Не удалось выставить лимиты сидирования для %s: %s", torrent_hash, seed_err)
             if is_movie:
                 grab_msg = f"Релиз успешно захвачен для фильма «{show.title}»{yr_str} и передан в '{download_client_row.name}' (хэш: {torrent_hash or 'n/a'}, сиды: {rel.seeders}, качество: {c['quality'].name})"
                 ep_details = ["Фильм"]
@@ -1960,7 +1970,7 @@ async def _do_search_and_grab(
             if covered:
                 db.add(DownloadHistory(
                     show_id=show.id, episode_id=covered[0].id, release_title=rel.title,
-                    indexer_id=indexer.id, event_type="grabbed",
+                    indexer_id=indexer.id, torrent_hash=torrent_hash, event_type="grabbed",
                     matched_alias=match.alias_text, show_title_snapshot=show.title,
                 ))
             db.commit()

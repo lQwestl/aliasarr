@@ -37,6 +37,7 @@ class SettingsOut(BaseModel):
 
     import_extra_files: bool = True
     extra_file_extensions: str = "srt, ass, sub, idx, vtt, nfo, mka, ttf, otf, woff"
+    use_hardlinks: bool = True
 
     auth_enabled: bool
     login_enabled: bool
@@ -97,6 +98,7 @@ class SettingsUpdate(BaseModel):
 
     import_extra_files: Optional[bool] = None
     extra_file_extensions: Optional[str] = None
+    use_hardlinks: Optional[bool] = None
 
     auth_enabled: Optional[bool] = None
 
@@ -155,6 +157,7 @@ def _to_settings_out(settings, is_owner: bool = False) -> SettingsOut:
         download_folder_anime=settings.download_folder_anime,
         import_extra_files=getattr(settings, "import_extra_files", True),
         extra_file_extensions=getattr(settings, "extra_file_extensions", "srt, ass, sub, idx, vtt, nfo, mka, ttf, otf, woff") or "srt, ass, sub, idx, vtt, nfo, mka, ttf, otf, woff",
+        use_hardlinks=getattr(settings, "use_hardlinks", True),
         auth_enabled=settings.auth_enabled,
         login_enabled=settings.login_enabled,
         username=settings.username,
@@ -265,6 +268,8 @@ def update_settings(
         settings.import_extra_files = payload.import_extra_files
     if payload.extra_file_extensions is not None:
         settings.extra_file_extensions = payload.extra_file_extensions
+    if payload.use_hardlinks is not None:
+        settings.use_hardlinks = payload.use_hardlinks
 
     if payload.auth_enabled is not None:
         settings.auth_enabled = payload.auth_enabled

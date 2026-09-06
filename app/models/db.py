@@ -233,6 +233,11 @@ class Indexer(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     timeout_seconds: Mapped[int] = mapped_column(Integer, default=30)
 
+    # Настройки сидирования и сохранения раздачи (для приватных трекеров с рейтингом)
+    enable_seeding: Mapped[bool] = mapped_column(Boolean, default=False)
+    seed_ratio_limit: Mapped[Optional[float]] = mapped_column(Float, nullable=True, default=None)
+    seed_time_limit_hours: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=None)
+
     # Статус доступности torznab-эндпоинта
     last_check_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
     last_check_ok: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)  # None = ещё не проверялось
@@ -282,6 +287,7 @@ class DownloadHistory(Base):
     episode_id: Mapped[Optional[int]] = mapped_column(ForeignKey("episodes.id", ondelete="CASCADE"), nullable=True)
     release_title: Mapped[str] = mapped_column(String(1000), nullable=False)
     indexer_id: Mapped[Optional[int]] = mapped_column(ForeignKey("indexers.id"), nullable=True)
+    torrent_hash: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
     event_type: Mapped[str] = mapped_column(String(50), default="grabbed")  # grabbed|imported|failed
     matched_alias: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # по какому алиасу нашли релиз
     show_title_snapshot: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)  # имя шоу на момент захвата
@@ -385,6 +391,8 @@ class AppSettings(Base):
     extra_file_extensions: Mapped[str] = mapped_column(
         String(500), default="srt, ass, sub, idx, vtt, nfo, mka, ttf, otf, woff",
     )
+    # Использовать Hardlinks (жесткие ссылки) вместо копирования для сидируемых раздач (0 байт лишнего места)
+    use_hardlinks: Mapped[bool] = mapped_column(Boolean, default=True)
 
     auth_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 

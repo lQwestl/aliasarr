@@ -152,6 +152,7 @@ def _ensure_performance_indexes() -> None:
         ("idx_tracked_releases_active", "tracked_releases", "active"),
         ("idx_download_history_show_id", "download_history", "show_id"),
         ("idx_download_history_created_at", "download_history", "created_at"),
+        ("idx_download_history_torrent_hash", "download_history", "torrent_hash"),
         ("idx_episodes_upgrade_requested", "episodes", "upgrade_requested"),
         ("idx_shows_upgrade_requested", "shows", "upgrade_requested"),
     ]

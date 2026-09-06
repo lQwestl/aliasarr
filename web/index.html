@@ -1665,6 +1665,25 @@
         </div>
 
         <div class="card">
+          <h3><i data-lucide="link" class="ico-sm icon-title"></i> <span data-i18n="settings.hardlinks_title">Жесткие ссылки (Hardlinks) и сидирование</span></h3>
+          <p class="hint" data-i18n="settings.hardlinks_hint">
+            При включенном сидировании на трекере файлы импортируются через жесткие ссылки (os.link), не занимая дополнительного места на диске (0 байт) на файловых системах ZFS / Btrfs / ext4.
+          </p>
+          <div class="form-col" style="margin-top:10px;">
+            <label class="checkbox-row">
+              <input id="setting-use-hardlinks" type="checkbox" checked>
+              <span data-i18n="settings.use_hardlinks" style="font-weight:600;">Использовать жесткие ссылки (Hardlinks) вместо копирования</span>
+            </label>
+            <p class="hint" style="font-size:0.8rem; margin-top:2px;" data-i18n="settings.use_hardlinks_subhint">
+              Если жесткая ссылка не может быть создана (разные тома/датасеты), будет выполнен автоматический fallback на обычное копирование.
+            </p>
+            <div style="margin-top:10px;">
+              <button class="btn btn-primary" onclick="saveHardlinksSettings(this)" data-i18n="common.save">Сохранить</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
           <h3><i data-lucide="search" class="ico-sm icon-title"></i> <span data-i18n="settings.autosearch_title">Автопоиск и скачивание</span></h3>
           <div class="form-col">
             <label><span data-i18n="settings.min_seeds">Минимальное число сидов для скачивания</span> <span class="hint" data-i18n="settings.min_seeds_hint">(0 — без ограничения)</span></label>
@@ -1911,6 +1930,31 @@
             <input id="idx-url" class="input" placeholder="Base URL (Torznab / RSS endpoint)" data-i18n-placeholder="indexers.url_placeholder">
             <input id="idx-key" class="input" placeholder="API key / Passkey (если требуется)" data-i18n-placeholder="indexers.key_placeholder">
             <input id="idx-priority" class="input" type="number" placeholder="Приоритет (0-1000, меньше = выше)" value="25" data-i18n-placeholder="indexers.priority_placeholder">
+            <label class="checkbox-row" style="margin-top: 4px;">
+              <input id="idx-enable-seeding" type="checkbox" onchange="toggleIndexerSeedingFields()">
+              <span data-i18n="indexers.enable_seeding">Раздавать скачанные файлы (для приватных трекеров с рейтингом)</span>
+            </label>
+            <div id="idx-seeding-fields" style="display:none; padding: 10px 12px; background: var(--bg-card-hover, rgba(255,255,255,0.03)); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;">
+              <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 140px;">
+                  <label class="input-label" style="font-size: 0.82rem; margin-bottom: 4px; display: block;">
+                    <span data-i18n="indexers.seed_ratio_limit">Лимит Ratio (коэффициент)</span>
+                    <span class="hint" style="font-size: 0.75rem;">(напр. 1.5)</span>
+                  </label>
+                  <input id="idx-seed-ratio" class="input" type="number" step="0.1" min="0" placeholder="По умолчанию (без лимита)" data-i18n-placeholder="indexers.seed_ratio_placeholder">
+                </div>
+                <div style="flex: 1; min-width: 140px;">
+                  <label class="input-label" style="font-size: 0.82rem; margin-bottom: 4px; display: block;">
+                    <span data-i18n="indexers.seed_time_limit">Лимит времени раздачи</span>
+                    <span class="hint" style="font-size: 0.75rem;">(часы, напр. 72)</span>
+                  </label>
+                  <input id="idx-seed-time" class="input" type="number" step="1" min="0" placeholder="По умолчанию (без лимита)" data-i18n-placeholder="indexers.seed_time_placeholder">
+                </div>
+              </div>
+              <div class="hint" style="margin-top: 6px; font-size: 0.78rem; opacity: 0.85;" data-i18n="indexers.seeding_hint">
+                При включении сидирования файлы импортируются через Hardlinks (жесткие ссылки, 0 байт места), а раздача в торрент-клиенте продолжается до достижения указанных лимитов.
+              </div>
+            </div>
             <div class="form-row">
               <button class="btn btn-secondary" onclick="testIndexerAdhoc(this)" data-i18n="common.test">Тест</button>
               <button class="btn btn-secondary" id="idx-cancel-btn" style="display:none" onclick="resetIndexerForm()" data-i18n="common.cancel">Отмена</button>

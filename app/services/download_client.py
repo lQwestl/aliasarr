@@ -95,6 +95,15 @@ class BaseDownloadClient:
         """Принудительно запускает перепроверку целостности и наличия файлов торрента (hash check / verify)."""
         pass
 
+    async def set_seeding_limits(
+        self,
+        torrent_hash: str,
+        seed_ratio_limit: Optional[float] = None,
+        seed_time_limit_minutes: Optional[int] = None,
+    ) -> None:
+        """Устанавливает лимиты сидирования (ratio / время) для конкретного торрента."""
+        pass
+
     async def get_client_logs(self, limit: int = 100) -> list[dict]:
         """Возвращает журнал демона клиента (если поддерживается API клиентом)."""
         return []
@@ -510,6 +519,26 @@ class QBittorrentClient(BaseDownloadClient):
                     await asyncio.to_thread(self._sync_client.torrents_recheck, torrent_hashes=torrent_hash)
                 except Exception:
                     pass
+
+    async def set_seeding_limits(
+        self,
+        torrent_hash: str,
+        seed_ratio_limit: Optional[float] = None,
+        seed_time_limit_minutes: Optional[int] = None,
+    ) -> None:
+        if seed_ratio_limit is None and seed_time_limit_minutes is None:
+            return
+        try:
+            async with httpx.AsyncClient(timeout=8.0, cookies=self._cookies) as client:
+                await self._ensure_auth(client)
+                data = {
+                    "hashes": torrent_hash,
+                    "ratioLimit": str(seed_ratio_limit) if seed_ratio_limit is not None else "-2",
+                    "seedingTimeLimit": str(seed_time_limit_minutes) if seed_time_limit_minutes is not None else "-2",
+                }
+                await client.post(f"{self._base_url}/api/v2/torrents/setShareLimits", data=data, cookies=self._cookies, timeout=8.0)
+        except Exception as exc:
+            logger.warning("Ошибка set_seeding_limits в qBittorrent (%s): %s", torrent_hash, exc)
 
     async def get_client_logs(self, limit: int = 100) -> list[dict]:
         if not httpx:
@@ -1036,6 +1065,30 @@ class TransmissionClient(BaseDownloadClient):
                     await asyncio.to_thread(self._sync_client.verify_torrent, torrent_hash)
                 except Exception:
                     pass
+
+    async def set_seeding_limits(
+        self,
+        torrent_hash: str,
+        seed_ratio_limit: Optional[float] = None,
+        seed_time_limit_minutes: Optional[int] = None,
+    ) -> None:
+        if seed_ratio_limit is None and seed_time_limit_minutes is None:
+            return
+        args: dict[str, Any] = {"ids": [torrent_hash]}
+        if seed_ratio_limit is not None and seed_ratio_limit > 0:
+            args["seedRatioLimit"] = float(seed_ratio_limit)
+            args["seedRatioMode"] = 1  # 1 = use torrent-specific limit
+        elif seed_ratio_limit == 0:
+            args["seedRatioMode"] = 0  # 0 = global limit
+
+        if seed_time_limit_minutes is not None and seed_time_limit_minutes > 0:
+            args["seedIdleLimit"] = int(seed_time_limit_minutes)
+            args["seedIdleMode"] = 1  # 1 = use torrent-specific idle limit
+
+        try:
+            await self._rpc_call("torrent-set", args)
+        except Exception as exc:
+            logger.warning("Ошибка set_seeding_limits в Transmission (%s): %s", torrent_hash, exc)
 
     async def get_client_logs(self, limit: int = 100) -> list[dict]:
         try:

@@ -685,12 +685,24 @@ async def grab_release(
             except Exception as exc:
                 logger.warning("Не удалось запланировать ограничение файлов раздачи: %s", exc)
 
+    # Выставляем лимиты сидирования в торрент-клиенте, если для этого трекера включена раздача
+    indexer_row = db.get(Indexer, payload.indexer_id) if payload.indexer_id else None
+    if indexer_row and getattr(indexer_row, "enable_seeding", False):
+        try:
+            ratio_lim = getattr(indexer_row, "seed_ratio_limit", None)
+            time_hrs = getattr(indexer_row, "seed_time_limit_hours", None)
+            time_mins = int(time_hrs * 60) if time_hrs else None
+            await client.set_seeding_limits(torrent_hash, seed_ratio_limit=ratio_lim, seed_time_limit_minutes=time_mins)
+        except Exception as seed_err:
+            logger.debug("Не удалось выставить лимиты сидирования для %s: %s", torrent_hash, seed_err)
+
     if target_episodes:
         db.add(DownloadHistory(
             show_id=payload.show_id,
             episode_id=payload.episode_id or target_episodes[0].id,
             release_title=payload.release_title,
             indexer_id=payload.indexer_id,
+            torrent_hash=torrent_hash,
             event_type="grabbed",
             matched_alias=torrent_hash or payload.matched_alias,
             show_title_snapshot=show.title,

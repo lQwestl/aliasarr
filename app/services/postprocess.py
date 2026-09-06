@@ -20,9 +20,14 @@ logger = logging.getLogger("aliasarr.postprocess")
 from app.services.release_log_service import log_release_event
 
 try:
+    from sqlalchemy import func, or_
     from sqlalchemy.orm import Session
-    from app.models.db import Episode, EpisodeStatus, Show
+    from app.models.db import Episode, EpisodeStatus, Show, DownloadHistory, Indexer, TrackedRelease
 except ImportError:
+    class _MockFunc:
+        def lower(self, col): return col
+    func = _MockFunc()
+    def or_(*args): return args
     Session = object
     class _MockCol:
         def __eq__(self, other): return self
@@ -50,6 +55,9 @@ except ImportError:
         "IGNORED": "ignored",
     })
     Show = type("Show", (), {"id": _MockCol(), "title": _MockCol(), "content_type": _MockCol(), "path": _MockCol()})
+    DownloadHistory = type("DownloadHistory", (), {"id": _MockCol(), "show_id": _MockCol(), "indexer_id": _MockCol(), "torrent_hash": _MockCol()})
+    Indexer = type("Indexer", (), {"id": _MockCol(), "name": _MockCol(), "enable_seeding": _MockCol(), "seed_ratio_limit": _MockCol(), "seed_time_limit_hours": _MockCol()})
+    TrackedRelease = type("TrackedRelease", (), {"id": _MockCol(), "show_id": _MockCol(), "indexer_id": _MockCol()})
 
 from app.services.parser import ReleaseKind, parse_episode
 from app.services.quality import parse_quality, detect_file_quality
@@ -223,6 +231,59 @@ def apply_media_permissions(
         pass
 
     return stats
+
+
+def transfer_media_file(
+    src: str,
+    dst: str,
+    keep_source: bool = False,
+    use_hardlinks: bool = True,
+) -> None:
+    """
+    Переносит или связывает медиафайл:
+    - Если keep_source is True (сидирование включено):
+        - При use_hardlinks is True: пробуем os.link(src, dst). В ZFS / Linux это занимает 0ms и 0 байт на диске.
+          Если os.link падает (например EXDEV — разные точки монтирования / датасеты), делаем fallback на shutil.copy2(src, dst).
+        - При use_hardlinks is False: shutil.copy2(src, dst).
+    - Если keep_source is False:
+        - Пробуем shutil.move(src, dst). При ошибке fallback: shutil.copy2(src, dst) + os.remove(src).
+    """
+    if not src or not os.path.exists(src):
+        return
+    if not dst:
+        return
+    if os.path.abspath(src) == os.path.abspath(dst):
+        return
+
+    dst_dir = os.path.dirname(dst)
+    if dst_dir:
+        os.makedirs(dst_dir, exist_ok=True)
+
+    if os.path.exists(dst):
+        try:
+            os.remove(dst)
+        except OSError:
+            pass
+
+    if keep_source:
+        if use_hardlinks:
+            try:
+                os.link(src, dst)
+                logger.info("Хардлинк успешно создан: %s -> %s", src, dst)
+                return
+            except OSError as link_err:
+                logger.warning("Не удалось создать хардлинк (%s), переключаемся на копирование: %s -> %s", link_err, src, dst)
+        shutil.copy2(src, dst)
+        logger.info("Файл скопирован (раздача сохранена): %s -> %s", src, dst)
+    else:
+        try:
+            shutil.move(src, dst)
+        except OSError:
+            shutil.copy2(src, dst)
+            try:
+                os.remove(src)
+            except OSError:
+                pass
 
 
 _INVALID_FS_CHARS = re.compile(r'[<>:"/\\|?*]')
@@ -908,6 +969,43 @@ def process_download(
     show_root = getattr(show, "path", None) or os.path.join(root_folder, sanitize_filename(getattr(show, "title", "") or "Show"))
     os.makedirs(show_root, exist_ok=True)
 
+    keep_source = False
+    use_hardlinks = True
+    if db:
+        try:
+            from app.services.settings_service import get_or_create_settings
+            st = get_or_create_settings(db)
+            use_hardlinks = getattr(st, "use_hardlinks", True)
+
+            indexer_obj = None
+            if torrent_hash:
+                dh = (
+                    db.query(DownloadHistory)
+                    .filter(
+                        func.lower(DownloadHistory.torrent_hash) == torrent_hash.lower(),
+                        DownloadHistory.indexer_id.isnot(None),
+                    )
+                    .order_by(DownloadHistory.id.desc())
+                    .first()
+                )
+                if dh and dh.indexer_id:
+                    indexer_obj = db.get(Indexer, dh.indexer_id)
+
+            if not indexer_obj and show:
+                tr = (
+                    db.query(TrackedRelease)
+                    .filter(TrackedRelease.show_id == show.id)
+                    .order_by(TrackedRelease.id.desc())
+                    .first()
+                )
+                if tr and tr.indexer_id:
+                    indexer_obj = db.get(Indexer, tr.indexer_id)
+
+            if indexer_obj and getattr(indexer_obj, "enable_seeding", False):
+                keep_source = True
+        except Exception as exc:
+            logger.debug("Ошибка при определении настроек сидирования: %s", exc)
+
     release_files = find_release_files(download_path, specific_files=specific_files)
     video_files = release_files["video"]
     subtitle_files = release_files["subtitle"]
@@ -1404,26 +1502,22 @@ def process_download(
 
                     try:
                         old_stem = os.path.splitext(episode.file_path)[0]
-                        os.remove(episode.file_path)
+                        if os.path.exists(episode.file_path) and os.path.abspath(episode.file_path) != os.path.abspath(dest_video_path):
+                            os.remove(episode.file_path)
                         old_dir = os.path.dirname(episode.file_path)
                         if os.path.isdir(old_dir):
                             for old_f in os.listdir(old_dir):
                                 if old_f.startswith(os.path.basename(old_stem) + "."):
                                     try:
-                                        os.remove(os.path.join(old_dir, old_f))
+                                        p_old = os.path.join(old_dir, old_f)
+                                        if os.path.abspath(p_old) != os.path.abspath(dest_video_path):
+                                            os.remove(p_old)
                                     except Exception:
                                         pass
                     except OSError:
                         pass
 
-                try:
-                    shutil.move(file_path, dest_video_path)
-                except OSError:
-                    shutil.copy2(file_path, dest_video_path)
-                    try:
-                        os.remove(file_path)
-                    except OSError:
-                        pass
+                transfer_media_file(file_path, dest_video_path, keep_source=keep_source, use_hardlinks=use_hardlinks)
                 apply_media_permissions(dest_video_path, is_dir=False)
             except Exception as exc:
                 results.append({"file": file_path, "status": "failed", "reason": str(exc)})
@@ -1455,15 +1549,11 @@ def process_download(
                         c += 1
 
                 try:
-                    shutil.move(sf, dest_sub_path)
+                    transfer_media_file(sf, dest_sub_path, keep_source=keep_source, use_hardlinks=use_hardlinks)
                     apply_media_permissions(dest_sub_path, is_dir=False)
                     used_companions.add(sf)
                 except Exception:
-                    try:
-                        shutil.copy2(sf, dest_sub_path)
-                        apply_media_permissions(dest_sub_path, is_dir=False)
-                    except Exception:
-                        pass
+                    pass
 
             # Переносим сматченные аудиодорожки к этой серии
             matched_audios = match_companion_files_for_episode(
@@ -1491,15 +1581,11 @@ def process_download(
                         c += 1
 
                 try:
-                    shutil.move(af, dest_audio_path)
+                    transfer_media_file(af, dest_audio_path, keep_source=keep_source, use_hardlinks=use_hardlinks)
                     apply_media_permissions(dest_audio_path, is_dir=False)
                     used_companions.add(af)
                 except Exception:
-                    try:
-                        shutil.copy2(af, dest_audio_path)
-                        apply_media_permissions(dest_audio_path, is_dir=False)
-                    except Exception:
-                        pass
+                    pass
 
             if episode:
                 episode.status = EpisodeStatus.DOWNLOADED
@@ -1650,9 +1736,9 @@ def process_download(
         except Exception:
             pass
 
-    # Очищаем оставшиеся пустые поддиректории в download_path, если это была специальная папка раздачи
+    # Очищаем оставшиеся пустые поддиректории в download_path, если это была специальная папка раздачи и сидирование не требуется
     # (НИ В КОЕМ СЛУЧАЕ не удаляем поддиректории в общих корневых папках загрузок!)
-    if os.path.isdir(download_path):
+    if not keep_source and os.path.isdir(download_path):
         from app.services.settings_service import get_or_create_settings
         st = get_or_create_settings(db) if db else None
         root_dirs = {
@@ -1706,6 +1792,43 @@ def process_movie_download(
             progress_callback(0.2, f"Поиск видеофайла фильма: {show.title}")
         except Exception:
             pass
+
+    keep_source = False
+    use_hardlinks = True
+    if db:
+        try:
+            from app.services.settings_service import get_or_create_settings
+            st = get_or_create_settings(db)
+            use_hardlinks = getattr(st, "use_hardlinks", True)
+
+            indexer_obj = None
+            if torrent_hash:
+                dh = (
+                    db.query(DownloadHistory)
+                    .filter(
+                        func.lower(DownloadHistory.torrent_hash) == torrent_hash.lower(),
+                        DownloadHistory.indexer_id.isnot(None),
+                    )
+                    .order_by(DownloadHistory.id.desc())
+                    .first()
+                )
+                if dh and dh.indexer_id:
+                    indexer_obj = db.get(Indexer, dh.indexer_id)
+
+            if not indexer_obj and show:
+                tr = (
+                    db.query(TrackedRelease)
+                    .filter(TrackedRelease.show_id == show.id)
+                    .order_by(TrackedRelease.id.desc())
+                    .first()
+                )
+                if tr and tr.indexer_id:
+                    indexer_obj = db.get(Indexer, tr.indexer_id)
+
+            if indexer_obj and getattr(indexer_obj, "enable_seeding", False):
+                keep_source = True
+        except Exception as exc:
+            logger.debug("Ошибка при определении настроек сидирования фильма: %s", exc)
 
     release_files = find_release_files(download_path, specific_files=specific_files)
     video_files = release_files["video"]
@@ -1792,19 +1915,12 @@ def process_movie_download(
     try:
         # Если уже был старый файл (замена по качеству), удаляем его
         old_ep = db.query(Episode).filter_by(show_id=show.id, season_number=1, episode_number=1).first()
-        if old_ep and old_ep.file_path and os.path.exists(old_ep.file_path) and old_ep.file_path != dest_video_path:
+        if old_ep and old_ep.file_path and os.path.exists(old_ep.file_path) and os.path.abspath(old_ep.file_path) != os.path.abspath(dest_video_path):
             try:
                 os.remove(old_ep.file_path)
             except OSError:
                 pass
-        try:
-            shutil.move(main_file, dest_video_path)
-        except OSError:
-            shutil.copy2(main_file, dest_video_path)
-            try:
-                os.remove(main_file)
-            except OSError:
-                pass
+        transfer_media_file(main_file, dest_video_path, keep_source=keep_source, use_hardlinks=use_hardlinks)
         apply_media_permissions(dest_video_path, is_dir=False)
     except Exception as exc:
         return [{"file": main_file, "status": "failed", "reason": str(exc)}]
@@ -1842,14 +1958,10 @@ def process_movie_download(
                 dest_sub_path = os.path.join(movie_root, dest_sub_name)
                 c += 1
         try:
-            shutil.move(sf, dest_sub_path)
+            transfer_media_file(sf, dest_sub_path, keep_source=keep_source, use_hardlinks=use_hardlinks)
             apply_media_permissions(dest_sub_path, is_dir=False)
         except Exception:
-            try:
-                shutil.copy2(sf, dest_sub_path)
-                apply_media_permissions(dest_sub_path, is_dir=False)
-            except Exception:
-                pass
+            pass
 
     # Переносим аудиодорожки к фильму
     for idx, af in enumerate(release_files["audio"]):
@@ -1869,14 +1981,10 @@ def process_movie_download(
                 dest_audio_path = os.path.join(movie_root, dest_audio_name)
                 c += 1
         try:
-            shutil.move(af, dest_audio_path)
+            transfer_media_file(af, dest_audio_path, keep_source=keep_source, use_hardlinks=use_hardlinks)
             apply_media_permissions(dest_audio_path, is_dir=False)
         except Exception:
-            try:
-                shutil.copy2(af, dest_audio_path)
-                apply_media_permissions(dest_audio_path, is_dir=False)
-            except Exception:
-                pass
+            pass
 
     if not show.path and movie_root:
         show.path = movie_root
@@ -1932,9 +2040,9 @@ def process_movie_download(
                     db.add(show)
         db.add(episode)
 
-    # Очищаем оставшиеся пустые поддиректории в download_path, если это была специальная папка раздачи
+    # Очищаем оставшиеся пустые поддиректории в download_path, если это была специальная папка раздачи и сидирование не требуется
     # (НИ В КОЕМ СЛУЧАЕ не удаляем поддиректории в общих корневых папках загрузок!)
-    if os.path.isdir(download_path):
+    if not keep_source and os.path.isdir(download_path):
         from app.services.settings_service import get_or_create_settings
         st = get_or_create_settings(db) if db else None
         root_dirs = {

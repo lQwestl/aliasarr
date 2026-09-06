@@ -197,6 +197,9 @@ class IndexerCreate(BaseModel):
     priority: int = 25
     enabled: bool = True
     timeout_seconds: int = 30
+    enable_seeding: bool = False
+    seed_ratio_limit: Optional[float] = None
+    seed_time_limit_hours: Optional[int] = None
 
 
 class IndexerOut(IndexerCreate):
