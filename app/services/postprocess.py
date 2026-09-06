@@ -1518,6 +1518,10 @@ def process_download(
                         c_cutoff = parse_quality(qp.cutoff_quality)
                         if q_info.rank >= c_cutoff.rank:
                             episode.upgrade_requested = False
+                    elif not qp or not getattr(qp, "upgrade_allowed", False):
+                        episode.upgrade_requested = False
+                else:
+                    episode.upgrade_requested = False
                 db.add(episode)
                 try:
                     db.commit()
@@ -1625,6 +1629,15 @@ def process_download(
                 else:
                     u_ep.status = EpisodeStatus.WANTED
                 db.add(u_ep)
+
+            # Проверяем, остались ли серии на апгрейде для данного тайтла
+            remaining_upgrades = db.query(Episode).filter(
+                Episode.show_id == show.id,
+                Episode.upgrade_requested == True,
+            ).count()
+            if remaining_upgrades == 0 and getattr(show, "upgrade_requested", False):
+                show.upgrade_requested = False
+                db.add(show)
         except Exception:
             pass
 

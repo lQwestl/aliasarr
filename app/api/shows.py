@@ -824,6 +824,9 @@ def set_show_monitored(
         raise HTTPException(404, "Show not found")
     show.monitored = monitored
     db.add(show)
+    if not monitored:
+        from app.models.db import TrackedRelease
+        db.query(TrackedRelease).filter(TrackedRelease.show_id == show_id).update({TrackedRelease.active: False}, synchronize_session=False)
     if getattr(show, "content_type", None) == "movie":
         for ep in (getattr(show, "episodes", None) or []):
             ep.monitored = monitored
@@ -847,6 +850,9 @@ def set_all_seasons_monitored(
 
     show.monitored = monitored
     db.add(show)
+    if not monitored:
+        from app.models.db import TrackedRelease
+        db.query(TrackedRelease).filter(TrackedRelease.show_id == show_id).update({TrackedRelease.active: False}, synchronize_session=False)
 
     episodes = db.query(Episode).filter(Episode.show_id == show_id).all()
     today = dt.date.today()

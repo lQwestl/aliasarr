@@ -27,6 +27,16 @@ async def recheck_tracked_release(db: Session, tracked: TrackedRelease) -> dict:
     if not indexer:
         return {"updated": False, "reason": "indexer_missing"}
 
+    show = tracked.show or (db.get(Show, tracked.show_id) if tracked.show_id else None)
+    if not show or not show.monitored:
+        tracked.active = False
+        db.add(tracked)
+        try:
+            db.commit()
+        except Exception:
+            pass
+        return {"updated": False, "reason": "show_unmonitored"}
+
     client = TorznabClient(indexer.base_url, indexer.api_key, indexer.timeout_seconds)
 
     # Ищем топик заново по его же guid/url через тот же индексатор.
@@ -94,19 +104,59 @@ async def recheck_all_active(db: Session) -> list[dict]:
     tracked_list = db.query(TrackedRelease).filter(TrackedRelease.active == True).all()  # noqa: E712
     if not tracked_list:
         return []
-    total = len(tracked_list)
+
+    active_tracked = []
+    for tracked in tracked_list:
+        show = tracked.show or (db.get(Show, tracked.show_id) if tracked.show_id else None)
+        if not show or not show.monitored:
+            tracked.active = False
+            db.add(tracked)
+            continue
+
+        # Фильмы: если фильм уже скачан, в раздаче не могут появиться новые серии
+        if show.content_type == "movie":
+            ep = db.query(Episode).filter_by(show_id=show.id).first()
+            if ep and ep.status == EpisodeStatus.DOWNLOADED:
+                tracked.active = False
+                db.add(tracked)
+                continue
+
+        # Сериалы / Аниме: если все серии скачаны (нет WANTED/UNAIRED) и статус тайтла ended/completed/canceled,
+        # раздача больше не требует постоянного опроса
+        has_needed_episodes = db.query(Episode).filter(
+            Episode.show_id == show.id,
+            Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.UNAIRED, EpisodeStatus.DOWNLOADING]),
+        ).first() is not None
+
+        show_status = (getattr(show, "status", None) or "").lower()
+        if not has_needed_episodes and show_status in ("ended", "canceled", "complete", "completed"):
+            tracked.active = False
+            db.add(tracked)
+            continue
+
+        active_tracked.append(tracked)
+
+    try:
+        db.commit()
+    except Exception:
+        pass
+
+    if not active_tracked:
+        return []
+
+    total = len(active_tracked)
     from app.services.task_manager import task_manager
     async with task_manager.track(
         name="tracker_sync",
         title="Проверка отслеживаемых раздач",
-        message=f"Проверка {total} раздач на трекерах...",
+        message=f"Проверка {total} онгоингов на трекерах...",
         total_items=total,
         current_item=0,
         progress=0.0,
     ) as t_task:
         results = []
         updated_count = 0
-        for i, tracked in enumerate(tracked_list):
+        for i, tracked in enumerate(active_tracked):
             show_title = (tracked.show.title if tracked.show else None) or (f"Show #{tracked.show_id}" if tracked.show_id else "раздача")
             t_task.update(
                 progress=(i + 1) / total,

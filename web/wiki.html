@@ -1450,6 +1450,42 @@
           </tbody>
         </table>
       </div>
+
+      <div class="wiki-h3" style="margin-top:24px;"><span class="lang-ru">3 Уровня управления апгрейдами (Иерархия):</span><span class="lang-en">3-Tier Upgrade Control Hierarchy:</span></div>
+      <div class="wiki-grid wiki-grid-3">
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="sliders" class="ico-xs" style="color:var(--teal);"></i> <span class="lang-ru">1. Профиль качества (Фон)</span><span class="lang-en">1. Quality Profile (Background)</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Глобальная стратегия. Если включена опция <strong>Upgrade Allowed</strong>, фоновый поиск будет тихо улучшать серии мониторимых тайтлов до достижения <strong>Cutoff Quality</strong> или <strong>Cutoff Score</strong>. Если отключена — скачивается первый подходящий релиз.</span>
+            <span class="lang-en">Global strategy. When <strong>Upgrade Allowed</strong> is enabled, background search improves monitored episodes until <strong>Cutoff</strong> is met.</span>
+          </p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="arrow-up-circle" class="ico-xs" style="color:#fbbf24;"></i> <span class="lang-ru">2. Кнопка «На обновлении»</span><span class="lang-en">2. "Upgrading" Show Button</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Явный запрос на апгрейд всего тайтла. Работает <strong>всегда</strong> (даже при отключенном Upgrade Allowed в профиле). Когда все серии достигают Cutoff, статус и кнопка <strong>автоматически отключаются</strong>.</span>
+            <span class="lang-en">Explicit upgrade request for the whole title. Active regardless of profile settings. Automatically turns off once all episodes reach cutoff.</span>
+          </p>
+        </div>
+        <div class="wiki-subcard">
+          <div class="wiki-subcard-title"><i data-lucide="arrow-up-circle" class="ico-xs" style="color:#38bdf8;"></i> <span class="lang-ru">3. Иконка у серии / сезона</span><span class="lang-en">3. Episode / Season Icon</span></div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Точечный апгрейд отдельной серии или сезона. Ищет замену только для выбранных эпизодов. После успешного импорта улучшенного файла иконка со стрелочкой <strong>автоматически гаснет</strong>.</span>
+            <span class="lang-en">Targeted upgrade for a specific episode or season. Turns off automatically once a superior file is imported.</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="wiki-callout wiki-callout-best" style="margin-top:16px;">
+        <i data-lucide="shield-check" class="callout-ico ico-sm"></i>
+        <div>
+          <strong class="lang-ru">Защита от даунгрейда (Downgrade Protection):</strong><strong class="lang-en">Downgrade Protection:</strong>
+          <div style="margin-top:4px;">
+            <span class="lang-ru">Если скачанный торрент внутри содержит видеофайлы более низкого качества, чем существующие на диске (например, заголовок на трекере обещал 1080p, а внутри оказался XviD 480p), Aliasarr <strong>отменяет замену</strong>, сохраняет ваш исходный качественный файл, удаляет плохой торрент из клиента и автоматически заносит его в Черный список.</span>
+            <span class="lang-en">If a downloaded torrent turns out to contain lower quality video than what you already have on disk, Aliasarr cancels the overwrite, preserves your existing good file, removes the garbage torrent from client, and blacklists it.</span>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- 6. ТАБЛИЦА 26 ШТАТНЫХ ФОРМАТОВ -->

@@ -741,11 +741,11 @@ async def check_downloads(db: Session) -> list[dict]:
                     db=db,
                 )
 
-                # Отправляем уведомление об успешном скачивании и импорте
-                if import_results:
+                # Отправляем уведомление об успешном скачивании и импорте, либо очищаем отклонённый торрент
+                imported_items = [r for r in (import_results or []) if r.get("status") == "imported" and r.get("dest")]
+                if imported_items:
                     from app.services.notifications import notify_all
-                    imported_items = [r for r in import_results if r.get("status") == "imported" and r.get("dest")]
-                    has_upgrade = any(r.get("is_upgrade") for r in import_results)
+                    has_upgrade = any(r.get("is_upgrade") for r in imported_items)
                     show_content_type = getattr(show, "content_type", "series")
                     show_year = getattr(show, "year", None)
                     is_movie = show_content_type == "movie"
@@ -783,22 +783,53 @@ async def check_downloads(db: Session) -> list[dict]:
                 else:
                     t_task.complete("Нет новых файлов для импорта")
                     today = dt.date.today()
+                    skip_reasons = [r.get("reason") for r in (import_results or []) if r.get("reason")]
+                    primary_reason = skip_reasons[0] if skip_reasons else "Раздача не содержала подходящих серий или качество хуже имеющегося"
+
                     for ep in eps:
-                        if ep.status == EpisodeStatus.DOWNLOADING and ep.torrent_hash == torrent_hash:
-                            air_d = ep.air_date
-                            if isinstance(air_d, dt.datetime):
-                                air_d = air_d.date()
-                            ep.status = EpisodeStatus.UNAIRED if (air_d and air_d > today) else EpisodeStatus.WANTED
-                            ep.torrent_hash = None
-                            ep.download_client_id = None
-                            ep.download_progress = 0.0
-                            db.add(ep)
+                        ep_status = getattr(ep, "status", None)
+                        ep_th = getattr(ep, "torrent_hash", None)
+                        if ep_status == EpisodeStatus.DOWNLOADING and (
+                            not ep_th or (torrent_hash and ep_th.lower() == torrent_hash.lower())
+                        ):
+                            fp = getattr(ep, "file_path", None)
+                            has_existing_file = bool(fp and os.path.exists(fp))
+                            if has_existing_file:
+                                ep.status = EpisodeStatus.DOWNLOADED
+                                ep.download_progress = 0.0
+                                ep.torrent_hash = None
+                                ep.download_client_id = None
+                                ep.upgrade_requested = False
+                                db.add(ep)
+                            else:
+                                air_d = getattr(ep, "air_date", None)
+                                if isinstance(air_d, dt.datetime):
+                                    air_d = air_d.date()
+                                ep.status = EpisodeStatus.UNAIRED if (air_d and air_d > today) else EpisodeStatus.WANTED
+                                ep.torrent_hash = None
+                                ep.download_client_id = None
+                                ep.download_progress = 0.0
+                                db.add(ep)
+
+                    if show:
+                        try:
+                            remaining_upg = (
+                                db.query(Episode)
+                                .filter(Episode.show_id == show.id, Episode.upgrade_requested == True)
+                                .count()
+                            )
+                            if isinstance(remaining_upg, int) and remaining_upg == 0 and getattr(show, "upgrade_requested", False):
+                                show.upgrade_requested = False
+                                db.add(show)
+                        except Exception:
+                            pass
+
                     from app.services import blocklist_service
                     try:
                         blocklist_service.add_to_blocklist(
                             db,
                             release_title=getattr(t, "name", torrent_hash),
-                            reason="Раздача не содержала запрошенных серий (все файлы уже скачаны или не запрошены)",
+                            reason=f"Отклонено при импорте: {primary_reason}",
                             show=show,
                             show_id=show.id if show else None,
                             torrent_hash=torrent_hash,
@@ -810,8 +841,8 @@ async def check_downloads(db: Session) -> list[dict]:
                         client = get_client(dc_row)
                         await client.remove_torrent(torrent_hash, delete_files=True)
                         logger.info(
-                            "DownloadsMonitor: Раздача %s не содержала новых файлов для «%s», удалена из клиента и добавлена в черный список.",
-                            torrent_hash, show.title,
+                            "DownloadsMonitor: Раздача %s не содержала новых/лучших файлов для «%s» (%s), удалена из клиента и добавлена в черный список.",
+                            torrent_hash, show.title if show else "show", primary_reason,
                         )
                     except Exception as rem_err:
                         logger.debug("DownloadsMonitor: Не удалось удалить ненужную раздачу %s: %s", torrent_hash, rem_err)
