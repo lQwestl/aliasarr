@@ -26,6 +26,7 @@ from app.services.download_client import get_client
 from app.services.indexer_service import get_indexer_client
 from app.services.matcher import AliasCandidate, build_alias_candidates, match_release
 from app.services.notifications import notify_all
+from app.services.quality import parse_quality, is_upgrade
 from app.services.settings_service import get_or_create_settings
 from app.services.torznab import TorznabClient
 from app.services.user_service import require_permission, get_current_user
@@ -631,7 +632,6 @@ async def grab_release(
             .filter(Episode.show_id == show.id, Episode.season_number == payload.season)
             .all()
         )
-        from app.services.quality import parse_quality, is_upgrade
         rel_quality = parse_quality(payload.release_title) if payload.release_title else parse_quality("")
         quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
         allowed_qualities = quality_profile.allowed_qualities if quality_profile else []
