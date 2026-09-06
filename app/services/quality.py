@@ -307,13 +307,18 @@ def is_upgrade(current: QualityInfo, candidate: QualityInfo, allowed_qualities: 
     return candidate.rank > current.rank
 
 
-def detect_file_quality(file_path: str, context_hints: Optional[List[str]] = None) -> QualityInfo:
+def detect_file_quality(
+    file_path: str,
+    context_hints: Optional[List[str]] = None,
+    probe_file: bool = True,
+) -> QualityInfo:
     """
     Интеллектуально определяет качество файла, анализируя:
     1. Имя самого файла
     2. Все родительские директории в пути к файлу (от папки файла до корня раздачи)
     3. Дополнительные контекстные подсказки (название раздачи, TrackedRelease, заголовок топика)
     4. Особенности контейнеров (BDMV, .m2ts, .iso, VIDEO_TS)
+    5. Реальную инспекцию медиафайла на диске (ffprobe / pure-Python парсер контейнеров)
     """
     import os
 
@@ -355,6 +360,69 @@ def detect_file_quality(file_path: str, context_hints: Optional[List[str]] = Non
     achannels = next((q.audio_channels for q in parsed_list if q.audio_channels), None)
     hdr = next((q.dynamic_range for q in parsed_list if q.dynamic_range), None)
     mod = next((q.modifier for q in parsed_list if q.modifier), None)
+
+    # Инспекция реального медиафайла через ffprobe / pure-python парсер контейнера
+    probed_info = None
+    if probe_file and file_path and os.path.isfile(file_path):
+        try:
+            from app.services.media_probe import probe_media_file
+            probed_info = probe_media_file(file_path)
+        except Exception:
+            probed_info = None
+
+    if probed_info:
+        vcodec = vcodec or probed_info.get("video_codec")
+        acodec = acodec or probed_info.get("audio_codec")
+        achannels = achannels or probed_info.get("audio_channels")
+        hdr = hdr or probed_info.get("dynamic_range")
+        probed_res = probed_info.get("resolution")
+
+        if probed_res:
+            if best_q is None:
+                # Если в имени не было качества, но из контекста известен источник
+                cand_source = next((q.source for q in parsed_list if q.source not in ("SDTV", None)), None)
+                source = cand_source or ("HDTV" if probed_res in ("720p", "1080p", "2160p") else "SDTV")
+                if source in ("Bluray", "Remux", "WEBDL", "WEBRip", "HDTV"):
+                    canonical_name = f"{source}-{probed_res}"
+                else:
+                    canonical_name = f"{source}-{probed_res}"
+                canonical_name = QUALITY_ALIASES.get(canonical_name.upper(), canonical_name)
+                try:
+                    rank = QUALITY_ORDER.index(canonical_name)
+                except ValueError:
+                    rank = 0
+                return QualityInfo(
+                    name=canonical_name,
+                    rank=rank,
+                    source=source,
+                    resolution=probed_res,
+                    modifier=mod,
+                    video_codec=vcodec,
+                    audio_codec=acodec,
+                    audio_channels=achannels,
+                    dynamic_range=hdr,
+                )
+            elif best_q.resolution == "480p" and probed_res != "480p":
+                # Если в названии был Bluray/BDRip без разрешения (распарсился как Bluray-480p),
+                # а реальный файл 1080p/720p — повышаем разрешение
+                source = best_q.source if best_q.source != "SDTV" else "HDTV"
+                canonical_name = f"{source}-{probed_res}"
+                canonical_name = QUALITY_ALIASES.get(canonical_name.upper(), canonical_name)
+                try:
+                    rank = QUALITY_ORDER.index(canonical_name)
+                except ValueError:
+                    rank = best_q.rank
+                return QualityInfo(
+                    name=canonical_name,
+                    rank=rank,
+                    source=source,
+                    resolution=probed_res,
+                    modifier=best_q.modifier or mod,
+                    video_codec=vcodec or best_q.video_codec,
+                    audio_codec=acodec or best_q.audio_codec,
+                    audio_channels=achannels or best_q.audio_channels,
+                    dynamic_range=hdr or best_q.dynamic_range,
+                )
 
     if best_q is not None:
         return QualityInfo(

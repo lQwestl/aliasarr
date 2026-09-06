@@ -658,11 +658,14 @@ async def grab_release(
             .all()
         )
 
+    parsed_rel_q = parse_quality(payload.release_title) if payload.release_title else None
     for ep in target_episodes:
         ep.status = EpisodeStatus.DOWNLOADING
         ep.torrent_hash = torrent_hash
         ep.download_client_id = download_client_row.id
         ep.download_progress = 0.0
+        if parsed_rel_q and parsed_rel_q.name not in ("SDTV", "SDTV-480p"):
+            ep.downloaded_quality = parsed_rel_q.name
         db.add(ep)
 
     # Ограничиваем скачивание выбранными сериями для сериалов/аниме, для фильмов — гарантируем включение всех файлов
@@ -710,18 +713,30 @@ async def grab_release(
         except Exception as seed_err:
             logger.debug("Не удалось выставить лимиты сидирования для %s: %s", torrent_hash, seed_err)
 
-    if target_episodes:
-        db.add(DownloadHistory(
-            show_id=payload.show_id,
-            episode_id=payload.episode_id or target_episodes[0].id,
-            release_title=payload.release_title,
+    if torrent_hash:
+        topic_guid = payload.page_url or payload.download_url or torrent_hash
+        tracked = TrackedRelease(
+            show_id=show.id,
             indexer_id=payload.indexer_id,
-            torrent_hash=torrent_hash,
-            event_type="grabbed",
-            matched_alias=torrent_hash or payload.matched_alias,
-            show_title_snapshot=show.title,
-        ))
-        db.commit()
+            topic_guid=topic_guid,
+            topic_url=payload.page_url or payload.download_url or "",
+            infohash=torrent_hash,
+            downloaded_episodes=[{"season": ep.season_number, "episode": ep.episode_number} for ep in target_episodes],
+            last_checked_at=dt.datetime.now(dt.timezone.utc),
+        )
+        db.add(tracked)
+
+    db.add(DownloadHistory(
+        show_id=payload.show_id,
+        episode_id=payload.episode_id or (target_episodes[0].id if target_episodes else None),
+        release_title=payload.release_title,
+        indexer_id=payload.indexer_id,
+        torrent_hash=torrent_hash,
+        event_type="grabbed",
+        matched_alias=torrent_hash or payload.matched_alias,
+        show_title_snapshot=show.title,
+    ))
+    db.commit()
 
     from app.services.release_log_service import log_release_event
     indexer_row = db.get(Indexer, payload.indexer_id) if payload.indexer_id else None

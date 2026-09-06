@@ -108,33 +108,6 @@ class TestReleaseLogsEnhanced(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(diag["webapi_version"], "2.9.3")
             self.assertEqual(len(diag["torrents"]), 1)
 
-    async def test_get_download_client_logs_route(self):
-        try:
-            from app.api.release_logs_routes import get_download_client_logs
-            from app.models.db import DownloadClient, User
-        except ImportError:
-            self.skipTest("FastAPI or DB dependencies not installed in host runner")
-
-        mock_db = MagicMock()
-        client_row = DownloadClient(
-            id=1, name="Main Transmission", type="transmission", host="127.0.0.1", port=9091, enabled=True
-        )
-        mock_db.query.return_value.filter.return_value.all.return_value = [client_row]
-
-        user = User(id=1, username="admin", is_admin=True)
-
-        mock_inst = AsyncMock()
-        mock_inst.get_client_diagnostics = AsyncMock(return_value={"version": "4.0.0"})
-        mock_inst.get_client_logs = AsyncMock(return_value=[{"message": "Hello from Transmission"}])
-
-        with patch("app.api.release_logs_routes.get_client", return_value=mock_inst):
-            res = await get_download_client_logs(db=mock_db, current_user=user)
-            self.assertIn("clients", res)
-            self.assertEqual(len(res["clients"]), 1)
-            self.assertEqual(res["clients"][0]["name"], "Main Transmission")
-            self.assertEqual(res["clients"][0]["diagnostics"]["version"], "4.0.0")
-            self.assertEqual(len(res["clients"][0]["logs"]), 1)
-
     async def test_export_release_logs_route(self):
         try:
             from app.api.release_logs_routes import export_release_logs

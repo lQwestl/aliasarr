@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/ui/static/css/style.css?v=20260831-16">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260907-01">
 <script>
   // Применяем тему, язык и целевую вкладку сразу, до отрисовки основного контента, чтобы исключить мерцание Дашбордом при перезагрузке
   (function () {
@@ -2503,8 +2503,7 @@
           <button class="btn btn-secondary btn-small" id="release-logs-refresh-btn" onclick="loadReleaseLogs(1)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
 
           <div class="desktop-spacer" style="flex:1"></div>
-
-          <button class="btn btn-secondary btn-small" id="release-logs-client-btn" onclick="openDownloadClientLogsModal()"><i data-lucide="hard-drive" class="ico-sm"></i> <span data-i18n="release_logs.btn_client_logs">Логи загрузчика</span></button>
+ 
           <button class="btn btn-secondary btn-small" id="release-logs-download-btn" onclick="downloadReleaseLogs()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
           <button class="btn btn-danger btn-small" id="release-logs-clear-btn" onclick="clearReleaseLogs()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
         </div>
@@ -3812,6 +3811,6 @@
 <div id="toast" class="toast"></div>
 
 <script src="https://unpkg.com/lucide@latest"></script>
-<script src="/ui/static/js/app.js?v=20260831-16"></script>
+<script src="/ui/static/js/app.js?v=20260907-01"></script>
 </body>
 </html>

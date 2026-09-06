@@ -78,38 +78,6 @@ def list_release_logs(
     return ReleaseLogsPageOut(items=items, total=total, page=page, page_size=page_size)
 
 
-@router.get("/download-client-logs")
-async def get_download_client_logs(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_any_permission("view_release_logs", "manage_release_logs")),
-):
-    """Возвращает живые диагностические логи и статус всех настроенных активных загрузчиков."""
-    clients = db.query(DownloadClient).filter(DownloadClient.enabled == True).all()  # noqa: E712
-    result = []
-
-    for dc_row in clients:
-        client_info = {
-            "id": dc_row.id,
-            "name": dc_row.name,
-            "type": dc_row.type,
-            "host": dc_row.host,
-            "port": dc_row.port,
-            "diagnostics": {},
-            "logs": [],
-            "error": None,
-        }
-        try:
-            client_inst = get_client(dc_row)
-            client_info["diagnostics"] = await client_inst.get_client_diagnostics()
-            client_info["logs"] = await client_inst.get_client_logs(limit=60)
-        except Exception as exc:
-            client_info["error"] = str(exc)
-
-        result.append(client_info)
-
-    return {"clients": result}
-
-
 @router.delete("")
 def clear_release_logs(
     db: Session = Depends(get_db),

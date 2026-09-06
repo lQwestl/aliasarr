@@ -1124,8 +1124,14 @@ def process_download(
     if db:
         try:
             from app.models.db import DownloadHistory, TrackedRelease, ReleaseLog
+            from sqlalchemy import func
             if torrent_hash:
-                tr = db.query(TrackedRelease).filter_by(infohash=torrent_hash).first()
+                tr = (
+                    db.query(TrackedRelease)
+                    .filter(func.lower(TrackedRelease.infohash) == str(torrent_hash).lower())
+                    .order_by(TrackedRelease.id.desc())
+                    .first()
+                )
                 if tr:
                     if getattr(tr, "topic_guid", None) and not str(tr.topic_guid).startswith("http"):
                         context_hints.append(tr.topic_guid)
@@ -1134,9 +1140,23 @@ def process_download(
                     if getattr(tr, "quality", None):
                         context_hints.append(tr.quality)
 
-                rl = db.query(ReleaseLog).filter_by(torrent_hash=torrent_hash).first()
+                rl = (
+                    db.query(ReleaseLog)
+                    .filter(func.lower(ReleaseLog.torrent_hash) == str(torrent_hash).lower())
+                    .order_by(ReleaseLog.id.desc())
+                    .first()
+                )
                 if rl and getattr(rl, "release_title", None):
                     context_hints.append(rl.release_title)
+
+                dh_hash = (
+                    db.query(DownloadHistory)
+                    .filter(func.lower(DownloadHistory.torrent_hash) == str(torrent_hash).lower())
+                    .order_by(DownloadHistory.id.desc())
+                    .first()
+                )
+                if dh_hash and dh_hash.release_title:
+                    context_hints.append(dh_hash.release_title)
 
             hist = (
                 db.query(DownloadHistory)
@@ -1885,13 +1905,52 @@ def process_movie_download(
     context_hints = [os.path.basename(download_path), show.title]
     if db:
         try:
-            from app.models.db import DownloadHistory, TrackedRelease
-            hist = db.query(DownloadHistory).filter_by(show_id=show.id).order_by(DownloadHistory.id.desc()).first()
-            if hist and hist.release_title:
-                context_hints.append(hist.release_title)
-            tr = db.query(TrackedRelease).filter_by(show_id=show.id).order_by(TrackedRelease.id.desc()).first()
-            if tr and tr.topic_guid:
-                context_hints.append(tr.topic_guid)
+            from app.models.db import DownloadHistory, TrackedRelease, ReleaseLog
+            from sqlalchemy import func
+            if torrent_hash:
+                tr = (
+                    db.query(TrackedRelease)
+                    .filter(func.lower(TrackedRelease.infohash) == str(torrent_hash).lower())
+                    .order_by(TrackedRelease.id.desc())
+                    .first()
+                )
+                if tr:
+                    if getattr(tr, "topic_guid", None) and not str(tr.topic_guid).startswith("http"):
+                        context_hints.append(tr.topic_guid)
+                    if getattr(tr, "title", None):
+                        context_hints.append(tr.title)
+                    if getattr(tr, "quality", None):
+                        context_hints.append(tr.quality)
+
+                rl = (
+                    db.query(ReleaseLog)
+                    .filter(func.lower(ReleaseLog.torrent_hash) == str(torrent_hash).lower())
+                    .order_by(ReleaseLog.id.desc())
+                    .first()
+                )
+                if rl and getattr(rl, "release_title", None):
+                    context_hints.append(rl.release_title)
+
+                dh_hash = (
+                    db.query(DownloadHistory)
+                    .filter(func.lower(DownloadHistory.torrent_hash) == str(torrent_hash).lower())
+                    .order_by(DownloadHistory.id.desc())
+                    .first()
+                )
+                if dh_hash and dh_hash.release_title:
+                    context_hints.append(dh_hash.release_title)
+
+            hist = (
+                db.query(DownloadHistory)
+                .filter(DownloadHistory.show_id == show.id)
+                .filter(DownloadHistory.event_type.in_(["grabbed", "imported"]))
+                .order_by(DownloadHistory.id.desc())
+                .limit(10)
+                .all()
+            )
+            for h in hist:
+                if h.release_title:
+                    context_hints.append(h.release_title)
         except Exception:
             pass
 

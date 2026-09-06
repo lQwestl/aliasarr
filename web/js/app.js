@@ -1222,11 +1222,7 @@ const TRANSLATIONS = {
     "calendar.detail_air_date": "Дата выхода серии",
     "calendar.detail_monitoring": "Отслеживание:",
     "calendar.status_enabled": "Включено",
-    "calendar.status_disabled": "Отключено",
-
     // Release Logs & Diagnostics
-    "release_logs.btn_client_logs": "Логи загрузчика",
-    "release_logs.modal_client_logs_title": "Диагностика и логи клиентов загрузки",
     "release_logs.stage_decision": "Решение",
     "release_logs.winner": "Победитель",
     "release_logs.rank": "Ранг",
@@ -2401,11 +2397,7 @@ const TRANSLATIONS = {
     "calendar.detail_air_date": "Episode Air Date",
     "calendar.detail_monitoring": "Monitoring:",
     "calendar.status_enabled": "Enabled",
-    "calendar.status_disabled": "Disabled",
-
     // Release Logs & Diagnostics
-    "release_logs.btn_client_logs": "Download Client Logs",
-    "release_logs.modal_client_logs_title": "Download Client Diagnostics & Logs",
     "release_logs.stage_decision": "Decision",
     "release_logs.winner": "Winner",
     "release_logs.rank": "Rank",
@@ -14260,173 +14252,6 @@ async function clearReleaseLogs() {
     loadReleaseLogs(1);
   } catch (e) {
     toast("Ошибка: " + e.message, true);
-  }
-}
-
-async function openDownloadClientLogsModal() {
-  openModal("modal-download-client-logs");
-  await loadDownloadClientLogs();
-}
-
-async function loadDownloadClientLogs() {
-  const body = document.getElementById("download-client-logs-body");
-  if (!body) return;
-  const isRu = CURRENT_LANG !== "en";
-  body.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);"><i data-lucide="loader-2" class="ico-sm spin"></i> ${t("common.loading")}</div>`;
-  if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
-
-  try {
-    const data = await api("/api/v1/release-logs/download-client-logs");
-    const clients = data.clients || [];
-
-    if (clients.length === 0) {
-      body.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);">${isRu ? "Нет активных настроенных загрузчиков (Transmission / qBittorrent)" : "No active configured download clients found"}</div>`;
-      return;
-    }
-
-    body.innerHTML = clients.map(cl => {
-      const diag = cl.diagnostics || {};
-      const logs = cl.logs || [];
-      const hasError = !!cl.error;
-
-      let diagHtml = "";
-      if (hasError) {
-        diagHtml = `
-          <div class="card" style="background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.3); padding:12px; margin-bottom:12px;">
-            <div style="color:var(--danger); font-weight:600; font-size:13px; display:flex; align-items:center; gap:6px;">
-              <i data-lucide="alert-circle" class="ico-sm"></i>
-              <span>${isRu ? "Ошибка подключения к клиенту:" : "Client Connection Error:"} ${escapeHtml(cl.error)}</span>
-            </div>
-          </div>
-        `;
-      } else {
-        const speedDown = diag.download_speed_b_s ? formatSize(diag.download_speed_b_s) + "/s" : "0 B/s";
-        const speedUp = diag.upload_speed_b_s ? formatSize(diag.upload_speed_b_s) + "/s" : "0 B/s";
-        const freeSpace = diag.free_space_bytes != null ? formatSize(diag.free_space_bytes) : "—";
-        const torrentsCount = diag.torrents_count ?? (Array.isArray(diag.torrents) ? diag.torrents.length : 0);
-
-        diagHtml = `
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; margin-bottom:12px;">
-            <div class="panel" style="padding:8px 10px; border:1px solid var(--border); border-radius:6px;">
-              <div class="hint" style="font-size:10px; text-transform:uppercase;">${isRu ? "Статус" : "Status"}</div>
-              <div style="font-size:13px; font-weight:600; color:#10b981;">● ${isRu ? "В сети" : "Online"}</div>
-              <div class="hint" style="font-size:10px;">${escapeHtml(diag.version ? "v" + diag.version : cl.type)}</div>
-            </div>
-            <div class="panel" style="padding:8px 10px; border:1px solid var(--border); border-radius:6px;">
-              <div class="hint" style="font-size:10px; text-transform:uppercase;">${isRu ? "Раздач" : "Torrents"}</div>
-              <div style="font-size:13px; font-weight:600;">${torrentsCount}</div>
-              <div class="hint" style="font-size:10px;">${diag.active_torrents != null ? diag.active_torrents + " " + (isRu ? "активных" : "active") : ""}</div>
-            </div>
-            <div class="panel" style="padding:8px 10px; border:1px solid var(--border); border-radius:6px;">
-              <div class="hint" style="font-size:10px; text-transform:uppercase;">${isRu ? "Скорость" : "Speed"}</div>
-              <div style="font-size:12px; font-weight:600; color:#38bdf8;">↓ ${speedDown}</div>
-              <div class="hint" style="font-size:11px; color:#a78bfa;">↑ ${speedUp}</div>
-            </div>
-            <div class="panel" style="padding:8px 10px; border:1px solid var(--border); border-radius:6px;">
-              <div class="hint" style="font-size:10px; text-transform:uppercase;">${isRu ? "Свободно на диске" : "Free Space"}</div>
-              <div style="font-size:13px; font-weight:600;">${freeSpace}</div>
-            </div>
-          </div>
-        `;
-      }
-
-      let logsHtml = "";
-      if (logs.length === 0) {
-        logsHtml = `
-          <div style="font-size:12px; color:var(--text-muted); font-style:italic; padding:12px; background:rgba(0,0,0,0.25); border-radius:6px; border:1px solid var(--border);">
-            ${isRu ? "Демон-логи пустые или RPC-журнал не включен в демоне загрузчика" : "Daemon log is empty or RPC logging is disabled"}
-          </div>
-        `;
-      } else {
-        const logEntries = logs.map(l => {
-          let timeStr = "";
-          if (l.timestamp || l.time) {
-            const d = new Date((l.timestamp || l.time) * 1000);
-            timeStr = d.toLocaleTimeString();
-          }
-          const lvlClass = (l.type === 4 || l.level === 4 || l.type === 8 || l.level === 8) ? "color:#f87171;" : ((l.type === 2 || l.level === 2) ? "color:#38bdf8;" : "color:var(--text-muted);");
-          return `<div style="font-size:11px; line-height:1.4; margin-bottom:3px; word-break:break-all;"><span style="color:var(--text-muted);">${timeStr}</span> <span style="${lvlClass}">[${escapeHtml(l.name || "daemon")}]</span> ${escapeHtml(l.message || "")}</div>`;
-        }).join("");
-
-        logsHtml = `
-          <div class="table-responsive" style="max-height:220px; overflow-y:auto; background:rgba(0,0,0,0.35); padding:10px; border-radius:6px; border:1px solid var(--border); font-family:var(--font-mono);">
-            ${logEntries}
-          </div>
-        `;
-      }
-
-      let torrentsTableHtml = "";
-      if (Array.isArray(diag.torrents) && diag.torrents.length > 0) {
-        const tRows = diag.torrents.slice(0, 20).map(t => {
-          const pct = Math.round((t.progress || 0) * 100);
-          return `
-            <tr>
-              <td style="font-size:11.5px; word-break:break-all;">${escapeHtml(t.name || t.id || "—")}</td>
-              <td style="font-size:11px; text-align:center; white-space:nowrap;">${escapeHtml(t.state || "—")}</td>
-              <td style="text-align:center; white-space:nowrap; width:100px;">
-                <div style="font-size:11px; font-weight:600; margin-bottom:2px;">${pct}%</div>
-                <div style="width:100%; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden;">
-                  <div style="width:${pct}%; height:100%; background:${pct === 100 ? '#10b981' : '#38bdf8'};"></div>
-                </div>
-              </td>
-              <td style="font-size:11px; text-align:right; white-space:nowrap;" class="mono">${t.size != null ? formatSize(t.size) : "—"}</td>
-            </tr>
-          `;
-        }).join("");
-
-        torrentsTableHtml = `
-          <details style="margin-top:10px; background:var(--panel-alt); border-radius:6px; border:1px solid var(--border); padding:8px 12px;">
-            <summary style="cursor:pointer; font-size:12px; color:var(--text-muted); font-weight:600; user-select:none;">
-              ${isRu ? "Список текущих торрентов в клиенте" : "Current Torrents List in Client"} (${diag.torrents.length})
-            </summary>
-            <div class="table-responsive" style="max-height:200px; overflow-y:auto; margin-top:8px;">
-              <table class="data-table" style="font-size:11px; margin:0; width:100%;">
-                <thead>
-                  <tr>
-                    <th>${isRu ? "Название раздачи" : "Name"}</th>
-                    <th style="text-align:center; width:90px;">${isRu ? "Статус" : "State"}</th>
-                    <th style="text-align:center; width:100px;">${isRu ? "Прогресс" : "Progress"}</th>
-                    <th style="text-align:right; width:80px;">${isRu ? "Размер" : "Size"}</th>
-                  </tr>
-                </thead>
-                <tbody>${tRows}</tbody>
-              </table>
-            </div>
-          </details>
-        `;
-      }
-
-      return `
-        <div class="card" style="margin-bottom:16px; padding:14px 18px; border:1px solid var(--border);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <div style="font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px;">
-              <i data-lucide="hard-drive" class="ico-sm" style="color:var(--accent)"></i>
-              <span>${escapeHtml(cl.name)}</span>
-              <span class="badge-tag" style="background:rgba(99,102,241,0.15); color:#818cf8; font-size:11px; text-transform:uppercase;">${escapeHtml(cl.type)}</span>
-            </div>
-            <span class="hint mono" style="font-size:11px;">${escapeHtml(cl.host)}:${cl.port}</span>
-          </div>
-
-          ${diagHtml}
-          
-          <div style="margin-top:10px;">
-            <div style="font-size:12px; font-weight:600; color:var(--text); margin-bottom:6px; display:flex; align-items:center; gap:6px;">
-              <i data-lucide="scroll" class="ico-xs"></i>
-              <span>${isRu ? "Последние записи журнала демона (RPC Logs):" : "Recent Daemon RPC Logs:"}</span>
-            </div>
-            ${logsHtml}
-          </div>
-
-          ${torrentsTableHtml}
-        </div>
-      `;
-    }).join("");
-
-    if (typeof lucide !== "undefined" && lucide.createIcons) {
-      lucide.createIcons();
-    }
-  } catch (e) {
-    body.innerHTML = `<div style="color:var(--danger); padding:20px; text-align:center;">${isRu ? "Ошибка получения логов загрузчика:" : "Error fetching download client logs:"} ${escapeHtml(e.message)}</div>`;
   }
 }
 

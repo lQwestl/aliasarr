@@ -1916,6 +1916,8 @@ async def _do_search_and_grab(
                 ep.status = EpisodeStatus.DOWNLOADING
                 ep.download_client_id = download_client_row.id
                 ep.torrent_hash = torrent_hash
+                if getattr(rel, "quality", None) and getattr(rel.quality, "name", None):
+                    ep.downloaded_quality = rel.quality.name
                 remaining.pop((ep.season_number, ep.episode_number), None)
                 grabbed_seasons.add(ep.season_number)
                 db.add(ep)
