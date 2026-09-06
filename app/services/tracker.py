@@ -27,8 +27,8 @@ async def recheck_tracked_release(db: Session, tracked: TrackedRelease) -> dict:
     if not indexer:
         return {"updated": False, "reason": "indexer_missing"}
 
-    show = tracked.show or (db.get(Show, tracked.show_id) if tracked.show_id else None)
-    if not show or not show.monitored:
+    show = getattr(tracked, "show", None) or (db.get(Show, tracked.show_id) if getattr(tracked, "show_id", None) else None)
+    if show is not None and getattr(show, "monitored", True) is False:
         tracked.active = False
         db.add(tracked)
         try:
@@ -107,32 +107,42 @@ async def recheck_all_active(db: Session) -> list[dict]:
 
     active_tracked = []
     for tracked in tracked_list:
-        show = tracked.show or (db.get(Show, tracked.show_id) if tracked.show_id else None)
-        if not show or not show.monitored:
+        show = getattr(tracked, "show", None) or (db.get(Show, tracked.show_id) if getattr(tracked, "show_id", None) else None)
+        if show is not None and getattr(show, "monitored", True) is False:
+            tracked.active = False
+            db.add(tracked)
+            continue
+        if not show:
             tracked.active = False
             db.add(tracked)
             continue
 
         # Фильмы: если фильм уже скачан, в раздаче не могут появиться новые серии
-        if show.content_type == "movie":
-            ep = db.query(Episode).filter_by(show_id=show.id).first()
-            if ep and ep.status == EpisodeStatus.DOWNLOADED:
-                tracked.active = False
-                db.add(tracked)
-                continue
+        if getattr(show, "content_type", None) == "movie":
+            try:
+                ep = db.query(Episode).filter_by(show_id=show.id).first()
+                if ep and getattr(ep, "status", None) == EpisodeStatus.DOWNLOADED:
+                    tracked.active = False
+                    db.add(tracked)
+                    continue
+            except Exception:
+                pass
 
         # Сериалы / Аниме: если все серии скачаны (нет WANTED/UNAIRED) и статус тайтла ended/completed/canceled,
         # раздача больше не требует постоянного опроса
-        has_needed_episodes = db.query(Episode).filter(
-            Episode.show_id == show.id,
-            Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.UNAIRED, EpisodeStatus.DOWNLOADING]),
-        ).first() is not None
+        try:
+            has_needed_episodes = db.query(Episode).filter(
+                Episode.show_id == show.id,
+                Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.UNAIRED, EpisodeStatus.DOWNLOADING]),
+            ).first() is not None
 
-        show_status = (getattr(show, "status", None) or "").lower()
-        if not has_needed_episodes and show_status in ("ended", "canceled", "complete", "completed"):
-            tracked.active = False
-            db.add(tracked)
-            continue
+            show_status = (getattr(show, "status", None) or "").lower()
+            if not has_needed_episodes and show_status in ("ended", "canceled", "complete", "completed"):
+                tracked.active = False
+                db.add(tracked)
+                continue
+        except Exception:
+            pass
 
         active_tracked.append(tracked)
 

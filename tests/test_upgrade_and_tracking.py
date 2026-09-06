@@ -17,7 +17,7 @@ class TestUpgradeAndTracking(unittest.IsolatedAsyncioTestCase):
         show_unmonitored = Show(id=1, title="Robot Chicken", monitored=False)
         tracked1 = TrackedRelease(id=1, show_id=1, show=show_unmonitored, active=True, topic_guid="guid1", indexer_id=1)
 
-        show_monitored = Show(id=2, title="Ongoing Anime", monitored=True, content_type="anime", status="continuing")
+        show_monitored = Show(id=2, title="Ongoing Anime", monitored=True, content_type="anime")
         ep_wanted = Episode(id=20, show_id=2, season_number=1, episode_number=1, status=EpisodeStatus.WANTED)
         tracked2 = TrackedRelease(id=2, show_id=2, show=show_monitored, active=True, topic_guid="guid2", indexer_id=1)
 
@@ -136,7 +136,7 @@ class TestUpgradeAndTracking(unittest.IsolatedAsyncioTestCase):
         mock_db.query.return_value.filter.return_value.all.return_value = [ep]
         mock_db.query.return_value.filter.return_value.count.return_value = 0
 
-        with patch("app.services.postprocess.find_release_files", return_value={"video": ["/tmp/Test.Show.S01E01.1080p.BluRay.mkv"], "subtitles": [], "fonts": []}),              patch("os.path.exists", return_value=True),              patch("os.path.getsize", return_value=2000000000),              patch("shutil.move"),              patch("os.makedirs"),              patch("app.services.postprocess.apply_media_permissions"),              patch("app.services.postprocess.log_release_event"):
+        with patch("app.services.postprocess.find_release_files", return_value={"video": ["/tmp/Test.Show.S01E01.1080p.BluRay.mkv"], "subtitle": [], "audio": [], "font": []}),              patch("os.path.exists", return_value=True),              patch("os.path.getsize", return_value=2000000000),              patch("shutil.move"),              patch("os.makedirs"),              patch("app.services.postprocess.apply_media_permissions"),              patch("app.services.postprocess.log_release_event"):
 
             results = process_download(
                 mock_db,
