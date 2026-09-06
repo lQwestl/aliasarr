@@ -17,7 +17,7 @@ class TestIndexerDelete(unittest.TestCase):
         indexer = Indexer(id=5, name="Test Indexer", type="torznab", base_url="http://test")
         db.get.return_value = indexer
         
-        user = User(id=1, username="admin", role="admin")
+        user = User(id=1, username="admin", password_hash="test", is_admin=True, is_owner=True)
         delete_indexer(indexer_id=5, db=db, current_user=user)
         
         # Verify db.delete was called on indexer
