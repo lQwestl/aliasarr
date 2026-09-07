@@ -1132,8 +1132,8 @@ async def get_queue(db: Session = Depends(get_db), current_user: User = Depends(
             history_by_hash[h] = dh
 
     tracked_by_hash: dict[str, TrackedRelease] = {}
-    for tr in db.query(TrackedRelease).filter(TrackedRelease.torrent_hash.isnot(None)).all():
-        h = (tr.torrent_hash or "").lower()
+    for tr in db.query(TrackedRelease).filter(TrackedRelease.infohash.isnot(None)).all():
+        h = (tr.infohash or "").lower()
         if h and h not in tracked_by_hash:
             tracked_by_hash[h] = tr
 
