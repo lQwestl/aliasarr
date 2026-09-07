@@ -9222,16 +9222,27 @@ async function runWizardMetadataSearch() {
     WIZARD_SEARCH_RESULTS = results || [];
     if (!results.length) { resultsEl.innerHTML = `<p style='color:var(--text-muted)'>${t("library.no_results")}</p>`; return; }
     resultsEl.innerHTML = results.map((r, idx) => renderMetadataResultCard(r, idx, sourceId)).join("");
+    if (window.lucide) lucide.createIcons();
   } catch (e) {
     if (e.message !== "unauthorized") resultsEl.innerHTML = `<p style="color:var(--danger)">${CURRENT_LANG === "en" ? "Error:" : "Ошибка:"} ${escapeHtml(formatToastMessage(e.message))}</p>`;
   }
 }
 
 function renderMetadataResultCard(r, index, sourceId) {
+  let typeBadge = "";
+  if (r.content_type) {
+    const isMovie = r.content_type === "movie";
+    const isAnime = r.content_type === "anime";
+    const typeLabel = isMovie ? t("settings.cat_movies") : (isAnime ? t("settings.cat_anime") : t("settings.cat_series"));
+    const typeIco = isMovie ? "film" : (isAnime ? "tv-2" : "tv");
+    const typeCls = isMovie ? "meta-badge-type-movie" : (isAnime ? "meta-badge-type-anime" : "meta-badge-type-series");
+    typeBadge = `<span class="meta-badge meta-badge-type ${typeCls}"><i data-lucide="${typeIco}" class="ico-xs" style="vertical-align:middle; margin-right:3px;"></i>${escapeHtml(typeLabel)}</span>`;
+  }
+
   const badges = [
     r.year ? `<span class="meta-badge">${r.year}</span>` : "",
     r.rating ? `<span class="meta-badge meta-badge-rating">★ ${Number(r.rating).toFixed(1)}</span>` : "",
-    r.content_type ? `<span class="meta-badge">${r.content_type === "movie" ? t("settings.cat_movies") : (r.content_type === "anime" ? t("settings.cat_anime") : t("settings.cat_series"))}</span>` : "",
+    typeBadge,
     r.country ? `<span class="meta-badge">${escapeHtml(r.country)}</span>` : "",
     r.genre ? `<span class="meta-badge">${escapeHtml(r.genre)}</span>` : "",
   ].filter(Boolean).join("");
