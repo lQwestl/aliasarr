@@ -49,6 +49,7 @@ from app.services.download_client import get_client
 from app.services.postprocess import process_download, process_movie_download
 from app.services.release_log_service import log_release_event
 from app.services.settings_service import get_or_create_settings
+from app.services import blocklist_service
 
 logger = logging.getLogger("aliasarr.downloads_monitor")
 
@@ -582,7 +583,6 @@ async def check_downloads(db: Session) -> list[dict]:
 
                     if not matched_eps:
                         # В раздаче вообще нет ни одной нужной серии для тайтла
-                        from app.services import blocklist_service
                         try:
                             blocklist_service.add_to_blocklist(
                                 db,
@@ -603,6 +603,33 @@ async def check_downloads(db: Session) -> list[dict]:
                             )
                         except Exception as rem_err:
                             logger.debug("DownloadsMonitor: Не удалось удалить пустую раздачу %s: %s", torrent_hash, rem_err)
+
+                        if show_obj:
+                            log_release_event(
+                                stage="download",
+                                level="warning",
+                                show_title=show_obj.title,
+                                show_id=show_obj.id,
+                                release_title=getattr(t, "name", torrent_hash),
+                                indexer="DownloadsMonitor",
+                                message=f"Раздача «{getattr(t, 'name', torrent_hash)}» удалена из загрузчика и добавлена в черный список: файлы раздачи не содержат нужных серий для «{show_obj.title}». Запущен повторный автопоиск...",
+                                details={"torrent_hash": torrent_hash, "reason": "Раздача не содержит ни одной нужной серии для тайтла"},
+                                db=db,
+                            )
+                            # Запускаем автопоиск серий этого шоу в фоне
+                            async def _trigger_auto_search(s_id: int, u_ids: set[int]):
+                                try:
+                                    from app.database import SessionLocal
+                                    from app.services.auto_search import search_and_grab_show
+                                    with SessionLocal() as s_session:
+                                        r_show = s_session.get(Show, s_id)
+                                        if r_show:
+                                            await search_and_grab_show(s_session, r_show, episode_ids=u_ids if u_ids else None, wanted_only=True)
+                                except Exception as retry_err:
+                                    logger.debug("DownloadsMonitor: Ошибка повторного автопоиска: %s", retry_err)
+
+                            uncovered_ids = {u.id for u in uncovered if getattr(u, "id", None)}
+                            asyncio.create_task(_trigger_auto_search(show_obj.id, uncovered_ids))
 
                     if progress_changed:
                         db.commit()
@@ -922,7 +949,6 @@ async def check_downloads(db: Session) -> list[dict]:
                         except Exception:
                             pass
 
-                    from app.services import blocklist_service
                     try:
                         blocklist_service.add_to_blocklist(
                             db,
@@ -944,6 +970,33 @@ async def check_downloads(db: Session) -> list[dict]:
                         )
                     except Exception as rem_err:
                         logger.debug("DownloadsMonitor: Не удалось удалить ненужную раздачу %s: %s", torrent_hash, rem_err)
+
+                    if show:
+                        log_release_event(
+                            stage="import",
+                            level="warning",
+                            show_title=show.title,
+                            show_id=show.id,
+                            release_title=getattr(t, "name", torrent_hash),
+                            indexer="DownloadsMonitor",
+                            message=f"Раздача «{getattr(t, 'name', torrent_hash)}» отклонена и добавлена в черный список: {primary_reason}. Запущен повторный автопоиск...",
+                            details={"torrent_hash": torrent_hash, "reason": primary_reason},
+                            db=db,
+                        )
+                        # Запускаем повторный автопоиск для поиска подходящего релиза
+                        async def _trigger_auto_search_after_import_skip(s_id: int, ep_ids: set[int]):
+                            try:
+                                from app.database import SessionLocal
+                                from app.services.auto_search import search_and_grab_show
+                                with SessionLocal() as s_session:
+                                    r_show = s_session.get(Show, s_id)
+                                    if r_show:
+                                        await search_and_grab_show(s_session, r_show, episode_ids=ep_ids if ep_ids else None, wanted_only=True)
+                            except Exception as retry_err:
+                                logger.debug("DownloadsMonitor: Ошибка повторного автопоиска: %s", retry_err)
+
+                        wanted_reset_ids = {e.id for e in eps if getattr(e, "id", None) and e.status in (EpisodeStatus.WANTED, EpisodeStatus.UNAIRED)}
+                        asyncio.create_task(_trigger_auto_search_after_import_skip(show.id, wanted_reset_ids))
 
                 # Проверка сидирования и лимитов раздачи ПОСЛЕ завершения импорта
                 if imported_items:

@@ -879,5 +879,52 @@ class TestSeasonQueries(unittest.TestCase):
         self.assertIsNone(ep6.torrent_hash)
         self.assertIsNone(ep7.torrent_hash)
 
+    def test_wrong_season_not_remapped_to_season_1_when_season_not_in_db(self):
+        """Проверяем, что релиз 4-го сезона ('Invincible - S4') не сопоставляется с 1-м сезоном,
+        даже если 4-го сезона нет в базе данных тайтла (в БД только сезоны 1 и 2)."""
+        if not HAS_DEPS:
+            self.skipTest("SQLAlchemy not available")
+
+        show = make_show(self.session, title="Invincible", monitored=True)
+        # В БД заведены только сезоны 1 и 2 (сезона 4 нет в БД)
+        ep_s1 = [make_episode(self.session, show, season=1, episode=i) for i in range(1, 9)]
+        ep_s2 = [make_episode(self.session, show, season=2, episode=i) for i in range(1, 9)]
+        make_indexer(self.session, name="LostFilm")
+        make_download_client(self.session)
+
+        # Индексатор возвращает релиз S4 и релиз S1
+        releases = [
+            TorznabRelease(
+                title="Invincible - S4 - rus WEBDL (LostFilm)",
+                download_url="http://lostfilm.tv/s4.torrent",
+                seeders=10,
+                infohash="s4hash",
+            ),
+            TorznabRelease(
+                title="Invincible - S1 - rus WEBDL (LostFilm)",
+                download_url="http://lostfilm.tv/s1.torrent",
+                seeders=5,
+                infohash="s1hash",
+            ),
+        ]
+
+        with patch.object(auto_search, "get_indexer_client") as mock_get_client, \
+             patch.object(auto_search, "get_client") as mock_get_dc:
+
+            mock_idx_inst = unittest.mock.AsyncMock()
+            mock_idx_inst.search.return_value = releases
+            mock_get_client.return_value = mock_idx_inst
+
+            mock_dc_inst = unittest.mock.AsyncMock()
+            mock_dc_inst.add_torrent.return_value = "grabbed_hash"
+            mock_get_dc.return_value = mock_dc_inst
+
+            res = asyncio.run(auto_search._do_search_and_grab(self.session, show))
+            grabbed = res.get("grabbed", [])
+            # Должен быть захвачен релиз именно 1-го сезона, а не 4-го
+            grabbed_rel_titles = {g["release"] for g in grabbed}
+            self.assertIn("Invincible - S1 - rus WEBDL (LostFilm)", grabbed_rel_titles)
+            self.assertNotIn("Invincible - S4 - rus WEBDL (LostFilm)", grabbed_rel_titles)
+
 
 

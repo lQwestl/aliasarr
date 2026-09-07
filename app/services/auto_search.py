@@ -1486,13 +1486,6 @@ async def _do_search_and_grab(
         if label_type == "numbered":
             label_season = season_label["season"]
             if label_season != ep.season_number:
-                # Если в базе у шоу нет такого сезона (например, цифра 2 была частью названия аниме/арки, а не номером сезона)
-                # и разыскивается сезон 1, проверяем не является ли это серией/паком для сезона 1
-                has_label_season_in_db = (
-                    total_episodes_by_season.get(label_season, 0) > 0
-                )
-                if not has_label_season_in_db and ep.season_number == 1:
-                    return _has_ep_match()
                 return False
             return _has_ep_match()
 
