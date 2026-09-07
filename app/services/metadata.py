@@ -123,6 +123,32 @@ class MetadataShowDetails:
     shikimori_id: Optional[str] = None
     trailer_url: Optional[str] = None
 
+    def __post_init__(self):
+        if self.episodes:
+            deduped: list[MetadataEpisode] = []
+            seen: dict[tuple[int, int], int] = {}
+            for ep in self.episodes:
+                if not isinstance(ep, MetadataEpisode) or ep.episode_number is None:
+                    continue
+                try:
+                    s_num = int(ep.season_number) if ep.season_number is not None else 1
+                    e_num = int(ep.episode_number)
+                except (ValueError, TypeError):
+                    continue
+                k = (s_num, e_num)
+                if k in seen:
+                    existing = deduped[seen[k]]
+                    if not existing.title and ep.title:
+                        existing.title = ep.title
+                    if not existing.air_date and ep.air_date:
+                        existing.air_date = ep.air_date
+                    if existing.absolute_number is None and ep.absolute_number is not None:
+                        existing.absolute_number = ep.absolute_number
+                    continue
+                seen[k] = len(deduped)
+                deduped.append(ep)
+            self.episodes = deduped
+
 
 import re
 
@@ -1838,14 +1864,23 @@ async def refresh_show_release_dates(db, show, override_source_type: Optional[st
                 db.add(episode)
                 changed = True
     else:
+        seen_added_keys = set()
         for meta_ep in details.episodes:
+            if meta_ep.episode_number is None:
+                continue
+            s_num = meta_ep.season_number if meta_ep.season_number is not None else 1
+            e_num = meta_ep.episode_number
+            ep_key = (s_num, e_num)
+            if ep_key in seen_added_keys:
+                continue
+
             air_date = _parse_date(meta_ep.air_date)
             episode = (
                 db.query(Episode)
                 .filter(
                     Episode.show_id == show.id,
-                    Episode.season_number == meta_ep.season_number,
-                    Episode.episode_number == meta_ep.episode_number,
+                    Episode.season_number == s_num,
+                    Episode.episode_number == e_num,
                 )
                 .first()
             )
@@ -1862,12 +1897,13 @@ async def refresh_show_release_dates(db, show, override_source_type: Optional[st
                         episode.status = EpisodeStatus.UNAIRED if air_date > now else EpisodeStatus.WANTED
                     db.add(episode)
                     changed = True
-            elif meta_ep.episode_number:
+            elif e_num:
+                seen_added_keys.add(ep_key)
                 status = EpisodeStatus.UNAIRED if (air_date and air_date > now) else EpisodeStatus.WANTED
                 db.add(Episode(
                     show_id=show.id,
-                    season_number=meta_ep.season_number if meta_ep.season_number is not None else 1,
-                    episode_number=meta_ep.episode_number,
+                    season_number=s_num,
+                    episode_number=e_num,
                     absolute_number=meta_ep.absolute_number,
                     title=meta_ep.title,
                     air_date=air_date,
@@ -2158,7 +2194,16 @@ async def refresh_show_metadata(db, show) -> dict:
             episodes_added += 1
     else:
         if details.episodes:
+            seen_added_keys = set()
             for meta_ep in details.episodes:
+                if meta_ep.episode_number is None:
+                    continue
+                s_num = meta_ep.season_number if meta_ep.season_number is not None else 1
+                e_num = meta_ep.episode_number
+                ep_key = (s_num, e_num)
+                if ep_key in seen_added_keys:
+                    continue
+
                 air_date = _parse_date(meta_ep.air_date)
                 
                 # Очищаем заглушки названий
@@ -2170,8 +2215,8 @@ async def refresh_show_metadata(db, show) -> dict:
                     db.query(Episode)
                     .filter(
                         Episode.show_id == show.id,
-                        Episode.season_number == meta_ep.season_number,
-                        Episode.episode_number == meta_ep.episode_number,
+                        Episode.season_number == s_num,
+                        Episode.episode_number == e_num,
                     )
                     .first()
                 )
@@ -2208,12 +2253,13 @@ async def refresh_show_metadata(db, show) -> dict:
                         db.add(episode)
                         changed = True
                         episodes_updated += 1
-                elif meta_ep.episode_number:
+                elif e_num:
+                    seen_added_keys.add(ep_key)
                     status = EpisodeStatus.UNAIRED if (air_date and air_date > now) else EpisodeStatus.WANTED
                     db.add(Episode(
                         show_id=show.id,
-                        season_number=meta_ep.season_number if meta_ep.season_number is not None else 1,
-                        episode_number=meta_ep.episode_number,
+                        season_number=s_num,
+                        episode_number=e_num,
                         absolute_number=meta_ep.absolute_number,
                         title=raw_ep_title or "TBA",
                         air_date=air_date,

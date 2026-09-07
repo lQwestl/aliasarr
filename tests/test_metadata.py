@@ -363,5 +363,33 @@ class TestMetadataSourcesSeeding(unittest.TestCase):
             db2.add.assert_not_called()
 
 
+class TestMetadataEpisodeDeduplication(unittest.TestCase):
+    def test_metadata_show_details_deduplicates_episodes(self):
+        from app.services.metadata import MetadataEpisode, MetadataShowDetails
+
+        eps = [
+            MetadataEpisode(season_number=0, episode_number=19, title="Q&A Part 1", air_date="2022-02-23"),
+            MetadataEpisode(season_number=0, episode_number=19, title="Q&A Part 1 Duplicate", air_date="2022-02-23"),
+            MetadataEpisode(season_number=1, episode_number=1, title="The Terror of Tal'Dorei - Part 1"),
+            MetadataEpisode(season_number=1, episode_number=1, title="The Terror of Tal'Dorei - Part 1 Dup"),
+            MetadataEpisode(season_number=1, episode_number=2, title="The Terror of Tal'Dorei - Part 2"),
+        ]
+
+        details = MetadataShowDetails(
+            external_id="tvdb:385376",
+            title="The Legend of Vox Machina",
+            episodes=eps,
+        )
+
+        self.assertEqual(len(details.episodes), 3)
+        self.assertEqual(details.episodes[0].season_number, 0)
+        self.assertEqual(details.episodes[0].episode_number, 19)
+        self.assertEqual(details.episodes[1].season_number, 1)
+        self.assertEqual(details.episodes[1].episode_number, 1)
+        self.assertEqual(details.episodes[2].season_number, 1)
+        self.assertEqual(details.episodes[2].episode_number, 2)
+
+
 if __name__ == "__main__":
     unittest.main()
+

@@ -547,17 +547,31 @@ async def import_show(
             ))
             episodes_imported = 1
         else:
+            seen_episodes = set()
             for ep in details.episodes:
-                if not ep.episode_number:
+                if ep.episode_number is None:
                     continue
+                try:
+                    s_num = int(ep.season_number) if ep.season_number is not None else 1
+                    e_num = int(ep.episode_number)
+                except (ValueError, TypeError):
+                    continue
+                if e_num <= 0 and s_num > 0:
+                    continue
+                
+                ep_key = (s_num, e_num)
+                if ep_key in seen_episodes:
+                    continue
+                seen_episodes.add(ep_key)
+
                 air_date = _parse_date(ep.air_date)
                 status = EpisodeStatus.UNAIRED if (air_date and air_date > now) else EpisodeStatus.WANTED
                 db.add(Episode(
                     show_id=show.id,
-                    season_number=ep.season_number if ep.season_number is not None else 1,
-                    episode_number=ep.episode_number,
+                    season_number=s_num,
+                    episode_number=e_num,
                     absolute_number=ep.absolute_number,
-                    title=ep.title or f"Episode {ep.episode_number}",
+                    title=ep.title or f"Episode {e_num}",
                     air_date=air_date,
                     status=status,
                 ))
