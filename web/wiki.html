@@ -439,31 +439,168 @@
     min-width: 0;
   }
 
-  /* Architecture Diagram & Code Boxes */
-  .wiki-diagram-box {
+  /* Multi-line Code Block */
+  .wiki-code-block {
     background: #090d16;
-    border: 1px solid rgba(99, 102, 241, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
-    padding: 18px 20px;
-    margin: 18px 0;
+    margin: 14px 0 18px 0;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+  .wiki-code-header {
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .wiki-code-title {
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-copy-code {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-muted);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+  }
+  .btn-copy-code:hover {
+    color: var(--text);
+    background: rgba(0, 240, 255, 0.15);
+    border-color: var(--teal);
+  }
+  .btn-copy-code.copied {
+    background: rgba(52, 211, 153, 0.2);
+    border-color: #34d399;
+    color: #34d399;
+  }
+  .wiki-code-content {
+    margin: 0;
+    padding: 14px 16px;
     overflow-x: auto;
     font-family: var(--font-mono);
-    font-size: 12.5px;
-    line-height: 1.55;
+    font-size: 13px;
+    line-height: 1.6;
     color: #e2e8f0;
-    box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);
+    white-space: pre;
   }
-  .wiki-diagram-box pre {
-    margin: 0;
+
+  /* Modern Flowchart Components */
+  .wiki-pipeline-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 20px 0;
+  }
+  .wiki-flow-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(0, 240, 255, 0.15));
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    border-radius: 10px;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 15px;
+    color: #ffffff;
+    letter-spacing: 0.02em;
+    margin-bottom: 6px;
+  }
+  .wiki-flow-step-card {
+    background: #090d16;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 16px 20px;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .wiki-flow-step-card:hover {
+    border-color: var(--teal);
+    transform: translateY(-2px);
+  }
+  .wiki-flow-step-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .wiki-flow-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    flex-shrink: 0;
+  }
+  .wiki-flow-badge.step-1 { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
+  .wiki-flow-badge.step-2 { background: rgba(167, 139, 250, 0.2); color: #a78bfa; border: 1px solid rgba(167, 139, 250, 0.4); }
+  .wiki-flow-badge.step-3 { background: rgba(0, 240, 255, 0.15); color: var(--teal); border: 1px solid rgba(0, 240, 255, 0.3); }
+  .wiki-flow-badge.step-4 { background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); }
+  .wiki-flow-badge.step-5 { background: rgba(167, 139, 250, 0.2); color: #a78bfa; border: 1px solid rgba(167, 139, 250, 0.4); }
+  .wiki-flow-badge.step-6 { background: rgba(0, 240, 255, 0.15); color: var(--teal); border: 1px solid rgba(0, 240, 255, 0.3); }
+  .wiki-flow-badge.step-7 { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
+  .wiki-flow-badge.step-8 { background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); }
+
+  .wiki-flow-step-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .wiki-flow-sublist {
+    margin: 0 0 0 38px;
     padding: 0;
-    font-family: inherit;
-    color: inherit;
+    list-style-type: none;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
   }
-  .diagram-hl-teal { color: #00F0FF; font-weight: bold; }
-  .diagram-hl-purple { color: #a78bfa; font-weight: bold; }
-  .diagram-hl-green { color: #34d399; font-weight: bold; }
-  .diagram-hl-yellow { color: #fbbf24; font-weight: bold; }
-  .diagram-hl-red { color: #f87171; font-weight: bold; }
+  .wiki-flow-sublist li {
+    position: relative;
+    padding-left: 14px;
+    margin-bottom: 4px;
+  }
+  .wiki-flow-sublist li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--teal);
+  }
+  .wiki-flow-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    padding: 4px 0;
+  }
+  .wiki-flow-arrow i {
+    width: 16px;
+    height: 16px;
+    color: var(--teal);
+  }
 
   /* Subcards Grid */
   .wiki-grid-2 {
@@ -874,15 +1011,19 @@
               <span class="lang-ru">Для корректной работы жестких ссылок (Hardlinks) папка загрузок торрент-клиента и папка медиатеки <strong>ОБЯЗАТЕЛЬНО</strong> должны находиться на одном физическом диске / одном ZFS датасете и монтироваться в контейнеры через <strong>единый общий корень</strong> (например, <code>/data</code>).</span>
               <span class="lang-en">For Hardlinks to work, download and media library folders <strong>MUST</strong> reside on the same filesystem/dataset and be mounted via a <strong>single common root volume</strong> (e.g. <code>/data</code>).</span>
             </p>
-            <div class="wiki-diagram-box">
-<pre>
-<span class="diagram-hl-teal">/mnt/storage/data/</span>                   <span class="diagram-hl-purple"># Единая точка монтирования в Docker как /data</span>
-├── <span class="diagram-hl-yellow">downloads/</span>                       # Временные загрузки торрент-клиента (/data/downloads)
-└── <span class="diagram-hl-green">media/</span>                           # Финальная организованная медиатека (/data/media)
-    ├── <span class="diagram-hl-teal">movies/</span>                      # Фильмы (/data/media/movies)
-    ├── <span class="diagram-hl-teal">series/</span>                      # Сериалы (/data/media/series)
-    └── <span class="diagram-hl-teal">anime/</span>                       # Аниме (/data/media/anime)
-</pre>
+            <div class="wiki-code-block">
+              <div class="wiki-code-header">
+                <div class="wiki-code-title">
+                  <i data-lucide="folder-tree" style="width:14px;height:14px;color:var(--teal);"></i>
+                  <span>Рекомендуемая структура директорий на сервере / NAS</span>
+                </div>
+              </div>
+              <pre class="wiki-code-content"><code>/mnt/storage/data/                   # Единая точка монтирования в Docker (-v /mnt/storage/data:/data)
+├── downloads/                       # Временные загрузки торрент-клиента (/data/downloads)
+└── media/                           # Финальная организованная медиатека (/data/media)
+    ├── movies/                      # Фильмы (/data/media/movies)
+    ├── series/                      # Сериалы (/data/media/series)
+    └── anime/                       # Аниме (/data/media/anime)</code></pre>
             </div>
           </div>
         </div>
@@ -899,8 +1040,18 @@
               <span class="lang-ru">Создайте файл <code>docker-compose.yml</code> со следующей конфигурацией:</span>
               <span class="lang-en">Create a <code>docker-compose.yml</code> file with the following configuration:</span>
             </p>
-            <div class="regex-box">
-              <div class="regex-code">services:
+            <div class="wiki-code-block">
+              <div class="wiki-code-header">
+                <div class="wiki-code-title">
+                  <i data-lucide="file-code" style="width:14px;height:14px;color:var(--teal);"></i>
+                  <span>docker-compose.yml</span>
+                </div>
+                <button class="btn-copy-code" onclick="copyCodeBlock(this)">
+                  <i data-lucide="copy" style="width:13px;height:13px;"></i>
+                  <span>Копировать</span>
+                </button>
+              </div>
+              <pre class="wiki-code-content"><code>services:
   aliasarr:
     image: ghcr.io/lqwestl/aliasarr:latest
     container_name: aliasarr
@@ -914,8 +1065,7 @@
       - DATABASE_URL=sqlite:////config/aliasarr.db
     volumes:
       - /mnt/storage/config/aliasarr:/config
-      - /mnt/storage/data:/data</div>
-              <button class="btn-copy-regex" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span>Copy</span></button>
+      - /mnt/storage/data:/data</code></pre>
             </div>
             <div class="wiki-callout wiki-callout-tip">
               <div class="wiki-callout-ico"><i data-lucide="lightbulb" style="width:20px;height:20px;"></i></div>
@@ -1035,67 +1185,120 @@
         <span class="lang-en">Aliasarr is engineered as a reactive asynchronous micro-monolith powered by <strong>FastAPI</strong>, <strong>SQLAlchemy</strong>, and an <strong>asyncio</strong> background task orchestrator. Below is the architectural blueprint of subsystem interactions:</span>
       </p>
 
-      <div class="wiki-diagram-box">
-<pre>
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                       <span class="diagram-hl-teal">ALIASARR ORCHESTRATION PIPELINE</span>                                  │
-└───────────────────────────────────────────────────┬────────────────────────────────────────────────────┘
-                                                    │
- ┌──────────────────────────────────────────────────▼───────────────────────────────────────────────────┐
- │ <span class="diagram-hl-yellow">1. METADATA PROVIDERS (TMDB / Skyhook / Shikimori / AniList / TVMaze)</span>                                │
- │    ├─ Синхронизация расписания премьер и статусов серий (Missing / Unaired)                           │
- │    └─ Генерация мультиязычных алиасов: RU / EN / Romaji / Translit / Alternate Titles                 │
- └──────────────────────────────────────────────────┬───────────────────────────────────────────────────┘
-                                                    │
- ┌──────────────────────────────────────────────────▼───────────────────────────────────────────────────┐
- │ <span class="diagram-hl-purple">2. INDEXER CLIENTS &amp; AGGREGATORS (Torznab / Prowlarr / Jackett / Nyaa / RSS)</span>                        │
- │    ├─ Параллельный опрос трекеров по сгенерированным алиасам и категориям                            │
- │    └─ Получение списков TorznabRelease (title, guid, download_url, seeders, size, pub_date)           │
- └──────────────────────────────────────────────────┬───────────────────────────────────────────────────┘
-                                                    │
- ┌──────────────────────────────────────────────────▼───────────────────────────────────────────────────┐
- │ <span class="diagram-hl-teal">3. PARSER &amp; MATCHER ENGINE</span>                                                                            │
- │    ├─ Очистка мусора, извлечение сезонов, серий, паков (S01-S04), аниме номеров (01-24)               │
- │    ├─ Строгая изоляция сезонов (S4 != S1 Guard)                                                      │
- │    └─ Распознавание качества (2160p/1080p, Remux, WEB-DL), HDR/DV, аудиокодеков, студий озвучки      │
- └──────────────────────────────────────────────────┬───────────────────────────────────────────────────┘
-                                                    │
- ┌──────────────────────────────────────────────────▼───────────────────────────────────────────────────┐
- │ <span class="diagram-hl-green">4. DECISION &amp; RANKING ENGINE (Custom Formats + Quality Profiles)</span>                                      │
- │    ├─ Проверка Blocklist (инфохэши, заблокированные релизы)                                           │
- │    ├─ Расчет Total Score = Quality Base + Custom Formats Score + Seeders + Tracker Priority           │
- │    └─ Отбор абсолютного победителя (Best Release) или отказ с диагностикой причин                     │
- └──────────────────────────────────────────────────┬───────────────────────────────────────────────────┘
-                                                    │ (Захват / Grab)
- ┌──────────────────────────────────────────────────▼───────────────────────────────────────────────────┐
- │ <span class="diagram-hl-purple">5. DOWNLOAD CLIENTS (qBittorrent / Transmission)</span>                                                      │
- │    ├─ Отправка торрента по download_url или .torrent файлу с категорией 'aliasarr'                   │
- │    └─ Приоритизация файлов серий: нужным сериям Priority=1/7, лишним файлам Priority=0               │
- └──────────────────────────────────────────────────┬───────────────────────────────────────────────────┘
-                                                    │ (Фоновый мониторинг каждые 30 сек)
- ┌──────────────────────────────────────────────────▼───────────────────────────────────────────────────┐
- │ <span class="diagram-hl-teal">6. DOWNLOADS MONITOR &amp; CONTENT VALIDATOR</span>                                                             │
- │    ├─ Отслеживание прогресса скачивания (download_progress 0.0 .. 1.0)                               │
- │    ├─ Валидация содержимого: если раздача не содержит нужных файлов -> Cancel + Blocklist + Re-search│
- │    └─ Фиксация 100% готовности байт на диске                                                          │
- └──────────────────────────────────────────────────┬───────────────────────────────────────────────────┘
-                                                    │
- ┌──────────────────────────────────────────────────▼───────────────────────────────────────────────────┐
- │ <span class="diagram-hl-yellow">7. POSTPROCESSOR &amp; HARDLINK ENGINE</span>                                                                    │
- │    ├─ Атомарное создание жестких ссылок (Hardlinks) в медиатеку (0 мс, 0 байт)                        │
- │    ├─ Переименование по шаблону: {Series Title} - S{season:00}E{episode:00} {Quality Full}            │
- │    ├─ Импорт сопутствующих файлов (.srt, .ass, .mka, .ttf, .nfo)                                      │
- │    └─ Перевод серии в статус DOWNLOADED                                                               │
- └──────────────────────────────────────────────────┬───────────────────────────────────────────────────┘
-                                                    │
- ┌──────────────────────────────────────────────────▼───────────────────────────────────────────────────┐
- │ <span class="diagram-hl-green">8. TRACKING, SEEDING &amp; NOTIFICATIONS</span>                                                                 │
- │    ├─ Регистрация TrackedRelease (для докачки обновляемых раздач с RuTracker)                        │
- │    ├─ Контроль правил сидирования (Ratio / Time Limit) для приватных трекеров                         │
- │    ├─ Удаление исходного торрента после сидинга без удаления файла медиатеки                          │
- │    └─ Отправка уведомлений в Telegram, Discord, Gotify, Ntfy, Webhook                                 │
- └──────────────────────────────────────────────────────────────────────────────────────────────────────┘
-</pre>
+      <div class="wiki-pipeline-flow">
+        <div class="wiki-flow-header">
+          <span class="badge badge-teal">PIPELINE</span>
+          <span>Aliasarr Orchestration Flow</span>
+        </div>
+
+        <div class="wiki-flow-step-card">
+          <div class="wiki-flow-step-top">
+            <span class="wiki-flow-badge step-1">1</span>
+            <span class="wiki-flow-step-title">1. Metadata Providers (TMDB / Skyhook / Shikimori / AniList / TVMaze)</span>
+          </div>
+          <ul class="wiki-flow-sublist">
+            <li>Синхронизация расписания премьер и статусов серий (Missing / Unaired)</li>
+            <li>Генерация мультиязычных алиасов: RU / EN / Romaji / Translit / Alternate Titles</li>
+          </ul>
+        </div>
+
+        <div class="wiki-flow-arrow"><i data-lucide="arrow-down"></i></div>
+
+        <div class="wiki-flow-step-card">
+          <div class="wiki-flow-step-top">
+            <span class="wiki-flow-badge step-2">2</span>
+            <span class="wiki-flow-step-title">2. Indexer Clients &amp; Aggregators (Torznab / Prowlarr / Jackett / Nyaa / RSS)</span>
+          </div>
+          <ul class="wiki-flow-sublist">
+            <li>Параллельный опрос трекеров по сгенерированным алиасам и категориям</li>
+            <li>Получение списков TorznabRelease (title, guid, download_url, seeders, size, pub_date)</li>
+          </ul>
+        </div>
+
+        <div class="wiki-flow-arrow"><i data-lucide="arrow-down"></i></div>
+
+        <div class="wiki-flow-step-card">
+          <div class="wiki-flow-step-top">
+            <span class="wiki-flow-badge step-3">3</span>
+            <span class="wiki-flow-step-title">3. Parser &amp; Matcher Engine</span>
+          </div>
+          <ul class="wiki-flow-sublist">
+            <li>Очистка мусора, извлечение сезонов, серий, паков (S01-S04), аниме номеров (01-24)</li>
+            <li>Строгая изоляция сезонов (S4 != S1 Guard)</li>
+            <li>Распознавание качества (2160p/1080p, Remux, WEB-DL), HDR/DV, аудиокодеков, студий озвучки</li>
+          </ul>
+        </div>
+
+        <div class="wiki-flow-arrow"><i data-lucide="arrow-down"></i></div>
+
+        <div class="wiki-flow-step-card">
+          <div class="wiki-flow-step-top">
+            <span class="wiki-flow-badge step-4">4</span>
+            <span class="wiki-flow-step-title">4. Decision &amp; Ranking Engine (Custom Formats + Quality Profiles)</span>
+          </div>
+          <ul class="wiki-flow-sublist">
+            <li>Проверка Blocklist (инфохэши, заблокированные релизы)</li>
+            <li>Расчет Total Score = Quality Base + Custom Formats Score + Seeders + Tracker Priority</li>
+            <li>Отбор абсолютного победителя (Best Release) или отказ с диагностикой причин</li>
+          </ul>
+        </div>
+
+        <div class="wiki-flow-arrow"><i data-lucide="arrow-down"></i> <span>Захват / Grab</span></div>
+
+        <div class="wiki-flow-step-card">
+          <div class="wiki-flow-step-top">
+            <span class="wiki-flow-badge step-5">5</span>
+            <span class="wiki-flow-step-title">5. Download Clients (qBittorrent / Transmission)</span>
+          </div>
+          <ul class="wiki-flow-sublist">
+            <li>Отправка торрента по download_url или .torrent файлу с категорией 'aliasarr'</li>
+            <li>Приоритизация файлов серий: нужным сериям Priority=1/7, лишним файлам Priority=0</li>
+          </ul>
+        </div>
+
+        <div class="wiki-flow-arrow"><i data-lucide="arrow-down"></i> <span>Фоновый мониторинг каждые 30 сек</span></div>
+
+        <div class="wiki-flow-step-card">
+          <div class="wiki-flow-step-top">
+            <span class="wiki-flow-badge step-6">6</span>
+            <span class="wiki-flow-step-title">6. Downloads Monitor &amp; Content Validator</span>
+          </div>
+          <ul class="wiki-flow-sublist">
+            <li>Отслеживание прогресса скачивания (download_progress 0.0 .. 1.0)</li>
+            <li>Валидация содержимого: если раздача не содержит нужных файлов &rarr; Cancel + Blocklist + Re-search</li>
+            <li>Фиксация 100% готовности байт на диске</li>
+          </ul>
+        </div>
+
+        <div class="wiki-flow-arrow"><i data-lucide="arrow-down"></i></div>
+
+        <div class="wiki-flow-step-card">
+          <div class="wiki-flow-step-top">
+            <span class="wiki-flow-badge step-7">7</span>
+            <span class="wiki-flow-step-title">7. Postprocessor &amp; Hardlink Engine</span>
+          </div>
+          <ul class="wiki-flow-sublist">
+            <li>Атомарное создание жестких ссылок (Hardlinks) в медиатеку (0 мс, 0 байт)</li>
+            <li>Переименование по шаблону: {Series Title} - S{season:00}E{episode:00} {Quality Full}</li>
+            <li>Импорт сопутствующих файлов (.srt, .ass, .mka, .ttf, .nfo)</li>
+            <li>Перевод серии в статус DOWNLOADED</li>
+          </ul>
+        </div>
+
+        <div class="wiki-flow-arrow"><i data-lucide="arrow-down"></i></div>
+
+        <div class="wiki-flow-step-card">
+          <div class="wiki-flow-step-top">
+            <span class="wiki-flow-badge step-8">8</span>
+            <span class="wiki-flow-step-title">8. Tracking, Seeding &amp; Notifications</span>
+          </div>
+          <ul class="wiki-flow-sublist">
+            <li>Регистрация TrackedRelease (для докачки обновляемых раздач с RuTracker)</li>
+            <li>Контроль правил сидирования (Ratio / Time Limit) для приватных трекеров</li>
+            <li>Удаление исходного торрента после сидинга без удаления файла медиатеки</li>
+            <li>Отправка уведомлений в Telegram, Discord, Gotify, Ntfy, Webhook</li>
+          </ul>
+        </div>
       </div>
     </section>
 
@@ -1199,14 +1402,18 @@
           <div class="wiki-step-body">
             <div class="wiki-step-head"><span class="lang-ru">Многоуровневая генерация алиасов</span><span class="lang-en">Multi-Level Alias Generation</span></div>
             <p class="wiki-p"><span class="lang-ru">Для каждого тайтла формируется взвешенный список поисковых фраз с приоритетом опроса:</span><span class="lang-en">Generates prioritized search phrases for each show:</span></p>
-            <div class="wiki-diagram-box">
-<pre>
-Тайтл: "Неуязвимый" (Invincible, 2021)
-├── Priority 1 (Manual/Main):     <span class="diagram-hl-teal">"Неуязвимый"</span>
-├── Priority 2 (Original Title):  <span class="diagram-hl-purple">"Invincible"</span>
-├── Priority 3 (Translit):        <span class="diagram-hl-yellow">"Neuyazvimyy"</span>
-└── Priority 4 (Alternate TMDB): <span class="diagram-hl-green">"Invincible (2021)"</span>
-</pre>
+            <div class="wiki-code-block">
+              <div class="wiki-code-header">
+                <div class="wiki-code-title">
+                  <i data-lucide="list-tree" style="width:14px;height:14px;color:#818cf8;"></i>
+                  <span>Пример генерации поисковых алиасов для тайтла "Неуязвимый" (2021)</span>
+                </div>
+              </div>
+              <pre class="wiki-code-content"><code>Тайтл: "Неуязвимый" (Invincible, 2021)
+├── Priority 1 (Основное название):     "Неуязвимый"
+├── Priority 2 (Оригинальное название): "Invincible"
+├── Priority 3 (Транслитерация):        "Neuyazvimyy"
+└── Priority 4 (Альтернативное TMDB):   "Invincible (2021)"</code></pre>
             </div>
           </div>
         </div>
@@ -1225,21 +1432,37 @@
       </div>
 
       <p class="wiki-p">
-        <span class="lang-ru">Одной из самых опасных ошибок в классических парсерах является ситуация, когда релиз с явным номером сезона (например, <code>Сезон 4 / S4</code>) при отсутствии 4-го сезона в базе данных ошибочно сопоставляется с 1-м сезоном. В Aliasarr внедрен алгоритм <strong>Строгой изоляции сезонов (Strict Season Guard)</strong>.</span>
-        <span class="lang-en">A classic flaw in older managers is remapping a numbered season release (e.g. <code>Season 4 / S4</code>) to Season 1 when Season 4 is not yet tracked in the database. Aliasarr enforces <strong>Strict Season Isolation</strong>.</span>
+        <span class="lang-ru">Одной из самых опасных ошибок в классических парсерах является ситуация, когда релиз с явным номером сезона (например, <code>Сезон 4 / S4</code>) при отсутствии 4-го сезона в базе данных ошибочно сопоставляется с 1-м сезоном. В Aliasarr внедрен алгоритм <strong>Строгой изоляции сезонов (Strict Season Guard)</strong>:</span>
+        <span class="lang-en">A classic flaw in older managers is remapping a numbered season release (e.g. <code>Season 4 / S4</code>) to Season 1 when Season 4 is not yet tracked in the database. Aliasarr enforces <strong>Strict Season Isolation</strong>:</span>
       </p>
 
-      <div class="wiki-diagram-box">
-<pre>
-Входной заголовок релиза: <span class="diagram-hl-teal">"Invincible - S4 - rus WEBDL (LostFilm)"</span>
-Искомая серия в базе:     <span class="diagram-hl-yellow">Сезон 1, Серия 1 (S01E01)</span>
-
-1. Парсер извлекает метку сезона: <span class="diagram-hl-purple">label_season = 4</span>
-2. Сравнение с номером сезона серии: <span class="diagram-hl-yellow">ep.season_number = 1</span>
-3. Проверка условия: <span class="diagram-hl-red">label_season != ep.season_number (4 != 1)</span>
-4. <span class="diagram-hl-red">РЕЗУЛЬТАТ: return False (Категорический отказ в сопоставлении!)</span>
-   Релиз 4-го сезона НИКОГДА не будет захвачен для серий 1-го сезона.
-</pre>
+      <div class="wiki-step-list" style="margin: 16px 0;">
+        <div class="wiki-step-item" style="border-left: 3px solid var(--teal);">
+          <div class="wiki-step-body">
+            <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Входной релиз на трекере:</div>
+            <div style="font-family:var(--font-mono);font-weight:700;color:var(--teal);font-size:14px;margin-bottom:10px;">
+              "Invincible - S4 - rus WEBDL (LostFilm)"
+            </div>
+            <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Искомая серия в базе:</div>
+            <div style="font-family:var(--font-mono);font-weight:700;color:#fbbf24;font-size:14px;margin-bottom:12px;">
+              Сезон 1, Серия 1 (S01E01)
+            </div>
+            <div class="wiki-grid-2" style="margin: 8px 0;">
+              <div style="background:rgba(255,255,255,0.03);padding:10px 14px;border-radius:8px;">
+                <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;">1. Извлечение сезона</div>
+                <div style="font-family:var(--font-mono);color:#818cf8;font-weight:700;margin-top:2px;">label_season = 4</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.03);padding:10px 14px;border-radius:8px;">
+                <div style="font-size:11px;text-transform:uppercase;color:var(--text-muted);font-weight:700;">2. Сезон искомой серии</div>
+                <div style="font-family:var(--font-mono);color:#818cf8;font-weight:700;margin-top:2px;">ep.season_number = 1</div>
+              </div>
+            </div>
+            <div style="margin-top:10px;padding:10px 14px;border-radius:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;">
+              <i data-lucide="shield-alert" style="width:16px;height:16px;flex-shrink:0;"></i>
+              <span>Проверка 4 != 1 &rarr; return False. Релиз строго отклоняется и никогда не скачивается для 1-го сезона!</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="wiki-h3"><span class="lang-ru">Поддерживаемые паттерны нумерации</span><span class="lang-en">Supported Numbering Patterns</span></div>
@@ -1343,15 +1566,19 @@
         <span class="lang-en">DecisionEngine computes a deterministic score for each release candidate across quality profiles, custom formats, and indexer weights:</span>
       </p>
 
-      <div class="wiki-diagram-box">
-<pre>
-<span class="diagram-hl-teal">TOTAL SCORE</span> = <span class="diagram-hl-purple">Quality Base Score</span> + <span class="diagram-hl-green">Custom Formats Score</span> + <span class="diagram-hl-yellow">Indexer Priority Bonus</span> + <span class="diagram-hl-teal">Seeders Bonus</span>
+      <div class="wiki-code-block">
+        <div class="wiki-code-header">
+          <div class="wiki-code-title">
+            <i data-lucide="calculator" style="width:14px;height:14px;color:var(--teal);"></i>
+            <span>Формула расчета финального скоринга релиза (Total Score)</span>
+          </div>
+        </div>
+        <pre class="wiki-code-content"><code>TOTAL SCORE = Quality Base Score + Custom Formats Score + Indexer Priority Bonus + Seeders Bonus
 
-1. <span class="diagram-hl-purple">Quality Base Score:</span>    Ранг разрешения и источника (Remux 2160p = 10000, 1080p WEB-DL = 7000...)
-2. <span class="diagram-hl-green">Custom Formats Score:</span>  Сумма баллов совпавших правил (LostFilm = +50, Dolby Vision = +100, RHS = +80...)
-3. <span class="diagram-hl-yellow">Indexer Priority:</span>      Бонус приоритета трекера (Приоритет 1 = +500, Приоритет 25 = +50...)
-4. <span class="diagram-hl-teal">Seeders Bonus:</span>         Логарифмический бонус за количество сидов (гарантия скорости скачивания)
-</pre>
+1. Quality Base Score:    Ранг разрешения и источника (Remux 2160p = 10000, 1080p WEB-DL = 7000...)
+2. Custom Formats Score:  Сумма баллов совпавших правил (LostFilm = +100, Dolby Vision = +150...)
+3. Indexer Priority:      Бонус приоритета трекера (Приоритет 1 = +500, Приоритет 25 = +50...)
+4. Seeders Bonus:         Логарифмический бонус за количество активных сидов на трекере</code></pre>
       </div>
 
       <div class="wiki-h3"><span class="lang-ru">Диагностика решений (Почему релиз отклонен)</span><span class="lang-en">Decision Diagnostics (Why Release was Rejected)</span></div>
@@ -1489,24 +1716,38 @@
       </div>
 
       <p class="wiki-p">
-        <span class="lang-ru"><strong>Жесткая ссылка (Hardlink)</strong> — это фундаментальный механизм файловых систем Linux/UNIX, позволяющий иметь несколько путей (имен файлов), указывающих на один и тот же физический блок данных (Inode) на диске.</span>
-        <span class="lang-en">A <strong>Hardlink</strong> is an operating system mechanism allowing multiple directory entries to point to the exact same physical inode on disk.</span>
+        <span class="lang-ru"><strong>Жесткая ссылка (Hardlink)</strong> — это фундаментальный механизм файловых систем Linux/UNIX, позволяющий иметь несколько путей (имен файлов), указывающих на один и тот же физический блок данных (Inode) на диске:</span>
+        <span class="lang-en">A <strong>Hardlink</strong> is an operating system mechanism allowing multiple directory entries to point to the exact same physical inode on disk:</span>
       </p>
 
-      <div class="wiki-diagram-box">
-<pre>
-                  ┌───────────────────────────────────────────────┐
-                  │          Физические блоки данных на диске     │
-                  │            (Inode #918231, размер 14 GB)      │
-                  └───────────────────────┬───────────────────────┘
-                                          │
-                         ┌────────────────┴────────────────┐
-                         ▼                                 ▼
-        ┌─────────────────────────────────┐ ┌─────────────────────────────────┐
-        │ /data/downloads/Show.S01E01.mkv │ │ /data/media/series/Show/S01E01.mkv│
-        │ (Раздается в qBittorrent)       │ │ (Проигрывается в Plex / Jellyfin)│
-        └─────────────────────────────────┘ └─────────────────────────────────┘
-</pre>
+      <div class="wiki-grid-2" style="margin: 20px 0;">
+        <div class="wiki-subcard" style="border-top: 3px solid var(--teal);">
+          <div class="wiki-subcard-title">
+            <i data-lucide="download-cloud" style="width:16px;height:16px;color:var(--teal);"></i>
+            <span>Папка загрузок (qBittorrent)</span>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:12.5px;color:var(--teal);margin-bottom:6px;">
+            /data/downloads/Show.S01E01.mkv
+          </div>
+          <p class="wiki-subcard-text">
+            <strong>Inode #918231</strong> (Размер 14 GB)<br>
+            Используется торрент-клиентом для непрерывной раздачи (Seeding).
+          </p>
+        </div>
+
+        <div class="wiki-subcard" style="border-top: 3px solid #34d399;">
+          <div class="wiki-subcard-title">
+            <i data-lucide="tv" style="width:16px;height:16px;color:#34d399;"></i>
+            <span>Медиатека (Plex / Jellyfin)</span>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:12.5px;color:#34d399;margin-bottom:6px;">
+            /data/media/series/Show/S01E01.mkv
+          </div>
+          <p class="wiki-subcard-text">
+            <strong>Inode #918231</strong> (Тот же Inode, 0 байт доп. места)<br>
+            Красиво переименованный файл для медиасервера.
+          </p>
+        </div>
       </div>
 
       <div class="wiki-h3"><span class="lang-ru">Почему Hardlinks незаменимы:</span><span class="lang-en">Key Hardlink Advantages:</span></div>
@@ -1935,6 +2176,26 @@
       }
       const text = sec.innerText.toLowerCase();
       sec.style.display = text.includes(query) ? 'block' : 'none';
+    });
+  }
+
+  // Copy Code Block with visual feedback
+  function copyCodeBlock(btn) {
+    const block = btn.closest('.wiki-code-block');
+    if (!block) return;
+    const code = block.querySelector('.wiki-code-content code') || block.querySelector('.wiki-code-content');
+    if (!code) return;
+    const text = code.innerText.trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      const origHtml = btn.innerHTML;
+      btn.innerHTML = '<i data-lucide="check" style="width:13px;height:13px;"></i> <span>Скопировано!</span>';
+      if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = origHtml;
+        if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+      }, 1800);
     });
   }
 
