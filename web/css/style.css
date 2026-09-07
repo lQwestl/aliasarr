@@ -1656,11 +1656,6 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   color: var(--teal, #00F0FF);
   border-color: rgba(0, 240, 255, 0.45);
 }
-.meta-badge-type-anime {
-  background: rgba(244, 114, 182, 0.16);
-  color: #f472b6;
-  border-color: rgba(244, 114, 182, 0.45);
-}
 [data-theme="light"] .meta-badge-type-movie {
   background: #e0e7ff;
   color: #4338ca;
@@ -1670,11 +1665,6 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: #cffafe;
   color: #0e7490;
   border-color: #67e8f9;
-}
-[data-theme="light"] .meta-badge-type-anime {
-  background: #fce7f3;
-  color: #be185d;
-  border-color: #fbcfe8;
 }
 .metadata-result-overview {
   font-size: 12px; color: var(--text-muted); margin: 0; display: -webkit-box;

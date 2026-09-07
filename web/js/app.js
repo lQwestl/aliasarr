@@ -9232,10 +9232,9 @@ function renderMetadataResultCard(r, index, sourceId) {
   let typeBadge = "";
   if (r.content_type) {
     const isMovie = r.content_type === "movie";
-    const isAnime = r.content_type === "anime";
-    const typeLabel = isMovie ? t("settings.cat_movies") : (isAnime ? t("settings.cat_anime") : t("settings.cat_series"));
-    const typeIco = isMovie ? "film" : (isAnime ? "tv-2" : "tv");
-    const typeCls = isMovie ? "meta-badge-type-movie" : (isAnime ? "meta-badge-type-anime" : "meta-badge-type-series");
+    const typeLabel = isMovie ? t("settings.cat_movies") : t("settings.cat_series");
+    const typeIco = isMovie ? "film" : "tv";
+    const typeCls = isMovie ? "meta-badge-type-movie" : "meta-badge-type-series";
     typeBadge = `<span class="meta-badge meta-badge-type ${typeCls}"><i data-lucide="${typeIco}" class="ico-xs" style="vertical-align:middle; margin-right:3px;"></i>${escapeHtml(typeLabel)}</span>`;
   }
 
