@@ -201,7 +201,7 @@
     margin: 12px 0 6px 10px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -428,7 +428,9 @@
   }
   .wiki-callout-danger .wiki-callout-ico { color: #ef4444; }
   .wiki-callout-ico {
-    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
     margin-top: 1px;
   }
@@ -646,31 +648,6 @@
   body[data-lang="ru"] .lang-en { display: none !important; }
   body[data-lang="en"] .lang-ru { display: none !important; }
 
-  /* Auth Overlay Modal */
-  .auth-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(10, 14, 23, 0.88);
-    backdrop-filter: blur(8px);
-    z-index: 1000;
-    display: none;
-    align-items: center;
-    justify-content: center;
-  }
-  .auth-modal {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 32px;
-    max-width: 400px;
-    width: 90%;
-    text-align: center;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
-  }
-
   @media (max-width: 1024px) {
     .wiki-sidebar { display: none; }
     .wiki-layout { padding: 16px 16px 60px 16px; }
@@ -726,26 +703,26 @@
     </div>
 
     <div class="wiki-toc-group">
-      <div class="wiki-toc-group-label">🚀 <span class="lang-ru">Быстрый старт</span><span class="lang-en">Getting Started</span></div>
+      <div class="wiki-toc-group-label"><i data-lucide="zap" style="width:13px;height:13px;"></i> <span class="lang-ru">Быстрый старт</span><span class="lang-en">Getting Started</span></div>
       <a href="#section-intro" class="wiki-toc-link"><i data-lucide="info" class="wiki-toc-ico"></i><span class="lang-ru">Обзор Aliasarr</span><span class="lang-en">Overview</span></a>
-      <a href="#section-quickstart" class="wiki-toc-link"><i data-lucide="zap" class="wiki-toc-ico"></i><span class="lang-ru">Настройка с нуля</span><span class="lang-en">Initial Setup</span></a>
+      <a href="#section-quickstart" class="wiki-toc-link"><i data-lucide="play-circle" class="wiki-toc-ico"></i><span class="lang-ru">Настройка с нуля</span><span class="lang-en">Initial Setup</span></a>
     </div>
 
     <div class="wiki-toc-group">
-      <div class="wiki-toc-group-label">🏛️ <span class="lang-ru">Архитектура и пайплайн</span><span class="lang-en">Architecture &amp; Core</span></div>
-      <a href="#section-architecture" class="wiki-toc-link"><i data-lucide="layers" class="wiki-toc-ico"></i><span class="lang-ru">Схема подсистем</span><span class="lang-en">Subsystems Flow</span></a>
+      <div class="wiki-toc-group-label"><i data-lucide="layers" style="width:13px;height:13px;"></i> <span class="lang-ru">Архитектура и пайплайн</span><span class="lang-en">Architecture &amp; Core</span></div>
+      <a href="#section-architecture" class="wiki-toc-link"><i data-lucide="git-merge" class="wiki-toc-ico"></i><span class="lang-ru">Схема подсистем</span><span class="lang-en">Subsystems Flow</span></a>
       <a href="#section-lifecycle-states" class="wiki-toc-link"><i data-lucide="git-branch" class="wiki-toc-ico"></i><span class="lang-ru">Жизненный цикл серий</span><span class="lang-en">State Machine</span></a>
     </div>
 
     <div class="wiki-toc-group">
-      <div class="wiki-toc-group-label">🔍 <span class="lang-ru">Парсинг и Сопоставление</span><span class="lang-en">Parser &amp; Matching</span></div>
-      <a href="#section-parsing-deep-dive" class="wiki-toc-link"><i data-lucide="cpu" class="wiki-toc-ico"></i><span class="lang-ru">Алиасы и нормализация</span><span class="lang-en">Aliases &amp; Cleaning</span></a>
+      <div class="wiki-toc-group-label"><i data-lucide="cpu" style="width:13px;height:13px;"></i> <span class="lang-ru">Парсинг и Сопоставление</span><span class="lang-en">Parser &amp; Matching</span></div>
+      <a href="#section-parsing-deep-dive" class="wiki-toc-link"><i data-lucide="file-search" class="wiki-toc-ico"></i><span class="lang-ru">Алиасы и нормализация</span><span class="lang-en">Aliases &amp; Cleaning</span></a>
       <a href="#section-season-episode-matching" class="wiki-toc-link"><i data-lucide="hash" class="wiki-toc-ico"></i><span class="lang-ru">Сезоны, серии и защита S4</span><span class="lang-en">Season Guard</span></a>
       <a href="#section-torrent-file-priority" class="wiki-toc-link"><i data-lucide="list-checks" class="wiki-toc-ico"></i><span class="lang-ru">Инспекция файлов торрента</span><span class="lang-en">Torrent Inspection</span></a>
     </div>
 
     <div class="wiki-toc-group">
-      <div class="wiki-toc-group-label">⚖️ <span class="lang-ru">Движок решений и Качество</span><span class="lang-en">Decision &amp; Quality</span></div>
+      <div class="wiki-toc-group-label"><i data-lucide="sliders" style="width:13px;height:13px;"></i> <span class="lang-ru">Движок решений и Качество</span><span class="lang-en">Decision &amp; Quality</span></div>
       <a href="#section-decision-engine" class="wiki-toc-link"><i data-lucide="scale" class="wiki-toc-ico"></i><span class="lang-ru">Формула скоринга</span><span class="lang-en">Scoring Formula</span></a>
       <a href="#section-qualities-codecs" class="wiki-toc-link"><i data-lucide="film" class="wiki-toc-ico"></i><span class="lang-ru">Качества, HDR и Аудио</span><span class="lang-en">Qualities &amp; HDR</span></a>
       <a href="#section-custom-formats" class="wiki-toc-link"><i data-lucide="sparkles" class="wiki-toc-ico"></i><span class="lang-ru">Кастомные форматы (CF)</span><span class="lang-en">Custom Formats</span></a>
@@ -753,7 +730,7 @@
     </div>
 
     <div class="wiki-toc-group">
-      <div class="wiki-toc-group-label">💾 <span class="lang-ru">Импорт, Хранилище и Раздача</span><span class="lang-en">Storage &amp; Seeding</span></div>
+      <div class="wiki-toc-group-label"><i data-lucide="hard-drive" style="width:13px;height:13px;"></i> <span class="lang-ru">Импорт, Хранилище и Раздача</span><span class="lang-en">Storage &amp; Seeding</span></div>
       <a href="#section-hardlinks" class="wiki-toc-link"><i data-lucide="link" class="wiki-toc-ico"></i><span class="lang-ru">Жесткие ссылки (Hardlinks)</span><span class="lang-en">Hardlinks Physics</span></a>
       <a href="#section-seeding-management" class="wiki-toc-link"><i data-lucide="share-2" class="wiki-toc-ico"></i><span class="lang-ru">Раздача для приватных трекеров</span><span class="lang-en">Seeding Rules</span></a>
       <a href="#section-specials" class="wiki-toc-link"><i data-lucide="sparkle" class="wiki-toc-ico"></i><span class="lang-ru">Спецвыпуски (Сезон 0, OVA)</span><span class="lang-en">Specials &amp; OVA</span></a>
@@ -761,7 +738,7 @@
     </div>
 
     <div class="wiki-toc-group">
-      <div class="wiki-toc-group-label">⚙️ <span class="lang-ru">Справочник всех настроек</span><span class="lang-en">Full Settings Reference</span></div>
+      <div class="wiki-toc-group-label"><i data-lucide="settings" style="width:13px;height:13px;"></i> <span class="lang-ru">Справочник всех настроек</span><span class="lang-en">Full Settings Reference</span></div>
       <a href="#section-settings-media" class="wiki-toc-link"><i data-lucide="folder" class="wiki-toc-ico"></i><span class="lang-ru">Медиатека, папки и шаблоны</span><span class="lang-en">Media &amp; Renaming</span></a>
       <a href="#section-settings-indexers" class="wiki-toc-link"><i data-lucide="search" class="wiki-toc-ico"></i><span class="lang-ru">Индексаторы (Трекеры)</span><span class="lang-en">Indexers</span></a>
       <a href="#section-settings-downloaders" class="wiki-toc-link"><i data-lucide="download-cloud" class="wiki-toc-ico"></i><span class="lang-ru">Загрузчики (Клиенты)</span><span class="lang-en">Download Clients</span></a>
@@ -773,8 +750,8 @@
     </div>
 
     <div class="wiki-toc-group">
-      <div class="wiki-toc-group-label">❓ <span class="lang-ru">Диагностика и FAQ</span><span class="lang-en">FAQ &amp; Diagnostics</span></div>
-      <a href="#section-faq" class="wiki-toc-link"><i data-lucide="help-circle" class="wiki-toc-ico"></i><span class="lang-ru">Решение проблем и FAQ</span><span class="lang-en">Troubleshooting FAQ</span></a>
+      <div class="wiki-toc-group-label"><i data-lucide="help-circle" style="width:13px;height:13px;"></i> <span class="lang-ru">Диагностика и FAQ</span><span class="lang-en">FAQ &amp; Diagnostics</span></div>
+      <a href="#section-faq" class="wiki-toc-link"><i data-lucide="message-circle-question" class="wiki-toc-ico"></i><span class="lang-ru">Решение проблем и FAQ</span><span class="lang-en">Troubleshooting FAQ</span></a>
     </div>
   </aside>
 
@@ -792,7 +769,7 @@
         <span class="lang-en">Comprehensive engineering reference for Aliasarr: title normalization algorithms, multi-factor Custom Formats ranking engine, atomic Hardlinks pipeline, private tracker seeding rules, step-by-step onboarding, and complete settings reference.</span>
       </p>
       <div class="wiki-quick-pills">
-        <a href="#section-quickstart" class="wiki-quick-pill"><i data-lucide="zap" style="width:14px;height:14px;color:var(--teal);"></i><span class="lang-ru">Быстрый старт с нуля</span><span class="lang-en">Quickstart Guide</span></a>
+        <a href="#section-quickstart" class="wiki-quick-pill"><i data-lucide="play-circle" style="width:14px;height:14px;color:var(--teal);"></i><span class="lang-ru">Быстрый старт с нуля</span><span class="lang-en">Quickstart Guide</span></a>
         <a href="#section-parsing-deep-dive" class="wiki-quick-pill"><i data-lucide="cpu" style="width:14px;height:14px;color:#818cf8;"></i><span class="lang-ru">Как работает парсер</span><span class="lang-en">Parser Engine</span></a>
         <a href="#section-custom-formats" class="wiki-quick-pill"><i data-lucide="sparkles" style="width:14px;height:14px;color:#fbbf24;"></i><span class="lang-ru">Кастомные форматы (CF)</span><span class="lang-en">Custom Formats</span></a>
         <a href="#section-hardlinks" class="wiki-quick-pill"><i data-lucide="link" style="width:14px;height:14px;color:#34d399;"></i><span class="lang-ru">Физика Hardlinks</span><span class="lang-en">Hardlinks Guide</span></a>
@@ -818,7 +795,7 @@
 
       <div class="wiki-grid-3">
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🌐 <span class="lang-ru">Мультиязычные Алиасы</span><span class="lang-en">Multi-language Aliases</span></div>
+          <div class="wiki-subcard-title"><i data-lucide="globe" style="width:16px;height:16px;color:var(--teal);"></i> <span class="lang-ru">Мультиязычные Алиасы</span><span class="lang-en">Multi-language Aliases</span></div>
           <p class="wiki-subcard-text">
             <span class="lang-ru">Автоматическая агрегация русских, оригинальных, транслитерированных и ромадзи названий из TMDB, Shikimori, AniList, TVMaze и TheTVDB для 100% покрытия поисковой выдачи трекеров.</span>
             <span class="lang-en">Aggregates Russian, English, localized, and Romaji titles across TMDB, Shikimori, AniList, TVMaze, and TheTVDB for 100% search hit rate.</span>
@@ -826,7 +803,7 @@
         </div>
 
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🎯 <span class="lang-ru">Парсер и Защита Сезонов</span><span class="lang-en">Strict Season Parser</span></div>
+          <div class="wiki-subcard-title"><i data-lucide="shield-check" style="width:16px;height:16px;color:var(--teal);"></i> <span class="lang-ru">Парсер и Защита Сезонов</span><span class="lang-en">Strict Season Parser</span></div>
           <p class="wiki-subcard-text">
             <span class="lang-ru">Глубокое распознавание диапазонов серий, паков сезонов (`S01-S04`), абсолютной нумерации аниме и строгая изоляция сезонов (релиз S4 никогда не сопоставится с сезоном 1).</span>
             <span class="lang-en">Robust recognition of multi-episodes, season packs, anime absolute numbers, and strict season isolation (season 4 release is never remapped to season 1).</span>
@@ -834,7 +811,7 @@
         </div>
 
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">⚡ <span class="lang-ru">Атомарные Hardlinks</span><span class="lang-en">Atomic Hardlinks</span></div>
+          <div class="wiki-subcard-title"><i data-lucide="zap" style="width:16px;height:16px;color:var(--teal);"></i> <span class="lang-ru">Атомарные Hardlinks</span><span class="lang-en">Atomic Hardlinks</span></div>
           <p class="wiki-subcard-text">
             <span class="lang-ru">Мгновенный импорт (0 мс) без дублирования дискового пространства (0 байт) с сохранением непрерывной раздачи для соблюдения требований приватных трекеров.</span>
             <span class="lang-en">Instantaneous 0ms import with 0 bytes extra storage and continuous seeding preservation for private tracker ratio compliance.</span>
@@ -842,7 +819,7 @@
         </div>
 
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🛡️ <span class="lang-ru">Инспекция и Защита Торрентов</span><span class="lang-en">Torrent Validation Guard</span></div>
+          <div class="wiki-subcard-title"><i data-lucide="shield" style="width:16px;height:16px;color:var(--teal);"></i> <span class="lang-ru">Инспекция и Защита Торрентов</span><span class="lang-en">Torrent Validation Guard</span></div>
           <p class="wiki-subcard-text">
             <span class="lang-ru">Анализ файлов внутри торрента в реальном времени. Автоматическая отмена и блокировка неподходящих раздач с мгновенным перезапуском поиска в фоне.</span>
             <span class="lang-en">Live torrent content inspection. Automatically cancels and blocklists non-matching downloads while instantly re-triggering search in background.</span>
@@ -850,7 +827,7 @@
         </div>
 
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">💎 <span class="lang-ru">Custom Formats &amp; Скоринг</span><span class="lang-en">Custom Formats Scoring</span></div>
+          <div class="wiki-subcard-title"><i data-lucide="sparkles" style="width:16px;height:16px;color:var(--teal);"></i> <span class="lang-ru">Custom Formats &amp; Скоринг</span><span class="lang-en">Custom Formats Scoring</span></div>
           <p class="wiki-subcard-text">
             <span class="lang-ru">Полная поддержка Sonarr v4/v5 Custom Formats. Гибкая приоритизация релиз-групп (LostFilm, Red Head Sound, HDRezka), звуковых дорожек, HDR10+, Dolby Vision и кодеков.</span>
             <span class="lang-en">Full Sonarr v4/v5 Custom Formats compatibility. Flexible scoring for voiceover studios, audio codecs, HDR10+, Dolby Vision, and encoders.</span>
@@ -858,7 +835,7 @@
         </div>
 
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🔄 <span class="lang-ru">Слежение за Раздачами</span><span class="lang-en">Tracked Releases Daemon</span></div>
+          <div class="wiki-subcard-title"><i data-lucide="refresh-cw" style="width:16px;height:16px;color:var(--teal);"></i> <span class="lang-ru">Слежение за Раздачами</span><span class="lang-en">Tracked Releases Daemon</span></div>
           <p class="wiki-subcard-text">
             <span class="lang-ru">Автоматический мониторинг «живых» обновляемых раздач (на RuTracker) и докачка новых серий по мере их выхода в рамках одного топика.</span>
             <span class="lang-en">Automatic tracking of live multi-episode torrent topics, auto-fetching new episodes as they are uploaded to the tracker.</span>
@@ -870,7 +847,7 @@
     <!-- SECTION 2: QUICKSTART & INITIAL SETUP -->
     <section id="section-quickstart" class="wiki-section">
       <div class="wiki-section-header">
-        <div class="wiki-section-icon"><i data-lucide="zap"></i></div>
+        <div class="wiki-section-icon"><i data-lucide="play-circle"></i></div>
         <h2 class="wiki-section-title">
           <span class="lang-ru">2. Пошаговая первоначальная настройка с нуля</span>
           <span class="lang-en">2. Initial Step-by-Step Onboarding Guide</span>
@@ -941,7 +918,7 @@
               <button class="btn-copy-regex" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span>Copy</span></button>
             </div>
             <div class="wiki-callout wiki-callout-tip">
-              <div class="wiki-callout-ico">💡</div>
+              <div class="wiki-callout-ico"><i data-lucide="lightbulb" style="width:20px;height:20px;"></i></div>
               <div class="wiki-callout-content">
                 <span class="lang-ru">Убедитесь, что <code>PUID</code> и <code>PGID</code> соответствуют пользователю, владеющему папками на хосте (команда <code>id $USER</code> в Linux терминале).</span>
                 <span class="lang-en">Ensure <code>PUID</code> and <code>PGID</code> match the user owning the host directories (run <code>id $USER</code> in Linux shell).</span>
@@ -1045,7 +1022,7 @@
     <!-- SECTION 3: ARCHITECTURE & SUBSYSTEMS -->
     <section id="section-architecture" class="wiki-section">
       <div class="wiki-section-header">
-        <div class="wiki-section-icon"><i data-lucide="layers"></i></div>
+        <div class="wiki-section-icon"><i data-lucide="git-merge"></i></div>
         <h2 class="wiki-section-title">
           <span class="lang-ru">3. Архитектура системы и Сквозной пайплайн</span>
           <span class="lang-en">3. Core Architecture &amp; Subsystems Flow</span>
@@ -1187,7 +1164,7 @@
     <!-- SECTION 5: PARSER & MATCHER DEEP DIVE -->
     <section id="section-parsing-deep-dive" class="wiki-section">
       <div class="wiki-section-header">
-        <div class="wiki-section-icon"><i data-lucide="cpu"></i></div>
+        <div class="wiki-section-icon"><i data-lucide="file-search"></i></div>
         <h2 class="wiki-section-title">
           <span class="lang-ru">5. Механизм парсинга: Алиасы, нормализация и очистка</span>
           <span class="lang-en">5. Parser Deep Dive: Title Cleaning &amp; Multi-Aliases</span>
@@ -1329,7 +1306,7 @@
 
       <div class="wiki-grid-2">
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🎯 <span class="lang-ru">Выборочная загрузка серий</span><span class="lang-en">Selective Episode Priority</span></div>
+          <div class="wiki-subcard-title"><i data-lucide="check-square" style="width:16px;height:16px;color:var(--teal);"></i> <span class="lang-ru">Выборочная загрузка серий</span><span class="lang-en">Selective Episode Priority</span></div>
           <p class="wiki-subcard-text">
             <span class="lang-ru">Если в общем паке сезонов вам нужны только серии 2-го сезона (а 1-й уже скачан), функция <code>evaluate_torrent_file_priority</code> автоматически выставляет файлам 1-го сезона приоритет <strong>0 (Не скачивать)</strong>, а нужным сериям — высокий приоритет. Это экономит гигабайты трафика и дискового пространства.</span>
             <span class="lang-en">If a multi-season pack is grabbed for Season 2 only, <code>evaluate_torrent_file_priority</code> assigns <strong>Priority 0 (Ignore)</strong> to Season 1 files, downloading only wanted episodes.</span>
@@ -1337,7 +1314,7 @@
         </div>
 
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🛡️ <span class="lang-ru">Защита от фейковых раздач</span><span class="lang-en">Fake / Empty Pack Defense</span></div>
+          <div class="wiki-subcard-title"><i data-lucide="shield-alert" style="width:16px;height:16px;color:var(--teal);"></i> <span class="lang-ru">Защита от фейковых раздач</span><span class="lang-en">Fake / Empty Pack Defense</span></div>
           <p class="wiki-subcard-text">
             <span class="lang-ru">Если скачанный торрент оказался некорректным (файлы внутри не содержат нужных серий тайтла):<br>
             1. Раздача немедленно удаляется из загрузчика с файлами.<br>
@@ -1411,7 +1388,7 @@
       <div class="wiki-h3"><span class="lang-ru">Русскоязычные студии озвучки</span><span class="lang-en">Russian Voiceover Studios</span></div>
       
       <div class="wiki-subcard" style="margin-bottom:12px;">
-        <div class="wiki-subcard-title">🎙️ LostFilm (Рекомендуемый вес: +100)</div>
+        <div class="wiki-subcard-title"><i data-lucide="mic" style="width:15px;height:15px;color:#818cf8;"></i> LostFilm (Рекомендуемый вес: +100)</div>
         <div class="regex-box">
           <div class="regex-code">(lostfilm|лостфильм|лост)</div>
           <button class="btn-copy-regex" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span>Copy</span></button>
@@ -1419,7 +1396,7 @@
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:12px;">
-        <div class="wiki-subcard-title">🎙️ Red Head Sound / RHS (Рекомендуемый вес: +120)</div>
+        <div class="wiki-subcard-title"><i data-lucide="mic" style="width:15px;height:15px;color:#818cf8;"></i> Red Head Sound / RHS (Рекомендуемый вес: +120)</div>
         <div class="regex-box">
           <div class="regex-code">(red\s*head\s*sound|rhs|ред\s*хед\s*саунд)</div>
           <button class="btn-copy-regex" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span>Copy</span></button>
@@ -1427,7 +1404,7 @@
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:12px;">
-        <div class="wiki-subcard-title">🎙️ HDRezka / Резка (Рекомендуемый вес: +80)</div>
+        <div class="wiki-subcard-title"><i data-lucide="mic" style="width:15px;height:15px;color:#818cf8;"></i> HDRezka / Резка (Рекомендуемый вес: +80)</div>
         <div class="regex-box">
           <div class="regex-code">(hdrezka|rezka|хдрезка|резка)</div>
           <button class="btn-copy-regex" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span>Copy</span></button>
@@ -1435,7 +1412,7 @@
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:12px;">
-        <div class="wiki-subcard-title">🎙️ Кубик в Кубе / AlexFilm / NewStudio (Рекомендуемый вес: +90)</div>
+        <div class="wiki-subcard-title"><i data-lucide="mic" style="width:15px;height:15px;color:#818cf8;"></i> Кубик в Кубе / AlexFilm / NewStudio (Рекомендуемый вес: +90)</div>
         <div class="regex-box">
           <div class="regex-code">(kubik|кубик|alexfilm|алексфильм|newstudio|ньюстудио|tvshows)</div>
           <button class="btn-copy-regex" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span>Copy</span></button>
@@ -1443,7 +1420,7 @@
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:12px;">
-        <div class="wiki-subcard-title">⛩️ Аниме: AniLibria / AniDUB / Studio Band (Рекомендуемый вес: +100)</div>
+        <div class="wiki-subcard-title"><i data-lucide="tv" style="width:15px;height:15px;color:#818cf8;"></i> Аниме: AniLibria / AniDUB / Studio Band (Рекомендуемый вес: +100)</div>
         <div class="regex-box">
           <div class="regex-code">(anilibria|анилибрия|anidub|анидаб|studio\s*band|студийная\s*банда)</div>
           <button class="btn-copy-regex" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span>Copy</span></button>
@@ -1453,7 +1430,7 @@
       <div class="wiki-h3"><span class="lang-ru">Видеостандарты, HDR и Звук</span><span class="lang-en">Video Standards, HDR &amp; Audio</span></div>
 
       <div class="wiki-subcard" style="margin-bottom:12px;">
-        <div class="wiki-subcard-title">✨ Dolby Vision / HDR10+ (Рекомендуемый вес: +150)</div>
+        <div class="wiki-subcard-title"><i data-lucide="sparkles" style="width:15px;height:15px;color:#fbbf24;"></i> Dolby Vision / HDR10+ (Рекомендуемый вес: +150)</div>
         <div class="regex-box">
           <div class="regex-code">(dv|dovi|dolby\s*vision|hdr10\+|hdr10plus)</div>
           <button class="btn-copy-regex" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span>Copy</span></button>
@@ -1461,7 +1438,7 @@
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:12px;">
-        <div class="wiki-subcard-title">🔊 Dolby Atmos / TrueHD / DTS-HD MA (Рекомендуемый вес: +80)</div>
+        <div class="wiki-subcard-title"><i data-lucide="volume-2" style="width:15px;height:15px;color:#34d399;"></i> Dolby Atmos / TrueHD / DTS-HD MA (Рекомендуемый вес: +80)</div>
         <div class="regex-box">
           <div class="regex-code">(atmos|truehd|dts[\s.-]?hd[\s.-]?ma|flac)</div>
           <button class="btn-copy-regex" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span>Copy</span></button>
@@ -1469,7 +1446,7 @@
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:12px;">
-        <div class="wiki-subcard-title">🚫 Негативный фильтр: Реклама / 1xBet / Казино (Вес: -10000)</div>
+        <div class="wiki-subcard-title"><i data-lucide="ban" style="width:15px;height:15px;color:#ef4444;"></i> Негативный фильтр: Реклама / 1xBet / Казино (Вес: -10000)</div>
         <div class="regex-box">
           <div class="regex-code">(1xbet|казино|vulkan|linebet|advert|ads)</div>
           <button class="btn-copy-regex" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span>Copy</span></button>
@@ -1535,25 +1512,25 @@
       <div class="wiki-h3"><span class="lang-ru">Почему Hardlinks незаменимы:</span><span class="lang-en">Key Hardlink Advantages:</span></div>
       <div class="wiki-grid-2">
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">💾 0 байт дублирования диска</div>
+          <div class="wiki-subcard-title"><i data-lucide="hard-drive" style="width:15px;height:15px;color:var(--teal);"></i> 0 байт дублирования диска</div>
           <p class="wiki-subcard-text">Файл размером 40 ГБ не копируется. Вы экономите терабайты дискового пространства на вашем NAS / сервере.</p>
         </div>
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">⚡ Мгновенный импорт (0 миллисекунд)</div>
+          <div class="wiki-subcard-title"><i data-lucide="zap" style="width:15px;height:15px;color:var(--teal);"></i> Мгновенный импорт (0 миллисекунд)</div>
           <p class="wiki-subcard-text">Создание хардлинка — атомарная операция записи метаданных. Импорт 80-гигабайтного 4K Remux происходит мгновенно.</p>
         </div>
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🔄 Непрерывный сидинг</div>
+          <div class="wiki-subcard-title"><i data-lucide="share-2" style="width:15px;height:15px;color:var(--teal);"></i> Непрерывный сидинг</div>
           <p class="wiki-subcard-text">Торрент-клиент продолжает сидировать исходный файл, а медиасервер читает переименованный файл в библиотеке.</p>
         </div>
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title">🛡️ Безопасное удаление</div>
+          <div class="wiki-subcard-title"><i data-lucide="shield-check" style="width:15px;height:15px;color:var(--teal);"></i> Безопасное удаление</div>
           <p class="wiki-subcard-text">Удаление торрента удаляет только одну ссылку. Файл в медиатеке остается в 100% сохранности.</p>
         </div>
       </div>
 
       <div class="wiki-callout wiki-callout-warning">
-        <div class="wiki-callout-ico">⚠️</div>
+        <div class="wiki-callout-ico"><i data-lucide="alert-triangle" style="width:20px;height:20px;"></i></div>
         <div class="wiki-callout-content">
           <strong><span class="lang-ru">Внимание: Ошибка «Invalid cross-device link» (Errno 18)</span><span class="lang-en">Warning: «Invalid cross-device link» Error</span></strong><br>
           <span class="lang-ru">Хардлинки не могут работать между разными томами Docker, разными ZFS датасетами или разными дисками. Настройте единый том <code>- /mnt/storage/data:/data</code> для всех контейнеров. Если хардлинк невозможен, Aliasarr автоматически переключается на безопасное копирование.</span>
@@ -1601,7 +1578,7 @@
       </p>
 
       <div class="wiki-callout wiki-callout-info">
-        <div class="wiki-callout-ico">ℹ️</div>
+        <div class="wiki-callout-ico"><i data-lucide="info" style="width:20px;height:20px;"></i></div>
         <div class="wiki-callout-content">
           <span class="lang-ru">Когда скачивается раздача, содержащая только спецвыпуски (Сезон 0), Aliasarr доводит скачивание до 100%, блокирует автоматический перенос, отправляет уведомление <code>manual_interaction_required</code> и предлагает подтвердить соответствие файлов через кнопку <strong>«Импорт спецвыпусков»</strong> в карточке тайтла.</span>
           <span class="lang-en">When a Specials-only release finishes downloading, Aliasarr sets progress to 100%, skips automatic moves, triggers a <code>manual_interaction_required</code> notification, and lets you map files interactively via the <strong>Import Specials</strong> button.</span>
@@ -1885,7 +1862,7 @@
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:14px;">
-        <div class="wiki-subcard-title">❓ <span class="lang-ru">Как проверить, что создался именно Hardlink, а не копия?</span><span class="lang-en">How to verify Hardlink creation?</span></div>
+        <div class="wiki-subcard-title"><i data-lucide="help-circle" style="width:15px;height:15px;color:var(--teal);"></i> <span class="lang-ru">Как проверить, что создался именно Hardlink, а не копия?</span><span class="lang-en">How to verify Hardlink creation?</span></div>
         <p class="wiki-subcard-text">
           <span class="lang-ru">Выполните в терминале сервера команду <code>stat -c "%i %n" &lt;путь_в_загрузках&gt; &lt;путь_в_медиатеке&gt;</code> или <code>ls -l</code>. У обоих файлов будет <strong>одинаковый номер Inode</strong>, а счетчик ссылок равен <strong>2</strong> (или больше).</span>
           <span class="lang-en">Run <code>stat -c "%i %n" &lt;download_path&gt; &lt;library_path&gt;</code> or <code>ls -l</code>. Both files share the exact same Inode number with a link count of 2+.</span>
@@ -1893,7 +1870,7 @@
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:14px;">
-        <div class="wiki-subcard-title">❓ <span class="lang-ru">Что произойдет, если я вручную удалю файл из медиатеки?</span><span class="lang-en">What happens if I delete file from library?</span></div>
+        <div class="wiki-subcard-title"><i data-lucide="help-circle" style="width:15px;height:15px;color:var(--teal);"></i> <span class="lang-ru">Что произойдет, если я вручную удалю файл из медиатеки?</span><span class="lang-en">What happens if I delete file from library?</span></div>
         <p class="wiki-subcard-text">
           <span class="lang-ru">Файл в папке загрузок продолжит спокойно раздаваться торрент-клиентом. Физические блоки данных освободятся на диске только тогда, когда будут удалены <strong>все</strong> ссылки на данный Inode.</span>
           <span class="lang-en">The source file in downloads continues seeding. Physical storage is freed only when <strong>all</strong> links to that Inode are unlinked.</span>
@@ -1901,7 +1878,7 @@
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:14px;">
-        <div class="wiki-subcard-title">❓ <span class="lang-ru">Что делать при ошибке «Invalid cross-device link»?</span><span class="lang-en">How to fix «Invalid cross-device link»?</span></div>
+        <div class="wiki-subcard-title"><i data-lucide="help-circle" style="width:15px;height:15px;color:var(--teal);"></i> <span class="lang-ru">Что делать при ошибке «Invalid cross-device link»?</span><span class="lang-en">How to fix «Invalid cross-device link»?</span></div>
         <p class="wiki-subcard-text">
           <span class="lang-ru">Папка загрузок и папка медиатеки смонтированы в Docker как разные виртуальные устройства или лежат на разных ZFS датасетах. Настройте единую точку монтирования (например, <code>- /data:/data</code>) в <code>docker-compose.yml</code>. При возникновении этой ошибки Aliasarr автоматически переключается на безопасное копирование.</span>
           <span class="lang-en">Mount a single root volume (e.g. <code>- /data:/data</code>) across containers so both paths exist on the exact same filesystem instance.</span>
@@ -1909,7 +1886,7 @@
       </div>
 
       <div class="wiki-subcard" style="margin-bottom:14px;">
-        <div class="wiki-subcard-title">❓ <span class="lang-ru">Где посмотреть подробный ход принятия решений по автопоиску?</span><span class="lang-en">Where to inspect auto-search logs?</span></div>
+        <div class="wiki-subcard-title"><i data-lucide="help-circle" style="width:15px;height:15px;color:var(--teal);"></i> <span class="lang-ru">Где посмотреть подробный ход принятия решений по автопоиску?</span><span class="lang-en">Where to inspect auto-search logs?</span></div>
         <p class="wiki-subcard-text">
           <span class="lang-ru">Перейдите во вкладку <strong>«Release Logs»</strong> (или системные события в правом нижнем углу). Там в реальном времени протоколируются все стадии: опрос трекеров, баллы скоринга, захват, прогресс загрузки и отчет об импорте файлов.</span>
           <span class="lang-en">Open the <strong>Release Logs</strong> tab. Every stage (tracker queries, CF scores, grabs, download progress, and import steps) is logged in real time.</span>
