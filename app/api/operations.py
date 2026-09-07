@@ -1092,6 +1092,13 @@ class QueueItemOut(BaseModel):
     show_id: Optional[int] = None
     show_title: Optional[str] = None
     episode_label: Optional[str] = None
+    seeding_time_seconds: int = 0
+    seed_time_limit_seconds: Optional[int] = None
+    seed_time_remaining_seconds: Optional[int] = None
+    ratio: float = 0.0
+    seed_ratio_limit: Optional[float] = None
+    indexer_name: Optional[str] = None
+    is_seeding: bool = False
 
 
 def _format_eta(seconds: Optional[int]) -> Optional[str]:
@@ -1117,6 +1124,20 @@ async def get_queue(db: Session = Depends(get_db), current_user: User = Depends(
         if h:
             episodes_by_hash.setdefault(h, []).append(ep)
 
+    # Кэшируем историю загрузок и трекеры по хэшам
+    history_by_hash: dict[str, DownloadHistory] = {}
+    for dh in db.query(DownloadHistory).filter(DownloadHistory.torrent_hash.isnot(None)).order_by(DownloadHistory.id.desc()).all():
+        h = (dh.torrent_hash or "").lower()
+        if h and h not in history_by_hash:
+            history_by_hash[h] = dh
+
+    tracked_by_hash: dict[str, TrackedRelease] = {}
+    for tr in db.query(TrackedRelease).filter(TrackedRelease.torrent_hash.isnot(None)).all():
+        h = (tr.torrent_hash or "").lower()
+        if h and h not in tracked_by_hash:
+            tracked_by_hash[h] = tr
+
+    indexer_cache: dict[int, Indexer] = {}
     show_cache: dict[int, Show] = {}
     progress_updated = False
 
@@ -1153,6 +1174,46 @@ async def get_queue(db: Session = Depends(get_db), current_user: User = Depends(
                         db.add(ep)
                         progress_updated = True
 
+            # Определяем трекер и лимиты сидирования
+            indexer_row: Optional[Indexer] = None
+            dh = history_by_hash.get(t_hash_clean)
+            if dh and dh.indexer_id:
+                if dh.indexer_id not in indexer_cache:
+                    indexer_cache[dh.indexer_id] = db.get(Indexer, dh.indexer_id)
+                indexer_row = indexer_cache.get(dh.indexer_id)
+            if not indexer_row:
+                tr = tracked_by_hash.get(t_hash_clean)
+                if tr and tr.indexer_id:
+                    if tr.indexer_id not in indexer_cache:
+                        indexer_cache[tr.indexer_id] = db.get(Indexer, tr.indexer_id)
+                    indexer_row = indexer_cache.get(tr.indexer_id)
+
+            seeding_sec = int(getattr(t, "seeding_time", 0) or 0)
+            ratio = float(getattr(t, "ratio", 0.0) or 0.0)
+            state_str = str(getattr(t, "state", "")).lower()
+            is_seeding = (t.progress >= 0.999) or any(
+                s in state_str for s in ("seed", "upload", "pausedup", "stalledup", "forcedup", "complete", "finish", "stopped")
+            )
+
+            indexer_name = indexer_row.name if indexer_row else None
+            seed_time_limit_sec: Optional[int] = None
+            seed_ratio_limit: Optional[float] = None
+
+            if indexer_row and getattr(indexer_row, "enable_seeding", False):
+                time_hrs = getattr(indexer_row, "seed_time_limit_hours", None)
+                if time_hrs is not None and time_hrs > 0:
+                    seed_time_limit_sec = int(time_hrs * 3600)
+                seed_ratio_limit = getattr(indexer_row, "seed_ratio_limit", None)
+            elif not indexer_row:
+                dc_time_min = getattr(dc, "seed_time_limit", None)
+                if dc_time_min is not None and dc_time_min > 0:
+                    seed_time_limit_sec = int(dc_time_min * 60)
+                seed_ratio_limit = getattr(dc, "seed_ratio_limit", None)
+
+            seed_time_rem_sec: Optional[int] = None
+            if seed_time_limit_sec is not None:
+                seed_time_rem_sec = max(0, seed_time_limit_sec - seeding_sec)
+
             items.append(QueueItemOut(
                 hash=t.hash, name=t.name, progress=t.progress, state=t.state,
                 size=t.size, download_client=dc.name,
@@ -1164,6 +1225,13 @@ async def get_queue(db: Session = Depends(get_db), current_user: User = Depends(
                 show_id=show_id,
                 show_title=show_title,
                 episode_label=ep_label,
+                seeding_time_seconds=seeding_sec,
+                seed_time_limit_seconds=seed_time_limit_sec,
+                seed_time_remaining_seconds=seed_time_rem_sec,
+                ratio=ratio,
+                seed_ratio_limit=seed_ratio_limit,
+                indexer_name=indexer_name,
+                is_seeding=is_seeding,
             ))
 
     if progress_updated:

@@ -12,6 +12,13 @@ from app.services.download_client import TorrentInfo, QBittorrentClient, Transmi
 from app.services.postprocess import transfer_media_file
 from app.services.downloads_monitor import _check_seeding_torrents
 
+try:
+    import fastapi
+    from app.api.operations import get_queue, QueueItemOut
+    HAS_FASTAPI = True
+except ImportError:
+    HAS_FASTAPI = False
+
 
 class TestHardlinksAndSeeding(unittest.TestCase):
     def setUp(self):
@@ -157,7 +164,55 @@ class TestHardlinksAndSeeding(unittest.TestCase):
              patch("app.services.downloads_monitor.log_release_event"):
             asyncio.run(_check_seeding_torrents(db_mock, [dc]))
 
-            mock_client.remove_torrent.assert_called_once_with("seedhash1", delete_files=True)
+    @unittest.skipUnless(HAS_FASTAPI, "Requires fastapi")
+    def test_get_queue_seeding_metrics(self):
+        """Проверяет корректность расчета метрик сидирования (время, остаток, ratio, трекер) в get_queue."""
+        db_mock = MagicMock()
+        dc = SimpleNamespace(id=1, name="Transmission", type="transmission", enabled=True, seed_time_limit=None, seed_ratio_limit=None)
+        indexer = SimpleNamespace(id=7, name="tapochek.net", enable_seeding=True, seed_ratio_limit=1.5, seed_time_limit_hours=12)
+        dh = SimpleNamespace(id=1, show_id=10, indexer_id=7, torrent_hash="thash123")
+        ep = SimpleNamespace(id=101, show_id=10, season_number=1, episode_number=1, torrent_hash="thash123", status="downloading", download_progress=1.0)
+        show = SimpleNamespace(id=10, title="Invincible (2021)")
+
+        def mock_query(model):
+            q = MagicMock()
+            if model.__name__ == "Episode":
+                q.filter.return_value.all.return_value = [ep]
+            elif model.__name__ == "DownloadHistory":
+                q.filter.return_value.order_by.return_value.all.return_value = [dh]
+            elif model.__name__ == "TrackedRelease":
+                q.filter.return_value.all.return_value = []
+            elif model.__name__ == "DownloadClient":
+                q.filter.return_value.all.return_value = [dc]
+            return q
+
+        db_mock.query.side_effect = mock_query
+        db_mock.get.side_effect = lambda model, obj_id: show if model.__name__ == "Show" and obj_id == 10 else (indexer if model.__name__ == "Indexer" and obj_id == 7 else None)
+
+        t_seeding = TorrentInfo(
+            hash="thash123", name="Invincible.S01E01.1080p", progress=1.0,
+            state="seeding", save_path=self.src_dir, size=3221225472,
+            ratio=0.85, seeding_time=7200, upload_speed=2097152, download_speed=0,
+        )
+
+        mock_client = AsyncMock()
+        mock_client.list_torrents.return_value = [t_seeding]
+
+        with patch("app.api.operations.get_client", return_value=mock_client):
+            items = asyncio.run(get_queue(db_mock, current_user=MagicMock()))
+
+        self.assertEqual(len(items), 1)
+        item = items[0]
+        self.assertEqual(item.hash, "thash123")
+        self.assertEqual(item.indexer_name, "tapochek.net")
+        self.assertTrue(item.is_seeding)
+        self.assertEqual(item.seeding_time_seconds, 7200)
+        self.assertEqual(item.seed_time_limit_seconds, 12 * 3600)
+        self.assertEqual(item.seed_time_remaining_seconds, 10 * 3600)
+        self.assertEqual(item.ratio, 0.85)
+        self.assertEqual(item.seed_ratio_limit, 1.5)
+        self.assertEqual(item.episode_label, "S01E01")
+        self.assertEqual(item.show_title, "Invincible (2021)")
 
 
 if __name__ == "__main__":

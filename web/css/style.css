@@ -1717,31 +1717,26 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #queue-table th:nth-child(2),
 #queue-table td:nth-child(2) {
-  width: 130px;
+  width: 120px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(3),
 #queue-table td:nth-child(3) {
-  width: 110px;
+  width: 190px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(4),
 #queue-table td:nth-child(4) {
-  width: 140px;
+  width: 190px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(5),
 #queue-table td:nth-child(5) {
-  width: 180px;
+  width: 110px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(6),
 #queue-table td:nth-child(6) {
-  width: 110px;
-  white-space: nowrap;
-}
-#queue-table th:nth-child(7),
-#queue-table td:nth-child(7) {
   width: 80px;
   text-align: right;
   white-space: nowrap;
@@ -7024,17 +7019,69 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   border-radius: var(--radius-sm, 6px);
 }
 
+.queue-speed-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 140px;
+}
+
 .queue-speed-badge {
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--primary);
+  color: var(--teal, #00F0FF);
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.queue-speed-up {
+  color: #38bdf8;
+}
+
+.queue-speed-down {
+  color: #34d399;
 }
 
 .queue-eta-badge {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
+}
+
+.queue-seed-timer {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.queue-seed-left {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #fbbf24;
+  font-weight: 500;
+}
+
+.queue-seed-ratio {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.queue-indexer-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  margin-right: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  vertical-align: middle;
 }
 
 /* Backup Badges & Radio Cards */

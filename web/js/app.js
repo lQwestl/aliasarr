@@ -337,7 +337,7 @@ const TRANSLATIONS = {
     // Activity & History
     "activity.search_wanted": "Искать wanted-серии сейчас",
     "activity.check_and_import": "Проверить и перенести",
-    "activity.col_name": "Имя",
+    "activity.col_name": "Заголовок / Серии",
     "activity.col_client": "Клиент",
     "activity.col_progress": "Прогресс",
     "activity.col_status": "Статус",
@@ -1111,7 +1111,7 @@ const TRANSLATIONS = {
     "settings.ssl_btn_goto_http": "Перейти на HTTP",
     "users.btn_setup_2fa": "Настроить 2FA для пользователя",
     "users.btn_disable_2fa": "Сбросить / отключить 2FA",
-    "activity.col_speed": "Скорость / ETA",
+    "activity.col_speed": "Скорость / Раздача",
     "activity.delete_files_label": "Удалить скачанные файлы с диска",
     "activity.remove_title": "Удаление загрузки",
     "settings.extra_file_extensions": "Расширения дополнительных файлов",
@@ -1512,7 +1512,7 @@ const TRANSLATIONS = {
     // Activity & History
     "activity.search_wanted": "Search wanted episodes now",
     "activity.check_and_import": "Check & Import",
-    "activity.col_name": "Name",
+    "activity.col_name": "Title / Episodes",
     "activity.col_client": "Client",
     "activity.col_progress": "Progress",
     "activity.col_status": "Status",
@@ -2286,7 +2286,7 @@ const TRANSLATIONS = {
     "settings.ssl_btn_goto_http": "Go to HTTP",
     "users.btn_setup_2fa": "Setup 2FA for user",
     "users.btn_disable_2fa": "Reset / disable 2FA",
-    "activity.col_speed": "Speed / ETA",
+    "activity.col_speed": "Speed / Seeding",
     "activity.delete_files_label": "Delete downloaded files from disk",
     "activity.remove_title": "Remove Download",
     "settings.extra_file_extensions": "Extra File Extensions",
@@ -3943,6 +3943,26 @@ function formatSize(bytes) {
   let i = 0, val = bytes;
   while (val >= 1024 && i < units.length - 1) { val /= 1024; i++; }
   return `${val.toFixed(1)} ${units[i]}`;
+}
+
+function formatDuration(seconds) {
+  if (seconds == null || isNaN(seconds) || seconds <= 0) return "0" + (CURRENT_LANG === "en" ? "s" : "с");
+  const s = Math.round(seconds);
+  if (s < 60) return `${s}${CURRENT_LANG === "en" ? "s" : "с"}`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}${CURRENT_LANG === "en" ? "m" : "м"}`;
+  const h = Math.floor(m / 60);
+  const remM = m % 60;
+  if (h < 24) {
+    return remM > 0
+      ? `${h}${CURRENT_LANG === "en" ? "h " : "ч "}${remM}${CURRENT_LANG === "en" ? "m" : "м"}`
+      : `${h}${CURRENT_LANG === "en" ? "h" : "ч"}`;
+  }
+  const d = Math.floor(h / 24);
+  const remH = h % 24;
+  return remH > 0
+    ? `${d}${CURRENT_LANG === "en" ? "d " : "д "}${remH}${CURRENT_LANG === "en" ? "h" : "ч"}`
+    : `${d}${CURRENT_LANG === "en" ? "d" : "д"}`;
 }
 
 function setElText(id, text) {
@@ -9439,44 +9459,102 @@ async function loadQueue() {
                        (i.state || "").toLowerCase().includes("stop") ||
                        (i.state || "").toLowerCase().includes("halt") ||
                        i.state === "0";
-      const speedStr = i.download_speed > 0 ? `${(i.download_speed / (1024 * 1024)).toFixed(1)} MB/s` : "—";
-      const etaStr = i.time_left || "—";
+      const isDone = (i.progress != null && i.progress >= 0.999) || (i.is_seeding);
+      const isSeeding = i.is_seeding || isDone;
+
+      // 1. Колонка Имя / Серии / Трекер
       const showLabel = i.show_title ? `<div style="font-weight:600; color:var(--text);">${escapeHtml(i.show_title)}</div>` : "";
       const epBadge = i.episode_label ? `<span class="badge badge-primary" style="margin-right:4px;">${escapeHtml(i.episode_label)}</span>` : "";
-      const toggleTitle = isPaused
-        ? (CURRENT_LANG === "en" ? "Resume download" : "Возобновить раздачу")
-        : (CURRENT_LANG === "en" ? "Pause download" : "Приостановить раздачу");
-      const toggleIcon = isPaused ? "play" : "pause";
+      const indexerBadge = i.indexer_name ? `<span class="badge queue-indexer-badge" title="${escapeHtml(i.indexer_name)}">${escapeHtml(i.indexer_name)}</span>` : "";
 
+      // 2. Колонка Скорость / Сидирование
+      let speedCellHtml = "";
+      if (isSeeding) {
+        // Скорость отдачи
+        const upSpeedStr = (i.upload_speed && i.upload_speed > 0)
+          ? `<div class="queue-speed-badge queue-speed-up"><i data-lucide="arrow-up" class="ico-xs"></i>${(i.upload_speed / (1024 * 1024)).toFixed(1)} MB/s</div>`
+          : `<div class="queue-speed-badge" style="color:var(--text-muted);"><i data-lucide="arrow-up" class="ico-xs"></i>—</div>`;
+
+        // Таймер раздачи
+        let timerHtml = "";
+        const seededStr = formatDuration(i.seeding_time_seconds || 0);
+        if (i.seed_time_limit_seconds != null && i.seed_time_limit_seconds > 0) {
+          const limitStr = formatDuration(i.seed_time_limit_seconds);
+          const remStr = formatDuration(i.seed_time_remaining_seconds != null ? i.seed_time_remaining_seconds : Math.max(0, i.seed_time_limit_seconds - (i.seeding_time_seconds || 0)));
+          timerHtml = `
+            <div class="queue-seed-timer" title="${CURRENT_LANG === "en" ? "Seeding time / Limit" : "Время раздачи / Лимит"}">
+              <i data-lucide="clock" class="ico-xs" style="color:var(--primary);"></i>${seededStr} / ${limitStr}
+            </div>
+            <div class="queue-seed-left" title="${CURRENT_LANG === "en" ? "Remaining seed time" : "Осталось раздавать"}">
+              ${CURRENT_LANG === "en" ? "Left:" : "Осталось:"} ${remStr}
+            </div>`;
+        } else {
+          timerHtml = `
+            <div class="queue-seed-timer" title="${CURRENT_LANG === "en" ? "Seeding time (unlimited)" : "Время раздачи (без лимита)"}">
+              <i data-lucide="clock" class="ico-xs" style="color:var(--text-muted);"></i>${seededStr} (∞)
+            </div>`;
+        }
+
+        // Ratio
+        let ratioHtml = "";
+        const curRatio = (i.ratio != null ? Number(i.ratio) : 0).toFixed(2);
+        if (i.seed_ratio_limit != null && i.seed_ratio_limit > 0) {
+          ratioHtml = `<div class="queue-seed-ratio" title="${CURRENT_LANG === "en" ? "Ratio / Ratio Limit" : "Коэффициент Ratio / Лимит"}">Ratio: ${curRatio} / ${Number(i.seed_ratio_limit).toFixed(2)}</div>`;
+        } else if (i.ratio != null && i.ratio > 0) {
+          ratioHtml = `<div class="queue-seed-ratio" title="${CURRENT_LANG === "en" ? "Current Ratio" : "Текущий Ratio"}">Ratio: ${curRatio}</div>`;
+        }
+
+        speedCellHtml = `
+          <div class="queue-speed-cell">
+            ${upSpeedStr}
+            ${timerHtml}
+            ${ratioHtml}
+          </div>`;
+      } else {
+        // Скачивание
+        const downSpeedStr = (i.download_speed && i.download_speed > 0)
+          ? `<div class="queue-speed-badge queue-speed-down"><i data-lucide="arrow-down" class="ico-xs"></i>${(i.download_speed / (1024 * 1024)).toFixed(1)} MB/s</div>`
+          : `<div class="queue-speed-badge" style="color:var(--text-muted);"><i data-lucide="arrow-down" class="ico-xs"></i>—</div>`;
+        const etaStr = i.time_left || "—";
+        speedCellHtml = `
+          <div class="queue-speed-cell">
+            ${downSpeedStr}
+            <div class="queue-eta-badge">${etaStr !== "—" ? `ETA: ${etaStr}` : ""}</div>
+          </div>`;
+      }
+
+      // 3. Колонка Прогресс
       const progressVal = Math.min(100, Math.max(0, pct(i.progress)));
-      const isDone = progressVal >= 100 || (i.progress != null && i.progress >= 0.999);
       const downloadedBytes = isDone ? (i.size || 0) : ((i.size || 0) * (i.progress || 0));
-
       let pctBadgeClass = "badge-primary";
       if (isDone) {
         pctBadgeClass = "badge-success";
       } else if (isPaused) {
         pctBadgeClass = "badge-secondary";
       }
-
       const progressFillStyle = isDone
         ? "width:100%; background:#10b981;"
         : `width:${progressVal}%;`;
+      const sizeBadgeText = isDone
+        ? formatSize(i.size || 0)
+        : `${formatSize(downloadedBytes)} / ${formatSize(i.size || 0)}`;
+
+      // 4. Действия
+      const toggleTitle = isPaused
+        ? (CURRENT_LANG === "en" ? "Resume" : "Возобновить")
+        : (CURRENT_LANG === "en" ? "Pause" : "Приостановить");
+      const toggleIcon = isPaused ? "play" : "pause";
 
       return `
         <tr>
           <td>
             ${showLabel}
             <div class="mono ellipsis-cell" style="font-size:12px; color:var(--text-muted);" title="${escapeHtml(i.name)}">
-              ${epBadge}${escapeHtml(i.name)}
+              ${epBadge}${indexerBadge}${escapeHtml(i.name)}
             </div>
           </td>
           <td><span class="badge badge-secondary">${escapeHtml(i.download_client)}</span></td>
-          <td><span class="badge badge-secondary queue-size-badge">${formatSize(i.size)}</span></td>
-          <td>
-            <div class="queue-speed-badge">${speedStr}</div>
-            <div class="queue-eta-badge">${etaStr !== "—" ? `ETA: ${etaStr}` : ""}</div>
-          </td>
+          <td>${speedCellHtml}</td>
           <td>
             <div class="queue-progress-bar-wrap">
               <div class="queue-progress-bar">
@@ -9484,12 +9562,12 @@ async function loadQueue() {
               </div>
               <div class="queue-progress-meta">
                 <span class="badge ${pctBadgeClass} queue-progress-pct-badge">${progressVal}%</span>
-                <span class="badge badge-secondary queue-progress-size-badge" title="${formatSize(downloadedBytes)} / ${formatSize(i.size || 0)}">${formatSize(downloadedBytes)}</span>
+                <span class="badge badge-secondary queue-progress-size-badge" title="${sizeBadgeText}">${sizeBadgeText}</span>
               </div>
             </div>
           </td>
           <td>
-            <span class="badge ${isPaused ? "badge-secondary" : "badge-accent"}">${escapeHtml(i.state)}</span>
+            <span class="badge ${isPaused ? "badge-secondary" : (isDone ? "badge-success" : "badge-accent")}">${escapeHtml(i.state)}</span>
           </td>
           <td>
             ${canManage ? `
@@ -9504,7 +9582,7 @@ async function loadQueue() {
             ` : ""}
           </td>
         </tr>`;
-    }).join("") || `<tr><td colspan="7" style="color:var(--text-muted); text-align:center; padding:30px;">${t("activity.empty")}</td></tr>`;
+    }).join("") || `<tr><td colspan="6" style="color:var(--text-muted); text-align:center; padding:30px;">${t("activity.empty")}</td></tr>`;
     if (window.lucide) lucide.createIcons();
   } catch (e) {}
 }
