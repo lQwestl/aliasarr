@@ -245,6 +245,7 @@ class SearchResultOut(BaseModel):
     """Результат поиска релиза с результатом матчинга, качеством, очками форматов и решением DecisionEngine."""
     title: str
     indexer: str
+    indexer_id: Optional[int] = None
     guid: str
     download_url: Optional[str] = None
     page_url: Optional[str] = None

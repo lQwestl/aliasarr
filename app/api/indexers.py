@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import logging
+import os
 from typing import Any, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -328,6 +329,7 @@ async def search_custom_releases(
                 SearchResultOut(
                     title=rel.title,
                     indexer=indexer.name,
+                    indexer_id=indexer.id,
                     guid=rel.guid,
                     download_url=rel.download_url,
                     page_url=rel.page_url,
@@ -482,6 +484,7 @@ async def search_releases_for_show(
                 SearchResultOut(
                     title=rel.title,
                     indexer=indexer.name,
+                    indexer_id=indexer.id,
                     guid=rel.guid,
                     download_url=rel.download_url,
                     page_url=rel.page_url,

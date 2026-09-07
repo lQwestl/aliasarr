@@ -9048,6 +9048,7 @@ async function grabRelease(button, showId, result) {
           page_url: result.page_url || result.guid || null,
           season: INTERACTIVE_SEARCH_STATE.season,
           episode: INTERACTIVE_SEARCH_STATE.episode,
+          indexer_id: result.indexer_id || null,
         }),
       });
       toast(t("history.event.grabbed"));

@@ -24,19 +24,34 @@ class TestHardlinksAndSeeding(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_transfer_media_file_move_when_not_seeding(self):
-        """Без сидирования (keep_source=False) файл перемещается, источник удаляется."""
+    def test_transfer_media_file_move_when_not_seeding_and_no_hardlinks(self):
+        """Без сидирования (keep_source=False) и без хардлинков (use_hardlinks=False) файл перемещается, источник удаляется."""
         src_file = os.path.join(self.src_dir, "episode1.mkv")
         dst_file = os.path.join(self.dst_dir, "Show - S01E01.mkv")
         with open(src_file, "wb") as f:
             f.write(b"video data 12345")
 
-        transfer_media_file(src_file, dst_file, keep_source=False, use_hardlinks=True)
+        res = transfer_media_file(src_file, dst_file, keep_source=False, use_hardlinks=False)
 
+        self.assertEqual(res, "move")
         self.assertTrue(os.path.exists(dst_file))
         self.assertFalse(os.path.exists(src_file))
         with open(dst_file, "rb") as f:
             self.assertEqual(f.read(), b"video data 12345")
+
+    def test_transfer_media_file_hardlink_when_hardlinks_enabled(self):
+        """При включенных хардлинках создается жесткая ссылка даже если keep_source=False."""
+        src_file = os.path.join(self.src_dir, "episode1_hl.mkv")
+        dst_file = os.path.join(self.dst_dir, "Show - S01E01_hl.mkv")
+        with open(src_file, "wb") as f:
+            f.write(b"video data hl")
+
+        res = transfer_media_file(src_file, dst_file, keep_source=False, use_hardlinks=True)
+
+        self.assertEqual(res, "hardlink")
+        self.assertTrue(os.path.exists(src_file))
+        self.assertTrue(os.path.exists(dst_file))
+        self.assertEqual(os.stat(src_file).st_ino, os.stat(dst_file).st_ino)
 
     def test_transfer_media_file_hardlink_when_seeding(self):
         """При сидировании с включенными хардлинками создается жесткая ссылка (одинаковый inode, 0 доп. байт)."""

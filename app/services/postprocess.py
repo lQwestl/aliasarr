@@ -238,22 +238,23 @@ def transfer_media_file(
     dst: str,
     keep_source: bool = False,
     use_hardlinks: bool = True,
-) -> None:
+) -> str:
     """
     Переносит или связывает медиафайл:
-    - Если keep_source is True (сидирование включено):
-        - При use_hardlinks is True: пробуем os.link(src, dst). В ZFS / Linux это занимает 0ms и 0 байт на диске.
-          Если os.link падает (например EXDEV — разные точки монтирования / датасеты), делаем fallback на shutil.copy2(src, dst).
-        - При use_hardlinks is False: shutil.copy2(src, dst).
-    - Если keep_source is False:
-        - Пробуем shutil.move(src, dst). При ошибке fallback: shutil.copy2(src, dst) + os.remove(src).
+    1. Если use_hardlinks is True (включено в настройках):
+       Всегда сначала пробуем os.link(src, dst). В ZFS / Linux это занимает 0ms и 0 байт на диске,
+       сохраняя файл в папке загрузок для сидирования.
+    2. Если os.link падает (например EXDEV — разные датасеты / ФС) или use_hardlinks is False:
+       - При keep_source is True (сидирование включено): копируем shutil.copy2(src, dst).
+       - При keep_source is False: перемещаем shutil.move(src, dst).
+    Возвращает способ переноса: 'hardlink', 'copy' или 'move'.
     """
     if not src or not os.path.exists(src):
-        return
+        return "none"
     if not dst:
-        return
+        return "none"
     if os.path.abspath(src) == os.path.abspath(dst):
-        return
+        return "none"
 
     dst_dir = os.path.dirname(dst)
     if dst_dir:
@@ -265,25 +266,35 @@ def transfer_media_file(
         except OSError:
             pass
 
+    if use_hardlinks:
+        try:
+            os.link(src, dst)
+            logger.info("Хардлинк успешно создан: %s -> %s", src, dst)
+            return "hardlink"
+        except OSError as link_err:
+            fallback_mode = "копирование (сохранение раздачи)" if keep_source else "перемещение"
+            logger.warning(
+                "Не удалось создать хардлинк (%s), переключаемся на %s: %s -> %s",
+                link_err, fallback_mode, src, dst,
+            )
+
     if keep_source:
-        if use_hardlinks:
-            try:
-                os.link(src, dst)
-                logger.info("Хардлинк успешно создан: %s -> %s", src, dst)
-                return
-            except OSError as link_err:
-                logger.warning("Не удалось создать хардлинк (%s), переключаемся на копирование: %s -> %s", link_err, src, dst)
         shutil.copy2(src, dst)
         logger.info("Файл скопирован (раздача сохранена): %s -> %s", src, dst)
+        return "copy"
     else:
         try:
             shutil.move(src, dst)
+            logger.info("Файл перемещен: %s -> %s", src, dst)
+            return "move"
         except OSError:
             shutil.copy2(src, dst)
             try:
                 os.remove(src)
             except OSError:
                 pass
+            logger.info("Файл перемещен (fallback copy+remove): %s -> %s", src, dst)
+            return "move"
 
 
 _INVALID_FS_CHARS = re.compile(r'[<>:"/\\|?*]')
@@ -1537,7 +1548,7 @@ def process_download(
                     except OSError:
                         pass
 
-                transfer_media_file(file_path, dest_video_path, keep_source=keep_source, use_hardlinks=use_hardlinks)
+                transfer_res = transfer_media_file(file_path, dest_video_path, keep_source=keep_source, use_hardlinks=use_hardlinks)
                 apply_media_permissions(dest_video_path, is_dir=False)
             except Exception as exc:
                 results.append({"file": file_path, "status": "failed", "reason": str(exc)})
@@ -1688,7 +1699,16 @@ def process_download(
                 "season": season_num,
                 "episode": actual_ep_num,
                 "is_upgrade": is_upgrade,
+                "transfer_mode": transfer_res,
             })
+
+            if transfer_res == "hardlink":
+                action_text = "захардлинкована (раздача сохранена, 0 байт)"
+            elif transfer_res == "copy":
+                action_text = "скопирована (раздача сохранена)"
+            else:
+                action_text = "перемещена"
+
             log_release_event(
                 stage="import",
                 level="success",
@@ -1697,7 +1717,7 @@ def process_download(
                 release_title=os.path.basename(file_path),
                 indexer="Postprocess",
                 message=(
-                    f"Импорт успешен: серия S{season_num:02d}E{actual_ep_num:02d} перемещена в «{os.path.basename(dest_video_path)}» "
+                    f"Импорт успешен: серия S{season_num:02d}E{actual_ep_num:02d} {action_text} в «{os.path.basename(dest_video_path)}» "
                     f"(качество: {quality}, апгрейд: {'да' if is_upgrade else 'нет'})."
                 ),
                 details={
@@ -1708,6 +1728,7 @@ def process_download(
                     "quality": quality,
                     "is_upgrade": is_upgrade,
                     "torrent_hash": torrent_hash,
+                    "transfer_mode": transfer_res,
                 },
                 db=db,
             )
@@ -1979,7 +2000,7 @@ def process_movie_download(
                 os.remove(old_ep.file_path)
             except OSError:
                 pass
-        transfer_media_file(main_file, dest_video_path, keep_source=keep_source, use_hardlinks=use_hardlinks)
+        transfer_res = transfer_media_file(main_file, dest_video_path, keep_source=keep_source, use_hardlinks=use_hardlinks)
         apply_media_permissions(dest_video_path, is_dir=False)
     except Exception as exc:
         return [{"file": main_file, "status": "failed", "reason": str(exc)}]
@@ -2129,6 +2150,13 @@ def process_movie_download(
 
     apply_media_permissions(movie_root, is_dir=True, recursive=True)
 
+    if transfer_res == "hardlink":
+        action_text = "захардлинкован (раздача сохранена, 0 байт)"
+    elif transfer_res == "copy":
+        action_text = "скопирован (раздача сохранена)"
+    else:
+        action_text = "перемещён"
+
     log_release_event(
         stage="import",
         level="success",
@@ -2137,7 +2165,7 @@ def process_movie_download(
         release_title=os.path.basename(main_file),
         indexer="Postprocess",
         message=(
-            f"Импорт фильма успешен: «{show.title}» перемещён в «{os.path.basename(dest_video_path)}» "
+            f"Импорт фильма успешен: «{show.title}» {action_text} в «{os.path.basename(dest_video_path)}» "
             f"(качество: {quality}, апгрейд: {'да' if is_upgrade else 'нет'})."
         ),
         details={
@@ -2146,6 +2174,7 @@ def process_movie_download(
             "quality": quality,
             "is_upgrade": is_upgrade,
             "torrent_hash": torrent_hash,
+            "transfer_mode": transfer_res,
         },
         db=db,
     )

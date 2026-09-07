@@ -105,6 +105,66 @@ class TestManualGrab(unittest.TestCase):
             from app.api.indexers import _background_search_show
             self.assertNotIn(_background_search_show, bg_tasks_added)
 
+    def test_grab_specials_season_zero_with_downloaded_quality_none(self):
+        """Проверяем, что при захвате спецвыпусков (сезон 0) при наличии скачанной серии без downloaded_quality
+        не возникает NameError: name 'os' is not defined (HTTP 500)."""
+        if not HAS_DEPS:
+            self.skipTest('FastAPI / dependencies not installed in host runner')
+
+        mock_db = MagicMock()
+        mock_show = Show(id=3, title="Invincible", content_type="series", quality_profile_id=10)
+        mock_qp = QualityProfile(id=10, name="Any", allowed_qualities=["Bluray-1080p", "WEBDL-1080p", "SDTV"], upgrade_allowed=True)
+
+        sp1 = Episode(
+            id=301,
+            show_id=3,
+            season_number=0,
+            episode_number=1,
+            status=EpisodeStatus.DOWNLOADED,
+            downloaded_quality=None,
+            file_path="/data/serials/Invincible/Specials/Invincible.Atom.Eve.2023.720p.mkv",
+        )
+
+        def mock_get(model, pk):
+            if model == Show:
+                return mock_show
+            if model == QualityProfile:
+                return mock_qp
+            return None
+
+        mock_db.get.side_effect = mock_get
+        mock_db.query.return_value.filter.return_value.all.return_value = [sp1]
+        mock_db.query.return_value.filter.return_value.order_by.return_value.first.return_value = DownloadClient(
+            id=1, name="Transmission", type="transmission", host="localhost", port=9091, enabled=True, is_default=True,
+        )
+
+        req = GrabRequest(
+            show_id=3,
+            download_url="magnet:?xt=urn:btih:specialshash123",
+            release_title="Invincible.Atom.Eve.2023.1080p.WEB-DL",
+            season=0,
+            indexer_id=5,
+        )
+
+        bg_tasks = MagicMock()
+        mock_user = MagicMock()
+
+        with patch("app.api.indexers.get_client") as mock_get_client, \
+             patch("app.api.indexers.get_or_create_settings") as mock_settings, \
+             patch("app.api.indexers.notify_all", new_callable=AsyncMock):
+
+            mock_client = AsyncMock()
+            mock_client.add_torrent.return_value = "specialshash123"
+            mock_get_client.return_value = mock_client
+            mock_settings.return_value.download_folder_series = "/downloads"
+
+            import asyncio
+            res = asyncio.run(grab_release(req, bg_tasks, db=mock_db, current_user=mock_user))
+            self.assertTrue(res["grabbed"])
+            self.assertEqual(res["torrent_hash"], "specialshash123")
+            self.assertEqual(sp1.status, EpisodeStatus.DOWNLOADING)
+            self.assertEqual(sp1.torrent_hash, "specialshash123")
+
 
 if __name__ == "__main__":
     unittest.main()
