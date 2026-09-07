@@ -25,8 +25,8 @@ TORZNAB_NS = {"torznab": "http://torznab.com/schemas/2015/feed"}
 @dataclass
 class TorznabRelease:
     title: str
-    guid: str
-    download_url: Optional[str]     # прямая ссылка на .torrent для загрузчика
+    guid: Optional[str] = None
+    download_url: Optional[str] = None     # прямая ссылка на .torrent для загрузчика
     page_url: Optional[str] = None  # ссылка на страницу темы/раздачи на трекере
     size_bytes: int = 0
     seeders: int = 0

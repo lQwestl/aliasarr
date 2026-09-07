@@ -896,12 +896,14 @@ class TestSeasonQueries(unittest.TestCase):
         releases = [
             TorznabRelease(
                 title="Invincible - S4 - rus WEBDL (LostFilm)",
+                guid="lostfilm-s4",
                 download_url="http://lostfilm.tv/s4.torrent",
                 seeders=10,
                 infohash="s4hash",
             ),
             TorznabRelease(
                 title="Invincible - S1 - rus WEBDL (LostFilm)",
+                guid="lostfilm-s1",
                 download_url="http://lostfilm.tv/s1.torrent",
                 seeders=5,
                 infohash="s1hash",
