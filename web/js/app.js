@@ -3897,6 +3897,38 @@ async function checkConnection() {
   }
 }
 
+function renderRaysLoaderHtml(title = null, subtitle = null, idSuffix = "def") {
+  const loadingWord = (title || t("common.loading") || (CURRENT_LANG === "en" ? "Loading" : "Загрузка")).replace(/[\.…]+$/, "");
+  const subtitleHtml = subtitle ? `<p class="interactive-loader-subtitle">${escapeHtml(subtitle)}</p>` : "";
+  const gradId = `rays-grad-${idSuffix}`;
+  return `
+    <div class="interactive-search-loader-card">
+      <div class="rays-spinner-container">
+        <div class="rays-spinner-ambient-glow"></div>
+        <svg class="rays-spinner-svg" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="22" y1="4" x2="22" y2="11" stroke="url(#${gradId})" stroke-width="3.2" stroke-linecap="round" class="ray ray-1"/>
+          <line x1="34.73" y1="9.27" x2="29.78" y2="14.22" stroke="url(#${gradId})" stroke-width="3.2" stroke-linecap="round" class="ray ray-2"/>
+          <line x1="40" y1="22" x2="33" y2="22" stroke="url(#${gradId})" stroke-width="3.2" stroke-linecap="round" class="ray ray-3"/>
+          <line x1="34.73" y1="34.73" x2="29.78" y2="29.78" stroke="url(#${gradId})" stroke-width="3.2" stroke-linecap="round" class="ray ray-4"/>
+          <line x1="22" y1="40" x2="22" y2="33" stroke="url(#${gradId})" stroke-width="3.2" stroke-linecap="round" class="ray ray-5"/>
+          <line x1="9.27" y1="34.73" x2="14.22" y2="29.78" stroke="url(#${gradId})" stroke-width="3.2" stroke-linecap="round" class="ray ray-6"/>
+          <line x1="4" y1="22" x2="11" y2="22" stroke="url(#${gradId})" stroke-width="3.2" stroke-linecap="round" class="ray ray-7"/>
+          <line x1="9.27" y1="9.27" x2="14.22" y2="14.22" stroke="url(#${gradId})" stroke-width="3.2" stroke-linecap="round" class="ray ray-8"/>
+          <defs>
+            <linearGradient id="${gradId}" x1="4" y1="4" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+              <stop stop-color="var(--teal, #00F0FF)"/>
+              <stop offset="100%" stop-color="var(--violet, #8B5CF6)"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="interactive-loader-text">
+        <span>${loadingWord}<span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span></span>
+      </div>
+      ${subtitleHtml}
+    </div>`;
+}
+
 function escapeHtml(s) {
   return (s || "").toString().replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -7388,7 +7420,7 @@ async function openShowRemapModal(showId) {
 
   const contentEl = document.getElementById("show-remap-modal-content");
   if (!contentEl) return;
-  contentEl.innerHTML = `<div style="text-align:center; padding:36px; color:var(--text-muted);"><div class="spinner" style="margin:0 auto 12px;"></div><p>${t("common.loading")}</p></div>`;
+  contentEl.innerHTML = renderRaysLoaderHtml(null, CURRENT_LANG === "en" ? "Loading show details..." : "Загрузка карточки тайтла…", "remap-init");
 
   openModal("show-remap-modal");
 
@@ -7485,7 +7517,7 @@ async function executeShowRemapSearch() {
   const sourceSelect = document.getElementById("show-remap-source-select");
   const sourceId = sourceSelect ? sourceSelect.value : "all";
 
-  resultsContainer.innerHTML = `<div style="text-align:center; padding:28px; color:var(--text-muted);"><div class="spinner" style="margin:0 auto 8px;"></div><p style="font-size:12px; margin:0;">${t("common.loading")}</p></div>`;
+  resultsContainer.innerHTML = renderRaysLoaderHtml(null, CURRENT_LANG === "en" ? "Searching metadata sources..." : "Поиск в источниках метаданных…", "remap-search");
 
   try {
     let url = `/api/v1/metadata-sources/search?query=${encodeURIComponent(query)}`;
@@ -7804,7 +7836,11 @@ async function openManualImportModal(showId, customFolder = null, seasonFilter =
   CURRENT_MANUAL_IMPORT_SEASON_FILTER = seasonFilter;
   openModal("manual-import-modal");
   const content = document.getElementById("manual-import-modal-content");
-  content.innerHTML = `<div style="padding: 30px; text-align: center;"><p>${t("common.loading")}</p></div>`;
+  const isSpecialsOnly = (seasonFilter === 0);
+  const subtitle = isSpecialsOnly
+    ? (CURRENT_LANG === "en" ? "Scanning folder for specials & OVA files..." : "Поиск спецвыпусков и OVA в папке загрузки…")
+    : (CURRENT_LANG === "en" ? "Scanning folder for media files..." : "Поиск медиафайлов в папке загрузки…");
+  content.innerHTML = renderRaysLoaderHtml(null, subtitle, "manual-import-init");
 
   try {
     let show = null;
@@ -7828,6 +7864,9 @@ async function scanManualImportFolder(showId, folderPath = null) {
   const modalTitle = isSpecialsOnly ? t("manual_import.title_specials") : t("manual_import.title");
   const modalIcon = isSpecialsOnly ? "sparkles" : "hard-drive-download";
   const iconColor = isSpecialsOnly ? "color:#10b981;" : "";
+  const scanSubtitle = isSpecialsOnly
+    ? (CURRENT_LANG === "en" ? "Analyzing files and matching specials..." : "Анализ файлов и сопоставление спецвыпусков…")
+    : (CURRENT_LANG === "en" ? "Analyzing files and matching episodes..." : "Анализ файлов и сопоставление серий…");
 
   content.innerHTML = `
     <div class="manual-import-header">
@@ -7851,9 +7890,7 @@ async function scanManualImportFolder(showId, folderPath = null) {
       <button class="btn btn-primary" onclick="scanManualImportFolder(${showId})"><i data-lucide="search" class="ico-sm"></i> ${t("manual_import.scan")}</button>
     </div>
 
-    <div style="padding: 40px; text-align: center;">
-      <p class="hint">${t("common.loading")}</p>
-    </div>
+    ${renderRaysLoaderHtml(null, scanSubtitle, "manual-import-scan")}
   `;
 
   if (window.lucide) lucide.createIcons();
@@ -8367,7 +8404,8 @@ async function openGlobalManualImportModal(customFolder = null) {
   CURRENT_MANUAL_IMPORT_SHOW_ID = null;
   openModal("manual-import-modal");
   const content = document.getElementById("manual-import-modal-content");
-  content.innerHTML = `<div style="padding: 30px; text-align: center;"><p>${t("common.loading")}</p></div>`;
+  const subtitle = CURRENT_LANG === "en" ? "Preparing manual import..." : "Подготовка к ручному импорту…";
+  content.innerHTML = renderRaysLoaderHtml(null, subtitle, "global-import-init");
 
   try {
     const initialFolder = (customFolder || "").trim();
@@ -8382,6 +8420,7 @@ async function scanGlobalManualImportFolder(folderPath = null) {
   const pathInputVal = document.getElementById("manual-import-path-input")?.value;
   const targetPath = (folderPath !== null ? folderPath : (pathInputVal || "")).trim();
   const currentMode = document.getElementById("manual-import-mode-select")?.value || localStorage.getItem("aliasarr_manual_import_mode") || "move";
+  const scanSubtitle = CURRENT_LANG === "en" ? "Scanning folder across all series and movies..." : "Сканирование папки по всем сериалам и фильмам…";
 
   content.innerHTML = `
     <div class="manual-import-header">
@@ -8405,9 +8444,7 @@ async function scanGlobalManualImportFolder(folderPath = null) {
       <button class="btn btn-primary" onclick="scanGlobalManualImportFolder()"><i data-lucide="search" class="ico-sm"></i> ${t("manual_import.scan")}</button>
     </div>
 
-    <div style="padding: 40px; text-align: center;">
-      <p class="hint">${t("common.loading")}</p>
-    </div>
+    ${renderRaysLoaderHtml(null, scanSubtitle, "global-import-scan")}
   `;
 
   if (window.lucide) lucide.createIcons();
@@ -9066,32 +9103,8 @@ async function executeInteractiveSearch() {
   const searchBtn = document.getElementById("interactive-search-btn");
   const state = INTERACTIVE_SEARCH_STATE;
 
-  bodyEl.innerHTML = `
-    <div class="interactive-search-loader-card">
-      <div class="rays-spinner-container">
-        <div class="rays-spinner-ambient-glow"></div>
-        <svg class="rays-spinner-svg" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <line x1="22" y1="4" x2="22" y2="11" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-1"/>
-          <line x1="34.73" y1="9.27" x2="29.78" y2="14.22" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-2"/>
-          <line x1="40" y1="22" x2="33" y2="22" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-3"/>
-          <line x1="34.73" y1="34.73" x2="29.78" y2="29.78" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-4"/>
-          <line x1="22" y1="40" x2="22" y2="33" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-5"/>
-          <line x1="9.27" y1="34.73" x2="14.22" y2="29.78" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-6"/>
-          <line x1="4" y1="22" x2="11" y2="22" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-7"/>
-          <line x1="9.27" y1="9.27" x2="14.22" y2="14.22" stroke="url(#rays-grad)" stroke-width="3.2" stroke-linecap="round" class="ray ray-8"/>
-          <defs>
-            <linearGradient id="rays-grad" x1="4" y1="4" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-              <stop stop-color="var(--teal, #00F0FF)"/>
-              <stop offset="100%" stop-color="var(--violet, #8B5CF6)"/>
-            </linearGradient>
-          </defs>
-        </svg>
-      </div>
-      <div class="interactive-loader-text">
-        <span>${(t("common.loading") || (CURRENT_LANG === "en" ? "Loading" : "Загрузка")).replace(/[\.…]+$/, "")}<span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span></span>
-      </div>
-      <p class="interactive-loader-subtitle">${CURRENT_LANG === "en" ? "Querying indexers for releases..." : "Опрос трекеров и поиск релизов…"}</p>
-    </div>`;
+  const searchSubtitle = CURRENT_LANG === "en" ? "Querying indexers for releases..." : "Опрос трекеров и поиск релизов…";
+  bodyEl.innerHTML = renderRaysLoaderHtml(null, searchSubtitle, "interactive-search");
   if (window.lucide) lucide.createIcons();
 
   try {
