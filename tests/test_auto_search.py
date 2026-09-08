@@ -730,6 +730,12 @@ class TestSeasonQueries(unittest.TestCase):
         query_terms = getattr(cands, "query_terms", [])
         self.assertTrue(any("ТВ-4" in q or "(ТВ-4)" in q for q in query_terms), f"ТВ-4 missing from queries: {query_terms}")
         self.assertTrue(any("S04" in q for q in query_terms), f"S04 missing from queries: {query_terms}")
+        # Проверяем, что чистые базовые названия стоят перед сезонными запросами (Base First)
+        base_indices = [i for i, q in enumerate(query_terms) if q in ("Re:ZERO", "Re: ZERO, Starting Life in Another World")]
+        season_indices = [i for i, q in enumerate(query_terms) if "ТВ-4" in q or "S04" in q or "Season 4" in q]
+        if base_indices and season_indices:
+            self.assertLess(min(base_indices), min(season_indices))
+        self.assertLessEqual(len(query_terms), 35)
 
     def test_selective_download_tracks_matched_episodes_and_reconciles(self):
         """Проверка того, что evaluate_torrent_file_priority возвращает сматченные серии в out_matched_episodes."""

@@ -1054,7 +1054,16 @@ async def _collect_candidates(
                 _add_query(f"{alias.text} {show.year}")
                 _add_query(f"{alias.text} ({show.year})")
     else:
-        # Для сериалов и аниме - сезонные запросы и мультисезоны
+        # Для сериалов и аниме:
+        # Сначала добавляем чистые базовые названия всех алиасов (Base First),
+        # так как большинство релизов на трекерах раздаются по общему тайтлу (паки / раздачи целиком).
+        for b in key_bases:
+            _add_query(b)
+
+        for alias in alias_candidates:
+            _add_query(alias.text)
+
+        # Сезонные запросы и мультисезоны
         if wanted_episodes:
             wanted_seasons = {
                 ep.season_number
@@ -1072,13 +1081,6 @@ async def _collect_candidates(
                     if is_anime:
                         _add_query(f"{b} (ТВ-{sn})")
                         _add_query(f"{b} ТВ-{sn}")
-
-        # Базовые названия тайтла — обязательны для поиска полных коллекций и паков
-        for b in key_bases:
-            _add_query(b)
-
-        for alias in alias_candidates:
-            _add_query(alias.text)
 
         # Мультисезонные паки при sn > 1
         if wanted_episodes:
@@ -1108,7 +1110,7 @@ async def _collect_candidates(
     indexer_stats: dict[str, int] = {}
     rejected_candidates: list[dict] = []
 
-    active_queries = query_terms[:16]
+    active_queries = query_terms[:35]
 
     # Опрашиваем индексаторы параллельно с пулом семафора, собирая все полученные результаты
     sem = asyncio.Semaphore(8)
@@ -1213,7 +1215,7 @@ async def _collect_candidates(
                 "rel": rel, "match": match, "quality": quality, "indexer": indexer,
             })
 
-    return CandidateList(candidates, query_terms=query_terms, indexer_stats=indexer_stats, rejected_candidates=rejected_candidates)
+    return CandidateList(candidates, query_terms=active_queries, indexer_stats=indexer_stats, rejected_candidates=rejected_candidates)
 
 
 async def _do_search_and_grab(
@@ -1347,7 +1349,7 @@ async def _do_search_and_grab(
             ],
             "indexers_count": len(indexers),
             "wanted_episodes_count": len(wanted_episodes),
-            "queries": query_terms[:25] if query_terms else [a.text for a in alias_candidates],
+            "queries": query_terms[:35] if query_terms else [a.text for a in alias_candidates],
         },
         db=db,
     )
