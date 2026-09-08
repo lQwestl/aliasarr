@@ -2078,76 +2078,6 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     padding: 9px 12px;
     font-size: 13px;
   }
-
-  /* Show Detail Hero Modal on Mobile */
-  .show-hero-content {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 16px 14px;
-    gap: 16px;
-  }
-
-  .show-hero-poster-col {
-    width: 140px;
-    align-items: center;
-  }
-
-  .show-hero-poster {
-    width: 140px;
-    min-height: 210px;
-    font-size: 40px;
-  }
-
-  .show-hero-meta {
-    align-items: center;
-    width: 100%;
-  }
-
-  .show-hero-title-row {
-    justify-content: center;
-  }
-
-  .show-hero-title {
-    font-size: 20px;
-    text-align: center;
-  }
-
-  .show-hero-meta-bar {
-    justify-content: center;
-  }
-
-  .show-hero-badges-row {
-    justify-content: center;
-  }
-
-  .show-path-badge {
-    max-width: 100%;
-  }
-
-  .show-hero-overview {
-    text-align: left;
-    font-size: 12.5px;
-    max-height: 80px;
-  }
-
-  .show-detail-path-actions-bar {
-    justify-content: center;
-    gap: 6px;
-    padding: 8px 10px;
-  }
-
-  .show-detail-path-actions-bar .btn {
-    flex: 1 1 calc(50% - 6px);
-    justify-content: center;
-    font-size: 12px;
-  }
-
-  .show-detail-settings-bar {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 10px 12px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -3885,6 +3815,158 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   gap: 8px;
   flex-wrap: wrap;
   margin: 12px 0 16px 0;
+}
+
+/* Show Detail Hero Modal - Mobile Responsive Overrides */
+@media (max-width: 768px) {
+  .show-hero-content {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    padding: 20px 14px 18px 14px !important;
+    gap: 16px !important;
+  }
+
+  .show-hero-poster-col {
+    width: 190px !important;
+    max-width: 85% !important;
+    margin: 0 auto !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .show-hero-poster {
+    width: 190px !important;
+    max-width: 100% !important;
+    aspect-ratio: 2 / 3 !important;
+    min-height: 285px !important;
+    font-size: 48px !important;
+    margin: 0 auto !important;
+  }
+
+  .show-hero-poster-actions {
+    width: 190px !important;
+    max-width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+    margin: 0 auto !important;
+  }
+
+  .show-hero-poster-actions .btn {
+    flex: 1 !important;
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+    min-height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 8px !important;
+  }
+
+  .show-hero-meta {
+    align-items: center !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .show-hero-title-row {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  .show-hero-title {
+    font-size: 22px !important;
+    text-align: center !important;
+  }
+
+  .show-hero-meta-bar {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  .show-hero-badges-row {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  .show-path-badge {
+    max-width: 100% !important;
+  }
+
+  .show-hero-overview {
+    text-align: left !important;
+    font-size: 12.5px !important;
+    max-height: 90px !important;
+    margin: 4px 0 !important;
+  }
+
+  .show-hero-aliases-block {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .show-hero-aliases-block .alias-manager {
+    justify-content: center !important;
+  }
+
+  .show-hero-aliases-block .alias-add-row {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  .show-detail-path-actions-bar {
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 8px 10px !important;
+  }
+
+  .show-detail-path-actions-bar .btn {
+    flex: 1 1 calc(50% - 6px) !important;
+    justify-content: center !important;
+    font-size: 12px !important;
+    min-height: 36px !important;
+  }
+
+  .show-detail-settings-bar {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    padding: 10px 12px !important;
+  }
+
+  .show-actions-row {
+    justify-content: center !important;
+    gap: 8px !important;
+  }
+
+  .show-actions-row .btn {
+    flex: 1 1 calc(50% - 6px) !important;
+    justify-content: center !important;
+    font-size: 12.5px !important;
+    min-height: 38px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .show-hero-poster-col {
+    width: 180px !important;
+  }
+
+  .show-hero-poster {
+    width: 180px !important;
+    min-height: 270px !important;
+  }
+
+  .show-hero-poster-actions {
+    width: 180px !important;
+  }
+
+  .show-hero-title {
+    font-size: 20px !important;
+  }
 }
 
 .season-block {
