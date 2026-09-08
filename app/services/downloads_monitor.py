@@ -38,13 +38,22 @@ except ImportError:
         def in_(self, other): return self
         def desc(self): return self
         def asc(self): return self
-    DownloadClient = type("DownloadClient", (), {"id": _MockCol(), "name": _MockCol(), "type": _MockCol(), "enabled": _MockCol()})
-    Episode = type("Episode", (), {"id": _MockCol(), "show_id": _MockCol(), "status": _MockCol(), "torrent_hash": _MockCol(), "download_client_id": _MockCol(), "download_progress": _MockCol()})
+
+    class _MockModelMeta(type):
+        def __getattr__(cls, name):
+            return _MockCol()
+
+    class _MockModel(metaclass=_MockModelMeta):
+        def __getattr__(self, name):
+            return _MockCol()
+
+    DownloadClient = type("DownloadClient", (_MockModel,), {"id": _MockCol(), "name": _MockCol(), "type": _MockCol(), "enabled": _MockCol()})
+    Episode = type("Episode", (_MockModel,), {"id": _MockCol(), "show_id": _MockCol(), "status": _MockCol(), "season_number": _MockCol(), "episode_number": _MockCol(), "file_path": _MockCol(), "torrent_hash": _MockCol(), "download_client_id": _MockCol(), "download_progress": _MockCol(), "air_date": _MockCol()})
     EpisodeStatus = type("EpisodeStatus", (), {"DOWNLOADING": "downloading", "DOWNLOADED": "downloaded", "WANTED": "wanted", "MISSING": "missing", "UNAIRED": "unaired"})
-    Show = type("Show", (), {"id": _MockCol(), "title": _MockCol(), "content_type": _MockCol(), "path": _MockCol()})
-    DownloadHistory = type("DownloadHistory", (), {"id": _MockCol(), "show_id": _MockCol(), "indexer_id": _MockCol(), "torrent_hash": _MockCol()})
-    Indexer = type("Indexer", (), {"id": _MockCol(), "name": _MockCol(), "enable_seeding": _MockCol(), "seed_ratio_limit": _MockCol(), "seed_time_limit_hours": _MockCol()})
-    TrackedRelease = type("TrackedRelease", (), {"id": _MockCol(), "show_id": _MockCol(), "indexer_id": _MockCol()})
+    Show = type("Show", (_MockModel,), {"id": _MockCol(), "title": _MockCol(), "content_type": _MockCol(), "path": _MockCol()})
+    DownloadHistory = type("DownloadHistory", (_MockModel,), {"id": _MockCol(), "show_id": _MockCol(), "indexer_id": _MockCol(), "torrent_hash": _MockCol()})
+    Indexer = type("Indexer", (_MockModel,), {"id": _MockCol(), "name": _MockCol(), "enable_seeding": _MockCol(), "seed_ratio_limit": _MockCol(), "seed_time_limit_hours": _MockCol()})
+    TrackedRelease = type("TrackedRelease", (_MockModel,), {"id": _MockCol(), "show_id": _MockCol(), "indexer_id": _MockCol()})
 from app.services.download_client import get_client
 from app.services.postprocess import process_download, process_movie_download, VIDEO_EXTENSIONS
 from app.services.release_log_service import log_release_event
@@ -57,6 +66,31 @@ logger = logging.getLogger("aliasarr.downloads_monitor")
 _COMPLETE_THRESHOLD = 1.0
 _NOTIFIED_PENDING_SPECIALS: set[str] = set()
 _RECONCILED_TORRENTS: set[str] = set()
+_PENDING_MANUAL_IMPORT_TORRENTS: set[str] = set()
+
+
+def mark_torrent_pending_manual_import(torrent_hash: str) -> None:
+    """Регистрирует торрент как ожидающий ручного импорта.
+    Фоновый монитор сидирования никогда не удалит файлы этого торрента до завершения импорта."""
+    if torrent_hash:
+        _PENDING_MANUAL_IMPORT_TORRENTS.add(torrent_hash.lower())
+
+
+def unmark_torrent_pending_manual_import(torrent_hash: str) -> None:
+    """Снимает защиту от удаления после успешного ручного импорта всех файлов."""
+    if torrent_hash:
+        _PENDING_MANUAL_IMPORT_TORRENTS.discard(torrent_hash.lower())
+
+
+def is_torrent_pending_manual_import(torrent_hash: str) -> bool:
+    """Проверяет, защищен ли торрент от удаления ради ручного импорта."""
+    return bool(torrent_hash and torrent_hash.lower() in _PENDING_MANUAL_IMPORT_TORRENTS)
+
+
+def clear_pending_manual_import_torrents() -> None:
+    """Сбрасывает реестр (используется в тестах)."""
+    _PENDING_MANUAL_IMPORT_TORRENTS.clear()
+
 
 
 def _folder_and_template(settings, content_type: str) -> tuple[str, str, str]:
@@ -251,7 +285,7 @@ async def _check_seeding_torrents(db: Session, active_clients: list[DownloadClie
     Проверяет активные раздачи в торрент-клиентах, которые продолжают сидироваться после импорта.
     Когда раздача достигает лимита ratio или времени (заданных в настройках трекера / клиента)
     или завершается клиентом, раздача удаляется из клиента вместе с временными файлами из /data/downloads,
-    ПРИ УСЛОВИИ, что для этой раздачи не осталось неимпортированных серий в статусе DOWNLOADING.
+    ПРИ УСЛОВИИ, что для этой раздачи не осталось неимпортированных серий/спешлов, ожидающих ручного импорта.
     Файлы в медиатеке (хардлинки) остаются в 100% сохранности.
     """
     if not active_clients:
@@ -267,7 +301,11 @@ async def _check_seeding_torrents(db: Session, active_clients: list[DownloadClie
                 th_lower = t.hash.lower()
                 state_str = str(getattr(t, "state", "")).lower()
 
-                # Проверяем, есть ли неимпортированные серии в статусе DOWNLOADING для этого torrent_hash
+                # 1. Если торрент зарегистрирован в _PENDING_MANUAL_IMPORT_TORRENTS — строго запрещено удалять!
+                if is_torrent_pending_manual_import(th_lower):
+                    continue
+
+                # 2. Проверяем, есть ли неимпортированные серии в статусе DOWNLOADING для этого torrent_hash
                 pending_eps_count = 0
                 try:
                     c_val = (
@@ -285,26 +323,111 @@ async def _check_seeding_torrents(db: Session, active_clients: list[DownloadClie
 
                 if pending_eps_count > 0:
                     # Раздача содержит неимпортированные файлы (например, спешлы), ожидающие ручного импорта.
-                    # Запрещено удалять файлы с диска!
+                    mark_torrent_pending_manual_import(th_lower)
                     continue
 
-                # Ищем запись в DownloadHistory
+                # 3. Ищем запись в DownloadHistory или серии тайтла
                 dh = (
                     db.query(DownloadHistory)
                     .filter(
                         func.lower(DownloadHistory.torrent_hash) == th_lower,
-                        DownloadHistory.indexer_id.isnot(None),
                     )
                     .order_by(DownloadHistory.id.desc())
                     .first()
                 )
+                show_id = dh.show_id if (dh and getattr(dh, "show_id", None)) else None
+                if not show_id:
+                    try:
+                        any_ep = db.query(Episode).filter(func.lower(Episode.torrent_hash) == th_lower).first()
+                        if any_ep:
+                            show_id = any_ep.show_id
+                    except Exception:
+                        pass
 
-                indexer = db.get(Indexer, dh.indexer_id) if (dh and dh.indexer_id) else None
+                if show_id:
+                    # Проверяем, есть ли у шоу неимпортированные спецвыпуски
+                    try:
+                        unimported_specials_count = (
+                            db.query(Episode)
+                            .filter(
+                                Episode.show_id == show_id,
+                                Episode.season_number == 0,
+                                Episode.status.in_([EpisodeStatus.DOWNLOADING, EpisodeStatus.WANTED]),
+                                Episode.file_path.is_(None),
+                            )
+                            .count()
+                        )
+                        if isinstance(unimported_specials_count, (int, float)) and unimported_specials_count > 0:
+                            mark_torrent_pending_manual_import(th_lower)
+                            continue
+                    except Exception:
+                        pass
+
+                    # Проверяем наличие неимпортированных видеофайлов на диске в торренте
+                    try:
+                        settings = get_or_create_settings(db)
+                        show_obj = db.get(Show, show_id)
+                        if show_obj and hasattr(show_obj, "title"):
+                            _, t_files = _resolve_torrent_files_and_path(t, settings, show_obj)
+                            if t_files:
+                                from app.services.postprocess import VIDEO_EXTENSIONS
+                                video_t_files = [
+                                    f for f in t_files
+                                    if os.path.splitext(f)[1].lower() in VIDEO_EXTENSIONS and os.path.exists(f)
+                                ]
+                                if video_t_files:
+                                    show_eps = (
+                                        db.query(Episode)
+                                        .filter(Episode.show_id == show_id, Episode.file_path.isnot(None))
+                                        .all()
+                                    )
+                                    show_file_paths = [os.path.abspath(ep.file_path) for ep in show_eps if getattr(ep, "file_path", None)]
+
+                                    def _file_is_imported(f_path: str) -> bool:
+                                        f_abs = os.path.abspath(f_path)
+                                        for lib_fp in show_file_paths:
+                                            if f_abs == lib_fp:
+                                                return True
+                                            try:
+                                                if os.path.exists(lib_fp) and os.path.samefile(f_abs, lib_fp):
+                                                    return True
+                                            except (OSError, ValueError):
+                                                pass
+                                        return False
+
+                                    unimported_disk_files = [f for f in video_t_files if not _file_is_imported(f)]
+                                    if unimported_disk_files:
+                                        mark_torrent_pending_manual_import(th_lower)
+                                        logger.info(
+                                            "DownloadsMonitor: Раздача «%s» содержит %d неимпортированных видеофайлов на диске. "
+                                            "Удаление заблокировано до завершения ручного импорта.",
+                                            getattr(t, "name", t.hash), len(unimported_disk_files),
+                                        )
+                                        continue
+                    except Exception as disk_chk_err:
+                        logger.debug("DownloadsMonitor: Ошибка проверки файлов на диске: %s", disk_chk_err)
+
+                indexer = db.get(Indexer, dh.indexer_id) if (dh and getattr(dh, "indexer_id", None)) else None
+                if not indexer and show_id:
+                    try:
+                        tr = (
+                            db.query(TrackedRelease)
+                            .filter(TrackedRelease.show_id == show_id)
+                            .order_by(TrackedRelease.id.desc())
+                            .first()
+                        )
+                        if tr and getattr(tr, "indexer_id", None):
+                            potential_idx = db.get(Indexer, tr.indexer_id)
+                            if isinstance(potential_idx, Indexer):
+                                indexer = potential_idx
+                    except Exception:
+                        pass
+
                 is_seeding_enabled = bool(indexer and getattr(indexer, "enable_seeding", False))
 
                 if not is_seeding_enabled:
                     # Если сидирование для трекера выключено (или трекер не задан), но раздача оставалась в клиенте
-                    # ради ручного импорта (который теперь завершен — pending_eps_count == 0):
+                    # ради ручного импорта (который теперь завершен — все серии импортированы):
                     has_downloaded_eps = False
                     try:
                         has_downloaded_eps = (
@@ -752,6 +875,7 @@ async def check_downloads(db: Session) -> list[dict]:
 
         is_specials_only = bool(eps and all(ep.season_number == 0 for ep in eps))
         if is_specials_only:
+            mark_torrent_pending_manual_import(torrent_hash)
             # Спецвыпуски (Сезон 0) скачаны на 100%.
             # Чтобы исключить ошибки нумерации нестандартных OVA/SP, не выполняем автоматический
             # перенос файлов, а переводим прогресс в 100% и ожидаем подтверждения сопоставления
@@ -944,8 +1068,37 @@ async def check_downloads(db: Session) -> list[dict]:
                     except Exception:
                         pending_downloading_count = 0
 
+                if unimported_video_results and show and torrent_hash:
+                    # Привязываем неимпортированные спецвыпуски шоу к этому торренту,
+                    # чтобы в интерфейсе они отображались как 100% скачанные и готовые к ручному импорту,
+                    # а не «в поиске», и фоновый монитор сидирования не удалил раздачу
+                    show_specials = (
+                        db.query(Episode)
+                        .filter(
+                            Episode.show_id == show.id,
+                            Episode.season_number == 0,
+                            Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.UNAIRED, EpisodeStatus.DOWNLOADING]),
+                        )
+                        .all()
+                    )
+                    for sp_ep in show_specials:
+                        if not getattr(sp_ep, "file_path", None):
+                            sp_ep.status = EpisodeStatus.DOWNLOADING
+                            sp_ep.torrent_hash = torrent_hash
+                            sp_ep.download_progress = 1.0
+                            if dc_row:
+                                sp_ep.download_client_id = dc_row.id
+                            db.add(sp_ep)
+                    if show_specials:
+                        progress_changed = True
+                        db.commit()
+                        pending_downloading_count = len(show_specials)
+
                 has_pending_eps = pending_downloading_count > 0
                 has_unimported_content = bool(unimported_video_results or has_pending_eps)
+
+                if has_unimported_content and torrent_hash:
+                    mark_torrent_pending_manual_import(torrent_hash)
 
                 if imported_items:
                     from app.services.notifications import notify_all
@@ -1140,6 +1293,7 @@ async def check_downloads(db: Session) -> list[dict]:
                     if has_unimported_content:
                         # ЗАЩИТА: В раздаче остались неимпортированные файлы (спешлы / ручной импорт).
                         # НЕ удаляем раздачу и файлы из папки загрузок!
+                        mark_torrent_pending_manual_import(torrent_hash)
                         try:
                             client = get_client(dc_row)
                             if not is_seeding_enabled and hasattr(client, "pause_torrent"):

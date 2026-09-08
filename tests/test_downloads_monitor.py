@@ -654,6 +654,7 @@ class TestDownloadsMonitor(unittest.TestCase):
                 [ep_season, ep_special],  # downloading episodes
                 [dc],                     # active clients
                 [ep_season, ep_special],  # all_show_eps in reconcile
+                [ep_special],             # show_specials for unimported content
             ]
             filter_mock.count.return_value = 1  # 1 episode (special) remains in DOWNLOADING
 
@@ -799,8 +800,8 @@ class TestDownloadsMonitor(unittest.TestCase):
         filter_mock = MagicMock()
         query_mock.filter.return_value = filter_mock
 
-        # pending eps count = 0, downloaded eps count = 2
-        filter_mock.count.side_effect = [0, 2]
+        # pending eps count = 0, unimported specials count = 0, downloaded eps count = 2
+        filter_mock.count.side_effect = [0, 0, 2]
 
         dh = SimpleNamespace(id=1, indexer_id=10, show_id=1, torrent_hash="hash-cleaned")
         indexer = SimpleNamespace(id=10, name="Tracker", enable_seeding=False)
@@ -827,6 +828,245 @@ class TestDownloadsMonitor(unittest.TestCase):
             # Должен быть удален с delete_files=True
             self.assertEqual(len(fake_client.remove_torrent_called), 1)
             self.assertEqual(fake_client.remove_torrent_called[0], ("hash-cleaned", True))
+
+    def test_specials_preserved_during_seeding_check_and_downloads_monitor(self):
+        """
+        Проверяет полный цикл:
+        1. Раздача содержит сезон + нераспознанные спешлы.
+        2. check_downloads импортирует сезон, привязывает спешлы к раздаче со статусом DOWNLOADING и регистрирует в _PENDING_MANUAL_IMPORT_TORRENTS.
+        3. _check_seeding_torrents при выключенном сидировании НЕ удаляет раздачу.
+        """
+        from app.services.downloads_monitor import (
+            _PENDING_MANUAL_IMPORT_TORRENTS,
+            clear_pending_manual_import_torrents,
+            is_torrent_pending_manual_import,
+            _check_seeding_torrents,
+        )
+        import tempfile
+
+        clear_pending_manual_import_torrents()
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            pack_dir = os.path.join(tmp_dir, "Occult Academy S01 + Specials")
+            os.makedirs(pack_dir, exist_ok=True)
+            f_path = os.path.join(pack_dir, "S01E01.mkv")
+            with open(f_path, "wb") as f:
+                f.write(b"video")
+
+            th = "hash-occult-special"
+            show = SimpleNamespace(id=7, title="Occult Academy", content_type="anime", monitored=True, path="/media/anime/Occult", ova_mode="auto")
+            dc = SimpleNamespace(id=1, name="Transmission", type="transmission", enabled=True, seed_time_limit=None, seed_ratio_limit=None)
+
+            # Сезонная серия (скачана на 100%) и спешл (в поиске WANTED)
+            ep_season = SimpleNamespace(
+                id=701, show_id=7, season_number=1, episode_number=1,
+                status="downloading", torrent_hash=th,
+                download_client_id=1, download_progress=1.0, file_path=None,
+            )
+            ep_special = SimpleNamespace(
+                id=702, show_id=7, season_number=0, episode_number=1,
+                status="wanted", torrent_hash=None,
+                download_client_id=None, download_progress=0.0, file_path=None,
+            )
+
+            db_mock = MagicMock()
+
+            def fake_query(*args):
+                q = MagicMock()
+                f = MagicMock()
+                q.filter.return_value = f
+                model = args[0] if args else None
+                m_str = repr(model) if model is not None else ""
+                if "Episode" in m_str:
+                    f.all.return_value = [ep_season, ep_special]
+                    f.count.return_value = 1
+                elif "DownloadClient" in m_str:
+                    f.all.return_value = [dc]
+                    f.count.return_value = 1
+                else:
+                    f.all.return_value = []
+                    f.count.return_value = 0
+                    f.first.return_value = None
+                return q
+
+            db_mock.query.side_effect = fake_query
+            db_mock.get.return_value = show
+
+            fake_client = FakeClient([
+                TorrentInfo(
+                    hash=th,
+                    name="Occult Academy S01 + Specials",
+                    progress=1.0,
+                    state="seeding",
+                    save_path=tmp_dir,
+                    size=5000000000,
+                    left_until_done=0,
+                )
+            ])
+
+            import_results = [
+                {"file": "/tmp/S01E01.mkv", "status": "imported", "dest": "/media/anime/Occult/Season 01/S01E01.mkv"},
+                {"file": "/tmp/SP01.mkv", "status": "skipped", "reason": "не удалось сопоставить спецвыпуск"},
+            ]
+
+            settings = SimpleNamespace(root_folder="", root_folder_anime="/media/anime", rename_template_anime="", season_folder_template_anime="")
+            with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+                 patch("app.services.downloads_monitor.get_client", return_value=fake_client), \
+                 patch("app.services.downloads_monitor._run_postprocess_in_thread", return_value=import_results), \
+                 patch("app.services.downloads_monitor.log_release_event"), \
+                 patch("app.services.notifications.notify_all", new_callable=AsyncMock):
+
+                asyncio.run(check_downloads(db_mock))
+
+                # 1. Проверяем, что спешл переведен в DOWNLOADING с 100% прогрессом и хэшем раздачи
+                self.assertEqual(ep_special.status, "downloading")
+                self.assertEqual(ep_special.torrent_hash, th)
+                self.assertEqual(ep_special.download_progress, 1.0)
+
+                # 2. Проверяем, что торрент зарегистрирован в _PENDING_MANUAL_IMPORT_TORRENTS
+                self.assertTrue(is_torrent_pending_manual_import(th))
+
+                # 3. Проверяем, что раздача НЕ удалена из клиента и поставлена на паузу
+                self.assertEqual(len(fake_client.remove_torrent_called), 0)
+                self.assertIn(th, fake_client.pause_torrent_called)
+
+            # Теперь запускаем _check_seeding_torrents при выключенном сидировании
+            with patch("app.services.downloads_monitor.get_client", return_value=fake_client):
+                asyncio.run(_check_seeding_torrents(db_mock, [dc]))
+                # Торрент все еще НЕ должен быть удален, так как он в _PENDING_MANUAL_IMPORT_TORRENTS
+                self.assertEqual(len(fake_client.remove_torrent_called), 0)
+
+        finally:
+            clear_pending_manual_import_torrents()
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    def test_manual_import_clears_pending_protection_and_allows_cleanup(self):
+        """Проверяет, что после завершения ручного импорта защита снимается и раздача удаляется при отсутствии сидирования."""
+        from app.services.downloads_monitor import (
+            mark_torrent_pending_manual_import,
+            unmark_torrent_pending_manual_import,
+            is_torrent_pending_manual_import,
+            clear_pending_manual_import_torrents,
+            _check_seeding_torrents,
+        )
+
+        clear_pending_manual_import_torrents()
+        th = "hash-completed-after-manual"
+        mark_torrent_pending_manual_import(th)
+        self.assertTrue(is_torrent_pending_manual_import(th))
+
+        # Имитируем завершение ручного импорта
+        unmark_torrent_pending_manual_import(th)
+        self.assertFalse(is_torrent_pending_manual_import(th))
+
+        # Проверяем, что теперь _check_seeding_torrents может очистить раздачу
+        db_mock = MagicMock()
+        query_mock = MagicMock()
+        db_mock.query.return_value = query_mock
+        filter_mock = MagicMock()
+        query_mock.filter.return_value = filter_mock
+
+        # pending=0, unimported_specials=0, downloaded_eps=1
+        filter_mock.count.side_effect = [0, 0, 1]
+
+        dh = SimpleNamespace(id=1, indexer_id=10, show_id=1, torrent_hash=th)
+        indexer = SimpleNamespace(id=10, name="Tracker", enable_seeding=False)
+
+        order_mock = MagicMock()
+        filter_mock.order_by.return_value = order_mock
+        order_mock.first.return_value = dh
+
+        db_mock.get.return_value = indexer
+
+        torrent = TorrentInfo(
+            hash=th,
+            name="Occult S01 Complete",
+            progress=1.0,
+            state="paused",
+            save_path="/tmp",
+            size=1000,
+        )
+        fake_client = FakeClient([torrent])
+        dc = SimpleNamespace(id=1, name="Transmission", type="transmission", enabled=True)
+
+        with patch("app.services.downloads_monitor.get_client", return_value=fake_client):
+            asyncio.run(_check_seeding_torrents(db_mock, [dc]))
+            # Торрент успешно удален с диска после завершения всех импортов
+            self.assertEqual(len(fake_client.remove_torrent_called), 1)
+            self.assertEqual(fake_client.remove_torrent_called[0], (th, True))
+
+        clear_pending_manual_import_torrents()
+
+    def test_disk_files_protection_survives_restart(self):
+        """Проверяет защиту раздачи по неимпортированным видеофайлам на диске даже при пустом in-memory реестре."""
+        from app.services.downloads_monitor import (
+            clear_pending_manual_import_torrents,
+            is_torrent_pending_manual_import,
+            _check_seeding_torrents,
+        )
+        import tempfile
+
+        clear_pending_manual_import_torrents()
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            th = "hash-disk-protected"
+            show = SimpleNamespace(id=8, title="Test Anime", content_type="anime", monitored=True, path="/media/anime/Test")
+            dc = SimpleNamespace(id=1, name="Transmission", type="transmission", enabled=True)
+
+            # Создаем на диске файл спешла
+            sp_file = os.path.join(tmp_dir, "SP01.mkv")
+            with open(sp_file, "wb") as f:
+                f.write(b"video content")
+
+            db_mock = MagicMock()
+            query_mock = MagicMock()
+            db_mock.query.return_value = query_mock
+            filter_mock = MagicMock()
+            query_mock.filter.return_value = filter_mock
+
+            # pending_eps=0, unimported_specials=0 (например, если в БД нет записей о спешлах)
+            filter_mock.count.side_effect = [0, 0]
+
+            dh = SimpleNamespace(id=1, indexer_id=10, show_id=8, torrent_hash=th)
+            indexer = SimpleNamespace(id=10, name="Tracker", enable_seeding=False)
+
+            order_mock = MagicMock()
+            filter_mock.order_by.return_value = order_mock
+            order_mock.first.return_value = dh
+
+            # db.get(Show, 8) -> show, db.get(Indexer, 10) -> indexer
+            def fake_get(model, obj_id):
+                if model.__name__ == "Show" or getattr(model, "__name__", "") == "Show":
+                    return show
+                return indexer
+
+            db_mock.get.side_effect = fake_get
+
+            # Серии шоу в библиотеке (нет SP01)
+            filter_mock.all.return_value = []
+
+            torrent = TorrentInfo(
+                hash=th,
+                name="Test Anime + SP",
+                progress=1.0,
+                state="paused",
+                save_path=tmp_dir,
+                size=1000,
+                files=[SimpleNamespace(name="SP01.mkv", priority=1, index=0)],
+            )
+            fake_client = FakeClient([torrent])
+
+            with patch("app.services.downloads_monitor.get_client", return_value=fake_client), \
+                 patch("app.services.downloads_monitor.get_or_create_settings", return_value=SimpleNamespace()):
+                asyncio.run(_check_seeding_torrents(db_mock, [dc]))
+
+                # Торрент НЕ должен быть удален, так как на диске найден неимпортированный видеофайл
+                self.assertEqual(len(fake_client.remove_torrent_called), 0)
+                # Торрент снова зарегистрирован в _PENDING_MANUAL_IMPORT_TORRENTS
+                self.assertTrue(is_torrent_pending_manual_import(th))
+        finally:
+            clear_pending_manual_import_torrents()
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":

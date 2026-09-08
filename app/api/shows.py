@@ -2033,7 +2033,44 @@ def execute_manual_import(
 
         db.commit()
 
+        # Снимаем защиту ручного импорта для торрентов, у которых больше не осталось неимпортированных серий
+        try:
+            from app.services.downloads_monitor import unmark_torrent_pending_manual_import
+            affected_hashes = set()
+            for it in payload.items:
+                ep_obj = db.get(Episode, it.episode_id) if getattr(it, "episode_id", None) else None
+                if ep_obj and getattr(ep_obj, "torrent_hash", None):
+                    affected_hashes.add(ep_obj.torrent_hash.lower())
 
+            # Также проверяем историю загрузок шоу
+            dh_list = db.query(DownloadHistory).filter(DownloadHistory.show_id == show.id).all()
+            for dh in dh_list:
+                if getattr(dh, "torrent_hash", None):
+                    affected_hashes.add(dh.torrent_hash.lower())
+
+            for th in affected_hashes:
+                rem_downloading = (
+                    db.query(Episode)
+                    .filter(
+                        func.lower(Episode.torrent_hash) == th,
+                        Episode.status == EpisodeStatus.DOWNLOADING,
+                    )
+                    .count()
+                )
+                rem_specials = (
+                    db.query(Episode)
+                    .filter(
+                        Episode.show_id == show.id,
+                        Episode.season_number == 0,
+                        Episode.status.in_([EpisodeStatus.DOWNLOADING, EpisodeStatus.WANTED]),
+                        Episode.file_path.is_(None),
+                    )
+                    .count()
+                )
+                if rem_downloading == 0 and rem_specials == 0:
+                    unmark_torrent_pending_manual_import(th)
+        except Exception as unmark_err:
+            logger.debug("Ошибка unmark_torrent_pending_manual_import: %s", unmark_err)
 
         log_audit(
             db,
@@ -2487,6 +2524,39 @@ def execute_global_manual_import(
                         apply_media_permissions(s_root, is_dir=True, recursive=True)
 
         db.commit()
+
+        # Снимаем защиту ручного импорта для торрентов, у которых больше не осталось неимпортированных серий
+        try:
+            from app.services.downloads_monitor import unmark_torrent_pending_manual_import
+            affected_hashes = set()
+            affected_shows = set()
+            for it in payload.items:
+                if getattr(it, "show_id", None):
+                    affected_shows.add(it.show_id)
+                ep_obj = db.get(Episode, it.episode_id) if getattr(it, "episode_id", None) else None
+                if ep_obj and getattr(ep_obj, "torrent_hash", None):
+                    affected_hashes.add(ep_obj.torrent_hash.lower())
+
+            for s_id in affected_shows:
+                dh_list = db.query(DownloadHistory).filter(DownloadHistory.show_id == s_id).all()
+                for dh in dh_list:
+                    if getattr(dh, "torrent_hash", None):
+                        affected_hashes.add(dh.torrent_hash.lower())
+
+            for th in affected_hashes:
+                rem_downloading = (
+                    db.query(Episode)
+                    .filter(
+                        func.lower(Episode.torrent_hash) == th,
+                        Episode.status == EpisodeStatus.DOWNLOADING,
+                    )
+                    .count()
+                )
+                if rem_downloading == 0:
+                    unmark_torrent_pending_manual_import(th)
+        except Exception as unmark_err:
+            logger.debug("Ошибка unmark_torrent_pending_manual_import в global: %s", unmark_err)
+
         log_audit(
             db,
             "manual_import",
