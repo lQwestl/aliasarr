@@ -7576,6 +7576,7 @@ async function applyShowRemap(showId) {
     const res = await api(`/api/v1/shows/${showId}/remap`, {
       method: "POST",
       body: JSON.stringify({
+        external_id: extId,
         new_metadata_id: extId,
         cleanup_unlinked_episodes: cleanupUnlinked,
         update_title: updateTitle,

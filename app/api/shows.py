@@ -2789,7 +2789,8 @@ async def refresh_single_show_metadata(
 
 
 class ShowRemapIn(BaseModel):
-    external_id: str
+    external_id: Optional[str] = None
+    new_metadata_id: Optional[str] = None
     source_type: Optional[str] = None
     cleanup_unlinked_episodes: bool = True
     update_title: bool = True
@@ -2812,9 +2813,9 @@ async def remap_show_metadata(
     if not show:
         raise HTTPException(404, "Карточка не найдена")
 
-    ext_str = str(payload.external_id or "").strip()
+    ext_str = str(payload.external_id or payload.new_metadata_id or "").strip()
     if not ext_str:
-        raise HTTPException(400, "Не указан external_id метаданных")
+        raise HTTPException(400, "Не указан external_id / new_metadata_id метаданных")
 
     is_movie = getattr(show, "content_type", None) == "movie"
     source = None

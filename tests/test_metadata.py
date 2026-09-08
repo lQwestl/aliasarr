@@ -549,6 +549,7 @@ class TestShowRemapLogic(unittest.TestCase):
                 mock_get_client.return_value = mock_client
 
                 payload = ShowRemapIn(
+                    external_id="tvdb:445566",
                     new_metadata_id="tvdb:445566",
                     cleanup_unlinked_episodes=True,
                     update_title=True,
