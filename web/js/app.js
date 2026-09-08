@@ -7873,8 +7873,8 @@ async function scanManualImportFolder(showId, folderPath = null) {
   const currentMode = document.getElementById("manual-import-mode-select")?.value || localStorage.getItem("aliasarr_manual_import_mode") || "move";
   const isSpecialsOnly = (CURRENT_MANUAL_IMPORT_SEASON_FILTER === 0);
   const modalTitle = isSpecialsOnly ? t("manual_import.title_specials") : t("manual_import.title");
-  const modalIcon = isSpecialsOnly ? "sparkles" : "hard-drive-download";
-  const iconColor = isSpecialsOnly ? "color:#10b981;" : "";
+  const modalIcon = "hard-drive-download";
+  const iconColor = "";
   const scanSubtitle = isSpecialsOnly
     ? (CURRENT_LANG === "en" ? "Analyzing files and matching specials..." : "Анализ файлов и сопоставление спецвыпусков…")
     : (CURRENT_LANG === "en" ? "Analyzing files and matching episodes..." : "Анализ файлов и сопоставление серий…");
@@ -7943,8 +7943,8 @@ function renderManualImportView(showId, data) {
   const currentMode = document.getElementById("manual-import-mode-select")?.value || localStorage.getItem("aliasarr_manual_import_mode") || "move";
   const isSpecialsOnly = (CURRENT_MANUAL_IMPORT_SEASON_FILTER === 0);
   const modalTitle = isSpecialsOnly ? t("manual_import.title_specials") : t("manual_import.title");
-  const modalIcon = isSpecialsOnly ? "sparkles" : "hard-drive-download";
-  const iconColor = isSpecialsOnly ? "color:#10b981;" : "";
+  const modalIcon = "hard-drive-download";
+  const iconColor = "";
 
   let showInfo = null;
   try {
