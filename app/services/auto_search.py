@@ -1072,8 +1072,8 @@ async def _collect_candidates(
             }
             is_anime = getattr(show, "content_type", "series") == "anime"
             for sn in sorted(wanted_seasons):
-                # Самые результативные сезонные запросы
-                for b in key_bases:
+                # Самые результативные сезонные запросы для ключевых баз
+                for b in key_bases[:3]:
                     _add_query(f"{b} Season {sn}")
                     _add_query(f"{b} Сезон {sn}")
                     _add_query(f"{b} S{sn:02d}")
@@ -1086,7 +1086,7 @@ async def _collect_candidates(
         if wanted_episodes:
             for sn in sorted(wanted_seasons):
                 if sn > 1:
-                    for b in key_bases:
+                    for b in key_bases[:2]:
                         _add_query(f"{b} S01-S{sn:02d}")
                         _add_query(f"{b} 1-{sn} сезон")
                         _add_query(f"{b} Seasons 1-{sn}")
@@ -1107,7 +1107,7 @@ async def _collect_candidates(
 
     seen_guids: set[str] = set()
     candidates: list[dict] = []
-    indexer_stats: dict[str, int] = {}
+    indexer_stats: dict[str, int] = {getattr(idx, "name", "Indexer"): 0 for idx in indexers}
     rejected_candidates: list[dict] = []
 
     active_queries = query_terms[:35]
@@ -1119,8 +1119,11 @@ async def _collect_candidates(
         async with sem:
             try:
                 client = get_indexer_client(idx)
-                rels = await asyncio.wait_for(client.search(q_term), timeout=10.0)
+                rels = await asyncio.wait_for(client.search(q_term), timeout=15.0)
                 return (idx, rels)
+            except asyncio.TimeoutError:
+                logger.warning("Индексатор %s: таймаут (15с) при запросе «%s»", getattr(idx, "name", idx), q_term)
+                return (idx, [])
             except Exception as exc:
                 logger.debug("Индексатор %s запрос «%s»: %s", getattr(idx, "name", idx), q_term, exc)
                 return (idx, [])
