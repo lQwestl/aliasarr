@@ -155,7 +155,7 @@ async def test_indexer(
         raise HTTPException(404, "Indexer not found")
 
     client = get_indexer_client(indexer)
-    now_utc = dt.datetime.now(dt.UTC)
+    now_utc = dt.datetime.now(dt.timezone.utc)
     try:
         releases = await client.search("test")
         indexer.last_check_at = now_utc
