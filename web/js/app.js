@@ -5966,8 +5966,10 @@ async function refreshShowModal() {
 
     content.innerHTML = `
       <div class="show-hero-container">
-        ${show.poster_url ? `<div class="show-hero-backdrop" ${backdropStyle}></div>` : ""}
-        <div class="show-hero-gradient"></div>
+        <div class="show-hero-backdrop-wrap">
+          ${show.poster_url ? `<div class="show-hero-backdrop" ${backdropStyle}></div>` : ""}
+          <div class="show-hero-gradient"></div>
+        </div>
 
         <div class="show-hero-content">
           <div class="show-hero-poster-col">

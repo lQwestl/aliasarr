@@ -3553,11 +3553,20 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .show-hero-container {
   position: relative;
   border-radius: 14px;
-  overflow: hidden;
+  overflow: visible !important;
   margin-bottom: 14px;
   background: var(--panel-alt);
   border: 1px solid var(--border);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.show-hero-backdrop-wrap {
+  position: absolute;
+  inset: 0;
+  border-radius: 13px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .show-hero-backdrop {
@@ -3568,6 +3577,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   filter: blur(40px) saturate(1.5) brightness(0.35);
   transform: scale(1.15);
   pointer-events: none;
+  border-radius: 13px;
+  clip-path: inset(0 round 13px);
   z-index: 1;
 }
 
@@ -3578,6 +3589,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
               linear-gradient(0deg, rgba(8, 12, 22, 0.95) 0%, rgba(8, 12, 22, 0.3) 60%, transparent 100%);
   z-index: 2;
   pointer-events: none;
+  border-radius: 13px;
+  clip-path: inset(0 round 13px);
 }
 
 [data-theme="light"] .show-hero-gradient {
@@ -10988,10 +11001,11 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .show-links-popover {
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
-  z-index: 1100;
+  right: 0;
+  left: auto;
+  z-index: 1200;
   min-width: 260px;
-  max-width: 440px;
+  max-width: min(440px, 90vw);
   background: var(--panel-alt, #18181b);
   border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
   border-radius: 8px;
@@ -11009,7 +11023,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   content: "";
   position: absolute;
   top: -6px;
-  left: 14px;
+  right: 18px;
+  left: auto;
   width: 0;
   height: 0;
   border-left: 6px solid transparent;
@@ -11022,7 +11037,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   content: "";
   position: absolute;
   top: -7px;
-  left: 13px;
+  right: 17px;
+  left: auto;
   width: 0;
   height: 0;
   border-left: 7px solid transparent;
