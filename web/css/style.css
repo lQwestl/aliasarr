@@ -2271,7 +2271,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 #queue-table th:nth-child(1),
 #queue-table td:nth-child(1) {
   width: auto;
-  min-width: 150px;
+  min-width: 160px;
 }
 .queue-title-cell {
   display: flex;
@@ -2317,27 +2317,17 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #queue-table th:nth-child(4),
 #queue-table td:nth-child(4) {
-  width: 200px;
+  width: 240px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(5),
 #queue-table td:nth-child(5) {
-  width: 140px;
-  white-space: nowrap;
-}
-.queue-status-cell {
-  display: flex;
-  align-items: center;
-  margin-top: 12px;
-}
-#queue-table th:nth-child(6),
-#queue-table td:nth-child(6) {
   width: 76px;
   text-align: right;
   white-space: nowrap;
 }
 .queue-actions-cell {
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 /* Events, Journal and Release Logs Table Layouts */
@@ -8015,29 +8005,84 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 /* Activity Queue Styles */
-.queue-progress-bar-wrap {
+.queue-progress-column {
   display: flex;
   flex-direction: column;
   gap: 6px;
   width: 100%;
-  max-width: 190px;
+  max-width: 220px;
 }
 
-.queue-progress-bar {
+.queue-status-bar {
+  position: relative;
   width: 100%;
-  height: 6px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  height: 22px;
+  border-radius: var(--radius-sm, 6px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
-.queue-progress-fill {
+.queue-status-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
   height: 100%;
-  background: linear-gradient(90deg, #6366f1 0%, var(--teal, #00F0FF) 100%);
-  transition: width 0.4s ease;
-  border-radius: 4px;
+  border-radius: inherit;
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1;
+}
+
+.queue-status-bar-text {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+  padding: 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Status variants */
+.queue-status-bar.status-downloading {
+  border-color: rgba(0, 240, 255, 0.35);
+  background: rgba(0, 240, 255, 0.06);
+}
+.queue-status-bar.status-downloading .queue-status-bar-fill {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.9) 0%, rgba(0, 240, 255, 0.95) 100%);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+}
+
+.queue-status-bar.status-seeding {
+  border-color: rgba(52, 211, 153, 0.35);
+  background: rgba(52, 211, 153, 0.06);
+}
+.queue-status-bar.status-seeding .queue-status-bar-fill {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.9) 0%, rgba(52, 211, 153, 0.95) 100%);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.35);
+}
+
+.queue-status-bar.status-paused {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+.queue-status-bar.status-paused .queue-status-bar-fill {
+  background: rgba(255, 255, 255, 0.15);
+}
+.queue-status-bar.status-paused .queue-status-bar-text {
+  color: var(--text-muted);
 }
 
 .queue-progress-meta {

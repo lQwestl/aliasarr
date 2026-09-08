@@ -9838,14 +9838,23 @@ async function loadQueue() {
       const progressVal = Math.min(100, Math.max(0, pct(i.progress)));
       const downloadedBytes = isDone ? (i.size || 0) : ((i.size || 0) * (i.progress || 0));
       let pctBadgeClass = "badge-primary";
-      if (isDone) {
-        pctBadgeClass = "badge-success";
-      } else if (isPaused) {
+      let statusClass = "status-downloading";
+      const rawState = (i.state || "").toLowerCase();
+      let stateLabel = i.state || (isDone ? "seeding" : "downloading");
+
+      if (isPaused) {
         pctBadgeClass = "badge-secondary";
+        statusClass = "status-paused";
+      } else if (isDone || rawState.includes("seed") || rawState.includes("complete") || rawState.includes("upload")) {
+        pctBadgeClass = "badge-success";
+        statusClass = "status-seeding";
+        if (!i.state) stateLabel = "seeding";
+      } else if (rawState.includes("download") || rawState.includes("leech")) {
+        pctBadgeClass = "badge-primary";
+        statusClass = "status-downloading";
       }
-      const progressFillStyle = isDone
-        ? "width:100%; background:#10b981;"
-        : `width:${progressVal}%;`;
+
+      const progressFillStyle = `width:${progressVal}%;`;
       const sizeBadgeText = isDone
         ? formatSize(i.size || 0)
         : formatProgressSize(downloadedBytes, i.size || 0);
@@ -9872,19 +9881,15 @@ async function loadQueue() {
           </td>
           <td>${speedCellHtml}</td>
           <td>
-            <div class="queue-progress-bar-wrap">
-              <div class="queue-progress-bar">
-                <div class="queue-progress-fill" style="${progressFillStyle}"></div>
+            <div class="queue-progress-column">
+              <div class="queue-status-bar ${statusClass}" title="${escapeHtml(stateLabel)} (${progressVal}%)">
+                <div class="queue-status-bar-fill" style="${progressFillStyle}"></div>
+                <span class="queue-status-bar-text">${escapeHtml(stateLabel)}</span>
               </div>
               <div class="queue-progress-meta">
                 <span class="badge ${pctBadgeClass} queue-progress-pct-badge">${progressVal}%</span>
                 <span class="badge badge-secondary queue-progress-size-badge" title="${sizeBadgeText}">${sizeBadgeText}</span>
               </div>
-            </div>
-          </td>
-          <td>
-            <div class="queue-status-cell">
-              <span class="badge ${isPaused ? "badge-secondary" : (isDone ? "badge-success" : "badge-accent")}">${escapeHtml(i.state)}</span>
             </div>
           </td>
           <td>
@@ -9900,7 +9905,7 @@ async function loadQueue() {
             ` : ""}
           </td>
         </tr>`;
-    }).join("") || `<tr><td colspan="6" style="color:var(--text-muted); text-align:center; padding:30px;">${t("activity.empty")}</td></tr>`;
+    }).join("") || `<tr><td colspan="5" style="color:var(--text-muted); text-align:center; padding:30px;">${t("activity.empty")}</td></tr>`;
     if (window.lucide) lucide.createIcons();
   } catch (e) {}
 }
