@@ -12388,6 +12388,9 @@ async function testIndexer(button, id) {
       const result = await api(`/api/v1/indexers/${id}/test`, { method: "POST" });
       const msg = result.message || (result.success ? (CURRENT_LANG === "en" ? "Connection test successful" : "Тест подключения: успешно") : (CURRENT_LANG === "en" ? "Connection test failed" : "Тест подключения: ошибка"));
       toast(msg, !result.success);
+      if (document.getElementById("indexers-table")) {
+        loadIndexers();
+      }
     } catch (e) { toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true); }
   });
 }

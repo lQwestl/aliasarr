@@ -149,16 +149,29 @@ async def test_indexer(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_indexers")),
 ):
-    """Проверка связи: делает тестовый запрос к индексатору и возвращает результат."""
+    """Проверка связи: делает тестовый запрос к индексатору и возвращает результат с фиксацией доступности в БД."""
     indexer = db.get(Indexer, indexer_id)
     if not indexer:
         raise HTTPException(404, "Indexer not found")
 
     client = get_indexer_client(indexer)
+    now_utc = dt.datetime.now(dt.UTC)
     try:
         releases = await client.search("test")
+        indexer.last_check_at = now_utc
+        indexer.last_check_ok = True
+        indexer.consecutive_failures = 0
+        db.add(indexer)
+        db.commit()
+        db.refresh(indexer)
         return {"success": True, "message": f"Индексатор ответил, найдено релизов: {len(releases)}"}
     except Exception as exc:
+        indexer.last_check_at = now_utc
+        indexer.last_check_ok = False
+        indexer.consecutive_failures = (indexer.consecutive_failures or 0) + 1
+        db.add(indexer)
+        db.commit()
+        db.refresh(indexer)
         return {"success": False, "message": f"Не удалось подключиться: {exc}"}
 
 
@@ -208,7 +221,7 @@ async def check_indexer_availability(
         if attempt < attempts and delay > 0:
             await asyncio.sleep(delay)
 
-    indexer.last_check_at = dt.datetime.utcnow()
+    indexer.last_check_at = dt.datetime.now(dt.UTC)
     indexer.last_check_ok = ok
     if ok:
         indexer.consecutive_failures = 0
