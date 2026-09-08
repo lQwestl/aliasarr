@@ -1667,11 +1667,11 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
   gap: 16px;
-  margin-top: 16px;
+  margin-top: 14px;
   max-height: 60vh;
   overflow-y: auto;
-  padding: 4px;
-  padding-bottom: 12px;
+  overflow-x: hidden;
+  padding: 10px 8px 18px 8px;
 }
 
 .metadata-poster-card {
@@ -1694,9 +1694,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .metadata-poster-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
   border-color: var(--teal);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--teal);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--teal);
+  z-index: 5;
 }
 
 .metadata-poster-card:active {
