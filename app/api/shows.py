@@ -1793,15 +1793,16 @@ def execute_manual_import(
     apply_media_permissions(show_root, is_dir=True)
 
     season_template = (
-        (settings.season_folder_template_anime if show.content_type == "anime" else settings.season_folder_template_series)
+        (getattr(settings, "season_folder_template_anime", None) if show.content_type == "anime" else getattr(settings, "season_folder_template_series", None))
+        or getattr(settings, "media_naming_season_folder", None)
         or "Season {season:02d}"
     )
     if show.content_type == "movie":
-        rename_template = settings.rename_template_movie or "{Movie Title} ({Release Year}) {Quality Full}"
+        rename_template = getattr(settings, "rename_template_movie", None) or getattr(settings, "media_naming_movie", None) or "{Movie Title} ({Release Year}) {Quality Full}"
     elif show.content_type == "anime":
-        rename_template = settings.rename_template_anime or "{Series Title} - S{season:02d}E{episode:02d} - {Episode Title}"
+        rename_template = getattr(settings, "rename_template_anime", None) or getattr(settings, "media_naming_episode", None) or "{Series Title} - S{season:02d}E{episode:02d} - {Episode Title}"
     else:
-        rename_template = settings.rename_template_series or "{Series Title} - S{season:02d}E{episode:02d} - {Episode Title}"
+        rename_template = getattr(settings, "rename_template_series", None) or getattr(settings, "media_naming_episode", None) or "{Series Title} - S{season:02d}E{episode:02d} - {Episode Title}"
 
     imported_count = 0
     errors: list[str] = []
@@ -2379,15 +2380,16 @@ def execute_global_manual_import(
             apply_media_permissions(show_root, is_dir=True)
 
             season_template = (
-                (settings.season_folder_template_anime if show.content_type == "anime" else settings.season_folder_template_series)
+                (getattr(settings, "season_folder_template_anime", None) if show.content_type == "anime" else getattr(settings, "season_folder_template_series", None))
+                or getattr(settings, "media_naming_season_folder", None)
                 or "Season {season:02d}"
             )
             if show.content_type == "movie":
-                rename_template = settings.rename_template_movie or "{Movie Title} ({Release Year}) {Quality Full}"
+                rename_template = getattr(settings, "rename_template_movie", None) or getattr(settings, "media_naming_movie", None) or "{Movie Title} ({Release Year}) {Quality Full}"
             elif show.content_type == "anime":
-                rename_template = settings.rename_template_anime or "{Series Title} - S{season:02d}E{episode:02d} - {Episode Title}"
+                rename_template = getattr(settings, "rename_template_anime", None) or getattr(settings, "media_naming_episode", None) or "{Series Title} - S{season:02d}E{episode:02d} - {Episode Title}"
             else:
-                rename_template = settings.rename_template_series or "{Series Title} - S{season:02d}E{episode:02d} - {Episode Title}"
+                rename_template = getattr(settings, "rename_template_series", None) or getattr(settings, "media_naming_episode", None) or "{Series Title} - S{season:02d}E{episode:02d} - {Episode Title}"
 
             season_folder = ""
             if show.content_type != "movie" and season_template and season_template.strip():
@@ -2867,10 +2869,10 @@ def preview_rename_show(
                 season_folder = old_rel_dir
             else:
                 season_tpl = (
-                    settings.season_folder_template_anime
+                    getattr(settings, "season_folder_template_anime", None)
                     if show.content_type == "anime"
-                    else settings.season_folder_template_series
-                ) or "Сезон {season}"
+                    else getattr(settings, "season_folder_template_series", None)
+                ) or getattr(settings, "media_naming_season_folder", None) or "Сезон {season}"
                 season_folder = FileNameBuilder.build_season_folder_name(season_tpl, ep.season_number or 1)
             new_rel_path = os.path.normpath(os.path.join(season_folder, new_filename))
 
@@ -2983,10 +2985,10 @@ def execute_rename_show(
                 season_folder = old_rel_dir
             else:
                 season_tpl = (
-                    settings.season_folder_template_anime
+                    getattr(settings, "season_folder_template_anime", None)
                     if show.content_type == "anime"
-                    else settings.season_folder_template_series
-                ) or "Сезон {season}"
+                    else getattr(settings, "season_folder_template_series", None)
+                ) or getattr(settings, "media_naming_season_folder", None) or "Сезон {season}"
                 season_folder = FileNameBuilder.build_season_folder_name(season_tpl, ep.season_number or 1)
             new_rel_path = os.path.normpath(os.path.join(season_folder, new_filename))
 
