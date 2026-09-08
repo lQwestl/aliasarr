@@ -1483,12 +1483,15 @@ async def get_specials_import_status(
 ):
     """
     Проверяет, есть ли завершенные или ожидающие ручного импорта спецвыпуски для данного шоу.
+    Готовыми к импорту считаются спецвыпуски, если:
+    1. Они ещё не импортированы в библиотеку (status != DOWNLOADED и нет file_path).
+    2. Раздача реально существует в торрент-клиенте и завершена на 100%.
     """
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
 
-    # Ищем спецвыпуски со статусом downloading / прогресс >= 0.99 или с torrent_hash
+    # Ищем спецвыпуски, которые ещё НЕ скачаны/импортированы
     specials = (
         db.query(Episode)
         .filter(Episode.show_id == show.id, Episode.season_number == 0)
@@ -1497,56 +1500,63 @@ async def get_specials_import_status(
 
     pending_specials = [
         ep for ep in specials
-        if ep.status == EpisodeStatus.DOWNLOADING or (ep.torrent_hash and (ep.download_progress or 0) >= 0.99)
+        if ep.status != EpisodeStatus.DOWNLOADED
+        and not getattr(ep, "file_path", None)
+        and (
+            ep.status == EpisodeStatus.DOWNLOADING
+            or (ep.torrent_hash and (ep.download_progress or 0) >= 0.99)
+        )
     ]
 
     if not pending_specials:
         return SpecialsImportStatusOut(has_pending_specials=False, pending_folder=None, pending_count=0)
 
-    # Определяем torrent_hash и ищем путь к папке загрузки
-    target_hash = None
-    client_id = None
+    # Собираем все уникальные torrent_hash для неимпортированных спецвыпусков
+    target_hashes = []
     for ep in pending_specials:
-        if ep.torrent_hash:
-            target_hash = ep.torrent_hash
-            client_id = ep.download_client_id
-            break
+        if ep.torrent_hash and ep.torrent_hash not in target_hashes:
+            target_hashes.append(ep.torrent_hash)
 
-    pending_folder = None
-    if target_hash:
-        settings = get_or_create_settings(db)
-        clients = db.query(DownloadClient).filter_by(enabled=True).all()
+    if not target_hashes:
+        return SpecialsImportStatusOut(has_pending_specials=False, pending_folder=None, pending_count=0)
+
+    settings = get_or_create_settings(db)
+    clients = db.query(DownloadClient).filter_by(enabled=True).all()
+    completed_folder = None
+    confirmed_hash = None
+
+    for thash in target_hashes:
         for dc in clients:
-            if client_id and dc.id != client_id:
-                continue
             try:
                 from app.services.download_client import get_client
                 cl = get_client(dc)
-                t = await cl.get_torrent(target_hash)
+                t = await cl.get_torrent(thash)
                 if t:
-                    from app.services.downloads_monitor import _resolve_torrent_files_and_path
-                    p, _ = _resolve_torrent_files_and_path(t, settings, show)
-                    if p:
-                        pending_folder = p
+                    # Раздача должна реально существовать в клиенте и быть завершена на 100%
+                    is_completed = (
+                        (t.progress or 0.0) >= 0.999
+                        or str(getattr(t, "state", "")).lower() in ("seeding", "completed", "complete", "uploading")
+                    )
+                    if is_completed:
+                        from app.services.downloads_monitor import _resolve_torrent_files_and_path
+                        p, _ = _resolve_torrent_files_and_path(t, settings, show)
+                        completed_folder = p or show.path
+                        confirmed_hash = thash
                         break
             except Exception:
                 pass
+        if completed_folder:
+            break
 
-    if not pending_folder:
-        settings = get_or_create_settings(db)
-        cat_folder = (
-            getattr(settings, "download_folder_anime", "")
-            if show.content_type == "anime"
-            else (getattr(settings, "download_folder_movies", "") if show.content_type == "movie" else getattr(settings, "download_folder_series", ""))
-        ) or getattr(settings, "download_folder", "") or ""
-        pending_folder = cat_folder or show.path
+    if completed_folder and confirmed_hash:
+        return SpecialsImportStatusOut(
+            has_pending_specials=True,
+            pending_folder=completed_folder,
+            pending_count=len(pending_specials),
+            torrent_hash=confirmed_hash,
+        )
 
-    return SpecialsImportStatusOut(
-        has_pending_specials=True,
-        pending_folder=pending_folder,
-        pending_count=len(pending_specials),
-        torrent_hash=target_hash,
-    )
+    return SpecialsImportStatusOut(has_pending_specials=False, pending_folder=None, pending_count=0)
 
 
 @router.post("/{show_id}/manual-import/scan", response_model=ManualImportScanOut)

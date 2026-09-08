@@ -356,13 +356,14 @@ class TestManualImportLogic(unittest.TestCase):
         """Проверяет эндпоинты specials-import-status и scan-for-manual-import."""
         try:
             from app.api.shows import get_specials_import_status, scan_for_manual_import
+            from app.services.download_client import TorrentInfo
             import asyncio
         except ImportError:
             self.skipTest("FastAPI not installed in test runner")
             return
 
         from types import SimpleNamespace
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import MagicMock, patch, AsyncMock
 
         show = SimpleNamespace(id=1, title="Test Show", year=2024, content_type="anime", path="/non/existent/path/for/test/show")
         ep_special = SimpleNamespace(
@@ -378,18 +379,60 @@ class TestManualImportLogic(unittest.TestCase):
             download_folder_movies="", download_folder_series="",
             media_folder="/media"
         )
+        dc_row = SimpleNamespace(id=1, name="qBittorrent", client_type="qbittorrent", enabled=True)
+
+        torrent_completed = TorrentInfo(
+            hash="abcd1234efgh",
+            name="Test Special S00E01",
+            progress=1.0,
+            state="seeding",
+            save_path="/downloads/Test Show",
+            size=1000000,
+        )
+
+        mock_client = MagicMock()
+        mock_client.get_torrent = AsyncMock(return_value=torrent_completed)
 
         db_mock = MagicMock()
         db_mock.get.return_value = show
         db_mock.query.return_value.filter.return_value.all.return_value = [ep_special]
-        db_mock.query.return_value.filter_by.return_value.all.return_value = []
+        db_mock.query.return_value.filter_by.return_value.all.return_value = [dc_row]
         db_mock.query.return_value.filter.return_value.order_by.return_value.all.return_value = [ep_special]
         current_user = SimpleNamespace(id=1, username="admin", is_admin=True, is_owner=True, permissions={})
 
-        with patch("app.api.shows.get_or_create_settings", return_value=mock_settings):
+        with patch("app.api.shows.get_or_create_settings", return_value=mock_settings), \
+             patch("app.services.download_client.get_client", return_value=mock_client), \
+             patch("app.services.downloads_monitor._resolve_torrent_files_and_path", return_value=("/downloads/Test Show", [])):
+            # 1. Положительный случай: раздача реально существует в клиенте и завершена на 100%
             status_out = asyncio.run(get_specials_import_status(1, db=db_mock, current_user=current_user))
             self.assertTrue(status_out.has_pending_specials)
             self.assertEqual(status_out.pending_count, 1)
+
+            # 2. Отрицательный случай: серия уже импортирована (DOWNLOADED)
+            ep_special.status = "downloaded"
+            ep_special.file_path = "/media/Test Show/Specials/S00E01.mkv"
+            status_downloaded = asyncio.run(get_specials_import_status(1, db=db_mock, current_user=current_user))
+            self.assertFalse(status_downloaded.has_pending_specials)
+
+            # 3. Отрицательный случай: серия не импортирована, но раздача удалена из торрент-клиента
+            ep_special.status = "downloading"
+            ep_special.file_path = None
+            mock_client.get_torrent = AsyncMock(return_value=None)
+            status_missing_torrent = asyncio.run(get_specials_import_status(1, db=db_mock, current_user=current_user))
+            self.assertFalse(status_missing_torrent.has_pending_specials)
+
+            # 4. Отрицательный случай: раздача ещё скачивается (progress < 1.0)
+            torrent_incomplete = TorrentInfo(
+                hash="abcd1234efgh",
+                name="Test Special S00E01",
+                progress=0.45,
+                state="downloading",
+                save_path="/downloads/Test Show",
+                size=1000000,
+            )
+            mock_client.get_torrent = AsyncMock(return_value=torrent_incomplete)
+            status_incomplete = asyncio.run(get_specials_import_status(1, db=db_mock, current_user=current_user))
+            self.assertFalse(status_incomplete.has_pending_specials)
 
             scan_out = scan_for_manual_import(1, payload=None, db=db_mock, current_user=current_user)
             self.assertEqual(scan_out.show_id, 1)
