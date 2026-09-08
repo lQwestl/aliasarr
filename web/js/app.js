@@ -953,6 +953,9 @@ const TRANSLATIONS = {
     "show.season": "Сезон",
     "show.download_wanted_episodes": "Скачать выбранные серии",
     "show.manual_import": "Ручной импорт",
+    "show.btn_remap": "Сменить привязку",
+    "show.remap_tooltip": "Сменить привязку метаданных / исправить чужие серии и постер",
+    "show.remap_modal_title": "Смена привязки метаданных",
     "show.btn_sync": "Импорт библиотеки",
     "show.sync_tooltip": "Сканировать файлы на диске и обновить серии в библиотеке",
     "show.monitor_all_seasons": "Мониторить все сезоны",
@@ -2118,6 +2121,9 @@ const TRANSLATIONS = {
     "show.season": "Season",
     "show.download_wanted_episodes": "Download Selected Episodes",
     "show.manual_import": "Manual Import",
+    "show.btn_remap": "Remap Metadata",
+    "show.remap_tooltip": "Change metadata mapping / fix wrong episodes and poster",
+    "show.remap_modal_title": "Remap Show Metadata",
     "show.btn_sync": "Library Import",
     "show.sync_tooltip": "Rescan disk files and update library episodes",
     "show.monitor_all_seasons": "Monitor All Seasons",
@@ -6050,8 +6056,9 @@ async function refreshShowModal() {
         </div>
       </div>
 
-      ${show.path && canManageLib ? `
+      ${canManageLib ? `
       <div class="show-detail-path-actions-bar">
+        ${show.path ? `
         <button type="button" class="btn btn-secondary btn-small" onclick="syncShowPath(${show.id})" title="${t("show.sync_tooltip")}">
           <i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.btn_sync")}</span>
         </button>
@@ -6063,6 +6070,10 @@ async function refreshShowModal() {
         </button>
         <button type="button" class="btn btn-secondary btn-small" onclick="fixShowPermissions(this, ${show.id})" title="${CURRENT_LANG === 'en' ? 'Fix permissions (chmod 777/666 for Jellyfin/Plex)' : 'Исправить права доступа (chmod 777/666 для Jellyfin/Plex)'}">
           <i data-lucide="shield-check" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Permissions' : 'Права доступа'}</span>
+        </button>
+        ` : ""}
+        <button type="button" class="btn btn-secondary btn-small" onclick="openShowRemapModal(${show.id})" title="${t("show.remap_tooltip")}">
+          <i data-lucide="link-2" class="ico-sm"></i> <span>${t("show.btn_remap")}</span>
         </button>
         <button type="button" class="btn btn-secondary btn-small" onclick="openShowBlocklistModal(${show.id})" title="${CURRENT_LANG === 'en' ? 'Show blocklisted releases for this title' : 'Черный список раздач для этого тайтла'}">
           <i data-lucide="shield-alert" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Blocklist' : 'Черный список'}</span>
@@ -7355,6 +7366,234 @@ async function syncShowPath(showId) {
     await refreshShowModal();
   } catch (e) {
     toast("Ошибка: " + e.message, true);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// СМЕНА ПРИВЯЗКИ МЕТАДАННЫХ (SHOW REMAP & METADATA REPAIR)
+// ---------------------------------------------------------------------------
+
+let SHOW_REMAP_STATE = {
+  showId: null,
+  show: null,
+  searchResults: [],
+  selectedResult: null,
+};
+
+async function openShowRemapModal(showId) {
+  SHOW_REMAP_STATE.showId = showId;
+  SHOW_REMAP_STATE.show = null;
+  SHOW_REMAP_STATE.searchResults = [];
+  SHOW_REMAP_STATE.selectedResult = null;
+
+  const contentEl = document.getElementById("show-remap-modal-content");
+  if (!contentEl) return;
+  contentEl.innerHTML = `<div style="text-align:center; padding:36px; color:var(--text-muted);"><div class="spinner" style="margin:0 auto 12px;"></div><p>${t("common.loading")}</p></div>`;
+
+  openModal("show-remap-modal");
+
+  try {
+    const show = await api(`/api/v1/shows/${showId}`);
+    SHOW_REMAP_STATE.show = show;
+
+    if (!CACHED_METADATA_SOURCES || !CACHED_METADATA_SOURCES.length) {
+      try { CACHED_METADATA_SOURCES = await api("/api/v1/metadata-sources"); } catch (e) {}
+    }
+
+    const currentMetaId = show.metadata_id || (CURRENT_LANG === "en" ? "Not set" : "Не привязан");
+    const currentMetaSrc = show.metadata_source || (CURRENT_LANG === "en" ? "Auto" : "Авто");
+
+    contentEl.innerHTML = `
+      <div style="background:var(--panel-alt); border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+          <div>
+            <div style="font-size:15px; font-weight:700; color:var(--text);">${escapeHtml(show.title)} ${show.year ? `<span style="color:var(--text-muted); font-weight:normal;">(${show.year})</span>` : ""}</div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; align-items:center;">
+              <span class="meta-badge-glass"><i data-lucide="tag" class="ico-xs"></i> <span class="mono">${escapeHtml(currentMetaId)}</span></span>
+              <span class="meta-badge-glass"><i data-lucide="globe" class="ico-xs"></i> <span>${escapeHtml(currentMetaSrc)}</span></span>
+              <span class="meta-badge-glass"><i data-lucide="${show.content_type === 'movie' ? 'film' : 'tv'}" class="ico-xs"></i> <span>${escapeHtml(show.content_type || 'series')}</span></span>
+            </div>
+          </div>
+          ${show.poster_url ? `<img src="${escapeHtml(show.poster_url)}" style="width:40px; height:60px; object-fit:cover; border-radius:6px; border:1px solid var(--border);" alt="Poster">` : ""}
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="display:block; font-size:13px; font-weight:600; color:var(--text-muted); margin-bottom:6px;">${CURRENT_LANG === "en" ? "Search for matching show" : "Поиск правильного тайтла в источниках"}:</label>
+        <div style="display:flex; gap:8px;">
+          <input id="show-remap-search-input" class="input" type="text" value="${escapeHtml(show.title)}" placeholder="${CURRENT_LANG === 'en' ? 'Show title...' : 'Название аниме или сериала...'}" style="flex:1;"
+            onkeydown="if(event.key==='Enter') executeShowRemapSearch()">
+          <select id="show-remap-source-select" class="input" style="width:160px;">
+            <option value="all">${CURRENT_LANG === "en" ? "All Sources" : "Все источники"}</option>
+            ${(CACHED_METADATA_SOURCES || []).map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("")}
+          </select>
+          <button type="button" class="btn btn-primary" onclick="executeShowRemapSearch()">
+            <i data-lucide="search" class="ico-sm"></i> <span>${t("common.search") || "Поиск"}</span>
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px; background:var(--panel-alt); border:1px dashed var(--border); border-radius:8px; padding:10px 14px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:4px;">${CURRENT_LANG === "en" ? "Or enter ID directly (TVDB / AniList / Shikimori / TMDB):" : "Или укажите ID вручную (например: tvdb:371310, anilist:12345, shiki:1234):"}</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input id="show-remap-manual-id" class="input input-small mono" type="text" placeholder="tvdb:123456" style="flex:1;" oninput="onShowRemapManualIdInput(this.value)">
+          <span style="font-size:11px; color:var(--text-muted);">${CURRENT_LANG === "en" ? "e.g. tvdb:371310 or tmdb:12345" : "Формат: tvdb:ID, tmdb:ID, anilist:ID"}</span>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px; background:var(--panel-alt); border:1px solid var(--border); border-radius:8px; padding:10px 12px;">
+        <label class="checkbox-row" style="cursor:pointer; user-select:none;">
+          <input type="checkbox" id="show-remap-cleanup-cb" checked>
+          <span style="font-size:13px; font-weight:600; color:var(--danger);">${CURRENT_LANG === "en" ? "Clean up orphan/fake episodes without physical files" : "Очистить ошибочные серии, у которых нет файлов на диске"}</span>
+        </label>
+        <label class="checkbox-row" style="cursor:pointer; user-select:none;">
+          <input type="checkbox" id="show-remap-title-cb" checked>
+          <span style="font-size:13px; color:var(--text);">${CURRENT_LANG === "en" ? "Update show title from new metadata" : "Обновить название тайтла из нового источника"}</span>
+        </label>
+      </div>
+
+      <div id="show-remap-results-container" style="min-height:160px; max-height:340px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:10px; background:var(--bg);">
+        <p style="text-align:center; color:var(--text-muted); font-size:13px; margin:24px 0;">${CURRENT_LANG === "en" ? "Enter a query or select a search result below" : "Запустите поиск или выберите результат ниже"}</p>
+      </div>
+
+      <div class="form-row" style="justify-content:flex-end; gap:10px; margin-top:16px;">
+        <button class="btn btn-secondary" onclick="closeModal('show-remap-modal')">${t("common.cancel")}</button>
+        <button class="btn btn-primary" id="btn-apply-show-remap" disabled onclick="applyShowRemap(${show.id})">
+          <i data-lucide="link-2" class="ico-sm"></i>
+          <span id="btn-apply-show-remap-text">${CURRENT_LANG === "en" ? "Apply Remap" : "Применить новую привязку"}</span>
+        </button>
+      </div>
+    `;
+
+    if (window.lucide) lucide.createIcons();
+
+    executeShowRemapSearch();
+
+  } catch (e) {
+    contentEl.innerHTML = `<p style="color:var(--danger); padding:20px;">${CURRENT_LANG === "en" ? "Error loading show details:" : "Ошибка загрузки карточки:"} ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function executeShowRemapSearch() {
+  const input = document.getElementById("show-remap-search-input");
+  const query = input ? input.value.trim() : "";
+  if (!query) return;
+
+  const resultsContainer = document.getElementById("show-remap-results-container");
+  if (!resultsContainer) return;
+
+  const sourceSelect = document.getElementById("show-remap-source-select");
+  const sourceId = sourceSelect ? sourceSelect.value : "all";
+
+  resultsContainer.innerHTML = `<div style="text-align:center; padding:28px; color:var(--text-muted);"><div class="spinner" style="margin:0 auto 8px;"></div><p style="font-size:12px; margin:0;">${t("common.loading")}</p></div>`;
+
+  try {
+    let url = `/api/v1/metadata-sources/search?query=${encodeURIComponent(query)}`;
+    if (sourceId && sourceId !== "all") {
+      url = `/api/v1/metadata-sources/${sourceId}/search?query=${encodeURIComponent(query)}`;
+    }
+    const results = await api(url);
+    SHOW_REMAP_STATE.searchResults = results || [];
+    SHOW_REMAP_STATE.selectedResult = null;
+
+    if (!results || !results.length) {
+      resultsContainer.innerHTML = `<p style="text-align:center; color:var(--text-muted); font-size:13px; margin:24px 0;">${t("library.no_results")}</p>`;
+      return;
+    }
+
+    resultsContainer.innerHTML = `
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(135px, 1fr)); gap:10px;">
+        ${results.map((r, idx) => `
+          <div class="metadata-poster-card" id="remap-card-${idx}" style="${r.poster_url ? `background-image: url('${escapeHtml(r.poster_url)}');` : ''} min-height:190px;" onclick="chooseShowRemapResultByIndex(${idx})" title="${escapeHtml(r.title || '')}">
+            ${!r.poster_url ? `<div class="metadata-poster-fallback" style="font-size:32px;">${escapeHtml((r.title || '?')[0].toUpperCase())}</div>` : ""}
+            <div class="metadata-poster-top">
+              ${r.year ? `<span class="meta-badge-glass">${escapeHtml(String(r.year))}</span>` : ""}
+              ${r.rating ? `<span class="meta-badge-glass meta-rating">★\u00A0${Number(r.rating).toFixed(1)}</span>` : ""}
+            </div>
+            <div class="metadata-poster-bottom">
+              <div class="metadata-poster-title" style="font-size:12px;">${escapeHtml(r.title)}</div>
+              <div class="metadata-poster-subtitle" style="font-size:10px;">${escapeHtml(r.external_id || '')}</div>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+
+    if (window.lucide) lucide.createIcons();
+
+  } catch (e) {
+    resultsContainer.innerHTML = `<p style="text-align:center; color:var(--danger); font-size:13px; margin:20px 0;">${CURRENT_LANG === "en" ? "Search error:" : "Ошибка поиска:"} ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+function chooseShowRemapResultByIndex(index) {
+  const result = SHOW_REMAP_STATE.searchResults[index];
+  if (!result) return;
+  SHOW_REMAP_STATE.selectedResult = result;
+
+  document.querySelectorAll("#show-remap-results-container .metadata-poster-card").forEach(c => c.classList.remove("is-selected"));
+  const card = document.getElementById(`remap-card-${index}`);
+  if (card) card.classList.add("is-selected");
+
+  const manualInput = document.getElementById("show-remap-manual-id");
+  if (manualInput && result.external_id) {
+    manualInput.value = result.external_id;
+  }
+
+  const btnApply = document.getElementById("btn-apply-show-remap");
+  if (btnApply) btnApply.disabled = false;
+}
+
+function onShowRemapManualIdInput(val) {
+  const cleanVal = (val || "").trim();
+  const btnApply = document.getElementById("btn-apply-show-remap");
+  if (btnApply) {
+    btnApply.disabled = !cleanVal;
+  }
+}
+
+async function applyShowRemap(showId) {
+  const manualInput = document.getElementById("show-remap-manual-id");
+  const extId = (manualInput ? manualInput.value.trim() : "") || (SHOW_REMAP_STATE.selectedResult?.external_id || "");
+  if (!extId) {
+    showToast(CURRENT_LANG === "en" ? "Please select a metadata candidate or enter an ID" : "Пожалуйста, выберите тайтл или введите ID", "error");
+    return;
+  }
+
+  const cleanupCb = document.getElementById("show-remap-cleanup-cb");
+  const titleCb = document.getElementById("show-remap-title-cb");
+  const cleanupUnlinked = cleanupCb ? cleanupCb.checked : true;
+  const updateTitle = titleCb ? titleCb.checked : true;
+
+  const btnApply = document.getElementById("btn-apply-show-remap");
+  const btnText = document.getElementById("btn-apply-show-remap-text");
+  if (btnApply) {
+    btnApply.disabled = true;
+    if (btnText) btnText.textContent = CURRENT_LANG === "en" ? "Applying..." : "Применение...";
+  }
+
+  try {
+    const res = await api(`/api/v1/shows/${showId}/remap`, {
+      method: "POST",
+      body: JSON.stringify({
+        new_metadata_id: extId,
+        cleanup_unlinked_episodes: cleanupUnlinked,
+        update_title: updateTitle,
+      }),
+    });
+
+    showToast(res.message || (CURRENT_LANG === "en" ? "Metadata remap applied successfully" : "Привязка метаданных успешно обновлена"));
+    closeModal("show-remap-modal");
+    await refreshShowModal();
+    if (typeof loadShows === "function") {
+      loadShows(false);
+    }
+  } catch (e) {
+    showToast(e.message || (CURRENT_LANG === "en" ? "Failed to remap metadata" : "Ошибка при смене привязки"), "error");
+    if (btnApply) {
+      btnApply.disabled = false;
+      if (btnText) btnText.textContent = CURRENT_LANG === "en" ? "Apply Remap" : "Применить новую привязку";
+    }
   }
 }
 

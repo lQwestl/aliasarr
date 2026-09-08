@@ -13,6 +13,12 @@ except ImportError:
         TMDB = "tmdb"
         TVMAZE = "tvmaze"
         THETVDB = "thetvdb"
+try:
+    import fastapi
+    HAS_FASTAPI = True
+except ImportError:
+    HAS_FASTAPI = False
+
 from app.services.metadata import (
     MetadataResult,
     MetadataShowDetails,
@@ -390,6 +396,174 @@ class TestMetadataEpisodeDeduplication(unittest.TestCase):
         self.assertEqual(details.episodes[2].episode_number, 2)
 
 
+class TestMetadataProtectionEngine(unittest.TestCase):
+    def test_calc_metadata_match_score_exact_match(self):
+        from app.services.metadata import MetadataResult, calc_metadata_match_score
+
+        cand = MetadataResult(
+            external_id="tvdb:12345",
+            title="I Became a Legend After My 10 Year-Long Last Stand",
+            year=2026,
+        )
+        score = calc_metadata_match_score(
+            candidate=cand,
+            target_title="I Became a Legend After My 10 Year-Long Last Stand",
+            target_year=2026,
+        )
+        self.assertGreaterEqual(score, 0.95)
+
+    def test_calc_metadata_match_score_unrelated_show_rejected(self):
+        from app.services.metadata import MetadataResult, calc_metadata_match_score
+
+        cand = MetadataResult(
+            external_id="tvdb:364402",
+            title="My Next Life as a Villainess: All Routes Lead to Doom!",
+            year=2020,
+        )
+        score = calc_metadata_match_score(
+            candidate=cand,
+            target_title="I Became a Legend After My 10 Year-Long Last Stand",
+            target_year=2026,
+            target_aliases=["10-nen Goshi no Hikikomori"],
+        )
+        self.assertLess(score, 0.40)
+
+    def test_calc_metadata_match_score_year_penalty(self):
+        from app.services.metadata import MetadataResult, calc_metadata_match_score
+
+        cand_old = MetadataResult(
+            external_id="tvdb:1111",
+            title="Shaman King",
+            year=2001,
+        )
+        score_diff_year = calc_metadata_match_score(
+            candidate=cand_old,
+            target_title="Shaman King",
+            target_year=2021,
+        )
+        self.assertLess(score_diff_year, 0.70)
+
+    def test_refresh_metadata_preserves_empty_episodes_for_valid_show(self):
+        from app.services.metadata import MetadataShowDetails, refresh_show_metadata
+
+        mock_db = MagicMock()
+        mock_show = MagicMock()
+        mock_show.id = 55
+        mock_show.title = "I Became a Legend After My 10 Year-Long Last Stand"
+        mock_show.year = 2026
+        mock_show.content_type = "anime"
+        mock_show.metadata_id = "tvdb:999999"
+        mock_show.metadata_source = "skyhook"
+        mock_show.aliases = []
+        mock_show.overview = "Original overview"
+        mock_show.poster_url = "https://example.com/poster.jpg"
+        mock_show.rating = None
+        mock_show.genre = "Fantasy"
+        mock_show.network = None
+        mock_show.premiere_date = None
+
+        valid_empty_details = MetadataShowDetails(
+            external_id="tvdb:999999",
+            title="I Became a Legend After My 10 Year-Long Last Stand",
+            year=2026,
+            content_type="anime",
+            episodes=[],
+            overview="Updated official synopsis",
+            poster_url="https://example.com/poster_new.jpg",
+        )
+
+        async def run_test():
+            with patch("app.services.metadata.SkyHookClient.get_details", return_value=valid_empty_details), \
+                 patch("app.services.metadata.SkyHookClient.search", return_value=[]):
+                res = await refresh_show_metadata(mock_db, mock_show)
+                self.assertTrue(res["updated"])
+                self.assertEqual(mock_show.metadata_id, "tvdb:999999")
+                self.assertEqual(mock_show.overview, "Updated official synopsis")
+
+        asyncio.run(run_test())
+
+
+@unittest.skipUnless(HAS_FASTAPI, "Requires fastapi")
+class TestShowRemapLogic(unittest.TestCase):
+    def test_remap_show_cleans_corrupted_unlinked_episodes(self):
+        import datetime as dt
+        from app.api.shows import ShowRemapIn, remap_show_metadata
+        from app.models.db import Episode, EpisodeStatus, Show
+        from app.services.metadata import MetadataEpisode, MetadataShowDetails
+
+        mock_db = MagicMock()
+        mock_user = MagicMock()
+        mock_user.username = "admin"
+
+        show = Show(
+            title="I Became a Legend (Corrupted)",
+            year=2026,
+            metadata_id="tvdb:364402",
+            metadata_source="skyhook",
+        )
+        show.id = 12
+        show.aliases = []
+
+        fake_orphan_eps = []
+        for i in range(1, 26):
+            fake_orphan_eps.append(Episode(
+                show_id=12,
+                season_number=1,
+                episode_number=i,
+                title=f"Villainess Episode {i}",
+                status=EpisodeStatus.WANTED,
+                file_path=None,
+            ))
+
+        downloaded_ep = Episode(
+            show_id=12,
+            season_number=1,
+            episode_number=1,
+            title="Ep 1 Real",
+            status=EpisodeStatus.DOWNLOADED,
+            file_path="/downloads/ep1.mkv",
+        )
+
+        mock_db.get.return_value = show
+        mock_db.query.return_value.filter.return_value.all.return_value = fake_orphan_eps
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+
+        new_show_details = MetadataShowDetails(
+            external_id="tvdb:445566",
+            title="I Became a Legend After My 10 Year-Long Last Stand",
+            year=2026,
+            content_type="anime",
+            episodes=[
+                MetadataEpisode(season_number=1, episode_number=1, title="Episode 1", air_date="2026-09-01"),
+                MetadataEpisode(season_number=1, episode_number=2, title="Episode 2", air_date="2026-09-08"),
+            ],
+            aliases=["10-nen Goshi no Hikikomori"],
+        )
+
+        async def run_remap_test():
+            with patch("app.api.shows.get_metadata_client") as mock_get_client, \
+                 patch("app.api.shows.log_audit"):
+                mock_client = MagicMock()
+                mock_client.get_details = AsyncMock(return_value=new_show_details)
+                mock_get_client.return_value = mock_client
+
+                payload = ShowRemapIn(
+                    new_metadata_id="tvdb:445566",
+                    cleanup_unlinked_episodes=True,
+                    update_title=True,
+                )
+
+                res = await remap_show_metadata(show_id=12, payload=payload, db=mock_db, current_user=mock_user)
+                self.assertTrue(res["success"])
+                self.assertEqual(show.metadata_id, "tvdb:445566")
+                self.assertEqual(show.title, "I Became a Legend After My 10 Year-Long Last Stand")
+                self.assertEqual(res["deleted_episodes"], 25)
+                self.assertEqual(res["added_episodes"], 2)
+
+        asyncio.run(run_remap_test())
+
+
 if __name__ == "__main__":
     unittest.main()
+
 

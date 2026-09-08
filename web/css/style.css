@@ -1739,6 +1739,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   transform: translateY(-2px) scale(0.99);
 }
 
+.metadata-poster-card.is-selected {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px var(--teal), 0 8px 24px rgba(0, 0, 0, 0.5);
+  transform: translateY(-3px);
+}
+
 .metadata-poster-fallback {
   position: absolute;
   inset: 0;

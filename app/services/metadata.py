@@ -171,6 +171,97 @@ def is_latin_text(text: str) -> bool:
     return not has_non_latin_script(str(text))
 
 
+from difflib import SequenceMatcher
+
+
+def _safe_int_year(val: Any) -> Optional[int]:
+    if val is None or isinstance(val, bool):
+        return None
+    if hasattr(val, "_mock_return_value") or hasattr(val, "_mock_wraps"):
+        return None
+    if isinstance(val, int):
+        return val
+    if isinstance(val, str) and val.strip().isdigit():
+        return int(val.strip())
+    try:
+        if isinstance(val, float):
+            return int(val)
+    except Exception:
+        pass
+    return None
+
+
+def _clean_metadata_title(title: str) -> str:
+    if not title:
+        return ""
+    # Удаляем скобки с годом и служебные знаки
+    cleaned = re.sub(r"\s*\(\d{4}\)$|\s+\d{4}$", "", str(title))
+    cleaned = re.sub(r"[^\w\s\d]+", " ", cleaned.lower())
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
+def calc_metadata_match_score(
+    candidate: Any,
+    target_title: str,
+    target_year: Optional[int] = None,
+    target_aliases: Optional[list[str]] = None,
+) -> float:
+    """
+    Вычисляет уверенность сопоставления метаданных (0.0 .. 1.0).
+    Учитывает сходство названий (основного и алиасов) и штрафует за несовпадение года.
+    """
+    if not candidate:
+        return 0.0
+
+    raw_cand_title = getattr(candidate, "title", None)
+    cand_title = str(raw_cand_title) if raw_cand_title and not hasattr(raw_cand_title, "_mock_return_value") else ""
+    cand_aliases = getattr(candidate, "aliases", None)
+    if not isinstance(cand_aliases, (list, tuple, set)):
+        cand_aliases = []
+
+    t_year = _safe_int_year(target_year)
+    c_year = _safe_int_year(getattr(candidate, "year", None))
+
+    all_cand_titles = [cand_title] + [str(a) for a in cand_aliases if a and not hasattr(a, "_mock_return_value")]
+    target_aliases_list = target_aliases if isinstance(target_aliases, (list, tuple, set)) else []
+    all_target_titles = [str(target_title or "")] + [str(a) for a in target_aliases_list if a and not hasattr(a, "_mock_return_value")]
+
+    clean_cand_titles = [_clean_metadata_title(t) for t in all_cand_titles if t]
+    clean_target_titles = [_clean_metadata_title(t) for t in all_target_titles if t]
+
+    if not clean_cand_titles or not clean_target_titles:
+        return 0.0
+
+    best_sim = 0.0
+    for ct in clean_cand_titles:
+        for tt in clean_target_titles:
+            if not ct or not tt:
+                continue
+            if ct == tt:
+                sim = 1.0
+            elif ct in tt or tt in ct:
+                ratio = len(min(ct, tt, key=len)) / max(1, len(max(ct, tt, key=len)))
+                sim = max(0.85, ratio)
+            else:
+                sim = SequenceMatcher(None, ct, tt).ratio()
+            if sim > best_sim:
+                best_sim = sim
+
+    # Проверка года
+    if t_year is not None and c_year is not None:
+        year_diff = abs(t_year - c_year)
+        if year_diff == 0:
+            best_sim = min(1.0, best_sim + 0.05)
+        elif year_diff == 1:
+            pass
+        elif year_diff <= 3:
+            best_sim -= 0.20
+        else:
+            best_sim -= 0.45
+
+    return max(0.0, min(1.0, best_sim))
+
+
 class BaseMetadataClient:
     async def search(self, query: str) -> list[MetadataResult]:
         raise NotImplementedError
@@ -2060,38 +2151,48 @@ async def refresh_show_metadata(db, show) -> dict:
         except Exception as e:
             logger.debug("Failed to get details by metadata_id %s with %s for %s: %s", metadata_id, type(client).__name__, title, e)
 
-        if (not details or (not is_movie and not details.episodes)) and client != fallback_client:
+        if not details and client != fallback_client:
             try:
                 details = await fallback_client.get_details(str(metadata_id))
             except Exception as e:
                 logger.debug("Fallback client details failed for %s: %s", title, e)
 
-    # 3. Если по metadata_id детали не получены — ищем по названию и алиасам
-    search_candidates = []
-    if title:
-        search_candidates.append(title)
-        # Если название содержит подзаголовки через двоеточие или дефис
-        for sep in (":", "—", " - "):
-            if sep in title:
-                base_part = title.split(sep)[0].strip()
-                if base_part and base_part not in search_candidates:
-                    search_candidates.append(base_part)
+        # Валидируем, что полученные по ID детали действительно соответствуют нашему тайтлу
+        if details:
+            aliases_list = [a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)]
+            det_score = calc_metadata_match_score(details, title, getattr(show, "year", None), aliases_list)
+            if det_score < 0.50:
+                logger.warning(
+                    "Детали по metadata_id=%s ('%s', %s) не соответствуют тайтлу '%s' (%s, score=%.2f). Отклоняем неверный ID.",
+                    metadata_id, details.title, details.year, title, getattr(show, "year", None), det_score,
+                )
+                details = None
 
-    # Добавляем английские / ромадзи алиасы первыми кандидатами
-    if getattr(show, "aliases", None):
-        en_aliases = [
-            a.text.strip() for a in show.aliases
-            if a.text and getattr(a, "language", None) in (AliasLanguage.EN, "en", "romaji", "jp")
-        ]
-        for ea in en_aliases:
-            if ea and ea not in search_candidates:
-                search_candidates.insert(0, ea)
-        for a in show.aliases:
-            at = a.text.strip() if a.text else ""
-            if at and at not in search_candidates:
-                search_candidates.append(at)
+    # 3. Если по metadata_id детали не получены — ищем по названию и алиасам со СТРОГОЙ валидацией
+    if not details:
+        search_candidates = []
+        if title:
+            search_candidates.append(title)
+            for sep in (":", "—", " - "):
+                if sep in title:
+                    base_part = title.split(sep)[0].strip()
+                    if base_part and base_part not in search_candidates:
+                        search_candidates.append(base_part)
 
-    if not details or (not is_movie and not details.episodes):
+        aliases_list = [a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)]
+        if getattr(show, "aliases", None):
+            en_aliases = [
+                a.text.strip() for a in show.aliases
+                if a.text and getattr(a, "language", None) in (AliasLanguage.EN, "en", "romaji", "jp")
+            ]
+            for ea in en_aliases:
+                if ea and ea not in search_candidates:
+                    search_candidates.insert(0, ea)
+            for a in show.aliases:
+                at = a.text.strip() if a.text else ""
+                if at and at not in search_candidates:
+                    search_candidates.append(at)
+
         for candidate in search_candidates:
             if not candidate:
                 continue
@@ -2099,20 +2200,37 @@ async def refresh_show_metadata(db, show) -> dict:
                 try:
                     results = await cl.search(candidate)
                     if results:
-                        target_result = results[0]
-                        ext_id = target_result.external_id or ""
-                        if ext_id:
-                            det = await cl.get_details(str(ext_id))
-                            if det and (is_movie or det.episodes):
-                                details = det
-                                break
+                        # Ищем только кандидатов, прошедших порог уверенности (score >= 0.75)
+                        best_cand = None
+                        best_score = 0.0
+                        for r in results:
+                            # Проверяем совместимость типа контента
+                            if is_movie and r.content_type and r.content_type not in ("movie",):
+                                continue
+                            if not is_movie and r.content_type == "movie":
+                                continue
+
+                            score = calc_metadata_match_score(r, title, getattr(show, "year", None), aliases_list)
+                            if score >= 0.75 and score > best_score:
+                                best_score = score
+                                best_cand = r
+
+                        if best_cand:
+                            ext_id = best_cand.external_id or ""
+                            if ext_id:
+                                det = await cl.get_details(str(ext_id))
+                                if det:
+                                    det_score = calc_metadata_match_score(det, title, getattr(show, "year", None), aliases_list)
+                                    if det_score >= 0.70:
+                                        details = det
+                                        break
                 except Exception as e:
                     logger.debug("Search candidate '%s' failed on %s: %s", candidate, type(cl).__name__, e)
-            if details and (is_movie or details.episodes):
+            if details:
                 break
 
     if not details:
-        return {"updated": False, "show_id": show.id, "title": show.title, "reason": "No metadata found"}
+        return {"updated": False, "show_id": show.id, "title": show.title, "reason": "No confident metadata match found"}
 
     now = _dt.datetime.utcnow()
     changed = False
@@ -2428,21 +2546,20 @@ def should_refresh_show(show, db, force: bool = False) -> bool:
             return True
 
         episodes = db.query(Episode).filter(Episode.show_id == show.id).all()
-        # Проверяем наличие серий с заглушками
         has_placeholders = any(
-            (not ep.title) or
-            ep.title.strip().lower() in ("tba", "none", "null", "unknown", "") or
-            ep.title.strip().lower().startswith(("episode ", "серия "))
+            (not getattr(ep, "title", None)) or
+            str(ep.title).strip().lower() in ("tba", "none", "null", "unknown", "") or
+            str(ep.title).strip().lower().startswith(("episode ", "серия "))
             for ep in episodes
         )
-        if has_placeholders:
+        if has_placeholders and last_sync <= now - _dt.timedelta(minutes=30):
             return True
 
         st = (getattr(show, "status", None) or "").lower()
         if st != "ended" and last_sync < now - _dt.timedelta(hours=6):
             return True
 
-        aired_episodes = [ep for ep in episodes if ep.air_date]
+        aired_episodes = [ep for ep in episodes if isinstance(getattr(ep, "air_date", None), _dt.datetime)]
         if aired_episodes:
             max_air_date = max(ep.air_date for ep in aired_episodes)
             if max_air_date > now - _dt.timedelta(days=30):

@@ -2787,6 +2787,245 @@ async def refresh_single_show_metadata(
     }
 
 
+class ShowRemapIn(BaseModel):
+    external_id: str
+    source_type: Optional[str] = None
+    cleanup_unlinked_episodes: bool = True
+    update_title: bool = True
+
+
+@router.post("/{show_id}/remap", summary="Смена привязки метаданных тайтла и очистка некорректных серий")
+async def remap_show_metadata(
+    show_id: int,
+    payload: ShowRemapIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    """
+    Выполняет смену привязки тайтла к источнику метаданных (SkyHook/TVDB/TMDB/AniList/Shikimori/Radarr),
+    очищает ошибочно подтянутые серии без файлов и загружает корректную структуру сезонов и серий.
+    """
+    from app.models.db import MetadataSource, MetadataSourceType, Episode, EpisodeStatus, Alias, AliasLanguage
+    from app.services.metadata import get_metadata_client
+
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Карточка не найдена")
+
+    ext_str = str(payload.external_id or "").strip()
+    if not ext_str:
+        raise HTTPException(400, "Не указан external_id метаданных")
+
+    is_movie = getattr(show, "content_type", None) == "movie"
+    source = None
+    source_type_name = (payload.source_type or "").lower()
+
+    if source_type_name:
+        source = db.query(MetadataSource).filter(MetadataSource.type == source_type_name, MetadataSource.enabled == True).first()
+
+    if not source:
+        if ext_str.startswith("tvdb:") or ext_str.startswith("skyhook:") or source_type_name in ("skyhook", "thetvdb"):
+            source = db.query(MetadataSource).filter(MetadataSource.type.in_([MetadataSourceType.SKYHOOK, MetadataSourceType.THETVDB]), MetadataSource.enabled == True).first()
+            if not source:
+                source = MetadataSource(name="SkyHook (Sonarr)", type="skyhook", base_url="https://skyhook.sonarr.tv/v1/tvdb", enabled=True)
+        elif ext_str.startswith("movie:") or ext_str.startswith("radarr:") or source_type_name in ("radarr", "radarr_skyhook") or is_movie:
+            source = db.query(MetadataSource).filter(MetadataSource.type.in_([MetadataSourceType.RADARR, MetadataSourceType.SKYHOOK, MetadataSourceType.TMDB]), MetadataSource.enabled == True).first()
+            if not source:
+                source = MetadataSource(name="Radarr SkyHook (Movie Cloud)", type="radarr", base_url="https://api.radarr.video/v1", enabled=True)
+        elif ext_str.startswith("anilist:") or source_type_name == "anilist":
+            source = db.query(MetadataSource).filter(MetadataSource.type == MetadataSourceType.ANILIST, MetadataSource.enabled == True).first()
+            if not source:
+                source = MetadataSource(name="AniList", type="anilist", base_url="https://graphql.anilist.co", enabled=True)
+        elif ext_str.startswith("shiki:") or source_type_name == "shikimori":
+            source = db.query(MetadataSource).filter(MetadataSource.type == MetadataSourceType.SHIKIMORI, MetadataSource.enabled == True).first()
+            if not source:
+                source = MetadataSource(name="Shikimori", type="shikimori", base_url="https://shikimori.one/api", enabled=True)
+        elif ext_str.startswith("tmdb:") or ext_str.startswith("tv:") or source_type_name == "tmdb":
+            source = db.query(MetadataSource).filter(MetadataSource.type == MetadataSourceType.TMDB, MetadataSource.enabled == True).first()
+            if not source:
+                source = MetadataSource(name="TMDB", type="tmdb", base_url="https://api.themoviedb.org/3", enabled=True)
+        else:
+            source = MetadataSource(name="SkyHook (Sonarr)", type="skyhook", base_url="https://skyhook.sonarr.tv/v1/tvdb", enabled=True)
+
+    client = get_metadata_client(source)
+    try:
+        details = await client.get_details(ext_str)
+    except Exception as exc:
+        raise HTTPException(400, f"Не удалось получить метаданные из {getattr(source, 'name', 'источника')} для ID {ext_str}: {exc}")
+
+    if not details:
+        raise HTTPException(404, f"Метаданные для {ext_str} не найдены")
+
+    now = dt.datetime.utcnow()
+    show.metadata_id = details.external_id or ext_str
+    show.metadata_source = source.type.value if hasattr(source.type, "value") else str(source.type)
+
+    if payload.update_title and details.title:
+        show.title = details.title
+    if getattr(details, "overview", None):
+        show.overview = details.overview
+    if getattr(details, "poster_url", None):
+        show.poster_url = details.poster_url
+    if getattr(details, "rating", None) is not None:
+        show.rating = details.rating
+    if getattr(details, "genre", None):
+        show.genre = details.genre
+    if getattr(details, "network", None):
+        show.network = details.network
+    if getattr(details, "year", None):
+        show.year = details.year
+    if getattr(details, "imdb_id", None):
+        show.imdb_id = details.imdb_id
+    if getattr(details, "tmdb_id", None):
+        show.tmdb_id = details.tmdb_id
+    if getattr(details, "tvdb_id", None):
+        show.tvdb_id = details.tvdb_id
+    if getattr(details, "tvmaze_id", None):
+        show.tvmaze_id = details.tvmaze_id
+    if getattr(details, "mal_id", None):
+        show.mal_id = details.mal_id
+    if getattr(details, "anilist_id", None):
+        show.anilist_id = details.anilist_id
+    if getattr(details, "anidb_id", None):
+        show.anidb_id = details.anidb_id
+    if getattr(details, "shikimori_id", None):
+        show.shikimori_id = details.shikimori_id
+    if getattr(details, "trailer_url", None):
+        show.trailer_url = details.trailer_url
+
+    show.last_metadata_refresh_at = now
+
+    deleted_episodes_count = 0
+    if payload.cleanup_unlinked_episodes:
+        existing_eps = db.query(Episode).filter(Episode.show_id == show.id).all()
+        for ep in existing_eps:
+            has_real_file = False
+            if ep.file_path:
+                try:
+                    has_real_file = os.path.exists(ep.file_path)
+                except Exception:
+                    has_real_file = False
+            is_active_download = (ep.status == EpisodeStatus.DOWNLOADING and bool(ep.torrent_hash))
+            if not has_real_file and not is_active_download:
+                db.delete(ep)
+                deleted_episodes_count += 1
+        db.flush()
+
+    added_episodes_count = 0
+    updated_episodes_count = 0
+    if is_movie:
+        ep_m = db.query(Episode).filter(Episode.show_id == show.id).order_by(Episode.id).first()
+        if ep_m:
+            if details.title:
+                ep_m.title = details.title
+            db.add(ep_m)
+            updated_episodes_count += 1
+        else:
+            db.add(Episode(
+                show_id=show.id,
+                season_number=1,
+                episode_number=1,
+                title=details.title or show.title,
+                status=EpisodeStatus.WANTED,
+            ))
+            added_episodes_count += 1
+    elif details.episodes:
+        seen_added_keys = set()
+        for meta_ep in details.episodes:
+            if meta_ep.episode_number is None:
+                continue
+            s_num = meta_ep.season_number if meta_ep.season_number is not None else 1
+            e_num = meta_ep.episode_number
+            ep_key = (s_num, e_num)
+            if ep_key in seen_added_keys:
+                continue
+            seen_added_keys.add(ep_key)
+
+            air_date = None
+            if meta_ep.air_date:
+                try:
+                    air_date = dt.datetime.fromisoformat(str(meta_ep.air_date)[:10])
+                except ValueError:
+                    air_date = None
+
+            raw_ep_title = (meta_ep.title or "").strip()
+            if raw_ep_title in ("None", "null", "TBA", "tba", ""):
+                raw_ep_title = None
+
+            ep_db = (
+                db.query(Episode)
+                .filter(
+                    Episode.show_id == show.id,
+                    Episode.season_number == s_num,
+                    Episode.episode_number == e_num,
+                )
+                .first()
+            )
+            if ep_db:
+                if raw_ep_title:
+                    ep_db.title = raw_ep_title
+                if air_date:
+                    ep_db.air_date = air_date
+                if meta_ep.absolute_number is not None:
+                    ep_db.absolute_number = meta_ep.absolute_number
+                db.add(ep_db)
+                updated_episodes_count += 1
+            else:
+                status = EpisodeStatus.UNAIRED if (air_date and air_date > now) else EpisodeStatus.WANTED
+                db.add(Episode(
+                    show_id=show.id,
+                    season_number=s_num,
+                    episode_number=e_num,
+                    absolute_number=meta_ep.absolute_number,
+                    title=raw_ep_title or "TBA",
+                    air_date=air_date,
+                    status=status,
+                ))
+                added_episodes_count += 1
+
+    # Обновляем алиасы из источника
+    if details.aliases:
+        existing_aliases = {a.text.lower().strip() for a in getattr(show, "aliases", []) or [] if a.text}
+        cur_max_p = max([a.priority for a in getattr(show, "aliases", []) or [] if a.priority is not None] or [0])
+        for alias_text in details.aliases:
+            clean_alias = str(alias_text).strip()
+            if clean_alias and clean_alias.lower() not in existing_aliases:
+                existing_aliases.add(clean_alias.lower())
+                cur_max_p += 1
+                db.add(Alias(
+                    show_id=show.id,
+                    text=clean_alias,
+                    language=AliasLanguage.RU if any(ord(c) >= 0x0400 and ord(c) <= 0x04FF for c in clean_alias) else AliasLanguage.EN,
+                    source="remap",
+                    priority=cur_max_p,
+                ))
+
+    db.commit()
+    db.refresh(show)
+
+    try:
+        from app.services.blocklist_service import relink_blocklist_for_show
+        relink_blocklist_for_show(db, show)
+    except Exception:
+        pass
+
+    log_audit(
+        db,
+        "show.remap_metadata",
+        f"Сменена привязка метаданных для «{show.title}» на {ext_str}. Очищено серий: {deleted_episodes_count}, добавлено: {added_episodes_count}",
+        username=current_user.username,
+        user=current_user,
+    )
+
+    return {
+        "success": True,
+        "message": f"Привязка успешно обновлена. Очищено серий: {deleted_episodes_count}, добавлено серий: {added_episodes_count}",
+        "deleted_episodes": deleted_episodes_count,
+        "added_episodes": added_episodes_count,
+        "show": ShowOut.model_validate(show),
+    }
+
+
 @router.get("/{show_id}/rename/preview", summary="Предпросмотр переименования файлов тайтла")
 def preview_rename_show(
     show_id: int,

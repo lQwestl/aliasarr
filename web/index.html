@@ -2945,6 +2945,20 @@
   </div>
 </div>
 
+<!-- Модальное окно смены привязки метаданных (Show Remap) -->
+<div id="show-remap-modal" class="modal-overlay">
+  <div class="modal modal-medium" style="max-width: 780px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+    <button class="modal-close" onclick="closeModal('show-remap-modal')">×</button>
+    <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+      <h3 style="display:flex; align-items:center; gap:8px; margin:0;">
+        <i data-lucide="link-2" class="ico-sm"></i>
+        <span data-i18n="show.remap_modal_title">Смена привязки метаданных</span>
+      </h3>
+    </div>
+    <div id="show-remap-modal-content" style="flex: 1; overflow-y: auto; padding-right: 2px;"></div>
+  </div>
+</div>
+
 <!-- Модалка подтверждения удаления карточки тайтла / сезонов / серий -->
 <div id="delete-show-modal" class="modal-overlay">
   <div class="modal card" style="max-width: 580px; width: 95%;">
