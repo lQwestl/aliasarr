@@ -1004,25 +1004,14 @@ const TRANSLATIONS = {
     "manual_import.success": "Файлы успешно импортированы",
 
     // Add Video Wizard
-    "wizard.step_method": "1. Способ",
-    "wizard.step_search": "2. Поиск",
-    "wizard.step_setup": "3. Настройка",
-    "wizard.method_metadata_title": "Найти через метаданные",
-    "wizard.method_metadata_desc": "Алиасы и даты выхода заполнятся автоматически.",
-    "wizard.method_manual_title": "Добавить вручную",
-    "wizard.method_manual_desc": "Укажите название и алиасы самостоятельно — удобно для редких тайтлов без метаданных.",
+    "wizard.step_search": "1. Поиск",
+    "wizard.step_setup": "2. Настройка",
     "wizard.search_placeholder": "Название фильма, сериала или аниме…",
-    "wizard.manual_title_label": "Название (основное)",
-    "wizard.manual_title_placeholder": "Например: The Villager of Level 999",
-    "wizard.manual_aliases_label": "Алиасы, по одному на строку. Формат: текст | язык (ru/en/jp/romaji)",
-    "wizard.manual_cover_label": "Обложка",
-    "wizard.manual_no_cover": "Нет обложки",
-    "wizard.manual_upload_cover": "Загрузить с компьютера",
-    "wizard.manual_cover_url_placeholder": "…или вставьте ссылку на изображение",
+    "wizard.search_empty_title": "Найдите фильм, сериал или аниме",
+    "wizard.search_empty_desc": "Введите название на русском, английском или языке оригинала для поиска через подключенные базы метаданных.",
     "wizard.back": "Назад",
-    "wizard.next": "Далее",
     "wizard.select": "Выбрать",
-    "wizard.already_in_library": "Уже в библиотеке",
+    "wizard.already_in_library": "В медиатеке",
     "wizard.category_label": "Категория",
     "wizard.category_hint": "(определяет папку и шаблон переименования после скачивания)",
     "wizard.path_label": "Путь к папке (необязательно)",
@@ -2179,25 +2168,14 @@ const TRANSLATIONS = {
     "manual_import.success": "Files imported successfully",
 
     // Add Video Wizard
-    "wizard.step_method": "1. Method",
-    "wizard.step_search": "2. Search",
-    "wizard.step_setup": "3. Setup",
-    "wizard.method_metadata_title": "Search via Metadata",
-    "wizard.method_metadata_desc": "Aliases and air dates populate automatically.",
-    "wizard.method_manual_title": "Add Manually",
-    "wizard.method_manual_desc": "Enter title and aliases manually — useful for rare titles without metadata.",
+    "wizard.step_search": "1. Search",
+    "wizard.step_setup": "2. Setup",
     "wizard.search_placeholder": "Movie, series, or anime title…",
-    "wizard.manual_title_label": "Title (Main)",
-    "wizard.manual_title_placeholder": "e.g., The Villager of Level 999",
-    "wizard.manual_aliases_label": "Aliases, one per line. Format: title | language (ru/en/jp/romaji)",
-    "wizard.manual_cover_label": "Poster",
-    "wizard.manual_no_cover": "No poster",
-    "wizard.manual_upload_cover": "Upload from computer",
-    "wizard.manual_cover_url_placeholder": "…or paste image URL",
+    "wizard.search_empty_title": "Find movies, series, or anime",
+    "wizard.search_empty_desc": "Enter a title in English, Russian, or native language to search via configured metadata sources.",
     "wizard.back": "Back",
-    "wizard.next": "Next",
     "wizard.select": "Select",
-    "wizard.already_in_library": "Already in library",
+    "wizard.already_in_library": "In Library",
     "wizard.category_label": "Category",
     "wizard.category_hint": "(determines download folder and rename template)",
     "wizard.path_label": "Folder path (optional)",
@@ -9083,89 +9061,73 @@ async function grabRelease(button, showId, result) {
 }
 
 // =============================================================================
-// ADD SHOW WIZARD
+// ADD SHOW WIZARD (POSTER CARDS GRID)
 // =============================================================================
 
-let WIZARD_STATE = { method: null, sourceId: null, selectedResult: null };
+let WIZARD_STATE = { sourceId: null, selectedResult: null, contentType: "series", lastQuery: "" };
+let WIZARD_SEARCH_RESULTS = [];
 
 function openAddShowWizard() {
-  WIZARD_STATE = { method: null, sourceId: null, selectedResult: null };
+  WIZARD_STATE = { sourceId: WIZARD_STATE.sourceId || null, selectedResult: null, contentType: "series", lastQuery: WIZARD_STATE.lastQuery || "" };
   renderWizardStep(1);
   openModal("wizard-modal");
+  setTimeout(() => {
+    const input = document.getElementById("wizard-search-input");
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }, 100);
 }
 
 function setWizardStepIndicator(step) {
-  [1, 2, 3].forEach(n => {
+  [1, 2].forEach(n => {
     const el = document.getElementById(`wizard-step-${n}`);
-    el.classList.toggle("active", n === step);
-    el.classList.toggle("done", n < step);
+    if (el) {
+      el.classList.toggle("active", n === step);
+      el.classList.toggle("done", n < step);
+    }
   });
 }
 
 function renderWizardStep(step) {
   setWizardStepIndicator(step);
   const content = document.getElementById("wizard-content");
+  if (!content) return;
 
   if (step === 1) {
+    const currentQuery = WIZARD_STATE.lastQuery || "";
     content.innerHTML = `
-      <div class="wizard-method-choice">
-        <div class="wizard-method-card" onclick="chooseWizardMethod('metadata')">
-          <div class="icon"><i data-lucide="search" style="width:28px;height:28px;"></i></div>
-          <h4>${t("wizard.method_metadata_title")}</h4>
-          <p>${t("wizard.method_metadata_desc")}</p>
+      <div class="wizard-search-toolbar">
+        <select id="wizard-source-select" class="input" style="max-width:200px;" onchange="if(document.getElementById('wizard-search-input').value.trim()) runWizardMetadataSearch()"></select>
+        <div style="position:relative; flex:1; display:flex; align-items:center;">
+          <i data-lucide="search" class="ico-sm" style="position:absolute; left:12px; color:var(--text-muted); pointer-events:none;"></i>
+          <input id="wizard-search-input" class="input input-grow" type="text" value="${escapeHtml(currentQuery)}"
+            placeholder="${t("wizard.search_placeholder")}" style="padding-left:36px;"
+            onkeydown="if(event.key==='Enter') runWizardMetadataSearch()">
         </div>
-        <div class="wizard-method-card" onclick="chooseWizardMethod('manual')">
-          <div class="icon"><i data-lucide="edit-3" style="width:28px;height:28px;"></i></div>
-          <h4>${t("wizard.method_manual_title")}</h4>
-          <p>${t("wizard.method_manual_desc")}</p>
-        </div>
+        <button class="btn btn-primary" onclick="runWizardMetadataSearch()" style="display:inline-flex; align-items:center; gap:6px;">
+          <i data-lucide="search" class="ico-xs"></i> <span>${t("common.search")}</span>
+        </button>
+      </div>
+      <div id="wizard-search-results" class="metadata-poster-grid">
+        ${WIZARD_SEARCH_RESULTS && WIZARD_SEARCH_RESULTS.length > 0
+          ? WIZARD_SEARCH_RESULTS.map((r, idx) => renderMetadataResultCard(r, idx)).join("")
+          : `
+            <div class="wizard-search-empty-state" style="grid-column: 1 / -1;">
+              <div class="wizard-search-empty-icon"><i data-lucide="film" style="width:26px; height:26px;"></i></div>
+              <h3>${t("wizard.search_empty_title") || "Найдите фильм, сериал или аниме"}</h3>
+              <p>${t("wizard.search_empty_desc") || "Введите название на русском, английском или языке оригинала для поиска через подключенные базы метаданных."}</p>
+            </div>
+          `}
       </div>`;
+    loadSourcesIntoWizardSelect(WIZARD_STATE.sourceId);
     if (window.lucide) lucide.createIcons();
     return;
   }
 
-  if (step === 2 && WIZARD_STATE.method === "metadata") {
-    content.innerHTML = `
-      <div class="form-row">
-        <select id="wizard-source-select" class="input"></select>
-        <input id="wizard-search-input" class="input input-grow" type="text" placeholder="${t("wizard.search_placeholder")}"
-          onkeydown="if(event.key==='Enter') runWizardMetadataSearch()">
-        <button class="btn btn-primary" onclick="runWizardMetadataSearch()">${t("common.search")}</button>
-      </div>
-      <div id="wizard-search-results" class="metadata-results" style="margin-top:14px;"></div>
-      <div class="wizard-nav">
-        <button class="btn btn-secondary" onclick="renderWizardStep(1)">${t("wizard.back")}</button>
-      </div>`;
-    loadSourcesIntoWizardSelect();
-    return;
-  }
-
-  if (step === 2 && WIZARD_STATE.method === "manual") {
-    content.innerHTML = `
-      <div class="form-col">
-        <label>${t("wizard.manual_title_label")}</label>
-        <input id="wizard-manual-title" class="input" type="text" placeholder="${t("wizard.manual_title_placeholder")}">
-        <label class="hint">${t("wizard.manual_aliases_label")}</label>
-        <textarea id="wizard-manual-aliases" class="input mono" rows="4" placeholder="Крестьянин 999 уровня | ru&#10;Lv999 no Murabito | romaji"></textarea>
-        <label>${t("wizard.manual_cover_label")}</label>
-        <div class="cover-manual-row">
-          <div class="cover-manual-preview" id="wizard-manual-cover-preview">${t("wizard.manual_no_cover")}</div>
-          <div class="cover-manual-actions">
-            <button type="button" class="btn btn-secondary btn-small" onclick="document.getElementById('wizard-manual-cover-file').click()">${t("wizard.manual_upload_cover")}</button>
-            <input id="wizard-manual-cover-file" type="file" accept="image/*" style="display:none" onchange="onWizardManualCoverFile(event)">
-            <input id="wizard-manual-cover-url" class="input input-small" type="text" placeholder="${t("wizard.manual_cover_url_placeholder")}" oninput="onWizardManualCoverUrl(this.value)">
-          </div>
-        </div>
-      </div>
-      <div class="wizard-nav">
-        <button class="btn btn-secondary" onclick="renderWizardStep(1)">${t("wizard.back")}</button>
-        <button class="btn btn-primary" onclick="proceedManualToStep3()">${t("wizard.next")}</button>
-      </div>`;
-    return;
-  }
-
-  if (step === 3) {
-    loadQualityProfilesForWizard().then(() => renderWizardStep3Content());
+  if (step === 2) {
+    loadQualityProfilesForWizard().then(() => renderWizardStep2Content());
   }
 }
 
@@ -9181,32 +9143,7 @@ function guessContentTypeFromMetadata(result) {
   return result && result.content_type === "movie" ? "movie" : "series";
 }
 
-function onWizardManualCoverFile(event) {
-  const file = event.target.files && event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    WIZARD_STATE.manualCoverDataUrl = reader.result;
-    document.getElementById("wizard-manual-cover-url").value = "";
-    const preview = document.getElementById("wizard-manual-cover-preview");
-    if (preview) preview.innerHTML = `<img src="${reader.result}" alt="">`;
-  };
-  reader.readAsDataURL(file);
-}
-
-function onWizardManualCoverUrl(url) {
-  WIZARD_STATE.manualCoverDataUrl = null;
-  WIZARD_STATE.manualCoverUrl = url.trim();
-  const preview = document.getElementById("wizard-manual-cover-preview");
-  if (preview) preview.innerHTML = url.trim() ? `<img src="${escapeHtml(url.trim())}" alt="">` : t("wizard.manual_no_cover");
-}
-
-function chooseWizardMethod(method) {
-  WIZARD_STATE.method = method;
-  renderWizardStep(2);
-}
-
-async function loadSourcesIntoWizardSelect() {
+async function loadSourcesIntoWizardSelect(selectedSourceId) {
   const select = document.getElementById("wizard-source-select");
   if (!select) return;
   try {
@@ -9215,7 +9152,7 @@ async function loadSourcesIntoWizardSelect() {
     const autoLabel = CURRENT_LANG === "en" ? "All Sources" : "Все источники";
     let optionsHtml = `<option value="all">${autoLabel}</option>`;
     if (items && items.length) {
-      optionsHtml += items.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+      optionsHtml += items.map(s => `<option value="${s.id}" ${String(s.id) === String(selectedSourceId) ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join("");
     }
     select.innerHTML = optionsHtml;
   } catch (e) {
@@ -9224,15 +9161,22 @@ async function loadSourcesIntoWizardSelect() {
   }
 }
 
-let WIZARD_SEARCH_RESULTS = [];
-
 async function runWizardMetadataSearch() {
-  const sourceId = document.getElementById("wizard-source-select").value;
-  const query = document.getElementById("wizard-search-input").value.trim();
+  const sourceSelect = document.getElementById("wizard-source-select");
+  const sourceId = sourceSelect ? sourceSelect.value : "all";
+  const inputEl = document.getElementById("wizard-search-input");
+  const query = inputEl ? inputEl.value.trim() : "";
   const resultsEl = document.getElementById("wizard-search-results");
-  if (!query) return;
+  if (!query || !resultsEl) return;
 
-  resultsEl.innerHTML = `<p>${t("common.loading")}</p>`;
+  WIZARD_STATE.lastQuery = query;
+  WIZARD_STATE.sourceId = sourceId !== "all" ? sourceId : null;
+
+  resultsEl.innerHTML = `
+    <div style="grid-column: 1 / -1; text-align:center; padding:48px 16px; color:var(--text-muted);">
+      <div class="spinner" style="margin: 0 auto 12px;"></div>
+      <p style="margin:0;">${t("common.loading")}</p>
+    </div>`;
   try {
     let url = `/api/v1/metadata-sources/search?query=${encodeURIComponent(query)}`;
     if (sourceId && sourceId !== "all") {
@@ -9240,46 +9184,64 @@ async function runWizardMetadataSearch() {
     }
     const results = await api(url);
     WIZARD_SEARCH_RESULTS = results || [];
-    if (!results.length) { resultsEl.innerHTML = `<p style='color:var(--text-muted)'>${t("library.no_results")}</p>`; return; }
-    resultsEl.innerHTML = results.map((r, idx) => renderMetadataResultCard(r, idx, sourceId)).join("");
+    if (!results.length) {
+      resultsEl.innerHTML = `
+        <div class="wizard-search-empty-state" style="grid-column: 1 / -1;">
+          <div class="wizard-search-empty-icon" style="color:var(--text-muted); border-color:var(--border);"><i data-lucide="search-x" style="width:26px; height:26px;"></i></div>
+          <h3>${t("library.no_results")}</h3>
+          <p>${CURRENT_LANG === "en" ? "Try changing search terms or choosing a different metadata source." : "Попробуйте изменить поисковый запрос или выбрать другой источник метаданных."}</p>
+        </div>`;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+    resultsEl.innerHTML = results.map((r, idx) => renderMetadataResultCard(r, idx)).join("");
     if (window.lucide) lucide.createIcons();
   } catch (e) {
-    if (e.message !== "unauthorized") resultsEl.innerHTML = `<p style="color:var(--danger)">${CURRENT_LANG === "en" ? "Error:" : "Ошибка:"} ${escapeHtml(formatToastMessage(e.message))}</p>`;
+    if (e.message !== "unauthorized") {
+      resultsEl.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align:center; padding:36px 16px; color:var(--danger);">
+          <p>${CURRENT_LANG === "en" ? "Error:" : "Ошибка:"} ${escapeHtml(formatToastMessage(e.message))}</p>
+        </div>`;
+    }
   }
 }
 
-function renderMetadataResultCard(r, index, sourceId) {
-  let typeBadge = "";
-  if (r.content_type) {
-    const isMovie = r.content_type === "movie";
-    const typeLabel = isMovie ? t("settings.cat_movies") : t("settings.cat_series");
-    const typeIco = isMovie ? "film" : "tv";
-    const typeCls = isMovie ? "meta-badge-type-movie" : "meta-badge-type-series";
-    typeBadge = `<span class="meta-badge meta-badge-type ${typeCls}"><i data-lucide="${typeIco}" class="ico-xs" style="vertical-align:middle; margin-right:3px;"></i>${escapeHtml(typeLabel)}</span>`;
-  }
+function renderMetadataResultCard(r, index) {
+  const isMovie = r.content_type === "movie";
+  const typeLabel = isMovie ? t("settings.cat_movies") : t("settings.cat_series");
+  const typeIco = isMovie ? "film" : "tv";
+  const typeClass = isMovie ? "meta-type-movie" : "meta-type-series";
 
-  const badges = [
-    r.year ? `<span class="meta-badge">${r.year}</span>` : "",
-    r.rating ? `<span class="meta-badge meta-badge-rating">★ ${Number(r.rating).toFixed(1)}</span>` : "",
-    typeBadge,
-    r.country ? `<span class="meta-badge">${escapeHtml(r.country)}</span>` : "",
-    r.genre ? `<span class="meta-badge">${escapeHtml(r.genre)}</span>` : "",
-  ].filter(Boolean).join("");
+  const yearStr = r.year ? String(r.year) : "";
+  const ratingStr = r.rating ? `★ ${Number(r.rating).toFixed(1)}` : "";
+  const initialLetter = (r.title || "?").trim()[0]?.toUpperCase() || "?";
+
+  const bgStyle = r.poster_url ? `style="background-image: url('${r.poster_url}');"` : "";
 
   return `
-    <div class="metadata-result-card ${r.already_added ? "already-added" : ""}">
-      <div class="metadata-result-poster" ${r.poster_url ? `style="background-image:url('${r.poster_url}')"` : ""}>
-        ${r.poster_url ? "" : (r.title || "?").trim()[0]?.toUpperCase() || "?"}
+    <div class="metadata-poster-card ${r.already_added ? "already-added" : ""}" ${bgStyle}
+      onclick="${r.already_added ? "" : `chooseWizardMetadataResultByIndex(${index})`}"
+      title="${escapeHtml(r.title || '')}">
+      
+      ${!r.poster_url ? `<div class="metadata-poster-fallback">${escapeHtml(initialLetter)}</div>` : ""}
+
+      <div class="metadata-poster-top">
+        <div style="display:flex; align-items:center; gap:4px;">
+          ${r.content_type ? `<span class="meta-badge-glass ${typeClass}"><i data-lucide="${typeIco}" style="width:11px; height:11px;"></i>${escapeHtml(typeLabel)}</span>` : ""}
+          ${yearStr ? `<span class="meta-badge-glass">${yearStr}</span>` : ""}
+        </div>
+        ${ratingStr ? `<span class="meta-badge-glass meta-rating">${ratingStr}</span>` : ""}
       </div>
-      <div class="metadata-result-info">
-        <div class="metadata-result-title">${escapeHtml(r.title)}</div>
-        <div class="metadata-result-badges">${badges}</div>
-        ${r.overview ? `<p class="metadata-result-overview">${escapeHtml(r.overview)}</p>` : ""}
-      </div>
-      <div class="metadata-result-action">
-        ${r.already_added
-          ? `<span class="already-added-label">${t("wizard.already_in_library")}</span>`
-          : `<button class="btn btn-primary btn-small" onclick="chooseWizardMetadataResultByIndex(${index})">${t("wizard.select")}</button>`}
+
+      ${r.already_added ? `
+        <div class="already-added-overlay">
+          <span class="already-added-tag"><i data-lucide="check" class="ico-xs"></i> ${t("wizard.already_in_library")}</span>
+        </div>
+      ` : ""}
+
+      <div class="metadata-poster-bottom">
+        <div class="metadata-poster-title">${escapeHtml(r.title)}</div>
+        ${r.genre || r.country ? `<div class="metadata-poster-subtitle">${escapeHtml([r.genre, r.country].filter(Boolean).join(" • "))}</div>` : ""}
       </div>
     </div>`;
 }
@@ -9292,30 +9254,44 @@ function chooseWizardMetadataResultByIndex(index) {
   WIZARD_STATE.sourceId = sourceId;
   WIZARD_STATE.selectedResult = result;
   WIZARD_STATE.contentType = guessContentTypeFromMetadata(result);
-  renderWizardStep(3);
-}
-
-function proceedManualToStep3() {
-  const title = document.getElementById("wizard-manual-title").value.trim();
-  if (!title) { toast(CURRENT_LANG === "en" ? "Title required" : "Введите название", true); return; }
-  WIZARD_STATE.manualTitle = title;
-  WIZARD_STATE.manualAliases = document.getElementById("wizard-manual-aliases").value;
-  if (!WIZARD_STATE.contentType) WIZARD_STATE.contentType = "series";
-  renderWizardStep(3);
+  renderWizardStep(2);
 }
 
 async function loadQualityProfilesForWizard() {
   try { CACHED_QUALITY_PROFILES = await api("/api/v1/quality-profiles"); } catch (e) { CACHED_QUALITY_PROFILES = []; }
 }
 
-function renderWizardStep3Content() {
+function renderWizardStep2Content() {
   const content = document.getElementById("wizard-content");
-  const isMetadata = WIZARD_STATE.method === "metadata";
-  const title = isMetadata ? WIZARD_STATE.selectedResult.title : WIZARD_STATE.manualTitle;
+  if (!content || !WIZARD_STATE.selectedResult) return;
+
+  const r = WIZARD_STATE.selectedResult;
   const currentType = WIZARD_STATE.contentType || "series";
+  const isMovie = r.content_type === "movie";
+  const typeLabel = isMovie ? t("settings.cat_movies") : t("settings.cat_series");
+  const typeIco = isMovie ? "film" : "tv";
+  const typeClass = isMovie ? "meta-badge-type-movie" : "meta-badge-type-series";
+  const initialLetter = (r.title || "?").trim()[0]?.toUpperCase() || "?";
+  const posterStyle = r.poster_url ? `style="background-image: url('${r.poster_url}');"` : "";
 
   content.innerHTML = `
-    <p><strong>${escapeHtml(formatShowTitleWithYear(title, isMetadata && WIZARD_STATE.selectedResult ? WIZARD_STATE.selectedResult.year : null))}</strong></p>
+    <div class="wizard-selected-banner">
+      <div class="wizard-selected-poster" ${posterStyle}>
+        ${r.poster_url ? "" : escapeHtml(initialLetter)}
+      </div>
+      <div class="wizard-selected-info">
+        <h3 class="wizard-selected-title">${escapeHtml(formatShowTitleWithYear(r.title, r.year))}</h3>
+        <div class="wizard-selected-badges">
+          ${r.content_type ? `<span class="meta-badge meta-badge-type ${typeClass}"><i data-lucide="${typeIco}" class="ico-xs"></i>${escapeHtml(typeLabel)}</span>` : ""}
+          ${r.year ? `<span class="meta-badge mono">${r.year}</span>` : ""}
+          ${r.rating ? `<span class="meta-badge meta-badge-rating">★ ${Number(r.rating).toFixed(1)}</span>` : ""}
+          ${r.country ? `<span class="meta-badge">${escapeHtml(r.country)}</span>` : ""}
+          ${r.genre ? `<span class="meta-badge">${escapeHtml(r.genre)}</span>` : ""}
+        </div>
+        ${r.overview ? `<p class="wizard-selected-overview">${escapeHtml(r.overview)}</p>` : ""}
+      </div>
+    </div>
+
     <div class="form-col">
       <label>${t("wizard.category_label")} <span class="hint">${t("wizard.category_hint")}</span></label>
       <div class="chip-select" id="wizard-content-type-chips">
@@ -9324,18 +9300,29 @@ function renderWizardStep3Content() {
             onclick="selectWizardContentType('${val}')">${label}</button>
         `).join("")}
       </div>
-      <label>${t("library.col_profile")}</label>
+
+      <label style="margin-top:8px;">${t("library.col_profile")}</label>
       <select id="wizard-quality-profile" class="input">
         <option value="">${t("common.any_quality")}</option>
         ${CACHED_QUALITY_PROFILES.map(qp => `<option value="${qp.id}">${escapeHtml(qp.name)}</option>`).join("")}
       </select>
-      <label class="checkbox-row"><input id="wizard-monitored" type="checkbox" checked> <span>${t("wizard.monitor_immediately")}</span></label>
-      <label class="checkbox-row" style="margin-top:2px;"><input id="wizard-autosearch" type="checkbox" checked> <span>${t("wizard.autosearch_after_add")}</span></label>
+
+      <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
+        <label class="checkbox-row"><input id="wizard-monitored" type="checkbox" checked> <span>${t("wizard.monitor_immediately")}</span></label>
+        <label class="checkbox-row"><input id="wizard-autosearch" type="checkbox" checked> <span>${t("wizard.autosearch_after_add")}</span></label>
+      </div>
     </div>
-    <div class="wizard-nav">
-      <button class="btn btn-secondary" onclick="renderWizardStep(2)">${t("wizard.back")}</button>
-      <button class="btn btn-primary" id="wizard-finish-btn" onclick="finishWizard(this)">${t("wizard.finish_btn")}</button>
+
+    <div class="wizard-nav" style="margin-top:24px;">
+      <button class="btn btn-secondary" onclick="renderWizardStep(1)" style="display:inline-flex; align-items:center; gap:6px;">
+        <i data-lucide="arrow-left" class="ico-xs"></i> <span>${t("wizard.back")}</span>
+      </button>
+      <button class="btn btn-primary" id="wizard-finish-btn" onclick="finishWizard(this)" style="display:inline-flex; align-items:center; gap:6px;">
+        <i data-lucide="plus" class="ico-xs"></i> <span>${t("wizard.finish_btn")}</span>
+      </button>
     </div>`;
+
+  if (window.lucide) lucide.createIcons();
 }
 
 function selectWizardContentType(value) {
@@ -9352,41 +9339,22 @@ async function finishWizard(button) {
     const runAutoSearch = document.getElementById("wizard-autosearch") ? document.getElementById("wizard-autosearch").checked : true;
     const contentType = WIZARD_STATE.contentType || "series";
 
+    if (!WIZARD_STATE.selectedResult) {
+      throw new Error(CURRENT_LANG === "en" ? "No title selected" : "Тайтл не выбран");
+    }
+
     try {
-      let showId;
-      let title = "";
-      if (WIZARD_STATE.method === "metadata") {
-        if (!WIZARD_STATE.selectedResult) {
-          throw new Error(CURRENT_LANG === "en" ? "No title selected" : "Тайтл не выбран");
-        }
-        const result = await api("/api/v1/metadata-sources/import", {
-          method: "POST",
-          body: JSON.stringify({
-            source_id: WIZARD_STATE.sourceId ? Number(WIZARD_STATE.sourceId) : null,
-            external_id: String(WIZARD_STATE.selectedResult.external_id),
-            path: null,
-            content_type: contentType,
-          }),
-        });
-        showId = result.show_id;
-        title = result.title;
-      } else {
-        const aliasLines = (WIZARD_STATE.manualAliases || "").split("\n").map(l => l.trim()).filter(Boolean);
-        const aliases = aliasLines.map(line => {
-          const [text, lang] = line.split("|").map(p => p.trim());
-          return { text: text || line, language: lang || "ru" };
-        });
-        const posterUrl = WIZARD_STATE.manualCoverDataUrl || WIZARD_STATE.manualCoverUrl || null;
-        const show = await api("/api/v1/shows", {
-          method: "POST",
-          body: JSON.stringify({
-            title: WIZARD_STATE.manualTitle, path: null, aliases,
-            content_type: contentType, poster_url: posterUrl,
-          }),
-        });
-        showId = show.id;
-        title = show.title;
-      }
+      const result = await api("/api/v1/metadata-sources/import", {
+        method: "POST",
+        body: JSON.stringify({
+          source_id: WIZARD_STATE.sourceId ? Number(WIZARD_STATE.sourceId) : null,
+          external_id: String(WIZARD_STATE.selectedResult.external_id),
+          path: null,
+          content_type: contentType,
+        }),
+      });
+      const showId = result.show_id;
+      const title = result.title;
 
       if (showId) {
         await api(`/api/v1/shows/${showId}`, {
