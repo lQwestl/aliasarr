@@ -9865,7 +9865,11 @@ async function loadQueue() {
               ${badgesHtml}
             </div>
           </td>
-          <td><span class="badge badge-secondary">${escapeHtml(i.download_client)}</span></td>
+          <td>
+            <div class="queue-client-cell">
+              <span class="badge badge-secondary">${escapeHtml(i.download_client)}</span>
+            </div>
+          </td>
           <td>${speedCellHtml}</td>
           <td>
             <div class="queue-progress-bar-wrap">
@@ -9879,11 +9883,13 @@ async function loadQueue() {
             </div>
           </td>
           <td>
-            <span class="badge ${isPaused ? "badge-secondary" : (isDone ? "badge-success" : "badge-accent")}">${escapeHtml(i.state)}</span>
+            <div class="queue-status-cell">
+              <span class="badge ${isPaused ? "badge-secondary" : (isDone ? "badge-success" : "badge-accent")}">${escapeHtml(i.state)}</span>
+            </div>
           </td>
           <td>
             ${canManage ? `
-              <div class="row-actions">
+              <div class="row-actions queue-actions-cell">
                 <button class="btn-icon-only ${isPaused ? "active" : ""}" title="${toggleTitle}" onclick="toggleQueueItemPauseByIndex(this, ${idx})">
                   <i data-lucide="${toggleIcon}" class="ico-sm"></i>
                 </button>

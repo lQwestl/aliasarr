@@ -2263,10 +2263,15 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   width: 100%;
   table-layout: fixed;
 }
+#queue-table th,
+#queue-table td {
+  vertical-align: top;
+  padding: 12px 10px;
+}
 #queue-table th:nth-child(1),
 #queue-table td:nth-child(1) {
   width: auto;
-  min-width: 160px;
+  min-width: 150px;
 }
 .queue-title-cell {
   display: flex;
@@ -2296,12 +2301,18 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #queue-table th:nth-child(2),
 #queue-table td:nth-child(2) {
-  width: 100px;
+  width: 110px;
+  padding-right: 18px;
   white-space: nowrap;
+}
+.queue-client-cell {
+  display: flex;
+  align-items: center;
+  margin-top: 2px;
 }
 #queue-table th:nth-child(3),
 #queue-table td:nth-child(3) {
-  width: 175px;
+  width: 185px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(4),
@@ -2311,14 +2322,22 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #queue-table th:nth-child(5),
 #queue-table td:nth-child(5) {
-  width: 145px;
+  width: 140px;
   white-space: nowrap;
+}
+.queue-status-cell {
+  display: flex;
+  align-items: center;
+  margin-top: 12px;
 }
 #queue-table th:nth-child(6),
 #queue-table td:nth-child(6) {
   width: 76px;
   text-align: right;
   white-space: nowrap;
+}
+.queue-actions-cell {
+  margin-top: 4px;
 }
 
 /* Events, Journal and Release Logs Table Layouts */
