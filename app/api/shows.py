@@ -2808,6 +2808,7 @@ async def remap_show_metadata(
     очищает ошибочно подтянутые серии без файлов и загружает корректную структуру сезонов и серий.
     """
     from app.models.db import MetadataSource, MetadataSourceType, Episode, EpisodeStatus, Alias, AliasLanguage
+    from app.services.metadata import SkyHookClient, RadarrClient
 
     show = db.get(Show, show_id)
     if not show:
@@ -2833,14 +2834,6 @@ async def remap_show_metadata(
             source = db.query(MetadataSource).filter(MetadataSource.type.in_([MetadataSourceType.RADARR, MetadataSourceType.SKYHOOK, MetadataSourceType.TMDB]), MetadataSource.enabled == True).first()
             if not source:
                 source = MetadataSource(name="Radarr SkyHook (Movie Cloud)", type="radarr", base_url="https://api.radarr.video/v1", enabled=True)
-        elif ext_str.startswith("anilist:") or source_type_name == "anilist":
-            source = db.query(MetadataSource).filter(MetadataSource.type == MetadataSourceType.ANILIST, MetadataSource.enabled == True).first()
-            if not source:
-                source = MetadataSource(name="AniList", type="anilist", base_url="https://graphql.anilist.co", enabled=True)
-        elif ext_str.startswith("shiki:") or source_type_name == "shikimori":
-            source = db.query(MetadataSource).filter(MetadataSource.type == MetadataSourceType.SHIKIMORI, MetadataSource.enabled == True).first()
-            if not source:
-                source = MetadataSource(name="Shikimori", type="shikimori", base_url="https://shikimori.one/api", enabled=True)
         elif ext_str.startswith("tmdb:") or ext_str.startswith("tv:") or source_type_name == "tmdb":
             source = db.query(MetadataSource).filter(MetadataSource.type == MetadataSourceType.TMDB, MetadataSource.enabled == True).first()
             if not source:
@@ -2849,13 +2842,22 @@ async def remap_show_metadata(
             source = MetadataSource(name="SkyHook (Sonarr)", type="skyhook", base_url="https://skyhook.sonarr.tv/v1/tvdb", enabled=True)
 
     client = get_metadata_client(source)
+    fallback_client = RadarrClient() if is_movie else SkyHookClient()
+    details = None
+
     try:
         details = await client.get_details(ext_str)
     except Exception as exc:
-        raise HTTPException(400, f"Не удалось получить метаданные из {getattr(source, 'name', 'источника')} для ID {ext_str}: {exc}")
+        logger.debug("Primary metadata client get_details failed for %s: %s", ext_str, exc)
+
+    if not details and client != fallback_client:
+        try:
+            details = await fallback_client.get_details(ext_str)
+        except Exception as exc:
+            logger.debug("Fallback metadata client get_details failed for %s: %s", ext_str, exc)
 
     if not details:
-        raise HTTPException(404, f"Метаданные для {ext_str} не найдены")
+        raise HTTPException(404, f"Не удалось найти метаданные для {ext_str}")
 
     now = dt.datetime.utcnow()
     show.metadata_id = details.external_id or ext_str
@@ -2896,39 +2898,55 @@ async def remap_show_metadata(
 
     show.last_metadata_refresh_at = now
 
+    existing_eps = db.query(Episode).filter(Episode.show_id == show.id).all()
+    existing_by_key = {(ep.season_number, ep.episode_number): ep for ep in existing_eps}
+
+    # Множество ключей серий из новых метаданных
+    if is_movie:
+        meta_keys = {(1, 1)}
+    else:
+        meta_keys = {
+            (ep.season_number if ep.season_number is not None else 1, ep.episode_number)
+            for ep in (details.episodes or [])
+            if ep.episode_number is not None
+        }
+
     deleted_episodes_count = 0
     if payload.cleanup_unlinked_episodes:
-        existing_eps = db.query(Episode).filter(Episode.show_id == show.id).all()
-        for ep in existing_eps:
-            has_real_file = False
-            if ep.file_path:
-                try:
-                    has_real_file = os.path.exists(ep.file_path)
-                except Exception:
-                    has_real_file = False
-            is_active_download = (ep.status == EpisodeStatus.DOWNLOADING and bool(ep.torrent_hash))
-            if not has_real_file and not is_active_download:
-                db.delete(ep)
-                deleted_episodes_count += 1
-        db.flush()
+        for key, ep in list(existing_by_key.items()):
+            if key not in meta_keys:
+                has_real_file = False
+                if ep.file_path:
+                    try:
+                        has_real_file = os.path.exists(ep.file_path)
+                    except Exception:
+                        has_real_file = False
+                is_active_download = (ep.status == EpisodeStatus.DOWNLOADING and bool(ep.torrent_hash))
+                if not has_real_file and not is_active_download:
+                    db.delete(ep)
+                    del existing_by_key[key]
+                    deleted_episodes_count += 1
 
     added_episodes_count = 0
     updated_episodes_count = 0
+
     if is_movie:
-        ep_m = db.query(Episode).filter(Episode.show_id == show.id).order_by(Episode.id).first()
+        ep_m = existing_by_key.get((1, 1))
         if ep_m:
             if details.title:
                 ep_m.title = details.title
             db.add(ep_m)
             updated_episodes_count += 1
         else:
-            db.add(Episode(
+            new_ep = Episode(
                 show_id=show.id,
                 season_number=1,
                 episode_number=1,
                 title=details.title or show.title,
                 status=EpisodeStatus.WANTED,
-            ))
+            )
+            db.add(new_ep)
+            existing_by_key[(1, 1)] = new_ep
             added_episodes_count += 1
     elif details.episodes:
         seen_added_keys = set()
@@ -2953,27 +2971,23 @@ async def remap_show_metadata(
             if raw_ep_title in ("None", "null", "TBA", "tba", ""):
                 raw_ep_title = None
 
-            ep_db = (
-                db.query(Episode)
-                .filter(
-                    Episode.show_id == show.id,
-                    Episode.season_number == s_num,
-                    Episode.episode_number == e_num,
-                )
-                .first()
-            )
+            ep_db = existing_by_key.get(ep_key)
             if ep_db:
                 if raw_ep_title:
                     ep_db.title = raw_ep_title
+                elif not ep_db.title:
+                    ep_db.title = "TBA"
                 if air_date:
                     ep_db.air_date = air_date
                 if meta_ep.absolute_number is not None:
                     ep_db.absolute_number = meta_ep.absolute_number
+                if ep_db.status in (EpisodeStatus.UNAIRED, EpisodeStatus.MISSING, EpisodeStatus.WANTED):
+                    ep_db.status = EpisodeStatus.UNAIRED if (air_date and air_date > now) else EpisodeStatus.WANTED
                 db.add(ep_db)
                 updated_episodes_count += 1
             else:
                 status = EpisodeStatus.UNAIRED if (air_date and air_date > now) else EpisodeStatus.WANTED
-                db.add(Episode(
+                new_ep = Episode(
                     show_id=show.id,
                     season_number=s_num,
                     episode_number=e_num,
@@ -2981,13 +2995,24 @@ async def remap_show_metadata(
                     title=raw_ep_title or "TBA",
                     air_date=air_date,
                     status=status,
-                ))
+                )
+                db.add(new_ep)
+                existing_by_key[ep_key] = new_ep
                 added_episodes_count += 1
 
     # Обновляем алиасы из источника
     if details.aliases:
-        existing_aliases = {a.text.lower().strip() for a in getattr(show, "aliases", []) or [] if a.text}
-        cur_max_p = max([a.priority for a in getattr(show, "aliases", []) or [] if a.priority is not None] or [0])
+        existing_aliases = {
+            a.text.lower().strip()
+            for a in db.query(Alias).filter(Alias.show_id == show.id).all()
+            if a.text
+        }
+        all_priorities = [
+            a.priority
+            for a in db.query(Alias).filter(Alias.show_id == show.id).all()
+            if a.priority is not None
+        ]
+        cur_max_p = max(all_priorities) if all_priorities else 0
         for alias_text in details.aliases:
             clean_alias = str(alias_text).strip()
             if clean_alias and clean_alias.lower() not in existing_aliases:
@@ -3001,8 +3026,13 @@ async def remap_show_metadata(
                     priority=cur_max_p,
                 ))
 
-    db.commit()
-    db.refresh(show)
+    try:
+        db.commit()
+        db.refresh(show)
+    except Exception as commit_exc:
+        db.rollback()
+        logger.exception("Failed to commit show remap for show %s: %s", show.id, commit_exc)
+        raise HTTPException(500, f"Ошибка сохранения новой привязки в базе данных: {commit_exc}")
 
     try:
         from app.services.blocklist_service import relink_blocklist_for_show
