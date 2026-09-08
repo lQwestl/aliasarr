@@ -9099,14 +9099,14 @@ function renderWizardStep(step) {
     const currentQuery = WIZARD_STATE.lastQuery || "";
     content.innerHTML = `
       <div class="wizard-search-toolbar">
-        <select id="wizard-source-select" class="input" style="max-width:200px;" onchange="if(document.getElementById('wizard-search-input').value.trim()) runWizardMetadataSearch()"></select>
-        <div style="position:relative; flex:1; display:flex; align-items:center;">
-          <i data-lucide="search" class="ico-sm" style="position:absolute; left:12px; color:var(--text-muted); pointer-events:none;"></i>
-          <input id="wizard-search-input" class="input input-grow" type="text" value="${escapeHtml(currentQuery)}"
-            placeholder="${t("wizard.search_placeholder")}" style="padding-left:36px;"
+        <select id="wizard-source-select" class="input wizard-source-select" onchange="if(document.getElementById('wizard-search-input').value.trim()) runWizardMetadataSearch()"></select>
+        <div class="wizard-search-input-wrapper">
+          <i data-lucide="search" class="ico-sm wizard-search-icon"></i>
+          <input id="wizard-search-input" class="input wizard-search-input" type="text" value="${escapeHtml(currentQuery)}"
+            placeholder="${t("wizard.search_placeholder")}"
             onkeydown="if(event.key==='Enter') runWizardMetadataSearch()">
         </div>
-        <button class="btn btn-primary" onclick="runWizardMetadataSearch()" style="display:inline-flex; align-items:center; gap:6px;">
+        <button class="btn btn-primary wizard-search-btn" onclick="runWizardMetadataSearch()">
           <i data-lucide="search" class="ico-xs"></i> <span>${t("common.search")}</span>
         </button>
       </div>
