@@ -4531,8 +4531,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 /* ---------- QUEUE progress bar ---------- */
 .queue-progress-cell { display: flex; align-items: center; gap: 8px; min-width: 140px; }
-.queue-progress-bar { flex: 1; height: 6px; border-radius: 3px; background: var(--panel-alt); overflow: hidden; }
-.queue-progress-fill { height: 100%; background: var(--gradient); transition: width 0.4s ease; }
+.queue-progress-bar { width: 100%; height: 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.06); overflow: hidden; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3); }
+.queue-progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1 0%, var(--teal, #00F0FF) 100%); transition: width 0.4s ease; border-radius: 4px; }
 
 /* ---------- CALENDAR ---------- */
 .calendar-toolbar {
@@ -7982,17 +7982,33 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-width: 170px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 190px;
+}
+
+.queue-progress-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.queue-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1 0%, var(--teal, #00F0FF) 100%);
+  transition: width 0.4s ease;
+  border-radius: 4px;
 }
 
 .queue-progress-meta {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  justify-content: flex-start;
   width: 100%;
-  min-width: 0;
 }
 
 .queue-progress-pct-badge {
@@ -8013,10 +8029,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   padding: 1.5px 7px;
   border-radius: var(--radius-sm, 6px);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-shrink: 1;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
 .queue-speed-cell {
