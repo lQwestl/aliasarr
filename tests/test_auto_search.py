@@ -776,6 +776,42 @@ class TestSeasonQueries(unittest.TestCase):
         self.assertIn(ep10, uncovered)
         self.assertIn(ep2, uncovered)
 
+    def test_unnumbered_specials_sequential_matching(self):
+        """Проверка последовательного сопоставления неномерных спецвыпусков в папке [Special]."""
+        from types import SimpleNamespace as Ep
+        from app.services import auto_search
+
+        sp1 = Ep(id=1, show_id=77, season_number=0, episode_number=1, absolute_number=None, title="Special 1: Love Machine")
+        sp2 = Ep(id=2, show_id=77, season_number=0, episode_number=2, absolute_number=None, title="Special 2: Getting Along with Tsucchi")
+        sp3 = Ep(id=3, show_id=77, season_number=0, episode_number=3, absolute_number=None, title="Special 3: Our Good Friend Tsucchi")
+        sp4 = Ep(id=4, show_id=77, season_number=0, episode_number=4, absolute_number=None, title="Special 4: You Can Do It Tsucchi")
+        sp5 = Ep(id=5, show_id=77, season_number=0, episode_number=5, absolute_number=None, title="Special 5: Farewell Tsucchi")
+        sp6 = Ep(id=6, show_id=77, season_number=0, episode_number=6, absolute_number=None, title="LOVE Machine (Music Clip)")
+
+        targets = [sp1, sp2, sp3, sp4, sp5, sp6]
+        all_eps = list(targets)
+
+        files = [
+            "Seikimatsu Occult Gakuin [Special]/[Yousei-raws] Seikimatsu Occult Gakuin (Nakayoshi Tsucchi) [BDrip 1920x1080 x264 FLAC].mkv",
+            "Seikimatsu Occult Gakuin [Special]/[Yousei-raws] Seikimatsu Occult Gakuin (Yoroshiku Tsucchi) [BDrip 1920x1080 x264 FLAC].mkv",
+            "Seikimatsu Occult Gakuin [Special]/[Yousei-raws] Seikimatsu Occult Gakuin (Ganbare Tsucchi) [BDrip 1920x1080 x264 FLAC].mkv",
+            "Seikimatsu Occult Gakuin [Special]/[Yousei-raws] Seikimatsu Occult Gakuin (Sayonara Tsucchi) [BDrip 1920x1080 x264 FLAC].mkv",
+            "Seikimatsu Occult Gakuin [Special]/[Yousei-raws] Seikimatsu Occult Gakuin (LOVE Machine 2D ver) [BDrip 1920x1080 x264 FLAC].mkv",
+            "Seikimatsu Occult Gakuin [Special]/[Yousei-raws] Seikimatsu Occult Gakuin (LOVE Machine 3D ver) [BDrip 1920x1080 x264 FLAC].mkv",
+        ]
+
+        matched = []
+        for idx, f in enumerate(files):
+            prio = auto_search.evaluate_torrent_file_priority(
+                f, idx, targets, content_type="anime", torrent_name="[Yousei-raws] Seikimatsu Occult Gakuin",
+                all_show_episodes=all_eps, out_matched_episodes=matched
+            )
+            self.assertEqual(prio, 1, f"File {f} must have prio 1")
+
+        self.assertEqual(len(matched), 6)
+        matched_ep_nums = [e.episode_number for e in matched]
+        self.assertEqual(matched_ep_nums, [1, 2, 3, 4, 5, 6])
+
     def test_season_queries_include_season_x(self):
         """Проверка генерации сезонных запросов (Season X, Сезон X) для сериалов."""
         from app.services.auto_search import _generate_season_queries

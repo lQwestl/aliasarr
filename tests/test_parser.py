@@ -465,6 +465,19 @@ class TestParser(unittest.TestCase):
         p3 = parse_episode(t3)
         self.assertEqual(p3.episodes, list(range(1, 9)))
 
+    def test_2d_3d_not_parsed_as_episodes(self):
+        t1 = "[Winter] Seikimatsu Occult Gakuin (Love Machine 2D ver) [BDrip 1280x720 x264 Vorbis].mkv"
+        p1 = parse_episode(t1)
+        self.assertEqual(p1.episodes, [])
+
+        t2 = "[Winter] Seikimatsu Occult Gakuin (Love Machine 3D ver) [BDrip 1280x720 x264 Vorbis].mkv"
+        p2 = parse_episode(t2)
+        self.assertEqual(p2.episodes, [])
+
+        t3 = "Avatar (2009) 3D Half-SBS 1080p"
+        p3 = parse_episode(t3)
+        self.assertEqual(p3.episodes, [])
+
 
 if __name__ == "__main__":
     unittest.main()

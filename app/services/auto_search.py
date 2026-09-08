@@ -292,9 +292,20 @@ def evaluate_torrent_file_priority(
             if not any((season, ep_n) in target_keys for ep_n in episodes):
                 return _set_res(0, f"Сопоставлен по названию серии «{best_ep.title}» -> S{best_ep.season_number:02d}E{best_ep.episode_number:02d} (ОТКЛЮЧЕН, серия уже скачана/не разыскивается)")
 
+    is_special_dir = bool(dir_name and any(
+        re.search(r"\b" + re.escape(kw) + r"\b", dir_name.lower()) or
+        f"[{kw}]" in dir_name.lower() or
+        f"({kw})" in dir_name.lower() or
+        f"/{kw}/" in dir_name.lower() or
+        dir_name.lower().endswith(f"/{kw}") or
+        dir_name.lower().endswith(f"[{kw}]")
+        for kw in ("special", "specials", "спешл", "спешлы", "sp", "bonus", "omake", "extras", "extra", "ova", "ona", "oad")
+    ))
+
     is_special_file = (
         (parsed and (parsed.season == 0 or parsed.matched_pattern in ("season_pack:ova_ona", "leading_num_special"))) or
-        any(kw in base_name.lower() for kw in ("ova", "ona", "oad", "special", "specials", "спешл", "sp", "bonus")) or
+        is_special_dir or
+        any(kw in base_name.lower() for kw in ("ova", "ona", "oad", "special", "specials", "спешл", "sp", "bonus", "omake")) or
         (episodes and 0 in episodes)
     )
 
@@ -303,6 +314,8 @@ def evaluate_torrent_file_priority(
         if not import_extra_files:
             return _set_res(0, "Импорт сопутствующих файлов отключен в настройках (ОТКЛЮЧЕН)")
         if not episodes:
+            if is_special_file and has_wanted_specials:
+                return _set_res(1, "Сопутствующий файл к спецвыпуску (ВКЛЮЧЕН)")
             # Общие субтитры/аудио/nfo без явного номера серии в названии (например, общая папка Sound / Subs / OST)
             return _set_res(1, "Общие сопутствующие файлы (субтитры/аудио) (ВКЛЮЧЕН)")
 
@@ -366,10 +379,17 @@ def evaluate_torrent_file_priority(
                                 out_matched_episodes.append(matched)
                         return _set_res(1, f"Спецвыпуск S00E{ep_num:02d} (ВКЛЮЧЕН, разыскивается)")
             if has_wanted_specials:
-                if out_matched_episodes is not None:
-                    matched = next((ep for ep in target_episodes if ep.season_number == 0), None)
-                    if matched:
-                        out_matched_episodes.append(matched)
+                # Если номер спецвыпуска явно не указан (файлы в папке [Special]/SP без цифр):
+                already_matched_eps = {getattr(e, "episode_number", None) for e in out_matched_episodes if getattr(e, "season_number", None) == 0} if out_matched_episodes else set()
+                unmatched_specials = [
+                    ep for ep in sorted(target_episodes, key=lambda e: getattr(e, "episode_number", 0) or 0)
+                    if getattr(ep, "season_number", None) == 0 and getattr(ep, "episode_number", None) not in already_matched_eps
+                ]
+                if unmatched_specials:
+                    matched_sp = unmatched_specials[0]
+                    if out_matched_episodes is not None:
+                        out_matched_episodes.append(matched_sp)
+                    return _set_res(1, f"Спецвыпуск сопоставлен по порядку -> S00E{matched_sp.episode_number:02d} «{getattr(matched_sp, 'title', '') or ''}» (ВКЛЮЧЕН, разыскивается)")
                 return _set_res(1, f"Спецвыпуск (Сезон 0) (ВКЛЮЧЕН)")
             return _set_res(0, f"Спецвыпуск не входит в разыскиваемые (ОТКЛЮЧЕН)")
 

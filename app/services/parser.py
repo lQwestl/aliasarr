@@ -296,6 +296,13 @@ _RE_DASH_ABSOLUTE = re.compile(r"[-–]\s?(\d{1,4})(?:v\d)?\b(?!\d)")
 # Fallback: одинокое 1-4 значное число
 _RE_LONE_NUMBER = re.compile(r"(?<!\d)(\d{1,4})(?!\d)")
 
+# Исключение 2D / 3D / 4D (например "Love Machine 2D ver", "3D Half-SBS")
+_2D_3D_RE = re.compile(
+    r"(?<![a-zA-Z0-9])(?:[234]D)(?![a-zA-Z0-9])|"
+    r"(?<![a-zA-Z0-9])(?:[234]D(?:\s*[-_.]?\s*(?:ver|version|edition|bd|bluray))?)(?![a-zA-Z0-9])",
+    re.IGNORECASE,
+)
+
 # Дополнительные материалы / опенинги / эндинги / трейлеры
 _EXTRA_RELEASE_RE = re.compile(
     r"\b(?:nc)?(?:op|ed|pv|cm|ins)\s*[-–_./\s]?\s*\d*\b|"
@@ -429,10 +436,11 @@ def _parse_episode_internal(release_name: str) -> ParsedRelease:
     if _NON_VIDEO_RELEASE_RE.search(raw):
         return ParsedRelease(kind=ReleaseKind.UNKNOWN, raw=raw, matched_pattern="non_video_ignored")
 
-    # Защита: если во всём имени встречается диапазон годов (2019-2025) —
-    # временно "выжигаем" его, чтобы не спутать с диапазоном серий
+    # Защита: если во всём имени встречается диапазон годов (2019-2025) или 2D/3D —
+    # временно "выжигаем" их, чтобы не спутать с диапазоном серий
     protected = _YEAR_RANGE_RE.sub(lambda m: "#" * len(m.group(0)), name)
     protected = _YEAR_RE.sub(lambda m: "#" * len(m.group(0)), protected)
+    protected = _2D_3D_RE.sub(lambda m: "#" * len(m.group(0)), protected)
 
     # Если релиз является опенингом/эндингом/бонусом/сэмплом и не содержит явного S01E01
     has_explicit_s_e = (
