@@ -1425,8 +1425,8 @@
               <span class="lang-en">Step 3: Configuring Media Folders &amp; Hardlinks</span>
             </div>
             <p class="wiki-p">
-              <span class="lang-ru">Откройте браузер по адресу <code>http://&lt;IP_сервера&gt;:8989</code>, перейдите в <strong>«Настройки» $	o$ «Медиатека / Папки»</strong>:</span>
-              <span class="lang-en">Open <code>http://&lt;server_ip&gt;:8989</code>, navigate to <strong>Settings $	o$ Media Management</strong>:</span>
+              <span class="lang-ru">Откройте браузер по адресу <code>http://&lt;IP_сервера&gt;:8989</code>, перейдите в <strong>«Настройки» &rarr; «Медиатека / Папки»</strong>:</span>
+              <span class="lang-en">Open <code>http://&lt;server_ip&gt;:8989</code>, navigate to <strong>Settings &rarr; Media Management</strong>:</span>
             </p>
             <ul style="font-size:13.5px;color:var(--text);line-height:1.7;margin-bottom:10px;">
               <li><strong>Корневая папка (Сериалы):</strong> <code>/data/media/series</code></li>
@@ -1447,8 +1447,8 @@
               <span class="lang-en">Step 4: Connecting Download Client</span>
             </div>
             <p class="wiki-p">
-              <span class="lang-ru">Перейдите в <strong>«Настройки» $	o$ «Загрузчики» $	o$ «Добавить загрузчик»</strong>:</span>
-              <span class="lang-en">Go to <strong>Settings $	o$ Download Clients $	o$ Add Client</strong>:</span>
+              <span class="lang-ru">Перейдите в <strong>«Настройки» &rarr; «Загрузчики» &rarr; «Добавить загрузчик»</strong>:</span>
+              <span class="lang-en">Go to <strong>Settings &rarr; Download Clients &rarr; Add Client</strong>:</span>
             </p>
             <ul style="font-size:13.5px;color:var(--text);line-height:1.7;margin-bottom:10px;">
               <li><strong>Тип:</strong> <code>qBittorrent</code> или <code>Transmission</code></li>
@@ -1469,8 +1469,8 @@
               <span class="lang-en">Step 5: Connecting Indexers</span>
             </div>
             <p class="wiki-p">
-              <span class="lang-ru">Перейдите в <strong>«Настройки» $	o$ «Индексаторы» $	o$ «Добавить индексатор»</strong>:</span>
-              <span class="lang-en">Navigate to <strong>Settings $	o$ Indexers $	o$ Add Indexer</strong>:</span>
+              <span class="lang-ru">Перейдите в <strong>«Настройки» &rarr; «Индексаторы» &rarr; «Добавить индексатор»</strong>:</span>
+              <span class="lang-en">Navigate to <strong>Settings &rarr; Indexers &rarr; Add Indexer</strong>:</span>
             </p>
             <ul style="font-size:13.5px;color:var(--text);line-height:1.7;margin-bottom:10px;">
               <li><strong>Тип:</strong> <code>Torznab</code> (для интеграции с Prowlarr/Jackett) или <code>Nyaa</code> для аниме</li>
@@ -1672,31 +1672,31 @@
               <td><code>UNAIRED</code></td>
               <td><span class="badge badge-secondary">Не вышла</span></td>
               <td><span class="lang-ru">Дата премьеры серии в будущем по данным календаря. Автопоиск пропускает серию до наступления даты выхода.</span><span class="lang-en">Air date is in the future. Skipped by auto search until premiere date.</span></td>
-              <td>$	o$ <code>WANTED</code> / <code>MISSING</code> при наступлении даты выхода.</td>
+              <td>&rarr; <code>WANTED</code> / <code>MISSING</code> при наступлении даты выхода.</td>
             </tr>
             <tr>
               <td><code>MISSING</code></td>
               <td><span class="badge badge-warning">Отсутствует</span></td>
               <td><span class="lang-ru">Серия уже вышла в эфир, но файл на диске отсутствует. Мониторинг выключен.</span><span class="lang-en">Aired but not present on disk. Monitored flag is False.</span></td>
-              <td>$	o$ <code>WANTED</code> при включении мониторинга.</td>
+              <td>&rarr; <code>WANTED</code> при включении мониторинга.</td>
             </tr>
             <tr>
               <td><code>WANTED</code></td>
               <td><span class="badge badge-primary">В поиске</span></td>
               <td><span class="lang-ru">Серия включена в мониторинг и активно опрашивается периодическим планировщиком автопоиска.</span><span class="lang-en">Monitored and actively searched by background worker.</span></td>
-              <td>$	o$ <code>DOWNLOADING</code> при успешном захвате релиза (Grab).</td>
+              <td>&rarr; <code>DOWNLOADING</code> при успешном захвате релиза (Grab).</td>
             </tr>
             <tr>
               <td><code>DOWNLOADING</code></td>
               <td><span class="badge badge-teal">Загрузка</span></td>
               <td><span class="lang-ru">Релиз отправлен в торрент-клиент. Отображается процент скачивания (0%..100%).</span><span class="lang-en">Grabbed into download client. Live progress displayed.</span></td>
-              <td>$	o$ <code>DOWNLOADED</code> при 100% и успешном импорте, либо $	o$ <code>WANTED</code> при отмене/ошибке.</td>
+              <td>&rarr; <code>DOWNLOADED</code> при 100% и успешном импорте, либо &rarr; <code>WANTED</code> при отмене/ошибке.</td>
             </tr>
             <tr>
               <td><code>DOWNLOADED</code></td>
               <td><span class="badge badge-success">Скачано</span></td>
               <td><span class="lang-ru">Файл проверен, прилинкован через Hardlink в медиатеку, переименован и готов к просмотру в Plex/Jellyfin.</span><span class="lang-en">Linked via Hardlink into library, renamed, ready for playback.</span></td>
-              <td>$	o$ <code>WANTED</code> (Upgrade) если включен флаг запроса на улучшение качества.</td>
+              <td>&rarr; <code>WANTED</code> (Upgrade) если включен флаг запроса на улучшение качества.</td>
             </tr>
           </tbody>
         </table>
@@ -1838,7 +1838,7 @@
             <tr>
               <td><strong>Абсолютный номер (Anime)</strong></td>
               <td><code>[SubsPlease] Bleach - 366 (1080p) [x264]</code></td>
-              <td>Абсолютная серия 366 $	o$ Season/Ep mapping</td>
+              <td>Абсолютная серия 366 &rarr; Season/Ep mapping</td>
             </tr>
             <tr>
               <td><strong>Спецвыпуски</strong></td>
@@ -2249,7 +2249,7 @@
       </div>
 
       <p class="wiki-p">
-        <span class="lang-ru">На русскоязычных трекерах (особенно RuTracker) релиз-группы часто выкладывают сериал в одном обновляемом топике, перезаливая .torrent файл по мере выхода новых серий (например, «серии 1-4 из 12» $	o$ «серии 1-5 из 12»).</span>
+        <span class="lang-ru">На русскоязычных трекерах (особенно RuTracker) релиз-группы часто выкладывают сериал в одном обновляемом топике, перезаливая .torrent файл по мере выхода новых серий (например, «серии 1-4 из 12» &rarr; «серии 1-5 из 12»).</span>
         <span class="lang-en">On CIS trackers (notably RuTracker), release groups update a single topic as new episodes air, updating the .torrent file from episodes 1-4 to 1-5, etc.</span>
       </p>
 
