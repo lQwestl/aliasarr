@@ -5947,83 +5947,135 @@ async function refreshShowModal() {
     const seasonNumbers = Object.keys(seasons).map(Number).sort((a, b) => a - b);
 
     const posterStyle = show.poster_url ? `style="background-image:url('${show.poster_url}')"` : "";
+    const backdropStyle = show.poster_url ? `style="background-image:url('${show.poster_url}')"` : "";
     const initial = (show.title || "?").trim()[0]?.toUpperCase() || "?";
+
+    const qpObj = CACHED_QUALITY_PROFILES.find(qp => qp.id === show.quality_profile_id);
+    const qualityProfileName = qpObj ? qpObj.name : (t("common.any_quality") || "Любое качество");
+
+    const totalBytes = episodes.reduce((acc, ep) => acc + (ep.file_size || 0), 0);
+    const totalSizeStr = totalBytes > 0 ? formatBytes(totalBytes) : "";
+
+    const statusLabel = show.status === "ended"
+      ? (CURRENT_LANG === "en" ? "Ended" : "Завершён")
+      : (CURRENT_LANG === "en" ? "Continuing" : "Продолжается");
+    const statusIco = show.status === "ended" ? "check-circle" : "play";
 
     const canManageLib = hasPermission("manage_library");
     const canSearch = hasPermission("manual_search");
 
     content.innerHTML = `
-      <div class="show-detail-header">
-        <div class="show-detail-poster-col">
-          <div class="show-detail-poster" ${posterStyle}>${show.poster_url ? "" : initial}</div>
-          ${canManageLib ? `
-          <div class="poster-manual-actions">
-            <button type="button" class="btn btn-secondary btn-small" onclick="document.getElementById('show-cover-file-${show.id}').click()" title="${t("show.upload_cover")}"><i data-lucide="upload" class="ico-sm"></i> <span>${t("show.upload_cover")}</span></button>
-            <input id="show-cover-file-${show.id}" type="file" accept="image/*" style="display:none" onchange="onShowCoverFile(event, ${show.id})">
-            <button type="button" class="btn btn-secondary btn-small" onclick="searchPosterForShow(${show.id})" title="${t("show.refresh_cover")}"><i data-lucide="search" class="ico-sm"></i> <span>${t("show.refresh_cover")}</span></button>
-          </div>` : ""}
-        </div>
-        <div class="show-detail-meta">
-          <h2>${escapeHtml(formatShowTitleWithYear(show.title, show.year))}</h2>
-          <div class="alias-manager" id="alias-manager-${show.id}">
-            ${renderAliasChips(show, canManageLib)}
-          </div>
-          ${canManageLib ? `
-          <div class="alias-add-row">
-            <input id="new-alias-text-${show.id}" class="input input-small" type="text" placeholder="${t("show.new_alias_placeholder")}"
-              onkeydown="if(event.key==='Enter') addAlias(${show.id})">
-            <select id="new-alias-lang-${show.id}" class="input input-small">
-              <option value="ru">ru</option><option value="en">en</option>
-              <option value="jp">jp</option><option value="romaji">romaji</option><option value="other">other</option>
-            </select>
-            <button class="btn btn-secondary btn-small" onclick="addAlias(${show.id})"><i data-lucide="plus" class="ico-sm"></i> ${t("common.add")}</button>
-          </div>` : ""}
-          <p class="show-detail-overview" style="max-height: 160px; overflow-y: auto;">${escapeHtml(show.overview || t("show.no_overview"))}</p>
-          <div class="meta-badges-row">
-            ${show.rating ? `<span class="meta-badge meta-badge-rating"><i data-lucide="star" class="ico-xs" style="color:var(--warning); vertical-align:middle; margin-right:3px;"></i>${Number(show.rating).toFixed(1)}</span>` : ""}
-            ${show.genre ? `<span class="meta-badge">${escapeHtml(show.genre)}</span>` : ""}
-            ${show.country ? `<span class="meta-badge">${escapeHtml(show.country)}</span>` : ""}
-            ${show.network ? `<span class="meta-badge">${escapeHtml(show.network)}</span>` : ""}
-            ${renderShowLinksBadge(show)}
-          </div>
-          <div class="show-detail-path">
-            ${show.path && canManageLib ? `
-            <div class="show-detail-path-actions">
-              <button type="button" class="btn btn-secondary btn-small" onclick="syncShowPath(${show.id})" title="${t("show.sync_tooltip")}">
-                <i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.btn_sync")}</span>
+      <div class="show-hero-container">
+        ${show.poster_url ? `<div class="show-hero-backdrop" ${backdropStyle}></div>` : ""}
+        <div class="show-hero-gradient"></div>
+
+        <div class="show-hero-content">
+          <div class="show-hero-poster-col">
+            <div class="show-hero-poster" ${posterStyle}>
+              ${show.poster_url ? "" : initial}
+            </div>
+            ${canManageLib ? `
+            <div class="show-hero-poster-actions">
+              <button type="button" class="btn btn-secondary btn-small" onclick="document.getElementById('show-cover-file-${show.id}').click()" title="${t("show.upload_cover")}">
+                <i data-lucide="upload" class="ico-xs"></i> <span>${t("show.upload_cover")}</span>
               </button>
-              <button type="button" class="btn btn-secondary btn-small" onclick="openPreviewRenameModal(${show.id})" title="${t("show.btn_preview_rename")}">
-                <i data-lucide="folder-sync" class="ico-sm"></i> <span>${t("show.btn_preview_rename")}</span>
-              </button>
-              <button type="button" class="btn btn-secondary btn-small" onclick="openManualImportModal(${show.id})" title="${t("show.manual_import")}">
-                <i data-lucide="hard-drive-download" class="ico-sm"></i> <span>${t("show.manual_import")}</span>
-              </button>
-              <button type="button" class="btn btn-secondary btn-small" onclick="fixShowPermissions(this, ${show.id})" title="${CURRENT_LANG === 'en' ? 'Fix permissions (chmod 777/666 for Jellyfin/Plex)' : 'Исправить права доступа (chmod 777/666 для Jellyfin/Plex)'}">
-                <i data-lucide="shield-check" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Permissions' : 'Права доступа'}</span>
-              </button>
-              <button type="button" class="btn btn-secondary btn-small" onclick="openShowBlocklistModal(${show.id})" title="${CURRENT_LANG === 'en' ? 'Show blocklisted releases for this title' : 'Черный список раздач для этого тайтла'}">
-                <i data-lucide="shield-alert" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Blocklist' : 'Черный список'}</span>
+              <input id="show-cover-file-${show.id}" type="file" accept="image/*" style="display:none" onchange="onShowCoverFile(event, ${show.id})">
+              <button type="button" class="btn btn-secondary btn-small" onclick="searchPosterForShow(${show.id})" title="${t("show.refresh_cover")}">
+                <i data-lucide="search" class="ico-xs"></i> <span>${t("show.refresh_cover")}</span>
               </button>
             </div>` : ""}
-            <div class="show-detail-path-info">
-              <div class="show-detail-path-label">${t("show.directory")}</div>
-              <code class="show-detail-path-code">${show.path || t("show.not_set")}</code>
+          </div>
+
+          <div class="show-hero-meta">
+            <div class="show-hero-title-row">
+              <h2 class="show-hero-title">${escapeHtml(formatShowTitleWithYear(show.title, show.year))}</h2>
+            </div>
+
+            <div class="show-hero-meta-bar">
+              ${show.rating ? `<span class="meta-pill meta-pill-rating"><i data-lucide="star" class="ico-xs"></i> ${Number(show.rating).toFixed(1)}</span>` : ""}
+              ${show.year ? `<span class="meta-pill mono">${show.year}</span>` : ""}
+              ${show.status ? `<span class="meta-pill meta-pill-status ${show.status === 'ended' ? 'status-ended' : 'status-continuing'}"><i data-lucide="${statusIco}" class="ico-xs"></i> ${statusLabel}</span>` : ""}
+              ${show.genre ? `<span class="meta-pill-text">${escapeHtml(show.genre)}</span>` : ""}
+              ${show.network ? `<span class="meta-pill-text-sub">• ${escapeHtml(show.network)}</span>` : ""}
+              ${show.country ? `<span class="meta-pill mono">${escapeHtml(show.country.toUpperCase())}</span>` : ""}
+            </div>
+
+            <div class="show-hero-badges-row">
+              ${show.path ? `
+                <span class="meta-badge-glass show-path-badge" title="${escapeHtml(show.path)} (${CURRENT_LANG === 'en' ? 'Click to copy path' : 'Нажмите, чтобы скопировать путь'})"
+                  onclick="if(navigator.clipboard){navigator.clipboard.writeText('${escapeHtml(show.path).replace(/'/g, "\\'")}'); toast(CURRENT_LANG==='en'?'Path copied':'Путь скопирован');}">
+                  <i data-lucide="folder" class="ico-xs"></i> <span class="mono">${escapeHtml(show.path)}</span>
+                </span>
+              ` : ""}
+              ${totalSizeStr ? `
+                <span class="meta-badge-glass" title="${CURRENT_LANG === 'en' ? 'Total size on disk' : 'Общий размер на диске'}">
+                  <i data-lucide="hard-drive" class="ico-xs"></i> <span class="mono">${totalSizeStr}</span>
+                </span>
+              ` : ""}
+              <span class="meta-badge-glass" title="${t('library.downloaded') || 'Скачано'}">
+                <i data-lucide="layers" class="ico-xs"></i> <span class="mono">${downloadedEpsCount}/${episodes.length}</span>
+              </span>
+              <span class="meta-badge-glass" title="${t('library.col_profile') || 'Профиль качества'}">
+                <i data-lucide="sliders" class="ico-xs"></i> <span>${escapeHtml(qualityProfileName)}</span>
+              </span>
+              <span class="meta-badge-glass ${show.monitored ? 'is-monitored' : 'is-unmonitored'}">
+                <i data-lucide="${show.monitored ? 'bookmark-check' : 'bookmark-x'}" class="ico-xs"></i>
+                <span>${show.monitored ? (CURRENT_LANG === 'en' ? 'Monitored' : 'Отслеживается') : (CURRENT_LANG === 'en' ? 'Unmonitored' : 'Не отслеживается')}</span>
+              </span>
+              ${renderShowLinksBadge(show)}
+            </div>
+
+            <p class="show-hero-overview">${escapeHtml(show.overview || t("show.no_overview"))}</p>
+
+            <div class="show-hero-aliases-block">
+              <div class="alias-manager" id="alias-manager-${show.id}">
+                ${renderAliasChips(show, canManageLib)}
+              </div>
+              ${canManageLib ? `
+              <div class="alias-add-row" style="margin-top:6px;">
+                <input id="new-alias-text-${show.id}" class="input input-small" type="text" placeholder="${t("show.new_alias_placeholder")}"
+                  onkeydown="if(event.key==='Enter') addAlias(${show.id})">
+                <select id="new-alias-lang-${show.id}" class="input input-small">
+                  <option value="ru">ru</option><option value="en">en</option>
+                  <option value="jp">jp</option><option value="romaji">romaji</option><option value="other">other</option>
+                </select>
+                <button class="btn btn-secondary btn-small" onclick="addAlias(${show.id})"><i data-lucide="plus" class="ico-sm"></i> ${t("common.add")}</button>
+              </div>` : ""}
             </div>
           </div>
         </div>
       </div>
 
-      <div class="show-detail-actions-row">
+      ${show.path && canManageLib ? `
+      <div class="show-detail-path-actions-bar">
+        <button type="button" class="btn btn-secondary btn-small" onclick="syncShowPath(${show.id})" title="${t("show.sync_tooltip")}">
+          <i data-lucide="refresh-cw" class="ico-sm"></i> <span>${t("show.btn_sync")}</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-small" onclick="openPreviewRenameModal(${show.id})" title="${t("show.btn_preview_rename")}">
+          <i data-lucide="folder-sync" class="ico-sm"></i> <span>${t("show.btn_preview_rename")}</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-small" onclick="openManualImportModal(${show.id})" title="${t("show.manual_import")}">
+          <i data-lucide="hard-drive-download" class="ico-sm"></i> <span>${t("show.manual_import")}</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-small" onclick="fixShowPermissions(this, ${show.id})" title="${CURRENT_LANG === 'en' ? 'Fix permissions (chmod 777/666 for Jellyfin/Plex)' : 'Исправить права доступа (chmod 777/666 для Jellyfin/Plex)'}">
+          <i data-lucide="shield-check" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Permissions' : 'Права доступа'}</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-small" onclick="openShowBlocklistModal(${show.id})" title="${CURRENT_LANG === 'en' ? 'Show blocklisted releases for this title' : 'Черный список раздач для этого тайтла'}">
+          <i data-lucide="shield-alert" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Blocklist' : 'Черный список'}</span>
+        </button>
+      </div>` : ""}
+
+      <div class="show-detail-settings-bar">
         <div class="form-col">
-          <label class="hint">${t("library.col_profile")}</label>
-          <select class="input" style="max-width:260px" ${canManageLib ? "" : "disabled"} onchange="changeQualityProfile(${show.id}, this.value)">
+          <label>${t("library.col_profile")}</label>
+          <select class="input" ${canManageLib ? "" : "disabled"} onchange="changeQualityProfile(${show.id}, this.value)">
             <option value="">${t("common.any_quality")}</option>
             ${CACHED_QUALITY_PROFILES.map(qp => `<option value="${qp.id}" ${qp.id === show.quality_profile_id ? "selected" : ""}>${escapeHtml(qp.name)}</option>`).join("")}
           </select>
         </div>
         <div class="form-col">
-          <label class="hint">${t("settings.col_category")}</label>
-          <select class="input" style="max-width:260px" ${canManageLib ? "" : "disabled"} onchange="changeContentType(${show.id}, this.value)">
+          <label>${t("settings.col_category")}</label>
+          <select class="input" ${canManageLib ? "" : "disabled"} onchange="changeContentType(${show.id}, this.value)">
             <option value="movie" ${show.content_type === "movie" ? "selected" : ""}>${t("settings.cat_movies")}</option>
             <option value="series" ${show.content_type === "series" ? "selected" : ""}>${t("settings.cat_series")}</option>
             <option value="anime" ${show.content_type === "anime" ? "selected" : ""}>${t("settings.cat_anime")}</option>
@@ -6031,8 +6083,8 @@ async function refreshShowModal() {
         </div>
         ${show.content_type !== "movie" ? `
         <div class="form-col">
-          <label class="hint" title="${CURRENT_LANG === 'en' ? 'How to match releases with [OVA] tag' : 'Как сопоставлять раздачи с тегом [OVA]'}">${t("show.ova_mode_label")}</label>
-          <select class="input" style="max-width:260px" ${canManageLib ? "" : "disabled"} onchange="changeOvaMode(${show.id}, this.value)">
+          <label title="${CURRENT_LANG === 'en' ? 'How to match releases with [OVA] tag' : 'Как сопоставлять раздачи с тегом [OVA]'}">${t("show.ova_mode_label")}</label>
+          <select class="input" ${canManageLib ? "" : "disabled"} onchange="changeOvaMode(${show.id}, this.value)">
             <option value="auto" ${(!show.ova_mode || show.ova_mode === "auto") ? "selected" : ""}>${t("show.ova_mode_auto")}</option>
             <option value="season_1" ${show.ova_mode === "season_1" ? "selected" : ""}>${t("show.ova_mode_season_1")}</option>
             <option value="specials" ${show.ova_mode === "specials" ? "selected" : ""}>${t("show.ova_mode_specials")}</option>
