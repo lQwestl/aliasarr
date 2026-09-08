@@ -999,7 +999,8 @@ class TestSeasonQueries(unittest.TestCase):
         ]
 
         with patch.object(auto_search, "get_indexer_client") as mock_get_client, \
-             patch.object(auto_search, "get_client") as mock_get_dc:
+             patch.object(auto_search, "get_client") as mock_get_dc, \
+             patch.object(auto_search, "_limit_torrent_files_to_episodes"):
 
             mock_idx_inst = unittest.mock.AsyncMock()
             mock_idx_inst.search.return_value = releases
@@ -1012,7 +1013,9 @@ class TestSeasonQueries(unittest.TestCase):
             res = asyncio.run(auto_search._do_search_and_grab(self.session, show))
             grabbed = res.get("grabbed", [])
 
-            self.assertEqual(len(grabbed), 1)
+            self.assertEqual(len(grabbed), 18)
+            grabbed_rel_titles = {g["release"] for g in grabbed}
+            self.assertEqual(grabbed_rel_titles, {"Оккультная Академия / Seikimatsu Occult Gakuin [TV+speciel] [E13+5 of 13+5] [480p] [BDRip]"})
 
             # Проверяем, что ВСЕ 13 серий 1-го сезона и ВСЕ 5 спешлов перешли в DOWNLOADING
             for ep in s1_eps:
