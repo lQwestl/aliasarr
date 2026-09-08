@@ -9770,9 +9770,13 @@ async function loadQueue() {
       const isSeeding = i.is_seeding || isDone;
 
       // 1. Колонка Имя / Серии / Трекер
-      const showLabel = i.show_title ? `<div style="font-weight:600; color:var(--text);">${escapeHtml(i.show_title)}</div>` : "";
-      const epBadge = i.episode_label ? `<span class="badge badge-primary" style="margin-right:4px;">${escapeHtml(i.episode_label)}</span>` : "";
-      const indexerBadge = i.indexer_name ? `<span class="badge queue-indexer-badge" title="${escapeHtml(i.indexer_name)}">${escapeHtml(i.indexer_name)}</span>` : "";
+      const showLabel = i.show_title ? `<div class="queue-show-title">${escapeHtml(i.show_title)}</div>` : "";
+      const releaseName = `<div class="queue-release-name mono" title="${escapeHtml(i.name)}">${escapeHtml(i.name)}</div>`;
+      const badgesHtml = (i.episode_label || i.indexer_name) ? `
+        <div class="queue-badges-row">
+          ${i.episode_label ? `<span class="badge badge-primary">${escapeHtml(i.episode_label)}</span>` : ""}
+          ${i.indexer_name ? `<span class="badge queue-indexer-badge" title="${escapeHtml(i.indexer_name)}">${escapeHtml(i.indexer_name)}</span>` : ""}
+        </div>` : "";
 
       // 2. Колонка Скорость / Сидирование
       let speedCellHtml = "";
@@ -9855,9 +9859,10 @@ async function loadQueue() {
       return `
         <tr>
           <td>
-            ${showLabel}
-            <div class="mono ellipsis-cell" style="font-size:12px; color:var(--text-muted);" title="${escapeHtml(i.name)}">
-              ${epBadge}${indexerBadge}${escapeHtml(i.name)}
+            <div class="queue-title-cell">
+              ${showLabel}
+              ${releaseName}
+              ${badgesHtml}
             </div>
           </td>
           <td><span class="badge badge-secondary">${escapeHtml(i.download_client)}</span></td>
