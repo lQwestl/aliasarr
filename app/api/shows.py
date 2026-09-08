@@ -1871,13 +1871,13 @@ def execute_manual_import(
             else:
                 target_stem = render_episode_template(
                     rename_template,
-                    show_title=show.title,
-                    season=episode.season_number,
-                    episode=episode.episode_number,
-                    episode_title=episode.title or "",
-                    absolute=episode.absolute_number or episode.episode_number,
+                    show_title=getattr(show, "title", "") or "",
+                    season=getattr(episode, "season_number", 1),
+                    episode=getattr(episode, "episode_number", 1),
+                    episode_title=getattr(episode, "title", "") or "",
+                    absolute=getattr(episode, "absolute_number", None) or getattr(episode, "episode_number", 1),
                     quality=quality,
-                    year=show.year,
+                    year=getattr(show, "year", None),
                 )
             dest_video_path = os.path.join(target_dir, target_stem + ext)
             dest_abs = os.path.abspath(dest_video_path)
@@ -2416,13 +2416,13 @@ def execute_global_manual_import(
             else:
                 target_stem = render_episode_template(
                     rename_template,
-                    show_title=show.title,
-                    season=episode.season_number,
-                    episode=episode.episode_number,
-                    episode_title=episode.title or "",
-                    absolute=episode.absolute_number or episode.episode_number,
+                    show_title=getattr(show, "title", "") or "",
+                    season=getattr(episode, "season_number", 1),
+                    episode=getattr(episode, "episode_number", 1),
+                    episode_title=getattr(episode, "title", "") or "",
+                    absolute=getattr(episode, "absolute_number", None) or getattr(episode, "episode_number", 1),
                     quality=quality,
-                    year=show.year,
+                    year=getattr(show, "year", None),
                 )
             dest_video_path = os.path.join(target_dir, target_stem + ext)
             dest_abs = os.path.abspath(dest_video_path)
@@ -2850,14 +2850,14 @@ def preview_rename_show(
 
         new_filename = FileNameBuilder.build_file_name(
             template=template,
-            title=show.title,
-            year=show.year,
-            season_number=ep.season_number or 1,
-            episode_number=ep.episode_number or 1,
-            absolute_number=ep.absolute_number,
-            episode_title=ep.title or f"Серия {ep.episode_number}",
+            title=getattr(show, "title", ""),
+            year=getattr(show, "year", None),
+            season_number=getattr(ep, "season_number", 1) or 1,
+            episode_number=getattr(ep, "episode_number", 1) or 1,
+            absolute_number=getattr(ep, "absolute_number", None),
+            episode_title=getattr(ep, "title", "") or f"Серия {getattr(ep, 'episode_number', 1)}",
             quality=q_info,
-            content_type=show.content_type,
+            content_type=getattr(show, "content_type", "series"),
             extension=ext,
         )
 
@@ -2873,7 +2873,7 @@ def preview_rename_show(
                     if show.content_type == "anime"
                     else getattr(settings, "season_folder_template_series", None)
                 ) or getattr(settings, "media_naming_season_folder", None) or "Сезон {season}"
-                season_folder = FileNameBuilder.build_season_folder_name(season_tpl, ep.season_number or 1)
+                season_folder = FileNameBuilder.build_season_folder_name(season_tpl, getattr(ep, "season_number", 1) or 1)
             new_rel_path = os.path.normpath(os.path.join(season_folder, new_filename))
 
         new_full_path = os.path.abspath(os.path.join(show_root, new_rel_path)) if show_root else new_filename
@@ -2881,9 +2881,9 @@ def preview_rename_show(
 
         items.append({
             "episode_id": ep.id,
-            "season_number": ep.season_number or 1,
-            "episode_number": ep.episode_number or 1,
-            "absolute_number": ep.absolute_number,
+            "season_number": getattr(ep, "season_number", 1) or 1,
+            "episode_number": getattr(ep, "episode_number", 1) or 1,
+            "absolute_number": getattr(ep, "absolute_number", None),
             "episode_title": ep.title,
             "existing_path": old_full_path,
             "existing_rel_path": old_rel_path,
@@ -2966,14 +2966,14 @@ def execute_rename_show(
 
         new_filename = FileNameBuilder.build_file_name(
             template=template,
-            title=show.title,
-            year=show.year,
-            season_number=ep.season_number or 1,
-            episode_number=ep.episode_number or 1,
-            absolute_number=ep.absolute_number,
-            episode_title=ep.title or f"Серия {ep.episode_number}",
+            title=getattr(show, "title", ""),
+            year=getattr(show, "year", None),
+            season_number=getattr(ep, "season_number", 1) or 1,
+            episode_number=getattr(ep, "episode_number", 1) or 1,
+            absolute_number=getattr(ep, "absolute_number", None),
+            episode_title=getattr(ep, "title", "") or f"Серия {getattr(ep, 'episode_number', 1)}",
             quality=q_info,
-            content_type=show.content_type,
+            content_type=getattr(show, "content_type", "series"),
             extension=ext,
         )
 
