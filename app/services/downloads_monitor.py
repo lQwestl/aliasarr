@@ -46,7 +46,7 @@ except ImportError:
     Indexer = type("Indexer", (), {"id": _MockCol(), "name": _MockCol(), "enable_seeding": _MockCol(), "seed_ratio_limit": _MockCol(), "seed_time_limit_hours": _MockCol()})
     TrackedRelease = type("TrackedRelease", (), {"id": _MockCol(), "show_id": _MockCol(), "indexer_id": _MockCol()})
 from app.services.download_client import get_client
-from app.services.postprocess import process_download, process_movie_download
+from app.services.postprocess import process_download, process_movie_download, VIDEO_EXTENSIONS
 from app.services.release_log_service import log_release_event
 from app.services.settings_service import get_or_create_settings
 from app.services import blocklist_service
@@ -158,7 +158,7 @@ def _resolve_torrent_files_and_path(t, settings, show: Optional[Show] = None) ->
     # 4. Fallback: если список файлов не был получен, ищем в корне save_path файлы, матчащиеся с тайтлом шоу
     if show and t.save_path and os.path.isdir(t.save_path):
         from app.services.matcher import build_alias_candidates, best_alias_match
-        aliases = build_alias_candidates(show, db=db)
+        aliases = build_alias_candidates(show)
         matched_items = []
         try:
             for item in os.listdir(t.save_path):
@@ -250,7 +250,8 @@ async def _check_seeding_torrents(db: Session, active_clients: list[DownloadClie
     """
     Проверяет активные раздачи в торрент-клиентах, которые продолжают сидироваться после импорта.
     Когда раздача достигает лимита ratio или времени (заданных в настройках трекера / клиента)
-    или завершается клиентом, раздача удаляется из клиента вместе с временными файлами из /data/downloads.
+    или завершается клиентом, раздача удаляется из клиента вместе с временными файлами из /data/downloads,
+    ПРИ УСЛОВИИ, что для этой раздачи не осталось неимпортированных серий в статусе DOWNLOADING.
     Файлы в медиатеке (хардлинки) остаются в 100% сохранности.
     """
     if not active_clients:
@@ -266,6 +267,27 @@ async def _check_seeding_torrents(db: Session, active_clients: list[DownloadClie
                 th_lower = t.hash.lower()
                 state_str = str(getattr(t, "state", "")).lower()
 
+                # Проверяем, есть ли неимпортированные серии в статусе DOWNLOADING для этого torrent_hash
+                pending_eps_count = 0
+                try:
+                    c_val = (
+                        db.query(Episode)
+                        .filter(
+                            func.lower(Episode.torrent_hash) == th_lower,
+                            Episode.status == EpisodeStatus.DOWNLOADING,
+                        )
+                        .count()
+                    )
+                    if isinstance(c_val, (int, float)):
+                        pending_eps_count = int(c_val)
+                except Exception:
+                    pending_eps_count = 0
+
+                if pending_eps_count > 0:
+                    # Раздача содержит неимпортированные файлы (например, спешлы), ожидающие ручного импорта.
+                    # Запрещено удалять файлы с диска!
+                    continue
+
                 # Ищем запись в DownloadHistory
                 dh = (
                     db.query(DownloadHistory)
@@ -276,14 +298,38 @@ async def _check_seeding_torrents(db: Session, active_clients: list[DownloadClie
                     .order_by(DownloadHistory.id.desc())
                     .first()
                 )
-                if not dh or not dh.indexer_id:
+
+                indexer = db.get(Indexer, dh.indexer_id) if (dh and dh.indexer_id) else None
+                is_seeding_enabled = bool(indexer and getattr(indexer, "enable_seeding", False))
+
+                if not is_seeding_enabled:
+                    # Если сидирование для трекера выключено (или трекер не задан), но раздача оставалась в клиенте
+                    # ради ручного импорта (который теперь завершен — pending_eps_count == 0):
+                    has_downloaded_eps = False
+                    try:
+                        has_downloaded_eps = (
+                            db.query(Episode)
+                            .filter(
+                                func.lower(Episode.torrent_hash) == th_lower,
+                                Episode.status == EpisodeStatus.DOWNLOADED,
+                            )
+                            .count() > 0
+                        )
+                    except Exception:
+                        has_downloaded_eps = False
+
+                    if has_downloaded_eps:
+                        try:
+                            await client.remove_torrent(t.hash, delete_files=True)
+                            logger.info(
+                                "DownloadsMonitor: Раздача «%s» удалена из клиента после завершения всех импортов (сидирование отключено).",
+                                getattr(t, "name", t.hash),
+                            )
+                        except Exception as rem_err:
+                            logger.debug("DownloadsMonitor: Не удалось удалить завершенный торрент %s: %s", t.hash, rem_err)
                     continue
 
-                indexer = db.get(Indexer, dh.indexer_id)
-                if not indexer or not getattr(indexer, "enable_seeding", False):
-                    continue
-
-                # Проверяем лимиты
+                # Проверяем лимиты для сидируемой раздачи
                 ratio_limit = getattr(indexer, "seed_ratio_limit", None)
                 time_hours_limit = getattr(indexer, "seed_time_limit_hours", None)
                 current_ratio = getattr(t, "ratio", 0.0) or 0.0
@@ -304,12 +350,12 @@ async def _check_seeding_torrents(db: Session, active_clients: list[DownloadClie
                             "DownloadsMonitor: Лимит сидирования достигнут для «%s» (ratio: %.2f/%s, время: %.1f/%sч). Раздача и временные файлы удалены.",
                             getattr(t, "name", t.hash), current_ratio, ratio_limit, seeding_sec / 3600, time_hours_limit,
                         )
-                        show = db.get(Show, dh.show_id) if dh.show_id else None
+                        show = db.get(Show, dh.show_id) if (dh and dh.show_id) else None
                         log_release_event(
                             stage="download",
                             level="success",
                             show_title=getattr(show, "title", None) if show else None,
-                            show_id=dh.show_id,
+                            show_id=dh.show_id if dh else None,
                             release_title=getattr(t, "name", t.hash),
                             indexer=getattr(indexer, "name", "Indexer"),
                             message=(
@@ -767,7 +813,6 @@ async def check_downloads(db: Session) -> list[dict]:
             full_torrent = await client.get_torrent(torrent_hash)
         except Exception as exc:
             logger.debug("Не удалось получить детальные файлы торрента %s: %s", torrent_hash, exc)
-
         torrent_obj = full_torrent or t
         download_path, specific_files = _resolve_torrent_files_and_path(torrent_obj, settings, show)
 
@@ -868,6 +913,40 @@ async def check_downloads(db: Session) -> list[dict]:
 
                 # Отправляем уведомление об успешном скачивании и импорте, либо очищаем отклонённый торрент
                 imported_items = [r for r in (import_results or []) if r.get("status") == "imported" and r.get("dest")]
+
+                # Определяем неимпортированные видеофайлы из результатов (например, спешлы или файлы без номера серии)
+                from app.services.postprocess import VIDEO_EXTENSIONS
+                unimported_video_results = [
+                    r for r in (import_results or [])
+                    if r.get("status") in ("skipped", "failed")
+                    and os.path.splitext(r.get("file", ""))[1].lower() in VIDEO_EXTENSIONS
+                    and not (
+                        "уже скачана" in (r.get("reason") or "").lower()
+                        or "лучшее качество" in (r.get("reason") or "").lower()
+                    )
+                ]
+
+                # Проверяем, остались ли в базе серии со статусом DOWNLOADING для этого торрента
+                pending_downloading_count = 0
+                if show and torrent_hash:
+                    try:
+                        c_val = (
+                            db.query(Episode)
+                            .filter(
+                                Episode.show_id == show.id,
+                                Episode.status == EpisodeStatus.DOWNLOADING,
+                                func.lower(Episode.torrent_hash) == torrent_hash.lower(),
+                            )
+                            .count()
+                        )
+                        if isinstance(c_val, (int, float)):
+                            pending_downloading_count = int(c_val)
+                    except Exception:
+                        pending_downloading_count = 0
+
+                has_pending_eps = pending_downloading_count > 0
+                has_unimported_content = bool(unimported_video_results or has_pending_eps)
+
                 if imported_items:
                     from app.services.notifications import notify_all
                     has_upgrade = any(r.get("is_upgrade") for r in imported_items)
@@ -882,6 +961,8 @@ async def check_downloads(db: Session) -> list[dict]:
                         if has_upgrade
                         else f"Релиз скачан и перенесен: {type_prefix}«{show.title}»{yr_str}"
                     )
+                    if has_unimported_content:
+                        header += " (часть файлов ожидает ручного сопоставления)"
 
                     if len(imported_items) == 1:
                         fname = os.path.basename(imported_items[0]["dest"])
@@ -906,100 +987,119 @@ async def check_downloads(db: Session) -> list[dict]:
                     except Exception as e:
                         logger.warning("Не удалось отправить уведомление об импорте: %s", e)
                 else:
-                    t_task.complete("Нет новых файлов для импорта")
-                    today = dt.date.today()
-                    skip_reasons = [r.get("reason") for r in (import_results or []) if r.get("reason")]
-                    primary_reason = skip_reasons[0] if skip_reasons else "Раздача не содержала подходящих серий или качество хуже имеющегося"
-
-                    for ep in eps:
-                        ep_status = getattr(ep, "status", None)
-                        ep_th = getattr(ep, "torrent_hash", None)
-                        if ep_status == EpisodeStatus.DOWNLOADING and (
-                            not ep_th or (torrent_hash and ep_th.lower() == torrent_hash.lower())
-                        ):
-                            fp = getattr(ep, "file_path", None)
-                            has_existing_file = bool(fp and os.path.exists(fp))
-                            if has_existing_file:
-                                ep.status = EpisodeStatus.DOWNLOADED
-                                ep.download_progress = 0.0
-                                ep.torrent_hash = None
-                                ep.download_client_id = None
-                                ep.upgrade_requested = False
-                                db.add(ep)
-                            else:
-                                air_d = getattr(ep, "air_date", None)
-                                if isinstance(air_d, dt.datetime):
-                                    air_d = air_d.date()
-                                ep.status = EpisodeStatus.UNAIRED if (air_d and air_d > today) else EpisodeStatus.WANTED
-                                ep.torrent_hash = None
-                                ep.download_client_id = None
-                                ep.download_progress = 0.0
-                                db.add(ep)
-
-                    if show:
-                        try:
-                            remaining_upg = (
-                                db.query(Episode)
-                                .filter(Episode.show_id == show.id, Episode.upgrade_requested == True)
-                                .count()
-                            )
-                            if isinstance(remaining_upg, int) and remaining_upg == 0 and getattr(show, "upgrade_requested", False):
-                                show.upgrade_requested = False
-                                db.add(show)
-                        except Exception:
-                            pass
-
-                    try:
-                        blocklist_service.add_to_blocklist(
-                            db,
-                            release_title=getattr(t, "name", torrent_hash),
-                            reason=f"Отклонено при импорте: {primary_reason}",
-                            show=show,
-                            show_id=show.id if show else None,
-                            torrent_hash=torrent_hash,
-                            size=getattr(t, "size", None),
-                        )
-                    except Exception as b_err:
-                        logger.debug("DownloadsMonitor: Не удалось добавить раздачу %s в черный список: %s", torrent_hash, b_err)
-                    try:
-                        client = get_client(dc_row)
-                        await client.remove_torrent(torrent_hash, delete_files=True)
-                        logger.info(
-                            "DownloadsMonitor: Раздача %s не содержала новых/лучших файлов для «%s» (%s), удалена из клиента и добавлена в черный список.",
-                            torrent_hash, show.title if show else "show", primary_reason,
-                        )
-                    except Exception as rem_err:
-                        logger.debug("DownloadsMonitor: Не удалось удалить ненужную раздачу %s: %s", torrent_hash, rem_err)
-
-                    if show:
+                    if has_unimported_content:
+                        # Файлы скачаны, но не удалось автоматически сопоставить серии (например, спецвыпуски или нестандартные имена).
+                        # Раздачу НЕ удаляем, в черный список НЕ добавляем, серии НЕ сбрасываем.
+                        t_task.complete(f"Скачано файлов: {len(unimported_video_results)} (ожидают сопоставления в «Ручном импорте»)")
                         log_release_event(
                             stage="import",
                             level="warning",
-                            show_title=show.title,
-                            show_id=show.id,
-                            release_title=getattr(t, "name", torrent_hash),
+                            show_title=show.title if show else None,
+                            show_id=show.id if show else None,
+                            release_title=getattr(torrent_obj, "name", torrent_hash),
                             indexer="DownloadsMonitor",
-                            message=f"Раздача «{getattr(t, 'name', torrent_hash)}» отклонена и добавлена в черный список: {primary_reason}. Запущен повторный автопоиск...",
-                            details={"torrent_hash": torrent_hash, "reason": primary_reason},
+                            message=(
+                                f"Раздача «{getattr(torrent_obj, 'name', torrent_hash)}» скачана, но файлы требуют ручного сопоставления "
+                                f"({len(unimported_video_results)} видеофайлов). Раздача сохранена в папке загрузок."
+                            ),
+                            details={"torrent_hash": torrent_hash, "unimported_files": [r.get("file") for r in unimported_video_results]},
                             db=db,
                         )
-                        # Запускаем повторный автопоиск для поиска подходящего релиза
-                        async def _trigger_auto_search_after_import_skip(s_id: int, ep_ids: set[int]):
-                            try:
-                                from app.database import SessionLocal
-                                from app.services.auto_search import search_and_grab_show
-                                with SessionLocal() as s_session:
-                                    r_show = s_session.get(Show, s_id)
-                                    if r_show:
-                                        await search_and_grab_show(s_session, r_show, episode_ids=ep_ids if ep_ids else None, wanted_only=True)
-                            except Exception as retry_err:
-                                logger.debug("DownloadsMonitor: Ошибка повторного автопоиска: %s", retry_err)
+                    else:
+                        t_task.complete("Нет новых файлов для импорта")
+                        today = dt.date.today()
+                        skip_reasons = [r.get("reason") for r in (import_results or []) if r.get("reason")]
+                        primary_reason = skip_reasons[0] if skip_reasons else "Раздача не содержала подходящих серий или качество хуже имеющегося"
 
-                        wanted_reset_ids = {e.id for e in eps if getattr(e, "id", None) and e.status in (EpisodeStatus.WANTED, EpisodeStatus.UNAIRED)}
-                        asyncio.create_task(_trigger_auto_search_after_import_skip(show.id, wanted_reset_ids))
+                        for ep in eps:
+                            ep_status = getattr(ep, "status", None)
+                            ep_th = getattr(ep, "torrent_hash", None)
+                            if ep_status == EpisodeStatus.DOWNLOADING and (
+                                not ep_th or (torrent_hash and ep_th.lower() == torrent_hash.lower())
+                            ):
+                                fp = getattr(ep, "file_path", None)
+                                has_existing_file = bool(fp and os.path.exists(fp))
+                                if has_existing_file:
+                                    ep.status = EpisodeStatus.DOWNLOADED
+                                    ep.download_progress = 0.0
+                                    ep.torrent_hash = None
+                                    ep.download_client_id = None
+                                    ep.upgrade_requested = False
+                                    db.add(ep)
+                                else:
+                                    air_d = getattr(ep, "air_date", None)
+                                    if isinstance(air_d, dt.datetime):
+                                        air_d = air_d.date()
+                                    ep.status = EpisodeStatus.UNAIRED if (air_d and air_d > today) else EpisodeStatus.WANTED
+                                    ep.torrent_hash = None
+                                    ep.download_client_id = None
+                                    ep.download_progress = 0.0
+                                    db.add(ep)
+
+                        if show:
+                            try:
+                                remaining_upg = (
+                                    db.query(Episode)
+                                    .filter(Episode.show_id == show.id, Episode.upgrade_requested == True)
+                                    .count()
+                                )
+                                if isinstance(remaining_upg, int) and remaining_upg == 0 and getattr(show, "upgrade_requested", False):
+                                    show.upgrade_requested = False
+                                    db.add(show)
+                            except Exception:
+                                pass
+
+                        try:
+                            blocklist_service.add_to_blocklist(
+                                db,
+                                release_title=getattr(torrent_obj, "name", torrent_hash),
+                                reason=f"Отклонено при импорте: {primary_reason}",
+                                show=show,
+                                show_id=show.id if show else None,
+                                torrent_hash=torrent_hash,
+                                size=getattr(torrent_obj, "size", None),
+                            )
+                        except Exception as b_err:
+                            logger.debug("DownloadsMonitor: Не удалось добавить раздачу %s в черный список: %s", torrent_hash, b_err)
+                        try:
+                            client = get_client(dc_row)
+                            await client.remove_torrent(torrent_hash, delete_files=True)
+                            logger.info(
+                                "DownloadsMonitor: Раздача %s не содержала новых/лучших файлов для «%s» (%s), удалена из клиента и добавлена в черный список.",
+                                torrent_hash, show.title if show else "show", primary_reason,
+                            )
+                        except Exception as rem_err:
+                            logger.debug("DownloadsMonitor: Не удалось удалить ненужную раздачу %s: %s", torrent_hash, rem_err)
+
+                        if show:
+                            log_release_event(
+                                stage="import",
+                                level="warning",
+                                show_title=show.title,
+                                show_id=show.id,
+                                release_title=getattr(torrent_obj, "name", torrent_hash),
+                                indexer="DownloadsMonitor",
+                                message=f"Раздача «{getattr(torrent_obj, 'name', torrent_hash)}» отклонена и добавлена в черный список: {primary_reason}. Запущен повторный автопоиск...",
+                                details={"torrent_hash": torrent_hash, "reason": primary_reason},
+                                db=db,
+                            )
+                            # Запускаем повторный автопоиск для поиска подходящего релиза
+                            async def _trigger_auto_search_after_import_skip(s_id: int, ep_ids: set[int]):
+                                try:
+                                    from app.database import SessionLocal
+                                    from app.services.auto_search import search_and_grab_show
+                                    with SessionLocal() as s_session:
+                                        r_show = s_session.get(Show, s_id)
+                                        if r_show:
+                                            await search_and_grab_show(s_session, r_show, episode_ids=ep_ids if ep_ids else None, wanted_only=True)
+                                except Exception as retry_err:
+                                    logger.debug("DownloadsMonitor: Ошибка повторного автопоиска: %s", retry_err)
+
+                            wanted_reset_ids = {e.id for e in eps if getattr(e, "id", None) and e.status in (EpisodeStatus.WANTED, EpisodeStatus.UNAIRED)}
+                            asyncio.create_task(_trigger_auto_search_after_import_skip(show.id, wanted_reset_ids))
 
                 # Проверка сидирования и лимитов раздачи ПОСЛЕ завершения импорта
-                if imported_items:
+                if imported_items or has_unimported_content:
                     indexer_row = None
                     if torrent_hash:
                         try:
@@ -1035,9 +1135,42 @@ async def check_downloads(db: Session) -> list[dict]:
                             pass
 
                     is_seeding_enabled = bool(indexer_row and getattr(indexer_row, "enable_seeding", False))
-                    state_str = str(getattr(t, "state", "")).lower()
+                    state_str = str(getattr(torrent_obj, "state", "")).lower()
 
-                    if is_seeding_enabled:
+                    if has_unimported_content:
+                        # ЗАЩИТА: В раздаче остались неимпортированные файлы (спешлы / ручной импорт).
+                        # НЕ удаляем раздачу и файлы из папки загрузок!
+                        try:
+                            client = get_client(dc_row)
+                            if not is_seeding_enabled and hasattr(client, "pause_torrent"):
+                                await client.pause_torrent(torrent_hash)
+                        except Exception as p_err:
+                            logger.debug("DownloadsMonitor: Не удалось приостановить раздачу %s: %s", torrent_hash, p_err)
+
+                        logger.info(
+                            "DownloadsMonitor: В раздаче «%s» остались неимпортированные файлы (%d файлов, %d ожидающих серий). Файлы сохранены в папке загрузок.",
+                            getattr(torrent_obj, "name", torrent_hash), len(unimported_video_results), pending_downloading_count,
+                        )
+                        log_release_event(
+                            stage="import",
+                            level="warning",
+                            show_title=show.title if show else None,
+                            show_id=show.id if show else None,
+                            release_title=getattr(torrent_obj, "name", torrent_hash),
+                            indexer="DownloadsMonitor",
+                            message=(
+                                f"В раздаче «{getattr(torrent_obj, 'name', torrent_hash)}» остались неимпортированные видеофайлы "
+                                f"({len(unimported_video_results)} шт., например спецвыпуски). Раздача и файлы в папке загрузки сохранены "
+                                f"для сопоставления в «Ручном импорте»."
+                            ),
+                            details={
+                                "torrent_hash": torrent_hash,
+                                "unimported_files": [r.get("file") for r in unimported_video_results],
+                                "pending_downloading_eps": pending_downloading_count,
+                            },
+                            db=db,
+                        )
+                    elif is_seeding_enabled:
                         # Сидирование включено для этого трекера
                         ratio_lim = getattr(indexer_row, "seed_ratio_limit", None)
                         time_hrs_lim = getattr(indexer_row, "seed_time_limit_hours", None)

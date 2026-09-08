@@ -14,6 +14,8 @@ from app.services.downloads_monitor import _COMPLETE_THRESHOLD, _folder_and_temp
 class FakeClient:
     def __init__(self, torrents):
         self._torrents = torrents
+        self.remove_torrent_called = []
+        self.pause_torrent_called = []
 
     async def list_torrents(self):
         return self._torrents
@@ -31,7 +33,10 @@ class FakeClient:
         pass
 
     async def pause_torrent(self, h):
-        pass
+        self.pause_torrent_called.append(h)
+
+    async def remove_torrent(self, h, delete_files=False):
+        self.remove_torrent_called.append((h, delete_files))
 
     async def set_files_wanted_unwanted(self, h, wanted, unwanted):
         pass
@@ -613,6 +618,215 @@ class TestDownloadsMonitor(unittest.TestCase):
                 self.assertTrue(mock_postprocess.called)
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    def test_torrent_with_unimported_specials_not_deleted(self):
+        """Проверяет, что при частичном импорте (сезон импортирован, спешлы пропущены), раздача НЕ удаляется из клиента."""
+        import tempfile
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            pack_dir = os.path.join(tmp_dir, "Frieren S01 + Specials")
+            os.makedirs(pack_dir, exist_ok=True)
+            f_path = os.path.join(pack_dir, "S01E01.mkv")
+            with open(f_path, "wb") as f:
+                f.write(b"video")
+
+            show = SimpleNamespace(id=5, title="Frieren", content_type="anime", monitored=True, path="/media/anime/Frieren", ova_mode="auto")
+            dc = SimpleNamespace(id=1, name="Transmission", type="transmission", enabled=True, seed_time_limit=None, seed_ratio_limit=None)
+            ep_season = SimpleNamespace(
+                id=501, show_id=5, season_number=1, episode_number=1,
+                status="downloading", torrent_hash="hash-frieren",
+                download_client_id=1, download_progress=1.0,
+            )
+            ep_special = SimpleNamespace(
+                id=502, show_id=5, season_number=0, episode_number=1,
+                status="downloading", torrent_hash="hash-frieren",
+                download_client_id=1, download_progress=1.0,
+            )
+
+            db_mock = MagicMock()
+            query_mock = MagicMock()
+            db_mock.query.return_value = query_mock
+
+            filter_mock = MagicMock()
+            query_mock.filter.return_value = filter_mock
+
+            filter_mock.all.side_effect = [
+                [ep_season, ep_special],  # downloading episodes
+                [dc],                     # active clients
+                [ep_season, ep_special],  # all_show_eps in reconcile
+            ]
+            filter_mock.count.return_value = 1  # 1 episode (special) remains in DOWNLOADING
+
+            db_mock.get.return_value = show
+
+            fake_client = FakeClient([
+                TorrentInfo(
+                    hash="hash-frieren",
+                    name="Frieren S01 + Specials",
+                    progress=1.0,
+                    state="seeding",
+                    save_path=tmp_dir,
+                    size=10000000000,
+                    left_until_done=0,
+                )
+            ])
+
+            # Результаты постобработки: 1 серия импортирована, 1 спешл пропущен (требует ручного импорта)
+            import_results = [
+                {"file": "/tmp/S01E01.mkv", "status": "imported", "dest": "/media/anime/Frieren/Season 01/S01E01.mkv"},
+                {"file": "/tmp/SP01.mkv", "status": "skipped", "reason": "не удалось распознать номер серии"},
+            ]
+
+            settings = SimpleNamespace(root_folder="", root_folder_anime="/media/anime", rename_template_anime="", season_folder_template_anime="")
+            with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+                 patch("app.services.downloads_monitor.get_client", return_value=fake_client), \
+                 patch("app.services.downloads_monitor._run_postprocess_in_thread", return_value=import_results), \
+                 patch("app.services.downloads_monitor.log_release_event"), \
+                 patch("app.services.notifications.notify_all", new_callable=AsyncMock):
+                results = asyncio.run(check_downloads(db_mock))
+
+                # Торрент НЕ должен быть удален с диска
+                self.assertEqual(len(fake_client.remove_torrent_called), 0)
+                # Торрент должен быть поставлен на паузу, если сидирование выключено
+                self.assertIn("hash-frieren", fake_client.pause_torrent_called)
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    def test_torrent_with_no_auto_matches_but_video_files_not_blocklisted_and_not_deleted(self):
+        """Проверяет, что если видеофайлы в раздаче есть, но не распознаны автоматически (спешлы), раздача сохраняется."""
+        import tempfile
+        tmp_dir = tempfile.mkdtemp()
+        try:
+            pack_dir = os.path.join(tmp_dir, "Bocchi Specials Pack")
+            os.makedirs(pack_dir, exist_ok=True)
+            f_path = os.path.join(pack_dir, "SP01.mkv")
+            with open(f_path, "wb") as f:
+                f.write(b"video")
+
+            show = SimpleNamespace(id=6, title="Bocchi the Rock", content_type="anime", monitored=True, path="/media/anime/Bocchi", ova_mode="auto")
+            dc = SimpleNamespace(id=1, name="Transmission", type="transmission", enabled=True, seed_time_limit=None, seed_ratio_limit=None)
+            ep_sp1 = SimpleNamespace(
+                id=601, show_id=6, season_number=0, episode_number=1,
+                status="downloading", torrent_hash="hash-bocchi-sp",
+                download_client_id=1, download_progress=1.0,
+            )
+
+            db_mock = MagicMock()
+            query_mock = MagicMock()
+            db_mock.query.return_value = query_mock
+            filter_mock = MagicMock()
+            query_mock.filter.return_value = filter_mock
+
+            filter_mock.all.side_effect = [
+                [ep_sp1],   # downloading episodes
+                [dc],       # active clients
+                [ep_sp1],   # all_show_eps
+            ]
+            filter_mock.count.return_value = 1  # 1 episode in DOWNLOADING
+
+            db_mock.get.return_value = show
+
+            fake_client = FakeClient([
+                TorrentInfo(
+                    hash="hash-bocchi-sp",
+                    name="Bocchi Specials Pack",
+                    progress=1.0,
+                    state="seeding",
+                    save_path=tmp_dir,
+                    size=5000000000,
+                    left_until_done=0,
+                )
+            ])
+
+            import_results = [
+                {"file": "/tmp/SP01.mkv", "status": "skipped", "reason": "не удалось распознать номер серии"},
+                {"file": "/tmp/SP02.mkv", "status": "skipped", "reason": "не удалось распознать номер серии"},
+            ]
+
+            settings = SimpleNamespace(root_folder="", root_folder_anime="/media/anime", rename_template_anime="", season_folder_template_anime="")
+            with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+                 patch("app.services.downloads_monitor.get_client", return_value=fake_client), \
+                 patch("app.services.downloads_monitor._run_postprocess_in_thread", return_value=import_results), \
+                 patch("app.services.downloads_monitor.log_release_event"), \
+                 patch("app.services.blocklist_service.add_to_blocklist") as mock_blocklist:
+                results = asyncio.run(check_downloads(db_mock))
+
+                # Торрент НЕ должен быть удален
+                self.assertEqual(len(fake_client.remove_torrent_called), 0)
+                # Раздача НЕ должна быть добавлена в черный список
+                self.assertFalse(mock_blocklist.called)
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    def test_check_seeding_torrents_does_not_delete_while_episodes_in_downloading(self):
+        """Проверяет, что _check_seeding_torrents не удаляет раздачу, пока есть серии в DOWNLOADING."""
+        from app.services.downloads_monitor import _check_seeding_torrents
+
+        db_mock = MagicMock()
+        query_mock = MagicMock()
+        db_mock.query.return_value = query_mock
+        filter_mock = MagicMock()
+        query_mock.filter.return_value = filter_mock
+
+        # count() для pending DOWNLOADING episodes возвращает 1
+        filter_mock.count.return_value = 1
+
+        torrent = TorrentInfo(
+            hash="hash-seeding-protect",
+            name="Seeding Pack",
+            progress=1.0,
+            state="seeding",
+            save_path="/tmp",
+            size=1000,
+            ratio=3.0,
+            seeding_time=72000,
+        )
+        fake_client = FakeClient([torrent])
+        dc = SimpleNamespace(id=1, name="qBit", type="qbittorrent", enabled=True)
+
+        with patch("app.services.downloads_monitor.get_client", return_value=fake_client):
+            asyncio.run(_check_seeding_torrents(db_mock, [dc]))
+            # Не должен быть удален!
+            self.assertEqual(len(fake_client.remove_torrent_called), 0)
+
+    def test_check_seeding_torrents_cleans_up_when_all_episodes_downloaded(self):
+        """Проверяет, что _check_seeding_torrents удаляет завершенную раздачу после окончания ручного импорта всех серий."""
+        from app.services.downloads_monitor import _check_seeding_torrents
+
+        db_mock = MagicMock()
+        query_mock = MagicMock()
+        db_mock.query.return_value = query_mock
+        filter_mock = MagicMock()
+        query_mock.filter.return_value = filter_mock
+
+        # pending eps count = 0, downloaded eps count = 2
+        filter_mock.count.side_effect = [0, 2]
+
+        dh = SimpleNamespace(id=1, indexer_id=10, show_id=1, torrent_hash="hash-cleaned")
+        indexer = SimpleNamespace(id=10, name="Tracker", enable_seeding=False)
+
+        order_mock = MagicMock()
+        filter_mock.order_by.return_value = order_mock
+        order_mock.first.return_value = dh
+
+        db_mock.get.return_value = indexer
+
+        torrent = TorrentInfo(
+            hash="hash-cleaned",
+            name="Completed Pack",
+            progress=1.0,
+            state="paused",
+            save_path="/tmp",
+            size=1000,
+        )
+        fake_client = FakeClient([torrent])
+        dc = SimpleNamespace(id=1, name="qBit", type="qbittorrent", enabled=True)
+
+        with patch("app.services.downloads_monitor.get_client", return_value=fake_client):
+            asyncio.run(_check_seeding_torrents(db_mock, [dc]))
+            # Должен быть удален с delete_files=True
+            self.assertEqual(len(fake_client.remove_torrent_called), 1)
+            self.assertEqual(fake_client.remove_torrent_called[0], ("hash-cleaned", True))
 
 
 if __name__ == "__main__":

@@ -2033,38 +2033,7 @@ def execute_manual_import(
 
         db.commit()
 
-        # Сбрасываем зависшие серии, которые были в DOWNLOADING с прогрессом 100%,
-        # но не были выбраны для импорта (остались без файла после частичного ручного импорта)
-        try:
-            all_show_eps = db.query(Episode).filter(Episode.show_id == show.id).all()
-            stale_reset = False
-            for ep in all_show_eps:
-                if (
-                    ep.status == EpisodeStatus.DOWNLOADING
-                    and getattr(ep, "download_progress", 0) >= 0.99
-                    and not getattr(ep, "file_path", None)
-                ):
-                    # Если в том же сезоне есть хотя бы одна серия со статусом DOWNLOADED —
-                    # значит произошёл частичный импорт и остальные надо сбросить
-                    season_has_download = any(
-                        other.season_number == ep.season_number and other.status == EpisodeStatus.DOWNLOADED
-                        for other in all_show_eps
-                        if other.id != ep.id
-                    )
-                    if season_has_download:
-                        air_d = getattr(ep, "air_date", None)
-                        if isinstance(air_d, dt.datetime):
-                            air_d = air_d.date()
-                        ep.status = EpisodeStatus.UNAIRED if (air_d and air_d > today) else EpisodeStatus.WANTED
-                        ep.download_progress = 0.0
-                        ep.torrent_hash = None
-                        ep.download_client_id = None
-                        db.add(ep)
-                        stale_reset = True
-            if stale_reset:
-                db.commit()
-        except Exception:
-            pass
+
 
         log_audit(
             db,
