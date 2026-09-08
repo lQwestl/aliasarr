@@ -530,9 +530,18 @@ class TestShowRemapLogic(unittest.TestCase):
             file_path="/downloads/ep1.mkv",
         )
 
+        def query_mock(model):
+            mock_q = MagicMock()
+            if model == Episode:
+                mock_q.filter.return_value.all.return_value = fake_orphan_eps
+            elif model == Alias:
+                mock_q.filter.return_value.all.return_value = []
+            else:
+                mock_q.filter.return_value.all.return_value = []
+            return mock_q
+
         mock_db.get.return_value = show
-        mock_db.query.return_value.filter.return_value.all.return_value = fake_orphan_eps
-        mock_db.query.return_value.filter.return_value.first.return_value = None
+        mock_db.query.side_effect = query_mock
 
         new_show_details = MetadataShowDetails(
             external_id="tvdb:445566",
@@ -565,8 +574,11 @@ class TestShowRemapLogic(unittest.TestCase):
                 self.assertTrue(res["success"])
                 self.assertEqual(show.metadata_id, "tvdb:445566")
                 self.assertEqual(show.title, "I Became a Legend After My 10 Year-Long Last Stand")
-                self.assertEqual(res["deleted_episodes"], 25)
-                self.assertEqual(res["added_episodes"], 2)
+                # 25 fake episodes existed, 2 were updated in-place with new metadata, 23 unlinked orphan episodes were deleted
+                self.assertEqual(res["deleted_episodes"], 23)
+                self.assertEqual(res["added_episodes"], 0)
+                self.assertEqual(fake_orphan_eps[0].title, "Episode 1")
+                self.assertEqual(fake_orphan_eps[1].title, "Episode 2")
 
         asyncio.run(run_remap_test())
 

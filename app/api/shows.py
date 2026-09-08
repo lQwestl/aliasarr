@@ -3002,15 +3002,16 @@ async def remap_show_metadata(
 
     # Обновляем алиасы из источника
     if details.aliases:
+        alias_rows = db.query(Alias).filter(Alias.show_id == show.id).all()
         existing_aliases = {
-            a.text.lower().strip()
-            for a in db.query(Alias).filter(Alias.show_id == show.id).all()
-            if a.text
+            getattr(a, "text", "").lower().strip()
+            for a in alias_rows
+            if getattr(a, "text", None)
         }
         all_priorities = [
             a.priority
-            for a in db.query(Alias).filter(Alias.show_id == show.id).all()
-            if a.priority is not None
+            for a in alias_rows
+            if getattr(a, "priority", None) is not None
         ]
         cur_max_p = max(all_priorities) if all_priorities else 0
         for alias_text in details.aliases:
