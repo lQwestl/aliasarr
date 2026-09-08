@@ -65,6 +65,7 @@ from app.services.quality import parse_quality, detect_file_quality
 from app.services.organizer import clean_show_title_and_year
 from app.services.settings_service import get_or_create_settings
 from app.services.user_service import require_permission, require_any_permission, get_current_user
+from app.services.metadata import get_metadata_client
 
 router = APIRouter(prefix="/api/v1/shows", tags=["shows"])
 
@@ -2806,7 +2807,6 @@ async def remap_show_metadata(
     очищает ошибочно подтянутые серии без файлов и загружает корректную структуру сезонов и серий.
     """
     from app.models.db import MetadataSource, MetadataSourceType, Episode, EpisodeStatus, Alias, AliasLanguage
-    from app.services.metadata import get_metadata_client
 
     show = db.get(Show, show_id)
     if not show:

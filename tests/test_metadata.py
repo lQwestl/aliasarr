@@ -541,7 +541,8 @@ class TestShowRemapLogic(unittest.TestCase):
         )
 
         async def run_remap_test():
-            with patch("app.api.shows.get_metadata_client") as mock_get_client, \
+            with patch("app.services.metadata.get_metadata_client") as mock_get_client, \
+                 patch("app.api.shows.get_metadata_client", mock_get_client), \
                  patch("app.api.shows.log_audit"):
                 mock_client = MagicMock()
                 mock_client.get_details = AsyncMock(return_value=new_show_details)
