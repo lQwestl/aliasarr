@@ -588,11 +588,12 @@ class TestManualImportLogic(unittest.TestCase):
 
             with patch("app.api.shows.get_or_create_settings", return_value=mock_settings), \
                  patch("app.api.shows.log_audit"), \
-                 patch("app.api.shows.apply_media_permissions"):
+                 patch("app.api.shows.apply_media_permissions"), \
+                 patch("app.services.notifications.notify_all_sync"):
                 res_hl = execute_manual_import(1, payload=payload_hl, db=db_mock, current_user=current_user)
 
-            self.assertEqual(res_hl.imported_count, 1)
-            self.assertEqual(len(res_hl.errors), 0)
+            self.assertEqual(res_hl["imported_count"], 1)
+            self.assertEqual(len(res_hl["errors"]), 0)
             self.assertEqual(ep_special.status, EpisodeStatus.DOWNLOADED)
             self.assertIsNotNone(ep_special.file_path)
             self.assertTrue(os.path.exists(ep_special.file_path))
@@ -643,11 +644,12 @@ class TestManualImportLogic(unittest.TestCase):
             with patch("app.api.shows.get_or_create_settings", return_value=mock_settings), \
                  patch("app.api.shows.log_audit"), \
                  patch("app.api.shows.apply_media_permissions"), \
+                 patch("app.services.notifications.notify_all_sync"), \
                  patch("os.link", side_effect=OSError(18, "Invalid cross-device link")):
                 res_fallback = execute_manual_import(1, payload=payload_hl_fallback, db=db_mock, current_user=current_user)
 
-            self.assertEqual(res_fallback.imported_count, 1)
-            self.assertEqual(len(res_fallback.errors), 0)
+            self.assertEqual(res_fallback["imported_count"], 1)
+            self.assertEqual(len(res_fallback["errors"]), 0)
             self.assertTrue(os.path.exists(ep_special2.file_path))
             self.assertTrue(os.path.exists(src_video2))
 
@@ -684,11 +686,12 @@ class TestManualImportLogic(unittest.TestCase):
 
             with patch("app.api.shows.get_or_create_settings", return_value=mock_settings), \
                  patch("app.api.shows.log_audit"), \
-                 patch("app.api.shows.apply_media_permissions"):
+                 patch("app.api.shows.apply_media_permissions"), \
+                 patch("app.services.notifications.notify_all_sync"):
                 res_move = execute_manual_import(1, payload=payload_move, db=db_mock, current_user=current_user)
 
-            self.assertEqual(res_move.imported_count, 1)
-            self.assertEqual(len(res_move.errors), 0)
+            self.assertEqual(res_move["imported_count"], 1)
+            self.assertEqual(len(res_move["errors"]), 0)
             self.assertTrue(os.path.exists(ep_special3.file_path))
             self.assertFalse(os.path.exists(src_video3), "Source file should be moved away in move mode")
 
