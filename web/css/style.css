@@ -2270,8 +2270,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #queue-table th:nth-child(1),
 #queue-table td:nth-child(1) {
-  width: 38%;
-  min-width: 220px;
+  width: 35%;
+  min-width: 200px;
 }
 .queue-title-cell {
   display: flex;
@@ -2301,8 +2301,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #queue-table th:nth-child(2),
 #queue-table td:nth-child(2) {
-  width: 13%;
-  min-width: 115px;
+  width: 11%;
+  min-width: 105px;
   white-space: nowrap;
 }
 .queue-client-cell {
@@ -2312,20 +2312,21 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #queue-table th:nth-child(3),
 #queue-table td:nth-child(3) {
-  width: 22%;
-  min-width: 185px;
+  width: 18%;
+  min-width: 165px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(4),
 #queue-table td:nth-child(4) {
-  width: 21%;
-  min-width: 200px;
+  width: 24%;
+  min-width: 185px;
   white-space: nowrap;
+  padding-right: 20px;
 }
 #queue-table th:nth-child(5),
 #queue-table td:nth-child(5) {
-  width: 6%;
-  min-width: 80px;
+  width: 12%;
+  min-width: 95px;
   text-align: right;
   white-space: nowrap;
 }
@@ -2333,7 +2334,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 8px;
   margin-top: 2px;
 }
 
@@ -8017,7 +8018,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   flex-direction: column;
   gap: 6px;
   width: 100%;
-  max-width: 220px;
+  max-width: 195px;
 }
 
 .queue-status-bar {
