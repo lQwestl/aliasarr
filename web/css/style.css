@@ -1779,13 +1779,22 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
+  gap: 3.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.2;
 }
 
 .meta-badge-glass.meta-rating {
   color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.35);
-  background: rgba(20, 15, 5, 0.82);
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(20, 15, 5, 0.85);
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .meta-badge-glass.meta-type-movie {
@@ -2183,8 +2192,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .meta-badge {
   font-family: var(--font-mono); font-size: 10px; padding: 2px 7px; border-radius: 999px;
   background: var(--panel); border: 1px solid var(--border); color: var(--text-muted);
+  display: inline-flex; align-items: center; white-space: nowrap; flex-shrink: 0; line-height: 1.2;
 }
-.meta-badge-rating { color: #fbbf24; border-color: #fbbf24; }
+.meta-badge-rating { color: #fbbf24; border-color: #fbbf24; white-space: nowrap; flex-shrink: 0; }
 .meta-badge-type {
   display: inline-flex;
   align-items: center;

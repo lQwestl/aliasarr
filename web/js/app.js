@@ -9267,7 +9267,7 @@ function renderMetadataResultCard(r, index) {
   const typeClass = isMovie ? "meta-type-movie" : "meta-type-series";
 
   const yearStr = r.year ? String(r.year) : "";
-  const ratingStr = r.rating ? `★ ${Number(r.rating).toFixed(1)}` : "";
+  const ratingStr = r.rating ? `★\u00A0${Number(r.rating).toFixed(1)}` : "";
   const initialLetter = (r.title || "?").trim()[0]?.toUpperCase() || "?";
 
   const bgStyle = r.poster_url ? `style="background-image: url('${r.poster_url}');"` : "";
@@ -9280,7 +9280,7 @@ function renderMetadataResultCard(r, index) {
       ${!r.poster_url ? `<div class="metadata-poster-fallback">${escapeHtml(initialLetter)}</div>` : ""}
 
       <div class="metadata-poster-top">
-        <div style="display:flex; align-items:center; gap:4px;">
+        <div style="display:flex; align-items:center; gap:4px; min-width:0; overflow:hidden;">
           ${r.content_type ? `<span class="meta-badge-glass ${typeClass}"><i data-lucide="${typeIco}" style="width:11px; height:11px;"></i>${escapeHtml(typeLabel)}</span>` : ""}
           ${yearStr ? `<span class="meta-badge-glass">${yearStr}</span>` : ""}
         </div>
@@ -9338,7 +9338,7 @@ function renderWizardStep2Content() {
         <div class="wizard-selected-badges">
           ${r.content_type ? `<span class="meta-badge meta-badge-type ${typeClass}"><i data-lucide="${typeIco}" class="ico-xs"></i>${escapeHtml(typeLabel)}</span>` : ""}
           ${r.year ? `<span class="meta-badge mono">${r.year}</span>` : ""}
-          ${r.rating ? `<span class="meta-badge meta-badge-rating">★ ${Number(r.rating).toFixed(1)}</span>` : ""}
+          ${r.rating ? `<span class="meta-badge meta-badge-rating">★\u00A0${Number(r.rating).toFixed(1)}</span>` : ""}
           ${r.country ? `<span class="meta-badge">${escapeHtml(r.country)}</span>` : ""}
           ${r.genre ? `<span class="meta-badge">${escapeHtml(r.genre)}</span>` : ""}
         </div>
@@ -9926,7 +9926,7 @@ function openCalendarEventModal(eKey) {
 
   let badgesHtml = `<span class="badge ${catClass}">${catName}</span>`;
   badgesHtml += `<span class="status-pill status-${e.status}">${escapeHtml(calStatusLabel(e.status))}</span>`;
-  if (e.rating) badgesHtml += `<span class="meta-badge meta-badge-rating">★ ${Number(e.rating).toFixed(1)}</span>`;
+  if (e.rating) badgesHtml += `<span class="meta-badge meta-badge-rating">★\u00A0${Number(e.rating).toFixed(1)}</span>`;
 
   let releaseBadgesHtml = "";
   if (isMovie && e.release_types && e.release_types.length) {
