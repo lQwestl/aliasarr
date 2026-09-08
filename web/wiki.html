@@ -785,19 +785,348 @@
   body[data-lang="ru"] .lang-en { display: none !important; }
   body[data-lang="en"] .lang-ru { display: none !important; }
 
+  /* Mobile Menu Button */
+  .wiki-mobile-menu-btn {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12.5px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+  .wiki-mobile-menu-btn:hover {
+    border-color: var(--teal);
+    background: var(--panel-alt);
+  }
+  .wiki-sidebar-header-mobile {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 6px 14px 6px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .btn-close-mobile-toc {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-close-mobile-toc:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.12);
+  }
+  .wiki-sidebar-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 199;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+  }
+  .wiki-sidebar-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Floating Action Bar for Quick Access */
+  .wiki-floating-bar {
+    display: none;
+    position: fixed;
+    bottom: 24px;
+    right: 18px;
+    z-index: 95;
+    gap: 10px;
+    align-items: center;
+  }
+  .wiki-floating-btn {
+    background: rgba(15, 20, 32, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 240, 255, 0.18);
+    color: var(--text);
+    border-radius: 30px;
+    padding: 9px 15px;
+    font-size: 12.5px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .wiki-floating-btn:hover {
+    background: rgba(20, 28, 48, 0.98);
+    border-color: var(--teal);
+    transform: translateY(-2px);
+  }
+  .wiki-floating-top {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.8);
+    pointer-events: none;
+    transition: all 0.2s ease;
+  }
+  .wiki-floating-top.visible {
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+  }
+
   @media (max-width: 1024px) {
-    .wiki-sidebar { display: none; }
-    .wiki-layout { padding: 16px 16px 60px 16px; }
-    .wiki-search-wrap { width: 220px; }
+    .wiki-mobile-menu-btn { display: inline-flex; }
+    .wiki-floating-bar { display: flex; }
+    .wiki-sidebar-backdrop { display: block; }
+    .wiki-sidebar-header-mobile { display: flex; }
+
+    .wiki-sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      height: 100vh;
+      width: 85vw;
+      max-width: 320px;
+      background: var(--panel, #0f1420);
+      border-right: 1px solid var(--border);
+      z-index: 200;
+      padding: 20px 16px 40px 16px;
+      box-sizing: border-box;
+      transform: translateX(-100%);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+    }
+    .wiki-sidebar.mobile-open {
+      transform: translateX(0);
+    }
+    .wiki-layout {
+      padding: 20px 16px 80px 16px;
+      gap: 0;
+    }
+    .wiki-search-wrap {
+      width: 180px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .wiki-header {
+      padding: 10px 14px;
+    }
+    .wiki-doc-tag {
+      display: none;
+    }
+    .wiki-header-inner {
+      gap: 8px;
+    }
+    .wiki-header-right {
+      gap: 6px;
+    }
+    .wiki-search-wrap {
+      width: 140px;
+    }
+    .wiki-search-input {
+      height: 34px;
+      font-size: 12px;
+      padding: 0 8px 0 30px;
+    }
+    .wiki-search-ico {
+      left: 8px;
+      width: 13px;
+      height: 13px;
+    }
+    .wiki-header-right .btn,
+    .wiki-mobile-menu-btn {
+      height: 34px;
+      padding: 0 8px;
+      font-size: 11px;
+    }
+    .brand-mark-logo {
+      width: 28px;
+      height: 28px;
+      font-size: 15px;
+      border-radius: 6px;
+    }
+    .brand-name {
+      font-size: 17px;
+    }
+    .wiki-hero {
+      padding: 22px 18px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+    .wiki-hero h1 {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    .wiki-hero p {
+      font-size: 13px;
+      line-height: 1.55;
+      margin-bottom: 14px;
+    }
+    .wiki-quick-pills {
+      gap: 6px;
+    }
+    .wiki-quick-pill {
+      font-size: 11px;
+      padding: 4px 10px;
+    }
+    .wiki-section {
+      padding: 20px 16px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+    .wiki-section-header {
+      gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+    }
+    .wiki-section-icon {
+      width: 32px;
+      height: 32px;
+    }
+    .wiki-section-icon svg,
+    .wiki-section-icon i {
+      width: 16px;
+      height: 16px;
+    }
+    .wiki-section-title {
+      font-size: 17px;
+    }
+    .wiki-section-badge {
+      font-size: 9.5px;
+      padding: 2px 6px;
+    }
+    .wiki-grid-2,
+    .wiki-grid-3 {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .wiki-subcard {
+      padding: 14px 14px;
+    }
+    .regex-box {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 10px;
+    }
+    .regex-code {
+      font-size: 11.5px;
+      word-break: break-all;
+    }
+    .btn-copy-regex {
+      align-self: flex-end;
+    }
+    .wiki-code-content {
+      font-size: 11.5px;
+      padding: 10px 12px;
+    }
+    .wiki-flow-sublist {
+      margin: 0 0 0 18px;
+      font-size: 12px;
+    }
+    .wiki-flow-step-card {
+      padding: 12px 14px;
+    }
+    .wiki-step-item {
+      gap: 10px;
+      padding: 14px 12px;
+    }
+    .wiki-step-num {
+      width: 26px;
+      height: 26px;
+      font-size: 12px;
+    }
+    .wiki-table th,
+    .wiki-table td {
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .wiki-header {
+      padding: 8px 10px;
+    }
+    .wiki-search-wrap {
+      display: none;
+    }
+    .wiki-header-right .btn-primary span {
+      display: none;
+    }
+    .wiki-header-right .btn-primary {
+      padding: 0 10px;
+    }
+    .wiki-layout {
+      padding: 14px 10px 70px 10px;
+    }
+    .wiki-section {
+      padding: 16px 12px;
+    }
+    .wiki-section-title {
+      font-size: 15.5px;
+    }
+    .wiki-callout {
+      padding: 12px 12px;
+      gap: 10px;
+      font-size: 12.5px;
+    }
   }
 </style>
 </head>
 <body data-lang="ru">
 
+<!-- Mobile Sidebar Backdrop -->
+<div class="wiki-sidebar-backdrop" id="wiki-sidebar-backdrop" onclick="closeMobileToc()"></div>
+
+<!-- Floating Mobile Navigation & Back-To-Top -->
+<div class="wiki-floating-bar" id="wiki-floating-bar">
+  <button class="wiki-floating-btn wiki-floating-toc" onclick="toggleMobileToc()" title="Содержание">
+    <i data-lucide="menu" style="width:15px;height:15px;"></i>
+    <span class="lang-ru">Разделы</span>
+    <span class="lang-en">Contents</span>
+  </button>
+  <button class="wiki-floating-btn wiki-floating-top" id="btn-back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Наверх">
+    <i data-lucide="chevron-up" style="width:18px;height:18px;"></i>
+  </button>
+</div>
+
 <!-- Top Navigation Header -->
 <header class="wiki-header">
   <div class="wiki-header-inner">
     <div class="wiki-header-left">
+      <button class="btn btn-secondary btn-sm wiki-mobile-menu-btn" onclick="toggleMobileToc()" title="Содержание" aria-label="Содержание">
+        <i data-lucide="menu" style="width:16px;height:16px;"></i>
+        <span class="lang-ru">Меню</span>
+        <span class="lang-en">Menu</span>
+      </button>
+
       <a href="/" class="brand">
         <div class="brand-mark-logo">A</div>
         <span class="brand-name">Aliasarr</span>
@@ -834,13 +1163,23 @@
 <div class="wiki-layout">
   <!-- Left Table of Contents -->
   <aside class="wiki-sidebar">
-    <div class="wiki-toc-title">
+    <div class="wiki-sidebar-header-mobile">
+      <div class="wiki-toc-title" style="margin-bottom:0;">
+        <span class="lang-ru">Содержание</span>
+        <span class="lang-en">Table of Contents</span>
+      </div>
+      <button class="btn-close-mobile-toc" onclick="closeMobileToc()" aria-label="Close">
+        <i data-lucide="x" style="width:18px;height:18px;"></i>
+      </button>
+    </div>
+
+    <div class="wiki-toc-title" style="display:block;">
       <span class="lang-ru">Содержание</span>
       <span class="lang-en">Table of Contents</span>
     </div>
 
     <div class="wiki-toc-group">
-      <div class="wiki-toc-group-label"><i data-lucide="zap" style="width:13px;height:13px;"></i> <span class="lang-ru">Быстрый старт</span><span class="lang-en">Getting Started</span></div>
+      <div class="wiki-toc-group-label"><i data-lucide="rocket" style="width:13px;height:13px;"></i> <span class="lang-ru">Быстрый старт</span><span class="lang-en">Getting Started</span></div>
       <a href="#section-intro" class="wiki-toc-link"><i data-lucide="info" class="wiki-toc-ico"></i><span class="lang-ru">Обзор Aliasarr</span><span class="lang-en">Overview</span></a>
       <a href="#section-quickstart" class="wiki-toc-link"><i data-lucide="play-circle" class="wiki-toc-ico"></i><span class="lang-ru">Настройка с нуля</span><span class="lang-en">Initial Setup</span></a>
     </div>
@@ -862,7 +1201,7 @@
       <div class="wiki-toc-group-label"><i data-lucide="sliders" style="width:13px;height:13px;"></i> <span class="lang-ru">Движок решений и Качество</span><span class="lang-en">Decision &amp; Quality</span></div>
       <a href="#section-decision-engine" class="wiki-toc-link"><i data-lucide="scale" class="wiki-toc-ico"></i><span class="lang-ru">Формула скоринга</span><span class="lang-en">Scoring Formula</span></a>
       <a href="#section-qualities-codecs" class="wiki-toc-link"><i data-lucide="film" class="wiki-toc-ico"></i><span class="lang-ru">Качества, HDR и Аудио</span><span class="lang-en">Qualities &amp; HDR</span></a>
-      <a href="#section-custom-formats" class="wiki-toc-link"><i data-lucide="sparkles" class="wiki-toc-ico"></i><span class="lang-ru">Кастомные форматы (CF)</span><span class="lang-en">Custom Formats</span></a>
+      <a href="#section-custom-formats" class="wiki-toc-link"><i data-lucide="sliders" class="wiki-toc-ico"></i><span class="lang-ru">Кастомные форматы (CF)</span><span class="lang-en">Custom Formats</span></a>
       <a href="#section-quality-upgrades" class="wiki-toc-link"><i data-lucide="arrow-up-circle" class="wiki-toc-ico"></i><span class="lang-ru">Логика апгрейда (Cutoff)</span><span class="lang-en">Cutoff Upgrades</span></a>
     </div>
 
@@ -870,7 +1209,7 @@
       <div class="wiki-toc-group-label"><i data-lucide="hard-drive" style="width:13px;height:13px;"></i> <span class="lang-ru">Импорт, Хранилище и Раздача</span><span class="lang-en">Storage &amp; Seeding</span></div>
       <a href="#section-hardlinks" class="wiki-toc-link"><i data-lucide="link" class="wiki-toc-ico"></i><span class="lang-ru">Жесткие ссылки (Hardlinks)</span><span class="lang-en">Hardlinks Physics</span></a>
       <a href="#section-seeding-management" class="wiki-toc-link"><i data-lucide="share-2" class="wiki-toc-ico"></i><span class="lang-ru">Раздача для приватных трекеров</span><span class="lang-en">Seeding Rules</span></a>
-      <a href="#section-specials" class="wiki-toc-link"><i data-lucide="sparkle" class="wiki-toc-ico"></i><span class="lang-ru">Спецвыпуски (Сезон 0, OVA)</span><span class="lang-en">Specials &amp; OVA</span></a>
+      <a href="#section-specials" class="wiki-toc-link"><i data-lucide="hard-drive-download" class="wiki-toc-ico"></i><span class="lang-ru">Спецвыпуски (Сезон 0, OVA)</span><span class="lang-en">Specials &amp; OVA</span></a>
       <a href="#section-tracked-releases" class="wiki-toc-link"><i data-lucide="radio" class="wiki-toc-ico"></i><span class="lang-ru">Слежение за раздачами</span><span class="lang-en">Tracked Releases</span></a>
     </div>
 
@@ -908,7 +1247,7 @@
       <div class="wiki-quick-pills">
         <a href="#section-quickstart" class="wiki-quick-pill"><i data-lucide="play-circle" style="width:14px;height:14px;color:var(--teal);"></i><span class="lang-ru">Быстрый старт с нуля</span><span class="lang-en">Quickstart Guide</span></a>
         <a href="#section-parsing-deep-dive" class="wiki-quick-pill"><i data-lucide="cpu" style="width:14px;height:14px;color:#818cf8;"></i><span class="lang-ru">Как работает парсер</span><span class="lang-en">Parser Engine</span></a>
-        <a href="#section-custom-formats" class="wiki-quick-pill"><i data-lucide="sparkles" style="width:14px;height:14px;color:#fbbf24;"></i><span class="lang-ru">Кастомные форматы (CF)</span><span class="lang-en">Custom Formats</span></a>
+        <a href="#section-custom-formats" class="wiki-quick-pill"><i data-lucide="sliders" style="width:14px;height:14px;color:#fbbf24;"></i><span class="lang-ru">Кастомные форматы (CF)</span><span class="lang-en">Custom Formats</span></a>
         <a href="#section-hardlinks" class="wiki-quick-pill"><i data-lucide="link" style="width:14px;height:14px;color:#34d399;"></i><span class="lang-ru">Физика Hardlinks</span><span class="lang-en">Hardlinks Guide</span></a>
         <a href="#section-settings-media" class="wiki-quick-pill"><i data-lucide="settings" style="width:14px;height:14px;color:#f472b6;"></i><span class="lang-ru">Справочник настроек</span><span class="lang-en">Settings Reference</span></a>
       </div>
@@ -948,7 +1287,7 @@
         </div>
 
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title"><i data-lucide="zap" style="width:16px;height:16px;color:var(--teal);"></i> <span class="lang-ru">Атомарные Hardlinks</span><span class="lang-en">Atomic Hardlinks</span></div>
+          <div class="wiki-subcard-title"><i data-lucide="layers" style="width:16px;height:16px;color:var(--teal);"></i> <span class="lang-ru">Атомарные Hardlinks</span><span class="lang-en">Atomic Hardlinks</span></div>
           <p class="wiki-subcard-text">
             <span class="lang-ru">Мгновенный импорт (0 мс) без дублирования дискового пространства (0 байт) с сохранением непрерывной раздачи для соблюдения требований приватных трекеров.</span>
             <span class="lang-en">Instantaneous 0ms import with 0 bytes extra storage and continuous seeding preservation for private tracker ratio compliance.</span>
@@ -964,7 +1303,7 @@
         </div>
 
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title"><i data-lucide="sparkles" style="width:16px;height:16px;color:var(--teal);"></i> <span class="lang-ru">Custom Formats &amp; Скоринг</span><span class="lang-en">Custom Formats Scoring</span></div>
+          <div class="wiki-subcard-title"><i data-lucide="sliders" style="width:16px;height:16px;color:var(--teal);"></i> <span class="lang-ru">Custom Formats &amp; Скоринг</span><span class="lang-en">Custom Formats Scoring</span></div>
           <p class="wiki-subcard-text">
             <span class="lang-ru">Полная поддержка Sonarr v4/v5 Custom Formats. Гибкая приоритизация релиз-групп (LostFilm, Red Head Sound, HDRezka), звуковых дорожек, HDR10+, Dolby Vision и кодеков.</span>
             <span class="lang-en">Full Sonarr v4/v5 Custom Formats compatibility. Flexible scoring for voiceover studios, audio codecs, HDR10+, Dolby Vision, and encoders.</span>
@@ -1599,7 +1938,7 @@
     <!-- SECTION 9: CUSTOM FORMATS -->
     <section id="section-custom-formats" class="wiki-section">
       <div class="wiki-section-header">
-        <div class="wiki-section-icon"><i data-lucide="sparkles"></i></div>
+        <div class="wiki-section-icon"><i data-lucide="sliders"></i></div>
         <h2 class="wiki-section-title">
           <span class="lang-ru">9. Кастомные форматы (Custom Formats) и Регулярные выражения</span>
           <span class="lang-en">9. Custom Formats (CF) &amp; Regex Library</span>
@@ -1657,7 +1996,7 @@
       <div class="wiki-h3"><span class="lang-ru">Видеостандарты, HDR и Звук</span><span class="lang-en">Video Standards, HDR &amp; Audio</span></div>
 
       <div class="wiki-subcard" style="margin-bottom:12px;">
-        <div class="wiki-subcard-title"><i data-lucide="sparkles" style="width:15px;height:15px;color:#fbbf24;"></i> Dolby Vision / HDR10+ (Рекомендуемый вес: +150)</div>
+        <div class="wiki-subcard-title"><i data-lucide="tv" style="width:15px;height:15px;color:#fbbf24;"></i> Dolby Vision / HDR10+ (Рекомендуемый вес: +150)</div>
         <div class="regex-box">
           <div class="regex-code">(dv|dovi|dolby\s*vision|hdr10\+|hdr10plus)</div>
           <button class="btn-copy-regex" onclick="copyRegex(this)"><i data-lucide="copy" class="ico-xs"></i> <span>Copy</span></button>
@@ -1757,7 +2096,7 @@
           <p class="wiki-subcard-text">Файл размером 40 ГБ не копируется. Вы экономите терабайты дискового пространства на вашем NAS / сервере.</p>
         </div>
         <div class="wiki-subcard">
-          <div class="wiki-subcard-title"><i data-lucide="zap" style="width:15px;height:15px;color:var(--teal);"></i> Мгновенный импорт (0 миллисекунд)</div>
+          <div class="wiki-subcard-title"><i data-lucide="timer" style="width:15px;height:15px;color:var(--teal);"></i> Мгновенный импорт (0 миллисекунд)</div>
           <p class="wiki-subcard-text">Создание хардлинка — атомарная операция записи метаданных. Импорт 80-гигабайтного 4K Remux происходит мгновенно.</p>
         </div>
         <div class="wiki-subcard">
@@ -1847,7 +2186,7 @@
     <!-- SECTION 13: SPECIALS & OVA -->
     <section id="section-specials" class="wiki-section">
       <div class="wiki-section-header">
-        <div class="wiki-section-icon"><i data-lucide="sparkle"></i></div>
+        <div class="wiki-section-icon"><i data-lucide="hard-drive-download"></i></div>
         <h2 class="wiki-section-title">
           <span class="lang-ru">13. Спецвыпуски (Сезон 0, OVA, SP) и Ручной импорт</span>
           <span class="lang-en">13. Specials, OVA &amp; Interactive Import</span>
@@ -1875,7 +2214,7 @@
 
         <div class="wiki-subcard" style="border-top: 3px solid #38bdf8;">
           <div class="wiki-subcard-title">
-            <i data-lucide="sparkles" style="width:16px;height:16px;color:#38bdf8;"></i>
+            <i data-lucide="hard-drive-download" style="width:16px;height:16px;color:#38bdf8;"></i>
             <span class="lang-ru">Релизы только со спецвыпусками</span>
             <span class="lang-en">Specials-Only Releases</span>
           </div>
@@ -2321,6 +2660,50 @@
     try { localStorage.setItem("aliasarr_lang", next); } catch (e) {}
     applyWikiLanguage(next);
   }
+
+  // Mobile Drawer (Off-canvas TOC)
+  function toggleMobileToc() {
+    const sidebar = document.querySelector('.wiki-sidebar');
+    const backdrop = document.getElementById('wiki-sidebar-backdrop');
+    if (!sidebar) return;
+    const isOpen = sidebar.classList.contains('mobile-open');
+    if (isOpen) {
+      closeMobileToc();
+    } else {
+      sidebar.classList.add('mobile-open');
+      if (backdrop) backdrop.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  function closeMobileToc() {
+    const sidebar = document.querySelector('.wiki-sidebar');
+    const backdrop = document.getElementById('wiki-sidebar-backdrop');
+    if (sidebar) sidebar.classList.remove('mobile-open');
+    if (backdrop) backdrop.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // Auto close mobile TOC when link is clicked
+  document.querySelectorAll('.wiki-toc-link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 1024) {
+        closeMobileToc();
+      }
+    });
+  });
+
+  // Floating Back-To-Top Button
+  window.addEventListener('scroll', () => {
+    const btnTop = document.getElementById('btn-back-to-top');
+    if (btnTop) {
+      if (window.scrollY > 300) {
+        btnTop.classList.add('visible');
+      } else {
+        btnTop.classList.remove('visible');
+      }
+    }
+  });
 
   applyWikiLanguage(CURRENT_WIKI_LANG);
 </script>
