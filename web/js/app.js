@@ -3929,6 +3929,10 @@ function renderRaysLoaderHtml(title = null, subtitle = null, idSuffix = "def") {
     </div>`;
 }
 
+function renderCloudSearchIconSvg(cls = "ico-xs") {
+  return `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${cls}" style="vertical-align:middle;flex-shrink:0;"><path d="M5 19h4.5"/><path d="M5 19A4.5 4.5 0 0 1 5 10c.2 0 .45.03.65.08A6 6 0 0 1 17.2 8a4.5 4.5 0 0 1 3.6 6.8"/><circle cx="15" cy="15" r="3.5"/><path d="m17.5 17.5 3 3"/><path d="M13.5 15a1.5 1.5 0 0 1 1.5-1.5" stroke-width="1.6"/></svg>`;
+}
+
 function escapeHtml(s) {
   return (s || "").toString().replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -6565,11 +6569,11 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
           <div class="season-main-buttons">
             ${canManageLib && seasonNumber === 0 ? `
             <button class="btn btn-secondary btn-small btn-specials-import" id="btn-specials-import-${targetShowId}" onclick="openSpecialsImportModal(${targetShowId})" title="${t("show.import_specials_tooltip")}">
-              <i data-lucide="sparkles" class="ico-xs"></i> <span>${t("show.import_specials")}</span>
+              <i data-lucide="hard-drive-download" class="ico-xs"></i> <span>${t("show.import_specials")}</span>
             </button>` : ""}
             ${canSearch ? `
             <button class="btn btn-primary btn-small" title="${CURRENT_LANG === "en" ? `Auto search and download season ${seasonNumber}` : `Автоматический поиск и скачивание всех серий сезона ${seasonNumber}`}" onclick="searchSeasonAuto(this, ${targetShowId}, ${seasonNumber})">
-              <i data-lucide="zap" class="ico-xs"></i> <span>${CURRENT_LANG === "en" ? "Auto Search" : "Автопоиск"}</span>
+              ${renderCloudSearchIconSvg("ico-xs")} <span>${CURRENT_LANG === "en" ? "Auto Search" : "Автопоиск"}</span>
             </button>
             <button class="btn btn-secondary btn-small" title="${CURRENT_LANG === "en" ? `Interactive search season ${seasonNumber}` : `Интерактивный поиск сезона ${seasonNumber}`}" onclick="openInteractiveSearch(${targetShowId}, ${seasonNumber}, null)">
               <i data-lucide="search" class="ico-xs"></i> <span>${CURRENT_LANG === "en" ? "Search" : "Поиск"}</span>
@@ -10235,7 +10239,7 @@ function openCalendarEventModal(eKey) {
             <i data-lucide="search" class="ico-xs"></i> <span>${t("calendar.btn_manual_search")}</span>
           </button>
           <button class="btn btn-primary btn-small" onclick="closeModal('calendar-event-modal'); triggerAutoSearchForCalEvent(${e.show_id}, ${e.episode_id ?? "null"})">
-            <i data-lucide="zap" class="ico-xs"></i> <span>${t("calendar.btn_auto_search")}</span>
+            ${renderCloudSearchIconSvg("ico-xs")} <span>${t("calendar.btn_auto_search")}</span>
           </button>
         ` : ""}
         <button class="btn btn-secondary btn-small" onclick="closeModal('calendar-event-modal'); openShowModal(${e.show_id})">
@@ -10798,7 +10802,7 @@ function renderCalendarAgendaList(byDay, rangeStart, rangeEnd) {
             <div class="cal-card-actions" onclick="event.stopPropagation()">
               ${canManageLib ? `
                 <button class="cal-btn-action" title="${t('calendar.btn_auto_search')}" onclick="triggerAutoSearchForCalEvent(${e.show_id}, ${e.episode_id ?? 'null'})">
-                  <i data-lucide="zap"></i>
+                  ${renderCloudSearchIconSvg("ico-xs")}
                 </button>
                 <button class="cal-btn-action" title="${t('calendar.btn_manual_search')}" onclick="openInteractiveSearch(${e.show_id}, ${e.season ?? 'null'}, ${e.episode ?? 'null'})">
                   <i data-lucide="search"></i>
