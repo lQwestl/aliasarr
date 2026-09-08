@@ -989,6 +989,7 @@ const TRANSLATIONS = {
     "manual_import.folder_placeholder": "Путь к папке со скачанными файлами...",
     "manual_import.mode_label": "Режим:",
     "manual_import.mode_move": "Переместить",
+    "manual_import.mode_hardlink": "Жесткая ссылка (Hardlink)",
     "manual_import.mode_copy": "Копировать",
     "manual_import.col_file": "Исходный файл",
     "manual_import.col_quality": "Качество",
@@ -2153,6 +2154,7 @@ const TRANSLATIONS = {
     "manual_import.folder_placeholder": "Path to folder containing downloaded files...",
     "manual_import.mode_label": "Mode:",
     "manual_import.mode_move": "Move",
+    "manual_import.mode_hardlink": "Hardlink",
     "manual_import.mode_copy": "Copy",
     "manual_import.col_file": "Source File",
     "manual_import.col_quality": "Quality",
@@ -7581,6 +7583,7 @@ async function scanManualImportFolder(showId, folderPath = null) {
   const content = document.getElementById("manual-import-modal-content");
   const pathInputVal = document.getElementById("manual-import-path-input")?.value;
   const targetPath = (folderPath !== null ? folderPath : (pathInputVal || "")).trim();
+  const currentMode = document.getElementById("manual-import-mode-select")?.value || localStorage.getItem("aliasarr_manual_import_mode") || "move";
   const isSpecialsOnly = (CURRENT_MANUAL_IMPORT_SEASON_FILTER === 0);
   const modalTitle = isSpecialsOnly ? t("manual_import.title_specials") : t("manual_import.title");
   const modalIcon = isSpecialsOnly ? "sparkles" : "hard-drive-download";
@@ -7594,9 +7597,10 @@ async function scanManualImportFolder(showId, folderPath = null) {
       </div>
       <div class="manual-import-mode-row">
         <label style="font-size: 13px; color: var(--text-muted);">${t("manual_import.mode_label")}</label>
-        <select id="manual-import-mode-select" class="input input-small" style="width: auto;">
-          <option value="move">${t("manual_import.mode_move")}</option>
-          <option value="copy">${t("manual_import.mode_copy")}</option>
+        <select id="manual-import-mode-select" class="input input-small" style="width: auto;" onchange="try{localStorage.setItem('aliasarr_manual_import_mode', this.value);}catch(e){}">
+          <option value="move" ${currentMode === "move" ? "selected" : ""}>${t("manual_import.mode_move")}</option>
+          <option value="hardlink" ${currentMode === "hardlink" ? "selected" : ""}>${t("manual_import.mode_hardlink")}</option>
+          <option value="copy" ${currentMode === "copy" ? "selected" : ""}>${t("manual_import.mode_copy")}</option>
         </select>
       </div>
     </div>
@@ -7648,7 +7652,7 @@ function renderManualImportView(showId, data) {
   const content = document.getElementById("manual-import-modal-content");
   const files = data.files || [];
   const episodes = data.episodes || [];
-  const currentMode = document.getElementById("manual-import-mode-select")?.value || "move";
+  const currentMode = document.getElementById("manual-import-mode-select")?.value || localStorage.getItem("aliasarr_manual_import_mode") || "move";
   const isSpecialsOnly = (CURRENT_MANUAL_IMPORT_SEASON_FILTER === 0);
   const modalTitle = isSpecialsOnly ? t("manual_import.title_specials") : t("manual_import.title");
   const modalIcon = isSpecialsOnly ? "sparkles" : "hard-drive-download";
@@ -7750,8 +7754,9 @@ function renderManualImportView(showId, data) {
       </div>
       <div class="manual-import-mode-row">
         <label style="font-size: 13px; color: var(--text-muted);">${t("manual_import.mode_label")}</label>
-        <select id="manual-import-mode-select" class="input input-small" style="width: auto;">
+        <select id="manual-import-mode-select" class="input input-small" style="width: auto;" onchange="try{localStorage.setItem('aliasarr_manual_import_mode', this.value);}catch(e){}">
           <option value="move" ${currentMode === "move" ? "selected" : ""}>${t("manual_import.mode_move")}</option>
+          <option value="hardlink" ${currentMode === "hardlink" ? "selected" : ""}>${t("manual_import.mode_hardlink")}</option>
           <option value="copy" ${currentMode === "copy" ? "selected" : ""}>${t("manual_import.mode_copy")}</option>
         </select>
       </div>
@@ -8044,7 +8049,8 @@ function onManualImportItemChange() {
 async function executeManualImport(showId) {
   const submitBtn = document.getElementById("manual-import-submit-btn");
   const modeSelect = document.getElementById("manual-import-mode-select");
-  const importMode = modeSelect ? modeSelect.value : "move";
+  const importMode = modeSelect ? modeSelect.value : (localStorage.getItem("aliasarr_manual_import_mode") || "move");
+  try { localStorage.setItem("aliasarr_manual_import_mode", importMode); } catch (e) {}
 
   const rows = document.querySelectorAll(".manual-import-item-check:checked");
   const items = [];
@@ -8135,6 +8141,7 @@ async function scanGlobalManualImportFolder(folderPath = null) {
   const content = document.getElementById("manual-import-modal-content");
   const pathInputVal = document.getElementById("manual-import-path-input")?.value;
   const targetPath = (folderPath !== null ? folderPath : (pathInputVal || "")).trim();
+  const currentMode = document.getElementById("manual-import-mode-select")?.value || localStorage.getItem("aliasarr_manual_import_mode") || "move";
 
   content.innerHTML = `
     <div class="manual-import-header">
@@ -8144,9 +8151,10 @@ async function scanGlobalManualImportFolder(folderPath = null) {
       </div>
       <div class="manual-import-mode-row">
         <label style="font-size: 13px; color: var(--text-muted);">${t("manual_import.mode_label")}</label>
-        <select id="manual-import-mode-select" class="input input-small" style="width: auto;">
-          <option value="move">${t("manual_import.mode_move")}</option>
-          <option value="copy">${t("manual_import.mode_copy")}</option>
+        <select id="manual-import-mode-select" class="input input-small" style="width: auto;" onchange="try{localStorage.setItem('aliasarr_manual_import_mode', this.value);}catch(e){}">
+          <option value="move" ${currentMode === "move" ? "selected" : ""}>${t("manual_import.mode_move")}</option>
+          <option value="hardlink" ${currentMode === "hardlink" ? "selected" : ""}>${t("manual_import.mode_hardlink")}</option>
+          <option value="copy" ${currentMode === "copy" ? "selected" : ""}>${t("manual_import.mode_copy")}</option>
         </select>
       </div>
     </div>
@@ -8199,7 +8207,7 @@ function renderGlobalManualImportView(data) {
   const files = data.files || [];
   const shows = data.shows || [];
   const episodesByShow = data.episodes_by_show || {};
-  const currentMode = document.getElementById("manual-import-mode-select")?.value || "move";
+  const currentMode = document.getElementById("manual-import-mode-select")?.value || localStorage.getItem("aliasarr_manual_import_mode") || "move";
 
   const qualityOptions = QUALITY_OPTIONS;
 
@@ -8299,8 +8307,9 @@ function renderGlobalManualImportView(data) {
       </div>
       <div class="manual-import-mode-row">
         <label style="font-size: 13px; color: var(--text-muted);">${t("manual_import.mode_label")}</label>
-        <select id="manual-import-mode-select" class="input input-small" style="width: auto;">
+        <select id="manual-import-mode-select" class="input input-small" style="width: auto;" onchange="try{localStorage.setItem('aliasarr_manual_import_mode', this.value);}catch(e){}">
           <option value="move" ${currentMode === "move" ? "selected" : ""}>${t("manual_import.mode_move")}</option>
+          <option value="hardlink" ${currentMode === "hardlink" ? "selected" : ""}>${t("manual_import.mode_hardlink")}</option>
           <option value="copy" ${currentMode === "copy" ? "selected" : ""}>${t("manual_import.mode_copy")}</option>
         </select>
       </div>
@@ -8525,7 +8534,8 @@ function applyGlobalBulkShow() {
 async function executeGlobalManualImport() {
   const submitBtn = document.getElementById("global-manual-import-submit-btn");
   const modeSelect = document.getElementById("manual-import-mode-select");
-  const importMode = modeSelect ? modeSelect.value : "move";
+  const importMode = modeSelect ? modeSelect.value : (localStorage.getItem("aliasarr_manual_import_mode") || "move");
+  try { localStorage.setItem("aliasarr_manual_import_mode", importMode); } catch (e) {}
 
   const rows = document.querySelectorAll(".global-manual-import-item-check:checked");
   const items = [];

@@ -1785,21 +1785,63 @@
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="share-2"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">12. Управление раздачей для приватных трекеров</span>
-          <span class="lang-en">12. Seeding Rules for Private Trackers</span>
+          <span class="lang-ru">12. Управление раздачей и лимитами сидирования</span>
+          <span class="lang-en">12. Seeding Rules &amp; Limits Lifecycle</span>
         </h2>
         <span class="wiki-section-badge">SEEDING</span>
       </div>
 
       <p class="wiki-p">
-        <span class="lang-ru">Aliasarr умеет интеллектуально управлять сидированием торрентов в зависимости от типа трекера:</span>
-        <span class="lang-en">Aliasarr provides granular seeding lifecycle management per indexer:</span>
+        <span class="lang-ru">Aliasarr умеет интеллектуально управлять сидированием торрентов в зависимости от типа трекера и требований рейтинга (Hit&amp;Run):</span>
+        <span class="lang-en">Aliasarr provides granular seeding lifecycle management per indexer, protecting your private tracker ratio and Hit&amp;Run requirements:</span>
       </p>
 
+      <div class="wiki-grid-2" style="margin: 20px 0;">
+        <div class="wiki-subcard" style="border-top: 3px solid var(--violet, #8b5cf6);">
+          <div class="wiki-subcard-title">
+            <i data-lucide="globe" style="width:16px;height:16px;color:var(--violet, #8b5cf6);"></i>
+            <span class="lang-ru">Публичные трекеры (Rutor, RuTracker и др.)</span>
+            <span class="lang-en">Public Trackers</span>
+          </div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Чекбокс <em>«Раздавать»</em> выключен. Сразу после скачивания файлы связываются или перемещаются в медиатеку, а торрент удаляется из клиента для экономии места.</span>
+            <span class="lang-en">Seeding toggle is OFF. After download finishes, files are linked/moved to the library, and the torrent task is immediately cleaned up.</span>
+          </p>
+        </div>
+
+        <div class="wiki-subcard" style="border-top: 3px solid #34d399;">
+          <div class="wiki-subcard-title">
+            <i data-lucide="shield-check" style="width:16px;height:16px;color:#34d399;"></i>
+            <span class="lang-ru">Приватные трекеры (IPTorrents, Tapochek и др.)</span>
+            <span class="lang-en">Private Trackers</span>
+          </div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Чекбокс <em>«Раздавать»</em> включен. Торрент удерживается в клиенте до достижения заданного <strong>Лимита Ratio</strong> или <strong>Лимита времени раздачи</strong>.</span>
+            <span class="lang-en">Seeding toggle is ON. The torrent stays active in the client until specified <strong>Ratio Limit</strong> or <strong>Time Limit</strong> is reached.</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="wiki-h3">
+        <span class="lang-ru">Индикация в мониторинге «Активность» (Activity)</span>
+        <span class="lang-en">Activity Monitor Seeding Indicators</span>
+      </div>
+
       <ul style="font-size:13.5px;color:var(--text);line-height:1.8;">
-        <li><strong>Публичные трекеры (Rutor, RuTracker без учета рейтинга, Nyaa):</strong> В форме индексатора оставьте чекбокс <em>«Раздавать»</em> выключенным. После скачивания файл связывается в медиатеку, а торрент удаляется из клиента.</li>
-        <li><strong>Приватные трекеры (IPTorrents, TorrentLeech, Tapochek, HDBits):</strong> Включите чекбокс <em>«Раздавать»</em>, задайте <strong>Лимит Ratio</strong> (например, <code>1.5</code>) и <strong>Лимит времени раздачи</strong> (например, <code>72</code> часа для правил Hit&amp;Run). Aliasarr будет удерживать торрент в клиенте до выполнения условий, после чего безопасно очистит его.</li>
+        <li><strong>Таймер с фиксированным лимитом:</strong> Отображается как <code>11ч 53м / 12ч</code> с подсветкой обратного отсчета <code>Осталось: 6м</code>. Торрент раздается ровно до окончания лимита.</li>
+        <li><strong>Бессрочная раздача <code>(∞)</code>:</strong> Если лимит времени раздачи не задан (пусто или 0), отображается <code>[Время раздачи] (∞)</code> (например, <code>33с (∞)</code>). Торрент остается на раздаче бессрочно до ручной остановки пользователем.</li>
+        <li><strong>Коэффициент отдачи (Ratio):</strong> Отображается как <code>Ratio: 0.06 / 1.50</code> (при заданном лимите) либо <code>Ratio: 0.06</code>.</li>
+        <li><strong>Статусы клиента:</strong> <code>seeding</code> — активная раздача пирам; <code>pausedup</code> — раздача на паузе / ожидает пиров или действий в клиенте.</li>
       </ul>
+
+      <div class="wiki-callout wiki-callout-info">
+        <div class="wiki-callout-ico"><i data-lucide="info" style="width:20px;height:20px;"></i></div>
+        <div class="wiki-callout-content">
+          <strong><span class="lang-ru">Автоматическое завершение и очистка</span><span class="lang-en">Automatic Cleanup on Limit Completion</span></strong><br>
+          <span class="lang-ru">Когда торрент выполняет хотя бы одно из условий сидирования (достиг Ratio или отсидировал заданное количество часов), Aliasarr автоматически и безопасно удаляет раздачу из клиента и очищает временную папку загрузки. Если созданы Hardlinks, файлы в медиатеке остаются в полной сохранности.</span>
+          <span class="lang-en">Once a seeding task satisfies its configured ratio or time requirement, Aliasarr automatically cleans up the torrent and download directory. If hardlinks were used, media files in your library remain 100% intact.</span>
+        </div>
+      </div>
     </section>
 
     <!-- SECTION 13: SPECIALS & OVA -->
@@ -1814,17 +1856,46 @@
       </div>
 
       <p class="wiki-p">
-        <span class="lang-ru">Спецвыпуски (Сезон 0, OVA, Bonus Disc) часто имеют нестандартную нумерацию на трекерах (например, «OVA 1», «Фильм 2», «Special»). Чтобы исключить случайное повреждение файлов, Aliasarr применяет защитный протокол:</span>
-        <span class="lang-en">Specials (Season 0, OVA, SP) often feature non-standard naming on trackers. Aliasarr protects your library with a safe semi-automatic workflow:</span>
+        <span class="lang-ru">Спецвыпуски (Сезон 0, OVA, SP, Bonus Disc) часто имеют нестандартную нумерацию и названия на трекерах (например, «OVA 1», «LOVE Machine 2D ver», «Yoroshiku Tsucchi», «Special 3»). Чтобы исключить случайную перезапись или повреждение файлов, Aliasarr применяет надежный двухэтапный протокол:</span>
+        <span class="lang-en">Specials (Season 0, OVA, SP) often feature non-standard naming on trackers. Aliasarr protects your library with a safe two-stage workflow:</span>
       </p>
 
-      <div class="wiki-callout wiki-callout-info">
-        <div class="wiki-callout-ico"><i data-lucide="info" style="width:20px;height:20px;"></i></div>
-        <div class="wiki-callout-content">
-          <span class="lang-ru">Когда скачивается раздача, содержащая только спецвыпуски (Сезон 0), Aliasarr доводит скачивание до 100%, блокирует автоматический перенос, отправляет уведомление <code>manual_interaction_required</code> и предлагает подтвердить соответствие файлов через кнопку <strong>«Импорт спецвыпусков»</strong> в карточке тайтла.</span>
-          <span class="lang-en">When a Specials-only release finishes downloading, Aliasarr sets progress to 100%, skips automatic moves, triggers a <code>manual_interaction_required</code> notification, and lets you map files interactively via the <strong>Import Specials</strong> button.</span>
+      <div class="wiki-grid-2" style="margin: 20px 0;">
+        <div class="wiki-subcard" style="border-top: 3px solid var(--teal);">
+          <div class="wiki-subcard-title">
+            <i data-lucide="layers" style="width:16px;height:16px;color:var(--teal);"></i>
+            <span class="lang-ru">Комбинированные релизы (Сезоны + Спешлы)</span>
+            <span class="lang-en">Hybrid Releases (Seasons + Specials)</span>
+          </div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Основные сезоны импортируются <strong>автоматически</strong>. Спецвыпуски переводятся в режим ожидания ручного сопоставления. <strong>Папка раздачи НЕ удаляется</strong>, пока пользователь не подтвердит импорт спецвыпусков.</span>
+            <span class="lang-en">Regular season episodes are imported <strong>automatically</strong>. Specials await manual confirmation. <strong>Download folder is NOT deleted</strong> until specials are resolved.</span>
+          </p>
+        </div>
+
+        <div class="wiki-subcard" style="border-top: 3px solid #38bdf8;">
+          <div class="wiki-subcard-title">
+            <i data-lucide="sparkles" style="width:16px;height:16px;color:#38bdf8;"></i>
+            <span class="lang-ru">Релизы только со спецвыпусками</span>
+            <span class="lang-en">Specials-Only Releases</span>
+          </div>
+          <p class="wiki-subcard-text">
+            <span class="lang-ru">Скачивание доходит до 100%, автоимпорт блокируется, генерируется событие <code>manual_interaction_required</code>, а в карточке тайтла активируется кнопка <strong>«Импорт спецвыпусков»</strong>.</span>
+            <span class="lang-en">Download reaches 100%, automatic move is held, a <code>manual_interaction_required</code> event is sent, and <strong>Import Specials</strong> is highlighted in the show card.</span>
+          </p>
         </div>
       </div>
+
+      <div class="wiki-h3">
+        <span class="lang-ru">Режимы в модальном окне «Ручной импорт»</span>
+        <span class="lang-en">Manual Import Modal Options</span>
+      </div>
+
+      <ul style="font-size:13.5px;color:var(--text);line-height:1.8;">
+        <li><strong>Переместить (Move):</strong> Файлы спецвыпусков перемещаются в каталог медиатеки сериала с правильными именами (<code>S00E01</code>, <code>S00E02</code> и т.д.), а исходная папка загрузок полностью очищается после завершения импорта всех серий.</li>
+        <li><strong>Скопировать / Хардлинк (Copy / Hardlink):</strong> Создает жесткие ссылки в медиатеке, сохраняя файлы в исходной папке для продолжения раздачи (Seeding) на приватном трекере.</li>
+        <li><strong>Защита от дубликатов:</strong> Если несколько файлов ошибочно сопоставлены с одним и тем же спецвыпуском, интерфейс подсвечивает строки красным цветом и предупреждает о конфликте до отправки формы.</li>
+      </ul>
     </section>
 
     <!-- SECTION 14: TRACKED RELEASES -->

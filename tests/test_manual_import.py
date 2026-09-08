@@ -487,9 +487,208 @@ class TestManualImportLogic(unittest.TestCase):
         self.assertEqual(matched_map["19 Casablankman 2.mkv"], (5, 18))
         self.assertEqual(matched_map["20 Fight Club Paradise.mkv"], (5, 19))
 
+    def test_manual_import_hardlink_and_move_execution(self):
+        """Проверяет выполнение execute_manual_import в режимах hardlink и move, сохранение раздачи и unmark."""
+        try:
+            from app.api.shows import (
+                execute_manual_import,
+                ManualImportExecuteIn,
+                ManualImportItemIn,
+                EpisodeStatus,
+            )
+        except ImportError:
+            self.skipTest("FastAPI/Pydantic not installed in test runner")
+            return
+
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock, patch
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src_dir = os.path.join(tmpdir, "downloads", "Occult_Academy_Specials")
+            os.makedirs(src_dir, exist_ok=True)
+            fonts_dir = os.path.join(src_dir, "fonts")
+            os.makedirs(fonts_dir, exist_ok=True)
+
+            src_video = os.path.join(src_dir, "[UTW] Occult Academy - Special 01 (BD 1080p).mkv")
+            src_sub = os.path.join(src_dir, "[UTW] Occult Academy - Special 01.rus.srt")
+            src_aud = os.path.join(src_dir, "[UTW] Occult Academy - Special 01.mka")
+            src_font = os.path.join(fonts_dir, "Arial.ttf")
+
+            with open(src_video, "wb") as f:
+                f.write(b"video content special 1")
+            with open(src_sub, "wb") as f:
+                f.write(b"subtitles content")
+            with open(src_aud, "wb") as f:
+                f.write(b"audio track content")
+            with open(src_font, "wb") as f:
+                f.write(b"font data")
+
+            media_dir = os.path.join(tmpdir, "media", "anime", "Occult Academy")
+            os.makedirs(media_dir, exist_ok=True)
+
+            show = SimpleNamespace(
+                id=1,
+                title="Occult Academy",
+                year=2010,
+                content_type="anime",
+                path=media_dir,
+            )
+            ep_special = SimpleNamespace(
+                id=101,
+                show_id=1,
+                season_number=0,
+                episode_number=1,
+                title="Special 1",
+                status=EpisodeStatus.DOWNLOADING,
+                torrent_hash="abcd1234efgh5678",
+                file_path=None,
+                download_progress=1.0,
+                downloaded_quality=None,
+                video_codec=None,
+                audio_codec=None,
+                audio_channels=None,
+                dynamic_range=None,
+                file_size_bytes=None,
+            )
+
+            mock_settings = SimpleNamespace(
+                download_folder=os.path.join(tmpdir, "downloads"),
+                media_folder=os.path.join(tmpdir, "media"),
+                media_naming_episode="{Series Title} - S{season:02d}E{episode:02d} - {Episode Title}",
+                media_naming_season_folder="Season {season:02d}",
+                download_folder_anime="",
+                download_folder_movies="",
+                download_folder_series="",
+            )
+
+            db_mock = MagicMock()
+            db_mock.get.side_effect = lambda model, obj_id: show if (getattr(model, "__name__", "") == "Show" or obj_id == 1) else (ep_special if obj_id == 101 else None)
+            db_mock.query.return_value.filter.return_value.all.return_value = []
+            db_mock.query.return_value.filter.return_value.count.return_value = 0
+
+            current_user = SimpleNamespace(id=1, username="admin")
+
+            # 1. Hardlink mode
+            payload_hl = ManualImportExecuteIn(
+                folder_path=src_dir,
+                import_mode="hardlink",
+                items=[
+                    ManualImportItemIn(
+                        file_path=src_video,
+                        episode_id=101,
+                        quality="Bluray-1080p",
+                    )
+                ]
+            )
+
+            with patch("app.api.shows.get_or_create_settings", return_value=mock_settings), \
+                 patch("app.api.shows.log_audit"), \
+                 patch("app.api.shows.apply_media_permissions"):
+                res_hl = execute_manual_import(1, payload=payload_hl, db=db_mock, current_user=current_user)
+
+            self.assertEqual(res_hl.imported_count, 1)
+            self.assertEqual(len(res_hl.errors), 0)
+            self.assertEqual(ep_special.status, EpisodeStatus.DOWNLOADED)
+            self.assertIsNotNone(ep_special.file_path)
+            self.assertTrue(os.path.exists(ep_special.file_path))
+            self.assertTrue(os.path.exists(src_video), "Source file should remain intact in hardlink mode")
+
+            # Check inode match on same filesystem
+            src_stat = os.stat(src_video)
+            dst_stat = os.stat(ep_special.file_path)
+            self.assertEqual(src_stat.st_ino, dst_stat.st_ino, "Hardlinked file should share the same inode")
+
+            # Check companion files
+            dst_sub_path = os.path.splitext(ep_special.file_path)[0] + ".rus.srt"
+            if not os.path.exists(dst_sub_path):
+                dst_sub_path = os.path.splitext(ep_special.file_path)[0] + ".srt"
+            self.assertTrue(os.path.exists(dst_sub_path))
+
+            # 2. Hardlink fallback on OSError
+            src_video2 = os.path.join(src_dir, "[UTW] Occult Academy - Special 02 (BD 1080p).mkv")
+            with open(src_video2, "wb") as f:
+                f.write(b"video content special 2")
+
+            ep_special2 = SimpleNamespace(
+                id=102,
+                show_id=1,
+                season_number=0,
+                episode_number=2,
+                title="Special 2",
+                status=EpisodeStatus.DOWNLOADING,
+                torrent_hash="abcd1234efgh5678",
+                file_path=None,
+                download_progress=1.0,
+            )
+            db_mock.get.side_effect = lambda model, obj_id: show if (getattr(model, "__name__", "") == "Show" or obj_id == 1) else (ep_special2 if obj_id == 102 else None)
+
+            payload_hl_fallback = ManualImportExecuteIn(
+                folder_path=src_dir,
+                import_mode="hardlink",
+                items=[
+                    ManualImportItemIn(
+                        file_path=src_video2,
+                        episode_id=102,
+                        quality="Bluray-1080p",
+                    )
+                ]
+            )
+
+            with patch("app.api.shows.get_or_create_settings", return_value=mock_settings), \
+                 patch("app.api.shows.log_audit"), \
+                 patch("app.api.shows.apply_media_permissions"), \
+                 patch("os.link", side_effect=OSError(18, "Invalid cross-device link")):
+                res_fallback = execute_manual_import(1, payload=payload_hl_fallback, db=db_mock, current_user=current_user)
+
+            self.assertEqual(res_fallback.imported_count, 1)
+            self.assertEqual(len(res_fallback.errors), 0)
+            self.assertTrue(os.path.exists(ep_special2.file_path))
+            self.assertTrue(os.path.exists(src_video2))
+
+            # 3. Move mode
+            src_video3 = os.path.join(src_dir, "[UTW] Occult Academy - Special 03 (BD 1080p).mkv")
+            with open(src_video3, "wb") as f:
+                f.write(b"video content special 3")
+
+            ep_special3 = SimpleNamespace(
+                id=103,
+                show_id=1,
+                season_number=0,
+                episode_number=3,
+                title="Special 3",
+                status=EpisodeStatus.DOWNLOADING,
+                torrent_hash="abcd1234efgh5678",
+                file_path=None,
+                download_progress=1.0,
+            )
+            db_mock.get.side_effect = lambda model, obj_id: show if (getattr(model, "__name__", "") == "Show" or obj_id == 1) else (ep_special3 if obj_id == 103 else None)
+
+            payload_move = ManualImportExecuteIn(
+                folder_path=src_dir,
+                import_mode="move",
+                items=[
+                    ManualImportItemIn(
+                        file_path=src_video3,
+                        episode_id=103,
+                        quality="Bluray-1080p",
+                    )
+                ]
+            )
+
+            with patch("app.api.shows.get_or_create_settings", return_value=mock_settings), \
+                 patch("app.api.shows.log_audit"), \
+                 patch("app.api.shows.apply_media_permissions"):
+                res_move = execute_manual_import(1, payload=payload_move, db=db_mock, current_user=current_user)
+
+            self.assertEqual(res_move.imported_count, 1)
+            self.assertEqual(len(res_move.errors), 0)
+            self.assertTrue(os.path.exists(ep_special3.file_path))
+            self.assertFalse(os.path.exists(src_video3), "Source file should be moved away in move mode")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
 

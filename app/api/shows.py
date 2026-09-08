@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional, List, Dict, Any
 
 import datetime as dt
+import logging
 import os
 import shutil
 
@@ -14,7 +15,20 @@ from sqlalchemy.orm import Session
 import re
 
 from app.database import get_db
-from app.models.db import Alias, Episode, EpisodeStatus, MonitorStatus, Show, User, DownloadClient
+from app.models.db import (
+    Alias,
+    DownloadClient,
+    DownloadHistory,
+    Episode,
+    EpisodeStatus,
+    MonitorStatus,
+    ReleaseLog,
+    Show,
+    TrackedRelease,
+    User,
+)
+
+logger = logging.getLogger(__name__)
 from app.schemas import (
     AliasCreate,
     AliasOut,
@@ -1422,7 +1436,7 @@ class ManualImportItemIn(BaseModel):
 
 
 class ManualImportExecuteIn(BaseModel):
-    import_mode: str = "move"  # "move" | "copy"
+    import_mode: str = "move"  # "move" | "hardlink" | "copy"
     items: list[ManualImportItemIn]
 
 
@@ -1456,7 +1470,7 @@ class GlobalManualImportItemIn(BaseModel):
 
 
 class GlobalManualImportExecuteIn(BaseModel):
-    import_mode: str = "move"  # "move" | "copy"
+    import_mode: str = "move"  # "move" | "hardlink" | "copy"
     items: list[GlobalManualImportItemIn]
 
 
@@ -1899,6 +1913,24 @@ def execute_manual_import(
                 if payload.import_mode == "move":
                     if os.path.abspath(item.file_path) != dest_abs:
                         move_file_with_progress(item.file_path, dest_video_path, callback=_progress_cb)
+                elif payload.import_mode == "hardlink":
+                    if os.path.abspath(item.file_path) != dest_abs:
+                        try:
+                            if os.path.exists(dest_video_path):
+                                try:
+                                    os.remove(dest_video_path)
+                                except OSError:
+                                    pass
+                            os.link(item.file_path, dest_video_path)
+                            logger.info("Ручной импорт: хардлинк успешно создан %s -> %s", item.file_path, dest_video_path)
+                            _progress_cb(0, file_size)
+                            _progress_cb(file_size, file_size)
+                        except OSError as link_err:
+                            logger.warning(
+                                "Ручной импорт: не удалось создать хардлинк (%s), переключаемся на копирование: %s -> %s",
+                                link_err, item.file_path, dest_video_path,
+                            )
+                            copy_file_with_progress(item.file_path, dest_video_path, callback=_progress_cb)
                 else:
                     if os.path.abspath(item.file_path) != dest_abs:
                         copy_file_with_progress(item.file_path, dest_video_path, callback=_progress_cb)
@@ -1929,6 +1961,13 @@ def execute_manual_import(
                         try:
                             if payload.import_mode == "move":
                                 shutil.move(sf, dest_sub_path)
+                            elif payload.import_mode == "hardlink":
+                                try:
+                                    if os.path.exists(dest_sub_path):
+                                        os.remove(dest_sub_path)
+                                    os.link(sf, dest_sub_path)
+                                except OSError:
+                                    shutil.copy2(sf, dest_sub_path)
                             else:
                                 shutil.copy2(sf, dest_sub_path)
                             apply_media_permissions(dest_sub_path, is_dir=False)
@@ -1950,6 +1989,13 @@ def execute_manual_import(
                         try:
                             if payload.import_mode == "move":
                                 shutil.move(af, dest_aud_path)
+                            elif payload.import_mode == "hardlink":
+                                try:
+                                    if os.path.exists(dest_aud_path):
+                                        os.remove(dest_aud_path)
+                                    os.link(af, dest_aud_path)
+                                except OSError:
+                                    shutil.copy2(af, dest_aud_path)
                             else:
                                 shutil.copy2(af, dest_aud_path)
                             apply_media_permissions(dest_aud_path, is_dir=False)
@@ -1982,11 +2028,16 @@ def execute_manual_import(
                 except Exception:
                     pass
 
+                q_info = parse_quality(os.path.basename(dest_video_path))
                 episode.status = EpisodeStatus.DOWNLOADED
-
                 episode.file_path = dest_video_path
                 episode.download_progress = 1.0
                 episode.downloaded_quality = quality
+                episode.video_codec = q_info.video_codec
+                episode.audio_codec = q_info.audio_codec
+                episode.audio_channels = q_info.audio_channels
+                episode.dynamic_range = q_info.dynamic_range
+                episode.file_size_bytes = os.path.getsize(dest_video_path) if os.path.exists(dest_video_path) else None
                 db.add(episode)
                 try:
                     db.commit()
@@ -2405,6 +2456,24 @@ def execute_global_manual_import(
                 if payload.import_mode == "move":
                     if os.path.abspath(item.file_path) != dest_abs:
                         move_file_with_progress(item.file_path, dest_video_path, callback=_progress_cb)
+                elif payload.import_mode == "hardlink":
+                    if os.path.abspath(item.file_path) != dest_abs:
+                        try:
+                            if os.path.exists(dest_video_path):
+                                try:
+                                    os.remove(dest_video_path)
+                                except OSError:
+                                    pass
+                            os.link(item.file_path, dest_video_path)
+                            logger.info("Глобальный ручной импорт: хардлинк успешно создан %s -> %s", item.file_path, dest_video_path)
+                            _progress_cb(0, file_size)
+                            _progress_cb(file_size, file_size)
+                        except OSError as link_err:
+                            logger.warning(
+                                "Глобальный ручной импорт: не удалось создать хардлинк (%s), переключаемся на копирование: %s -> %s",
+                                link_err, item.file_path, dest_video_path,
+                            )
+                            copy_file_with_progress(item.file_path, dest_video_path, callback=_progress_cb)
                 else:
                     if os.path.abspath(item.file_path) != dest_abs:
                         copy_file_with_progress(item.file_path, dest_video_path, callback=_progress_cb)
@@ -2435,6 +2504,13 @@ def execute_global_manual_import(
                         try:
                             if payload.import_mode == "move":
                                 shutil.move(sf, dest_sub_path)
+                            elif payload.import_mode == "hardlink":
+                                try:
+                                    if os.path.exists(dest_sub_path):
+                                        os.remove(dest_sub_path)
+                                    os.link(sf, dest_sub_path)
+                                except OSError:
+                                    shutil.copy2(sf, dest_sub_path)
                             else:
                                 shutil.copy2(sf, dest_sub_path)
                             apply_media_permissions(dest_sub_path, is_dir=False)
@@ -2456,6 +2532,13 @@ def execute_global_manual_import(
                         try:
                             if payload.import_mode == "move":
                                 shutil.move(af, dest_aud_path)
+                            elif payload.import_mode == "hardlink":
+                                try:
+                                    if os.path.exists(dest_aud_path):
+                                        os.remove(dest_aud_path)
+                                    os.link(af, dest_aud_path)
+                                except OSError:
+                                    shutil.copy2(af, dest_aud_path)
                             else:
                                 shutil.copy2(af, dest_aud_path)
                             apply_media_permissions(dest_aud_path, is_dir=False)
