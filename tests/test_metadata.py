@@ -488,7 +488,7 @@ class TestShowRemapLogic(unittest.TestCase):
     def test_remap_show_cleans_corrupted_unlinked_episodes(self):
         import datetime as dt
         from app.api.shows import ShowRemapIn, remap_show_metadata
-        from app.models.db import Episode, EpisodeStatus, Show
+        from app.models.db import Alias, Episode, EpisodeStatus, MetadataSource, Show
         from app.services.metadata import MetadataEpisode, MetadataShowDetails
 
         mock_db = MagicMock()
@@ -536,8 +536,11 @@ class TestShowRemapLogic(unittest.TestCase):
                 mock_q.filter.return_value.all.return_value = fake_orphan_eps
             elif model == Alias:
                 mock_q.filter.return_value.all.return_value = []
+            elif model == MetadataSource:
+                mock_q.filter.return_value.first.return_value = None
             else:
                 mock_q.filter.return_value.all.return_value = []
+                mock_q.filter.return_value.first.return_value = None
             return mock_q
 
         mock_db.get.return_value = show
