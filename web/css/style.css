@@ -2266,12 +2266,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 #queue-table th,
 #queue-table td {
   vertical-align: top;
-  padding: 12px 10px;
+  padding: 12px 14px;
 }
 #queue-table th:nth-child(1),
 #queue-table td:nth-child(1) {
-  width: auto;
-  min-width: 160px;
+  width: 38%;
+  min-width: 220px;
 }
 .queue-title-cell {
   display: flex;
@@ -2301,8 +2301,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #queue-table th:nth-child(2),
 #queue-table td:nth-child(2) {
-  width: 110px;
-  padding-right: 18px;
+  width: 13%;
+  min-width: 115px;
   white-space: nowrap;
 }
 .queue-client-cell {
@@ -2312,21 +2312,28 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #queue-table th:nth-child(3),
 #queue-table td:nth-child(3) {
-  width: 185px;
+  width: 22%;
+  min-width: 185px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(4),
 #queue-table td:nth-child(4) {
-  width: 240px;
+  width: 21%;
+  min-width: 200px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(5),
 #queue-table td:nth-child(5) {
-  width: 76px;
+  width: 6%;
+  min-width: 80px;
   text-align: right;
   white-space: nowrap;
 }
 .queue-actions-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
   margin-top: 2px;
 }
 
