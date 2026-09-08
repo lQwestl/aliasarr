@@ -1420,11 +1420,24 @@ async def _do_search_and_grab(
             s_lbl = detect_season_label(rel.title)
             if s_lbl["type"] in ("numbered", "range", "complete", "final", "ova_ona"):
                 return False
-            if parsed.season is not None or (parsed.seasons and len(parsed.seasons) > 0):
+            if parsed.season is not None or (parsed.seasons and len(parsed.seasons) > 0) or parsed.has_specials:
                 return False
             if parsed.kind == ReleaseKind.SEASON_PACK or (parsed.episodes and len(parsed.episodes) > 1):
                 return False
             return True
+
+        # Комбинированные релизы TV + Special (покрывают TV сезон и спешлы Season 0)
+        if parsed.has_specials:
+            if ep.season_number == 0:
+                if parsed.special_episodes:
+                    return ep.episode_number in parsed.special_episodes
+                return True
+            rel_s = parsed.season if parsed.season is not None else 1
+            if ep.season_number == rel_s:
+                if parsed.episodes:
+                    return ep.episode_number in parsed.episodes
+                return True
+            return False
 
         # Вычисляем смещение для Part 2 / Cour 2 (Split-Cour)
         part_offset = 0
@@ -1693,6 +1706,9 @@ async def _do_search_and_grab(
         elif parsed.kind == ReleaseKind.SEASON_PACK and not parsed.episodes:
             is_full_season = 1
             season_episodes_count = season_card_total or 100
+        elif parsed.has_specials:
+            is_full_season = 1 if (season_card_total > 0 and len(parsed.episodes) >= season_card_total) else 0
+            season_episodes_count = len(parsed.episodes) + len(parsed.special_episodes)
         elif parsed.episodes:
             rel_eps_count = len(parsed.episodes)
             season_episodes_count = rel_eps_count

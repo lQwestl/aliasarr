@@ -186,13 +186,34 @@ class DecisionEngine:
 
                     # Проверка спецвыпуска по названию, арке или SxxE00
                     matched_sp_for_release = None
-                    if has_wanted_specials and specials_in_target:
+                    if has_wanted_specials and specials_in_target and not match.parsed.has_specials:
                         from app.services.matcher import match_special_episode
                         matched_sp_for_release = match_special_episode(title, specials_in_target, match.parsed)
 
                     if matched_sp_for_release:
                         # Релиз сопоставлен с разыскиваемым спецвыпуском Season 0
                         pass
+                    elif match.parsed.has_specials:
+                        # Комбинированный релиз TV + Special (покрывает TV сезон и Season 0)
+                        rel_s = match.parsed.season if match.parsed.season is not None else 1
+                        covered_seasons = {rel_s, 0}
+                        if not (covered_seasons & target_seasons):
+                            min_tgt = min(target_seasons) if target_seasons else 0
+                            rejections.append(f"Релиз относится к сезону S{rel_s:02d}+SP, а разыскивается S{min_tgt:02d}")
+                        else:
+                            has_matching_tv = any(
+                                (rel_s, ep_n) in target_ep_keys
+                                or ep_n in target_abs
+                                for ep_n in match.parsed.episodes
+                            ) if match.parsed.episodes else (rel_s in target_seasons)
+                            has_matching_sp = any(
+                                (0, ep_n) in target_ep_keys
+                                for ep_n in match.parsed.special_episodes
+                            ) if match.parsed.special_episodes else has_wanted_specials
+
+                            if not (has_matching_tv or has_matching_sp):
+                                eps_str = ", ".join(str(e) for e in match.parsed.episodes[:3])
+                                rejections.append(f"Релиз содержит серии ({eps_str}) и спешлы, которые не выбраны для скачивания")
                     else:
                         # Проверка диапазона сезонов пака
                         if lbl_type == "range":

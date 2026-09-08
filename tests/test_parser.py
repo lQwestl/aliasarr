@@ -479,6 +479,71 @@ class TestParser(unittest.TestCase):
         self.assertEqual(p3.episodes, [])
 
 
+    def test_tv_plus_special_combined_releases(self):
+        # 1. Формат [TV+speciel] [E13+5 of 13+5] (Оккультная Академия)
+        t1 = "Оккультная Академия / Seikimatsu Occult Gakuin [TV+speciel] [E13+5 of 13+5] [480p] [BDRip]"
+        p1 = parse_episode(t1)
+        self.assertEqual(p1.season, 1)
+        self.assertEqual(p1.episodes, list(range(1, 14)))
+        self.assertTrue(p1.has_specials)
+        self.assertEqual(p1.special_episodes, list(range(1, 6)))
+
+        # 2. Формат [TV+Special] [E52+3 of 52+3] (Таинственная игра)
+        t2 = "Таинственная игра / Fushigi Yuugi [TV+Special] [E52+3 of 52+3] [DVDRip]"
+        p2 = parse_episode(t2)
+        self.assertEqual(p2.season, 1)
+        self.assertEqual(p2.episodes, list(range(1, 53)))
+        self.assertTrue(p2.has_specials)
+        self.assertEqual(p2.special_episodes, list(range(1, 4)))
+
+        # 3. [13+5 of 13+5] и [13+5 из 13+5]
+        t3 = "Anime Title [13+5 of 13+5]"
+        p3 = parse_episode(t3)
+        self.assertEqual(p3.episodes, list(range(1, 14)))
+        self.assertTrue(p3.has_specials)
+        self.assertEqual(p3.special_episodes, [1, 2, 3, 4, 5])
+
+        t4 = "Anime Title [13+5 из 13+5]"
+        p4 = parse_episode(t4)
+        self.assertEqual(p4.episodes, list(range(1, 14)))
+        self.assertTrue(p4.has_specials)
+        self.assertEqual(p4.special_episodes, [1, 2, 3, 4, 5])
+
+        # 4. В скобках [E13+5] / [13+5] / [TV+SP] [12+2]
+        t5 = "Anime Title [E13+5]"
+        p5 = parse_episode(t5)
+        self.assertEqual(p5.episodes, list(range(1, 14)))
+        self.assertTrue(p5.has_specials)
+        self.assertEqual(p5.special_episodes, [1, 2, 3, 4, 5])
+
+        t6 = "Anime Title [TV+SP] [12+2]"
+        p6 = parse_episode(t6)
+        self.assertEqual(p6.episodes, list(range(1, 13)))
+        self.assertTrue(p6.has_specials)
+        self.assertEqual(p6.special_episodes, [1, 2])
+
+        # 5. Раздельные маркеры TV и Special: [TV] [E13 of 13] [Special] [E5 of 5] / [TV 1-13 + SP 1-5]
+        t7 = "Anime Title [TV] [E13 of 13] [Special] [E5 of 5]"
+        p7 = parse_episode(t7)
+        self.assertEqual(p7.episodes, list(range(1, 14)))
+        self.assertTrue(p7.has_specials)
+        self.assertEqual(p7.special_episodes, [1, 2, 3, 4, 5])
+
+        t8 = "Anime Title [TV 1-13 + SP 1-5]"
+        p8 = parse_episode(t8)
+        self.assertEqual(p8.episodes, list(range(1, 14)))
+        self.assertTrue(p8.has_specials)
+        self.assertEqual(p8.special_episodes, [1, 2, 3, 4, 5])
+
+        # 6. Второй сезон: [TV-2] [E12+2 of 12+2]
+        t9 = "Anime Title [TV-2] [E12+2 of 12+2]"
+        p9 = parse_episode(t9)
+        self.assertEqual(p9.season, 2)
+        self.assertEqual(p9.episodes, list(range(1, 13)))
+        self.assertTrue(p9.has_specials)
+        self.assertEqual(p9.special_episodes, [1, 2])
+
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -38,6 +38,8 @@ class ParsedRelease:
     part: Optional[int] = None                          # номер части/кура (Part 1, Part 2, Cour 2, часть 2)
     total_in_part: Optional[int] = None                 # общее кол-во серий в части (из «12 из 12»)
     is_range: bool = False
+    has_specials: bool = False                          # релиз содержит спецвыпуски (сезон 0) в дополнение к TV
+    special_episodes: list[int] = field(default_factory=list)  # номера спецвыпусков (сезон 0)
     raw: str = ""
     matched_pattern: str = ""
 
@@ -367,6 +369,115 @@ _RE_MULTI_SEASON_EP_RANGE = re.compile(
     re.IGNORECASE,
 )
 
+# Комбинированные релизы TV + Special (например [E13+5 of 13+5], [13+5 из 13+5], [TV+Special] [E13+5 of 13+5], [TV] [E13 of 13] [Special] [E5 of 5])
+_RE_TV_MARKER = re.compile(r"\b(?:TV|ТВ)\b|\[(?:TV|ТВ)\]|\((?:TV|ТВ)\)", re.IGNORECASE)
+_RE_SP_MARKER = re.compile(
+    r"\b(?:Special|Specials|Спешл(?:ы)?|Спецвыпуск(?:и)?|SP|speciel)\b|\[(?:Special|Specials|Спешл(?:ы)?|SP|speciel|OVA|ONA|OAD)\]|\b(?:OVA|ONA|OAD)\b",
+    re.IGNORECASE,
+)
+_RE_TV_SEGMENT_COUNT = re.compile(
+    r"(?:\[|\()?\s*(?:TV|ТВ)[\s\-_:]*(?:\]|\))?\s*\[?\s*(?:(?:ep|e|сери[ия]|эп)\.?\s*)?(?:(\d{1,4})\s*[-–~]\s*)?(\d{1,4})(?:\s*(?:из|of|iz|\/)\s*(\d{1,4}))?\s*\]?",
+    re.IGNORECASE,
+)
+_RE_SP_SEGMENT_COUNT = re.compile(
+    r"(?:\[|\()?\s*(?:Special|Specials|Спешл(?:ы)?|Спецвыпуск(?:и)?|SP|speciel|OVA|ONA|OAD)[\s\-_:]*(?:\]|\))?\s*\[?\s*(?:(?:ep|e|сери[ия]|эп)\.?\s*)?(?:(\d{1,4})\s*[-–~]\s*)?(\d{1,4})(?:\s*(?:из|of|iz|\/)\s*(\d{1,4}))?\s*\]?",
+    re.IGNORECASE,
+)
+_RE_TV_PLUS_SPECIAL_OF = re.compile(
+    r"(?:\[|\(|\b)\s*(?:(?:ep|e|сери[ия]|эп)\.?\s*)?(\d{1,4})\s*\+\s*(\d{1,4})\s*(?:из|of|iz|\/|\|)\s*(?:(?:ep|e|сери[ия]|эп)\.?\s*)?(\d{1,4})\s*\+\s*(\d{1,4})\s*(?:\]|\)|\b)",
+    re.IGNORECASE,
+)
+_RE_TV_PLUS_SP_BRACKET = re.compile(
+    r"\[\s*(?:(?:ep|e|сери[ия]|эп)\.?\s*)?(\d{1,4})\s*\+\s*(?:(?:sp|special|спешл|ova|ona|oad|ep|e)\.?\s*)?(\d{1,4})\s*(?:эп(?:изод(?:ов|а)?)?|сери[йия]|eps?|episodes?)?\s*\]",
+    re.IGNORECASE,
+)
+
+
+def _extract_tv_season(text: str) -> int:
+    """Извлекает номер TV сезона из названия комбинированного релиза."""
+    m_tv = _RE_ANIME_TV_SEASON.search(text)
+    if m_tv:
+        return int(m_tv.group(1))
+    m_pref = _RE_PREFIX_SEASON.search(text)
+    if m_pref:
+        return int(m_pref.group(1))
+    m_rom = _RE_ROMAN_SEASON.search(text)
+    if m_rom:
+        r_val = (m_rom.group(1) or m_rom.group(2)).lower()
+        if r_val in ROMAN_SEASON_MAP:
+            return ROMAN_SEASON_MAP[r_val]
+    m_s = _RE_SEASON_PACK.search(text)
+    if m_s:
+        return int(m_s.group(1))
+    return 1
+
+
+def _extract_tv_plus_special(protected: str, raw: str) -> Optional[ParsedRelease]:
+    """
+    Распознает комбинированные релизы TV + Special.
+    Возвращает ParsedRelease с season=TV_SEASON, episodes=1..TV_COUNT,
+    has_specials=True, special_episodes=1..SP_COUNT.
+    """
+    # 1. Формула 13+5 of 13+5 / 13+5 из 13+5 / [E13+5 of 13+5] / [13+5 из 13+5] / [E13+5 / 13+5]
+    m_of = _RE_TV_PLUS_SPECIAL_OF.search(protected)
+    if m_of:
+        tv_cnt = int(m_of.group(1))
+        sp_cnt = int(m_of.group(2))
+        if 1 <= tv_cnt <= 2000 and 1 <= sp_cnt <= 200:
+            tv_season = _extract_tv_season(protected)
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE,
+                season=tv_season,
+                episodes=list(range(1, tv_cnt + 1)),
+                is_range=True,
+                has_specials=True,
+                special_episodes=list(range(1, sp_cnt + 1)),
+                raw=raw,
+                matched_pattern="tv_plus_special_of",
+            )
+
+    # 2. Формат в скобках [13+5], [E13+5], [E13+SP5], [13+5 eps], [13+5 серий]
+    m_br = _RE_TV_PLUS_SP_BRACKET.search(protected)
+    if m_br:
+        tv_cnt = int(m_br.group(1))
+        sp_cnt = int(m_br.group(2))
+        if 1 <= tv_cnt <= 2000 and 1 <= sp_cnt <= 200:
+            tv_season = _extract_tv_season(protected)
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE,
+                season=tv_season,
+                episodes=list(range(1, tv_cnt + 1)),
+                is_range=True,
+                has_specials=True,
+                special_episodes=list(range(1, sp_cnt + 1)),
+                raw=raw,
+                matched_pattern="tv_plus_special_bracket",
+            )
+
+    # 3. Раздельные маркеры: [TV] [E13 of 13] [Special] [E5 of 5] / [TV 1-13 + SP 1-5] / [TV 13 из 13 + SP 5 из 5]
+    has_tv_marker = bool(_RE_TV_MARKER.search(protected))
+    has_sp_marker = bool(_RE_SP_MARKER.search(protected))
+    if has_tv_marker and has_sp_marker:
+        m_tv_cnt = _RE_TV_SEGMENT_COUNT.search(protected)
+        m_sp_cnt = _RE_SP_SEGMENT_COUNT.search(protected)
+        if m_tv_cnt and m_sp_cnt:
+            tv_cnt = int(m_tv_cnt.group(3) or m_tv_cnt.group(2) or m_tv_cnt.group(1))
+            sp_cnt = int(m_sp_cnt.group(3) or m_sp_cnt.group(2) or m_sp_cnt.group(1))
+            if 1 <= tv_cnt <= 2000 and 1 <= sp_cnt <= 200:
+                tv_season = _extract_tv_season(protected)
+                return ParsedRelease(
+                    kind=ReleaseKind.EPISODE,
+                    season=tv_season,
+                    episodes=list(range(1, tv_cnt + 1)),
+                    is_range=True,
+                    has_specials=True,
+                    special_episodes=list(range(1, sp_cnt + 1)),
+                    raw=raw,
+                    matched_pattern="tv_and_special_markers",
+                )
+
+    return None
+
 
 def _season_pack_result(seasons: list[int] | int, raw: str, pattern: str) -> ParsedRelease:
     if isinstance(seasons, int):
@@ -469,6 +580,11 @@ def _parse_episode_internal(release_name: str) -> ParsedRelease:
                 raw=raw,
                 matched_pattern="multi_season_ep_range",
             )
+
+    # 0в. Комбинированные релизы TV + Special ([E13+5 of 13+5], [13+5 из 13+5], [TV+Special] [E13+5 of 13+5])
+    tv_sp_res = _extract_tv_plus_special(protected, raw)
+    if tv_sp_res:
+        return tv_sp_res
 
     # 1. S01E01-E10 диапазон серий (S01E01-E10, S01E01-10, S01E01~E10, S01E01-E10 COMPLETE)
     m_range_ep = _RE_SXXEXX_RANGE.search(protected)
@@ -991,9 +1107,9 @@ _SEASON_LABEL_COMPLETE_RE = re.compile(
     |   \bПолный                                      [\s_\-]+  (?:сезон|сериал)
     |   \bВсе                                         [\s_\-]+  сезоны
     |   \b(?:Антология|Anthology)\b
-    |   \bTV\s*[\+_&]\s*(?:OVA|ONA|OAD|SP|Specials?|Спешл\w*)\b
-    |   \[TV\s*[\+_&]\s*(?:OVA|ONA|OAD|SP|Specials?|Спешл\w*)\]
-    |   \(TV\s*[\+_&]\s*(?:OVA|ONA|OAD|SP|Specials?|Спешл\w*)\)
+    |   \bTV\s*[\+_&]\s*(?:OVA|ONA|OAD|SP|Specials?|speciel|Спешл\w*)\b
+    |   \[TV\s*[\+_&]\s*(?:OVA|ONA|OAD|SP|Specials?|speciel|Спешл\w*)\]
+    |   \(TV\s*[\+_&]\s*(?:OVA|ONA|OAD|SP|Specials?|speciel|Спешл\w*)\)
     |   \b\d{1,4}\s*[-–~]\s*\d{1,4}\s*\+\s*\d{1,3}\b
     |   \[Full\]
     |   \(Full\)
@@ -1063,13 +1179,18 @@ def detect_season_label(release_name: str) -> dict:
     - {"type": "range", "seasons": [1, 2, 3, ...]} — мультисезонный диапазон (Сезоны 1-5, S01-S05, Сезон: 1-3, 1-100 сезоны)
     - {"type": "numbered", "season": N}             — явный номер сезона (S01, Season 1, 1st Season, 1 сезон, I сезон, S01 Complete, S01 Batch и т.д.)
     - {"type": "final"}                              — «Final Season», «Финальный сезон» и т.п.
-    - {"type": "complete"}                           — «Complete Series», «Full», «Полная коллекция», «Все сезоны»
+    - {"type": "complete"}                           — «Complete Series», «Full», «Полная коллекция», «Все сезоны», «TV+Special»
     - {"type": "ova_ona"}                            — OVA/ONA/Special/Movie (сезон 0)
     - {"type": "none"}                               — сезон в названии не указан
 
     Порядок: range/list → roman → prefix → numbered/sxx_range → wordy → complete → final → ova_ona → trailing_digit → none.
     """
     name = release_name or ""
+
+    # Комбинированные релизы TV + Special относятся к типу complete (охватывают и TV, и спешлы)
+    tv_sp_res = _extract_tv_plus_special(name, name)
+    if tv_sp_res and tv_sp_res.has_specials:
+        return {"type": "complete"}
 
     m_multi_s_ep = _RE_MULTI_SEASON_EP_RANGE.search(name)
     if m_multi_s_ep:

@@ -970,5 +970,64 @@ class TestSeasonQueries(unittest.TestCase):
             self.assertIn("Invincible - S1 - rus WEBDL (LostFilm)", grabbed_rel_titles)
             self.assertNotIn("Invincible - S4 - rus WEBDL (LostFilm)", grabbed_rel_titles)
 
+    def test_tv_plus_special_combined_release_grab(self):
+        """Проверяем, что комбо-релиз [TV+Special] [E13+5 of 13+5] одновременно закрывает
+        и 1-й сезон (1..13), и спецвыпуски 0-го сезона (1..5)."""
+        if not HAS_DEPS:
+            self.skipTest("SQLAlchemy not available")
+
+        show = make_show(self.session, title="Оккультная Академия", monitored=True)
+        show.original_title = "Seikimatsu Occult Gakuin"
+        show.content_type = "anime"
+        self.session.commit()
+
+        # Создаем 13 серий 1-го сезона и 5 спецвыпусков
+        s1_eps = [make_episode(self.session, show, season=1, episode=i) for i in range(1, 14)]
+        s0_eps = [make_episode(self.session, show, season=0, episode=i) for i in range(1, 6)]
+
+        make_indexer(self.session, name="AnimeTracker")
+        make_download_client(self.session)
+
+        releases = [
+            TorznabRelease(
+                title="Оккультная Академия / Seikimatsu Occult Gakuin [TV+speciel] [E13+5 of 13+5] [480p] [BDRip]",
+                guid="occult-combo-480p",
+                download_url="http://animetracker.local/occult.torrent",
+                seeders=15,
+                infohash="occultcombohash",
+            ),
+        ]
+
+        with patch.object(auto_search, "get_indexer_client") as mock_get_client, \
+             patch.object(auto_search, "get_client") as mock_get_dc:
+
+            mock_idx_inst = unittest.mock.AsyncMock()
+            mock_idx_inst.search.return_value = releases
+            mock_get_client.return_value = mock_idx_inst
+
+            mock_dc_inst = unittest.mock.AsyncMock()
+            mock_dc_inst.add_torrent.return_value = "occultcombohash"
+            mock_get_dc.return_value = mock_dc_inst
+
+            res = asyncio.run(auto_search._do_search_and_grab(self.session, show))
+            grabbed = res.get("grabbed", [])
+
+            self.assertEqual(len(grabbed), 1)
+
+            # Проверяем, что ВСЕ 13 серий 1-го сезона и ВСЕ 5 спешлов перешли в DOWNLOADING
+            for ep in s1_eps:
+                self.session.refresh(ep)
+                self.assertEqual(ep.status, EpisodeStatus.DOWNLOADING, f"S01E{ep.episode_number:02d} should be DOWNLOADING")
+                self.assertEqual(ep.torrent_hash, "occultcombohash")
+
+            for ep in s0_eps:
+                self.session.refresh(ep)
+                self.assertEqual(ep.status, EpisodeStatus.DOWNLOADING, f"S00E{ep.episode_number:02d} should be DOWNLOADING")
+                self.assertEqual(ep.torrent_hash, "occultcombohash")
+
+
+if __name__ == "__main__":
+    unittest.main()
+
 
 
