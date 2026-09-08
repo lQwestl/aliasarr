@@ -2913,6 +2913,7 @@ async def remap_show_metadata(
 
     deleted_episodes_count = 0
     if payload.cleanup_unlinked_episodes:
+        eps_to_delete = []
         for key, ep in list(existing_by_key.items()):
             if key not in meta_keys:
                 has_real_file = False
@@ -2923,9 +2924,21 @@ async def remap_show_metadata(
                         has_real_file = False
                 is_active_download = (ep.status == EpisodeStatus.DOWNLOADING and bool(ep.torrent_hash))
                 if not has_real_file and not is_active_download:
-                    db.delete(ep)
+                    eps_to_delete.append(ep)
                     del existing_by_key[key]
-                    deleted_episodes_count += 1
+
+        if eps_to_delete:
+            ep_ids = [ep.id for ep in eps_to_delete if getattr(ep, "id", None) is not None]
+            if ep_ids:
+                try:
+                    db.query(DownloadHistory).filter(DownloadHistory.episode_id.in_(ep_ids)).update(
+                        {"episode_id": None}, synchronize_session=False
+                    )
+                except Exception as dh_exc:
+                    logger.warning("Failed to unlink download_history for deleted episodes %s: %s", ep_ids, dh_exc)
+            for ep in eps_to_delete:
+                db.delete(ep)
+                deleted_episodes_count += 1
 
     added_episodes_count = 0
     updated_episodes_count = 0

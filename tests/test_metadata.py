@@ -488,7 +488,7 @@ class TestShowRemapLogic(unittest.TestCase):
     def test_remap_show_cleans_corrupted_unlinked_episodes(self):
         import datetime as dt
         from app.api.shows import ShowRemapIn, remap_show_metadata
-        from app.models.db import Alias, Episode, EpisodeStatus, MetadataSource, Show
+        from app.models.db import Alias, DownloadHistory, Episode, EpisodeStatus, MetadataSource, Show
         from app.services.metadata import MetadataEpisode, MetadataShowDetails
 
         mock_db = MagicMock()
@@ -512,14 +512,16 @@ class TestShowRemapLogic(unittest.TestCase):
 
         fake_orphan_eps = []
         for i in range(1, 26):
-            fake_orphan_eps.append(Episode(
+            ep_inst = Episode(
                 show_id=12,
                 season_number=1,
                 episode_number=i,
                 title=f"Villainess Episode {i}",
                 status=EpisodeStatus.WANTED,
                 file_path=None,
-            ))
+            )
+            ep_inst.id = 1000 + i
+            fake_orphan_eps.append(ep_inst)
 
         downloaded_ep = Episode(
             show_id=12,
@@ -536,11 +538,14 @@ class TestShowRemapLogic(unittest.TestCase):
                 mock_q.filter.return_value.all.return_value = fake_orphan_eps
             elif model == Alias:
                 mock_q.filter.return_value.all.return_value = []
+            elif model == DownloadHistory:
+                mock_q.filter.return_value.update.return_value = 0
             elif model == MetadataSource:
                 mock_q.filter.return_value.first.return_value = None
             else:
                 mock_q.filter.return_value.all.return_value = []
                 mock_q.filter.return_value.first.return_value = None
+                mock_q.filter.return_value.update.return_value = 0
             return mock_q
 
         mock_db.get.return_value = show
