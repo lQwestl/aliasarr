@@ -8113,17 +8113,62 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: var(--panel-alt, rgba(255, 255, 255, 0.05));
 }
 
-.btn-specials-ready {
-  background-color: var(--teal, #10b981) !important;
-  color: #fff !important;
-  border-color: rgba(16, 185, 129, 0.6) !important;
-  font-weight: 600;
-  animation: pulse-specials 2s infinite ease-in-out;
+/* --- Specials Import Ready State (Badge Counter Style) --- */
+.btn-specials-import {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
-@keyframes pulse-specials {
-  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
-  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+
+.btn-specials-import.has-ready-specials {
+  background: var(--panel-alt, rgba(255, 255, 255, 0.05)) !important;
+  color: var(--text, #f0f6fc) !important;
+  border-color: rgba(16, 185, 129, 0.5) !important;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.18);
+}
+
+.btn-specials-import.has-ready-specials:hover {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.75) !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.32);
+}
+
+.specials-ready-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  margin-left: 2px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  line-height: 1.3;
+  vertical-align: middle;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.25);
+  animation: pulse-specials-badge 2.2s infinite ease-in-out;
+}
+
+.specials-ready-badge::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 5px #34d399;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-specials-badge {
+  0% { transform: scale(1); opacity: 0.92; box-shadow: 0 0 4px rgba(16, 185, 129, 0.2); }
+  50% { transform: scale(1.04); opacity: 1; box-shadow: 0 0 9px rgba(16, 185, 129, 0.45); }
+  100% { transform: scale(1); opacity: 0.92; box-shadow: 0 0 4px rgba(16, 185, 129, 0.2); }
 }
 
 /* =============================================================================

@@ -6570,6 +6570,7 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
             ${canManageLib && seasonNumber === 0 ? `
             <button class="btn btn-secondary btn-small btn-specials-import" id="btn-specials-import-${targetShowId}" onclick="openSpecialsImportModal(${targetShowId})" title="${t("show.import_specials_tooltip")}">
               <i data-lucide="hard-drive-download" class="ico-xs"></i> <span>${t("show.import_specials")}</span>
+              <span class="specials-ready-badge" style="display:none;">${CURRENT_LANG === "en" ? "Ready" : "Готово"}</span>
             </button>` : ""}
             ${canSearch ? `
             <button class="btn btn-primary btn-small" title="${CURRENT_LANG === "en" ? `Auto search and download season ${seasonNumber}` : `Автоматический поиск и скачивание всех серий сезона ${seasonNumber}`}" onclick="searchSeasonAuto(this, ${targetShowId}, ${seasonNumber})">
@@ -7802,15 +7803,21 @@ async function checkSpecialsImportStatus(showId) {
     const res = await api(`/api/v1/shows/${showId}/specials-import-status`);
     const btn = document.getElementById(`btn-specials-import-${showId}`);
     if (btn) {
+      const badge = btn.querySelector(".specials-ready-badge");
       if (res && res.has_pending_specials) {
-        btn.classList.remove("btn-secondary");
-        btn.classList.add("btn-success", "btn-specials-ready");
+        btn.classList.add("has-ready-specials");
         btn.title = t("show.import_specials_ready");
         btn.setAttribute("data-pending-folder", res.pending_folder || "");
+        if (badge) {
+          badge.style.display = "inline-flex";
+        }
       } else {
-        btn.classList.remove("btn-success", "btn-specials-ready");
-        btn.classList.add("btn-secondary");
+        btn.classList.remove("has-ready-specials");
+        btn.title = t("show.import_specials_tooltip");
         btn.removeAttribute("data-pending-folder");
+        if (badge) {
+          badge.style.display = "none";
+        }
       }
     }
   } catch (e) {
