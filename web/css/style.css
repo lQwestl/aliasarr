@@ -2278,27 +2278,27 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #queue-table th:nth-child(2),
 #queue-table td:nth-child(2) {
-  width: 120px;
+  width: 105px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(3),
 #queue-table td:nth-child(3) {
-  width: 190px;
+  width: 180px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(4),
 #queue-table td:nth-child(4) {
-  width: 190px;
+  width: 230px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(5),
 #queue-table td:nth-child(5) {
-  width: 110px;
+  width: 115px;
   white-space: nowrap;
 }
 #queue-table th:nth-child(6),
 #queue-table td:nth-child(6) {
-  width: 80px;
+  width: 76px;
   text-align: right;
   white-space: nowrap;
 }
@@ -7982,7 +7982,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-width: 150px;
+  min-width: 170px;
+  max-width: 100%;
 }
 
 .queue-progress-meta {
@@ -7990,6 +7991,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   justify-content: space-between;
   align-items: center;
   gap: 6px;
+  width: 100%;
+  min-width: 0;
 }
 
 .queue-progress-pct-badge {
@@ -7999,6 +8002,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   padding: 1.5px 7px;
   border-radius: var(--radius-sm, 6px);
   letter-spacing: 0.02em;
+  flex-shrink: 0;
 }
 
 .queue-progress-size-badge,
@@ -8008,6 +8012,11 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   font-weight: 600;
   padding: 1.5px 7px;
   border-radius: var(--radius-sm, 6px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .queue-speed-cell {

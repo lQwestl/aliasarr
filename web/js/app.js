@@ -3967,6 +3967,17 @@ function formatSize(bytes) {
   return `${val.toFixed(1)} ${units[i]}`;
 }
 
+function formatProgressSize(downloadedBytes, totalBytes) {
+  if (!totalBytes || totalBytes <= 0) return "0 B";
+  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+  let i = 0, valTotal = totalBytes;
+  while (valTotal >= 1024 && i < units.length - 1) { valTotal /= 1024; i++; }
+  const unit = units[i];
+  const factor = Math.pow(1024, i);
+  const valDownloaded = Math.max(0, (downloadedBytes || 0)) / factor;
+  return `${valDownloaded.toFixed(1)} / ${valTotal.toFixed(1)} ${unit}`;
+}
+
 function formatDuration(seconds) {
   if (seconds == null || isNaN(seconds) || seconds <= 0) return "0" + (CURRENT_LANG === "en" ? "s" : "с");
   const s = Math.round(seconds);
@@ -9833,7 +9844,7 @@ async function loadQueue() {
         : `width:${progressVal}%;`;
       const sizeBadgeText = isDone
         ? formatSize(i.size || 0)
-        : `${formatSize(downloadedBytes)} / ${formatSize(i.size || 0)}`;
+        : formatProgressSize(downloadedBytes, i.size || 0);
 
       // 4. Действия
       const toggleTitle = isPaused
