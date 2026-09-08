@@ -9267,7 +9267,7 @@ function renderInteractiveReleaseRow(r) {
   // Кастомные форматы
   const scoreVal = r.custom_format_score || 0;
   const scoreClass = scoreVal > 0 ? "positive" : (scoreVal < 0 ? "negative" : "");
-  const scoreBadge = `<span class="badge-cf-score ${scoreClass}"><i data-lucide="sparkles" class="ico-xs"></i> ${scoreVal}</span>`;
+  const scoreBadge = `<span class="badge-cf-score ${scoreClass}"><i data-lucide="tags" class="ico-xs"></i> ${scoreVal}</span>`;
   const cfList = (r.custom_formats || []).map(cf => `<span class="badge-cf-item" title="+${cf.score}">${escapeHtml(cf.name)}</span>`).join(" ");
 
   const isMovie = INTERACTIVE_SEARCH_STATE.show?.content_type === "movie" || r.parsed_kind === "movie";
@@ -13236,7 +13236,7 @@ function onCustomFormatNameInput(val) {
 
 function openAddCustomFormatModal() {
   document.getElementById("cf-id").value = "";
-  document.getElementById("cf-modal-title").innerHTML = `<i data-lucide="sparkles" class="ico-sm"></i> <span>${CURRENT_LANG === "en" ? "Add Quality Format" : "Добавить формат качества"}</span>`;
+  document.getElementById("cf-modal-title").innerHTML = `<i data-lucide="tags" class="ico-sm icon-title"></i> <span>${CURRENT_LANG === "en" ? "Add Quality Format" : "Добавить формат качества"}</span>`;
   const banner = document.getElementById("cf-builtin-banner");
   if (banner) banner.style.display = "none";
   const resetBtn = document.getElementById("cf-reset-btn");
@@ -13255,7 +13255,7 @@ function openAddCustomFormatModal() {
 function editCustomFormat(cf) {
   const isBuiltin = Boolean(cf.is_builtin || (cf.name in CF_PRESETS));
   document.getElementById("cf-id").value = cf.id;
-  document.getElementById("cf-modal-title").innerHTML = `<i data-lucide="sparkles" class="ico-sm"></i> <span>${t("common.edit")}: ${escapeHtml(cf.name)}</span>`;
+  document.getElementById("cf-modal-title").innerHTML = `<i data-lucide="tags" class="ico-sm icon-title"></i> <span>${t("common.edit")}: ${escapeHtml(cf.name)}</span>`;
   
   const banner = document.getElementById("cf-builtin-banner");
   if (banner) banner.style.display = isBuiltin ? "block" : "none";
