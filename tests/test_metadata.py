@@ -498,6 +498,12 @@ class TestShowRemapLogic(unittest.TestCase):
         show = Show(
             title="I Became a Legend (Corrupted)",
             year=2026,
+            content_type="anime",
+            monitored=True,
+            upgrade_requested=False,
+            is_searching=False,
+            ova_mode="auto",
+            in_calendar=True,
             metadata_id="tvdb:364402",
             metadata_source="skyhook",
         )

@@ -3023,7 +3023,7 @@ async def remap_show_metadata(
         "message": f"Привязка успешно обновлена. Очищено серий: {deleted_episodes_count}, добавлено серий: {added_episodes_count}",
         "deleted_episodes": deleted_episodes_count,
         "added_episodes": added_episodes_count,
-        "show": ShowOut.model_validate(show),
+        "show_id": show.id,
     }
 
 
