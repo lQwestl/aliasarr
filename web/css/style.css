@@ -3686,7 +3686,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: flex;
   flex-direction: column;
   gap: 8px;
-  overflow: hidden;
+  overflow: visible !important;
   box-sizing: border-box;
 }
 
@@ -10975,6 +10975,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   position: relative;
   display: inline-flex;
   align-items: center;
+  z-index: 1200;
 }
 
 .meta-badge.meta-badge-links {
