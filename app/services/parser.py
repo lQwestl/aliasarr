@@ -61,6 +61,7 @@ _NOISE_PATTERNS = [
     r"\b(?:x|h)\.?26[45]\b",            # x264, x265, h.264, h265
     r"\bhevc\b",
     r"\b\d+(?:\.\d+)?\s?(?:kbps|mbps|Mb|Gb|GB|MB)\b",
+    r"\b\d{1,2}\s*[xхXХ]\s*(?:DUB|MVO|DVO|VO|AVO|LVO|Dub|Sub|Audio|голос(?:а|ов)?|озвучк(?:и|а)?|перевод(?:а|ов)?|дубляж(?:а)?|многоголос(?:ый|ых)?)\b",
     r"\b(?:aac|ac3|dts|flac|mp3)\b",
     r"\b(?:web-?dl|webrip|bdrip|hdtv|dvdrip|bluray|remux)\b",
 ]
@@ -269,9 +270,9 @@ _RE_OVA_ONA_PACK = re.compile(
 # 1x05, 01x05, 1x05-1x07
 _RE_XFORMAT = re.compile(r"\b(\d{1,2})x(\d{2,4})\b", re.IGNORECASE)
 
-# E05, EP05, E01-E06, E01E02 (без явного сезона)
+# E05, EP05, E01-E06, E1-26, E01-26, E01E02 (без явного сезона)
 _RE_E_ONLY = re.compile(
-    r"(?<![Ss]\d)\bE(?:P)?\.?(\d{1,4})(?:\s?[-\s]\s?E(?:P)?\.?(\d{1,4}))?\b",
+    r"(?<![Ss]\d)\bE(?:P)?\.?(\d{1,4})(?:\s?[-–~]\s*(?:E(?:P)?\.?)?(\d{1,4}))?\b",
     re.IGNORECASE,
 )
 

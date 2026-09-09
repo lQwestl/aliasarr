@@ -543,6 +543,38 @@ class TestParser(unittest.TestCase):
         self.assertTrue(p9.has_specials)
         self.assertEqual(p9.special_episodes, [1, 2])
 
+    def test_voiceover_track_counts_not_parsed_as_episodes(self):
+        # "3 x DVO", "2 x MVO", "4 x DUB" shouldn't trick lone number parser
+        t1 = "Space Dandy 2014 3 x DVO, Sub BDRip 1080p - RUSSIAN"
+        p1 = parse_episode(t1)
+        self.assertEqual(p1.episodes, [])
+        self.assertEqual(p1.kind, ReleaseKind.UNKNOWN)
+
+        t2 = "For All Mankind - S5E1-10 - 2026  DUB, 2 x MVO, MVO, Sub HEVC, HDR WEBDL 1080p - RUSSIAN"
+        p2 = parse_episode(t2)
+        self.assertEqual(p2.season, 5)
+        self.assertEqual(p2.episodes, list(range(1, 11)))
+
+        t3 = "A Knight of the Seven Kingdoms - S1E1-6 - 2026  3 x DUB, 6 x MVO, DVO, MVO, Sub WEBDL 1080p - RUSSIAN"
+        p3 = parse_episode(t3)
+        self.assertEqual(p3.season, 1)
+        self.assertEqual(p3.episodes, list(range(1, 7)))
+
+    def test_kinozal_range_formats(self):
+        # E1-26, E1-13, E1-8 without second 'E'
+        t1 = "Samurai Champloo - E1-26 - 2004-2005  MVO (MC Entertainment) BDRip 1080p - RUSSIAN"
+        p1 = parse_episode(t1)
+        self.assertEqual(p1.episodes, list(range(1, 27)))
+
+        t2 = "Space Dandy - S2E1-13 - 2014  DVO (AniMedia), Sub BDRip 1080p - RUSSIAN"
+        p2 = parse_episode(t2)
+        self.assertEqual(p2.season, 2)
+        self.assertEqual(p2.episodes, list(range(1, 14)))
+
+        t3 = "Shironeko Project: Zero Chronicle - E1-12 - 2020  MVO (StudioBand) WEBRip 1080p - RUSSIAN"
+        p3 = parse_episode(t3)
+        self.assertEqual(p3.episodes, list(range(1, 13)))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1453,6 +1453,10 @@ async def _do_search_and_grab(
             )
 
         def _has_ep_match():
+            if ep.season_number == 0:
+                if parsed.has_specials:
+                    return not parsed.special_episodes or ep.episode_number in parsed.special_episodes
+                return False
             if not parsed.episodes:
                 return True
             ep_n = ep.episode_number
@@ -1464,7 +1468,7 @@ async def _do_search_and_grab(
             return False
 
         # 1. Проверяем точное совпадение по absolute_number (для аниме)
-        if ep.absolute_number is not None and parsed.episodes:
+        if ep.absolute_number is not None and ep.season_number != 0 and parsed.episodes:
             if ep.absolute_number in parsed.episodes or (part_offset > 0 and (ep.absolute_number - part_offset) in parsed.episodes):
                 if parsed.season is not None and parsed.season != ep.season_number:
                     pass
@@ -1555,9 +1559,13 @@ async def _do_search_and_grab(
 
         # --- Случай 6: сезон в названии релиза не указан (аниме absolute / lone number / диапазон серий) ---
         if parsed.episodes:
+            if ep.season_number == 0:
+                if parsed.has_specials:
+                    return not parsed.special_episodes or ep.episode_number in parsed.special_episodes
+                return False
             if ep.absolute_number is not None:
                 return ep.absolute_number in parsed.episodes or (part_offset > 0 and (ep.absolute_number - part_offset) in parsed.episodes)
-            return (ep.episode_number in parsed.episodes or (part_offset > 0 and (ep.episode_number - part_offset) in parsed.episodes)) and ep.season_number in (0, 1)
+            return (ep.episode_number in parsed.episodes or (part_offset > 0 and (ep.episode_number - part_offset) in parsed.episodes)) and ep.season_number == 1
 
         # --- Случай 7: релиз без явного указания серий и сезона (полный пак / аниме сериал целиком) ---
         if not parsed.episodes and parsed.season is None and label_type == "none":
@@ -1725,11 +1733,11 @@ async def _do_search_and_grab(
 
         return (
             quality_pref or 0,
-            cf_score,
             is_full_season,
-            season_episodes_count,
             is_wanted_full,
             wanted_coverage_count,
+            season_episodes_count,
+            cf_score,
             -indexer_priority,
             seeders,
             match_score,
