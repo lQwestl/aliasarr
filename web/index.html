@@ -3323,20 +3323,22 @@
     <div class="modal-header">
       <h2 style="display: flex; align-items: center; gap: 8px;">
         <i data-lucide="split" class="ico-md" style="color: var(--color-primary, #3b82f6);"></i>
-        <span id="season-split-modal-title">Разделитель сезона (Season Splitter)</span>
+        <span id="season-split-modal-title">Разделитель сезона</span>
       </h2>
+      <a href="/wiki#section-season-splitter" target="_blank" onclick="openWiki(event, 'section-season-splitter')" class="season-split-help-link" title="Открыть справку в Wiki" style="margin-left: auto; margin-right: 32px; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-primary, #3b82f6); text-decoration: none; padding: 4px 8px; border-radius: 6px; background: rgba(59, 130, 246, 0.1);">
+        <i data-lucide="help-circle" class="ico-xs"></i>
+        <span class="lang-ru">Справка</span>
+        <span class="lang-en" style="display:none;">Help</span>
+      </a>
     </div>
 
     <input type="hidden" id="season-split-show-id">
     <input type="hidden" id="season-split-id">
+    <input type="hidden" id="season-split-name">
 
     <div class="form-col season-split-form-body">
       <div class="season-split-top-fields">
-        <div class="form-group season-split-name-group">
-          <label class="form-label">Название правила</label>
-          <input type="text" id="season-split-name" class="input" placeholder="Например: S1 (TV-1 / TV-2)" oninput="updateSeasonSplitPreview()">
-        </div>
-        <div class="form-group season-split-season-group">
+        <div class="form-group season-split-season-group" style="width: 100%;">
           <label class="form-label">Сезон карточки</label>
           <select id="season-split-season-select" class="input" onchange="onSeasonSplitCardSeasonChange()">
             <!-- Populated dynamically -->

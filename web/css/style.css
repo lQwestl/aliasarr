@@ -1663,17 +1663,17 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .season-split-top-fields {
-  display: grid;
-  grid-template-columns: 2fr 1.3fr;
-  gap: 12px;
+  display: flex;
   width: 100%;
 }
 
-@media (max-width: 580px) {
-  .season-split-top-fields {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
+.season-split-help-link {
+  transition: background 0.15s, color 0.15s;
+}
+
+.season-split-help-link:hover {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
 }
 
 .season-split-parts-section {
@@ -1744,20 +1744,6 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   color: var(--color-primary, #3b82f6);
 }
 
-.season-split-offset-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 7px;
-  background: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 4px;
-  font-size: 11px;
-  font-family: var(--font-mono, monospace);
-  font-weight: 500;
-  color: var(--color-primary, #3b82f6);
-}
-
 .season-split-part-del-btn {
   background: transparent;
   border: none;
@@ -1778,7 +1764,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 .season-split-fields-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1.1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
   width: 100%;
   align-items: flex-start;
@@ -1812,16 +1798,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   box-sizing: border-box;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 600px) {
   .season-split-fields-grid {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
-  .season-split-field-type {
-    grid-column: 1;
-  }
   .season-split-field-target {
-    grid-column: 2;
+    grid-column: 1 / -1;
   }
   .season-split-field-start {
     grid-column: 1;

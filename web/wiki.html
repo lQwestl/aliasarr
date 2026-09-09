@@ -1424,7 +1424,7 @@
     <div class="wiki-toc-group">
       <div class="wiki-toc-group-label"><i data-lucide="cpu" style="width:13px;height:13px;"></i> <span class="lang-ru">Парсинг и Сопоставление</span><span class="lang-en">Parser &amp; Matching</span></div>
       <a href="#section-parsing-deep-dive" class="wiki-toc-link"><i data-lucide="file-search" class="wiki-toc-ico"></i><span class="lang-ru">Алиасы и нормализация</span><span class="lang-en">Aliases &amp; Cleaning</span></a>
-      <a href="#section-scoped-aliases" class="wiki-toc-link"><i data-lucide="layers" class="wiki-toc-ico"></i><span class="lang-ru">Привязка к сезону и +Offset</span><span class="lang-en">Scoped Aliases &amp; Offset</span></a>
+      <a href="#section-season-splitter" class="wiki-toc-link"><i data-lucide="split" class="wiki-toc-ico"></i><span class="lang-ru">Разделитель сезона</span><span class="lang-en">Season Splitter</span></a>
       <a href="#section-season-episode-matching" class="wiki-toc-link"><i data-lucide="hash" class="wiki-toc-ico"></i><span class="lang-ru">Сезоны, серии и защита S4</span><span class="lang-en">Season Guard</span></a>
       <a href="#section-torrent-file-priority" class="wiki-toc-link"><i data-lucide="list-checks" class="wiki-toc-ico"></i><span class="lang-ru">Инспекция файлов торрента</span><span class="lang-en">Torrent Inspection</span></a>
     </div>
@@ -1991,15 +1991,15 @@
       </div>
     </section>
 
-    <!-- SECTION 6: SCOPED ALIASES & EPISODE OFFSETS -->
-    <section id="section-scoped-aliases" class="wiki-section">
+    <!-- SECTION 6: SEASON SPLITTER & EPISODE OFFSETS -->
+    <section id="section-season-splitter" class="wiki-section">
       <div class="wiki-section-header">
-        <div class="wiki-section-icon"><i data-lucide="layers"></i></div>
+        <div class="wiki-section-icon"><i data-lucide="split"></i></div>
         <h2 class="wiki-section-title">
-          <span class="lang-ru">6. Привязка алиасов к сезону/сериям и Смещение (+Offset) для Split-Cour</span>
-          <span class="lang-en">6. Scoped Aliases &amp; Episode Offset for Split-Cour Titles</span>
+          <span class="lang-ru">6. Разделитель сезона (Season Splitter) и Смещение серий</span>
+          <span class="lang-en">6. Season Splitter &amp; Episode Offset</span>
         </h2>
-        <span class="wiki-section-badge">SPLIT-COUR &amp; OFFSETS</span>
+        <span class="wiki-section-badge">SEASON SPLITTER &amp; OFFSETS</span>
       </div>
 
       <p class="wiki-p">
@@ -2024,12 +2024,12 @@
         <div class="wiki-subcard" style="border-left: 3px solid var(--teal);">
           <div style="font-weight:700;font-size:13.5px;color:var(--teal);margin-bottom:6px;display:flex;align-items:center;gap:6px;">
             <i data-lucide="check-circle-2" style="width:16px;height:16px;"></i>
-            <span class="lang-ru">Решение Aliasarr: Scoped Aliases &amp; +Offset</span>
-            <span class="lang-en">The Aliasarr Solution</span>
+            <span class="lang-ru">Решение Aliasarr: Разделитель сезона</span>
+            <span class="lang-en">The Aliasarr Season Splitter</span>
           </div>
           <p class="wiki-p" style="font-size:13px;margin:0;line-height:1.55;">
-            <span class="lang-ru">Вы привязываете алиас <code>Space Dandy TV-2</code> к <strong>Сезону 1, сериям 14–26 со смещением +13</strong>. Aliasarr точечно ищет нужный алиас, на лету маппит <code>01 + 13 = 14</code> и импортирует файлы в медиатеку как <code>S01E14..S01E26</code>!</span>
-            <span class="lang-en">Assign alias <code>Space Dandy TV-2</code> to <strong>Season 1, Episodes 14–26 with +13 Offset</strong>. Aliasarr triggers targeted queries, maps <code>01 + 13 = 14</code>, and hardlinks files as <code>S01E14..S01E26</code>.</span>
+            <span class="lang-ru">С помощью визуального инструмента <strong>«Разделитель сезона»</strong> вы распределяете диапазон серий по частям на трекерах (например, Часть 1: серии 1–13, Часть 2: серии 14–26). Aliasarr автоматически вычисляет смещение, ищет обе части по трекерам и переименовывает серию 01 из второй раздачи в <code>S01E14</code>!</span>
+            <span class="lang-en">With the visual <strong>Season Splitter</strong>, assign episode ranges to tracker parts (e.g. Part 1: 1–13, Part 2: 14–26). Aliasarr calculates offsets automatically, searches tracker releases, and imports Ep 01 from Part 2 as <code>S01E14</code>!</span>
           </p>
         </div>
       </div>
@@ -2039,20 +2039,21 @@
         <div class="wiki-code-header">
           <div class="wiki-code-title">
             <i data-lucide="calculator" style="width:14px;height:14px;color:var(--teal);"></i>
-            <span class="lang-ru">Математическая формула сопоставления серий</span>
-            <span class="lang-en">Episode Matching Mathematical Formula</span>
+            <span class="lang-ru">Автоматический расчет смещения</span>
+            <span class="lang-en">Automated Offset Calculation</span>
           </div>
         </div>
         <pre class="wiki-code-content"><code># Основная формула сопоставления:
 Номер серии в карточке (Target Ep) = Номер серии в раздаче на трекере (Torrent Ep) + Offset
 
-# Формула расчета смещения при настройке алиаса:
-Offset = Стартовый номер серии в карточке - Стартовый номер серии в раздаче
-Пример для ТВ-2 (серии 14–26, раздача с 01): Offset = 14 - 1 = +13</code></pre>
+# Алгоритм рассчитывает смещение автоматически:
+Offset = Стартовый номер серии в части - 1
+Пример для Части 2 (серии 14–26): Offset = 14 - 1 = +13
+Файл 01.mkv из раздачи ТВ-2 -> 01 + 13 = S01E14 в медиатеке!</code></pre>
       </div>
 
       <div class="wiki-h3">
-        <span class="lang-ru">Сравнительная таблица настройки для популярных сплит-куров</span>
+        <span class="lang-ru">Сравнительная таблица для популярных сплит-куров</span>
         <span class="lang-en">Reference Table for Split-Cour Titles</span>
       </div>
 
@@ -2061,22 +2062,20 @@ Offset = Стартовый номер серии в карточке - Стар
           <thead>
             <tr>
               <th><span class="lang-ru">Тайтл и часть</span><span class="lang-en">Title &amp; Cour</span></th>
-              <th><span class="lang-ru">Текст алиаса</span><span class="lang-en">Alias Query</span></th>
-              <th><span class="lang-ru">Сезон</span><span class="lang-en">Season</span></th>
+              <th><span class="lang-ru">Поисковые алиасы</span><span class="lang-en">Search Aliases</span></th>
+              <th><span class="lang-ru">Сезон карточки</span><span class="lang-en">Card Season</span></th>
               <th><span class="lang-ru">Серии в карточке</span><span class="lang-en">Card Range</span></th>
               <th><span class="lang-ru">Файлы на трекере</span><span class="lang-en">Tracker Files</span></th>
-              <th><span class="lang-ru">Смещение (+Offset)</span><span class="lang-en">Offset</span></th>
               <th><span class="lang-ru">Итоговый маппинг в медиатеку</span><span class="lang-en">Import Destination</span></th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td><strong>Space Dandy (ТВ-1)</strong></td>
-              <td><code>Space Dandy</code> / <code>Space Dandy TV-1</code></td>
-              <td><code>1</code></td>
+              <td><code>Space Dandy</code> / <code>Космический Денди</code></td>
+              <td><code>Сезон 1</code></td>
               <td><code>1 – 13</code></td>
               <td><code>01 – 13</code></td>
-              <td><span class="badge badge-secondary">0 (или пусто)</span></td>
               <td><code>01 + 0 = S01E01</code> ... <code>13 + 0 = S01E13</code></td>
             </tr>
             <tr>
