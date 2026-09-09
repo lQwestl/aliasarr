@@ -186,6 +186,28 @@ class TestMediaProbe(unittest.TestCase):
         self.assertEqual(q.resolution, "1080p")
         self.assertEqual(q.source, "Bluray")
 
+    def test_detect_file_quality_probed_avi_480p_overrides_1080p_hints(self):
+        # 480p AVI RIFF header: 720x400
+        avi_data = bytearray(b"RIFF\x00\x01\x00\x00AVI LIST\x00\x00\x00\x00hdrlavih\x38\x00\x00\x00")
+        avi_data.extend(b"\x00" * 32)
+        avi_data.extend(struct.pack("<I", 720))   # width = 720
+        avi_data.extend(struct.pack("<I", 400))   # height = 400
+        avi_data.extend(b"\x00" * 64)
+
+        with tempfile.NamedTemporaryFile(suffix=".avi", delete=False) as f:
+            f.write(avi_data)
+            temp_path = f.name
+
+        try:
+            hints = ["Star Wars: Visions [2026, WEB-DL 1080p]"]
+            q = detect_file_quality(temp_path, context_hints=hints, probe_file=True)
+            self.assertEqual(q.resolution, "480p")
+            self.assertEqual(q.name, "WEBDL-480p")
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
 
 if __name__ == "__main__":
     unittest.main()
+

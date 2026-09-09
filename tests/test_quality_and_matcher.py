@@ -60,6 +60,28 @@ class TestQualityAndMatcher(unittest.TestCase):
         self.assertEqual(q5.name, "Bluray-480p")
         self.assertEqual(q5.source, "Bluray")
 
+        # 6. Explicit SDTV-480p in filename must NOT be overwritten by 1080p context hints
+        path6 = "/downloads/Star Wars Visions Presents - The Ninth Jedi - S01E01 - A New Threat SDTV-480p.avi"
+        hints6 = ["Звёздные Войны: Видения. Девятый Джедай / Star Wars: Visions. The Ninth Jedi [2026, WEB-DL 1080p]"]
+        q6 = detect_file_quality(path6, hints6, probe_file=False)
+        self.assertEqual(q6.name, "SDTV-480p")
+        self.assertEqual(q6.source, "SDTV")
+        self.assertEqual(q6.resolution, "480p")
+
+        # 7. Explicit WEBDL-720p in filename must NOT be overwritten by 1080p context hints
+        path7 = "/library/Show - S01E01 - Pilot WEBDL-720p.mkv"
+        hints7 = ["Show S01 Bluray-1080p Remux"]
+        q7 = detect_file_quality(path7, hints7, probe_file=False)
+        self.assertEqual(q7.name, "WEBDL-720p")
+        self.assertEqual(q7.resolution, "720p")
+
+        # 8. AVI file without quality tag with 1080p hints is constrained to 480p
+        path8 = "/library/Show - S01E01.avi"
+        hints8 = ["Show S01 WEBDL-1080p"]
+        q8 = detect_file_quality(path8, hints8, probe_file=False)
+        self.assertEqual(q8.resolution, "480p")
+        self.assertEqual(q8.name, "WEBDL-480p")
+
     def test_parse_quality_all_formats(self):
         cases = [
             ("Show.S01E01.BDRip.x264.mkv", "Bluray-480p", "Bluray", "480p"),
