@@ -6558,53 +6558,79 @@ function renderSeasonSplitParts() {
   const container = document.getElementById("season-split-parts-list");
   if (!container) return;
 
-  container.innerHTML = CURRENT_SEASON_SPLIT_PARTS.map((p, idx) => `
+  container.innerHTML = CURRENT_SEASON_SPLIT_PARTS.map((p, idx) => {
+    const startVal = (p.episode_start != null && p.episode_start !== "") ? parseInt(p.episode_start, 10) : 1;
+    const offset = Math.max(0, startVal - 1);
+    p.episode_offset = offset;
+
+    return `
     <div class="season-split-part-card" data-index="${idx}">
       <div class="season-split-part-header">
-        <span style="display:flex; align-items:center; gap:6px;">
-          <i data-lucide="layers" class="ico-xs" style="color:var(--color-primary, #3b82f6);"></i>
-          <span>Часть ${idx + 1}</span>
-        </span>
+        <div class="season-split-part-header-left">
+          <span class="season-split-part-num-badge">
+            <i data-lucide="layers" class="ico-xs"></i>
+            <span>Часть ${idx + 1}</span>
+          </span>
+          <span class="season-split-offset-badge" id="season-split-offset-badge-${idx}" title="Смещение серий при импорте вычисляется автоматически: начальная серия - 1">
+            <i data-lucide="arrow-right-left" class="ico-2xs"></i>
+            <span>Смещение: +${offset} (авто)</span>
+          </span>
+        </div>
         ${CURRENT_SEASON_SPLIT_PARTS.length > 1 ? `
-        <button type="button" class="btn-icon" onclick="removeSeasonSplitPart(${idx})" title="Удалить часть" style="background:none; border:none; cursor:pointer; color:var(--text-muted);">
-          <i data-lucide="x" class="ico-xs"></i>
+        <button type="button" class="season-split-part-del-btn" onclick="removeSeasonSplitPart(${idx})" title="Удалить часть">
+          <i data-lucide="trash-2" class="ico-xs"></i>
         </button>` : ""}
       </div>
 
-      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
-        <div style="flex:1.2; min-width:110px;">
-          <label class="form-label" style="font-size:11px;">Тип части</label>
+      <div class="season-split-fields-grid">
+        <div class="form-group season-split-field-type">
+          <label class="form-label">Тип части</label>
           <select class="input input-small" onchange="onPartFieldChange(${idx}, 'part_type', this.value)">
             <option value="season" ${p.part_type === 'season' ? 'selected' : ''}>Сезон (ТВ)</option>
             <option value="part" ${p.part_type === 'part' ? 'selected' : ''}>Часть (Part)</option>
             <option value="cour" ${p.part_type === 'cour' ? 'selected' : ''}>Кур (Cour)</option>
           </select>
         </div>
-        <div style="flex:0.8; min-width:80px;">
-          <label class="form-label" style="font-size:11px;">Номер на трекерах</label>
+
+        <div class="form-group season-split-field-target">
+          <label class="form-label">Номер на трекерах</label>
           <input type="number" class="input input-small" min="1" value="${p.target_number ?? (idx + 1)}" oninput="onPartFieldChange(${idx}, 'target_number', parseInt(this.value, 10))">
         </div>
-        <div style="flex:1; min-width:80px;">
-          <label class="form-label" style="font-size:11px;">Серия с</label>
-          <input type="number" class="input input-small" min="1" value="${p.episode_start ?? ''}" placeholder="1" oninput="onPartStartChange(${idx}, this.value)">
-        </div>
-        <div style="flex:1; min-width:80px;">
-          <label class="form-label" style="font-size:11px;">Серия по</label>
-          <input type="number" class="input input-small" min="1" value="${p.episode_end ?? ''}" placeholder="13" oninput="onPartFieldChange(${idx}, 'episode_end', parseInt(this.value, 10))">
-        </div>
-        <div style="flex:1; min-width:90px;">
-          <label class="form-label" style="font-size:11px;">Смещение (+Offset)</label>
-          <input type="number" id="part-offset-input-${idx}" class="input input-small" value="${p.episode_offset ?? 0}" placeholder="0" oninput="onPartFieldChange(${idx}, 'episode_offset', parseInt(this.value, 10))">
-        </div>
-      </div>
 
-      <div>
-        <label class="form-label" style="font-size:11px; margin-bottom:2px;">Поисковые алиасы части (через запятую)</label>
-        <input type="text" class="input input-small" value="${escapeHtml(p.aliases || '')}" placeholder="Например: Space Dandy 2, Космический Денди (ТВ-2)" oninput="onPartFieldChange(${idx}, 'aliases', this.value)">
+        <div class="form-group season-split-field-start">
+          <label class="form-label">Серия с</label>
+          <input type="number" id="part-start-input-${idx}" class="input input-small" min="1" value="${p.episode_start ?? ''}" placeholder="1" oninput="onPartStartChange(${idx}, this.value)">
+        </div>
+
+        <div class="form-group season-split-field-end">
+          <label class="form-label">Серия по</label>
+          <input type="number" id="part-end-input-${idx}" class="input input-small" min="1" value="${p.episode_end ?? ''}" placeholder="13" oninput="onPartEndChange(${idx}, this.value)">
+        </div>
+
+        <div class="form-group season-split-field-aliases">
+          <label class="form-label">Поисковые алиасы части (через запятую)</label>
+          <input type="text" class="input input-small" value="${escapeHtml(p.aliases || '')}" placeholder="Например: Space Dandy 2, Космический Денди (ТВ-2)" oninput="onPartFieldChange(${idx}, 'aliases', this.value)">
+        </div>
       </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
 
+  if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+}
+
+function syncSeasonSplitPartOffsetsAndRanges() {
+  for (let i = 0; i < CURRENT_SEASON_SPLIT_PARTS.length; i++) {
+    const p = CURRENT_SEASON_SPLIT_PARTS[i];
+    const startVal = (p.episode_start != null && p.episode_start !== "") ? parseInt(p.episode_start, 10) : 1;
+    const offset = Math.max(0, startVal - 1);
+    p.episode_offset = offset;
+
+    const badge = document.getElementById(`season-split-offset-badge-${i}`);
+    if (badge) {
+      badge.innerHTML = `<i data-lucide="arrow-right-left" class="ico-2xs"></i><span>Смещение: +${offset} (авто)</span>`;
+    }
+  }
   if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
 }
 
@@ -6617,24 +6643,72 @@ function onPartFieldChange(idx, field, val) {
 
 function onPartStartChange(idx, val) {
   const startNum = parseInt(val, 10);
-  if (CURRENT_SEASON_SPLIT_PARTS[idx]) {
-    CURRENT_SEASON_SPLIT_PARTS[idx].episode_start = isNaN(startNum) ? null : startNum;
-    if (!isNaN(startNum) && startNum > 1 && idx > 0) {
-      const autoOff = startNum - 1;
-      CURRENT_SEASON_SPLIT_PARTS[idx].episode_offset = autoOff;
-      const offInput = document.getElementById(`part-offset-input-${idx}`);
-      if (offInput) offInput.value = autoOff;
-    }
-    updateSeasonSplitPreview();
+  if (!CURRENT_SEASON_SPLIT_PARTS[idx]) return;
+
+  CURRENT_SEASON_SPLIT_PARTS[idx].episode_start = isNaN(startNum) ? null : startNum;
+  const off = !isNaN(startNum) ? Math.max(0, startNum - 1) : 0;
+  CURRENT_SEASON_SPLIT_PARTS[idx].episode_offset = off;
+
+  const badge = document.getElementById(`season-split-offset-badge-${idx}`);
+  if (badge) {
+    badge.innerHTML = `<i data-lucide="arrow-right-left" class="ico-2xs"></i><span>Смещение: +${off} (авто)</span>`;
   }
+
+  // Если есть предыдущая часть и её конец >= текущего начала, синхронизируем конец предыдущей
+  if (!isNaN(startNum) && startNum > 1 && idx > 0) {
+    const prevPart = CURRENT_SEASON_SPLIT_PARTS[idx - 1];
+    if (prevPart.episode_end == null || prevPart.episode_end >= startNum) {
+      prevPart.episode_end = startNum - 1;
+      const prevEndInput = document.getElementById(`part-end-input-${idx - 1}`);
+      if (prevEndInput) prevEndInput.value = prevPart.episode_end;
+    }
+  }
+
+  syncSeasonSplitPartOffsetsAndRanges();
+  updateSeasonSplitPreview();
+}
+
+function onPartEndChange(idx, val) {
+  const endNum = parseInt(val, 10);
+  if (!CURRENT_SEASON_SPLIT_PARTS[idx]) return;
+
+  CURRENT_SEASON_SPLIT_PARTS[idx].episode_end = isNaN(endNum) ? null : endNum;
+
+  // Если есть следующая часть, автоматически обновляем её начало (endNum + 1) и смещение (endNum)
+  if (!isNaN(endNum) && endNum > 0 && idx + 1 < CURRENT_SEASON_SPLIT_PARTS.length) {
+    const nextPart = CURRENT_SEASON_SPLIT_PARTS[idx + 1];
+    const prevStart = nextPart.episode_start || 1;
+    const prevEnd = nextPart.episode_end || prevStart;
+    const span = Math.max(0, prevEnd - prevStart);
+
+    nextPart.episode_start = endNum + 1;
+    nextPart.episode_offset = Math.max(0, nextPart.episode_start - 1);
+    nextPart.episode_end = nextPart.episode_start + span;
+
+    const nextStartInput = document.getElementById(`part-start-input-${idx + 1}`);
+    if (nextStartInput) nextStartInput.value = nextPart.episode_start;
+
+    const nextEndInput = document.getElementById(`part-end-input-${idx + 1}`);
+    if (nextEndInput) nextEndInput.value = nextPart.episode_end;
+
+    const nextBadge = document.getElementById(`season-split-offset-badge-${idx + 1}`);
+    if (nextBadge) {
+      nextBadge.innerHTML = `<i data-lucide="arrow-right-left" class="ico-2xs"></i><span>Смещение: +${nextPart.episode_offset} (авто)</span>`;
+    }
+  }
+
+  syncSeasonSplitPartOffsetsAndRanges();
+  updateSeasonSplitPreview();
 }
 
 function addSeasonSplitPart() {
   const lastPart = CURRENT_SEASON_SPLIT_PARTS[CURRENT_SEASON_SPLIT_PARTS.length - 1];
   const nextTarget = (lastPart ? (lastPart.target_number || 1) : 0) + 1;
-  const nextStart = (lastPart && lastPart.episode_end) ? lastPart.episode_end + 1 : (lastPart && lastPart.episode_start ? lastPart.episode_start + 12 : 1);
+  const nextStart = (lastPart && lastPart.episode_end)
+    ? lastPart.episode_end + 1
+    : (lastPart && lastPart.episode_start ? lastPart.episode_start + 12 : 1);
   const nextEnd = nextStart + 11;
-  const nextOffset = nextStart > 1 ? nextStart - 1 : 0;
+  const nextOffset = Math.max(0, nextStart - 1);
 
   const showId = parseInt(document.getElementById("season-split-show-id").value, 10);
   const show = (typeof CACHED_SHOWS !== "undefined" && Array.isArray(CACHED_SHOWS))
@@ -6688,14 +6762,26 @@ function updateSeasonSplitPreview() {
   const lines = CURRENT_SEASON_SPLIT_PARTS.map((p, idx) => {
     const typeLabel = p.part_type === "cour" ? "Кур" : (p.part_type === "part" ? "Часть" : "Сезон");
     const tNum = p.target_number ?? (idx + 1);
-    const start = p.episode_start ?? 1;
-    const end = p.episode_end ?? 13;
-    const off = p.episode_offset ?? 0;
+    const start = (p.episode_start != null && p.episode_start !== "") ? parseInt(p.episode_start, 10) : 1;
+    const end = (p.episode_end != null && p.episode_end !== "") ? parseInt(p.episode_end, 10) : 13;
+    const off = Math.max(0, start - 1);
+    p.episode_offset = off;
 
     const relStart = Math.max(1, start - off);
     const relEnd = Math.max(relStart, end - off);
 
-    return `<div>${idx + 1}. <strong>Искать как ${typeLabel} ${tNum} (ТВ-${tNum}):</strong> серии в раздаче <code>${pad(relStart)}–${pad(relEnd)}</code> ${off > 0 ? `(+${off})` : ''} $\\rightarrow$ сохраняются в библиотеку как <code>${sStr}E${pad(start)}–${sStr}E${pad(end)}</code></div>`;
+    const relEpStr = (relStart === relEnd) ? pad(relStart) : `${pad(relStart)}–${pad(relEnd)}`;
+    const libEpStr = (start === end) ? `${sStr}E${pad(start)}` : `${sStr}E${pad(start)}–${sStr}E${pad(end)}`;
+    const offBadge = off > 0 ? ` <span class="season-split-badge-part" style="background:rgba(59,130,246,0.15); font-size:10px;">+${off}</span>` : "";
+
+    return `
+      <div class="season-split-preview-row">
+        <span><strong>${idx + 1}.</strong> Искать как <strong>${escapeHtml(typeLabel)} ${tNum}</strong> (ТВ-${tNum}):</span>
+        <span>раздача <code>${relEpStr}</code>${offBadge}</span>
+        <span class="season-split-preview-arrow">→</span>
+        <span>в библиотеку как <code>${libEpStr}</code></span>
+      </div>
+    `;
   });
 
   content.innerHTML = lines.join("");
@@ -6720,14 +6806,20 @@ async function saveSeasonSplit() {
   const payload = {
     name,
     season_number: seasonNumber,
-    parts: CURRENT_SEASON_SPLIT_PARTS.map(p => ({
-      part_type: p.part_type || "season",
-      target_number: p.target_number || 1,
-      episode_start: p.episode_start != null ? p.episode_start : null,
-      episode_end: p.episode_end != null ? p.episode_end : null,
-      episode_offset: p.episode_offset || 0,
-      aliases: (p.aliases || "").trim(),
-    }))
+    parts: CURRENT_SEASON_SPLIT_PARTS.map(p => {
+      const start = (p.episode_start != null && p.episode_start !== "") ? parseInt(p.episode_start, 10) : null;
+      const end = (p.episode_end != null && p.episode_end !== "") ? parseInt(p.episode_end, 10) : null;
+      const offset = start != null ? Math.max(0, start - 1) : (p.episode_offset || 0);
+
+      return {
+        part_type: p.part_type || "season",
+        target_number: p.target_number || 1,
+        episode_start: start,
+        episode_end: end,
+        episode_offset: offset,
+        aliases: (p.aliases || "").trim(),
+      };
+    })
   };
 
   try {

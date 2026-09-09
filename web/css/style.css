@@ -1645,15 +1645,73 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   margin-left: auto;
 }
 
+.season-split-modal-dialog {
+  max-width: 680px;
+  width: 95%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.season-split-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.season-split-top-fields {
+  display: grid;
+  grid-template-columns: 2fr 1.3fr;
+  gap: 12px;
+  width: 100%;
+}
+
+@media (max-width: 580px) {
+  .season-split-top-fields {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.season-split-parts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.season-split-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.season-split-section-header .section-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 0;
+}
+
+.season-split-parts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .season-split-part-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  transition: border-color 0.2s;
+  gap: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .season-split-part-card:hover {
@@ -1664,8 +1722,206 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.season-split-part-header-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.season-split-part-num-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-weight: 600;
   font-size: 12px;
+  color: var(--color-primary, #3b82f6);
+}
+
+.season-split-offset-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  font-weight: 500;
+  color: var(--color-primary, #3b82f6);
+}
+
+.season-split-part-del-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.season-split-part-del-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.season-split-fields-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1.1fr 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  align-items: flex-start;
+  box-sizing: border-box;
+}
+
+.season-split-field-aliases {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.season-split-fields-grid .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  min-width: 0;
+}
+
+.season-split-fields-grid .form-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.season-split-fields-grid .input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .season-split-fields-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .season-split-field-type {
+    grid-column: 1;
+  }
+  .season-split-field-target {
+    grid-column: 2;
+  }
+  .season-split-field-start {
+    grid-column: 1;
+  }
+  .season-split-field-end {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 420px) {
+  .season-split-part-card {
+    padding: 10px 10px;
+  }
+  .season-split-part-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .season-split-part-header-left {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .season-split-part-del-btn {
+    align-self: flex-end;
+  }
+}
+
+.season-split-preview-box {
+  margin-top: 4px;
+  padding: 10px 14px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-main);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.season-split-preview-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-primary, #3b82f6);
+}
+
+.season-split-preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.season-split-preview-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.season-split-preview-arrow {
+  color: var(--color-primary, #3b82f6);
+  font-weight: bold;
+  padding: 0 2px;
+}
+
+.season-split-modal-footer {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.season-split-footer-left,
+.season-split-footer-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 480px) {
+  .season-split-modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .season-split-footer-left,
+  .season-split-footer-right {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .season-split-footer-right .btn,
+  .season-split-footer-left .btn {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+  }
 }
 
 /* ---------- LIBRARY BULK ACTION BAR & SELECTION ---------- */

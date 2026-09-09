@@ -3318,7 +3318,7 @@
 
 <!-- Модалка «Разделитель сезона» (Season Splitter) -->
 <div id="season-split-modal" class="modal-overlay">
-  <div class="modal modal-medium" style="max-width: 680px;">
+  <div class="modal modal-medium season-split-modal-dialog">
     <button class="modal-close" onclick="closeModal('season-split-modal')">×</button>
     <div class="modal-header">
       <h2 style="display: flex; align-items: center; gap: 8px;">
@@ -3330,13 +3330,13 @@
     <input type="hidden" id="season-split-show-id">
     <input type="hidden" id="season-split-id">
 
-    <div class="form-col" style="margin-top: 14px; gap: 12px;">
-      <div class="form-row" style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <div style="flex: 2; min-width: 200px;">
+    <div class="form-col season-split-form-body">
+      <div class="season-split-top-fields">
+        <div class="form-group season-split-name-group">
           <label class="form-label">Название правила</label>
           <input type="text" id="season-split-name" class="input" placeholder="Например: S1 (TV-1 / TV-2)" oninput="updateSeasonSplitPreview()">
         </div>
-        <div style="flex: 1.5; min-width: 180px;">
+        <div class="form-group season-split-season-group">
           <label class="form-label">Сезон карточки</label>
           <select id="season-split-season-select" class="input" onchange="onSeasonSplitCardSeasonChange()">
             <!-- Populated dynamically -->
@@ -3344,35 +3344,35 @@
         </div>
       </div>
 
-      <div style="margin-top: 6px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <label class="form-label" style="font-weight: 600; font-size: 13px; margin-bottom: 0;">Части сезона на трекерах</label>
+      <div class="season-split-parts-section">
+        <div class="season-split-section-header">
+          <label class="form-label section-title">Части сезона на трекерах</label>
           <button type="button" class="btn btn-secondary btn-small" onclick="addSeasonSplitPart()">
             <i data-lucide="plus" class="ico-sm"></i> <span>Добавить часть</span>
           </button>
         </div>
 
-        <div id="season-split-parts-list" style="display: flex; flex-direction: column; gap: 8px;">
+        <div id="season-split-parts-list" class="season-split-parts-list">
           <!-- Populated dynamically -->
         </div>
       </div>
 
-      <div id="season-split-preview-box" style="margin-top: 4px; padding: 10px 14px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; font-size: 12px; line-height: 1.5; color: var(--text-main);">
-        <div style="font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
-          <i data-lucide="info" class="ico-xs" style="color: var(--color-primary, #3b82f6);"></i>
+      <div id="season-split-preview-box" class="season-split-preview-box">
+        <div class="season-split-preview-title">
+          <i data-lucide="info" class="ico-xs"></i>
           <span>Сводка работы разделителя:</span>
         </div>
-        <div id="season-split-preview-content"></div>
+        <div id="season-split-preview-content" class="season-split-preview-content"></div>
       </div>
     </div>
 
-    <div class="form-row" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
+    <div class="modal-footer season-split-modal-footer">
+      <div class="season-split-footer-left">
         <button type="button" id="season-split-delete-btn" class="btn btn-danger btn-small" style="display: none;" onclick="deleteCurrentSeasonSplit()">
           <i data-lucide="trash-2" class="ico-sm"></i> <span>Удалить</span>
         </button>
       </div>
-      <div style="display: flex; gap: 8px;">
+      <div class="season-split-footer-right">
         <button type="button" class="btn btn-secondary" onclick="closeModal('season-split-modal')">Отмена</button>
         <button type="button" class="btn btn-primary btn-solid" onclick="saveSeasonSplit()">Сохранить разделитель</button>
       </div>
