@@ -1424,6 +1424,7 @@
     <div class="wiki-toc-group">
       <div class="wiki-toc-group-label"><i data-lucide="cpu" style="width:13px;height:13px;"></i> <span class="lang-ru">Парсинг и Сопоставление</span><span class="lang-en">Parser &amp; Matching</span></div>
       <a href="#section-parsing-deep-dive" class="wiki-toc-link"><i data-lucide="file-search" class="wiki-toc-ico"></i><span class="lang-ru">Алиасы и нормализация</span><span class="lang-en">Aliases &amp; Cleaning</span></a>
+      <a href="#section-scoped-aliases" class="wiki-toc-link"><i data-lucide="layers" class="wiki-toc-ico"></i><span class="lang-ru">Привязка к сезону и +Offset</span><span class="lang-en">Scoped Aliases &amp; Offset</span></a>
       <a href="#section-season-episode-matching" class="wiki-toc-link"><i data-lucide="hash" class="wiki-toc-ico"></i><span class="lang-ru">Сезоны, серии и защита S4</span><span class="lang-en">Season Guard</span></a>
       <a href="#section-torrent-file-priority" class="wiki-toc-link"><i data-lucide="list-checks" class="wiki-toc-ico"></i><span class="lang-ru">Инспекция файлов торрента</span><span class="lang-en">Torrent Inspection</span></a>
     </div>
@@ -1990,7 +1991,272 @@
       </div>
     </section>
 
-    <!-- SECTION 6: STRICT SEASON MATCHING -->
+    <!-- SECTION 6: SCOPED ALIASES & EPISODE OFFSETS -->
+    <section id="section-scoped-aliases" class="wiki-section">
+      <div class="wiki-section-header">
+        <div class="wiki-section-icon"><i data-lucide="layers"></i></div>
+        <h2 class="wiki-section-title">
+          <span class="lang-ru">6. Привязка алиасов к сезону/сериям и Смещение (+Offset) для Split-Cour</span>
+          <span class="lang-en">6. Scoped Aliases &amp; Episode Offset for Split-Cour Titles</span>
+        </h2>
+        <span class="wiki-section-badge">SPLIT-COUR &amp; OFFSETS</span>
+      </div>
+
+      <p class="wiki-p">
+        <span class="lang-ru">В базах метаданных (Shikimori, AniList, TheTVDb, TMDB, AniDB) многие многочастные аниме и сериалы оформлены как <strong>единый сезон со сплошной сквозной нумерацией</strong> (например, 24–26 серий в Season 1). Однако на торрент-трекерах (RuTracker, Nyaa, AniLibria, Anime365, Rutor) авторы раздач традиционно делят такие тайтлы на отдельные сплит-куры: <code>ТВ-1 [01-13]</code> и <code>ТВ-2 [01-13]</code> (или <code>2nd Season [01-13]</code>), где серии второй половины снова нумеруются с <strong>01</strong>:</span>
+        <span class="lang-en">Metadata providers (Shikimori, AniList, TVDb, TMDB) often document split-cour anime as a <strong>single continuous season</strong> (e.g., Season 1 with 26 episodes). Torrent trackers, however, release them as separate cours: <code>TV-1 [01-13]</code> and <code>TV-2 [01-13]</code> (or <code>2nd Season [01-13]</code>), resetting episode numbers back to <strong>01</strong> for Part 2:</span>
+      </p>
+
+      <!-- Visual Problem vs Solution Comparison -->
+      <div class="wiki-grid-2" style="margin: 16px 0;">
+        <div class="wiki-subcard" style="border-left: 3px solid #ef4444;">
+          <div style="font-weight:700;font-size:13.5px;color:#ef4444;margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+            <i data-lucide="alert-triangle" style="width:16px;height:16px;"></i>
+            <span class="lang-ru">Проблема классических систем</span>
+            <span class="lang-en">The Classic Manager Problem</span>
+          </div>
+          <p class="wiki-p" style="font-size:13px;margin:0;line-height:1.55;">
+            <span class="lang-ru">Если в карточке ищутся серии 14–26, классический автопоиск либо не находит раздачу <code>TV-2</code> по общему названию, либо скачивает файл <code>01.mkv</code> и ошибочно перезаписывает 1-ю серию 1-го сезона вместо 14-й.</span>
+            <span class="lang-en">Standard managers fail to query tracker-specific <code>TV-2</code> titles, or download <code>01.mkv</code> from Part 2 and mistakenly overwrite Episode 1 instead of importing as Episode 14.</span>
+          </p>
+        </div>
+
+        <div class="wiki-subcard" style="border-left: 3px solid var(--teal);">
+          <div style="font-weight:700;font-size:13.5px;color:var(--teal);margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+            <i data-lucide="check-circle-2" style="width:16px;height:16px;"></i>
+            <span class="lang-ru">Решение Aliasarr: Scoped Aliases &amp; +Offset</span>
+            <span class="lang-en">The Aliasarr Solution</span>
+          </div>
+          <p class="wiki-p" style="font-size:13px;margin:0;line-height:1.55;">
+            <span class="lang-ru">Вы привязываете алиас <code>Space Dandy TV-2</code> к <strong>Сезону 1, сериям 14–26 со смещением +13</strong>. Aliasarr точечно ищет нужный алиас, на лету маппит <code>01 + 13 = 14</code> и импортирует файлы в медиатеку как <code>S01E14..S01E26</code>!</span>
+            <span class="lang-en">Assign alias <code>Space Dandy TV-2</code> to <strong>Season 1, Episodes 14–26 with +13 Offset</strong>. Aliasarr triggers targeted queries, maps <code>01 + 13 = 14</code>, and hardlinks files as <code>S01E14..S01E26</code>.</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Offset Math Formula Block -->
+      <div class="wiki-code-block" style="margin: 18px 0;">
+        <div class="wiki-code-header">
+          <div class="wiki-code-title">
+            <i data-lucide="calculator" style="width:14px;height:14px;color:var(--teal);"></i>
+            <span class="lang-ru">Математическая формула сопоставления серий</span>
+            <span class="lang-en">Episode Matching Mathematical Formula</span>
+          </div>
+        </div>
+        <pre class="wiki-code-content"><code># Основная формула сопоставления:
+Номер серии в карточке (Target Ep) = Номер серии в раздаче на трекере (Torrent Ep) + Offset
+
+# Формула расчета смещения при настройке алиаса:
+Offset = Стартовый номер серии в карточке - Стартовый номер серии в раздаче
+Пример для ТВ-2 (серии 14–26, раздача с 01): Offset = 14 - 1 = +13</code></pre>
+      </div>
+
+      <div class="wiki-h3">
+        <span class="lang-ru">Сравнительная таблица настройки для популярных сплит-куров</span>
+        <span class="lang-en">Reference Table for Split-Cour Titles</span>
+      </div>
+
+      <div class="wiki-table-wrap">
+        <table class="wiki-table">
+          <thead>
+            <tr>
+              <th><span class="lang-ru">Тайтл и часть</span><span class="lang-en">Title &amp; Cour</span></th>
+              <th><span class="lang-ru">Текст алиаса</span><span class="lang-en">Alias Query</span></th>
+              <th><span class="lang-ru">Сезон</span><span class="lang-en">Season</span></th>
+              <th><span class="lang-ru">Серии в карточке</span><span class="lang-en">Card Range</span></th>
+              <th><span class="lang-ru">Файлы на трекере</span><span class="lang-en">Tracker Files</span></th>
+              <th><span class="lang-ru">Смещение (+Offset)</span><span class="lang-en">Offset</span></th>
+              <th><span class="lang-ru">Итоговый маппинг в медиатеку</span><span class="lang-en">Import Destination</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Space Dandy (ТВ-1)</strong></td>
+              <td><code>Space Dandy</code> / <code>Space Dandy TV-1</code></td>
+              <td><code>1</code></td>
+              <td><code>1 – 13</code></td>
+              <td><code>01 – 13</code></td>
+              <td><span class="badge badge-secondary">0 (или пусто)</span></td>
+              <td><code>01 + 0 = S01E01</code> ... <code>13 + 0 = S01E13</code></td>
+            </tr>
+            <tr>
+              <td><strong>Space Dandy (ТВ-2)</strong></td>
+              <td><code>Space Dandy TV-2</code> / <code>Space Dandy 2nd Season</code></td>
+              <td><code>1</code></td>
+              <td><code>14 – 26</code></td>
+              <td><code>01 – 13</code></td>
+              <td><span class="badge badge-teal" style="font-weight:700;">+13</span></td>
+              <td><code>01 + 13 = S01E14</code> ... <code>13 + 13 = S01E26</code></td>
+            </tr>
+            <tr>
+              <td><strong>Mushoku Tensei (Part 1)</strong></td>
+              <td><code>Mushoku Tensei</code></td>
+              <td><code>1</code></td>
+              <td><code>1 – 11</code></td>
+              <td><code>01 – 11</code></td>
+              <td><span class="badge badge-secondary">0 (или пусто)</span></td>
+              <td><code>01 + 0 = S01E01</code> ... <code>11 + 0 = S01E11</code></td>
+            </tr>
+            <tr>
+              <td><strong>Mushoku Tensei (Part 2)</strong></td>
+              <td><code>Mushoku Tensei Part 2</code> / <code>ТВ-2</code></td>
+              <td><code>1</code></td>
+              <td><code>12 – 23</code></td>
+              <td><code>01 – 12</code></td>
+              <td><span class="badge badge-teal" style="font-weight:700;">+11</span></td>
+              <td><code>01 + 11 = S01E12</code> ... <code>12 + 11 = S01E23</code></td>
+            </tr>
+            <tr>
+              <td><strong>Bleach: TYBW (Part 2 - Ketsubetsu-tan)</strong></td>
+              <td><code>Bleach Sennen Kessen-hen - Ketsubetsu-tan</code></td>
+              <td><code>1</code></td>
+              <td><code>14 – 26</code></td>
+              <td><code>01 – 13</code></td>
+              <td><span class="badge badge-teal" style="font-weight:700;">+13</span></td>
+              <td><code>01 + 13 = S01E14</code> ... <code>13 + 13 = S01E26</code></td>
+            </tr>
+            <tr>
+              <td><strong>Spy x Family (Part 2)</strong></td>
+              <td><code>Spy x Family Part 2</code></td>
+              <td><code>1</code></td>
+              <td><code>13 – 25</code></td>
+              <td><code>01 – 13</code></td>
+              <td><span class="badge badge-teal" style="font-weight:700;">+12</span></td>
+              <td><code>01 + 12 = S01E13</code> ... <code>13 + 12 = S01E25</code></td>
+            </tr>
+            <tr>
+              <td><strong>Обычный отдельный 2-й сезон</strong></td>
+              <td><code>Title Season 2</code> / <code>2nd Season</code></td>
+              <td><code>2</code></td>
+              <td><code>1 – 12</code></td>
+              <td><code>01 – 12</code></td>
+              <td><span class="badge badge-secondary">0 (или пусто)</span></td>
+              <td><code>01 + 0 = S02E01</code> ... <code>12 + 0 = S02E12</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="wiki-h3">
+        <span class="lang-ru">Пошаговая инструкция по настройке в веб-интерфейсе</span>
+        <span class="lang-en">Step-by-Step UI Configuration Guide</span>
+      </div>
+
+      <div class="wiki-step-list">
+        <div class="wiki-step-item">
+          <div class="wiki-step-num">1</div>
+          <div class="wiki-step-body">
+            <div class="wiki-step-head">
+              <span class="lang-ru">Открытие карточки тайтла и раскрытие расширенных параметров</span>
+              <span class="lang-en">Opening Show Modal &amp; Advanced Scope Fields</span>
+            </div>
+            <p class="wiki-p">
+              <span class="lang-ru">1. Перейдите в медиатеку и откройте карточку нужного тайтла.<br>
+              2. В блоке алиасов нажмите на кнопку <strong>дополнительных настроек</strong> (иконка слайдеров <i data-lucide="sliders-horizontal" style="width:13px;height:13px;vertical-align:middle;"></i>) рядом с полем добавления алиаса.<br>
+              3. Откроется компактная панель параметров области действия: <strong>«Сезон»</strong>, <strong>«Серия с»</strong>, <strong>«Серия по»</strong> и <strong>«+Offset»</strong>.</span>
+              <span class="lang-en">1. Open the target show card in Library.<br>
+              2. In the aliases section, click the <strong>Scope &amp; Offset toggle</strong> button (<i data-lucide="sliders-horizontal" style="width:13px;height:13px;vertical-align:middle;"></i>).<br>
+              3. The collapsible row reveals: <strong>Season</strong>, <strong>Ep from</strong>, <strong>Ep to</strong>, and <strong>+Offset</strong> inputs.</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="wiki-step-item">
+          <div class="wiki-step-num">2</div>
+          <div class="wiki-step-body">
+            <div class="wiki-step-head">
+              <span class="lang-ru">Заполнение параметров алиаса для 2-й части (ТВ-2)</span>
+              <span class="lang-en">Filling Alias Parameters for Part 2 (TV-2)</span>
+            </div>
+            <p class="wiki-p">
+              <span class="lang-ru">Для добавления алиаса второй части укажите:</span>
+              <span class="lang-en">Specify the following values:</span>
+            </p>
+            <ul style="font-size:13.5px;color:var(--text);line-height:1.7;margin-bottom:10px;">
+              <li><strong>Текст алиаса:</strong> <code>Space Dandy TV-2</code> (или точное название релиза на трекере)</li>
+              <li><strong>Язык:</strong> <code>ru</code> или <code>en</code></li>
+              <li><strong>Сезон:</strong> <code>1</code> (целевой сезон в карточке тайтла)</li>
+              <li><strong>Серия с / по:</strong> <code>14</code> и <code>26</code></li>
+              <li><strong>+Offset:</strong> <code>13</code> (поскольку в раздаче серии идут 01–13, а в карточке 14–26: <code>1 + 13 = 14</code>)</li>
+            </ul>
+            <p class="wiki-p">
+              <span class="lang-ru">Нажмите <strong>«+ Добавить»</strong>. В списке алиасов появится чип с информативным бейджем: <code>[S1, E14–26, +13]</code>.</span>
+              <span class="lang-en">Click <strong>+ Add</strong>. The created chip displays the badge: <code>[S1, E14–26, +13]</code>.</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="wiki-step-item">
+          <div class="wiki-step-num">3</div>
+          <div class="wiki-step-body">
+            <div class="wiki-step-head">
+              <span class="lang-ru">Редактирование существующих алиасов через модальное окно</span>
+              <span class="lang-en">Editing Existing Aliases via Modal</span>
+            </div>
+            <p class="wiki-p">
+              <span class="lang-ru">Чтобы скорректировать уже добавленный алиас (например, изменить приоритет, диапазон серий или смещение), нажмите на иконку карандаша (<i data-lucide="edit-2" style="width:13px;height:13px;vertical-align:middle;"></i>) на чипе алиаса. Откроется всплывающее окно <strong>«Редактирование алиаса»</strong> со всеми полями и подсказками.</span>
+              <span class="lang-en">Click the pencil edit icon (<i data-lucide="edit-2" style="width:13px;height:13px;vertical-align:middle;"></i>) on any alias chip to open the dedicated <strong>Edit Alias modal</strong> to tweak text, language, priority, season, range, or offset.</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="wiki-h3">
+        <span class="lang-ru">Что происходит в фоновом пайплайне Aliasarr</span>
+        <span class="lang-en">Under the Hood: Automated Execution Pipeline</span>
+      </div>
+
+      <div class="wiki-step-list" style="margin: 16px 0;">
+        <div class="wiki-step-item">
+          <div class="wiki-step-num">A</div>
+          <div class="wiki-step-body">
+            <div class="wiki-step-head"><span class="lang-ru">1. Селективный опрос трекеров (Filtered Auto Search)</span><span class="lang-en">1. Filtered Auto Search</span></div>
+            <p class="wiki-p"><span class="lang-ru">Планировщик автопоиска анализирует список разыскиваемых серий (<code>WANTED</code>). Если вам нужны серии 1–13, опрашивается алиас первой части. Когда вы переходите к сериям 14–26, система автоматически опрашивает индексаторы по алиасу <code>Space Dandy TV-2</code>, экономя лимиты запросов к трекерам.</span><span class="lang-en">The auto search worker only queries scoped aliases that overlap with currently WANTED episodes.</span></p>
+          </div>
+        </div>
+
+        <div class="wiki-step-item">
+          <div class="wiki-step-num">B</div>
+          <div class="wiki-step-body">
+            <div class="wiki-step-head"><span class="lang-ru">2. Выборочное скачивание файлов (Selective Torrent Download)</span><span class="lang-en">2. Selective Torrent Download</span></div>
+            <p class="wiki-p"><span class="lang-ru">Если в торрент-паке раздаются все серии ТВ-2 (файлы <code>01.mkv..13.mkv</code>), а вам в карточке нужны только 15-я и 16-я серии, механизм инспекции файлов торрента применит формулу смещения и включит загрузку <strong>только файлов 02.mkv и 03.mkv</strong>, отключив остальные файлы!</span><span class="lang-en">If a torrent pack contains <code>01.mkv..13.mkv</code> and only Ep 15–16 are WANTED, the torrent inspector enables only <code>02.mkv</code> and <code>03.mkv</code>.</span></p>
+          </div>
+        </div>
+
+        <div class="wiki-step-item">
+          <div class="wiki-step-num">C</div>
+          <div class="wiki-step-body">
+            <div class="wiki-step-head"><span class="lang-ru">3. Атомарный постимпорт и правильное переименование (Postprocessing)</span><span class="lang-en">3. Atomic Hardlinks &amp; Renaming</span></div>
+            <p class="wiki-p"><span class="lang-ru">После завершения скачивания движок постимпорта видит сматченный алиас и его смещение <code>+13</code>. Файл <code>Space Dandy TV-2 - 01.mkv</code> автоматически связывается через Hardlink и переименовывается в <code>Space Dandy - S01E14.mkv</code> в директорию <code>Season 1/</code>.</span><span class="lang-en">Upon download completion, postprocessing identifies the offset (+13) and hardlinks <code>01.mkv</code> as <code>Space Dandy - S01E14.mkv</code> directly into <code>Season 1/</code>.</span></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAQ Callout -->
+      <div class="wiki-subcard" style="background: rgba(108, 62, 248, 0.06); border: 1px solid rgba(108, 62, 248, 0.25); margin-top: 20px;">
+        <div style="font-weight:700;font-size:14px;color:var(--brand-name-color);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+          <i data-lucide="help-circle" style="width:16px;height:16px;"></i>
+          <span class="lang-ru">Часто задаваемые вопросы по смещению (FAQ)</span>
+          <span class="lang-en">Offset FAQ</span>
+        </div>
+        <ul style="font-size:13.5px;color:var(--text);line-height:1.75;margin:0;padding-left:20px;">
+          <li><strong>Какой offset ставить для 1-го сезона (серии с 1 по 13)?</strong><br>
+            <span class="lang-ru">Ставьте <code>0</code> или просто оставьте поле пустым. На торрентах серии 01–13 соответствуют 1–13 сериям карточки ($1 + 0 = 1$).</span>
+            <span class="lang-en">Set <code>0</code> or leave empty. Episode 1 on tracker corresponds directly to Episode 1 in library ($1 + 0 = 1$).</span>
+          </li>
+          <li><strong>Как не ошибиться в расчете offset для 2-й или 3-й части?</strong><br>
+            <span class="lang-ru">Всегда вычитайте единицу из стартового номера серии этой части в карточке: если часть начинается с 14-й серии, смещение $14 - 1 = \mathbf{13}$; если с 25-й серии — смещение $25 - 1 = \mathbf{24}$.</span>
+            <span class="lang-en">Subtract 1 from the start episode in your card: for start at Ep 14, offset is $14 - 1 = \mathbf{13}$; for Ep 25, offset is $25 - 1 = \mathbf{24}$.</span>
+          </li>
+          <li><strong>Что будет, если не указывать сезон и диапазон серий?</strong><br>
+            <span class="lang-ru">Алиас будет работать в стандартном глобальном режиме для всего тайтла без ограничений и смещений.</span>
+            <span class="lang-en">The alias acts as a global title alias across all seasons without filtering or offset.</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SECTION 7: STRICT SEASON MATCHING -->
     <section id="section-season-episode-matching" class="wiki-section">
       <div class="wiki-section-header">
         <div class="wiki-section-icon"><i data-lucide="hash"></i></div>
