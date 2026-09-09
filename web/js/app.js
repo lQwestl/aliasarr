@@ -10048,10 +10048,13 @@ async function runWizardMetadataSearch() {
   WIZARD_STATE.lastQuery = query;
   WIZARD_STATE.sourceId = sourceId !== "all" ? sourceId : null;
 
+  const searchSubtitle = CURRENT_LANG === "en"
+    ? "Searching in metadata sources..."
+    : "Поиск в источниках метаданных…";
+
   resultsEl.innerHTML = `
-    <div style="grid-column: 1 / -1; text-align:center; padding:48px 16px; color:var(--text-muted);">
-      <div class="spinner" style="margin: 0 auto 12px;"></div>
-      <p style="margin:0;">${t("common.loading")}</p>
+    <div style="grid-column: 1 / -1;">
+      ${renderRaysLoaderHtml(null, searchSubtitle, "wizard-search")}
     </div>`;
   try {
     let url = `/api/v1/metadata-sources/search?query=${encodeURIComponent(query)}`;
