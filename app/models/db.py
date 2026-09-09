@@ -143,6 +143,7 @@ class Show(Base):
 
     aliases: Mapped[list["Alias"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     episodes: Mapped[list["Episode"]] = relationship(back_populates="show", cascade="all, delete-orphan")
+    season_splits: Mapped[list["SeasonSplit"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     tracked_releases: Mapped[list["TrackedRelease"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     download_history: Mapped[list["DownloadHistory"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     blocklist_entries: Mapped[list["Blocklist"]] = relationship(
@@ -165,13 +166,55 @@ class Alias(Base):
     # Приоритет перебора алиасов при поиске: меньшее число = опрашивается раньше
     priority: Mapped[int] = mapped_column(Integer, default=1)
 
-    # Привязка алиаса к конкретному сезону/диапазону серий и смещение (Scoped Aliases & Offset)
-    season_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)     # Привязка к сезону карточки (None = весь тайтл)
-    episode_start: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)     # Начальная серия диапазона карточки
-    episode_end: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)       # Конечная серия диапазона карточки
-    episode_offset: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)    # Смещение нумерации (ep 1 -> ep 1 + offset)
+    # Legacy-колонки (оставлены для обратной совместимости базы данных)
+    season_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    episode_start: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    episode_end: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    episode_offset: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     show: Mapped["Show"] = relationship(back_populates="aliases")
+
+
+class SeasonSplit(Base):
+    """
+    Разделитель сезона (Season Splitter):
+    Позволяет разделить длинный сезон карточки (например, 26-серийный Season 1)
+    на несколько логических частей/сезонов на трекерах (например, TV-1: 1-13 и TV-2: 14-26, offset +13).
+    """
+    __tablename__ = "season_splits"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    show_id: Mapped[int] = mapped_column(ForeignKey("shows.id", ondelete="CASCADE"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(200), default="")
+    season_number: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
+
+    show: Mapped["Show"] = relationship(back_populates="season_splits")
+    parts: Mapped[list["SeasonSplitPart"]] = relationship(
+        back_populates="split",
+        cascade="all, delete-orphan",
+        order_by="SeasonSplitPart.episode_start",
+    )
+
+
+class SeasonSplitPart(Base):
+    """
+    Часть разделителя сезона:
+    Определяет номер части/сезона на трекерах, диапазон серий в карточке, смещение (+offset)
+    и поисковые алиасы, специфичные для этой части.
+    """
+    __tablename__ = "season_split_parts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    split_id: Mapped[int] = mapped_column(ForeignKey("season_splits.id", ondelete="CASCADE"), nullable=False, index=True)
+    part_type: Mapped[str] = mapped_column(String(20), default="season")  # season | part | cour
+    target_number: Mapped[int] = mapped_column(Integer, default=1)        # 1, 2, 3... (номер на трекерах)
+    episode_start: Mapped[int] = mapped_column(Integer, default=1)        # Начальная серия в карточке
+    episode_end: Mapped[int] = mapped_column(Integer, default=1)          # Конечная серия в карточке
+    episode_offset: Mapped[int] = mapped_column(Integer, default=0)       # Смещение нумерации в раздаче
+    aliases: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True, default="")  # Поисковые алиасы через запятую
+
+    split: Mapped["SeasonSplit"] = relationship(back_populates="parts")
 
 
 class Episode(Base):

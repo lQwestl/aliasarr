@@ -3307,45 +3307,75 @@
           <input type="number" id="alias-edit-priority" class="input" min="1" placeholder="1">
         </div>
       </div>
-
-      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-top: 4px;">
-        <div style="font-weight: 600; font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-          <i data-lucide="layers" class="ico-sm"></i>
-          <span data-i18n="alias.scope_section">Область действия и смещение серий</span>
-        </div>
-        
-        <div class="form-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
-          <div style="flex: 1;">
-            <label class="form-label" style="font-size: 11px;" data-i18n="alias.field_season">Сезон карточки</label>
-            <input type="number" id="alias-edit-season" class="input input-small" min="0" placeholder="Все сезоны" title="Привязать алиас к конкретному сезону карточки (например, 1)" oninput="updateAliasScopePreview()">
-          </div>
-          <div style="flex: 1;">
-            <label class="form-label" style="font-size: 11px;" data-i18n="alias.field_ep_start">Серия с</label>
-            <input type="number" id="alias-edit-ep-start" class="input input-small" min="1" placeholder="С 1-й" title="Начальный номер серии диапазона" oninput="onAliasEpStartChange(); updateAliasScopePreview();">
-          </div>
-          <div style="flex: 1;">
-            <label class="form-label" style="font-size: 11px;" data-i18n="alias.field_ep_end">Серия по</label>
-            <input type="number" id="alias-edit-ep-end" class="input input-small" min="1" placeholder="По посл." title="Конечный номер серии диапазона" oninput="updateAliasScopePreview()">
-          </div>
-        </div>
-
-        <div>
-          <label class="form-label" style="font-size: 11px;" data-i18n="alias.field_offset">Смещение номеров серий (+Offset)</label>
-          <input type="number" id="alias-edit-offset" class="input input-small" placeholder="Например: 13 (если в раздаче 01..13, а в карточке 14..26)" title="Числовое смещение: серия X в раздаче сопоставляется с серией X + offset в карточке" oninput="updateAliasScopePreview()">
-          <p class="hint" style="font-size: 11px; margin-top: 4px; line-height: 1.3;" data-i18n="alias.offset_hint">
-            Используется для сплит-куров (ТВ-2 / 2nd Season), когда раздача нумерует серии с 01, а в карточке они идут как 14–26.
-          </p>
-        </div>
-
-        <div id="alias-edit-preview-box" style="display: none; margin-top: 8px; padding: 6px 10px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 6px; font-size: 11px; line-height: 1.4; color: var(--text-main);">
-          <span id="alias-edit-preview-text"></span>
-        </div>
-      </div>
     </div>
 
     <div class="form-row" style="margin-top: 18px; display: flex; justify-content: flex-end; gap: 8px;">
       <button type="button" class="btn btn-secondary" onclick="closeModal('alias-edit-modal')" data-i18n="common.cancel">Отмена</button>
       <button type="button" class="btn btn-primary btn-solid" onclick="saveEditedAlias()" data-i18n="common.save">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка «Разделитель сезона» (Season Splitter) -->
+<div id="season-split-modal" class="modal-overlay">
+  <div class="modal modal-medium" style="max-width: 680px;">
+    <button class="modal-close" onclick="closeModal('season-split-modal')">×</button>
+    <div class="modal-header">
+      <h2 style="display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="split" class="ico-md" style="color: var(--color-primary, #3b82f6);"></i>
+        <span id="season-split-modal-title">Разделитель сезона (Season Splitter)</span>
+      </h2>
+    </div>
+
+    <input type="hidden" id="season-split-show-id">
+    <input type="hidden" id="season-split-id">
+
+    <div class="form-col" style="margin-top: 14px; gap: 12px;">
+      <div class="form-row" style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <div style="flex: 2; min-width: 200px;">
+          <label class="form-label">Название правила</label>
+          <input type="text" id="season-split-name" class="input" placeholder="Например: S1 (TV-1 / TV-2)" oninput="updateSeasonSplitPreview()">
+        </div>
+        <div style="flex: 1.5; min-width: 180px;">
+          <label class="form-label">Сезон карточки</label>
+          <select id="season-split-season-select" class="input" onchange="onSeasonSplitCardSeasonChange()">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <label class="form-label" style="font-weight: 600; font-size: 13px; margin-bottom: 0;">Части сезона на трекерах</label>
+          <button type="button" class="btn btn-secondary btn-small" onclick="addSeasonSplitPart()">
+            <i data-lucide="plus" class="ico-sm"></i> <span>Добавить часть</span>
+          </button>
+        </div>
+
+        <div id="season-split-parts-list" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <div id="season-split-preview-box" style="margin-top: 4px; padding: 10px 14px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; font-size: 12px; line-height: 1.5; color: var(--text-main);">
+        <div style="font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+          <i data-lucide="info" class="ico-xs" style="color: var(--color-primary, #3b82f6);"></i>
+          <span>Сводка работы разделителя:</span>
+        </div>
+        <div id="season-split-preview-content"></div>
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <button type="button" id="season-split-delete-btn" class="btn btn-danger btn-small" style="display: none;" onclick="deleteCurrentSeasonSplit()">
+          <i data-lucide="trash-2" class="ico-sm"></i> <span>Удалить</span>
+        </button>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('season-split-modal')">Отмена</button>
+        <button type="button" class="btn btn-primary btn-solid" onclick="saveSeasonSplit()">Сохранить разделитель</button>
+      </div>
     </div>
   </div>
 </div>

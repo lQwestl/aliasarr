@@ -247,35 +247,111 @@ class TestScopedAliasesDB(unittest.TestCase):
     def tearDown(self):
         self.db.close()
 
-    def test_alias_scoped_crud(self):
+    def test_alias_simple_crud(self):
         show = Show(title="Space Dandy", content_type="anime")
         self.db.add(show)
         self.db.commit()
 
         payload = AliasCreate(
-            text="Space Dandy TV-2",
+            text="Space Dandy Global",
             language="ru",
             priority=2,
-            season_number=1,
-            episode_start=14,
-            episode_end=26,
-            episode_offset=13,
         )
         alias_out = add_alias(show.id, payload, db=self.db, current_user=self.user)
-        self.assertEqual(alias_out.season_number, 1)
-        self.assertEqual(alias_out.episode_start, 14)
-        self.assertEqual(alias_out.episode_end, 26)
-        self.assertEqual(alias_out.episode_offset, 13)
+        self.assertEqual(alias_out.text, "Space Dandy Global")
+        self.assertEqual(alias_out.language, "ru")
+        self.assertEqual(alias_out.priority, 2)
 
         update_payload = AliasUpdate(
-            text="Space Dandy 2nd Season",
-            episode_offset=13,
-            episode_start=14,
-            episode_end=26,
+            text="Space Dandy Global Updated",
+            priority=1,
         )
         updated = update_alias(show.id, alias_out.id, update_payload, db=self.db, current_user=self.user)
-        self.assertEqual(updated.text, "Space Dandy 2nd Season")
-        self.assertEqual(updated.episode_offset, 13)
+        self.assertEqual(updated.text, "Space Dandy Global Updated")
+        self.assertEqual(updated.priority, 1)
+
+    def test_season_split_crud_and_candidates(self):
+        from app.schemas import SeasonSplitCreate, SeasonSplitPartCreate, SeasonSplitUpdate
+        from app.api.shows import create_season_split, update_season_split, get_season_splits, delete_season_split
+        from app.services.matcher import build_alias_candidates
+
+        show = Show(title="Space Dandy", content_type="anime")
+        self.db.add(show)
+        self.db.commit()
+
+        split_payload = SeasonSplitCreate(
+            name="S1 (TV-1 / TV-2)",
+            season_number=1,
+            parts=[
+                SeasonSplitPartCreate(
+                    part_type="season",
+                    target_number=1,
+                    episode_start=1,
+                    episode_end=13,
+                    episode_offset=0,
+                    aliases="Космический Денди, Space Dandy",
+                ),
+                SeasonSplitPartCreate(
+                    part_type="season",
+                    target_number=2,
+                    episode_start=14,
+                    episode_end=26,
+                    episode_offset=13,
+                    aliases="Space Dandy 2, Космический Денди (ТВ-2)",
+                )
+            ]
+        )
+
+        split_out = create_season_split(show.id, split_payload, db=self.db, current_user=self.user)
+        self.assertEqual(split_out.name, "S1 (TV-1 / TV-2)")
+        self.assertEqual(split_out.season_number, 1)
+        self.assertEqual(len(split_out.parts), 2)
+        self.assertEqual(split_out.parts[1].episode_offset, 13)
+
+        # Test build_alias_candidates incorporates season split parts
+        candidates = build_alias_candidates(show, db=self.db)
+        cand_texts = [c.text for c in candidates]
+        self.assertIn("Space Dandy 2", cand_texts)
+        self.assertIn("Космический Денди (ТВ-2)", cand_texts)
+
+        part2_cands = [c for c in candidates if c.text == "Space Dandy 2"]
+        self.assertTrue(len(part2_cands) > 0)
+        self.assertEqual(part2_cands[0].season_number, 1)
+        self.assertEqual(part2_cands[0].episode_offset, 13)
+        self.assertEqual(part2_cands[0].episode_start, 14)
+        self.assertEqual(part2_cands[0].episode_end, 26)
+
+        # Update split
+        update_payload = SeasonSplitUpdate(
+            name="S1 (Cour 1 / Cour 2)",
+            parts=[
+                SeasonSplitPartCreate(
+                    part_type="cour",
+                    target_number=1,
+                    episode_start=1,
+                    episode_end=13,
+                    episode_offset=0,
+                    aliases="Space Dandy Cour 1",
+                ),
+                SeasonSplitPartCreate(
+                    part_type="cour",
+                    target_number=2,
+                    episode_start=14,
+                    episode_end=26,
+                    episode_offset=13,
+                    aliases="Space Dandy Cour 2",
+                )
+            ]
+        )
+        updated_split = update_season_split(show.id, split_out.id, update_payload, db=self.db, current_user=self.user)
+        self.assertEqual(updated_split.name, "S1 (Cour 1 / Cour 2)")
+        self.assertEqual(updated_split.parts[0].part_type, "cour")
+
+        # Delete split
+        del_res = delete_season_split(show.id, split_out.id, db=self.db, current_user=self.user)
+        self.assertTrue(del_res["ok"])
+        splits = get_season_splits(show.id, db=self.db)
+        self.assertEqual(len(splits), 0)
 
     def test_decision_engine_with_offset(self):
         show = Show(title="Space Dandy", content_type="anime")

@@ -11,10 +11,6 @@ class AliasCreate(BaseModel):
     language: str = "ru"
     source: str = "manual"
     priority: Optional[int] = None  # если не задан — назначается автоматически (в конец очереди)
-    season_number: Optional[int] = None
-    episode_start: Optional[int] = None
-    episode_end: Optional[int] = None
-    episode_offset: Optional[int] = None
 
 
 class AliasOut(AliasCreate):
@@ -28,10 +24,43 @@ class AliasUpdate(BaseModel):
     text: Optional[str] = None
     language: Optional[str] = None
     priority: Optional[int] = None
+
+
+class SeasonSplitPartCreate(BaseModel):
+    part_type: str = "season"  # "season" | "part" | "cour"
+    target_number: int = 1
+    episode_start: int = 1
+    episode_end: int = 1
+    episode_offset: int = 0
+    aliases: Optional[str] = ""
+
+
+class SeasonSplitPartOut(SeasonSplitPartCreate):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    split_id: int
+
+
+class SeasonSplitCreate(BaseModel):
+    name: str = ""
+    season_number: int = 1
+    parts: list[SeasonSplitPartCreate] = []
+
+
+class SeasonSplitUpdate(BaseModel):
+    name: Optional[str] = None
     season_number: Optional[int] = None
-    episode_start: Optional[int] = None
-    episode_end: Optional[int] = None
-    episode_offset: Optional[int] = None
+    parts: Optional[list[SeasonSplitPartCreate]] = None
+
+
+class SeasonSplitOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    show_id: int
+    name: str
+    season_number: int
+    created_at: dt.datetime
+    parts: list[SeasonSplitPartOut] = []
 
 
 class DeleteContentPayload(BaseModel):
@@ -148,6 +177,7 @@ class ShowOut(BaseModel):
     size_on_disk_bytes: int = 0
     next_airing: Optional[dt.datetime] = None
     aliases: list[AliasOut] = []
+    season_splits: list[SeasonSplitOut] = []
 
 
 class EpisodeOut(BaseModel):

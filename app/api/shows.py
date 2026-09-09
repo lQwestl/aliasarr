@@ -23,6 +23,8 @@ from app.models.db import (
     EpisodeStatus,
     MonitorStatus,
     ReleaseLog,
+    SeasonSplit,
+    SeasonSplitPart,
     Show,
     TrackedRelease,
     User,
@@ -36,6 +38,11 @@ from app.schemas import (
     DeleteContentPayload,
     DeleteContentResponse,
     EpisodeOut,
+    SeasonSplitCreate,
+    SeasonSplitOut,
+    SeasonSplitPartCreate,
+    SeasonSplitPartOut,
+    SeasonSplitUpdate,
     ShowCreate,
     ShowOut,
     ShowUpdate,
@@ -700,14 +707,10 @@ def add_alias(
         priority = (max_priority or 0) + 1
     alias = Alias(
         show_id=show_id,
-        text=payload.text,
+        text=payload.text.strip(),
         language=payload.language,
         source=payload.source,
         priority=priority,
-        season_number=payload.season_number,
-        episode_start=payload.episode_start,
-        episode_end=payload.episode_end,
-        episode_offset=payload.episode_offset,
     )
     db.add(alias)
     db.commit()
@@ -725,7 +728,7 @@ def update_alias(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_library")),
 ):
-    """Редактирование текста, приоритета и области действия (сезон/серии/смещение) поискового алиаса."""
+    """Редактирование текста и приоритета поискового алиаса."""
     alias = db.get(Alias, alias_id)
     if not alias or alias.show_id != show_id:
         raise HTTPException(404, "Alias not found")
@@ -739,14 +742,6 @@ def update_alias(
         alias.language = dumped["language"]
     if "priority" in dumped:
         alias.priority = dumped["priority"]
-    if "season_number" in dumped:
-        alias.season_number = dumped["season_number"]
-    if "episode_start" in dumped:
-        alias.episode_start = dumped["episode_start"]
-    if "episode_end" in dumped:
-        alias.episode_end = dumped["episode_end"]
-    if "episode_offset" in dumped:
-        alias.episode_offset = dumped["episode_offset"]
     db.add(alias)
     db.commit()
     db.refresh(alias)
@@ -767,6 +762,116 @@ def delete_alias(
     if not alias or alias.show_id != show_id:
         raise HTTPException(404, "Alias not found")
     db.delete(alias)
+    db.commit()
+    from app.services.auto_search import clear_rejected_cache_for_show
+    clear_rejected_cache_for_show(show_id, db)
+
+
+# --- Разделитель сезона (Season Splitter) ---
+
+
+@router.get("/{show_id}/season-splits", response_model=list[SeasonSplitOut])
+def list_season_splits(
+    show_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("view_library")),
+):
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Show not found")
+    return db.query(SeasonSplit).filter(SeasonSplit.show_id == show_id).order_by(SeasonSplit.season_number).all()
+
+
+@router.post("/{show_id}/season-splits", response_model=SeasonSplitOut, status_code=201)
+def create_season_split(
+    show_id: int,
+    payload: SeasonSplitCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Show not found")
+
+    split_name = payload.name.strip() or f"S{payload.season_number:02d} Split"
+    split = SeasonSplit(
+        show_id=show_id,
+        name=split_name,
+        season_number=payload.season_number,
+    )
+    db.add(split)
+    db.flush()
+
+    for p in payload.parts:
+        part = SeasonSplitPart(
+            split_id=split.id,
+            part_type=p.part_type or "season",
+            target_number=p.target_number or 1,
+            episode_start=p.episode_start or 1,
+            episode_end=p.episode_end or 1,
+            episode_offset=p.episode_offset if p.episode_offset is not None else 0,
+            aliases=(p.aliases or "").strip(),
+        )
+        db.add(part)
+
+    db.commit()
+    db.refresh(split)
+    from app.services.auto_search import clear_rejected_cache_for_show
+    clear_rejected_cache_for_show(show_id, db)
+    return split
+
+
+@router.put("/{show_id}/season-splits/{split_id}", response_model=SeasonSplitOut)
+def update_season_split(
+    show_id: int,
+    split_id: int,
+    payload: SeasonSplitUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    split = db.get(SeasonSplit, split_id)
+    if not split or split.show_id != show_id:
+        raise HTTPException(404, "SeasonSplit not found")
+
+    if payload.name is not None:
+        split.name = payload.name.strip()
+    if payload.season_number is not None:
+        split.season_number = payload.season_number
+
+    if payload.parts is not None:
+        db.query(SeasonSplitPart).filter(SeasonSplitPart.split_id == split_id).delete()
+        db.flush()
+        for p in payload.parts:
+            part = SeasonSplitPart(
+                split_id=split.id,
+                part_type=p.part_type or "season",
+                target_number=p.target_number or 1,
+                episode_start=p.episode_start or 1,
+                episode_end=p.episode_end or 1,
+                episode_offset=p.episode_offset if p.episode_offset is not None else 0,
+                aliases=(p.aliases or "").strip(),
+            )
+            db.add(part)
+
+    db.add(split)
+    db.commit()
+    db.refresh(split)
+    from app.services.auto_search import clear_rejected_cache_for_show
+    clear_rejected_cache_for_show(show_id, db)
+    return split
+
+
+@router.delete("/{show_id}/season-splits/{split_id}", status_code=204)
+def delete_season_split(
+    show_id: int,
+    split_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    split = db.get(SeasonSplit, split_id)
+    if not split or split.show_id != show_id:
+        raise HTTPException(404, "SeasonSplit not found")
+    db.delete(split)
     db.commit()
     from app.services.auto_search import clear_rejected_cache_for_show
     clear_rejected_cache_for_show(show_id, db)

@@ -1158,17 +1158,21 @@ async def _collect_candidates(
 
         for alias in active_aliases:
             _add_query(alias.text)
-            # Если алиас явно относится ко 2-й части/сплит-куру (offset > 0 или ТВ-2)
-            if _is_part_2_alias(alias):
+            # Если алиас явно относится к части/сплит-куру (offset > 0 или ТВ-2/3...)
+            t_num = getattr(alias, "target_number", None)
+            if _is_part_2_alias(alias) or (t_num and t_num >= 2):
+                tgt = t_num if (t_num and t_num >= 2) else 2
                 root_b = _clean_alias_season_suffix(alias.text) or alias.text
-                _add_query(f"{root_b} Season 2")
-                _add_query(f"{root_b} Сезон 2")
-                _add_query(f"{root_b} 2 сезон")
-                _add_query(f"{root_b} S02")
-                _add_query(f"{root_b} 2nd Season")
-                _add_query(f"{root_b} (ТВ-2)")
-                _add_query(f"{root_b} ТВ-2")
-                _add_query(f"{root_b} 2")
+                ord_str = _ordinal_en(tgt)
+                _add_query(f"{root_b} Season {tgt}")
+                _add_query(f"{root_b} Сезон {tgt}")
+                _add_query(f"{root_b} {tgt} сезон")
+                _add_query(f"{root_b} S{tgt:02d}")
+                _add_query(f"{root_b} {ord_str} Season")
+                _add_query(f"{root_b} (ТВ-{tgt})")
+                _add_query(f"{root_b} ТВ-{tgt}")
+                _add_query(f"{root_b} Part {tgt}")
+                _add_query(f"{root_b} {tgt}")
 
         # Сезонные запросы и мультисезоны
         if wanted_episodes:

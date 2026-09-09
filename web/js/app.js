@@ -6134,7 +6134,7 @@ async function refreshShowModal() {
                 ${renderAliasChips(show, canManageLib)}
               </div>
               ${canManageLib ? `
-              <div class="alias-add-row" style="margin-top:6px; flex-wrap:wrap;">
+              <div class="alias-add-row" style="margin-top:6px;">
                 <input id="new-alias-text-${show.id}" class="input input-small" type="text" placeholder="${t("show.new_alias_placeholder")}"
                   style="flex: 2; min-width: 140px;"
                   onkeydown="if(event.key==='Enter') addAlias(${show.id})">
@@ -6142,29 +6142,9 @@ async function refreshShowModal() {
                   <option value="ru">ru</option><option value="en">en</option>
                   <option value="jp">jp</option><option value="romaji">romaji</option><option value="other">other</option>
                 </select>
-                <button type="button" class="btn btn-secondary btn-small" onclick="toggleAliasAdv(${show.id})" title="${t("alias.scope_section") || 'Scope & Offset'}"><i data-lucide="sliders-horizontal" class="ico-sm"></i></button>
                 <button class="btn btn-secondary btn-small" onclick="addAlias(${show.id})"><i data-lucide="plus" class="ico-sm"></i> ${t("common.add")}</button>
-              </div>
-              <div id="new-alias-adv-${show.id}" class="alias-adv-row" style="display:none; margin-top:6px; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:8px;">
-                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; width:100%;">
-                  <div style="flex:1; min-width:80px;">
-                    <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:2px;">${t("alias.field_season") || 'Сезон'}</label>
-                    <input id="new-alias-season-${show.id}" class="input input-small" type="number" min="0" placeholder="Все">
-                  </div>
-                  <div style="flex:1; min-width:70px;">
-                    <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:2px;">${t("alias.field_ep_start") || 'Серия с'}</label>
-                    <input id="new-alias-ep-start-${show.id}" class="input input-small" type="number" min="1" placeholder="1" oninput="onInlineAliasEpStartChange(${show.id})">
-                  </div>
-                  <div style="flex:1; min-width:70px;">
-                    <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:2px;">${t("alias.field_ep_end") || 'Серия по'}</label>
-                    <input id="new-alias-ep-end-${show.id}" class="input input-small" type="number" min="1" placeholder="По посл.">
-                  </div>
-                  <div style="flex:1.2; min-width:90px;">
-                    <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:2px;">${t("alias.field_offset") || '+Offset'}</label>
-                    <input id="new-alias-offset-${show.id}" class="input input-small" type="number" placeholder="+13" title="${t("alias.offset_hint") || ''}">
-                  </div>
-                </div>
               </div>` : ""}
+              ${renderSeasonSplitBadges(show, canManageLib)}
             </div>
           </div>
         </div>
@@ -6188,6 +6168,9 @@ async function refreshShowModal() {
         ` : ""}
         <button type="button" class="btn btn-secondary btn-small" onclick="openShowRemapModal(${show.id})" title="${t("show.remap_tooltip")}">
           <i data-lucide="link-2" class="ico-sm"></i> <span>${t("show.btn_remap")}</span>
+        </button>
+        <button type="button" class="btn btn-secondary btn-small" onclick="openSeasonSplitModal(${show.id})" title="${CURRENT_LANG === 'en' ? 'Season Splitter for split-cour / multi-part anime seasons' : 'Разделитель сезона для сплит-куров и составных сезонов'}">
+          <i data-lucide="split" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Split Season' : 'Разделить сезон'}</span>
         </button>
         <button type="button" class="btn btn-secondary btn-small" onclick="openShowBlocklistModal(${show.id})" title="${CURRENT_LANG === 'en' ? 'Show blocklisted releases for this title' : 'Черный список раздач для этого тайтла'}">
           <i data-lucide="shield-alert" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Blocklist' : 'Черный список'}</span>
@@ -6356,105 +6339,11 @@ function renderAliasChips(show, canManageLib = true) {
       <span class="alias-chip lang-${a.language}" title="${a.source === "manual" ? "Manual" : "Source: " + escapeHtml(a.source)}">
         <span class="alias-chip-priority" title="${t("common.priority")}">#${a.priority ?? (idx + 1)}</span>
         <span class="alias-chip-text">${escapeHtml(a.text)}</span>
-        ${formatAliasScopeBadge(a)}
         ${canManageLib ? `<span class="alias-chip-actions">
           <button class="alias-chip-edit" onclick="openEditAliasModal(${show.id}, ${a.id})" title="${t("common.edit")}"><i data-lucide="edit-2" class="ico-xs"></i></button>
           <button class="alias-chip-remove" onclick="deleteAliasFromShow(${show.id}, ${a.id})" title="${t("common.delete")}"><i data-lucide="x" class="ico-xs"></i></button>
         </span>` : ""}
       </span>`).join("");
-}
-
-function toggleAliasAdv(showId) {
-  const row = document.getElementById(`new-alias-adv-${showId}`);
-  if (row) {
-    row.style.display = (row.style.display === "none" || !row.style.display) ? "flex" : "none";
-  }
-}
-
-function onAliasEpStartChange() {
-  const epStartInput = document.getElementById("alias-edit-ep-start");
-  const offsetInput = document.getElementById("alias-edit-offset");
-  if (!epStartInput || !offsetInput) return;
-  const startVal = parseInt(epStartInput.value, 10);
-  if (!isNaN(startVal) && startVal > 1) {
-    if (!offsetInput.value || offsetInput.dataset.autoCalculated === "true") {
-      offsetInput.value = startVal - 1;
-      offsetInput.dataset.autoCalculated = "true";
-    }
-  } else if (offsetInput.dataset.autoCalculated === "true") {
-    offsetInput.value = "";
-    offsetInput.dataset.autoCalculated = "false";
-  }
-}
-
-function onInlineAliasEpStartChange(showId) {
-  const epStartInput = document.getElementById(`new-alias-ep-start-${showId}`);
-  const offsetInput = document.getElementById(`new-alias-offset-${showId}`);
-  if (!epStartInput || !offsetInput) return;
-  const startVal = parseInt(epStartInput.value, 10);
-  if (!isNaN(startVal) && startVal > 1) {
-    if (!offsetInput.value || offsetInput.dataset.autoCalculated === "true") {
-      offsetInput.value = startVal - 1;
-      offsetInput.dataset.autoCalculated = "true";
-    }
-  } else if (offsetInput.dataset.autoCalculated === "true") {
-    offsetInput.value = "";
-    offsetInput.dataset.autoCalculated = "false";
-  }
-}
-
-function updateAliasScopePreview() {
-  const seasonInput = document.getElementById("alias-edit-season");
-  const epStartInput = document.getElementById("alias-edit-ep-start");
-  const epEndInput = document.getElementById("alias-edit-ep-end");
-  const offsetInput = document.getElementById("alias-edit-offset");
-  const previewBox = document.getElementById("alias-edit-preview-box");
-  const previewText = document.getElementById("alias-edit-preview-text");
-  if (!previewBox || !previewText) return;
-
-  const s = seasonInput && seasonInput.value !== "" ? parseInt(seasonInput.value, 10) : null;
-  const start = epStartInput && epStartInput.value !== "" ? parseInt(epStartInput.value, 10) : null;
-  const end = epEndInput && epEndInput.value !== "" ? parseInt(epEndInput.value, 10) : null;
-  const off = offsetInput && offsetInput.value !== "" ? parseInt(offsetInput.value, 10) : 0;
-
-  if (s == null && start == null && end == null && !off) {
-    previewBox.style.display = "none";
-    previewText.textContent = "";
-    return;
-  }
-
-  const pad = n => String(n).padStart(2, "0");
-  const sStr = s != null ? `S${pad(s)}` : "S01";
-
-  if (off > 0 && start != null && end != null) {
-    const relStart = Math.max(1, start - off);
-    const relEnd = Math.max(relStart, end - off);
-    const isRu = CURRENT_LANG !== "en";
-    previewText.innerHTML = isRu
-      ? `💡 <strong>Сплит-кур (ТВ-2 / Part 2):</strong> Серии <strong>${pad(relStart)}–${pad(relEnd)}</strong> из раздач будут распознаны и сохранены как <strong>${sStr}E${pad(start)}–${sStr}E${pad(end)}</strong>.`
-      : `💡 <strong>Split-Cour (Part 2 / TV-2):</strong> Release episodes <strong>${pad(relStart)}–${pad(relEnd)}</strong> will be mapped and saved as <strong>${sStr}E${pad(start)}–${sStr}E${pad(end)}</strong>.`;
-  } else if (start != null && end != null) {
-    const isRu = CURRENT_LANG !== "en";
-    previewText.innerHTML = isRu
-      ? `💡 <strong>Диапазон:</strong> Алиас ищет серии <strong>${sStr}E${pad(start)}–${sStr}E${pad(end)}</strong>.`
-      : `💡 <strong>Range:</strong> Alias searches for episodes <strong>${sStr}E${pad(start)}–${sStr}E${pad(end)}</strong>.`;
-  } else if (s != null) {
-    const isRu = CURRENT_LANG !== "en";
-    previewText.innerHTML = isRu
-      ? `💡 <strong>Сезон:</strong> Алиас применяется ко всем сериям сезона <strong>${s}</strong>.`
-      : `💡 <strong>Season:</strong> Alias applies to all episodes in Season <strong>${s}</strong>.`;
-  } else if (off > 0) {
-    const isRu = CURRENT_LANG !== "en";
-    previewText.innerHTML = isRu
-      ? `💡 <strong>Смещение +${off}:</strong> Номера серий в раздаче увеличиваются на <strong>${off}</strong>.`
-      : `💡 <strong>Offset +${off}:</strong> Release episode numbers will be shifted by <strong>+${off}</strong>.`;
-  } else {
-    previewBox.style.display = "none";
-    previewText.textContent = "";
-    return;
-  }
-
-  previewBox.style.display = "block";
 }
 
 function openEditAliasModal(showId, aliasId) {
@@ -6475,14 +6364,7 @@ function openEditAliasModal(showId, aliasId) {
   document.getElementById("alias-edit-text").value = alias.text || "";
   document.getElementById("alias-edit-lang").value = alias.language || "ru";
   document.getElementById("alias-edit-priority").value = alias.priority != null ? alias.priority : 1;
-  document.getElementById("alias-edit-season").value = alias.season_number != null ? alias.season_number : "";
-  document.getElementById("alias-edit-ep-start").value = alias.episode_start != null ? alias.episode_start : "";
-  document.getElementById("alias-edit-ep-end").value = alias.episode_end != null ? alias.episode_end : "";
-  const offsetInput = document.getElementById("alias-edit-offset");
-  offsetInput.value = alias.episode_offset != null ? alias.episode_offset : "";
-  offsetInput.dataset.autoCalculated = "false";
 
-  updateAliasScopePreview();
   openModal("alias-edit-modal");
   if (typeof lucide !== "undefined" && lucide.createIcons) {
     lucide.createIcons();
@@ -6495,10 +6377,6 @@ async function saveEditedAlias() {
   const text = document.getElementById("alias-edit-text").value.trim();
   const language = document.getElementById("alias-edit-lang").value;
   const priorityStr = document.getElementById("alias-edit-priority").value;
-  const seasonStr = document.getElementById("alias-edit-season").value;
-  const epStartStr = document.getElementById("alias-edit-ep-start").value;
-  const epEndStr = document.getElementById("alias-edit-ep-end").value;
-  const offsetStr = document.getElementById("alias-edit-offset").value;
 
   if (!text) {
     toast(CURRENT_LANG === "en" ? "Alias text cannot be empty" : "Текст алиаса не может быть пустым", true);
@@ -6509,10 +6387,6 @@ async function saveEditedAlias() {
     text,
     language,
     priority: priorityStr !== "" ? parseInt(priorityStr, 10) : null,
-    season_number: seasonStr !== "" ? parseInt(seasonStr, 10) : null,
-    episode_start: epStartStr !== "" ? parseInt(epStartStr, 10) : null,
-    episode_end: epEndStr !== "" ? parseInt(epEndStr, 10) : null,
-    episode_offset: offsetStr !== "" ? parseInt(offsetStr, 10) : null,
   };
 
   try {
@@ -6536,10 +6410,6 @@ async function editAliasPrompt(showId, aliasId, currentText, currentPriority) {
 async function addAlias(showId) {
   const textInput = document.getElementById(`new-alias-text-${showId}`);
   const langSelect = document.getElementById(`new-alias-lang-${showId}`);
-  const seasonInput = document.getElementById(`new-alias-season-${showId}`);
-  const epStartInput = document.getElementById(`new-alias-ep-start-${showId}`);
-  const epEndInput = document.getElementById(`new-alias-ep-end-${showId}`);
-  const offsetInput = document.getElementById(`new-alias-offset-${showId}`);
 
   const text = textInput ? textInput.value.trim() : "";
   if (!text) return;
@@ -6547,10 +6417,6 @@ async function addAlias(showId) {
   const payload = {
     text,
     language: langSelect ? langSelect.value : "ru",
-    season_number: (seasonInput && seasonInput.value !== "") ? parseInt(seasonInput.value, 10) : null,
-    episode_start: (epStartInput && epStartInput.value !== "") ? parseInt(epStartInput.value, 10) : null,
-    episode_end: (epEndInput && epEndInput.value !== "") ? parseInt(epEndInput.value, 10) : null,
-    episode_offset: (offsetInput && offsetInput.value !== "") ? parseInt(offsetInput.value, 10) : null,
   };
 
   try {
@@ -6559,13 +6425,355 @@ async function addAlias(showId) {
       body: JSON.stringify(payload),
     });
     if (textInput) textInput.value = "";
-    if (seasonInput) seasonInput.value = "";
-    if (epStartInput) epStartInput.value = "";
-    if (epEndInput) epEndInput.value = "";
-    if (offsetInput) offsetInput.value = "";
     await refreshShowModal();
     await loadShows();
   } catch (e) { toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true); }
+}
+
+/* =========================================================================
+   SEASON SPLITTER (Разделитель сезона)
+   ========================================================================= */
+
+let CURRENT_SEASON_SPLIT_PARTS = [];
+
+function renderSeasonSplitBadges(show, canManageLib = true) {
+  const splits = show.season_splits || [];
+  if (!splits.length) return "";
+
+  return `
+    <div class="season-splits-container" id="season-splits-container-${show.id}">
+      ${splits.map(s => {
+        const parts = s.parts || [];
+        const partsSummary = parts.map(p => {
+          const typeLabel = p.part_type === "cour" ? "Кур" : (p.part_type === "part" ? "Часть" : "ТВ");
+          const epRange = (p.episode_start && p.episode_end) ? `${p.episode_start}–${p.episode_end}` : "";
+          const offStr = (p.episode_offset && p.episode_offset > 0) ? ` (+${p.episode_offset})` : "";
+          return `<span class="season-split-badge-part">${typeLabel}-${p.target_number}: ${epRange}${offStr}</span>`;
+        }).join(" ");
+
+        return `
+          <div class="season-split-badge">
+            <span class="season-split-badge-title">
+              <i data-lucide="split" class="ico-xs"></i>
+              <span>${escapeHtml(s.name || `Сезон ${s.season_number}`)}</span>
+            </span>
+            <div class="season-split-badge-parts">
+              ${partsSummary}
+            </div>
+            ${canManageLib ? `
+            <div class="season-split-badge-actions">
+              <button class="alias-chip-edit" onclick="openSeasonSplitModal(${show.id}, ${s.id})" title="${t("common.edit") || 'Редактировать'}"><i data-lucide="edit-2" class="ico-xs"></i></button>
+              <button class="alias-chip-remove" onclick="deleteSeasonSplit(${show.id}, ${s.id})" title="${t("common.delete") || 'Удалить'}"><i data-lucide="trash-2" class="ico-xs"></i></button>
+            </div>` : ""}
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function openSeasonSplitModal(showId, splitId = null) {
+  const show = (typeof CACHED_SHOWS !== "undefined" && Array.isArray(CACHED_SHOWS))
+    ? CACHED_SHOWS.find(x => x.id === showId)
+    : null;
+
+  if (!show) {
+    toast(CURRENT_LANG === "en" ? "Show not found" : "Тайтл не найден", true);
+    return;
+  }
+
+  document.getElementById("season-split-show-id").value = showId;
+  document.getElementById("season-split-id").value = splitId || "";
+
+  // Populate season select
+  const seasonSelect = document.getElementById("season-split-season-select");
+  seasonSelect.innerHTML = "";
+
+  const eps = show.episodes || [];
+  const seasonsMap = {};
+  for (const ep of eps) {
+    const sn = ep.season_number ?? 1;
+    if (sn > 0) {
+      seasonsMap[sn] = (seasonsMap[sn] || 0) + 1;
+    }
+  }
+  const seasonNums = Object.keys(seasonsMap).map(Number).sort((a, b) => a - b);
+  if (!seasonNums.length) seasonNums.push(1);
+
+  for (const sn of seasonNums) {
+    const count = seasonsMap[sn] || 0;
+    const opt = document.createElement("option");
+    opt.value = sn;
+    opt.textContent = `Сезон ${sn}${count > 0 ? ` (${count} серий)` : ""}`;
+    seasonSelect.appendChild(opt);
+  }
+
+  const deleteBtn = document.getElementById("season-split-delete-btn");
+
+  let split = null;
+  if (splitId && show.season_splits) {
+    split = show.season_splits.find(s => s.id === splitId);
+  }
+
+  if (split) {
+    document.getElementById("season-split-name").value = split.name || "";
+    seasonSelect.value = split.season_number || 1;
+    CURRENT_SEASON_SPLIT_PARTS = JSON.parse(JSON.stringify(split.parts || []));
+    if (deleteBtn) deleteBtn.style.display = "inline-flex";
+  } else {
+    const firstSeason = seasonNums[0] || 1;
+    seasonSelect.value = firstSeason;
+    const totalEps = seasonsMap[firstSeason] || 24;
+    const half = Math.floor(totalEps / 2) || 12;
+
+    document.getElementById("season-split-name").value = `S${firstSeason} (TV-1 / TV-2)`;
+    CURRENT_SEASON_SPLIT_PARTS = [
+      {
+        part_type: "season",
+        target_number: 1,
+        episode_start: 1,
+        episode_end: half,
+        episode_offset: 0,
+        aliases: show.title ? `${show.title}` : "",
+      },
+      {
+        part_type: "season",
+        target_number: 2,
+        episode_start: half + 1,
+        episode_end: totalEps,
+        episode_offset: half,
+        aliases: show.title ? `${show.title} 2, ${show.title} (ТВ-2)` : "",
+      }
+    ];
+    if (deleteBtn) deleteBtn.style.display = "none";
+  }
+
+  renderSeasonSplitParts();
+  updateSeasonSplitPreview();
+  openModal("season-split-modal");
+  if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+}
+
+function renderSeasonSplitParts() {
+  const container = document.getElementById("season-split-parts-list");
+  if (!container) return;
+
+  container.innerHTML = CURRENT_SEASON_SPLIT_PARTS.map((p, idx) => `
+    <div class="season-split-part-card" data-index="${idx}">
+      <div class="season-split-part-header">
+        <span style="display:flex; align-items:center; gap:6px;">
+          <i data-lucide="layers" class="ico-xs" style="color:var(--color-primary, #3b82f6);"></i>
+          <span>Часть ${idx + 1}</span>
+        </span>
+        ${CURRENT_SEASON_SPLIT_PARTS.length > 1 ? `
+        <button type="button" class="btn-icon" onclick="removeSeasonSplitPart(${idx})" title="Удалить часть" style="background:none; border:none; cursor:pointer; color:var(--text-muted);">
+          <i data-lucide="x" class="ico-xs"></i>
+        </button>` : ""}
+      </div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+        <div style="flex:1.2; min-width:110px;">
+          <label class="form-label" style="font-size:11px;">Тип части</label>
+          <select class="input input-small" onchange="onPartFieldChange(${idx}, 'part_type', this.value)">
+            <option value="season" ${p.part_type === 'season' ? 'selected' : ''}>Сезон (ТВ)</option>
+            <option value="part" ${p.part_type === 'part' ? 'selected' : ''}>Часть (Part)</option>
+            <option value="cour" ${p.part_type === 'cour' ? 'selected' : ''}>Кур (Cour)</option>
+          </select>
+        </div>
+        <div style="flex:0.8; min-width:80px;">
+          <label class="form-label" style="font-size:11px;">Номер на трекерах</label>
+          <input type="number" class="input input-small" min="1" value="${p.target_number ?? (idx + 1)}" oninput="onPartFieldChange(${idx}, 'target_number', parseInt(this.value, 10))">
+        </div>
+        <div style="flex:1; min-width:80px;">
+          <label class="form-label" style="font-size:11px;">Серия с</label>
+          <input type="number" class="input input-small" min="1" value="${p.episode_start ?? ''}" placeholder="1" oninput="onPartStartChange(${idx}, this.value)">
+        </div>
+        <div style="flex:1; min-width:80px;">
+          <label class="form-label" style="font-size:11px;">Серия по</label>
+          <input type="number" class="input input-small" min="1" value="${p.episode_end ?? ''}" placeholder="13" oninput="onPartFieldChange(${idx}, 'episode_end', parseInt(this.value, 10))">
+        </div>
+        <div style="flex:1; min-width:90px;">
+          <label class="form-label" style="font-size:11px;">Смещение (+Offset)</label>
+          <input type="number" id="part-offset-input-${idx}" class="input input-small" value="${p.episode_offset ?? 0}" placeholder="0" oninput="onPartFieldChange(${idx}, 'episode_offset', parseInt(this.value, 10))">
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label" style="font-size:11px; margin-bottom:2px;">Поисковые алиасы части (через запятую)</label>
+        <input type="text" class="input input-small" value="${escapeHtml(p.aliases || '')}" placeholder="Например: Space Dandy 2, Космический Денди (ТВ-2)" oninput="onPartFieldChange(${idx}, 'aliases', this.value)">
+      </div>
+    </div>
+  `).join("");
+
+  if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+}
+
+function onPartFieldChange(idx, field, val) {
+  if (CURRENT_SEASON_SPLIT_PARTS[idx]) {
+    CURRENT_SEASON_SPLIT_PARTS[idx][field] = val;
+    updateSeasonSplitPreview();
+  }
+}
+
+function onPartStartChange(idx, val) {
+  const startNum = parseInt(val, 10);
+  if (CURRENT_SEASON_SPLIT_PARTS[idx]) {
+    CURRENT_SEASON_SPLIT_PARTS[idx].episode_start = isNaN(startNum) ? null : startNum;
+    if (!isNaN(startNum) && startNum > 1 && idx > 0) {
+      const autoOff = startNum - 1;
+      CURRENT_SEASON_SPLIT_PARTS[idx].episode_offset = autoOff;
+      const offInput = document.getElementById(`part-offset-input-${idx}`);
+      if (offInput) offInput.value = autoOff;
+    }
+    updateSeasonSplitPreview();
+  }
+}
+
+function addSeasonSplitPart() {
+  const lastPart = CURRENT_SEASON_SPLIT_PARTS[CURRENT_SEASON_SPLIT_PARTS.length - 1];
+  const nextTarget = (lastPart ? (lastPart.target_number || 1) : 0) + 1;
+  const nextStart = (lastPart && lastPart.episode_end) ? lastPart.episode_end + 1 : (lastPart && lastPart.episode_start ? lastPart.episode_start + 12 : 1);
+  const nextEnd = nextStart + 11;
+  const nextOffset = nextStart > 1 ? nextStart - 1 : 0;
+
+  const showId = parseInt(document.getElementById("season-split-show-id").value, 10);
+  const show = (typeof CACHED_SHOWS !== "undefined" && Array.isArray(CACHED_SHOWS))
+    ? CACHED_SHOWS.find(x => x.id === showId)
+    : null;
+
+  const baseTitle = show ? show.title : "";
+
+  CURRENT_SEASON_SPLIT_PARTS.push({
+    part_type: lastPart ? lastPart.part_type : "season",
+    target_number: nextTarget,
+    episode_start: nextStart,
+    episode_end: nextEnd,
+    episode_offset: nextOffset,
+    aliases: baseTitle ? `${baseTitle} ${nextTarget}, ${baseTitle} (ТВ-${nextTarget})` : "",
+  });
+
+  renderSeasonSplitParts();
+  updateSeasonSplitPreview();
+}
+
+function removeSeasonSplitPart(idx) {
+  if (CURRENT_SEASON_SPLIT_PARTS.length <= 1) return;
+  CURRENT_SEASON_SPLIT_PARTS.splice(idx, 1);
+  renderSeasonSplitParts();
+  updateSeasonSplitPreview();
+}
+
+function onSeasonSplitCardSeasonChange() {
+  const sn = parseInt(document.getElementById("season-split-season-select").value, 10) || 1;
+  const nameInput = document.getElementById("season-split-name");
+  if (!nameInput.value || nameInput.value.startsWith("S")) {
+    nameInput.value = `S${sn} (TV-1 / TV-2)`;
+  }
+  updateSeasonSplitPreview();
+}
+
+function updateSeasonSplitPreview() {
+  const content = document.getElementById("season-split-preview-content");
+  if (!content) return;
+
+  const sn = parseInt(document.getElementById("season-split-season-select").value, 10) || 1;
+  const pad = n => String(n).padStart(2, "0");
+  const sStr = `S${pad(sn)}`;
+
+  if (!CURRENT_SEASON_SPLIT_PARTS.length) {
+    content.innerHTML = "<em>Нет настроенных частей</em>";
+    return;
+  }
+
+  const lines = CURRENT_SEASON_SPLIT_PARTS.map((p, idx) => {
+    const typeLabel = p.part_type === "cour" ? "Кур" : (p.part_type === "part" ? "Часть" : "Сезон");
+    const tNum = p.target_number ?? (idx + 1);
+    const start = p.episode_start ?? 1;
+    const end = p.episode_end ?? 13;
+    const off = p.episode_offset ?? 0;
+
+    const relStart = Math.max(1, start - off);
+    const relEnd = Math.max(relStart, end - off);
+
+    return `<div>${idx + 1}. <strong>Искать как ${typeLabel} ${tNum} (ТВ-${tNum}):</strong> серии в раздаче <code>${pad(relStart)}–${pad(relEnd)}</code> ${off > 0 ? `(+${off})` : ''} $\\rightarrow$ сохраняются в библиотеку как <code>${sStr}E${pad(start)}–${sStr}E${pad(end)}</code></div>`;
+  });
+
+  content.innerHTML = lines.join("");
+}
+
+async function saveSeasonSplit() {
+  const showId = document.getElementById("season-split-show-id").value;
+  const splitId = document.getElementById("season-split-id").value;
+  const name = document.getElementById("season-split-name").value.trim();
+  const seasonNumber = parseInt(document.getElementById("season-split-season-select").value, 10) || 1;
+
+  if (!name) {
+    toast(CURRENT_LANG === "en" ? "Split name cannot be empty" : "Название правила не может быть пустым", true);
+    return;
+  }
+
+  if (!CURRENT_SEASON_SPLIT_PARTS.length) {
+    toast(CURRENT_LANG === "en" ? "At least one part is required" : "Добавьте хотя бы одну часть", true);
+    return;
+  }
+
+  const payload = {
+    name,
+    season_number: seasonNumber,
+    parts: CURRENT_SEASON_SPLIT_PARTS.map(p => ({
+      part_type: p.part_type || "season",
+      target_number: p.target_number || 1,
+      episode_start: p.episode_start != null ? p.episode_start : null,
+      episode_end: p.episode_end != null ? p.episode_end : null,
+      episode_offset: p.episode_offset || 0,
+      aliases: (p.aliases || "").trim(),
+    }))
+  };
+
+  try {
+    const url = splitId
+      ? `/api/v1/shows/${showId}/season-splits/${splitId}`
+      : `/api/v1/shows/${showId}/season-splits`;
+    const method = splitId ? "PUT" : "POST";
+
+    await api(url, {
+      method,
+      body: JSON.stringify(payload),
+    });
+
+    closeModal("season-split-modal");
+    await refreshShowModal();
+    await loadShows();
+    toast(CURRENT_LANG === "en" ? "Season split saved successfully" : "Разделитель сезона успешно сохранён");
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true);
+  }
+}
+
+async function deleteCurrentSeasonSplit() {
+  const showId = document.getElementById("season-split-show-id").value;
+  const splitId = document.getElementById("season-split-id").value;
+  if (!splitId) return;
+
+  await deleteSeasonSplit(showId, splitId);
+  closeModal("season-split-modal");
+}
+
+async function deleteSeasonSplit(showId, splitId) {
+  if (!confirm(CURRENT_LANG === "en" ? "Delete this season split rule?" : "Удалить этот разделитель сезона?")) {
+    return;
+  }
+
+  try {
+    await api(`/api/v1/shows/${showId}/season-splits/${splitId}`, {
+      method: "DELETE",
+    });
+    await refreshShowModal();
+    await loadShows();
+    toast(CURRENT_LANG === "en" ? "Season split deleted" : "Разделитель сезона удалён");
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true);
+  }
 }
 
 async function fixShowPermissions(btn, showId) {

@@ -2138,8 +2138,8 @@ Offset = Стартовый номер серии в карточке - Стар
       </div>
 
       <div class="wiki-h3">
-        <span class="lang-ru">Пошаговая инструкция по настройке в веб-интерфейсе</span>
-        <span class="lang-en">Step-by-Step UI Configuration Guide</span>
+        <span class="lang-ru">Пошаговая инструкция: создание Разделителя сезона</span>
+        <span class="lang-en">Step-by-Step Guide: Creating a Season Splitter</span>
       </div>
 
       <div class="wiki-step-list">
@@ -2147,16 +2147,16 @@ Offset = Стартовый номер серии в карточке - Стар
           <div class="wiki-step-num">1</div>
           <div class="wiki-step-body">
             <div class="wiki-step-head">
-              <span class="lang-ru">Открытие карточки тайтла и раскрытие расширенных параметров</span>
-              <span class="lang-en">Opening Show Modal &amp; Advanced Scope Fields</span>
+              <span class="lang-ru">Открытие окна «Разделитель сезона»</span>
+              <span class="lang-en">Opening the «Split Season» Modal</span>
             </div>
             <p class="wiki-p">
-              <span class="lang-ru">1. Перейдите в медиатеку и откройте карточку нужного тайтла.<br>
-              2. В блоке алиасов нажмите на кнопку <strong>дополнительных настроек</strong> (иконка слайдеров <i data-lucide="sliders-horizontal" style="width:13px;height:13px;vertical-align:middle;"></i>) рядом с полем добавления алиаса.<br>
-              3. Откроется компактная панель параметров области действия: <strong>«Сезон»</strong>, <strong>«Серия с»</strong>, <strong>«Серия по»</strong> и <strong>«+Offset»</strong>.</span>
-              <span class="lang-en">1. Open the target show card in Library.<br>
-              2. In the aliases section, click the <strong>Scope &amp; Offset toggle</strong> button (<i data-lucide="sliders-horizontal" style="width:13px;height:13px;vertical-align:middle;"></i>).<br>
-              3. The collapsible row reveals: <strong>Season</strong>, <strong>Ep from</strong>, <strong>Ep to</strong>, and <strong>+Offset</strong> inputs.</span>
+              <span class="lang-ru">1. Перейдите в медиатеку и откройте карточку тайтла (например, <em>Space Dandy</em>).<br>
+              2. В верхней панели действий нажмите на кнопку <strong>«Разделить сезон»</strong> (с иконкой <i data-lucide="split" style="width:13px;height:13px;vertical-align:middle;"></i>).<br>
+              3. Откроется специализированное окно настройки <strong>«Разделитель сезона (Season Splitter)»</strong>.</span>
+              <span class="lang-en">1. Open the target show card in Library (e.g. <em>Space Dandy</em>).<br>
+              2. In the action bar, click <strong>«Split Season»</strong> (<i data-lucide="split" style="width:13px;height:13px;vertical-align:middle;"></i>).<br>
+              3. The dedicated <strong>Season Splitter modal</strong> opens.</span>
             </p>
           </div>
         </div>
@@ -2165,23 +2165,20 @@ Offset = Стартовый номер серии в карточке - Стар
           <div class="wiki-step-num">2</div>
           <div class="wiki-step-body">
             <div class="wiki-step-head">
-              <span class="lang-ru">Заполнение параметров алиаса для 2-й части (ТВ-2)</span>
-              <span class="lang-en">Filling Alias Parameters for Part 2 (TV-2)</span>
+              <span class="lang-ru">Выбор сезона карточки и настройка частей</span>
+              <span class="lang-en">Selecting Card Season &amp; Configuring Parts</span>
             </div>
             <p class="wiki-p">
-              <span class="lang-ru">Для добавления алиаса второй части укажите:</span>
-              <span class="lang-en">Specify the following values:</span>
-            </p>
-            <ul style="font-size:13.5px;color:var(--text);line-height:1.7;margin-bottom:10px;">
-              <li><strong>Текст алиаса:</strong> <code>Space Dandy TV-2</code> (или точное название релиза на трекере)</li>
-              <li><strong>Язык:</strong> <code>ru</code> или <code>en</code></li>
-              <li><strong>Сезон:</strong> <code>1</code> (целевой сезон в карточке тайтла)</li>
-              <li><strong>Серия с / по:</strong> <code>14</code> и <code>26</code></li>
-              <li><strong>+Offset:</strong> <code>13</code> (поскольку в раздаче серии идут 01–13, а в карточке 14–26: <code>1 + 13 = 14</code>)</li>
-            </ul>
-            <p class="wiki-p">
-              <span class="lang-ru">Нажмите <strong>«+ Добавить»</strong>. В списке алиасов появится чип с информативным бейджем: <code>[S1, E14–26, +13]</code>.</span>
-              <span class="lang-en">Click <strong>+ Add</strong>. The created chip displays the badge: <code>[S1, E14–26, +13]</code>.</span>
+              <span class="lang-ru">1. Выберите сезон карточки из выпадающего списка (например, <code>Сезон 1 (26 серий)</code>).<br>
+              2. В блоке <strong>«Части сезона на трекерах»</strong> настройте части:<br>
+              &bull; <strong>Часть 1:</strong> Тип <code>Сезон (ТВ)</code>, Номер <code>1</code>, серии карточки <code>с 1 по 13</code>, смещение <code>0</code>, алиасы: <code>Космический Денди, Space Dandy</code>.<br>
+              &bull; <strong>Часть 2:</strong> Тип <code>Сезон (ТВ)</code>, Номер <code>2</code>, серии карточки <code>с 14 по 26</code>, смещение <code>13</code> (рассчитывается автоматически), алиасы: <code>Space Dandy 2, Космический Денди (ТВ-2)</code>.<br>
+              3. Внизу окна проверьте интерактивную сводку и нажмите <strong>«Сохранить разделитель»</strong>.</span>
+              <span class="lang-en">1. Select the card season from dropdown (e.g. <code>Season 1 (26 episodes)</code>).<br>
+              2. Configure the tracker parts:<br>
+              &bull; <strong>Part 1:</strong> Type <code>Season (TV)</code>, #<code>1</code>, card eps <code>1..13</code>, offset <code>0</code>, aliases: <code>Space Dandy</code>.<br>
+              &bull; <strong>Part 2:</strong> Type <code>Season (TV)</code>, #<code>2</code>, card eps <code>14..26</code>, offset <code>13</code>, aliases: <code>Space Dandy 2</code>.<br>
+              3. Check the live preview and click <strong>«Save Splitter»</strong>.</span>
             </p>
           </div>
         </div>
@@ -2190,12 +2187,12 @@ Offset = Стартовый номер серии в карточке - Стар
           <div class="wiki-step-num">3</div>
           <div class="wiki-step-body">
             <div class="wiki-step-head">
-              <span class="lang-ru">Редактирование существующих алиасов через модальное окно</span>
-              <span class="lang-en">Editing Existing Aliases via Modal</span>
+              <span class="lang-ru">Отображение бейджа и редактирование</span>
+              <span class="lang-en">Splitter Badge &amp; Management</span>
             </div>
             <p class="wiki-p">
-              <span class="lang-ru">Чтобы скорректировать уже добавленный алиас (например, изменить приоритет, диапазон серий или смещение), нажмите на иконку карандаша (<i data-lucide="edit-2" style="width:13px;height:13px;vertical-align:middle;"></i>) на чипе алиаса. Откроется всплывающее окно <strong>«Редактирование алиаса»</strong> со всеми полями и подсказками.</span>
-              <span class="lang-en">Click the pencil edit icon (<i data-lucide="edit-2" style="width:13px;height:13px;vertical-align:middle;"></i>) on any alias chip to open the dedicated <strong>Edit Alias modal</strong> to tweak text, language, priority, season, range, or offset.</span>
+              <span class="lang-ru">В карточке тайтла появится информативный бейдж разделителя: <code>✂️ S1 (TV-1 / TV-2) [ТВ-1: 1–13] [ТВ-2: 14–26 (+13)]</code> с кнопками быстрого редактирования и удаления. Обычные алиасы остаются чистыми и глобальными.</span>
+              <span class="lang-en">A dedicated badge appears on the show card: <code>✂️ S1 (TV-1 / TV-2) [TV-1: 1–13] [TV-2: 14–26 (+13)]</code> with quick edit and delete controls.</span>
             </p>
           </div>
         </div>

@@ -1586,6 +1586,85 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   text-align: center;
   padding: 60px 20px;
   color: var(--text-muted);
+
+/* ---------- SEASON SPLITTER (Разделитель сезона) ---------- */
+.season-splits-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  width: 100%;
+}
+
+.season-split-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-main);
+  flex-wrap: wrap;
+}
+
+.season-split-badge-title {
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-primary, #3b82f6);
+}
+
+.season-split-badge-parts {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.season-split-badge-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: var(--font-mono, monospace);
+}
+
+.season-split-badge-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.season-split-part-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.2s;
+}
+
+.season-split-part-card:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.season-split-part-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 12px;
 }
 
 /* ---------- LIBRARY BULK ACTION BAR & SELECTION ---------- */

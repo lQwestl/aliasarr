@@ -50,6 +50,10 @@ class AliasCandidate:
     episode_start: Optional[int] = None
     episode_end: Optional[int] = None
     episode_offset: Optional[int] = None
+    split_id: Optional[int] = None
+    split_part_id: Optional[int] = None
+    part_type: Optional[str] = None
+    target_number: Optional[int] = None
 
 
 @dataclass
@@ -274,6 +278,88 @@ def build_alias_candidates(show, db=None) -> list[AliasCandidate]:
                 episode_offset=getattr(alias, "episode_offset", None),
             ))
 
+    # 3. Извлекаем правила разделителей сезонов (Season Splits)
+    splits = []
+    if db is not None and getattr(show, "id", None):
+        try:
+            from app.models.db import SeasonSplit
+            splits = db.query(SeasonSplit).filter(SeasonSplit.show_id == show.id).all()
+        except Exception:
+            splits = getattr(show, "season_splits", []) or []
+    else:
+        splits = getattr(show, "season_splits", []) or []
+
+    # Собираем базовые чистые названия для генерации вариантов частей
+    base_titles = list(title_parts)
+    for a in aliases:
+        a_txt = (getattr(a, "text", "") or "").strip()
+        if a_txt and a_txt not in base_titles:
+            base_titles.append(a_txt)
+
+    for split in splits:
+        split_s_num = getattr(split, "season_number", 1) or 1
+        parts = getattr(split, "parts", []) or []
+        for part in parts:
+            p_type = getattr(part, "part_type", "season") or "season"
+            p_target = getattr(part, "target_number", 1) or 1
+            p_start = getattr(part, "episode_start", None)
+            p_end = getattr(part, "episode_end", None)
+            p_offset = getattr(part, "episode_offset", 0) or 0
+            p_aliases_str = (getattr(part, "aliases", "") or "").strip()
+
+            part_texts = []
+            if p_aliases_str:
+                for chunk in re.split(r"[,/|;\n]\s*", p_aliases_str):
+                    chunk_s = chunk.strip()
+                    if chunk_s and chunk_s not in part_texts:
+                        part_texts.append(chunk_s)
+
+            # Автоматическая генерация вариантов для части
+            auto_variants = []
+            for bt in base_titles:
+                clean_bt = _clean_alias_season_suffix(bt) or bt
+                if p_target > 1:
+                    auto_variants.extend([
+                        f"{clean_bt} Season {p_target}",
+                        f"{clean_bt} (ТВ-{p_target})",
+                        f"{clean_bt} ТВ-{p_target}",
+                        f"{clean_bt} Part {p_target}",
+                        f"{clean_bt} Часть {p_target}",
+                        f"{clean_bt} Cour {p_target}",
+                        f"{clean_bt} Кур {p_target}",
+                        f"{clean_bt} {p_target}",
+                        f"{clean_bt} S{p_target:02d}",
+                        f"{clean_bt} {p_target}nd Season" if p_target == 2 else (f"{clean_bt} {p_target}rd Season" if p_target == 3 else f"{clean_bt} {p_target}th Season"),
+                    ])
+                elif p_target == 1:
+                    auto_variants.extend([
+                        f"{clean_bt} Season 1",
+                        f"{clean_bt} (ТВ-1)",
+                        f"{clean_bt} ТВ-1",
+                        f"{clean_bt} Part 1",
+                        f"{clean_bt} Часть 1",
+                        f"{clean_bt} Cour 1",
+                        f"{clean_bt} S01",
+                    ])
+
+            all_part_candidates = part_texts + [v for v in auto_variants if v not in part_texts]
+
+            for pt in all_part_candidates:
+                candidates.append(AliasCandidate(
+                    alias_id=getattr(part, "id", 0) or 0,
+                    text=pt,
+                    language="ru",
+                    priority=5 if pt in part_texts else 10,
+                    season_number=split_s_num,
+                    episode_start=p_start,
+                    episode_end=p_end,
+                    episode_offset=p_offset,
+                    split_id=getattr(split, "id", None),
+                    split_part_id=getattr(part, "id", None),
+                    part_type=p_type,
+                    target_number=p_target,
+                ))
+
     # Приоритет — единственный фактор порядка (НЕ язык): меньше число = ищем раньше.
     candidates.sort(key=lambda c: c.priority)
     return candidates
@@ -372,10 +458,14 @@ def _is_int(v: Any) -> bool:
 def _is_part_2_alias(a: Any) -> bool:
     offset = getattr(a, "episode_offset", None)
     sn = getattr(a, "season_number", None)
+    target_num = getattr(a, "target_number", None)
     ep_start = getattr(a, "episode_start", None)
+    split_id = getattr(a, "split_id", None)
     if _is_int(offset) and offset > 0:
         return True
-    if _is_int(sn) and sn == 2:
+    if _is_int(target_num) and target_num >= 2:
+        return True
+    if not split_id and _is_int(sn) and sn >= 2:
         return True
     if _is_int(ep_start) and ep_start >= 12:
         return True
@@ -384,12 +474,14 @@ def _is_part_2_alias(a: Any) -> bool:
 
 def _is_part_1_alias(a: Any) -> bool:
     offset = getattr(a, "episode_offset", None)
+    target_num = getattr(a, "target_number", None)
     ep_start = getattr(a, "episode_start", None)
     ep_end = getattr(a, "episode_end", None)
     offset_ok = not _is_int(offset) or offset == 0
+    target_ok = not _is_int(target_num) or target_num == 1
     start_ok = not _is_int(ep_start) or ep_start == 1
-    end_ok = _is_int(ep_end) and ep_end < 20
-    return offset_ok and start_ok and end_ok
+    end_ok = not _is_int(ep_end) or ep_end < 20
+    return offset_ok and target_ok and start_ok and end_ok
 
 
 def best_alias_match(
