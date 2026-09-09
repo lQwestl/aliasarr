@@ -1748,6 +1748,9 @@ def process_download(
             else:
                 action_text = "перемещена"
 
+            applied_offset = max(0, actual_ep_num - ep_num) if actual_ep_num != ep_num else 0
+            split_tag = f" [Разделитель сезона: {ep_num:02d} (+{applied_offset}) → S{season_num:02d}E{actual_ep_num:02d}]" if applied_offset > 0 else ""
+
             log_release_event(
                 stage="import",
                 level="success",
@@ -1756,14 +1759,16 @@ def process_download(
                 release_title=os.path.basename(file_path),
                 indexer="Postprocess",
                 message=(
-                    f"Импорт успешен: серия S{season_num:02d}E{actual_ep_num:02d} {action_text} в «{os.path.basename(dest_video_path)}» "
-                    f"(качество: {quality}, апгрейд: {'да' if is_upgrade else 'нет'})."
+                    f"Импорт успешен: серия S{season_num:02d}E{actual_ep_num:02d} {action_text} в «{os.path.basename(dest_video_path)}»"
+                    f"{split_tag} (качество: {quality}, апгрейд: {'да' if is_upgrade else 'нет'})."
                 ),
                 details={
                     "source": file_path,
                     "dest": dest_video_path,
                     "season": season_num,
                     "episode": actual_ep_num,
+                    "raw_file_episode": ep_num,
+                    "applied_offset": applied_offset,
                     "quality": quality,
                     "is_upgrade": is_upgrade,
                     "torrent_hash": torrent_hash,

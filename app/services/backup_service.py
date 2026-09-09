@@ -27,6 +27,7 @@ try:
     from app.models.db import (
         Alias,
         AppSettings,
+        Blocklist,
         CustomFormat,
         DownloadClient,
         DownloadHistory,
@@ -35,6 +36,8 @@ try:
         MetadataSource,
         NotificationConfig,
         QualityProfile,
+        SeasonSplit,
+        SeasonSplitPart,
         Show,
         TrackedRelease,
         User,
@@ -43,7 +46,7 @@ except ImportError:
     Session = Any  # type: ignore
     inspect = Any  # type: ignore
     text = Any  # type: ignore
-    Alias = AppSettings = CustomFormat = DownloadClient = DownloadHistory = Episode = Indexer = MetadataSource = NotificationConfig = QualityProfile = Show = TrackedRelease = User = Any  # type: ignore
+    Alias = AppSettings = Blocklist = CustomFormat = DownloadClient = DownloadHistory = Episode = Indexer = MetadataSource = NotificationConfig = QualityProfile = SeasonSplit = SeasonSplitPart = Show = TrackedRelease = User = Any  # type: ignore
 
 from app.services.audit_service import log_audit
 from app.services.notifications import notify_all_sync
@@ -69,8 +72,11 @@ LIBRARY_TABLES = {
     "shows": Show,
     "aliases": Alias,
     "episodes": Episode,
+    "season_splits": SeasonSplit,
+    "season_split_parts": SeasonSplitPart,
     "tracked_releases": TrackedRelease,
     "download_history": DownloadHistory,
+    "blocklist": Blocklist,
 }
 
 
@@ -128,12 +134,14 @@ def create_backup(
     stats = {
         "shows": db.query(Show).count(),
         "episodes": db.query(Episode).count(),
+        "season_splits": db.query(SeasonSplit).count() if hasattr(SeasonSplit, "__table__") else 0,
         "custom_formats": db.query(CustomFormat).count(),
         "quality_profiles": db.query(QualityProfile).count(),
         "indexers": db.query(Indexer).count(),
         "download_clients": db.query(DownloadClient).count(),
         "metadata_sources": db.query(MetadataSource).count(),
         "notifications": db.query(NotificationConfig).count(),
+        "blocklist": db.query(Blocklist).count() if hasattr(Blocklist, "__table__") else 0,
         "users": db.query(User).count(),
     }
 
@@ -190,11 +198,22 @@ def create_backup(
         sqlite_file = _get_sqlite_db_path()
         if sqlite_file and backup_type == "full":
             try:
-                # Flush WAL via checkpoint
+                # Run integrity check
                 try:
-                    db.execute(text("PRAGMA wal_checkpoint(PASSIVE);"))
+                    res = db.execute(text("PRAGMA integrity_check;")).scalar()
+                    if res != "ok":
+                        logger.warning("SQLite integrity check returned: %s", res)
+                except Exception as ic_err:
+                    logger.debug("Integrity check pragma error: %s", ic_err)
+
+                # Flush WAL via TRUNCATE checkpoint
+                try:
+                    db.execute(text("PRAGMA wal_checkpoint(TRUNCATE);"))
                 except Exception:
-                    pass
+                    try:
+                        db.execute(text("PRAGMA wal_checkpoint(PASSIVE);"))
+                    except Exception:
+                        pass
                 zf.write(sqlite_file, arcname="aliasarr.db")
             except Exception as exc:
                 logger.warning("Не удалось упаковать бинарный файл SQLite: %s", exc)
@@ -375,24 +394,47 @@ def restore_backup(
         if task:
             task.update(message="Восстановление медиатеки и эпизодов...", progress=0.7)
         
-        # Очистка старых данных библиотеки
-        for key in ("download_history", "tracked_releases", "episodes", "aliases", "shows"):
+        # Очистка старых данных библиотеки в порядке зависимостей
+        for key in (
+            "download_history",
+            "tracked_releases",
+            "blocklist",
+            "season_split_parts",
+            "season_splits",
+            "episodes",
+            "aliases",
+            "shows",
+        ):
             model_cls = LIBRARY_TABLES.get(key)
-            if model_cls:
-                db.query(model_cls).delete()
+            if model_cls and hasattr(model_cls, "__table__"):
+                try:
+                    db.query(model_cls).delete()
+                except Exception as del_err:
+                    logger.warning("Ошибка очистки таблицы %s: %s", key, del_err)
+        db.flush()
+
+        show_id_map: dict[int, int] = {}
 
         # Восстановление Show
         shows_data = payload.get("tables", {}).get("shows", [])
         for row in shows_data:
             r = dict(row)
+            old_id = r.pop("id", None)
             _deserialize_datetime_fields(r)
-            db.add(Show(**r))
-        db.flush()
+            new_show = Show(**r)
+            db.add(new_show)
+            db.flush()
+            if old_id is not None:
+                show_id_map[old_id] = new_show.id
 
         # Восстановление Aliases
         aliases_data = payload.get("tables", {}).get("aliases", [])
         for row in aliases_data:
             r = dict(row)
+            r.pop("id", None)
+            old_show_id = r.get("show_id")
+            if old_show_id in show_id_map:
+                r["show_id"] = show_id_map[old_show_id]
             _deserialize_datetime_fields(r)
             db.add(Alias(**r))
 
@@ -400,14 +442,54 @@ def restore_backup(
         episodes_data = payload.get("tables", {}).get("episodes", [])
         for row in episodes_data:
             r = dict(row)
+            r.pop("id", None)
+            old_show_id = r.get("show_id")
+            if old_show_id in show_id_map:
+                r["show_id"] = show_id_map[old_show_id]
             _deserialize_datetime_fields(r)
             db.add(Episode(**r))
 
-        # Восстановление History & Tracked
-        for key, model_cls in [("tracked_releases", TrackedRelease), ("download_history", DownloadHistory)]:
+        # Восстановление SeasonSplit & SeasonSplitPart
+        split_id_map: dict[int, int] = {}
+        splits_data = payload.get("tables", {}).get("season_splits", [])
+        for row in splits_data:
+            r = dict(row)
+            old_split_id = r.pop("id", None)
+            old_show_id = r.get("show_id")
+            if old_show_id in show_id_map:
+                r["show_id"] = show_id_map[old_show_id]
+            _deserialize_datetime_fields(r)
+            new_split = SeasonSplit(**r)
+            db.add(new_split)
+            db.flush()
+            if old_split_id is not None:
+                split_id_map[old_split_id] = new_split.id
+
+        parts_data = payload.get("tables", {}).get("season_split_parts", [])
+        for row in parts_data:
+            r = dict(row)
+            r.pop("id", None)
+            old_split_id = r.get("split_id")
+            if old_split_id in split_id_map:
+                r["split_id"] = split_id_map[old_split_id]
+            _deserialize_datetime_fields(r)
+            db.add(SeasonSplitPart(**r))
+
+        # Восстановление TrackedRelease, DownloadHistory, Blocklist
+        for key, model_cls in [
+            ("tracked_releases", TrackedRelease),
+            ("download_history", DownloadHistory),
+            ("blocklist", Blocklist),
+        ]:
+            if not hasattr(model_cls, "__table__"):
+                continue
             items_data = payload.get("tables", {}).get(key, [])
             for row in items_data:
                 r = dict(row)
+                r.pop("id", None)
+                old_show_id = r.get("show_id")
+                if old_show_id and old_show_id in show_id_map:
+                    r["show_id"] = show_id_map[old_show_id]
                 _deserialize_datetime_fields(r)
                 db.add(model_cls(**r))
 

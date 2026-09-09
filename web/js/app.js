@@ -14970,6 +14970,67 @@ function openReleaseLogDetail(index) {
     `;
   }
 
+  // Season Split information card
+  let seasonSplitHtml = "";
+  if (item.details && typeof item.details === "object") {
+    const splitInfo = item.details.split_info;
+    const seasonSplits = item.details.season_splits;
+    const appliedOffset = item.details.applied_offset;
+
+    if (splitInfo) {
+      const partNum = splitInfo.part_number != null ? splitInfo.part_number : 1;
+      const off = splitInfo.episode_offset || 0;
+      const rangeStr = (splitInfo.episode_start && splitInfo.episode_end) ? ` (серии ${splitInfo.episode_start}–${splitInfo.episode_end})` : "";
+      seasonSplitHtml = `
+        <div style="margin-top:10px; padding:10px 12px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); border-radius:6px;">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:6px; font-weight:600; color:var(--color-primary, #3b82f6); font-size:12.5px;">
+              <i data-lucide="split" style="width:14px; height:14px;"></i>
+              <span>${isRu ? "Сработало правило: Разделитель сезона" : "Active Rule: Season Splitter"}</span>
+            </div>
+            <span class="badge-tag" style="background:rgba(59,130,246,0.2); color:#60a5fa; font-weight:700; font-size:11px;">
+              ${isRu ? `Часть ${partNum}` : `Part ${partNum}`}${off > 0 ? ` (+${off})` : ""}
+            </span>
+          </div>
+          <div style="margin-top:6px; font-size:12px; color:var(--text); line-height:1.4;">
+            ${isRu ? `Целевой диапазон карточки: <strong>Сезон ${splitInfo.season_number || 1}${rangeStr}</strong>. Смещение нумерации: <strong>+${off}</strong>.` : `Target range: <strong>Season ${splitInfo.season_number || 1}${rangeStr}</strong> with offset <strong>+${off}</strong>.`}
+            ${splitInfo.matched_alias ? `<div style="margin-top:4px; font-size:11.5px; color:var(--text-muted);">${isRu ? "Сматченный алиас:" : "Matched alias:"} <code style="color:#818cf8;">${escapeHtml(splitInfo.matched_alias)}</code></div>` : ""}
+          </div>
+        </div>
+      `;
+    } else if (Array.isArray(seasonSplits) && seasonSplits.length > 0) {
+      const partsPills = seasonSplits.map(sp => `
+        <span class="badge-tag" style="background:rgba(59,130,246,0.15); color:#60a5fa; font-size:11px; padding:2px 6px;">
+          ${isRu ? `Часть ${sp.part_number}` : `Part ${sp.part_number}`}: ${sp.episode_start}–${sp.episode_end} (+${sp.offset})
+        </span>
+      `).join("");
+      seasonSplitHtml = `
+        <div style="margin-top:10px; padding:8px 12px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.2); border-radius:6px;">
+          <div style="display:flex; align-items:center; gap:6px; font-weight:600; color:var(--color-primary, #3b82f6); font-size:12px; margin-bottom:4px;">
+            <i data-lucide="split" style="width:13px; height:13px;"></i>
+            <span>${isRu ? "Активные части Разделителя сезона:" : "Configured Season Split Parts:"}</span>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">${partsPills}</div>
+        </div>
+      `;
+    } else if (appliedOffset && appliedOffset > 0) {
+      const rawEp = item.details.raw_file_episode;
+      const targetEp = item.details.episode;
+      const sNum = item.details.season || 1;
+      seasonSplitHtml = `
+        <div style="margin-top:10px; padding:8px 12px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); border-radius:6px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:6px; font-weight:600; color:var(--color-primary, #3b82f6); font-size:12px;">
+            <i data-lucide="split" style="width:13px; height:13px;"></i>
+            <span>${isRu ? "Маппинг Разделителя сезона:" : "Season Splitter Mapping:"}</span>
+          </div>
+          <div class="mono" style="font-size:12px; color:var(--text);">
+            <code>${rawEp != null ? String(rawEp).padStart(2, '0') : '??'}</code> <span style="color:var(--text-muted);">(+${appliedOffset})</span> → <strong style="color:var(--teal);">S${String(sNum).padStart(2, '0')}E${String(targetEp).padStart(2, '0')}</strong>
+          </div>
+        </div>
+      `;
+    }
+  }
+
   // Ranking / Decision table
   let rankingTableHtml = "";
   if (item.details && Array.isArray(item.details.ranking_table) && item.details.ranking_table.length > 0) {
@@ -15155,6 +15216,7 @@ function openReleaseLogDetail(index) {
       </div>
 
       ${indexerStatsHtml}
+      ${seasonSplitHtml}
       ${rankingTableHtml}
       ${fileDecisionsHtml}
       ${rejectedSampleHtml}

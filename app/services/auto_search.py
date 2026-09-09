@@ -1442,7 +1442,28 @@ async def _do_search_and_grab(
     rejected_cands = getattr(candidates, "rejected_candidates", [])
     indexer_summary = ", ".join(f"{name}: {cnt}" for name, cnt in indexer_stats.items() if cnt > 0) or f"{len(indexers)} трекерах"
 
-    search_msg = f"Поиск{query_info} в {indexer_summary}: найдено {len(candidates)} подходящих кандидатов"
+    active_splits = getattr(show, "season_splits", []) or []
+    if not active_splits and db:
+        try:
+            from app.models.db import SeasonSplit
+            active_splits = db.query(SeasonSplit).filter(SeasonSplit.show_id == show.id).all()
+        except Exception:
+            active_splits = []
+
+    split_info_list = []
+    for sp in active_splits:
+        for p in getattr(sp, "parts", []) or []:
+            split_info_list.append({
+                "season": sp.season_number,
+                "part_number": p.target_number,
+                "episode_start": p.episode_start,
+                "episode_end": p.episode_end,
+                "offset": p.episode_offset,
+                "aliases": p.aliases,
+            })
+
+    split_note = f" (активен Разделитель сезона: {len(split_info_list)} частей)" if split_info_list else ""
+    search_msg = f"Поиск{query_info} в {indexer_summary}: найдено {len(candidates)} подходящих кандидатов{split_note}"
     if rejected_cands:
         search_msg += f" (отклонено фильтрами: {len(rejected_cands)})"
 
@@ -1457,6 +1478,7 @@ async def _do_search_and_grab(
             "rejected_count": len(rejected_cands),
             "indexer_stats": indexer_stats,
             "rejected_sample": rejected_cands[:25],
+            "season_splits": split_info_list if split_info_list else None,
             "candidates": [
                 f"[{c['quality'].name}] {c['rel'].title} (сиды: {c['rel'].seeders}, {getattr(c['indexer'], 'name', 'Indexer')})"
                 for c in candidates[:25]
@@ -1883,10 +1905,23 @@ async def _do_search_and_grab(
     winner_eps = sorted({f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in winner["covered"]})
     ep_cov_str = f"{len(winner['covered'])} серий [{', '.join(winner_eps[:8])}{'...' if len(winner_eps) > 8 else ''}]" if show.content_type != "movie" else "Фильм"
 
+    alias_cand = getattr(winner.get("match"), "alias_candidate", None) or getattr(winner.get("rel"), "alias_candidate", None)
+    winner_split_info = None
+    if alias_cand and (getattr(alias_cand, "split_id", None) or (getattr(alias_cand, "episode_offset", 0) or 0) > 0 or getattr(alias_cand, "target_number", None)):
+        winner_split_info = {
+            "part_number": getattr(alias_cand, "target_number", None),
+            "season_number": getattr(alias_cand, "season_number", None),
+            "episode_start": getattr(alias_cand, "episode_start", None),
+            "episode_end": getattr(alias_cand, "episode_end", None),
+            "episode_offset": getattr(alias_cand, "episode_offset", 0) or 0,
+            "matched_alias": getattr(alias_cand, "text", None),
+        }
+
+    split_tag = f" [Разделитель сезона: Часть {winner_split_info['part_number']}, смещение +{winner_split_info['episode_offset']}]" if winner_split_info else ""
     decision_msg = (
         f"Принято решение о выборе релиза: победил кандидат №1 «{winner['rel'].title}» "
         f"({winner['quality'].name}, ранг: {winner['quality'].rank}, CF: {winner.get('cf_score', 0)}, "
-        f"сиды: {winner['rel'].seeders}, закрывает {ep_cov_str}). "
+        f"сиды: {winner['rel'].seeders}, закрывает {ep_cov_str}){split_tag}. "
         f"Всего кандидатов: {len(scored_candidates)}."
     )
     log_release_event(
@@ -1904,6 +1939,7 @@ async def _do_search_and_grab(
             "winner_seeders": winner["rel"].seeders,
             "winner_episodes": winner_eps,
             "ranking_table": decision_chain,
+            "split_info": winner_split_info,
             "total_candidates": len(scored_candidates),
         },
         db=db,
@@ -2029,12 +2065,25 @@ async def _do_search_and_grab(
                     await dl_client.set_seeding_limits(torrent_hash, seed_ratio_limit=ratio_lim, seed_time_limit_minutes=time_mins)
                 except Exception as seed_err:
                     logger.debug("Не удалось выставить лимиты сидирования для %s: %s", torrent_hash, seed_err)
+            cand_alias_cand = getattr(match, "alias_candidate", None) or getattr(rel, "alias_candidate", None)
+            cand_split_info = None
+            if cand_alias_cand and (getattr(cand_alias_cand, "split_id", None) or (getattr(cand_alias_cand, "episode_offset", 0) or 0) > 0 or getattr(cand_alias_cand, "target_number", None)):
+                cand_split_info = {
+                    "part_number": getattr(cand_alias_cand, "target_number", None),
+                    "season_number": getattr(cand_alias_cand, "season_number", None),
+                    "episode_start": getattr(cand_alias_cand, "episode_start", None),
+                    "episode_end": getattr(cand_alias_cand, "episode_end", None),
+                    "episode_offset": getattr(cand_alias_cand, "episode_offset", 0) or 0,
+                    "matched_alias": getattr(cand_alias_cand, "text", None),
+                }
+
             if is_movie:
                 grab_msg = f"Релиз успешно захвачен для фильма «{show.title}»{yr_str} и передан в '{download_client_row.name}' (хэш: {torrent_hash or 'n/a'}, сиды: {rel.seeders}, качество: {c['quality'].name})"
                 ep_details = ["Фильм"]
             else:
                 ep_details = [f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in covered]
-                grab_msg = f"Релиз успешно захвачен и передан в '{download_client_row.name}' (хэш: {torrent_hash or 'n/a'}). Закрывает серии: {', '.join(ep_details)}"
+                split_tag = f" [Разделитель: Часть {cand_split_info['part_number']}, смещение +{cand_split_info['episode_offset']}]" if cand_split_info else ""
+                grab_msg = f"Релиз успешно захвачен и передан в '{download_client_row.name}' (хэш: {torrent_hash or 'n/a'}). Закрывает серии: {', '.join(ep_details)}{split_tag}"
 
             log_release_event(
                 stage="grab",
@@ -2053,6 +2102,7 @@ async def _do_search_and_grab(
                     "client": download_client_row.name,
                     "page_url": getattr(rel, "page_url", None),
                     "download_url": getattr(rel, "download_url", None),
+                    "split_info": cand_split_info,
                 },
                 db=db,
             )
