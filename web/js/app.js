@@ -2687,6 +2687,9 @@ function closeModal(id) {
     document.body.classList.remove("modal-open");
   }
   if (id === "show-modal") {
+    if (typeof stopSearchStatusRotator === "function") {
+      stopSearchStatusRotator();
+    }
     if (typeof SHOW_MODAL_POLL_INTERVAL !== 'undefined' && SHOW_MODAL_POLL_INTERVAL) {
       clearInterval(SHOW_MODAL_POLL_INTERVAL);
       SHOW_MODAL_POLL_INTERVAL = null;
@@ -6275,8 +6278,87 @@ async function refreshShowModal() {
     if (show && show.content_type !== "movie") {
       checkSpecialsImportStatus(show.id);
     }
+
+    if (show && show.is_searching) {
+      const statusRow = document.getElementById("modal-search-status-row");
+      if (statusRow) startSearchStatusRotator(statusRow);
+    } else {
+      stopSearchStatusRotator();
+    }
   } catch (e) {
     if (e.message !== "unauthorized") content.innerHTML = `<p style="color:var(--danger)">${CURRENT_LANG === "en" ? "Error:" : "Ошибка:"} ${escapeHtml(formatToastMessage(e.message))}</p>`;
+  }
+}
+
+const SEARCH_STATUS_STAGES = [
+  {
+    id: "aliases",
+    icon: `<svg class="search-stage-icon pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16" y2="16"/><path d="M8 11h6"/><path d="M11 8v6"/></svg>`,
+    textRu: "Сбор алиасов и сезонов",
+    textEn: "Preparing aliases & seasons",
+  },
+  {
+    id: "trackers",
+    icon: `<svg class="search-stage-icon pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.93 4.93a10 10 0 0 1 14.14 0"/><path d="M7.76 7.76a6 6 0 0 1 8.48 0"/><path d="M10.59 10.59a2 2 0 0 1 2.82 0"/><line x1="12" y1="13" x2="12" y2="21"/></svg>`,
+    textRu: "Опрос трекеров и индексаторов",
+    textEn: "Querying indexers & trackers",
+  },
+  {
+    id: "matching",
+    icon: `<svg class="search-stage-icon spin-slow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+    textRu: "Парсинг и сопоставление раздач",
+    textEn: "Parsing & matching releases",
+  },
+  {
+    id: "scoring",
+    icon: `<svg class="search-stage-icon pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>`,
+    textRu: "Оценка качества и скоринг",
+    textEn: "Evaluating quality & score",
+  },
+];
+
+let _SEARCH_STATUS_TIMER = null;
+let _SEARCH_STATUS_STAGE_INDEX = 0;
+
+function startSearchStatusRotator(targetEl) {
+  stopSearchStatusRotator();
+  _SEARCH_STATUS_STAGE_INDEX = 0;
+  if (!targetEl) return;
+
+  const updateBadge = () => {
+    const stage = SEARCH_STATUS_STAGES[_SEARCH_STATUS_STAGE_INDEX % SEARCH_STATUS_STAGES.length];
+    const stageText = CURRENT_LANG === "en" ? stage.textEn : stage.textRu;
+    const dotsHtml = `<span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span>`;
+    const pillsHtml = SEARCH_STATUS_STAGES.map((s, idx) => {
+      const cls = idx === _SEARCH_STATUS_STAGE_INDEX ? "active" : (idx < _SEARCH_STATUS_STAGE_INDEX ? "done" : "");
+      return `<span class="search-step-pill ${cls}"></span>`;
+    }).join("");
+
+    targetEl.innerHTML = `
+      <span class="search-status-badge is-searching" title="${CURRENT_LANG === 'en' ? 'Active automatic search in progress' : 'Выполняется поиск и сопоставление раздач'}">
+        <div class="search-stage-shimmer"></div>
+        <span class="search-stage-icon-wrap">${stage.icon}</span>
+        <span class="search-stage-text">${escapeHtml(stageText)}${dotsHtml}</span>
+        <span class="search-step-pills">${pillsHtml}</span>
+      </span>`;
+  };
+
+  updateBadge();
+  _SEARCH_STATUS_TIMER = setInterval(() => {
+    _SEARCH_STATUS_STAGE_INDEX = (_SEARCH_STATUS_STAGE_INDEX + 1) % SEARCH_STATUS_STAGES.length;
+    const row = document.getElementById("modal-search-status-row") || document.querySelector(".search-status-row");
+    if (row && row.classList.contains("is-searching")) {
+      updateBadge();
+    } else {
+      stopSearchStatusRotator();
+    }
+  }, 1800);
+}
+
+function stopSearchStatusRotator() {
+  if (_SEARCH_STATUS_TIMER) {
+    clearInterval(_SEARCH_STATUS_TIMER);
+    _SEARCH_STATUS_TIMER = null;
   }
 }
 
@@ -6287,9 +6369,12 @@ function setModalSearchingState(showId, isSearching) {
   if (row) {
     if (isSearching) {
       row.classList.add("is-searching");
-      row.innerHTML = renderSearchStatus({ is_searching: true });
+      startSearchStatusRotator(row);
     } else {
+      stopSearchStatusRotator();
       row.classList.remove("is-searching");
+      const show = (Array.isArray(CACHED_SHOWS) && CACHED_SHOWS.find(x => x.id === targetId)) || { last_search_at: new Date().toISOString() };
+      row.innerHTML = renderSearchStatus(show);
     }
   }
   if (Array.isArray(CACHED_SHOWS)) {
@@ -6299,21 +6384,42 @@ function setModalSearchingState(showId, isSearching) {
 }
 
 function renderSearchStatus(show) {
-  if (show.is_searching) {
-    const searchingWord = (t("search.searching") || (CURRENT_LANG === "en" ? "Searching" : "Поиск")).replace(/[\.…]+$/, "");
-    return `<span class="search-status-badge is-searching">
-      <svg class="search-spin-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-        <polyline points="21 3 21 9 15 9"/>
-      </svg>
-      <span class="search-status-text">${searchingWord}<span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span></span>
+  if (show && show.is_searching) {
+    const stage = SEARCH_STATUS_STAGES[0];
+    const stageText = CURRENT_LANG === "en" ? stage.textEn : stage.textRu;
+    const dotsHtml = `<span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span>`;
+    const pillsHtml = SEARCH_STATUS_STAGES.map((s, idx) => `<span class="search-step-pill ${idx === 0 ? 'active' : ''}"></span>`).join("");
+    return `<span class="search-status-badge is-searching" title="${CURRENT_LANG === 'en' ? 'Active automatic search in progress' : 'Выполняется поиск и сопоставление раздач'}">
+      <div class="search-stage-shimmer"></div>
+      <span class="search-stage-icon-wrap">${stage.icon}</span>
+      <span class="search-stage-text">${escapeHtml(stageText)}${dotsHtml}</span>
+      <span class="search-step-pills">${pillsHtml}</span>
     </span>`;
   }
-  if (!show.last_search_at) {
-    return `—`;
+  if (!show || !show.last_search_at) {
+    return `<span class="search-status-badge status-none" title="${CURRENT_LANG === 'en' ? 'No search performed yet' : 'Поиск еще не выполнялся'}"><svg class="ico-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><line x1="5" y1="12" x2="19" y2="12"/></svg> <span>—</span></span>`;
   }
   const when = formatDateTZ(show.last_search_at);
-  return `${escapeHtml(show.last_search_result || "—")} (${when})`;
+  const resultText = show.last_search_result || (CURRENT_LANG === "en" ? "No releases found" : "Релизы не найдены");
+  const isGrabbed = /захвачен|grabbed|скачан/i.test(resultText);
+  const isError = /ошибк|error|fail/i.test(resultText);
+
+  let iconSvg = `<svg class="ico-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`;
+  let statusCls = "status-none";
+
+  if (isGrabbed) {
+    statusCls = "status-grabbed";
+    iconSvg = `<svg class="ico-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M20 6 9 17l-5-5"/></svg>`;
+  } else if (isError) {
+    statusCls = "status-error";
+    iconSvg = `<svg class="ico-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+  }
+
+  return `<span class="search-status-badge ${statusCls}" title="${escapeHtml(resultText)} (${when})">
+    ${iconSvg}
+    <span class="search-status-text">${escapeHtml(resultText)}</span>
+    <span class="search-status-date">(${when})</span>
+  </span>`;
 }
 
 function formatAliasScopeBadge(a) {
