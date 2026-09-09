@@ -6571,7 +6571,10 @@ function renderSeasonSplitParts() {
     const epStartLabel = CURRENT_LANG === "en" ? "Episode from" : "Серия с";
     const epEndLabel = CURRENT_LANG === "en" ? "Episode to" : "Серия по";
     const aliasesLabel = CURRENT_LANG === "en" ? "Search aliases for part (comma-separated)" : "Поисковые алиасы части (через запятую)";
-    const aliasesPlaceholder = CURRENT_LANG === "en" ? "e.g. Space Dandy 2, Space Dandy (TV-2)" : "Например: Space Dandy 2, Космический Денди (ТВ-2)";
+    const targetNum = p.target_number ?? (idx + 1);
+    const aliasesPlaceholder = (idx === 0)
+      ? (CURRENT_LANG === "en" ? "e.g. Space Dandy, Space Dandy (TV-1)" : "Например: Space Dandy, Космический Денди (ТВ-1)")
+      : (CURRENT_LANG === "en" ? `e.g. Space Dandy ${targetNum}, Space Dandy (TV-${targetNum})` : `Например: Space Dandy ${targetNum}, Космический Денди (ТВ-${targetNum})`);
 
     return `
     <div class="season-split-part-card" data-index="${idx}">
