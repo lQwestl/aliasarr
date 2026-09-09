@@ -9450,6 +9450,17 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 /* 7. Light Wiki & Quality Guide Overrides */
+[data-theme="light"] .wiki-hero h1 {
+  color: #0f172a !important;
+  background: linear-gradient(135deg, #0f172a 35%, #4338ca 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+[data-theme="light"] .wiki-hero p {
+  color: #475569 !important;
+}
+
 [data-theme="light"][data-design="vanguard"] .wiki-hero {
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(2, 132, 199, 0.06) 50%, #ffffff 100%);
   border: 1px solid #cbd5e1;
