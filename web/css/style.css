@@ -4893,6 +4893,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   border: 1px solid var(--border);
   color: var(--text-muted);
   transition: all 0.25s ease;
+  white-space: nowrap;
 }
 
 .search-status-badge.is-searching {
@@ -4923,6 +4924,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   transform-origin: center center;
   filter: drop-shadow(0 0 4px rgba(0, 240, 255, 0.65));
   flex-shrink: 0;
+}
+
+.search-status-text {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .search-status-dots {

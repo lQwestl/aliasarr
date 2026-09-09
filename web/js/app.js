@@ -2238,7 +2238,7 @@ const TRANSLATIONS = {
     "wizard.finish_btn": "Add Video",
     "wizard.toast_no_metadata_source": "Add a metadata source in Settings first",
     "tracker.checking": "Checking releases",
-    "search.searching": "Search",
+    "search.searching": "Searching",
     "md.updating": "Metadata",
 
     // Dashboard & Calendar & Settings & Backup Toasts / Prompts
@@ -6300,13 +6300,13 @@ function setModalSearchingState(showId, isSearching) {
 
 function renderSearchStatus(show) {
   if (show.is_searching) {
-    const loadingWord = (t("common.loading") || (CURRENT_LANG === "en" ? "Loading" : "Загрузка")).replace(/[\.…]+$/, "");
+    const searchingWord = (t("search.searching") || (CURRENT_LANG === "en" ? "Searching" : "Поиск")).replace(/[\.…]+$/, "");
     return `<span class="search-status-badge is-searching">
       <svg class="search-spin-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
         <polyline points="21 3 21 9 15 9"/>
       </svg>
-      <span class="search-status-text">${loadingWord}<span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span></span>
+      <span class="search-status-text">${searchingWord}<span class="search-status-dots"><span>.</span><span>.</span><span>.</span></span></span>
     </span>`;
   }
   if (!show.last_search_at) {
