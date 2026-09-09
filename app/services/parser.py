@@ -139,7 +139,7 @@ _RE_PREFIX_SEASON_EP_SINGLE = re.compile(
     r"(?:(?:" + _EPISODE_WORD_RU + "|" + _EPISODE_WORD_EN + r")[\s._–-]*)?"
     r"\[?\s*(\d{1,4})(?:v\d)?\s*\]?"
     r"(?:[\s._–-]*" + _EPISODE_WORD_RU + r")?"
-    r"(?:[\s._–-]*(?:из|of|iz|\/|\|)[\s._–-]*[>~<]*\s*\d+)?"
+    r"(?:[\s._–-]*(?:из|of|iz|\/|\|)[\s._–-]*[>~<]*\s*(\d+))?"
     r"(?:[\s._–-]*(?:эп(?:изод(?:ов|а)?)?|сери[йия]|eps?|episodes?|выпуск(?:ов|а)?))?",
     re.IGNORECASE,
 )
@@ -197,9 +197,21 @@ _RE_SXXEXX_RANGE = re.compile(
     re.IGNORECASE,
 )
 
+# S01E08 of 8, S1E8 of 8, S1E8 из 8, S01E08 из 08, S1E8/8, S01E08/08, S1E01-08 of 8, S1E01-08 из 8, S1E1-8 of 8, S01E01-E08 of 8, S1E01-06 of 12, S1E6 of 12
+_RE_SXXEXX_OF_TOTAL = re.compile(
+    r"\bS(\d{1,2})\s*E(\d{1,4})(?:\s*[-–~_to]\s*E?(\d{1,4}))?\s*(?:из|of|iz|\/|\|)\s*(?:(?:ep|эп|сери[ия]|episode|e)\.?\s*)?[>~<]*\s*(\d{1,4}|[xX?]+)\+?",
+    re.IGNORECASE,
+)
+
 # 1x01-1x10, 1x01-10, 01x01-01x10
 _RE_XFORMAT_RANGE = re.compile(
     r"\b(\d{1,2})x(\d{2,4})\s*(?:[-–~]|to)\s*(?:\d{1,2}x)?(\d{2,4})\b",
+    re.IGNORECASE,
+)
+
+# 1x08 of 8, 1x08 из 8, 01x08 of 08, 1x08/8, 01x08/08, 1x01-08 of 8, 1x01-08 из 8
+_RE_XFORMAT_OF_TOTAL = re.compile(
+    r"\b(\d{1,2})x(\d{1,4})(?:\s*[-–~_to]\s*(?:\d{1,2}x)?(\d{1,4}))?\s*(?:из|of|iz|\/|\|)\s*(?:(?:ep|эп|сери[ия]|episode|e)\.?\s*)?[>~<]*\s*(\d{1,4}|[xX?]+)\+?",
     re.IGNORECASE,
 )
 
@@ -216,7 +228,7 @@ _RE_WORDY_SEASON_EP_RANGE = re.compile(
 
 # "Сезон 1 Серия 5" / "Сезон: 2 / Серия: 5" / "Season 5 Episode 3" — сезон и одиночная серия словами
 _RE_WORDY_SEASON_EP_SINGLE = re.compile(
-    r"(?:^|[\s_.\-\(\[])" + _SEASON_WORD + r"[:\.\s_–-]*(\d{1,3})\D{0,25}?(?:" + _EPISODE_WORD_RU + "|" + _EPISODE_WORD_EN + r")[:\.\s_–-]*(\d{1,4})(?:v\d)?(?:\s*(?:из|of|iz|\/|\|)\s*\d+)?",
+    r"(?:^|[\s_.\-\(\[])" + _SEASON_WORD + r"[:\.\s_–-]*(\d{1,3})\D{0,25}?(?:" + _EPISODE_WORD_RU + "|" + _EPISODE_WORD_EN + r")[:\.\s_–-]*(\d{1,4})(?:v\d)?(?:\s*(?:из|of|iz|\/|\|)\s*(\d+))?",
     re.IGNORECASE,
 )
 
@@ -557,6 +569,7 @@ def _parse_episode_internal(release_name: str) -> ParsedRelease:
     # Если релиз является опенингом/эндингом/бонусом/сэмплом и не содержит явного S01E01
     has_explicit_s_e = (
         _RE_MULTI_SEASON_EP_RANGE.search(protected) or
+        _RE_SXXEXX_OF_TOTAL.search(protected) or _RE_XFORMAT_OF_TOTAL.search(protected) or
         _RE_SXXEXX_RANGE.search(protected) or _RE_SXXEXX_MULTI.search(protected) or
         _RE_XFORMAT_RANGE.search(protected) or _RE_WORDY_SEASON_EP_RANGE.search(protected) or
         _RE_WORDY_SEASON_EP_SINGLE.search(protected) or _RE_XFORMAT.search(protected)
@@ -587,7 +600,59 @@ def _parse_episode_internal(release_name: str) -> ParsedRelease:
     if tv_sp_res:
         return tv_sp_res
 
-    # 1. S01E01-E10 диапазон серий (S01E01-E10, S01E01-10, S01E01~E10, S01E01-E10 COMPLETE)
+    # 1. S01E08 of 8 / S1E8 of 8 / S1E8 из 8 / S1E8/8 / S1E01-08 of 8 / S1E01-06 of 12
+    m_s_of = _RE_SXXEXX_OF_TOTAL.search(protected)
+    if m_s_of:
+        s = int(m_s_of.group(1))
+        g2 = int(m_s_of.group(2))
+        g3 = int(m_s_of.group(3)) if m_s_of.group(3) else None
+        if g3 is not None:
+            start, end = g2, g3
+            if start <= end and (end - start) < 300:
+                return ParsedRelease(
+                    kind=ReleaseKind.EPISODE, season=s, episodes=list(range(start, end + 1)),
+                    is_range=True, raw=raw, matched_pattern="SxxExx_of_total_range",
+                )
+        else:
+            if 1 <= g2 < 300:
+                ep_list = list(range(1, g2 + 1))
+                return ParsedRelease(
+                    kind=ReleaseKind.EPISODE, season=s, episodes=ep_list,
+                    is_range=len(ep_list) > 1, raw=raw, matched_pattern="SxxExx_of_total",
+                )
+            elif g2 == 0:
+                return ParsedRelease(
+                    kind=ReleaseKind.EPISODE, season=s, episodes=[0],
+                    is_range=False, raw=raw, matched_pattern="SxxExx_of_total_zero",
+                )
+
+    # 1б. 1x08 of 8 / 1x08 из 8 / 1x08/8 / 1x01-08 of 8
+    m_x_of = _RE_XFORMAT_OF_TOTAL.search(protected)
+    if m_x_of:
+        s = int(m_x_of.group(1))
+        g2 = int(m_x_of.group(2))
+        g3 = int(m_x_of.group(3)) if m_x_of.group(3) else None
+        if g3 is not None:
+            start, end = g2, g3
+            if start <= end and (end - start) < 300:
+                return ParsedRelease(
+                    kind=ReleaseKind.EPISODE, season=s, episodes=list(range(start, end + 1)),
+                    is_range=True, raw=raw, matched_pattern="1xFormat_of_total_range",
+                )
+        else:
+            if 1 <= g2 < 300:
+                ep_list = list(range(1, g2 + 1))
+                return ParsedRelease(
+                    kind=ReleaseKind.EPISODE, season=s, episodes=ep_list,
+                    is_range=len(ep_list) > 1, raw=raw, matched_pattern="1xFormat_of_total",
+                )
+            elif g2 == 0:
+                return ParsedRelease(
+                    kind=ReleaseKind.EPISODE, season=s, episodes=[0],
+                    is_range=False, raw=raw, matched_pattern="1xFormat_of_total_zero",
+                )
+
+    # 1в. S01E01-E10 диапазон серий (S01E01-E10, S01E01-10, S01E01~E10, S01E01-E10 COMPLETE)
     m_range_ep = _RE_SXXEXX_RANGE.search(protected)
     if m_range_ep:
         s = int(m_range_ep.group(1))
@@ -598,7 +663,7 @@ def _parse_episode_internal(release_name: str) -> ParsedRelease:
                 is_range=True, raw=raw, matched_pattern="SxxExx_range",
             )
 
-    # 1б. S01E05 (+ мульти-серии / диапазон E-E)
+    # 1г. S01E05 (+ мульти-серии / диапазон E-E)
     m = _RE_SXXEXX_MULTI.search(protected)
     if m:
         season = int(m.group(1))
@@ -613,7 +678,7 @@ def _parse_episode_internal(release_name: str) -> ParsedRelease:
             is_range=len(eps) > 1, raw=raw, matched_pattern="SxxExx",
         )
 
-    # 1в. 1x01-1x10 диапазон серий (1x01-1x10, 1x01-10, 01x01-01x10)
+    # 1д. 1x01-1x10 диапазон серий (1x01-1x10, 1x01-10, 01x01-01x10)
     m_x_range = _RE_XFORMAT_RANGE.search(protected)
     if m_x_range:
         s = int(m_x_range.group(1))
@@ -624,7 +689,7 @@ def _parse_episode_internal(release_name: str) -> ParsedRelease:
                 is_range=True, raw=raw, matched_pattern="1x01_range",
             )
 
-    # 1г. "Сезон: 2 / Серии: 1-18 (18)" / "Season 2 Episodes 1-18" — сезон и диапазон серий словами
+    # 1е. "Сезон: 2 / Серии: 1-18 (18)" / "Season 2 Episodes 1-18" — сезон и диапазон серий словами
     m_w_range = _RE_WORDY_SEASON_EP_RANGE.search(protected)
     if m_w_range:
         s = int(m_w_range.group(1))
@@ -635,7 +700,7 @@ def _parse_episode_internal(release_name: str) -> ParsedRelease:
                 is_range=True, raw=raw, matched_pattern="wordy_season_ep_range",
             )
 
-    # 1д. "Сезон 1 Серия 5" / "Сезон: 2 / Серия: 5" / "Season 5 Episode 3" — сезон и серия словами (не слитно)
+    # 1ж. "Сезон 1 Серия 5" / "Сезон: 2 / Серия: 5" / "Season 5 Episode 3" — сезон и серия словами (не слитно)
     m = _RE_WORDY_SEASON_EP_SINGLE.search(protected)
     if m:
         return ParsedRelease(
@@ -1240,7 +1305,10 @@ def detect_season_label(release_name: str) -> dict:
         return {"type": "numbered", "season": int(m_tv.group(1))}
 
     # 4б. SxxExx-Exx / 1x01-1x10 / S01E01 явный сезон перед сериями
-    m_sxx = _RE_SXXEXX_RANGE.search(name) or _RE_XFORMAT_RANGE.search(name) or _RE_SXXEXX_MULTI.search(name)
+    m_sxx = (
+        _RE_SXXEXX_OF_TOTAL.search(name) or _RE_XFORMAT_OF_TOTAL.search(name) or
+        _RE_SXXEXX_RANGE.search(name) or _RE_XFORMAT_RANGE.search(name) or _RE_SXXEXX_MULTI.search(name)
+    )
     if m_sxx:
         return {"type": "numbered", "season": int(m_sxx.group(1))}
 

@@ -575,6 +575,89 @@ class TestParser(unittest.TestCase):
         p3 = parse_episode(t3)
         self.assertEqual(p3.episodes, list(range(1, 13)))
 
+    def test_sxxexx_and_1x_of_total_formats(self):
+        # 1. Star Wars: Visions Presents - The Ninth Jedi: S1E8 of 8
+        t1 = "Звёздные Войны: Видения. Девятый Джедай / Star Wars: Visions Presents - The Ninth Jedi / S1E8 of 8 (Кэндзи Камияма) [2026, Фантастика, боевик, фэнтези, WEB-DL 1080p] [MVO|LostFilm]"
+        p1 = parse_episode(t1)
+        self.assertEqual(p1.season, 1)
+        self.assertEqual(p1.episodes, list(range(1, 9)))
+        self.assertTrue(p1.is_range)
+
+        # 2. Rutracker Star Wars: Visions Presents - The Ninth Jedi / S1E8 of 8 with Kenji Kamiyama
+        t2 = "Звёздные Войны: Видения. Девятый Джедай / Star Wars: Visions Presents - The Ninth Jedi / S1E8 of 8 (Кэндзи Камияма / Kenji Kamiyama, Сюнсукэ Тада / Shunsuke Tada) [2026, Япония, США, Фантастика, боевик, фэнтези, WEB-DL 1080p] MVO (LostFilm) + Original + Sub Eng"
+        p2 = parse_episode(t2)
+        self.assertEqual(p2.season, 1)
+        self.assertEqual(p2.episodes, list(range(1, 9)))
+        self.assertTrue(p2.is_range)
+
+        # 3. Star Wars: Visions S1E9 of 9 and S3E9 of 9
+        t3 = "Звёздные Войны: Видения / Star Wars: Visions / S1E9 of 9 (2021)"
+        p3 = parse_episode(t3)
+        self.assertEqual(p3.season, 1)
+        self.assertEqual(p3.episodes, list(range(1, 10)))
+        self.assertTrue(p3.is_range)
+
+        t4 = "Star Wars: Visions / S3E9 of 9"
+        p4 = parse_episode(t4)
+        self.assertEqual(p4.season, 3)
+        self.assertEqual(p4.episodes, list(range(1, 10)))
+        self.assertTrue(p4.is_range)
+
+        # 4. Dot-separated: Show.Name.S01E08.of.8.1080p
+        t5 = "Show.Name.S01E08.of.8.1080p"
+        p5 = parse_episode(t5)
+        self.assertEqual(p5.season, 1)
+        self.assertEqual(p5.episodes, list(range(1, 9)))
+        self.assertTrue(p5.is_range)
+
+        # 5. Russian iz: S1E8 из 8, S1E8/8, S01E08/08
+        t6 = "Show Name S1E8 из 8"
+        p6 = parse_episode(t6)
+        self.assertEqual(p6.season, 1)
+        self.assertEqual(p6.episodes, list(range(1, 9)))
+
+        t7 = "Show Name S1E8/8"
+        p7 = parse_episode(t7)
+        self.assertEqual(p7.season, 1)
+        self.assertEqual(p7.episodes, list(range(1, 9)))
+
+        t8 = "Show Name S01E08/08"
+        p8 = parse_episode(t8)
+        self.assertEqual(p8.season, 1)
+        self.assertEqual(p8.episodes, list(range(1, 9)))
+
+        # 6. Explicit ranges: S1E01-08 of 8, S1E1-8 of 8, S01E01-E08 of 8, S1E01-06 of 12
+        t9 = "Show Name S1E01-08 of 8"
+        p9 = parse_episode(t9)
+        self.assertEqual(p9.season, 1)
+        self.assertEqual(p9.episodes, list(range(1, 9)))
+
+        t10 = "Show Name S1E01-06 of 12"
+        p10 = parse_episode(t10)
+        self.assertEqual(p10.season, 1)
+        self.assertEqual(p10.episodes, list(range(1, 7)))
+
+        t11 = "Show Name S1E6 of 12"
+        p11 = parse_episode(t11)
+        self.assertEqual(p11.season, 1)
+        self.assertEqual(p11.episodes, list(range(1, 7)))
+
+        # 7. 1x formats: 1x08 of 8, 1x08 из 8, 1x01-08 of 8, 01x08/08
+        t12 = "Show Name 1x08 of 8"
+        p12 = parse_episode(t12)
+        self.assertEqual(p12.season, 1)
+        self.assertEqual(p12.episodes, list(range(1, 9)))
+
+        t13 = "Show Name 1x01-08 of 8"
+        p13 = parse_episode(t13)
+        self.assertEqual(p13.season, 1)
+        self.assertEqual(p13.episodes, list(range(1, 9)))
+
+        t14 = "Show Name 01x08/08"
+        p14 = parse_episode(t14)
+        self.assertEqual(p14.season, 1)
+        self.assertEqual(p14.episodes, list(range(1, 9)))
+
 
 if __name__ == "__main__":
     unittest.main()
