@@ -3317,24 +3317,28 @@
         <div class="form-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
           <div style="flex: 1;">
             <label class="form-label" style="font-size: 11px;" data-i18n="alias.field_season">Сезон карточки</label>
-            <input type="number" id="alias-edit-season" class="input input-small" min="0" placeholder="Все сезоны" title="Привязать алиас к конкретному сезону карточки (например, 1)">
+            <input type="number" id="alias-edit-season" class="input input-small" min="0" placeholder="Все сезоны" title="Привязать алиас к конкретному сезону карточки (например, 1)" oninput="updateAliasScopePreview()">
           </div>
           <div style="flex: 1;">
             <label class="form-label" style="font-size: 11px;" data-i18n="alias.field_ep_start">Серия с</label>
-            <input type="number" id="alias-edit-ep-start" class="input input-small" min="1" placeholder="С 1-й" title="Начальный номер серии диапазона">
+            <input type="number" id="alias-edit-ep-start" class="input input-small" min="1" placeholder="С 1-й" title="Начальный номер серии диапазона" oninput="onAliasEpStartChange(); updateAliasScopePreview();">
           </div>
           <div style="flex: 1;">
             <label class="form-label" style="font-size: 11px;" data-i18n="alias.field_ep_end">Серия по</label>
-            <input type="number" id="alias-edit-ep-end" class="input input-small" min="1" placeholder="По посл." title="Конечный номер серии диапазона">
+            <input type="number" id="alias-edit-ep-end" class="input input-small" min="1" placeholder="По посл." title="Конечный номер серии диапазона" oninput="updateAliasScopePreview()">
           </div>
         </div>
 
         <div>
           <label class="form-label" style="font-size: 11px;" data-i18n="alias.field_offset">Смещение номеров серий (+Offset)</label>
-          <input type="number" id="alias-edit-offset" class="input input-small" placeholder="Например: 13 (если в раздаче 01..13, а в карточке 14..26)" title="Числовое смещение: серия X в раздаче сопоставляется с серией X + offset в карточке">
+          <input type="number" id="alias-edit-offset" class="input input-small" placeholder="Например: 13 (если в раздаче 01..13, а в карточке 14..26)" title="Числовое смещение: серия X в раздаче сопоставляется с серией X + offset в карточке" oninput="updateAliasScopePreview()">
           <p class="hint" style="font-size: 11px; margin-top: 4px; line-height: 1.3;" data-i18n="alias.offset_hint">
             Используется для сплит-куров (ТВ-2 / 2nd Season), когда раздача нумерует серии с 01, а в карточке они идут как 14–26.
           </p>
+        </div>
+
+        <div id="alias-edit-preview-box" style="display: none; margin-top: 8px; padding: 6px 10px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 6px; font-size: 11px; line-height: 1.4; color: var(--text-main);">
+          <span id="alias-edit-preview-text"></span>
         </div>
       </div>
     </div>

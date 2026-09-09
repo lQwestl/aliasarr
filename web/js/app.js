@@ -6153,7 +6153,7 @@ async function refreshShowModal() {
                   </div>
                   <div style="flex:1; min-width:70px;">
                     <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:2px;">${t("alias.field_ep_start") || 'Серия с'}</label>
-                    <input id="new-alias-ep-start-${show.id}" class="input input-small" type="number" min="1" placeholder="1">
+                    <input id="new-alias-ep-start-${show.id}" class="input input-small" type="number" min="1" placeholder="1" oninput="onInlineAliasEpStartChange(${show.id})">
                   </div>
                   <div style="flex:1; min-width:70px;">
                     <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:2px;">${t("alias.field_ep_end") || 'Серия по'}</label>
@@ -6371,6 +6371,92 @@ function toggleAliasAdv(showId) {
   }
 }
 
+function onAliasEpStartChange() {
+  const epStartInput = document.getElementById("alias-edit-ep-start");
+  const offsetInput = document.getElementById("alias-edit-offset");
+  if (!epStartInput || !offsetInput) return;
+  const startVal = parseInt(epStartInput.value, 10);
+  if (!isNaN(startVal) && startVal > 1) {
+    if (!offsetInput.value || offsetInput.dataset.autoCalculated === "true") {
+      offsetInput.value = startVal - 1;
+      offsetInput.dataset.autoCalculated = "true";
+    }
+  } else if (offsetInput.dataset.autoCalculated === "true") {
+    offsetInput.value = "";
+    offsetInput.dataset.autoCalculated = "false";
+  }
+}
+
+function onInlineAliasEpStartChange(showId) {
+  const epStartInput = document.getElementById(`new-alias-ep-start-${showId}`);
+  const offsetInput = document.getElementById(`new-alias-offset-${showId}`);
+  if (!epStartInput || !offsetInput) return;
+  const startVal = parseInt(epStartInput.value, 10);
+  if (!isNaN(startVal) && startVal > 1) {
+    if (!offsetInput.value || offsetInput.dataset.autoCalculated === "true") {
+      offsetInput.value = startVal - 1;
+      offsetInput.dataset.autoCalculated = "true";
+    }
+  } else if (offsetInput.dataset.autoCalculated === "true") {
+    offsetInput.value = "";
+    offsetInput.dataset.autoCalculated = "false";
+  }
+}
+
+function updateAliasScopePreview() {
+  const seasonInput = document.getElementById("alias-edit-season");
+  const epStartInput = document.getElementById("alias-edit-ep-start");
+  const epEndInput = document.getElementById("alias-edit-ep-end");
+  const offsetInput = document.getElementById("alias-edit-offset");
+  const previewBox = document.getElementById("alias-edit-preview-box");
+  const previewText = document.getElementById("alias-edit-preview-text");
+  if (!previewBox || !previewText) return;
+
+  const s = seasonInput && seasonInput.value !== "" ? parseInt(seasonInput.value, 10) : null;
+  const start = epStartInput && epStartInput.value !== "" ? parseInt(epStartInput.value, 10) : null;
+  const end = epEndInput && epEndInput.value !== "" ? parseInt(epEndInput.value, 10) : null;
+  const off = offsetInput && offsetInput.value !== "" ? parseInt(offsetInput.value, 10) : 0;
+
+  if (s == null && start == null && end == null && !off) {
+    previewBox.style.display = "none";
+    previewText.textContent = "";
+    return;
+  }
+
+  const pad = n => String(n).padStart(2, "0");
+  const sStr = s != null ? `S${pad(s)}` : "S01";
+
+  if (off > 0 && start != null && end != null) {
+    const relStart = Math.max(1, start - off);
+    const relEnd = Math.max(relStart, end - off);
+    const isRu = CURRENT_LANG !== "en";
+    previewText.innerHTML = isRu
+      ? `💡 <strong>Сплит-кур (ТВ-2 / Part 2):</strong> Серии <strong>${pad(relStart)}–${pad(relEnd)}</strong> из раздач будут распознаны и сохранены как <strong>${sStr}E${pad(start)}–${sStr}E${pad(end)}</strong>.`
+      : `💡 <strong>Split-Cour (Part 2 / TV-2):</strong> Release episodes <strong>${pad(relStart)}–${pad(relEnd)}</strong> will be mapped and saved as <strong>${sStr}E${pad(start)}–${sStr}E${pad(end)}</strong>.`;
+  } else if (start != null && end != null) {
+    const isRu = CURRENT_LANG !== "en";
+    previewText.innerHTML = isRu
+      ? `💡 <strong>Диапазон:</strong> Алиас ищет серии <strong>${sStr}E${pad(start)}–${sStr}E${pad(end)}</strong>.`
+      : `💡 <strong>Range:</strong> Alias searches for episodes <strong>${sStr}E${pad(start)}–${sStr}E${pad(end)}</strong>.`;
+  } else if (s != null) {
+    const isRu = CURRENT_LANG !== "en";
+    previewText.innerHTML = isRu
+      ? `💡 <strong>Сезон:</strong> Алиас применяется ко всем сериям сезона <strong>${s}</strong>.`
+      : `💡 <strong>Season:</strong> Alias applies to all episodes in Season <strong>${s}</strong>.`;
+  } else if (off > 0) {
+    const isRu = CURRENT_LANG !== "en";
+    previewText.innerHTML = isRu
+      ? `💡 <strong>Смещение +${off}:</strong> Номера серий в раздаче увеличиваются на <strong>${off}</strong>.`
+      : `💡 <strong>Offset +${off}:</strong> Release episode numbers will be shifted by <strong>+${off}</strong>.`;
+  } else {
+    previewBox.style.display = "none";
+    previewText.textContent = "";
+    return;
+  }
+
+  previewBox.style.display = "block";
+}
+
 function openEditAliasModal(showId, aliasId) {
   let alias = null;
   if (window._showAliasesMap && window._showAliasesMap[showId]) {
@@ -6392,8 +6478,11 @@ function openEditAliasModal(showId, aliasId) {
   document.getElementById("alias-edit-season").value = alias.season_number != null ? alias.season_number : "";
   document.getElementById("alias-edit-ep-start").value = alias.episode_start != null ? alias.episode_start : "";
   document.getElementById("alias-edit-ep-end").value = alias.episode_end != null ? alias.episode_end : "";
-  document.getElementById("alias-edit-offset").value = alias.episode_offset != null ? alias.episode_offset : "";
+  const offsetInput = document.getElementById("alias-edit-offset");
+  offsetInput.value = alias.episode_offset != null ? alias.episode_offset : "";
+  offsetInput.dataset.autoCalculated = "false";
 
+  updateAliasScopePreview();
   openModal("alias-edit-modal");
   if (typeof lucide !== "undefined" && lucide.createIcons) {
     lucide.createIcons();

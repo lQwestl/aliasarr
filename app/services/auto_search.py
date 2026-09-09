@@ -1113,8 +1113,12 @@ async def _collect_candidates(
     # 1. Извлекаем короткие ядра и чистые алиасы
     cores: list[str] = []
     clean_bases: list[str] = []
+    from app.services.matcher import _clean_alias_season_suffix, _is_part_2_alias
+
     for alias in active_aliases:
-        clean_a = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", alias.text, flags=re.IGNORECASE).strip()
+        clean_a = _clean_alias_season_suffix(alias.text)
+        if not clean_a:
+            clean_a = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", alias.text, flags=re.IGNORECASE).strip()
         if clean_a:
             if clean_a.lower() not in [b.lower() for b in clean_bases]:
                 clean_bases.append(clean_a)
@@ -1154,6 +1158,17 @@ async def _collect_candidates(
 
         for alias in active_aliases:
             _add_query(alias.text)
+            # Если алиас явно относится ко 2-й части/сплит-куру (offset > 0 или ТВ-2)
+            if _is_part_2_alias(alias):
+                root_b = _clean_alias_season_suffix(alias.text) or alias.text
+                _add_query(f"{root_b} Season 2")
+                _add_query(f"{root_b} Сезон 2")
+                _add_query(f"{root_b} 2 сезон")
+                _add_query(f"{root_b} S02")
+                _add_query(f"{root_b} 2nd Season")
+                _add_query(f"{root_b} (ТВ-2)")
+                _add_query(f"{root_b} ТВ-2")
+                _add_query(f"{root_b} 2")
 
         # Сезонные запросы и мультисезоны
         if wanted_episodes:
@@ -1931,11 +1946,6 @@ async def _do_search_and_grab(
             if (ep.season_number, ep.episode_number) in remaining
         ]
         if not still_covered:
-            continue
-
-        # Проверяем, не закрыт ли уже этот сезон другим ранее успешно захваченным релизом
-        candidate_seasons = {ep.season_number for ep in still_covered}
-        if not (candidate_seasons - grabbed_seasons) and len(candidate_seasons) == 1:
             continue
 
         rel, match, indexer, covered = c["rel"], c["match"], c["indexer"], still_covered

@@ -357,7 +357,7 @@ def extract_title_segments(release_name: str) -> list[str]:
 
 def _clean_alias_season_suffix(text: str) -> str:
     cleaned = re.sub(
-        r'\s*\((?:тв|tv|s|season|сезон)[\s\-_]?\d+\)|\s*\[(?:тв|tv|s|season|сезон)[\s\-_]?\d+\]|\b(?:тв|tv)[\s\-_]?\d+\b|\b\d+(?:st|nd|rd|th)?\s*season\b|\b(?:part|часть|cour|кур)\s*\d+\b',
+        r'\s*\((?:тв|tv|s|season|сезон)[\s\-_]?\d+\)|\s*\[(?:тв|tv|s|season|сезон)[\s\-_]?\d+\]|\b(?:season|сезон|тв|tv|s)[\s\-_]?\d+\b|\b\d+(?:st|nd|rd|th)?\s*(?:season|сезон)\b|\b(?:part|часть|cour|кур)\s*\d+\b|\s+\d{1,2}$',
         '',
         text or '',
         flags=re.IGNORECASE

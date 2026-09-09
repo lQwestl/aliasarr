@@ -203,6 +203,26 @@ class TestScopedAliasesPure(unittest.TestCase):
         matched_numbers = [m.episode_number for m in matched_eps]
         self.assertEqual(matched_numbers, list(range(14, 27)))
 
+    def test_clean_alias_season_suffix_and_query_bases(self):
+        """Test _clean_alias_season_suffix strips season numbers/suffixes for clean base extraction."""
+        from app.services.matcher import _clean_alias_season_suffix, _is_part_2_alias
+
+        self.assertEqual(_clean_alias_season_suffix("Космический Денди (ТВ-2)"), "Космический Денди")
+        self.assertEqual(_clean_alias_season_suffix("Space Dandy 2"), "Space Dandy")
+        self.assertEqual(_clean_alias_season_suffix("Space Dandy Season 2"), "Space Dandy")
+        self.assertEqual(_clean_alias_season_suffix("Fate/Zero 2nd Season"), "Fate/Zero")
+        self.assertEqual(_clean_alias_season_suffix("Космический Денди"), "Космический Денди")
+
+        part2_alias = AliasCandidate(
+            alias_id=4,
+            text="Space Dandy 2",
+            season_number=1,
+            episode_start=14,
+            episode_end=26,
+            episode_offset=13,
+        )
+        self.assertTrue(_is_part_2_alias(part2_alias))
+
 
 @unittest.skipUnless(HAS_DB, "Requires sqlalchemy, fastapi, and pydantic")
 class TestScopedAliasesDB(unittest.TestCase):
