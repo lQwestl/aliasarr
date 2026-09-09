@@ -616,6 +616,33 @@ def clear_blocklist_for_show(db: Session, show_id_or_title: Optional[str | int] 
             return 0
 
 
+def clear_auto_rejected_for_show(db: Session, show_id: int) -> int:
+    """
+    Удаляет автоматически созданные записи черного списка (например, при ошибочной
+    реконсиляции файлов DownloadsMonitor) для указанного шоу, чтобы дать возможность
+    повторно захватить релиз после настройки алиасов или смещений (+offset).
+    """
+    if not show_id:
+        return 0
+    try:
+        filt = and_(
+            Blocklist.show_id == show_id,
+            or_(
+                Blocklist.reason.like("%не содержит ни одной нужной серии%"),
+                Blocklist.reason.like("%Раздача не содержит ни одной нужной серии%"),
+            ),
+        )
+        count = db.query(Blocklist).filter(filt).delete()
+        db.commit()
+        if count > 0:
+            logger.info("Очищено %d авто-блокировок для тайтла ID=%d", count, show_id)
+        return count
+    except Exception as exc:
+        db.rollback()
+        logger.debug("Ошибка очистки авто-блокировок для шоу %s: %s", show_id, exc)
+        return 0
+
+
 def clear_all_blocklist(db: Session) -> int:
     """Полностью очищает весь черный список."""
     try:

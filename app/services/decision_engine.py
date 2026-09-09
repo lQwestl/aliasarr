@@ -227,7 +227,10 @@ class DecisionEngine:
                         # Проверка диапазона сезонов пака
                         if scoped_season is not None:
                             rel_s = scoped_season
-                            if rel_s not in target_seasons:
+                            parsed_s = match.parsed.season if match.parsed.season is not None else (s_lbl["season"] if lbl_type == "numbered" else None)
+                            if alias_offset == 0 and parsed_s is not None and parsed_s != scoped_season and lbl_type not in ("range", "complete"):
+                                rejections.append(f"Релиз относится к сезону S{parsed_s:02d}, а алиас «{getattr(alias_cand, 'text', '')}» относится к S{scoped_season:02d} без смещения")
+                            elif rel_s not in target_seasons:
                                 min_tgt = min(target_seasons) if target_seasons else 0
                                 rejections.append(f"Релиз относится к сезону S{rel_s:02d} (по алиасу), а разыскивается S{min_tgt:02d}")
                         elif lbl_type == "range":

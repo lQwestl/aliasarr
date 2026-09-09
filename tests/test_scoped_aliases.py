@@ -122,6 +122,87 @@ class TestScopedAliasesPure(unittest.TestCase):
         )
         self.assertEqual(prio_03, 0)
 
+    def test_best_alias_match_disambiguates_split_cour_parts(self):
+        """Test that best_alias_match picks Part 2 alias for S2/TV-2 releases and Part 1 for S1."""
+        from app.services.matcher import best_alias_match
+
+        alias_part1_ru = AliasCandidate(
+            alias_id=1,
+            text="Космический Денди",
+            season_number=1,
+            episode_start=1,
+            episode_end=13,
+            episode_offset=0,
+        )
+        alias_part1_en = AliasCandidate(
+            alias_id=2,
+            text="Space Dandy",
+            season_number=1,
+            episode_start=1,
+            episode_end=13,
+            episode_offset=0,
+        )
+        alias_part2_ru = AliasCandidate(
+            alias_id=3,
+            text="Космический Денди (ТВ-2)",
+            season_number=1,
+            episode_start=14,
+            episode_end=26,
+            episode_offset=13,
+        )
+        alias_part2_en = AliasCandidate(
+            alias_id=4,
+            text="Space Dandy 2",
+            season_number=1,
+            episode_start=14,
+            episode_end=26,
+            episode_offset=13,
+        )
+
+        all_aliases = [alias_part1_ru, alias_part1_en, alias_part2_ru, alias_part2_en]
+
+        # Release S2 / 2nd season
+        rel_s2 = "[AniLibria] Космический Денди (S2) / Space Dandy 2 [13 из 13] [WEBRip 1080p]"
+        best_s2, score_s2 = best_alias_match(rel_s2, all_aliases)
+        self.assertIsNotNone(best_s2)
+        self.assertIn(best_s2.alias_id, (3, 4))
+        self.assertEqual(best_s2.episode_offset, 13)
+
+        # Release S1
+        rel_s1 = "[AniLibria] Космический Денди (S1) / Space Dandy [13 из 13] [WEBRip 1080p]"
+        best_s1, score_s1 = best_alias_match(rel_s1, all_aliases)
+        self.assertIsNotNone(best_s1)
+        self.assertIn(best_s1.alias_id, (1, 2))
+        self.assertEqual(best_s1.episode_offset, 0)
+
+    def test_reconciliation_evaluates_part_2_files_with_offset(self):
+        """Test evaluate_torrent_file_priority matches files in S2 pack to episodes 14..26."""
+        all_eps = [
+            SimpleNamespace(id=i, season_number=1, episode_number=i, absolute_number=None, title=f"Ep {i}")
+            for i in range(1, 27)
+        ]
+        target_wanted = [ep for ep in all_eps if ep.episode_number >= 14]
+
+        matched_eps = []
+        for i in range(1, 14):
+            f_name = f"[AniLibria] Space Dandy 2 - {i:02d} [1080p].mkv"
+            prio = evaluate_torrent_file_priority(
+                file_name=f_name,
+                file_index=i - 1,
+                target_episodes=target_wanted,
+                content_type="anime",
+                torrent_name="[AniLibria] Космический Денди (S2) / Space Dandy 2 [13 из 13]",
+                all_show_episodes=all_eps,
+                out_matched_episodes=matched_eps,
+                alias_offset=13,
+                scoped_season=1,
+            )
+            self.assertGreater(prio, 0, f"File {f_name} should have priority > 0")
+
+        self.assertEqual(len(matched_eps), 13)
+        matched_numbers = [m.episode_number for m in matched_eps]
+        self.assertEqual(matched_numbers, list(range(14, 27)))
+
 
 @unittest.skipUnless(HAS_DB, "Requires sqlalchemy, fastapi, and pydantic")
 class TestScopedAliasesDB(unittest.TestCase):
@@ -212,6 +293,41 @@ class TestScopedAliasesDB(unittest.TestCase):
         self.assertTrue(decision.approved, f"Decision rejected: {decision.rejection_reason}")
         self.assertIn(14, decision.matched_episode_ids_or_numbers)
 
+    def test_clear_auto_rejected_blocklist(self):
+        """Test that clear_auto_rejected_for_show only clears automated empty-match blocks."""
+        from app.models.db import Blocklist
+        from app.services.blocklist_service import clear_auto_rejected_for_show
+
+        show = Show(title="Space Dandy", content_type="anime")
+        self.db.add(show)
+        self.db.commit()
+
+        # 1. Automated rejection
+        auto_block = Blocklist(
+            show_id=show.id,
+            release_title="[AniLibria] Space Dandy 2",
+            torrent_hash="6ba484cb11111111111111111111111111111111",
+            reason="Раздача не содержит ни одной нужной серии для тайтла",
+        )
+        # 2. Manual user rejection
+        manual_block = Blocklist(
+            show_id=show.id,
+            release_title="[BadGroup] Space Dandy 2",
+            torrent_hash="823ce92b22222222222222222222222222222222",
+            reason="Плохое качество перевода",
+        )
+        self.db.add_all([auto_block, manual_block])
+        self.db.commit()
+
+        # Clear auto rejected
+        cleared = clear_auto_rejected_for_show(self.db, show.id)
+        self.assertEqual(cleared, 1)
+
+        remaining = self.db.query(Blocklist).filter(Blocklist.show_id == show.id).all()
+        self.assertEqual(len(remaining), 1)
+        self.assertEqual(remaining[0].reason, "Плохое качество перевода")
+
 
 if __name__ == "__main__":
     unittest.main()
+

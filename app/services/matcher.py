@@ -355,73 +355,156 @@ def extract_title_segments(release_name: str) -> list[str]:
     return clean_segments
 
 
+def _clean_alias_season_suffix(text: str) -> str:
+    cleaned = re.sub(
+        r'\s*\((?:тв|tv|s|season|сезон)[\s\-_]?\d+\)|\s*\[(?:тв|tv|s|season|сезон)[\s\-_]?\d+\]|\b(?:тв|tv)[\s\-_]?\d+\b|\b\d+(?:st|nd|rd|th)?\s*season\b|\b(?:part|часть|cour|кур)\s*\d+\b',
+        '',
+        text or '',
+        flags=re.IGNORECASE
+    )
+    return cleaned.strip()
+
+
+def _is_int(v: Any) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _is_part_2_alias(a: Any) -> bool:
+    offset = getattr(a, "episode_offset", None)
+    sn = getattr(a, "season_number", None)
+    ep_start = getattr(a, "episode_start", None)
+    if _is_int(offset) and offset > 0:
+        return True
+    if _is_int(sn) and sn == 2:
+        return True
+    if _is_int(ep_start) and ep_start >= 12:
+        return True
+    return False
+
+
+def _is_part_1_alias(a: Any) -> bool:
+    offset = getattr(a, "episode_offset", None)
+    ep_start = getattr(a, "episode_start", None)
+    ep_end = getattr(a, "episode_end", None)
+    offset_ok = not _is_int(offset) or offset == 0
+    start_ok = not _is_int(ep_start) or ep_start == 1
+    end_ok = _is_int(ep_end) and ep_end < 20
+    return offset_ok and start_ok and end_ok
+
+
 def best_alias_match(
     release_name: str,
     aliases: Iterable[AliasCandidate],
-    threshold: int = DEFAULT_FUZZY_THRESHOLD,
+    threshold: float = 80.0,
 ) -> tuple[Optional[AliasCandidate], float]:
     """
     Находит алиас с максимальным fuzzy-скором против имени релиза.
     Точно проверяет совпадение сегментов тайтла и штрафует лишние слова (например, "Comet Lucifer" != "Lucifer").
+    Учитывает соответствие сезонов и смещений для Part 1 / Part 2 сплит-куров.
     """
     segments = extract_title_segments(release_name)
     if not segments:
         return None, 0.0
 
+    parsed = parse_episode(release_name)
+    s_lbl = detect_season_label(release_name)
+    rel_s = parsed.season if parsed.season is not None else (s_lbl.get("season") if s_lbl.get("type") == "numbered" else None)
+    is_part_2 = (rel_s is not None and rel_s >= 2) or bool(re.search(r"\b(?:тв|tv)[\s\-_]?2\b|\b2nd\s*season\b|\bpart\s*2\b|\bчасть\s*2\b", release_name, re.IGNORECASE))
+
+    alias_list = list(aliases)
+    has_scoped_part_2 = any(_is_part_2_alias(a) for a in alias_list)
+    has_scoped_part_1 = any(_is_part_1_alias(a) for a in alias_list)
+
     best: Optional[AliasCandidate] = None
     best_score = 0.0
 
-    for alias in aliases:
-        norm_alias = normalize_title(alias.text)
+    for alias in alias_list:
+        alias_text = getattr(alias, "text", "")
+        if not isinstance(alias_text, str):
+            continue
+        norm_alias = normalize_title(alias_text)
         if not norm_alias:
+            continue
+
+        base_alias_text = _clean_alias_season_suffix(alias_text)
+        base_alias = normalize_title(base_alias_text) if base_alias_text != alias_text else ""
+
+        # Проверка совместимости области действия алиаса и сезона релиза
+        is_alias_part_2 = _is_part_2_alias(alias)
+        is_alias_part_1 = _is_part_1_alias(alias)
+
+        if is_part_2 and is_alias_part_1 and has_scoped_part_2:
+            # Релиз относится ко 2-й части/сезону, а алиас строго ограничен 1-й частью
+            continue
+        if not is_part_2 and is_alias_part_2 and has_scoped_part_1:
+            # Релиз относится к 1-й части/сезону, а алиас строго ограничен 2-й частью
             continue
 
         alias_words = set(norm_alias.split())
         alias_clean = _clean_stopwords(norm_alias)
+        base_clean = _clean_stopwords(base_alias) if base_alias else ""
 
         for seg in segments:
             seg_words = set(seg.split())
             seg_clean = _clean_stopwords(seg)
 
-            # 1. Точное совпадение сегмента с алиасом (с учётом или без стоп-слов)
+            # 1. Точное совпадение сегмента с полным алиасом
             if seg == norm_alias or (alias_clean and seg_clean == alias_clean):
                 score = 100.0
+                if is_part_2 and is_alias_part_2:
+                    score += 5.0
                 if score > best_score:
                     best_score = score
                     best = alias
                 continue
 
-            # 2. Нечёткое сравнение полного сегмента
-            sort_ratio = fuzz.token_sort_ratio(norm_alias, seg)
-            ratio = fuzz.ratio(norm_alias, seg) if hasattr(fuzz, "ratio") else fuzz.token_sort_ratio(norm_alias, seg)
-            base_score = max(ratio, sort_ratio)
+            # 2. Точное совпадение с базовым алиасом (без суффикса ТВ-2 / 2nd Season)
+            if base_alias and (seg == base_alias or (base_clean and seg_clean == base_clean)):
+                score = 98.0
+                if is_part_2 and is_alias_part_2:
+                    score += 5.0
+                if score > best_score:
+                    best_score = score
+                    best = alias
+                continue
 
-            # Для коротких алиасов (1 слово или длина <= 8 символов) не допускаем подмену слова (например, Luzifer != Lucifer)
-            if len(alias_words) == 1 and len(seg_words) == 1:
-                if norm_alias != seg:
-                    if len(norm_alias) <= 8 or base_score < 95.0:
-                        continue
+            # 3. Нечёткое сравнение
+            target_candidates = [norm_alias]
+            if base_alias and base_alias != norm_alias:
+                target_candidates.append(base_alias)
 
-            # Проверяем наличие лишних значимых слов (например: "comet lucifer" против "lucifer")
-            extra_words = seg_words - alias_words - _TITLE_STOPWORDS
-            missing_words = alias_words - seg_words - _TITLE_STOPWORDS
+            for target_name in target_candidates:
+                t_words = set(target_name.split())
+                sort_ratio = fuzz.token_sort_ratio(target_name, seg)
+                ratio = fuzz.ratio(target_name, seg) if hasattr(fuzz, "ratio") else fuzz.token_sort_ratio(target_name, seg)
+                base_score_val = max(ratio, sort_ratio)
 
-            if extra_words:
-                # Сильный штраф за посторонние слова в названии
-                penalty = len(extra_words) * 35.0
-                score = max(0.0, base_score - penalty)
-            elif missing_words:
-                penalty = len(missing_words) * 30.0
-                score = max(0.0, base_score - penalty)
-            else:
-                score = base_score
+                if len(t_words) == 1 and len(seg_words) == 1:
+                    if target_name != seg:
+                        if len(target_name) <= 8 or base_score_val < 95.0:
+                            continue
 
-            if score > best_score:
-                best_score = score
-                best = alias
+                extra_words = seg_words - t_words - _TITLE_STOPWORDS
+                missing_words = t_words - seg_words - _TITLE_STOPWORDS
+
+                if extra_words:
+                    penalty = len(extra_words) * 35.0
+                    score = max(0.0, base_score_val - penalty)
+                elif missing_words:
+                    penalty = len(missing_words) * 30.0
+                    score = max(0.0, base_score_val - penalty)
+                else:
+                    score = base_score_val
+
+                if is_part_2 and is_alias_part_2:
+                    score += 5.0
+
+                if score > best_score:
+                    best_score = score
+                    best = alias
 
     if best is not None and best_score >= threshold:
-        return best, best_score
+        return best, min(100.0, best_score)
     return None, best_score
 
 

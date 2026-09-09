@@ -712,6 +712,8 @@ def add_alias(
     db.add(alias)
     db.commit()
     db.refresh(alias)
+    from app.services.auto_search import clear_rejected_cache_for_show
+    clear_rejected_cache_for_show(show_id, db)
     return alias
 
 
@@ -748,6 +750,8 @@ def update_alias(
     db.add(alias)
     db.commit()
     db.refresh(alias)
+    from app.services.auto_search import clear_rejected_cache_for_show
+    clear_rejected_cache_for_show(show_id, db)
     return alias
 
 
@@ -764,6 +768,8 @@ def delete_alias(
         raise HTTPException(404, "Alias not found")
     db.delete(alias)
     db.commit()
+    from app.services.auto_search import clear_rejected_cache_for_show
+    clear_rejected_cache_for_show(show_id, db)
 
 
 @router.get("/{show_id}/episodes", response_model=list[EpisodeOut])
@@ -1043,11 +1049,13 @@ async def force_search_show(
     Принудительный автопоиск: сразу ищет и захватывает лучшие релизы для всех
     wanted-серий этого шоу, не дожидаясь плановой джобы (каждые 15 минут).
     """
-    from app.services.auto_search import search_and_grab_show
+    from app.services.auto_search import search_and_grab_show, clear_rejected_cache_for_show
 
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
+
+    clear_rejected_cache_for_show(show_id, db)
 
     try:
         result = await search_and_grab_show(db, show)
@@ -1089,13 +1097,15 @@ async def search_selected_episodes(
 ):
     """Поиск и скачивание ТОЛЬКО выбранных пользователем серий (не всего сезона) —
     отмечаются флажками в карточке видео."""
-    from app.services.auto_search import search_and_grab_show
+    from app.services.auto_search import search_and_grab_show, clear_rejected_cache_for_show
 
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
     if not payload.episode_ids:
         raise HTTPException(400, "Не выбрано ни одной серии")
+
+    clear_rejected_cache_for_show(show_id, db)
 
     episodes = db.query(Episode).filter(Episode.id.in_(payload.episode_ids), Episode.show_id == show_id).all()
     if not episodes:
@@ -1153,11 +1163,13 @@ async def search_season_episodes(
     Автоматический поиск и скачивание ВСЕХ серий указанного сезона (Sonarr Season Search).
     Если находится полный пак или сезон-пак, загрузчик скачивает только серии этого сезона.
     """
-    from app.services.auto_search import search_and_grab_show
+    from app.services.auto_search import search_and_grab_show, clear_rejected_cache_for_show
 
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
+
+    clear_rejected_cache_for_show(show_id, db)
 
     season_episodes = (
         db.query(Episode)

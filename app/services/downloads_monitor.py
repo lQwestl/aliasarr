@@ -650,6 +650,24 @@ async def check_downloads(db: Session) -> list[dict]:
                         if getattr(e, "torrent_hash", None) == torrent_hash or e.status in (EpisodeStatus.DOWNLOADING, EpisodeStatus.WANTED, EpisodeStatus.UNAIRED)
                     ] if all_show_eps else eps
 
+                    t_name = getattr(full_t, "name", "") or getattr(t, "name", "") or ""
+
+                    # Определение смещения и привязанного сезона сматченного алиаса
+                    alias_offset = 0
+                    scoped_season = None
+                    if show_obj:
+                        from app.services.matcher import build_alias_candidates, match_release
+                        show_aliases = build_alias_candidates(show_obj, db=db)
+                        m_res = match_release(
+                            t_name,
+                            show_obj.id,
+                            show_aliases,
+                            content_type=getattr(show_obj, "content_type", "series") or "series",
+                        )
+                        if m_res and m_res.matched and m_res.alias_candidate:
+                            alias_offset = m_res.alias_candidate.episode_offset or 0
+                            scoped_season = m_res.alias_candidate.season_number
+
                     matched_eps = []
                     wanted_indices = []
                     unwanted_indices = []
@@ -660,10 +678,12 @@ async def check_downloads(db: Session) -> list[dict]:
                             target_episodes=target_reconcile_eps,
                             content_type=getattr(show_obj, "content_type", "series") if show_obj else "series",
                             ova_mode=show_ova_mode,
-                            torrent_name=getattr(full_t, "name", "") or "",
+                            torrent_name=t_name,
                             all_show_episodes=all_show_eps,
                             out_matched_episodes=matched_eps,
                             show_words=show_words,
+                            alias_offset=alias_offset,
+                            scoped_season=scoped_season,
                         )
                         if prio > 0:
                             wanted_indices.append(f.index)

@@ -103,9 +103,15 @@ def is_release_rejected_for_show(
     return False
 
 
-def clear_rejected_cache_for_show(show_id: int) -> None:
+def clear_rejected_cache_for_show(show_id: int, db: Optional[Session] = None) -> None:
     if show_id:
         _SHOW_REJECTED_HASHES.pop(show_id, None)
+        if db is not None:
+            try:
+                from app.services.blocklist_service import clear_auto_rejected_for_show
+                clear_auto_rejected_for_show(db, show_id)
+            except Exception as e:
+                logger.debug("clear_rejected_cache_for_show: failed to clear auto-blocklist for show %s: %s", show_id, e)
 
 
 def _get_show_max_season(db: Session, show: Show) -> int:
@@ -1596,6 +1602,9 @@ async def _do_search_and_grab(
 
         # --- Если сезон явно переопределен сматченным алиасом (Scoped Alias Season) ---
         if scoped_season is not None:
+            rel_s = parsed.season if parsed.season is not None else (season_label["season"] if label_type == "numbered" else None)
+            if alias_offset == 0 and rel_s is not None and rel_s != scoped_season and label_type not in ("range", "complete"):
+                return False
             if ep.season_number == scoped_season:
                 return _has_ep_match()
             return False
