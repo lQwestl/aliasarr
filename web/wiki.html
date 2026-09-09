@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title id="wiki-page-title">Wiki &amp; Руководство пользователя — Aliasarr</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366F1'/%3E%3Cstop offset='1' stop-color='%2300F0FF'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ctext x='32' y='45' font-family='Arial,Helvetica,sans-serif' font-size='36' font-weight='800' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='17' fill='%230f1048'/%3E%3Cpath d='M32 14L43 36' stroke='%232a197c' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M15 49L32 14' stroke='%236838f7' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 36H43L49 49' stroke='%236838f7' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/ui/static/css/style.css?v=20260826-06">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260909-10">
 <script>
   (function () {
     try {
@@ -30,6 +30,36 @@
     --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-body: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --brand-icon-bg: #0f1048;
+    --brand-icon-bg-border: rgba(108, 62, 248, 0.35);
+    --brand-icon-fg: #6c3ef8;
+    --brand-icon-shadow: #2a197c;
+    --brand-name-color: #7b4dfc;
+    --brand-name-glow: rgba(108, 62, 248, 0.28);
+  }
+  [data-theme="obsidian"] {
+    --brand-icon-bg: #032015;
+    --brand-icon-bg-border: rgba(0, 245, 212, 0.35);
+    --brand-icon-fg: #00F5D4;
+    --brand-icon-shadow: #064e3b;
+    --brand-name-color: #00F5D4;
+    --brand-name-glow: rgba(0, 245, 212, 0.3);
+  }
+  [data-theme="dracula"] {
+    --brand-icon-bg: #21222c;
+    --brand-icon-bg-border: rgba(189, 147, 249, 0.35);
+    --brand-icon-fg: #bd93f9;
+    --brand-icon-shadow: #44475a;
+    --brand-name-color: #bd93f9;
+    --brand-name-glow: rgba(189, 147, 249, 0.25);
+  }
+  [data-theme="light"] {
+    --brand-icon-bg: #e0e7ff;
+    --brand-icon-bg-border: rgba(79, 70, 229, 0.25);
+    --brand-icon-fg: #4f46e5;
+    --brand-icon-shadow: #a5b4fc;
+    --brand-name-color: #4338ca;
+    --brand-name-glow: rgba(79, 70, 229, 0.15);
   }
   body {
     background-color: var(--bg);
@@ -85,24 +115,47 @@
     width: 34px; 
     height: 34px; 
     border-radius: var(--radius-sm, 8px);
-    background: linear-gradient(135deg, var(--teal, #00F0FF), var(--violet, #FF2A4D));
-    color: #ffffff;
+    background: transparent;
     display: flex; 
     align-items: center; 
     justify-content: center;
-    font-size: 18px;
-    font-weight: 800;
     flex-shrink: 0;
     border: none;
-    box-shadow: 0 2px 10px rgba(0, 240, 255, 0.25);
+    box-shadow: 0 4px 14px var(--brand-name-glow, rgba(108, 62, 248, 0.28));
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  }
+  .brand-mark-logo:hover {
+    transform: scale(1.06);
+    box-shadow: 0 6px 20px var(--brand-name-glow, rgba(108, 62, 248, 0.45));
+  }
+  .brand-icon-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .brand-icon-bg {
+    fill: var(--brand-icon-bg, #0f1048);
+    stroke: var(--brand-icon-bg-border, rgba(108, 62, 248, 0.35));
+    stroke-width: 1;
+    transition: fill 0.3s ease, stroke 0.3s ease;
+  }
+  .brand-icon-shadow {
+    stroke: var(--brand-icon-shadow, #2a197c);
+    transition: stroke 0.3s ease;
+  }
+  .brand-icon-fg {
+    stroke: var(--brand-icon-fg, #6c3ef8);
+    transition: stroke 0.3s ease;
   }
   .brand-name {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 20px;
-    color: var(--text);
+    font-size: 22px;
+    color: var(--brand-name-color, #7b4dfc);
     margin-top: 0;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.4px;
+    line-height: 1;
+    transition: color 0.3s ease;
   }
   .wiki-doc-tag {
     font-size: 10.5px;
@@ -1155,7 +1208,14 @@
       </button>
 
       <a href="/" class="brand">
-        <div class="brand-mark-logo">A</div>
+        <div class="brand-mark-logo">
+          <svg class="brand-icon-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="32" height="32" rx="8.5" class="brand-icon-bg"/>
+            <path d="M16 7L21.5 18" class="brand-icon-shadow" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7.5 24.5L16 7" class="brand-icon-fg" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M10.5 18H21.5L24.5 24.5" class="brand-icon-fg" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <span class="brand-name">Aliasarr</span>
       </a>
       <span class="wiki-doc-tag">WIKI &amp; ARCHITECTURE MANUAL</span>
@@ -2656,13 +2716,28 @@
     });
   }
 
+  function updateFavicon(theme) {
+    const themeColors = {
+      dark: { bg: "#0f1048", shadow: "#2a197c", fg: "#6838f7" },
+      obsidian: { bg: "#032015", shadow: "#064e3b", fg: "#00F5D4" },
+      dracula: { bg: "#21222c", shadow: "#44475a", fg: "#bd93f9" },
+      light: { bg: "#e0e7ff", shadow: "#a5b4fc", fg: "#4f46e5" }
+    };
+    const c = themeColors[theme] || themeColors.dark;
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='17' fill='${c.bg}'/><path d='M32 14L43 36' stroke='${c.shadow}' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/><path d='M15 49L32 14' stroke='${c.fg}' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/><path d='M21 36H43L49 49' stroke='${c.fg}' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/></svg>`;
+    const link = document.querySelector("link[rel~='icon']");
+    if (link) link.href = "data:image/svg+xml," + encodeURIComponent(svg);
+  }
+
   // Theme Toggler
   function cycleWikiTheme() {
     const current = document.documentElement.getAttribute("data-theme") || "dark";
     const next = current === "dark" ? "obsidian" : (current === "obsidian" ? "dracula" : (current === "dracula" ? "light" : "dark"));
     document.documentElement.setAttribute("data-theme", next);
     try { localStorage.setItem("vbeacon_theme", next); } catch (e) {}
+    updateFavicon(next);
   }
+  updateFavicon(document.documentElement.getAttribute("data-theme") || "dark");
 
   // Language state & switcher
   let CURRENT_WIKI_LANG = "ru";

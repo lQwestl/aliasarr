@@ -24,6 +24,12 @@
   --scrollbar-thumb-hover: var(--teal);
   --scrollbar-track: transparent;
   --scrollbar-width: 8px;
+  --brand-icon-bg: #0f1048;
+  --brand-icon-bg-border: rgba(108, 62, 248, 0.35);
+  --brand-icon-fg: #6c3ef8;
+  --brand-icon-shadow: #2a197c;
+  --brand-name-color: #7b4dfc;
+  --brand-name-glow: rgba(108, 62, 248, 0.28);
 }
 
 /* Obsidian Aurora Theme (Awwwards-Tier OLED Obsidian & Ethereal Mint/Violet) */
@@ -48,6 +54,12 @@
   --radius-lg: 20px;
   --scrollbar-thumb: rgba(0, 245, 212, 0.28);
   --scrollbar-thumb-hover: #00F5D4;
+  --brand-icon-bg: #032015;
+  --brand-icon-bg-border: rgba(0, 245, 212, 0.35);
+  --brand-icon-fg: #00F5D4;
+  --brand-icon-shadow: #064e3b;
+  --brand-name-color: #00F5D4;
+  --brand-name-glow: rgba(0, 245, 212, 0.3);
 }
 
 [data-theme="obsidian"] body::before {
@@ -55,12 +67,6 @@
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 245, 212, 0.14), transparent),
     radial-gradient(ellipse 60% 40% at 90% 80%, rgba(139, 92, 246, 0.1), transparent);
   opacity: 1;
-}
-
-[data-theme="obsidian"] .brand-mark-logo {
-  background: linear-gradient(135deg, #00F5D4 0%, #8B5CF6 100%);
-  color: #05070e;
-  box-shadow: 0 4px 20px rgba(0, 245, 212, 0.35);
 }
 
 [data-theme="obsidian"] .tasks-popup,
@@ -85,6 +91,12 @@
   --gradient: linear-gradient(135deg, var(--teal), var(--violet));
   --scrollbar-thumb: rgba(189, 147, 249, 0.28);
   --scrollbar-thumb-hover: #ff79c6;
+  --brand-icon-bg: #21222c;
+  --brand-icon-bg-border: rgba(189, 147, 249, 0.35);
+  --brand-icon-fg: #bd93f9;
+  --brand-icon-shadow: #44475a;
+  --brand-name-color: #bd93f9;
+  --brand-name-glow: rgba(189, 147, 249, 0.25);
 }
 
 /* Light Theme (Daylight Clean) */
@@ -104,14 +116,16 @@
   --gradient: linear-gradient(135deg, #0284c7, #6366f1);
   --scrollbar-thumb: rgba(0, 0, 0, 0.22);
   --scrollbar-thumb-hover: var(--teal);
+  --brand-icon-bg: #e0e7ff;
+  --brand-icon-bg-border: rgba(79, 70, 229, 0.25);
+  --brand-icon-fg: #4f46e5;
+  --brand-icon-shadow: #a5b4fc;
+  --brand-name-color: #4338ca;
+  --brand-name-glow: rgba(79, 70, 229, 0.15);
 }
 
 [data-theme="light"] body::before {
   opacity: 0.01;
-}
-
-[data-theme="light"] .brand-mark-logo {
-  color: #ffffff;
 }
 
 [data-theme="light"] .tasks-item-progress-track {
@@ -282,16 +296,37 @@ body::before {
   width: 34px; 
   height: 34px; 
   border-radius: var(--radius-sm, 8px);
-  background: linear-gradient(135deg, var(--teal, #00F0FF), var(--violet, #FF2A4D));
-  color: #ffffff;
+  background: transparent;
   display: flex; 
   align-items: center; 
   justify-content: center;
-  font-size: 18px;
-  font-weight: 800;
   flex-shrink: 0;
   border: none;
-  box-shadow: 0 2px 10px rgba(0, 240, 255, 0.25);
+  box-shadow: 0 4px 14px var(--brand-name-glow, rgba(108, 62, 248, 0.28));
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+.brand-mark-logo:hover {
+  transform: scale(1.06);
+  box-shadow: 0 6px 20px var(--brand-name-glow, rgba(108, 62, 248, 0.45));
+}
+.brand-icon-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.brand-icon-bg {
+  fill: var(--brand-icon-bg, #0f1048);
+  stroke: var(--brand-icon-bg-border, rgba(108, 62, 248, 0.35));
+  stroke-width: 1;
+  transition: fill 0.3s ease, stroke 0.3s ease;
+}
+.brand-icon-shadow {
+  stroke: var(--brand-icon-shadow, #2a197c);
+  transition: stroke 0.3s ease;
+}
+.brand-icon-fg {
+  stroke: var(--brand-icon-fg, #6c3ef8);
+  transition: stroke 0.3s ease;
 }
 .mark-a { color: var(--teal); }
 .mark-dot { color: var(--text-muted); margin: 0 2px; }
@@ -300,10 +335,12 @@ body::before {
 .brand-name {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 20px;
-  color: var(--text);
+  font-size: 22px;
+  color: var(--brand-name-color, #7b4dfc);
   margin-top: 0;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.4px;
+  line-height: 1;
+  transition: color 0.3s ease;
 }
 
 .nav { 
