@@ -24,10 +24,31 @@ const QUALITY_OPTIONS = [
 ];
 
 // ---------- ТЕМА (dark/obsidian/dracula/light) ----------
+function updateFavicon(theme) {
+  const themeColors = {
+    dark: { bg: "%230f1048", shadow: "%232a197c", fg: "%236838f7" },
+    obsidian: { bg: "%23032015", shadow: "%23064e3b", fg: "%2300F5D4" },
+    dracula: { bg: "%2321222c", shadow: "%2344475a", fg: "%23bd93f9" },
+    light: { bg: "%23e0e7ff", shadow: "%23a5b4fc", fg: "%234f46e5" }
+  };
+  const c = themeColors[theme] || themeColors.dark;
+  const href = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='17' fill='" + c.bg + "'/%3E%3Cpath d='M32 14L43 36' stroke='" + c.shadow + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M15 49L32 14' stroke='" + c.fg + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 36H43L49 49' stroke='" + c.fg + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E";
+  const oldLink = document.querySelector("link[rel~='icon']");
+  const newLink = document.createElement("link");
+  newLink.rel = "icon";
+  newLink.type = "image/svg+xml";
+  newLink.href = href;
+  if (oldLink && oldLink.parentNode) {
+    oldLink.parentNode.removeChild(oldLink);
+  }
+  document.head.appendChild(newLink);
+}
+
 function applyTheme(theme) {
   const t = theme || "dark";
   document.documentElement.setAttribute("data-theme", t);
   try { localStorage.setItem("vbeacon_theme", t); } catch (e) {}
+  updateFavicon(t);
 }
 
 // ---------- ДИЗАЙН-СИСТЕМА (classic / vanguard) ----------

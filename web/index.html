@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/ui/static/css/style.css?v=20260909-10">
+<link rel="stylesheet" href="/ui/static/css/style.css?v=20260909-11">
 <script>
   // Применяем тему, язык и целевую вкладку сразу, до отрисовки основного контента, чтобы исключить мерцание Дашбордом при перезагрузке
   (function () {
@@ -21,6 +21,18 @@
       document.documentElement.setAttribute("data-scrollbar", scrollbar);
       var lang = localStorage.getItem("aliasarr_lang") || localStorage.getItem("vbeacon_lang") || "ru";
       document.documentElement.setAttribute("lang", lang);
+
+      var themeColors = {
+        dark: { bg: "%230f1048", shadow: "%232a197c", fg: "%236838f7" },
+        obsidian: { bg: "%23032015", shadow: "%23064e3b", fg: "%2300F5D4" },
+        dracula: { bg: "%2321222c", shadow: "%2344475a", fg: "%23bd93f9" },
+        light: { bg: "%23e0e7ff", shadow: "%23a5b4fc", fg: "%234f46e5" }
+      };
+      var c = themeColors[theme] || themeColors.dark;
+      var iconEl = document.querySelector("link[rel~='icon']");
+      if (iconEl) {
+        iconEl.href = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='17' fill='" + c.bg + "'/%3E%3Cpath d='M32 14L43 36' stroke='" + c.shadow + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M15 49L32 14' stroke='" + c.fg + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 36H43L49 49' stroke='" + c.fg + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E";
+      }
 
       var hash = (window.location.hash || "").replace("#", "");
       var targetTab = hash || localStorage.getItem("aliasarr_last_tab") || "dashboard";
@@ -943,7 +955,7 @@
               <option value="en">English</option>
             </select>
             <label data-i18n="settings.theme">Тема</label>
-            <select id="setting-theme" class="input" style="max-width:220px">
+            <select id="setting-theme" class="input" style="max-width:220px" onchange="applyTheme(this.value)">
               <option value="dark" data-i18n="settings.theme_dark">Неоновая полночь</option>
               <option value="obsidian" data-i18n="settings.theme_obsidian">Обсидиан (Obsidian Aurora)</option>
               <option value="dracula" data-i18n="settings.theme_dracula">Дракула</option>
@@ -3845,6 +3857,6 @@
 <div id="toast" class="toast"></div>
 
 <script src="https://unpkg.com/lucide@latest"></script>
-<script src="/ui/static/js/app.js?v=20260909-10"></script>
+<script src="/ui/static/js/app.js?v=20260909-11"></script>
 </body>
 </html>
