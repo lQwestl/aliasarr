@@ -1187,6 +1187,30 @@ def process_download(
         for ep in dl_eps:
             if getattr(ep, "downloaded_quality", None) and ep.downloaded_quality not in ("SDTV", "SDTV-480p"):
                 context_hints.append(ep.downloaded_quality)
+
+    # Определение смещения серий и привязки к сезону на основе сматченного алиаса (Scoped Aliases & Offset)
+    alias_offset = 0
+    scoped_season = None
+    if show:
+        try:
+            from app.services.matcher import build_alias_candidates, best_alias_match
+            show_aliases = build_alias_candidates(show, db=db)
+            hints_to_check = [os.path.basename(download_path)] + context_hints
+            for h in hints_to_check:
+                if not h:
+                    continue
+                b_alias, b_score = best_alias_match(str(h), show_aliases, threshold=55)
+                if b_alias and (getattr(b_alias, "episode_offset", 0) or getattr(b_alias, "season_number", None) is not None):
+                    alias_offset = getattr(b_alias, "episode_offset", 0) or 0
+                    scoped_season = getattr(b_alias, "season_number", None)
+                    logger.info(
+                        "Постобработка: применен алиас «%s» с параметрами scope (сезон=%s, смещение=+%d)",
+                        b_alias.text, scoped_season, alias_offset,
+                    )
+                    break
+        except Exception as exc:
+            logger.debug("Ошибка поиска алиаса для postprocess: %s", exc)
+
     # Гарантируем строгую последовательную обработку от 1-й серии к последней
     video_files.sort(key=episode_file_sort_key)
 
@@ -1307,6 +1331,21 @@ def process_download(
 
                 if best_match_ep is not None:
                     episode = best_match_ep
+
+            # 0.5. Сопоставление по смещению и сезону алиаса (Scoped Alias Offset & Season)
+            if episode is None and (alias_offset > 0 or scoped_season is not None):
+                target_eff_s = scoped_season if scoped_season is not None else (parsed.season if parsed.season is not None else (getattr(dl_eps[0], "season_number", 1) if dl_eps else 1))
+                target_eff_ep = ep_num + alias_offset
+                if dl_eps:
+                    episode = next(
+                        (ep for ep in dl_eps if getattr(ep, "id", None) not in used_episode_ids and (target_eff_s is None or getattr(ep, "season_number", None) == target_eff_s) and getattr(ep, "episode_number", None) == target_eff_ep),
+                        None,
+                    )
+                if episode is None and all_show_eps:
+                    episode = next(
+                        (ep for ep in all_show_eps if getattr(ep, "id", None) not in used_episode_ids and (target_eff_s is None or getattr(ep, "season_number", None) == target_eff_s) and getattr(ep, "episode_number", None) == target_eff_ep),
+                        None,
+                    )
 
             # 1. Поиск среди серий этой конкретной загрузки (dl_eps) по номеру
             if episode is None and dl_eps:

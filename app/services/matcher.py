@@ -46,6 +46,10 @@ class AliasCandidate:
     text: str
     language: str = "ru"
     priority: int = 100
+    season_number: Optional[int] = None
+    episode_start: Optional[int] = None
+    episode_end: Optional[int] = None
+    episode_offset: Optional[int] = None
 
 
 @dataclass
@@ -56,6 +60,22 @@ class MatchResult:
     alias_text: Optional[str]
     score: float
     parsed: ParsedRelease
+    alias_candidate: Optional[AliasCandidate] = None
+
+    @property
+    def effective_season(self) -> Optional[int]:
+        if self.alias_candidate and self.alias_candidate.season_number is not None:
+            return self.alias_candidate.season_number
+        return self.parsed.season if self.parsed else None
+
+    @property
+    def effective_episodes(self) -> list[int]:
+        if not self.parsed or not self.parsed.episodes:
+            return []
+        offset = (self.alias_candidate.episode_offset or 0) if self.alias_candidate else 0
+        if offset:
+            return [e + offset for e in self.parsed.episodes]
+        return list(self.parsed.episodes)
 
 
 _JUNK_WORDS = {
@@ -248,6 +268,10 @@ def build_alias_candidates(show, db=None) -> list[AliasCandidate]:
                 text=part,
                 language=lang_str,
                 priority=prio,
+                season_number=getattr(alias, "season_number", None),
+                episode_start=getattr(alias, "episode_start", None),
+                episode_end=getattr(alias, "episode_end", None),
+                episode_offset=getattr(alias, "episode_offset", None),
             ))
 
     # Приоритет — единственный фактор порядка (НЕ язык): меньше число = ищем раньше.
@@ -295,13 +319,33 @@ def extract_title_segments(release_name: str) -> list[str]:
         """,
         re.IGNORECASE | re.VERBOSE,
     )
+    # Регулярка для отсечения только технического мусора (качество, скобки, эпизоды), сохраняя метки сезона/части (TV-2, 2nd Season)
+    tech_cut_re = re.compile(
+        r"""
+        (?:
+            \s*\(|\s*\[
+        |   (?<!(?:tv|тв))\s*[-–]\s*\d+
+        |   [._\s]\b(?:S\d{1,3}(?:[-_.\s]*E\d{1,3})?|E\d{1,3}|EP\d{1,3})\b
+        |   [._\s]\b(?:1080p|720p|2160p|480p|576p|BDRip|WEB-?DL|WEBRip|HDTV|Remux)\b
+        )
+        """,
+        re.IGNORECASE | re.VERBOSE,
+    )
     clean_segments: list[str] = []
     for p in raw_parts:
+        # Вариант с сохранением меток ТВ/Сезон (для scoped-алиасов вида "Space Dandy TV-2" / "2nd Season")
+        m_tech = tech_cut_re.search(p)
+        if m_tech:
+            cleaned_tech = normalize_title(p[:m_tech.start()])
+            if cleaned_tech and cleaned_tech not in clean_segments:
+                clean_segments.append(cleaned_tech)
+
+        # Вариант с полным отсечением (для базовых алиасов "Space Dandy")
         m = cut_re.search(p)
         if m:
             p = p[:m.start()]
         cleaned = normalize_title(p)
-        if cleaned:
+        if cleaned and cleaned not in clean_segments:
             clean_segments.append(cleaned)
 
     full_norm = normalize_title(release_name)
@@ -540,7 +584,7 @@ def match_release(
 
     return MatchResult(
         matched=True, show_id=show_id, alias_id=alias.alias_id, alias_text=alias.text,
-        score=score, parsed=parsed,
+        score=score, parsed=parsed, alias_candidate=alias,
     )
 
 

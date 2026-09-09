@@ -184,6 +184,13 @@ class DecisionEngine:
                     has_wanted_specials = (0 in target_seasons)
                     specials_in_target = [ep for ep in episodes if ep.season_number == 0] if has_wanted_specials else []
 
+                    # Извлечение параметров области действия сматченного алиаса (Scoped Aliases)
+                    alias_cand = getattr(match, "alias_candidate", None)
+                    scoped_season = alias_cand.season_number if (alias_cand and alias_cand.season_number is not None) else None
+                    alias_offset = (alias_cand.episode_offset or 0) if alias_cand else 0
+                    alias_start = alias_cand.episode_start if (alias_cand and alias_cand.episode_start is not None) else None
+                    alias_end = alias_cand.episode_end if (alias_cand and alias_cand.episode_end is not None) else None
+
                     # Проверка спецвыпуска по названию, арке или SxxE00
                     matched_sp_for_release = None
                     if has_wanted_specials and specials_in_target and not match.parsed.has_specials:
@@ -195,7 +202,7 @@ class DecisionEngine:
                         pass
                     elif match.parsed.has_specials:
                         # Комбинированный релиз TV + Special (покрывает TV сезон и Season 0)
-                        rel_s = match.parsed.season if match.parsed.season is not None else 1
+                        rel_s = scoped_season if scoped_season is not None else (match.parsed.season if match.parsed.season is not None else 1)
                         covered_seasons = {rel_s, 0}
                         if not (covered_seasons & target_seasons):
                             min_tgt = min(target_seasons) if target_seasons else 0
@@ -203,7 +210,9 @@ class DecisionEngine:
                         else:
                             has_matching_tv = any(
                                 (rel_s, ep_n) in target_ep_keys
+                                or (rel_s, ep_n + alias_offset) in target_ep_keys
                                 or ep_n in target_abs
+                                or (ep_n + alias_offset) in target_abs
                                 for ep_n in match.parsed.episodes
                             ) if match.parsed.episodes else (rel_s in target_seasons)
                             has_matching_sp = any(
@@ -216,7 +225,12 @@ class DecisionEngine:
                                 rejections.append(f"Релиз содержит серии ({eps_str}) и спешлы, которые не выбраны для скачивания")
                     else:
                         # Проверка диапазона сезонов пака
-                        if lbl_type == "range":
+                        if scoped_season is not None:
+                            rel_s = scoped_season
+                            if rel_s not in target_seasons:
+                                min_tgt = min(target_seasons) if target_seasons else 0
+                                rejections.append(f"Релиз относится к сезону S{rel_s:02d} (по алиасу), а разыскивается S{min_tgt:02d}")
+                        elif lbl_type == "range":
                             rel_seasons = set(s_lbl.get("seasons", []))
                             if not (rel_seasons & target_seasons):
                                 min_rel = min(rel_seasons) if rel_seasons else 0
@@ -243,32 +257,52 @@ class DecisionEngine:
 
                         # Проверка конкретных серий
                         if match.parsed.episodes and match.parsed.kind not in (ReleaseKind.SEASON_PACK, ReleaseKind.UNKNOWN):
-                            rel_s = match.parsed.season if match.parsed.season is not None else (min(target_seasons) if target_seasons else 1)
+                            rel_s = scoped_season if scoped_season is not None else (match.parsed.season if match.parsed.season is not None else (min(target_seasons) if target_seasons else 1))
 
                             # Расчёт смещения для multi-part / split-cour релизов (Part 2, Cour 2, часть 2)
-                            part_offset = 0
-                            if match.parsed.part and match.parsed.part >= 2 and show and getattr(show, "episodes", None):
+                            effective_offset = alias_offset
+                            if effective_offset == 0 and match.parsed.part and match.parsed.part >= 2 and show and getattr(show, "episodes", None):
                                 all_season_eps = [e for e in show.episodes if getattr(e, "season_number", None) == rel_s]
                                 wanted_season_eps = [e for e in episodes if getattr(e, "season_number", None) == rel_s] if episodes else []
                                 from app.services.matcher import resolve_part_offset
-                                part_offset = resolve_part_offset(
+                                effective_offset = resolve_part_offset(
                                     match.parsed.part,
                                     match.parsed.total_in_part,
                                     match.parsed.episodes,
                                     all_season_eps,
                                     wanted_season_eps,
-                                )
+                                    )
+
+                            def _ep_in_scope(ep_n):
+                                eff_n = ep_n + effective_offset
+                                if alias_start is not None and eff_n < alias_start:
+                                    return False
+                                if alias_end is not None and eff_n > alias_end:
+                                    return False
+                                return True
 
                             has_matching_ep = any(
-                                (rel_s, ep_n) in target_ep_keys
-                                or (rel_s, ep_n + part_offset) in target_ep_keys
-                                or ep_n in target_abs
-                                or (ep_n + part_offset) in target_abs
+                                _ep_in_scope(ep_n) and (
+                                    (rel_s, ep_n) in target_ep_keys
+                                    or (rel_s, ep_n + effective_offset) in target_ep_keys
+                                    or ep_n in target_abs
+                                    or (ep_n + effective_offset) in target_abs
+                                )
                                 for ep_n in match.parsed.episodes
                             )
                             if not has_matching_ep:
                                 eps_str = ", ".join(str(e) for e in match.parsed.episodes[:3])
                                 rejections.append(f"Релиз содержит серии ({eps_str}), которые не выбраны для скачивания")
+                        elif (match.parsed.kind == ReleaseKind.SEASON_PACK or not match.parsed.episodes) and (alias_start is not None or alias_end is not None):
+                            rel_s = scoped_season if scoped_season is not None else (match.parsed.season if match.parsed.season is not None else (min(target_seasons) if target_seasons else 1))
+                            has_matching_in_range = any(
+                                ep.season_number == rel_s
+                                and (alias_start is None or ep.episode_number >= alias_start)
+                                and (alias_end is None or ep.episode_number <= alias_end)
+                                for ep in episodes
+                            )
+                            if not has_matching_in_range:
+                                rejections.append(f"Релиз покрывает диапазон серий {alias_start or 1}-{alias_end or '...'}, который не содержит разыскиваемых серий")
 
         # 5. Проверка качества в профиле (QualityAllowedSpecification)
         if quality_profile:

@@ -129,6 +129,8 @@ def evaluate_torrent_file_priority(
     out_matched_episodes: Optional[list[Any]] = None,
     show_words: Optional[set[str]] = None,
     out_file_reasons: Optional[dict[int, str]] = None,
+    alias_offset: int = 0,
+    scoped_season: Optional[int] = None,
 ) -> int:
     """
     Определяет приоритет скачивания файла торрента (1 = скачивать, 0 = не скачивать).
@@ -305,7 +307,7 @@ def evaluate_torrent_file_priority(
     is_special_file = (
         (parsed and (parsed.season == 0 or parsed.matched_pattern in ("season_pack:ova_ona", "leading_num_special"))) or
         is_special_dir or
-        any(kw in base_name.lower() for kw in ("ova", "ona", "oad", "special", "specials", "спешл", "sp", "bonus", "omake")) or
+        bool(re.search(r"\b(?:ova|ona|oad|special|specials|спешл|спешлы|sp|bonus|omake)\b", base_name, re.IGNORECASE)) or
         (episodes and 0 in episodes)
     )
 
@@ -403,6 +405,25 @@ def evaluate_torrent_file_priority(
             return _set_res(0, "Не удалось определить номер серии в видеофайле (ОТКЛЮЧЕН)")
 
         for ep_num in episodes:
+            # 0. Приоритетное сопоставление по смещению алиаса (Scoped Alias Offset & Season)
+            if alias_offset > 0 or scoped_season is not None:
+                eff_s = scoped_season if scoped_season is not None else season
+                eff_ep = ep_num + alias_offset
+                if eff_s is not None and (eff_s, eff_ep) in target_keys:
+                    if out_matched_episodes is not None:
+                        matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (eff_s, eff_ep)), None)
+                        if matched:
+                            out_matched_episodes.append(matched)
+                    return _set_res(1, f"Серия сопоставлена по смещению алиаса -> S{eff_s:02d}E{eff_ep:02d} (ВКЛЮЧЕН, разыскивается)")
+                if eff_s is None:
+                    for s in target_seasons:
+                        if (s, eff_ep) in target_keys:
+                            if out_matched_episodes is not None:
+                                matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (s, eff_ep)), None)
+                                if matched:
+                                    out_matched_episodes.append(matched)
+                            return _set_res(1, f"Серия сопоставлена по смещению алиаса -> S{s:02d}E{eff_ep:02d} (ВКЛЮЧЕН, разыскивается)")
+
             # 1. Формат 3-4 цифры (501 -> Сезон 5 Серия 1, 1204 -> Сезон 12 Серия 4)
             if 101 <= ep_num <= 9999:
                 s_div, e_mod = divmod(ep_num, 100)
@@ -581,7 +602,20 @@ async def _limit_torrent_files_to_episodes(
     matched_target_eps = []
     file_reasons: dict[int, str] = {}
 
+    alias_offset = 0
+    scoped_season = None
     t_name = getattr(torrent, "name", "") or ""
+    if show_obj:
+        try:
+            from app.services.matcher import build_alias_candidates, best_alias_match
+            show_alias_cands = build_alias_candidates(show_obj)
+            b_alias, b_score = best_alias_match(t_name, show_alias_cands, threshold=55)
+            if b_alias:
+                alias_offset = getattr(b_alias, "episode_offset", 0) or 0
+                scoped_season = getattr(b_alias, "season_number", None)
+        except Exception as exc:
+            logger.debug("Ошибка поиска алиаса для пофайловой фильтрации: %s", exc)
+
     for f in torrent.files:
         prio = evaluate_torrent_file_priority(
             file_name=f.name,
@@ -596,6 +630,8 @@ async def _limit_torrent_files_to_episodes(
             out_matched_episodes=matched_target_eps,
             show_words=show_words,
             out_file_reasons=file_reasons,
+            alias_offset=alias_offset,
+            scoped_season=scoped_season,
         )
         if prio > 0:
             wanted_indices.append(f.index)
@@ -1028,6 +1064,36 @@ async def _collect_candidates(
     allowed_qualities = quality_profile.allowed_qualities if quality_profile else []
     alias_candidates = build_alias_candidates(show, db=db)
 
+    # Фильтруем алиасы по области действия (сезон/диапазон), если задан список разыскиваемых серий
+    wanted_seasons = {
+        ep.season_number
+        for ep in wanted_episodes
+        if ep.season_number is not None
+    } if wanted_episodes else set()
+
+    def _is_alias_relevant_for_wanted(a) -> bool:
+        if not wanted_episodes:
+            return True
+        a_s = getattr(a, "season_number", None)
+        a_start = getattr(a, "episode_start", None)
+        a_end = getattr(a, "episode_end", None)
+        if a_s is None and a_start is None and a_end is None:
+            return True  # глобальный алиас
+        if a_s is not None and a_s not in wanted_seasons:
+            return False
+        # Проверяем пересечение с wanted_episodes
+        matching_eps = [
+            ep for ep in wanted_episodes
+            if (a_s is None or ep.season_number == a_s)
+            and (a_start is None or ep.episode_number >= a_start)
+            and (a_end is None or ep.episode_number <= a_end)
+        ]
+        return len(matching_eps) > 0
+
+    active_aliases = [a for a in alias_candidates if _is_alias_relevant_for_wanted(a)]
+    if not active_aliases:
+        active_aliases = alias_candidates
+
     # Формируем компактный и результативный список поисковых запросов (не более 12-14)
     query_terms: list[str] = []
     seen_queries: set[str] = set()
@@ -1041,7 +1107,7 @@ async def _collect_candidates(
     # 1. Извлекаем короткие ядра и чистые алиасы
     cores: list[str] = []
     clean_bases: list[str] = []
-    for alias in alias_candidates:
+    for alias in active_aliases:
         clean_a = re.sub(r"\s*\((?:тв|tv)[\s\-]?\d+\)", "", alias.text, flags=re.IGNORECASE).strip()
         if clean_a:
             if clean_a.lower() not in [b.lower() for b in clean_bases]:
@@ -1068,7 +1134,7 @@ async def _collect_candidates(
             if show.year:
                 _add_query(f"{b} {show.year}")
                 _add_query(f"{b} ({show.year})")
-        for alias in alias_candidates:
+        for alias in active_aliases:
             _add_query(alias.text)
             if show.year and str(show.year) not in alias.text:
                 _add_query(f"{alias.text} {show.year}")
@@ -1080,7 +1146,7 @@ async def _collect_candidates(
         for b in key_bases:
             _add_query(b)
 
-        for alias in alias_candidates:
+        for alias in active_aliases:
             _add_query(alias.text)
 
         # Сезонные запросы и мультисезоны
@@ -1439,12 +1505,28 @@ async def _do_search_and_grab(
                 return True
             return False
 
-        # Вычисляем смещение для Part 2 / Cour 2 (Split-Cour)
-        part_offset = 0
-        if parsed.part and parsed.part >= 2 and parsed.episodes:
+        # Извлечение параметров области действия сматченного алиаса (Scoped Aliases)
+        match = c.get("match")
+        alias_cand = getattr(match, "alias_candidate", None) if match else None
+        scoped_season = alias_cand.season_number if (alias_cand and alias_cand.season_number is not None) else None
+        alias_offset = (alias_cand.episode_offset or 0) if alias_cand else 0
+        alias_start = alias_cand.episode_start if (alias_cand and alias_cand.episode_start is not None) else None
+        alias_end = alias_cand.episode_end if (alias_cand and alias_cand.episode_end is not None) else None
+
+        # Проверяем ограничения области действия алиаса для ep
+        if scoped_season is not None and ep.season_number != scoped_season:
+            return False
+        if alias_start is not None and ep.episode_number < alias_start:
+            return False
+        if alias_end is not None and ep.episode_number > alias_end:
+            return False
+
+        # Вычисляем смещение для Part 2 / Cour 2 (Split-Cour) или Scoped Alias Offset
+        effective_offset = alias_offset
+        if effective_offset == 0 and parsed.part and parsed.part >= 2 and parsed.episodes:
             from app.services.matcher import resolve_part_offset
             all_s_eps = [e for e in getattr(show, "episodes", []) if getattr(e, "season_number", None) == ep.season_number]
-            part_offset = resolve_part_offset(
+            effective_offset = resolve_part_offset(
                 parsed.part,
                 parsed.total_in_part,
                 parsed.episodes,
@@ -1461,16 +1543,16 @@ async def _do_search_and_grab(
                 return True
             ep_n = ep.episode_number
             ep_abs = ep.absolute_number
-            if ep_n in parsed.episodes or (part_offset > 0 and (ep_n - part_offset) in parsed.episodes):
+            if ep_n in parsed.episodes or (effective_offset > 0 and (ep_n - effective_offset) in parsed.episodes):
                 return True
-            if ep_abs is not None and (ep_abs in parsed.episodes or (part_offset > 0 and (ep_abs - part_offset) in parsed.episodes)):
+            if ep_abs is not None and (ep_abs in parsed.episodes or (effective_offset > 0 and (ep_abs - effective_offset) in parsed.episodes)):
                 return True
             return False
 
         # 1. Проверяем точное совпадение по absolute_number (для аниме)
         if ep.absolute_number is not None and ep.season_number != 0 and parsed.episodes:
-            if ep.absolute_number in parsed.episodes or (part_offset > 0 and (ep.absolute_number - part_offset) in parsed.episodes):
-                if parsed.season is not None and parsed.season != ep.season_number:
+            if ep.absolute_number in parsed.episodes or (effective_offset > 0 and (ep.absolute_number - effective_offset) in parsed.episodes):
+                if parsed.season is not None and parsed.season != ep.season_number and scoped_season is None:
                     pass
                 else:
                     return True
@@ -1511,6 +1593,12 @@ async def _do_search_and_grab(
             if parsed.episodes:
                 return ep.episode_number in parsed.episodes
             return True
+
+        # --- Если сезон явно переопределен сматченным алиасом (Scoped Alias Season) ---
+        if scoped_season is not None:
+            if ep.season_number == scoped_season:
+                return _has_ep_match()
+            return False
 
         # --- Случай 0: Мультисезонный диапазон (Сезоны 1-5, S01-S05, Seasons 1-5) ---
         if label_type == "range":
@@ -1564,8 +1652,9 @@ async def _do_search_and_grab(
                     return not parsed.special_episodes or ep.episode_number in parsed.special_episodes
                 return False
             if ep.absolute_number is not None:
-                return ep.absolute_number in parsed.episodes or (part_offset > 0 and (ep.absolute_number - part_offset) in parsed.episodes)
-            return (ep.episode_number in parsed.episodes or (part_offset > 0 and (ep.episode_number - part_offset) in parsed.episodes)) and ep.season_number == 1
+                return ep.absolute_number in parsed.episodes or (effective_offset > 0 and (ep.absolute_number - effective_offset) in parsed.episodes)
+            target_season_req = scoped_season if scoped_season is not None else 1
+            return (ep.episode_number in parsed.episodes or (effective_offset > 0 and (ep.episode_number - effective_offset) in parsed.episodes)) and ep.season_number == target_season_req
 
         # --- Случай 7: релиз без явного указания серий и сезона (полный пак / аниме сериал целиком) ---
         if not parsed.episodes and parsed.season is None and label_type == "none":

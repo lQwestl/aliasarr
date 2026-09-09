@@ -959,6 +959,18 @@ const TRANSLATIONS = {
     "show.upload_cover": "Загрузить",
     "show.refresh_cover": "Обновить",
     "show.new_alias_placeholder": "Новый алиас…",
+    "alias.edit_title": "Редактирование алиаса",
+    "alias.field_text": "Текст алиаса",
+    "alias.field_lang": "Язык",
+    "alias.field_priority": "Приоритет (#)",
+    "alias.scope_section": "Область действия и смещение серий",
+    "alias.field_season": "Сезон карточки",
+    "alias.field_ep_start": "Серия с",
+    "alias.field_ep_end": "Серия по",
+    "alias.field_offset": "Смещение номеров серий (+Offset)",
+    "alias.offset_hint": "Используется для сплит-куров (ТВ-2 / 2nd Season), когда раздача нумерует серии с 01, а в карточке они идут как 14–26.",
+    "alias.scope_title": "Привязка к сезону/сериям и смещение",
+    "alias.toast_saved": "Алиас успешно сохранён",
     "show.force_search": "Принудительный автопоиск",
     "show.search_manual": "Ручной поиск",
     "show.delete_video": "Удалить",
@@ -2127,6 +2139,18 @@ const TRANSLATIONS = {
     "show.upload_cover": "Upload",
     "show.refresh_cover": "Refresh",
     "show.new_alias_placeholder": "New alias…",
+    "alias.edit_title": "Edit Alias",
+    "alias.field_text": "Alias text",
+    "alias.field_lang": "Language",
+    "alias.field_priority": "Priority (#)",
+    "alias.scope_section": "Scope & Episode Offset",
+    "alias.field_season": "Card season",
+    "alias.field_ep_start": "Ep from",
+    "alias.field_ep_end": "Ep to",
+    "alias.field_offset": "Episode number offset (+Offset)",
+    "alias.offset_hint": "Used for split-cours (TV-2 / 2nd Season) when torrent numbers episodes from 01 while the card lists them as 14–26.",
+    "alias.scope_title": "Season/Episode range & offset",
+    "alias.toast_saved": "Alias saved successfully",
     "show.force_search": "Force Auto Search",
     "show.search_manual": "Manual Search",
     "show.delete_video": "Delete",
@@ -6110,14 +6134,36 @@ async function refreshShowModal() {
                 ${renderAliasChips(show, canManageLib)}
               </div>
               ${canManageLib ? `
-              <div class="alias-add-row" style="margin-top:6px;">
+              <div class="alias-add-row" style="margin-top:6px; flex-wrap:wrap;">
                 <input id="new-alias-text-${show.id}" class="input input-small" type="text" placeholder="${t("show.new_alias_placeholder")}"
+                  style="flex: 2; min-width: 140px;"
                   onkeydown="if(event.key==='Enter') addAlias(${show.id})">
-                <select id="new-alias-lang-${show.id}" class="input input-small">
+                <select id="new-alias-lang-${show.id}" class="input input-small" style="width: 75px;">
                   <option value="ru">ru</option><option value="en">en</option>
                   <option value="jp">jp</option><option value="romaji">romaji</option><option value="other">other</option>
                 </select>
+                <button type="button" class="btn btn-secondary btn-small" onclick="toggleAliasAdv(${show.id})" title="${t("alias.scope_section") || 'Scope & Offset'}"><i data-lucide="sliders-horizontal" class="ico-sm"></i></button>
                 <button class="btn btn-secondary btn-small" onclick="addAlias(${show.id})"><i data-lucide="plus" class="ico-sm"></i> ${t("common.add")}</button>
+              </div>
+              <div id="new-alias-adv-${show.id}" class="alias-adv-row" style="display:none; margin-top:6px; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:8px;">
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; width:100%;">
+                  <div style="flex:1; min-width:80px;">
+                    <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:2px;">${t("alias.field_season") || 'Сезон'}</label>
+                    <input id="new-alias-season-${show.id}" class="input input-small" type="number" min="0" placeholder="Все">
+                  </div>
+                  <div style="flex:1; min-width:70px;">
+                    <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:2px;">${t("alias.field_ep_start") || 'Серия с'}</label>
+                    <input id="new-alias-ep-start-${show.id}" class="input input-small" type="number" min="1" placeholder="1">
+                  </div>
+                  <div style="flex:1; min-width:70px;">
+                    <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:2px;">${t("alias.field_ep_end") || 'Серия по'}</label>
+                    <input id="new-alias-ep-end-${show.id}" class="input input-small" type="number" min="1" placeholder="По посл.">
+                  </div>
+                  <div style="flex:1.2; min-width:90px;">
+                    <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:2px;">${t("alias.field_offset") || '+Offset'}</label>
+                    <input id="new-alias-offset-${show.id}" class="input input-small" type="number" placeholder="+13" title="${t("alias.offset_hint") || ''}">
+                  </div>
+                </div>
               </div>` : ""}
             </div>
           </div>
@@ -6284,52 +6330,153 @@ function renderSearchStatus(show) {
   return `${escapeHtml(show.last_search_result || "—")} (${when})`;
 }
 
+function formatAliasScopeBadge(a) {
+  const parts = [];
+  if (a.season_number != null) {
+    parts.push(`S${a.season_number}`);
+  }
+  if (a.episode_start != null || a.episode_end != null) {
+    const start = a.episode_start != null ? `E${a.episode_start}` : 'E1';
+    const end = a.episode_end != null ? `–${a.episode_end}` : '+';
+    parts.push(`${start}${end}`);
+  }
+  if (a.episode_offset != null && a.episode_offset !== 0) {
+    parts.push(a.episode_offset > 0 ? `+${a.episode_offset}` : `${a.episode_offset}`);
+  }
+  if (!parts.length) return "";
+  return `<span class="alias-chip-scope" title="${t("alias.scope_section") || 'Область действия и смещение'}">[${parts.join(", ")}]</span>`;
+}
+
 function renderAliasChips(show, canManageLib = true) {
+  window._showAliasesMap = window._showAliasesMap || {};
+  window._showAliasesMap[show.id] = show.aliases || [];
+
   const sorted = [...(show.aliases || [])].sort((a, b) => (a.priority ?? 1) - (b.priority ?? 1));
   return sorted.map((a, idx) => `
       <span class="alias-chip lang-${a.language}" title="${a.source === "manual" ? "Manual" : "Source: " + escapeHtml(a.source)}">
         <span class="alias-chip-priority" title="${t("common.priority")}">#${a.priority ?? (idx + 1)}</span>
         <span class="alias-chip-text">${escapeHtml(a.text)}</span>
+        ${formatAliasScopeBadge(a)}
         ${canManageLib ? `<span class="alias-chip-actions">
-          <button class="alias-chip-edit" onclick="editAliasPrompt(${show.id}, ${a.id}, '${escapeHtml(a.text).replace(/'/g, "&apos;")}', ${a.priority ?? (idx + 1)})" title="${t("common.edit")}"><i data-lucide="edit-2" class="ico-xs"></i></button>
+          <button class="alias-chip-edit" onclick="openEditAliasModal(${show.id}, ${a.id})" title="${t("common.edit")}"><i data-lucide="edit-2" class="ico-xs"></i></button>
           <button class="alias-chip-remove" onclick="deleteAliasFromShow(${show.id}, ${a.id})" title="${t("common.delete")}"><i data-lucide="x" class="ico-xs"></i></button>
         </span>` : ""}
       </span>`).join("");
 }
 
-async function editAliasPrompt(showId, aliasId, currentText, currentPriority) {
-  const newText = prompt(t("common.name") + ":", currentText);
-  if (newText === null) return;
-  const newPriorityStr = prompt(t("common.priority") + ":", String(currentPriority));
-  if (newPriorityStr === null) return;
-  const newPriority = parseInt(newPriorityStr, 10);
+function toggleAliasAdv(showId) {
+  const row = document.getElementById(`new-alias-adv-${showId}`);
+  if (row) {
+    row.style.display = (row.style.display === "none" || !row.style.display) ? "flex" : "none";
+  }
+}
+
+function openEditAliasModal(showId, aliasId) {
+  let alias = null;
+  if (window._showAliasesMap && window._showAliasesMap[showId]) {
+    alias = window._showAliasesMap[showId].find(a => a.id === aliasId);
+  }
+  if (!alias && typeof CACHED_SHOWS !== "undefined" && Array.isArray(CACHED_SHOWS)) {
+    const s = CACHED_SHOWS.find(x => x.id === showId);
+    if (s && s.aliases) alias = s.aliases.find(a => a.id === aliasId);
+  }
+  if (!alias) {
+    toast(CURRENT_LANG === "en" ? "Alias not found" : "Алиас не найден", true);
+    return;
+  }
+  document.getElementById("alias-edit-show-id").value = showId;
+  document.getElementById("alias-edit-alias-id").value = alias.id;
+  document.getElementById("alias-edit-text").value = alias.text || "";
+  document.getElementById("alias-edit-lang").value = alias.language || "ru";
+  document.getElementById("alias-edit-priority").value = alias.priority != null ? alias.priority : 1;
+  document.getElementById("alias-edit-season").value = alias.season_number != null ? alias.season_number : "";
+  document.getElementById("alias-edit-ep-start").value = alias.episode_start != null ? alias.episode_start : "";
+  document.getElementById("alias-edit-ep-end").value = alias.episode_end != null ? alias.episode_end : "";
+  document.getElementById("alias-edit-offset").value = alias.episode_offset != null ? alias.episode_offset : "";
+
+  openModal("alias-edit-modal");
+  if (typeof lucide !== "undefined" && lucide.createIcons) {
+    lucide.createIcons();
+  }
+}
+
+async function saveEditedAlias() {
+  const showId = document.getElementById("alias-edit-show-id").value;
+  const aliasId = document.getElementById("alias-edit-alias-id").value;
+  const text = document.getElementById("alias-edit-text").value.trim();
+  const language = document.getElementById("alias-edit-lang").value;
+  const priorityStr = document.getElementById("alias-edit-priority").value;
+  const seasonStr = document.getElementById("alias-edit-season").value;
+  const epStartStr = document.getElementById("alias-edit-ep-start").value;
+  const epEndStr = document.getElementById("alias-edit-ep-end").value;
+  const offsetStr = document.getElementById("alias-edit-offset").value;
+
+  if (!text) {
+    toast(CURRENT_LANG === "en" ? "Alias text cannot be empty" : "Текст алиаса не может быть пустым", true);
+    return;
+  }
+
+  const payload = {
+    text,
+    language,
+    priority: priorityStr !== "" ? parseInt(priorityStr, 10) : null,
+    season_number: seasonStr !== "" ? parseInt(seasonStr, 10) : null,
+    episode_start: epStartStr !== "" ? parseInt(epStartStr, 10) : null,
+    episode_end: epEndStr !== "" ? parseInt(epEndStr, 10) : null,
+    episode_offset: offsetStr !== "" ? parseInt(offsetStr, 10) : null,
+  };
+
   try {
     await api(`/api/v1/shows/${showId}/aliases/${aliasId}`, {
       method: "PUT",
-      body: JSON.stringify({
-        text: newText.trim() || undefined,
-        priority: Number.isFinite(newPriority) ? newPriority : undefined,
-      }),
+      body: JSON.stringify(payload),
     });
+    closeModal("alias-edit-modal");
     await refreshShowModal();
     await loadShows();
-  } catch (e) { toast("Ошибка: " + e.message, true); }
+    toast(t("alias.toast_saved") || (CURRENT_LANG === "en" ? "Alias saved successfully" : "Алиас успешно сохранён"));
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true);
+  }
+}
+
+async function editAliasPrompt(showId, aliasId, currentText, currentPriority) {
+  openEditAliasModal(showId, aliasId);
 }
 
 async function addAlias(showId) {
   const textInput = document.getElementById(`new-alias-text-${showId}`);
   const langSelect = document.getElementById(`new-alias-lang-${showId}`);
-  const text = textInput.value.trim();
+  const seasonInput = document.getElementById(`new-alias-season-${showId}`);
+  const epStartInput = document.getElementById(`new-alias-ep-start-${showId}`);
+  const epEndInput = document.getElementById(`new-alias-ep-end-${showId}`);
+  const offsetInput = document.getElementById(`new-alias-offset-${showId}`);
+
+  const text = textInput ? textInput.value.trim() : "";
   if (!text) return;
+
+  const payload = {
+    text,
+    language: langSelect ? langSelect.value : "ru",
+    season_number: (seasonInput && seasonInput.value !== "") ? parseInt(seasonInput.value, 10) : null,
+    episode_start: (epStartInput && epStartInput.value !== "") ? parseInt(epStartInput.value, 10) : null,
+    episode_end: (epEndInput && epEndInput.value !== "") ? parseInt(epEndInput.value, 10) : null,
+    episode_offset: (offsetInput && offsetInput.value !== "") ? parseInt(offsetInput.value, 10) : null,
+  };
+
   try {
     await api(`/api/v1/shows/${showId}/aliases`, {
       method: "POST",
-      body: JSON.stringify({ text, language: langSelect.value }),
+      body: JSON.stringify(payload),
     });
-    textInput.value = "";
+    if (textInput) textInput.value = "";
+    if (seasonInput) seasonInput.value = "";
+    if (epStartInput) epStartInput.value = "";
+    if (epEndInput) epEndInput.value = "";
+    if (offsetInput) offsetInput.value = "";
     await refreshShowModal();
     await loadShows();
-  } catch (e) { toast("Ошибка: " + e.message, true); }
+  } catch (e) { toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + e.message, true); }
 }
 
 async function fixShowPermissions(btn, showId) {

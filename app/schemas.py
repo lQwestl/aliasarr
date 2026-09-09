@@ -11,6 +11,10 @@ class AliasCreate(BaseModel):
     language: str = "ru"
     source: str = "manual"
     priority: Optional[int] = None  # если не задан — назначается автоматически (в конец очереди)
+    season_number: Optional[int] = None
+    episode_start: Optional[int] = None
+    episode_end: Optional[int] = None
+    episode_offset: Optional[int] = None
 
 
 class AliasOut(AliasCreate):
@@ -24,6 +28,10 @@ class AliasUpdate(BaseModel):
     text: Optional[str] = None
     language: Optional[str] = None
     priority: Optional[int] = None
+    season_number: Optional[int] = None
+    episode_start: Optional[int] = None
+    episode_end: Optional[int] = None
+    episode_offset: Optional[int] = None
 
 
 class DeleteContentPayload(BaseModel):

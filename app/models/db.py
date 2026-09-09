@@ -165,6 +165,12 @@ class Alias(Base):
     # Приоритет перебора алиасов при поиске: меньшее число = опрашивается раньше
     priority: Mapped[int] = mapped_column(Integer, default=1)
 
+    # Привязка алиаса к конкретному сезону/диапазону серий и смещение (Scoped Aliases & Offset)
+    season_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)     # Привязка к сезону карточки (None = весь тайтл)
+    episode_start: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)     # Начальная серия диапазона карточки
+    episode_end: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)       # Конечная серия диапазона карточки
+    episode_offset: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)    # Смещение нумерации (ep 1 -> ep 1 + offset)
+
     show: Mapped["Show"] = relationship(back_populates="aliases")
 
 

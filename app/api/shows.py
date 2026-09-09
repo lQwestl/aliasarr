@@ -219,7 +219,17 @@ async def create_show(
         if alias_in.text.lower() not in added_aliases:
             added_aliases.add(alias_in.text.lower())
             p = alias_in.priority if alias_in.priority is not None else current_p
-            db.add(Alias(show_id=show.id, text=alias_in.text, language=alias_in.language, source=alias_in.source, priority=p))
+            db.add(Alias(
+                show_id=show.id,
+                text=alias_in.text,
+                language=alias_in.language,
+                source=alias_in.source,
+                priority=p,
+                season_number=alias_in.season_number,
+                episode_start=alias_in.episode_start,
+                episode_end=alias_in.episode_end,
+                episode_offset=alias_in.episode_offset,
+            ))
             current_p += 1
 
     clean_p_title = (payload.title or "").strip()
@@ -688,7 +698,17 @@ def add_alias(
     if priority is None:
         max_priority = db.query(func.max(Alias.priority)).filter(Alias.show_id == show_id).scalar()
         priority = (max_priority or 0) + 1
-    alias = Alias(show_id=show_id, text=payload.text, language=payload.language, source=payload.source, priority=priority)
+    alias = Alias(
+        show_id=show_id,
+        text=payload.text,
+        language=payload.language,
+        source=payload.source,
+        priority=priority,
+        season_number=payload.season_number,
+        episode_start=payload.episode_start,
+        episode_end=payload.episode_end,
+        episode_offset=payload.episode_offset,
+    )
     db.add(alias)
     db.commit()
     db.refresh(alias)
@@ -703,19 +723,28 @@ def update_alias(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_library")),
 ):
-    """Редактирование текста и приоритета поискового алиаса."""
+    """Редактирование текста, приоритета и области действия (сезон/серии/смещение) поискового алиаса."""
     alias = db.get(Alias, alias_id)
     if not alias or alias.show_id != show_id:
         raise HTTPException(404, "Alias not found")
-    if payload.text is not None:
-        text = payload.text.strip()
+    dumped = payload.model_dump(exclude_unset=True)
+    if "text" in dumped:
+        text = (dumped["text"] or "").strip()
         if not text:
             raise HTTPException(400, "Текст алиаса не может быть пустым")
         alias.text = text
-    if payload.language is not None:
-        alias.language = payload.language
-    if payload.priority is not None:
-        alias.priority = payload.priority
+    if "language" in dumped:
+        alias.language = dumped["language"]
+    if "priority" in dumped:
+        alias.priority = dumped["priority"]
+    if "season_number" in dumped:
+        alias.season_number = dumped["season_number"]
+    if "episode_start" in dumped:
+        alias.episode_start = dumped["episode_start"]
+    if "episode_end" in dumped:
+        alias.episode_end = dumped["episode_end"]
+    if "episode_offset" in dumped:
+        alias.episode_offset = dumped["episode_offset"]
     db.add(alias)
     db.commit()
     db.refresh(alias)
