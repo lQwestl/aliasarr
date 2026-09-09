@@ -6289,9 +6289,11 @@ function renderAliasChips(show, canManageLib = true) {
   return sorted.map((a, idx) => `
       <span class="alias-chip lang-${a.language}" title="${a.source === "manual" ? "Manual" : "Source: " + escapeHtml(a.source)}">
         <span class="alias-chip-priority" title="${t("common.priority")}">#${a.priority ?? (idx + 1)}</span>
-        ${escapeHtml(a.text)}
-        ${canManageLib ? `<button class="alias-chip-edit" onclick="editAliasPrompt(${show.id}, ${a.id}, '${escapeHtml(a.text).replace(/'/g, "&apos;")}', ${a.priority ?? (idx + 1)})" title="${t("common.edit")}"><i data-lucide="edit-2" class="ico-xs"></i></button>` : ""}
-        ${canManageLib ? `<button class="alias-chip-remove" onclick="deleteAliasFromShow(${show.id}, ${a.id})" title="${t("common.delete")}"><i data-lucide="x" class="ico-xs"></i></button>` : ""}
+        <span class="alias-chip-text">${escapeHtml(a.text)}</span>
+        ${canManageLib ? `<span class="alias-chip-actions">
+          <button class="alias-chip-edit" onclick="editAliasPrompt(${show.id}, ${a.id}, '${escapeHtml(a.text).replace(/'/g, "&apos;")}', ${a.priority ?? (idx + 1)})" title="${t("common.edit")}"><i data-lucide="edit-2" class="ico-xs"></i></button>
+          <button class="alias-chip-remove" onclick="deleteAliasFromShow(${show.id}, ${a.id})" title="${t("common.delete")}"><i data-lucide="x" class="ico-xs"></i></button>
+        </span>` : ""}
       </span>`).join("");
 }
 
