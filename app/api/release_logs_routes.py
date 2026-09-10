@@ -86,41 +86,50 @@ def list_release_logs(
 
 @router.delete("")
 def clear_release_logs(
-    show_id: Optional[int] = Query(None),
+    show_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_release_logs")),
 ):
     """Очистить журнал релизов (все записи или записи для конкретного тайтла)."""
     q = db.query(ReleaseLog)
-    if show_id is not None:
-        q = q.filter(ReleaseLog.show_id == show_id)
+    real_show_id = show_id if isinstance(show_id, int) and not isinstance(show_id, bool) else None
+    if real_show_id is not None:
+        q = q.filter(ReleaseLog.show_id == real_show_id)
     count = q.delete(synchronize_session=False)
     db.commit()
-    msg = f"Очищено записей для тайтла {show_id}: {count}" if show_id is not None else f"Очищено записей: {count}"
-    return {"success": True, "deleted": count, "show_id": show_id, "message": msg}
+    msg = f"Очищено записей для тайтла {real_show_id}: {count}" if real_show_id is not None else f"Очищено записей: {count}"
+    return {"success": True, "deleted": count, "show_id": real_show_id, "message": msg}
 
 
 @router.get("/export")
 async def export_release_logs(
-    show_id: Optional[int] = Query(None),
+    show_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_any_permission("view_release_logs", "manage_release_logs")),
 ):
     """Выгрузить логи релизов (все или конкретного тайтла) и диагностику загрузчиков в текстовый файл (.txt) для анализа и отладки."""
     q = db.query(ReleaseLog)
     show_obj = None
-    if show_id is not None:
-        q = q.filter(ReleaseLog.show_id == show_id)
+    real_show_id = show_id if isinstance(show_id, int) and not isinstance(show_id, bool) else None
+    if real_show_id is not None:
+        q = q.filter(ReleaseLog.show_id == real_show_id)
         from app.models.db import Show
-        show_obj = db.query(Show).filter(Show.id == show_id).first()
+        try:
+            show_obj = db.query(Show).filter(Show.id == real_show_id).first()
+        except Exception:
+            show_obj = None
 
     logs = q.order_by(ReleaseLog.created_at.asc()).limit(5000).all()
     lines = []
-    if show_obj:
-        lines.append(f"=== ALIASARR RELEASE LOGS: {show_obj.title} ({show_obj.year or 'N/A'}) ===")
-        lines.append(f"Show ID: {show_obj.id}")
-        lines.append(f"Content Type: {show_obj.content_type}")
-        if show_obj.path:
+    if show_obj and isinstance(getattr(show_obj, "title", None), str):
+        year_val = getattr(show_obj, "year", None)
+        year_str = f" ({year_val})" if isinstance(year_val, (int, str)) else ""
+        lines.append(f"=== ALIASARR RELEASE LOGS: {show_obj.title}{year_str} ===")
+        if isinstance(getattr(show_obj, "id", None), int):
+            lines.append(f"Show ID: {show_obj.id}")
+        if isinstance(getattr(show_obj, "content_type", None), str):
+            lines.append(f"Content Type: {show_obj.content_type}")
+        if isinstance(getattr(show_obj, "path", None), str):
             lines.append(f"Library Path: {show_obj.path}")
     else:
         lines.append("=== ALIASARR RELEASE LOGS DUMP ===")
@@ -129,22 +138,22 @@ async def export_release_logs(
 
     for l in logs:
         ts = l.created_at.strftime("%Y-%m-%d %H:%M:%S")
-        trigger_info = f" [TRIG:{l.trigger.upper()}]" if l.trigger else ""
+        trigger_info = f" [TRIG:{l.trigger.upper()}]" if getattr(l, "trigger", None) and isinstance(l.trigger, str) else ""
         lines.append(f"[{ts}] [{l.level.upper()}] [{l.stage.upper()}]{trigger_info}")
-        if l.show_title:
+        if getattr(l, "show_title", None) and isinstance(l.show_title, str):
             lines.append(f"  Show: {l.show_title}")
-        if l.release_title:
+        if getattr(l, "release_title", None) and isinstance(l.release_title, str):
             lines.append(f"  Release: {l.release_title}")
-        if l.indexer:
+        if getattr(l, "indexer", None) and isinstance(l.indexer, str):
             lines.append(f"  Indexer: {l.indexer}")
-        if l.session_id:
+        if getattr(l, "session_id", None) and isinstance(l.session_id, str):
             lines.append(f"  Session ID: {l.session_id}")
-        if l.details and isinstance(l.details, dict):
+        if getattr(l, "details", None) and isinstance(l.details, dict):
             src_url = l.details.get("page_url") or l.details.get("download_url")
-            if src_url:
+            if src_url and isinstance(src_url, str):
                 lines.append(f"  Source Link: {src_url}")
         lines.append(f"  Message: {l.message}")
-        if l.details:
+        if getattr(l, "details", None) and isinstance(l.details, dict):
             import json
             try:
                 lines.append(f"  Details: {json.dumps(l.details, ensure_ascii=False)}")
@@ -153,7 +162,7 @@ async def export_release_logs(
         lines.append("-" * 40)
 
     # Append Download Clients Diagnostics and RPC logs if exporting all logs
-    if show_id is None:
+    if real_show_id is None:
         lines.append("\n\n" + "=" * 50)
         lines.append("=== DOWNLOAD CLIENTS DIAGNOSTICS & STATUS ===")
         lines.append("=" * 50 + "\n")
@@ -167,27 +176,29 @@ async def export_release_logs(
                 try:
                     client_inst = get_client(dc_row)
                     diag = await client_inst.get_client_diagnostics()
-                    if diag:
+                    if diag and isinstance(diag, dict):
                         lines.append(f"  Version: {diag.get('version') or diag.get('webapi_version') or 'N/A'}")
                         lines.append(f"  Download Speed: {diag.get('download_speed_b_s', 0)} B/s, Upload Speed: {diag.get('upload_speed_b_s', 0)} B/s")
                         if diag.get('free_space_bytes') is not None:
                             lines.append(f"  Free Space: {diag.get('free_space_bytes')} bytes")
                         torrents = diag.get("torrents", [])
-                        lines.append(f"  Torrents Count: {len(torrents)}")
-                        if torrents:
-                            lines.append("  Torrents in Client:")
-                            for t in torrents[:30]:
-                                pct = round((t.get('progress') or 0) * 100)
-                                lines.append(f"    - [{t.get('state', 'unknown')}] {t.get('name', t.get('id', '—'))} ({pct}%, size: {t.get('size')} bytes)")
+                        if isinstance(torrents, list):
+                            lines.append(f"  Torrents Count: {len(torrents)}")
+                            if torrents:
+                                lines.append("  Torrents in Client:")
+                                for t in torrents[:30]:
+                                    pct = round((t.get('progress') or 0) * 100)
+                                    lines.append(f"    - [{t.get('state', 'unknown')}] {t.get('name', t.get('id', '—'))} ({pct}%, size: {t.get('size')} bytes)")
 
                     logs = await client_inst.get_client_logs(limit=50)
-                    if logs:
+                    if logs and isinstance(logs, list):
                         lines.append("\n  === Recent Daemon Logs ===")
                         for entry in logs:
-                            t_str = entry.get("timestamp") or entry.get("time") or ""
-                            msg = entry.get("message") or ""
-                            lvl = entry.get("level") or entry.get("type") or ""
-                            lines.append(f"    [{t_str}] [lvl:{lvl}] {msg}")
+                            if isinstance(entry, dict):
+                                t_str = entry.get("timestamp") or entry.get("time") or ""
+                                msg = entry.get("message") or ""
+                                lvl = entry.get("level") or entry.get("type") or ""
+                                lines.append(f"    [{t_str}] [lvl:{lvl}] {msg}")
                 except Exception as exc:
                     lines.append(f"  Client Error: {exc}")
                 lines.append("-" * 40)
@@ -196,7 +207,7 @@ async def export_release_logs(
 
     import re
     safe_name = ""
-    if show_obj and show_obj.title:
+    if show_obj and isinstance(getattr(show_obj, "title", None), str):
         safe_name = "_" + re.sub(r"[^\w\-_.]", "_", show_obj.title)[:40]
 
     filename = f"aliasarr_release_logs{safe_name}_{dt.datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.txt"
