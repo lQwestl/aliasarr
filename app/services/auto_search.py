@@ -173,11 +173,33 @@ def evaluate_torrent_file_priority(
     ext = os.path.splitext(file_name)[1].lower()
     fname_lower = file_name.lower()
 
+    # Проверка на сэмпл видеофайл (для любых типов контента)
+    is_sample_video = (
+        fname_lower.startswith("sample/") or
+        "/sample/" in fname_lower or
+        fname_lower.endswith("/sample.mkv") or
+        fname_lower.endswith("/sample.avi") or
+        fname_lower.endswith("/sample.mp4") or
+        fname_lower in ("sample.mkv", "sample.avi", "sample.mp4") or
+        fname_lower.endswith("-sample.mkv") or
+        fname_lower.endswith("_sample.mkv") or
+        fname_lower.endswith(".sample.mkv") or
+        fname_lower.endswith("-sample.avi") or
+        fname_lower.endswith("_sample.avi") or
+        fname_lower.endswith("-sample.mp4") or
+        fname_lower.endswith("_sample.mp4") or
+        "/sample" in fname_lower
+    )
+
     # Для фильмов: все видеофайлы скачиваются (приоритет 1). Исключаются только сэмплы.
     if content_type == "movie":
         if ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}:
-            if "/sample" in fname_lower or fname_lower.endswith("-sample.mkv"):
+            if is_sample_video:
                 return _set_res(0, "Видеосэмпл к фильму (ОТКЛЮЧЕН)")
+            if out_matched_episodes is not None:
+                matched_target = target_episodes[0] if target_episodes else (all_show_episodes[0] if all_show_episodes else None)
+                if matched_target is not None and matched_target not in out_matched_episodes:
+                    out_matched_episodes.append(matched_target)
             return _set_res(1, "Основной видеофайл фильма (ВКЛЮЧЕН)")
         if ext in extra_extensions or "/fonts/" in fname_lower or fname_lower.startswith("fonts/") or "/attachments/" in fname_lower:
             return _set_res(1 if import_extra_files else 0, "Сопутствующий файл/шрифты фильма (ВКЛЮЧЕН)" if import_extra_files else "Сопутствующий файл (ОТКЛЮЧЕН настройками)")
@@ -194,22 +216,6 @@ def evaluate_torrent_file_priority(
         )
     )
 
-    # Проверка на сэмпл видеофайл (для любых типов контента)
-    is_sample_video = (
-        fname_lower.startswith("sample/") or
-        "/sample/" in fname_lower or
-        fname_lower.endswith("/sample.mkv") or
-        fname_lower.endswith("/sample.avi") or
-        fname_lower.endswith("/sample.mp4") or
-        fname_lower in ("sample.mkv", "sample.avi", "sample.mp4") or
-        fname_lower.endswith("-sample.mkv") or
-        fname_lower.endswith("_sample.mkv") or
-        fname_lower.endswith(".sample.mkv") or
-        fname_lower.endswith("-sample.avi") or
-        fname_lower.endswith("_sample.avi") or
-        fname_lower.endswith("-sample.mp4") or
-        fname_lower.endswith("_sample.mp4")
-    )
     if is_sample_video:
         return _set_res(0, "Видеосэмпл / реклама (ОТКЛЮЧЕН)")
 

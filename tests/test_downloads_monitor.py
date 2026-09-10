@@ -1061,15 +1061,96 @@ class TestDownloadsMonitor(unittest.TestCase):
                 asyncio.run(_check_seeding_torrents(db_mock, [dc]))
 
                 # Торрент НЕ должен быть удален, так как на диске найден неимпортированный видеофайл
-                self.assertEqual(len(fake_client.remove_torrent_called), 0)
-                # Торрент снова зарегистрирован в _PENDING_MANUAL_IMPORT_TORRENTS
                 self.assertTrue(is_torrent_pending_manual_import(th))
         finally:
             clear_pending_manual_import_torrents()
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
+    def test_evaluate_torrent_file_priority_movie(self):
+        """Проверяет, что для фильмов evaluate_torrent_file_priority добавляет фильм в out_matched_episodes и игнорирует сэмплы."""
+        from app.services.auto_search import evaluate_torrent_file_priority
+
+        movie_ep = SimpleNamespace(id=10, show_id=1, season_number=1, episode_number=1, title="Movie")
+        matched_eps = []
+        prio = evaluate_torrent_file_priority(
+            file_name="Avatar.Fire.and.Ash.2025.2160p.UHD.Remux.mkv",
+            file_index=0,
+            target_episodes=[movie_ep],
+            content_type="movie",
+            out_matched_episodes=matched_eps,
+        )
+        self.assertEqual(prio, 1)
+        self.assertEqual(len(matched_eps), 1)
+        self.assertEqual(matched_eps[0].id, 10)
+
+        # Сэмпл не должен включаться и не должен добавляться в matched_eps
+        sample_matched_eps = []
+        sample_prio = evaluate_torrent_file_priority(
+            file_name="Avatar.Fire.and.Ash.2025.2160p.sample.mkv",
+            file_index=1,
+            target_episodes=[movie_ep],
+            content_type="movie",
+            out_matched_episodes=sample_matched_eps,
+        )
+        self.assertEqual(sample_prio, 0)
+        self.assertEqual(len(sample_matched_eps), 0)
+
+    def test_movie_reconciliation_preserves_torrent_and_does_not_blacklist(self):
+        """Проверяет, что сверка файлов (reconcile) в check_downloads для фильмов не удаляет раздачу и не добавляет её в черный список."""
+        from app.services.downloads_monitor import _RECONCILED_TORRENTS
+
+        th = "hash-movie-reconcile-test"
+        _RECONCILED_TORRENTS.discard(th)
+
+        show = SimpleNamespace(id=55, title="Avatar: Fire and Ash", content_type="movie", monitored=True, path="/media/movies/Avatar")
+        dc = SimpleNamespace(id=1, name="Transmission", type="transmission", enabled=True)
+        ep = SimpleNamespace(
+            id=501, show_id=55, season_number=1, episode_number=1,
+            status="downloading", torrent_hash=th,
+            download_client_id=1, download_progress=0.1,
+            title="Avatar: Fire and Ash",
+        )
+
+        db_mock = MagicMock()
+        db_mock.query.return_value.filter.return_value.all.side_effect = [
+            [ep],   # downloading episodes for check_downloads
+            [dc],   # active clients
+            [ep],   # all_show_eps query in reconciliation
+        ]
+        db_mock.get.return_value = show
+
+        files = [
+            SimpleNamespace(name="Аватар Пламя и пепел.2025.UHD.Blu-Ray.Remux.2160p.mkv", index=0, priority=1),
+            SimpleNamespace(name="Sample/sample.mkv", index=1, priority=1),
+        ]
+        torrent = TorrentInfo(
+            hash=th,
+            name="Аватар Пламя и пепел.2025.UHD.Blu-Ray.Remux.2160p",
+            progress=0.1,
+            state="downloading",
+            save_path="/data/DL",
+            size=50000000000,
+            files=files,
+        )
+        fake_client = FakeClient([torrent])
+        settings = SimpleNamespace(root_folder="", root_folder_movies="/media/movies", rename_template_movie="{Movie Title}", download_folder_movies="/data/DL")
+
+        with patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+             patch("app.services.downloads_monitor.get_client", return_value=fake_client), \
+             patch("app.services.downloads_monitor.log_release_event"), \
+             patch("app.services.blocklist_service.add_to_blocklist") as mock_blocklist:
+            results = asyncio.run(check_downloads(db_mock))
+
+            # Торрент НЕ должен быть удален
+            self.assertEqual(len(fake_client.remove_torrent_called), 0)
+            # Раздача НЕ должна быть добавлена в черный список
+            self.assertFalse(mock_blocklist.called)
+            # Статус серии должен остаться downloading
+            self.assertEqual(ep.status, "downloading")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
