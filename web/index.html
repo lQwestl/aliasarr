@@ -538,7 +538,7 @@
             <div class="header-actions">
               <button class="btn btn-primary" onclick="openAddBlocklistModal()" title="Заблокировать релиз вручную" id="blocklist-add-btn">
                 <i data-lucide="plus"></i>
-                <span>Заблокировать релиз</span>
+                <span data-i18n="blocklist.btn_manual_block">Заблокировать релиз</span>
               </button>
               <button class="btn btn-secondary" onclick="loadBlocklist()" title="Обновить список" id="blocklist-refresh-btn">
                 <i data-lucide="refresh-cw"></i>
@@ -546,32 +546,51 @@
               </button>
               <button class="btn btn-danger" onclick="confirmClearAllBlocklist()" title="Очистить весь черный список" id="blocklist-clear-all-btn">
                 <i data-lucide="trash-2"></i>
-                <span>Очистить всё</span>
+                <span data-i18n="blocklist.btn_clear_all">Очистить всё</span>
               </button>
             </div>
           </div>
         </header>
       </div>
 
-      <!-- Фильтры и статистика -->
+      <!-- Верхняя панель: Статистика + Поиск + Переключатель режимов -->
       <div class="blocklist-toolbar">
         <div class="blocklist-stats">
           <div class="blocklist-stat-badge">
             <i data-lucide="shield-alert" class="ico-xs text-danger"></i>
-            <span>Раздач в списке: <strong id="blocklist-total-count">0</strong></span>
+            <span><span data-i18n="blocklist.stat_releases">Раздач в списке</span>: <strong id="blocklist-total-count">0</strong></span>
           </div>
           <div class="blocklist-stat-badge">
             <i data-lucide="film" class="ico-xs text-info"></i>
-            <span>Тайтлов с блокировками: <strong id="blocklist-shows-count">0</strong></span>
+            <span><span data-i18n="blocklist.stat_titles">Тайтлов</span>: <strong id="blocklist-shows-count">0</strong></span>
           </div>
         </div>
-        <div class="blocklist-search-wrap">
-          <i data-lucide="search" class="blocklist-search-icon"></i>
-          <input type="text" id="blocklist-search-input" class="input blocklist-search-input" placeholder="Поиск по названию раздачи, хэшу или причине..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onBlocklistSearchInput()">
-          <button id="blocklist-search-clear" class="blocklist-search-clear-btn" onclick="clearBlocklistSearch()" style="display:none;" title="Очистить поиск" aria-label="Очистить поиск">
-            <i data-lucide="x"></i>
-          </button>
+
+        <div class="blocklist-toolbar-right">
+          <div class="blocklist-search-wrap">
+            <i data-lucide="search" class="blocklist-search-icon"></i>
+            <input type="text" id="blocklist-search-input" class="input blocklist-search-input" placeholder="Поиск по названию раздачи, хэшу или причине..." data-i18n-placeholder="blocklist.search_placeholder" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onBlocklistSearchInput()">
+            <button id="blocklist-search-clear" class="blocklist-search-clear-btn" onclick="clearBlocklistSearch()" style="display:none;" title="Очистить поиск" aria-label="Очистить поиск">
+              <i data-lucide="x"></i>
+            </button>
+          </div>
+
+          <div class="blocklist-view-switcher" id="blocklist-view-mode-switcher">
+            <button type="button" class="btn-icon-mode active" id="blocklist-view-cards-btn" onclick="setBlocklistViewMode('cards')" title="Вид: Карточки" data-i18n-title="blocklist.view_cards">
+              <i data-lucide="layout-grid" class="ico-xs"></i>
+              <span data-i18n="blocklist.cards_view">Карточки</span>
+            </button>
+            <button type="button" class="btn-icon-mode" id="blocklist-view-table-btn" onclick="setBlocklistViewMode('table')" title="Вид: Таблица" data-i18n-title="blocklist.view_table">
+              <i data-lucide="table" class="ico-xs"></i>
+              <span data-i18n="blocklist.table_view">Таблица</span>
+            </button>
+          </div>
         </div>
+      </div>
+
+      <!-- Быстрые фильтры по причинам блокировки -->
+      <div class="blocklist-filters-bar" id="blocklist-reason-filters">
+        <!-- Генерируется JS: Все, Нет сидов, Ошибка импорта, Нет озвучки, Вручную, Качество -->
       </div>
 
       <!-- Главная область: сайдбар тайтлов слева + раздачи справа -->
@@ -579,10 +598,14 @@
         <aside class="blocklist-shows-sidebar">
           <div class="blocklist-shows-header">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="blocklist-section-heading">Тайтлы</span>
+              <span class="blocklist-section-heading" data-i18n="blocklist.titles_sidebar">Тайтлы</span>
               <span id="blocklist-sidebar-count-badge" class="badge badge-secondary">0</span>
             </div>
             <div class="blocklist-poster-switcher" id="blocklist-poster-size-switcher"></div>
+          </div>
+          <div class="blocklist-sidebar-search-wrap" id="blocklist-sidebar-search-wrap" style="display:none;">
+            <i data-lucide="search" class="ico-xxs text-muted"></i>
+            <input type="text" id="blocklist-sidebar-search-input" class="input input-sm blocklist-sidebar-search-input" placeholder="Фильтр тайтлов..." data-i18n-placeholder="blocklist.filter_titles_placeholder" oninput="onBlocklistSidebarSearchInput()">
           </div>
           <div class="blocklist-shows-list" id="blocklist-shows-list">
             <!-- Список тайтлов генерируется JS -->
@@ -598,40 +621,73 @@
             <div class="blocklist-main-actions">
               <button type="button" id="blocklist-toggle-table-posters-btn" class="btn btn-sm btn-secondary blocklist-poster-toggle-btn" onclick="toggleBlocklistTablePosters()" title="Показывать мини-постер тайтла в таблице раздач">
                 <i data-lucide="image" class="ico-xs"></i>
-                <span id="blocklist-toggle-table-posters-label">Обложки в таблице</span>
+                <span id="blocklist-toggle-table-posters-label">Обложки: Вкл</span>
+              </button>
+              <button type="button" id="blocklist-select-all-btn" class="btn btn-sm btn-secondary" onclick="toggleBlocklistSelectAll()" title="Выбрать все раздачи">
+                <i data-lucide="check-square" class="ico-xs"></i>
+                <span data-i18n="blocklist.select_all">Выбрать все</span>
               </button>
               <button type="button" id="blocklist-add-show-btn" class="btn btn-sm btn-primary" onclick="openAddBlocklistForCurrentShow()" style="display:none;" title="Добавить блокировку для этого тайтла">
                 <i data-lucide="plus" class="ico-xs"></i>
-                <span>Добавить</span>
+                <span data-i18n="common.add">Добавить</span>
               </button>
               <button type="button" id="blocklist-clear-show-btn" class="btn btn-sm btn-outline-danger" onclick="confirmClearCurrentShowBlocklist()" style="display:none;" title="Очистить все заблокированные раздачи этого тайтла">
                 <i data-lucide="trash" class="ico-xs"></i>
-                <span>Очистить для тайтла</span>
+                <span data-i18n="blocklist.clear_for_title">Очистить для тайтла</span>
               </button>
             </div>
           </div>
 
           <div id="blocklist-empty" class="empty-state" style="display:none;">
             <i data-lucide="shield-check" class="empty-state-icon text-success" style="width:48px;height:48px;margin-bottom:12px;opacity:0.8;"></i>
-            <p style="font-size:15px; font-weight:600;">Черный список пуст</p>
-            <p class="text-muted" style="font-size:13px;">Ни одна раздача не заблокирована. Система автоматически занесет сюда раздачи, если в них не окажется нужных файлов.</p>
+            <p style="font-size:15px; font-weight:600;" data-i18n="blocklist.empty_title">Черный список пуст</p>
+            <p class="text-muted" style="font-size:13px;" data-i18n="blocklist.empty_desc">Ни одна раздача не заблокирована. Система автоматически занесет сюда раздачи, если в них не окажется нужных файлов.</p>
           </div>
 
-          <div class="table-responsive" id="blocklist-table-wrap">
+          <!-- Режим карточек -->
+          <div class="blocklist-cards-wrap" id="blocklist-cards-wrap">
+            <div class="blocklist-cards-grid" id="blocklist-cards-grid">
+              <!-- Карточки генерируются JS -->
+            </div>
+          </div>
+
+          <!-- Режим таблицы -->
+          <div class="table-responsive" id="blocklist-table-wrap" style="display:none;">
             <table class="data-table" id="blocklist-table">
               <thead>
                 <tr>
-                  <th style="width:40%;">Раздача / Тайтл</th>
-                  <th style="width:12%;">Трекер</th>
-                  <th style="width:12%;">Качество</th>
-                  <th style="width:24%;">Причина блокировки</th>
-                  <th style="width:12%; text-align:right;">Действие</th>
+                  <th style="width:40px; text-align:center;">
+                    <input type="checkbox" id="blocklist-table-check-all" onchange="toggleBlocklistSelectAll(this.checked)" title="Выбрать все">
+                  </th>
+                  <th style="width:38%;" data-i18n="blocklist.col_release">Раздача / Тайтл</th>
+                  <th style="width:12%;" data-i18n="blocklist.col_indexer">Трекер</th>
+                  <th style="width:12%;" data-i18n="blocklist.col_quality">Качество</th>
+                  <th style="width:23%;" data-i18n="blocklist.col_reason">Причина блокировки</th>
+                  <th style="width:15%; text-align:right;" data-i18n="blocklist.col_actions">Действие</th>
                 </tr>
               </thead>
               <tbody id="blocklist-table-body">
                 <!-- Записи раздач генерируются JS -->
               </tbody>
             </table>
+          </div>
+
+          <!-- Плавающая панель массовых действий -->
+          <div class="blocklist-batch-bar" id="blocklist-batch-bar" style="display:none;">
+            <div class="blocklist-batch-bar-left">
+              <i data-lucide="check-circle-2" class="ico-sm text-teal"></i>
+              <span><span data-i18n="blocklist.selected">Выбрано</span>: <strong id="blocklist-batch-count">0</strong></span>
+            </div>
+            <div class="blocklist-batch-bar-actions">
+              <button type="button" class="btn btn-sm btn-primary" id="blocklist-batch-unblock-btn" onclick="unblockSelectedBlocklistItems()">
+                <i data-lucide="shield-check" class="ico-xs"></i>
+                <span data-i18n="blocklist.batch_unblock">Разблокировать выбранные</span>
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="clearBlocklistSelection()">
+                <i data-lucide="x" class="ico-xs"></i>
+                <span data-i18n="blocklist.clear_selection">Снять выбор</span>
+              </button>
+            </div>
           </div>
         </main>
       </div>

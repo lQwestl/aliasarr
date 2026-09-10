@@ -183,6 +183,46 @@ const TRANSLATIONS = {
     "blocklist.reason": "Причина блокировки:",
     "blocklist.quick_choice": "Быстрый выбор:",
     "blocklist.btn_block": "Заблокировать",
+    "blocklist.btn_manual_block": "Заблокировать релиз",
+    "blocklist.btn_clear_all": "Очистить всё",
+    "blocklist.stat_releases": "Раздач в списке",
+    "blocklist.stat_titles": "Тайтлов",
+    "blocklist.search_placeholder": "Поиск по названию раздачи, хэшу или причине...",
+    "blocklist.view_cards": "Вид: Карточки",
+    "blocklist.view_table": "Вид: Таблица",
+    "blocklist.cards_view": "Карточки",
+    "blocklist.table_view": "Таблица",
+    "blocklist.titles_sidebar": "Тайтлы",
+    "blocklist.filter_titles_placeholder": "Фильтр тайтлов...",
+    "blocklist.select_all": "Выбрать все",
+    "blocklist.clear_for_title": "Очистить для тайтла",
+    "blocklist.empty_title": "Черный список пуст",
+    "blocklist.empty_desc": "Ни одна раздача не заблокирована. Система автоматически занесет сюда раздачи, если в них не окажется нужных файлов.",
+    "blocklist.col_release": "Раздача / Тайтл",
+    "blocklist.col_indexer": "Трекер",
+    "blocklist.col_quality": "Качество",
+    "blocklist.col_reason": "Причина блокировки",
+    "blocklist.col_actions": "Действие",
+    "blocklist.selected": "Выбрано",
+    "blocklist.batch_unblock": "Разблокировать выбранные",
+    "blocklist.clear_selection": "Снять выбор",
+    "blocklist.filter_all": "Все",
+    "blocklist.filter_no_seeds": "Нет сидов",
+    "blocklist.filter_error": "Ошибка / Отклонено",
+    "blocklist.filter_audio": "Озвучка / Язык",
+    "blocklist.filter_manual": "Вручную",
+    "blocklist.filter_quality": "Качество / CF",
+    "blocklist.btn_unblock": "Разблокировать",
+    "blocklist.btn_edit": "Изменить",
+    "blocklist.btn_tracker": "Трекер",
+    "blocklist.copy_hash": "Скопировать инфохэш",
+    "blocklist.hash_copied": "Инфохэш скопирован",
+    "blocklist.unblocked_success": "Раздача разблокирована",
+    "blocklist.batch_unblocked_success": "Выбранные раздачи разблокированы",
+    "blocklist.posters_on": "Обложки: Вкл",
+    "blocklist.posters_off": "Обложки: Выкл",
+    "blocklist.global_unlinked": "Другие / Без привязки",
+    "blocklist.all_releases": "Все раздачи",
 
     "settings.autosearch_subtitle": "Периодичность проверки разыскиваемых релизов, фоновых загрузок и отслеживания раздач",
     "users.subtitle": "Управление учетными записями, ролями и гранулярными правами доступа",
@@ -1406,6 +1446,46 @@ const TRANSLATIONS = {
     "blocklist.reason": "Block Reason:",
     "blocklist.quick_choice": "Quick choice:",
     "blocklist.btn_block": "Block Release",
+    "blocklist.btn_manual_block": "Block Release",
+    "blocklist.btn_clear_all": "Clear All",
+    "blocklist.stat_releases": "Blocked Releases",
+    "blocklist.stat_titles": "Media Titles",
+    "blocklist.search_placeholder": "Search by release title, infohash, or reason...",
+    "blocklist.view_cards": "View: Cards Grid",
+    "blocklist.view_table": "View: Table View",
+    "blocklist.cards_view": "Cards",
+    "blocklist.table_view": "Table",
+    "blocklist.titles_sidebar": "Media Titles",
+    "blocklist.filter_titles_placeholder": "Filter titles...",
+    "blocklist.select_all": "Select All",
+    "blocklist.clear_for_title": "Clear for Title",
+    "blocklist.empty_title": "Blocklist is empty",
+    "blocklist.empty_desc": "No releases are currently blocked. The system will automatically add releases here if needed files are missing.",
+    "blocklist.col_release": "Release / Media Title",
+    "blocklist.col_indexer": "Tracker",
+    "blocklist.col_quality": "Quality",
+    "blocklist.col_reason": "Block Reason",
+    "blocklist.col_actions": "Actions",
+    "blocklist.selected": "Selected",
+    "blocklist.batch_unblock": "Unblock Selected",
+    "blocklist.clear_selection": "Clear Selection",
+    "blocklist.filter_all": "All",
+    "blocklist.filter_no_seeds": "No Seeds",
+    "blocklist.filter_error": "Errors / Rejection",
+    "blocklist.filter_audio": "Audio / Language",
+    "blocklist.filter_manual": "Manual",
+    "blocklist.filter_quality": "Quality / CF",
+    "blocklist.btn_unblock": "Unblock",
+    "blocklist.btn_edit": "Edit",
+    "blocklist.btn_tracker": "Tracker",
+    "blocklist.copy_hash": "Copy infohash",
+    "blocklist.hash_copied": "Infohash copied",
+    "blocklist.unblocked_success": "Release unblocked and removed",
+    "blocklist.batch_unblocked_success": "Selected releases unblocked",
+    "blocklist.posters_on": "Posters: ON",
+    "blocklist.posters_off": "Posters: OFF",
+    "blocklist.global_unlinked": "Other / Unlinked",
+    "blocklist.all_releases": "All releases",
 
     "settings.autosearch_subtitle": "Intervals for wanted search, background downloads and ongoing tracking",
     "users.subtitle": "Manage accounts, roles and granular access permissions",
@@ -17187,7 +17267,11 @@ async function startApp() {
 let BLOCKLIST_DATA = [];
 let SELECTED_BLOCKLIST_SHOW_ID = "all";
 let BLOCKLIST_SEARCH_QUERY = "";
+let BLOCKLIST_SIDEBAR_QUERY = "";
+let BLOCKLIST_SELECTED_REASON = "all";
+let BLOCKLIST_SELECTED_IDS = new Set();
 let BLOCKLIST_OPTIONS = {
+  viewMode: "cards", // "cards" | "table"
   posterSize: "small", // "small" | "medium" | "large" | "none"
   showTablePoster: true
 };
@@ -17195,6 +17279,52 @@ try {
   const saved = localStorage.getItem("aliasarr_blocklist_options");
   if (saved) BLOCKLIST_OPTIONS = { ...BLOCKLIST_OPTIONS, ...JSON.parse(saved) };
 } catch (e) {}
+
+// Helper to categorize reason for badge colors & filtering
+function getBlocklistReasonCategory(reasonStr) {
+  const r = (reasonStr || "").toLowerCase();
+  if (r.includes("сид") || r.includes("seed") || r.includes("dead") || r.includes("stalled") || r.includes("нет сидов")) {
+    return { category: "no_seeds", cls: "reason-amber", icon: "clock-alert", label: CURRENT_LANG === "en" ? "No seeders" : "Нет сидов" };
+  }
+  if (r.includes("отклон") || r.includes("ошибк") || r.includes("fail") || r.includes("error") || r.includes("cannot access") || r.includes("parse") || r.includes("исключен")) {
+    return { category: "error", cls: "reason-rose", icon: "alert-octagon", label: CURRENT_LANG === "en" ? "Import error" : "Ошибка импорта" };
+  }
+  if (r.includes("звук") || r.includes("озвучк") || r.includes("аудио") || r.includes("audio") || r.includes("lang") || r.includes("язык") || r.includes("mvo") || r.includes("dvo") || r.includes("нет ru")) {
+    return { category: "audio", cls: "reason-orange", icon: "volume-x", label: CURRENT_LANG === "en" ? "Audio / Language" : "Озвучка / Язык" };
+  }
+  if (r.includes("вручн") || r.includes("manual") || r.includes("пользовател")) {
+    return { category: "manual", cls: "reason-purple", icon: "user-x", label: CURRENT_LANG === "en" ? "Manual block" : "Вручную" };
+  }
+  if (r.includes("качество") || r.includes("score") || r.includes("custom format") || r.includes("профиль") || r.includes("quality")) {
+    return { category: "quality", cls: "reason-blue", icon: "sliders", label: CURRENT_LANG === "en" ? "Quality / CF" : "Качество / CF" };
+  }
+  return { category: "other", cls: "reason-amber", icon: "alert-circle", label: reasonStr || (CURRENT_LANG === "en" ? "Blocked" : "Заблокировано") };
+}
+
+function setBlocklistViewMode(mode) {
+  BLOCKLIST_OPTIONS.viewMode = mode;
+  try {
+    localStorage.setItem("aliasarr_blocklist_options", JSON.stringify(BLOCKLIST_OPTIONS));
+  } catch (e) {}
+
+  const cardsBtn = document.getElementById("blocklist-view-cards-btn");
+  const tableBtn = document.getElementById("blocklist-view-table-btn");
+  if (cardsBtn) cardsBtn.classList.toggle("active", mode === "cards");
+  if (tableBtn) tableBtn.classList.toggle("active", mode === "table");
+
+  renderBlocklist();
+}
+
+function setBlocklistReasonFilter(category) {
+  BLOCKLIST_SELECTED_REASON = category;
+  renderBlocklist();
+}
+
+function onBlocklistSidebarSearchInput() {
+  const input = document.getElementById("blocklist-sidebar-search-input");
+  BLOCKLIST_SIDEBAR_QUERY = (input ? input.value : "").toLowerCase().trim();
+  renderBlocklist();
+}
 
 function renderBlocklistPosterSwitcher() {
   const container = document.getElementById("blocklist-poster-size-switcher");
@@ -17254,19 +17384,121 @@ function setBlocklistQuickReason(mode, text) {
   }
 }
 
-function onAddBlocklistShowChange(val) {
-  // Selector is now always visible directly
-}
-
-function toggleAddBlocklistShowSelector(showSelector) {
-  // Selector is now always visible directly
-}
-
-
 function openShowBlocklistModal(showId) {
   closeModal("show-modal");
   switchTab("blocklist");
   selectBlocklistShow(showId);
+}
+
+// Batch selection helpers
+function toggleBlocklistItemSelection(id) {
+  if (BLOCKLIST_SELECTED_IDS.has(id)) {
+    BLOCKLIST_SELECTED_IDS.delete(id);
+  } else {
+    BLOCKLIST_SELECTED_IDS.add(id);
+  }
+  updateBlocklistBatchUI();
+}
+
+function toggleBlocklistSelectAll(forcedState) {
+  const currentFiltered = getFilteredBlocklistData();
+  const shouldSelect = (forcedState !== undefined)
+    ? forcedState
+    : (BLOCKLIST_SELECTED_IDS.size < currentFiltered.length);
+
+  BLOCKLIST_SELECTED_IDS.clear();
+  if (shouldSelect) {
+    for (const item of currentFiltered) {
+      BLOCKLIST_SELECTED_IDS.add(item.id);
+    }
+  }
+  updateBlocklistBatchUI();
+}
+
+function clearBlocklistSelection() {
+  BLOCKLIST_SELECTED_IDS.clear();
+  updateBlocklistBatchUI();
+}
+
+function updateBlocklistBatchUI() {
+  const batchBar = document.getElementById("blocklist-batch-bar");
+  const batchCount = document.getElementById("blocklist-batch-count");
+  const count = BLOCKLIST_SELECTED_IDS.size;
+
+  if (batchBar) {
+    batchBar.style.display = count > 0 ? "flex" : "none";
+  }
+  if (batchCount) {
+    batchCount.textContent = count;
+  }
+
+  // Update card selected classes and checkboxes
+  document.querySelectorAll(".blocklist-card").forEach(el => {
+    const id = parseInt(el.getAttribute("data-id"), 10);
+    const isSel = BLOCKLIST_SELECTED_IDS.has(id);
+    el.classList.toggle("selected", isSel);
+    const cb = el.querySelector(".blocklist-card-cb");
+    if (cb) cb.checked = isSel;
+  });
+
+  // Update table row selected states and checkboxes
+  document.querySelectorAll(".blocklist-table-cb").forEach(cb => {
+    const id = parseInt(cb.getAttribute("data-id"), 10);
+    cb.checked = BLOCKLIST_SELECTED_IDS.has(id);
+  });
+
+  const checkAll = document.getElementById("blocklist-table-check-all");
+  const currentFiltered = getFilteredBlocklistData();
+  if (checkAll) {
+    checkAll.checked = (currentFiltered.length > 0 && BLOCKLIST_SELECTED_IDS.size === currentFiltered.length);
+    checkAll.indeterminate = (BLOCKLIST_SELECTED_IDS.size > 0 && BLOCKLIST_SELECTED_IDS.size < currentFiltered.length);
+  }
+}
+
+async function unblockSelectedBlocklistItems() {
+  const ids = Array.from(BLOCKLIST_SELECTED_IDS);
+  if (!ids.length) return;
+
+  const msg = CURRENT_LANG === "en"
+    ? `Are you sure you want to unblock ${ids.length} selected releases?`
+    : `Вы уверены, что хотите разблокировать ${ids.length} выбранных раздач?`;
+  if (!confirm(msg)) return;
+
+  let successCount = 0;
+  for (const id of ids) {
+    try {
+      await api(`/api/v1/blocklist/${id}`, { method: "DELETE" });
+      successCount++;
+    } catch (e) {
+      console.error(`Failed to unblock item #${id}:`, e);
+    }
+  }
+
+  showToast(
+    (CURRENT_LANG === "en" ? `Selected releases unblocked (${successCount})` : `Выбранные раздачи разблокированы (${successCount})`),
+    "success"
+  );
+  BLOCKLIST_DATA = BLOCKLIST_DATA.filter(x => !BLOCKLIST_SELECTED_IDS.has(x.id));
+  BLOCKLIST_SELECTED_IDS.clear();
+  renderBlocklist();
+}
+
+function copyBlocklistHash(hash, btnEl) {
+  if (!hash) return;
+  navigator.clipboard.writeText(hash).then(() => {
+    showToast(CURRENT_LANG === "en" ? "Infohash copied to clipboard" : "Инфохэш скопирован в буфер", "success");
+    if (btnEl) {
+      const origHtml = btnEl.innerHTML;
+      btnEl.innerHTML = `<i data-lucide="check" class="ico-xxs text-success"></i>`;
+      if (window.lucide) lucide.createIcons();
+      setTimeout(() => {
+        btnEl.innerHTML = origHtml;
+        if (window.lucide) lucide.createIcons();
+      }, 1400);
+    }
+  }).catch(() => {
+    showToast(CURRENT_LANG === "en" ? "Failed to copy hash" : "Ошибка копирования хэша", "error");
+  });
 }
 
 async function loadBlocklist(preferredShowId) {
@@ -17274,11 +17506,13 @@ async function loadBlocklist(preferredShowId) {
     SELECTED_BLOCKLIST_SHOW_ID = preferredShowId;
   }
 
+  const cardsGrid = document.getElementById("blocklist-cards-grid");
   const tableBody = document.getElementById("blocklist-table-body");
-  if (tableBody) {
-    tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:32px; color:var(--text-muted);"><i data-lucide="loader-2" class="spin ico-md" style="display:inline-block; vertical-align:middle; margin-right:8px;"></i>${CURRENT_LANG === "en" ? "Loading blocklist..." : "Загрузка черного списка..."}</td></tr>`;
-    if (window.lucide) lucide.createIcons();
-  }
+  const loadingHtml = `<div style="text-align:center; padding:32px; color:var(--text-muted); grid-column:1/-1;"><i data-lucide="loader-2" class="spin ico-md" style="display:inline-block; vertical-align:middle; margin-right:8px;"></i>${CURRENT_LANG === "en" ? "Loading blocklist..." : "Загрузка черного списка..."}</div>`;
+
+  if (cardsGrid) cardsGrid.innerHTML = loadingHtml;
+  if (tableBody) tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted);"><i data-lucide="loader-2" class="spin ico-md" style="display:inline-block; vertical-align:middle; margin-right:8px;"></i>${CURRENT_LANG === "en" ? "Loading blocklist..." : "Загрузка черного списка..."}</td></tr>`;
+  if (window.lucide) lucide.createIcons();
 
   try {
     const [res, shows] = await Promise.all([
@@ -17329,17 +17563,79 @@ function clearBlocklistSearch() {
   filterBlocklist("");
 }
 
+function getFilteredBlocklistData() {
+  return BLOCKLIST_DATA.filter(item => {
+    // 1. Show filter
+    if (SELECTED_BLOCKLIST_SHOW_ID !== "all") {
+      if (SELECTED_BLOCKLIST_SHOW_ID === "unlinked") {
+        if (item.show_id != null) return false;
+      } else {
+        if (String(item.show_id) !== String(SELECTED_BLOCKLIST_SHOW_ID)) return false;
+      }
+    }
+
+    // 2. Reason Category filter
+    if (BLOCKLIST_SELECTED_REASON !== "all") {
+      const cat = getBlocklistReasonCategory(item.reason).category;
+      if (cat !== BLOCKLIST_SELECTED_REASON) return false;
+    }
+
+    // 3. Search query filter
+    if (BLOCKLIST_SEARCH_QUERY) {
+      const q = BLOCKLIST_SEARCH_QUERY;
+      const tName = (item.torrent_name || "").toLowerCase();
+      const rTitle = (item.release_title || "").toLowerCase();
+      const idx = (item.indexer || "").toLowerCase();
+      const rsn = (item.reason || "").toLowerCase();
+      const hash = (item.torrent_hash || "").toLowerCase();
+      if (!tName.includes(q) && !rTitle.includes(q) && !idx.includes(q) && !rsn.includes(q) && !hash.includes(q)) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function renderBlocklistReasonFilterChips(reasonCounts, totalInShow) {
+  const container = document.getElementById("blocklist-reason-filters");
+  if (!container) return;
+
+  const filters = [
+    { id: "all", label: CURRENT_LANG === "en" ? "All" : "Все", icon: "layers", count: totalInShow, cls: "" },
+    { id: "no_seeds", label: CURRENT_LANG === "en" ? "No Seeds" : "Нет сидов", icon: "clock-alert", count: reasonCounts.no_seeds || 0, cls: "chip-amber" },
+    { id: "error", label: CURRENT_LANG === "en" ? "Import Error" : "Ошибка импорта", icon: "alert-octagon", count: reasonCounts.error || 0, cls: "chip-rose" },
+    { id: "audio", label: CURRENT_LANG === "en" ? "Audio / Language" : "Озвучка / Язык", icon: "volume-x", count: reasonCounts.audio || 0, cls: "chip-orange" },
+    { id: "manual", label: CURRENT_LANG === "en" ? "Manual" : "Вручную", icon: "user-x", count: reasonCounts.manual || 0, cls: "chip-purple" },
+    { id: "quality", label: CURRENT_LANG === "en" ? "Quality / CF" : "Качество / CF", icon: "sliders", count: reasonCounts.quality || 0, cls: "chip-blue" }
+  ];
+
+  container.innerHTML = filters.map(f => {
+    const isActive = BLOCKLIST_SELECTED_REASON === f.id;
+    return `
+      <div class="blocklist-reason-chip ${f.cls} ${isActive ? 'active' : ''}" onclick="setBlocklistReasonFilter('${f.id}')">
+        <i data-lucide="${f.icon}" class="ico-xs"></i>
+        <span>${escapeHtml(f.label)}</span>
+        <span class="chip-count">${f.count}</span>
+      </div>
+    `;
+  }).join("");
+}
+
 function renderBlocklist() {
   renderBlocklistPosterSwitcher();
 
   const totalCountEl = document.getElementById("blocklist-total-count");
   const showsCountEl = document.getElementById("blocklist-shows-count");
   const sidebarCountBadge = document.getElementById("blocklist-sidebar-count-badge");
+  const sidebarSearchWrap = document.getElementById("blocklist-sidebar-search-wrap");
   const sidebarList = document.getElementById("blocklist-shows-list");
   const currentTitleEl = document.getElementById("blocklist-current-title");
   const currentCountEl = document.getElementById("blocklist-current-count");
   const clearShowBtn = document.getElementById("blocklist-clear-show-btn");
+  const addShowBtn = document.getElementById("blocklist-add-show-btn");
   const emptyWrap = document.getElementById("blocklist-empty");
+  const cardsWrap = document.getElementById("blocklist-cards-wrap");
+  const cardsGrid = document.getElementById("blocklist-cards-grid");
   const tableWrap = document.getElementById("blocklist-table-wrap");
   const tableBody = document.getElementById("blocklist-table-body");
 
@@ -17350,17 +17646,38 @@ function renderBlocklist() {
     }
   }
 
-  // Group counts per show
+  // Count items per show and reason categories
   const showCounts = {};
+  const reasonCounts = { all: 0, no_seeds: 0, error: 0, audio: 0, manual: 0, quality: 0, other: 0 };
+  let totalForCurrentShow = 0;
+
   for (const item of BLOCKLIST_DATA) {
     const sid = item.show_id != null ? item.show_id : "unlinked";
     showCounts[sid] = (showCounts[sid] || 0) + 1;
+
+    // Check if belongs to current show
+    const belongsToCurrent = (SELECTED_BLOCKLIST_SHOW_ID === "all") ||
+      (SELECTED_BLOCKLIST_SHOW_ID === "unlinked" && item.show_id == null) ||
+      (String(item.show_id) === String(SELECTED_BLOCKLIST_SHOW_ID));
+
+    if (belongsToCurrent) {
+      totalForCurrentShow++;
+      const cat = getBlocklistReasonCategory(item.reason).category;
+      reasonCounts[cat] = (reasonCounts[cat] || 0) + 1;
+      reasonCounts.all++;
+    }
   }
 
   const uniqueShowIds = Object.keys(showCounts);
   if (totalCountEl) totalCountEl.textContent = BLOCKLIST_DATA.length;
   if (showsCountEl) showsCountEl.textContent = uniqueShowIds.length;
   if (sidebarCountBadge) sidebarCountBadge.textContent = uniqueShowIds.length;
+  if (sidebarSearchWrap) {
+    sidebarSearchWrap.style.display = uniqueShowIds.length > 5 ? "flex" : "none";
+  }
+
+  // Render reason filter chips
+  renderBlocklistReasonFilterChips(reasonCounts, totalForCurrentShow);
 
   // Render Sidebar
   if (sidebarList) {
@@ -17368,7 +17685,7 @@ function renderBlocklist() {
     sidebarList.className = "blocklist-shows-list size-" + posterSize;
 
     const isAllActive = SELECTED_BLOCKLIST_SHOW_ID === "all";
-    const allIcon = `<div class="blocklist-show-poster placeholder"><i data-lucide="layers" class="ico-sm"></i></div>`;
+    const allIcon = `<div class="blocklist-show-poster placeholder"><i data-lucide="layers" class="ico-sm text-teal"></i></div>`;
     let sidebarHtml = `
       <div class="blocklist-show-item ${isAllActive ? 'active' : ''}" onclick="selectBlocklistShow('all')">
         ${posterSize !== 'none' ? allIcon : ''}
@@ -17391,17 +17708,22 @@ function renderBlocklist() {
         posterUrl = sObj?.poster_url || "";
       }
 
+      // Sidebar search filter
+      if (BLOCKLIST_SIDEBAR_QUERY && !title.toLowerCase().includes(BLOCKLIST_SIDEBAR_QUERY)) {
+        continue;
+      }
+
       const isActive = String(SELECTED_BLOCKLIST_SHOW_ID) === String(sid);
       const thumbHtml = posterUrl
         ? `<img src="${escapeHtml(posterUrl)}" class="blocklist-show-poster" alt="" onerror="this.outerHTML='<div class=\\\'blocklist-show-poster placeholder\\\'>${escapeHtml(title.slice(0, 1))}</div>'"/>`
-        : `<div class="blocklist-show-poster placeholder"><i data-lucide="film" class="ico-sm text-muted"></i></div>`;
+        : `<div class="blocklist-show-poster placeholder">${sid === 'unlinked' ? '<i data-lucide="shield-alert" class="ico-sm text-danger"></i>' : '<i data-lucide="film" class="ico-sm text-muted"></i>'}</div>`;
 
       sidebarHtml += `
         <div class="blocklist-show-item ${isActive ? 'active' : ''}" onclick="selectBlocklistShow('${escapeHtml(String(sid))}')">
           ${posterSize !== 'none' ? thumbHtml : ''}
           <div class="blocklist-show-info">
             <div class="blocklist-show-title" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
-            ${sObj?.year ? `<div class="blocklist-show-meta">${sObj.year}</div>` : ""}
+            ${sObj?.year ? `<div class="blocklist-show-meta"><span class="badge-subtle">${sObj.year}</span>${sObj.type ? `<span class="badge-subtle">${sObj.type}</span>` : ''}</div>` : ""}
           </div>
           <span class="blocklist-show-badge badge badge-secondary">${count}</span>
         </div>
@@ -17425,50 +17747,18 @@ function renderBlocklist() {
   if (currentTitleEl) currentTitleEl.textContent = currentHeaderTitle;
 
   // Filter items
-  let filtered = BLOCKLIST_DATA.filter(item => {
-    if (SELECTED_BLOCKLIST_SHOW_ID !== "all") {
-      if (SELECTED_BLOCKLIST_SHOW_ID === "unlinked") {
-        if (item.show_id != null) return false;
-      } else {
-        if (String(item.show_id) !== String(SELECTED_BLOCKLIST_SHOW_ID)) return false;
-      }
-    }
-    if (BLOCKLIST_SEARCH_QUERY) {
-      const q = BLOCKLIST_SEARCH_QUERY;
-      const tName = (item.torrent_name || "").toLowerCase();
-      const rTitle = (item.release_title || "").toLowerCase();
-      const idx = (item.indexer || "").toLowerCase();
-      const rsn = (item.reason || "").toLowerCase();
-      const hash = (item.torrent_hash || "").toLowerCase();
-      if (!tName.includes(q) && !rTitle.includes(q) && !idx.includes(q) && !rsn.includes(q) && !hash.includes(q)) {
-        return false;
-      }
-    }
-    return true;
-  });
-
+  const filtered = getFilteredBlocklistData();
   if (currentCountEl) currentCountEl.textContent = filtered.length;
 
-  // Clear show button visibility
+  // Action buttons visibility
   if (clearShowBtn) {
-    if (SELECTED_BLOCKLIST_SHOW_ID !== "all" && filtered.length > 0) {
-      clearShowBtn.style.display = "inline-flex";
-    } else {
-      clearShowBtn.style.display = "none";
-    }
+    clearShowBtn.style.display = (SELECTED_BLOCKLIST_SHOW_ID !== "all" && filtered.length > 0) ? "inline-flex" : "none";
   }
-
-  // Add for current show button visibility
-  const addShowBtn = document.getElementById("blocklist-add-show-btn");
   if (addShowBtn) {
-    if (SELECTED_BLOCKLIST_SHOW_ID !== "all" && SELECTED_BLOCKLIST_SHOW_ID !== "unlinked") {
-      addShowBtn.style.display = "inline-flex";
-    } else {
-      addShowBtn.style.display = "none";
-    }
+    addShowBtn.style.display = (SELECTED_BLOCKLIST_SHOW_ID !== "all" && SELECTED_BLOCKLIST_SHOW_ID !== "unlinked") ? "inline-flex" : "none";
   }
 
-  // Toggle table posters button state
+  // Table posters toggle button state
   const toggleTableBtn = document.getElementById("blocklist-toggle-table-posters-btn");
   if (toggleTableBtn) {
     const isTablePosterActive = BLOCKLIST_OPTIONS.showTablePoster !== false;
@@ -17481,151 +17771,275 @@ function renderBlocklist() {
     }
   }
 
-  // Toggle table vs empty state
+  // View mode switcher active state
+  const viewMode = BLOCKLIST_OPTIONS.viewMode || "cards";
+  const cardsBtn = document.getElementById("blocklist-view-cards-btn");
+  const tableBtn = document.getElementById("blocklist-view-table-btn");
+  if (cardsBtn) cardsBtn.classList.toggle("active", viewMode === "cards");
+  if (tableBtn) tableBtn.classList.toggle("active", viewMode === "table");
+
+  // Toggle empty state vs views
   if (filtered.length === 0) {
     if (emptyWrap) emptyWrap.style.display = "block";
+    if (cardsWrap) cardsWrap.style.display = "none";
     if (tableWrap) tableWrap.style.display = "none";
   } else {
     if (emptyWrap) emptyWrap.style.display = "none";
-    if (tableWrap) tableWrap.style.display = "block";
 
-    if (tableBody) {
-      tableBody.innerHTML = filtered.map(item => {
-        const sid = item.show_id;
-        const sObj = sid != null ? showsMap[sid] : null;
-        const showTitle = sObj ? (sObj.title || `Show #${sid}`) : (sid != null ? `Тайтл #${sid}` : "");
-        const posterUrl = sObj?.poster_url || "";
-        const relTitle = item.release_title || item.torrent_name || "—";
-        const dateStr = item.created_at ? new Date(item.created_at).toLocaleString() : "—";
-        const isHashOnly = /^[a-fA-F0-9]{40}$/.test(relTitle.trim()) || (item.torrent_hash && relTitle.trim().toLowerCase() === item.torrent_hash.trim().toLowerCase());
-
-        // Cell poster thumbnail
-        let cellPosterHtml = "";
-        if (BLOCKLIST_OPTIONS.showTablePoster !== false) {
-          if (posterUrl) {
-            cellPosterHtml = `
-              <div class="blocklist-row-poster-wrap" onclick="openShowModal(${sid})" title="${escapeHtml(showTitle)}">
-                <img src="${escapeHtml(posterUrl)}" class="blocklist-row-poster" alt="" onerror="this.parentElement.innerHTML='<div class=\\\'blocklist-row-poster placeholder\\\'><i data-lucide=\\\'film\\\' class=\\\'ico-xs text-muted\\\'></i></div>'"/>
-              </div>
-            `;
-          } else if (sid != null) {
-            cellPosterHtml = `
-              <div class="blocklist-row-poster-wrap placeholder" onclick="openShowModal(${sid})" title="${escapeHtml(showTitle)}">
-                <div class="blocklist-row-poster placeholder"><i data-lucide="film" class="ico-xs text-muted"></i></div>
-              </div>
-            `;
-          } else {
-            cellPosterHtml = `
-              <div class="blocklist-row-poster-wrap placeholder">
-                <div class="blocklist-row-poster placeholder"><i data-lucide="shield-alert" class="ico-xs text-danger"></i></div>
-              </div>
-            `;
-          }
-        }
-
-        // Title and Chips
-        let titleHtml = "";
-        if (isHashOnly) {
-          if (showTitle) {
-            titleHtml = `
-              <div class="blocklist-release-name font-semibold" style="cursor:pointer;" onclick="openShowModal(${sid})" title="${escapeHtml(showTitle)}">
-                <span>${escapeHtml(showTitle)}</span>
-                ${sObj?.year ? `<span class="text-muted text-xs font-normal" style="margin-left:4px;">(${sObj.year})</span>` : ""}
-              </div>
-            `;
-          } else {
-            titleHtml = `
-              <div class="blocklist-release-name font-semibold text-muted">
-                <i data-lucide="hash" class="ico-xs"></i> <span>${CURRENT_LANG === "en" ? "Blocked by hash" : "Блокировка по хэшу"}</span>
-              </div>
-            `;
-          }
-        } else {
-          titleHtml = `<div class="blocklist-release-name font-medium" title="${escapeHtml(relTitle)}">${escapeHtml(relTitle)}</div>`;
-        }
-
-        const showChip = (sid != null && !isHashOnly) ? `
-          <a href="javascript:void(0)" onclick="openShowModal(${sid})" class="blocklist-show-chip" title="${escapeHtml(showTitle)}">
-            <i data-lucide="film" class="ico-xs"></i>
-            <span class="blocklist-show-chip-title">${escapeHtml(showTitle)}</span>
-            ${sObj?.year ? `<span class="blocklist-show-chip-year">(${sObj.year})</span>` : ""}
-            <i data-lucide="external-link" class="ico-xxs blocklist-show-chip-arrow"></i>
-          </a>
-        ` : "";
-
-        const hashChip = item.torrent_hash ? `
-          <div class="blocklist-hash-chip">
-            <i data-lucide="hash" class="ico-xxs text-muted"></i>
-            <code class="mono-code">${escapeHtml(item.torrent_hash.slice(0, 8))}...${escapeHtml(item.torrent_hash.slice(-4))}</code>
-            <button type="button" class="btn-icon-xxs" onclick="navigator.clipboard.writeText('${escapeHtml(item.torrent_hash)}'); showToast('${CURRENT_LANG === 'en' ? 'Hash copied' : 'Хеш скопирован'}')" title="${CURRENT_LANG === 'en' ? 'Copy hash' : 'Скопировать хеш'}">
-              <i data-lucide="copy" class="ico-xxs"></i>
-            </button>
-          </div>
-        ` : "";
-
-        const linkUrl = item.page_url || (item.guid && (item.guid.startsWith("http://") || item.guid.startsWith("https://")) ? item.guid : "");
-        const linkChip = linkUrl ? `
-          <a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer" class="blocklist-link-chip" title="${CURRENT_LANG === 'en' ? 'Open release page on tracker' : 'Открыть страницу раздачи на трекере'}">
-            <i data-lucide="external-link" class="ico-xxs"></i>
-            <span>${escapeHtml(item.indexer || (CURRENT_LANG === 'en' ? 'Release page' : 'Страница раздачи'))}</span>
-          </a>
-        ` : "";
-
-        return `
-          <tr>
-            <td>
-              <div class="blocklist-release-cell">
-                ${cellPosterHtml}
-                <div class="blocklist-release-info">
-                  <div class="blocklist-release-title-row">
-                    ${titleHtml}
-                  </div>
-                  <div class="blocklist-release-meta-row">
-                    ${showChip}
-                    ${hashChip}
-                    ${linkChip}
-                  </div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <span class="badge badge-secondary mono-code">${escapeHtml(item.indexer || "—")}</span>
-            </td>
-            <td>
-              <span class="badge badge-teal mono-code">${escapeHtml(item.quality || "—")}</span>
-            </td>
-            <td>
-              <span class="badge badge-warning" title="${escapeHtml(item.reason || '')}">
-                <i data-lucide="alert-circle" class="ico-xs"></i> <span>${escapeHtml(item.reason || (CURRENT_LANG === 'en' ? 'Blocked' : 'Заблокировано'))}</span>
-              </span>
-              <div class="text-muted text-xs" style="margin-top:3px;">${escapeHtml(dateStr)}</div>
-            </td>
-            <td style="text-align:right;">
-              <div class="blocklist-actions-cell">
-                <button type="button" class="btn btn-secondary btn-small" onclick="openEditBlocklistModal(${item.id})" title="${CURRENT_LANG === 'en' ? 'Edit blocked release' : 'Редактировать запись'}">
-                  <i data-lucide="edit-3" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Edit' : 'Изменить'}</span>
-                </button>
-                <button type="button" class="btn btn-secondary btn-small blocklist-delete-btn" onclick="removeBlocklistItem(${item.id})" title="${CURRENT_LANG === 'en' ? 'Unblock and remove from blocklist' : 'Разблокировать и удалить из черного списка'}">
-                  <i data-lucide="trash-2" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Unblock' : 'Разблокировать'}</span>
-                </button>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join("");
+    if (viewMode === "cards") {
+      if (cardsWrap) cardsWrap.style.display = "block";
+      if (tableWrap) tableWrap.style.display = "none";
+      renderBlocklistCards(filtered, showsMap, cardsGrid);
+    } else {
+      if (cardsWrap) cardsWrap.style.display = "none";
+      if (tableWrap) tableWrap.style.display = "block";
+      renderBlocklistTable(filtered, showsMap, tableBody);
     }
   }
+
+  updateBlocklistBatchUI();
 
   if (window.lucide) {
     lucide.createIcons();
   }
 }
 
+function renderBlocklistCards(filtered, showsMap, container) {
+  if (!container) return;
+
+  container.innerHTML = filtered.map(item => {
+    const sid = item.show_id;
+    const sObj = sid != null ? showsMap[sid] : null;
+    const showTitle = sObj ? (sObj.title || `Show #${sid}`) : (sid != null ? `Тайтл #${sid}` : "");
+    const posterUrl = sObj?.poster_url || "";
+    const relTitle = item.release_title || item.torrent_name || "—";
+    const dateStr = item.created_at ? new Date(item.created_at).toLocaleString() : "—";
+    const reasonInfo = getBlocklistReasonCategory(item.reason);
+    const isSelected = BLOCKLIST_SELECTED_IDS.has(item.id);
+    const linkUrl = item.page_url || (item.guid && (item.guid.startsWith("http://") || item.guid.startsWith("https://")) ? item.guid : "");
+
+    const showBadgeHtml = showTitle ? `
+      <a href="javascript:void(0)" onclick="openShowModal(${sid})" class="blocklist-card-show-badge" title="${escapeHtml(showTitle)}">
+        <i data-lucide="film" class="ico-xs text-teal"></i>
+        <span>${escapeHtml(showTitle)}</span>
+        ${sObj?.year ? `<span class="text-muted text-xs font-normal">(${sObj.year})</span>` : ""}
+      </a>
+    ` : `
+      <span class="blocklist-card-show-badge" style="opacity:0.7;">
+        <i data-lucide="shield-alert" class="ico-xs text-danger"></i>
+        <span>${CURRENT_LANG === 'en' ? 'Global block' : 'Глобальная'}</span>
+      </span>
+    `;
+
+    const hashPill = item.torrent_hash ? `
+      <div class="blocklist-pill" title="Infohash: ${escapeHtml(item.torrent_hash)}">
+        <i data-lucide="hash" class="ico-xxs text-muted"></i>
+        <code>${escapeHtml(item.torrent_hash.slice(0, 8))}...${escapeHtml(item.torrent_hash.slice(-4))}</code>
+        <button type="button" class="btn-icon-xxs" onclick="copyBlocklistHash('${escapeHtml(item.torrent_hash)}', this)" title="${CURRENT_LANG === 'en' ? 'Copy infohash' : 'Скопировать инфохэш'}">
+          <i data-lucide="copy" class="ico-xxs"></i>
+        </button>
+      </div>
+    ` : "";
+
+    const sizePill = (item.size && item.size > 0) ? `
+      <div class="blocklist-pill">
+        <i data-lucide="hard-drive" class="ico-xxs text-muted"></i>
+        <span>${formatBytes(item.size)}</span>
+      </div>
+    ` : "";
+
+    const linkPill = linkUrl ? `
+      <a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer" class="blocklist-pill link-pill" title="${CURRENT_LANG === 'en' ? 'Open tracker page' : 'Открыть раздачу на трекере'}">
+        <i data-lucide="external-link" class="ico-xxs"></i>
+        <span>${escapeHtml(item.indexer || (CURRENT_LANG === 'en' ? 'Tracker' : 'Трекер'))}</span>
+      </a>
+    ` : "";
+
+    return `
+      <div class="blocklist-card ${reasonInfo.cls} ${isSelected ? 'selected' : ''}" data-id="${item.id}">
+        <div class="blocklist-card-top">
+          <div class="blocklist-card-select-wrap">
+            <input type="checkbox" class="blocklist-card-cb" data-id="${item.id}" ${isSelected ? 'checked' : ''} onchange="toggleBlocklistItemSelection(${item.id})">
+            ${showBadgeHtml}
+          </div>
+          <div class="blocklist-card-badges">
+            ${item.indexer ? `<span class="badge badge-secondary mono-code">${escapeHtml(item.indexer)}</span>` : ""}
+            ${item.quality ? `<span class="badge badge-teal mono-code">${escapeHtml(item.quality)}</span>` : ""}
+          </div>
+        </div>
+
+        <div class="blocklist-card-body">
+          <div class="blocklist-card-title" title="${escapeHtml(relTitle)}">${escapeHtml(relTitle)}</div>
+          <div class="blocklist-card-pills">
+            ${hashPill}
+            ${sizePill}
+            ${linkPill}
+          </div>
+        </div>
+
+        <div class="blocklist-reason-box ${reasonInfo.cls}">
+          <div class="blocklist-reason-box-left">
+            <i data-lucide="${reasonInfo.icon}" class="ico-sm"></i>
+            <div class="blocklist-reason-text">${escapeHtml(item.reason || reasonInfo.label)}</div>
+          </div>
+          <div class="blocklist-reason-date" title="${escapeHtml(dateStr)}">${escapeHtml(dateStr.split(',')[0] || dateStr)}</div>
+        </div>
+
+        <div class="blocklist-card-footer">
+          <button type="button" class="btn btn-secondary btn-small" onclick="openEditBlocklistModal(${item.id})" title="${CURRENT_LANG === 'en' ? 'Edit parameters' : 'Редактировать параметры'}">
+            <i data-lucide="edit-3" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Edit' : 'Изменить'}</span>
+          </button>
+          <button type="button" class="btn btn-small btn-unblock" onclick="removeBlocklistItem(${item.id})" title="${CURRENT_LANG === 'en' ? 'Unblock and remove from blocklist' : 'Разблокировать и удалить из черного списка'}">
+            <i data-lucide="shield-check" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Unblock' : 'Разблокировать'}</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderBlocklistTable(filtered, showsMap, container) {
+  if (!container) return;
+
+  container.innerHTML = filtered.map(item => {
+    const sid = item.show_id;
+    const sObj = sid != null ? showsMap[sid] : null;
+    const showTitle = sObj ? (sObj.title || `Show #${sid}`) : (sid != null ? `Тайтл #${sid}` : "");
+    const posterUrl = sObj?.poster_url || "";
+    const relTitle = item.release_title || item.torrent_name || "—";
+    const dateStr = item.created_at ? new Date(item.created_at).toLocaleString() : "—";
+    const isHashOnly = /^[a-fA-F0-9]{40}$/.test(relTitle.trim()) || (item.torrent_hash && relTitle.trim().toLowerCase() === item.torrent_hash.trim().toLowerCase());
+    const reasonInfo = getBlocklistReasonCategory(item.reason);
+    const isSelected = BLOCKLIST_SELECTED_IDS.has(item.id);
+
+    // Cell poster thumbnail
+    let cellPosterHtml = "";
+    if (BLOCKLIST_OPTIONS.showTablePoster !== false) {
+      if (posterUrl) {
+        cellPosterHtml = `
+          <div class="blocklist-row-poster-wrap" onclick="openShowModal(${sid})" title="${escapeHtml(showTitle)}">
+            <img src="${escapeHtml(posterUrl)}" class="blocklist-row-poster" alt="" onerror="this.parentElement.innerHTML='<div class=\\\'blocklist-row-poster placeholder\\\'><i data-lucide=\\\'film\\\' class=\\\'ico-xs text-muted\\\'></i></div>'"/>
+          </div>
+        `;
+      } else if (sid != null) {
+        cellPosterHtml = `
+          <div class="blocklist-row-poster-wrap placeholder" onclick="openShowModal(${sid})" title="${escapeHtml(showTitle)}">
+            <div class="blocklist-row-poster placeholder"><i data-lucide="film" class="ico-xs text-muted"></i></div>
+          </div>
+        `;
+      } else {
+        cellPosterHtml = `
+          <div class="blocklist-row-poster-wrap placeholder">
+            <div class="blocklist-row-poster placeholder"><i data-lucide="shield-alert" class="ico-xs text-danger"></i></div>
+          </div>
+        `;
+      }
+    }
+
+    // Title and Chips
+    let titleHtml = "";
+    if (isHashOnly) {
+      if (showTitle) {
+        titleHtml = `
+          <div class="blocklist-release-name font-semibold" style="cursor:pointer;" onclick="openShowModal(${sid})" title="${escapeHtml(showTitle)}">
+            <span>${escapeHtml(showTitle)}</span>
+            ${sObj?.year ? `<span class="text-muted text-xs font-normal" style="margin-left:4px;">(${sObj.year})</span>` : ""}
+          </div>
+        `;
+      } else {
+        titleHtml = `
+          <div class="blocklist-release-name font-semibold text-muted">
+            <i data-lucide="hash" class="ico-xs"></i> <span>${CURRENT_LANG === "en" ? "Blocked by hash" : "Блокировка по хэшу"}</span>
+          </div>
+        `;
+      }
+    } else {
+      titleHtml = `<div class="blocklist-release-name font-medium" title="${escapeHtml(relTitle)}">${escapeHtml(relTitle)}</div>`;
+    }
+
+    const showChip = (sid != null && !isHashOnly) ? `
+      <a href="javascript:void(0)" onclick="openShowModal(${sid})" class="blocklist-show-chip" title="${escapeHtml(showTitle)}">
+        <i data-lucide="film" class="ico-xs"></i>
+        <span class="blocklist-show-chip-title">${escapeHtml(showTitle)}</span>
+        ${sObj?.year ? `<span class="blocklist-show-chip-year">(${sObj.year})</span>` : ""}
+        <i data-lucide="external-link" class="ico-xxs blocklist-show-chip-arrow"></i>
+      </a>
+    ` : "";
+
+    const hashChip = item.torrent_hash ? `
+      <div class="blocklist-hash-chip">
+        <i data-lucide="hash" class="ico-xxs text-muted"></i>
+        <code class="mono-code">${escapeHtml(item.torrent_hash.slice(0, 8))}...${escapeHtml(item.torrent_hash.slice(-4))}</code>
+        <button type="button" class="btn-icon-xxs" onclick="copyBlocklistHash('${escapeHtml(item.torrent_hash)}', this)" title="${CURRENT_LANG === 'en' ? 'Copy infohash' : 'Скопировать инфохэш'}">
+          <i data-lucide="copy" class="ico-xxs"></i>
+        </button>
+      </div>
+    ` : "";
+
+    const linkUrl = item.page_url || (item.guid && (item.guid.startsWith("http://") || item.guid.startsWith("https://")) ? item.guid : "");
+    const linkChip = linkUrl ? `
+      <a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer" class="blocklist-link-chip" title="${CURRENT_LANG === 'en' ? 'Open release page on tracker' : 'Открыть страницу раздачи на трекере'}">
+        <i data-lucide="external-link" class="ico-xxs"></i>
+        <span>${escapeHtml(item.indexer || (CURRENT_LANG === 'en' ? 'Release page' : 'Страница раздачи'))}</span>
+      </a>
+    ` : "";
+
+    return `
+      <tr class="${isSelected ? 'selected-row' : ''}">
+        <td style="text-align:center;">
+          <input type="checkbox" class="blocklist-table-cb" data-id="${item.id}" ${isSelected ? 'checked' : ''} onchange="toggleBlocklistItemSelection(${item.id})">
+        </td>
+        <td>
+          <div class="blocklist-release-cell">
+            ${cellPosterHtml}
+            <div class="blocklist-release-info">
+              <div class="blocklist-release-title-row">
+                ${titleHtml}
+              </div>
+              <div class="blocklist-release-meta-row">
+                ${showChip}
+                ${hashChip}
+                ${linkChip}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span class="badge badge-secondary mono-code">${escapeHtml(item.indexer || "—")}</span>
+        </td>
+        <td>
+          <span class="badge badge-teal mono-code">${escapeHtml(item.quality || "—")}</span>
+        </td>
+        <td>
+          <div class="blocklist-reason-box ${reasonInfo.cls}" style="padding:4px 8px; font-size:11.5px; border-radius:6px;" title="${escapeHtml(item.reason || '')}">
+            <div class="blocklist-reason-box-left" style="gap:4px;">
+              <i data-lucide="${reasonInfo.icon}" class="ico-xs"></i>
+              <span class="blocklist-reason-text">${escapeHtml(item.reason || reasonInfo.label)}</span>
+            </div>
+          </div>
+          <div class="text-muted text-xs" style="margin-top:3px;">${escapeHtml(dateStr)}</div>
+        </td>
+        <td style="text-align:right;">
+          <div class="blocklist-actions-cell">
+            <button type="button" class="btn btn-secondary btn-small" onclick="openEditBlocklistModal(${item.id})" title="${CURRENT_LANG === 'en' ? 'Edit blocked release' : 'Редактировать запись'}">
+              <i data-lucide="edit-3" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Edit' : 'Изменить'}</span>
+            </button>
+            <button type="button" class="btn btn-small btn-unblock" onclick="removeBlocklistItem(${item.id})" title="${CURRENT_LANG === 'en' ? 'Unblock and remove from blocklist' : 'Разблокировать и удалить из черного списка'}">
+              <i data-lucide="shield-check" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Unblock' : 'Разблокировать'}</span>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
 async function removeBlocklistItem(id) {
   try {
     await api(`/api/v1/blocklist/${id}`, { method: "DELETE" });
-    showToast(CURRENT_LANG === "en" ? "Release unblocked and removed from blocklist" : "Раздача разблокирована и удалена из черного списка");
+    showToast(CURRENT_LANG === "en" ? "Release unblocked and removed from blocklist" : "Раздача разблокирована и удалена из черного списка", "success");
     BLOCKLIST_DATA = BLOCKLIST_DATA.filter(x => x.id !== id);
+    BLOCKLIST_SELECTED_IDS.delete(id);
     renderBlocklist();
   } catch (err) {
     console.error("Failed to delete blocklist item:", err);
@@ -17644,7 +18058,7 @@ async function confirmClearCurrentShowBlocklist() {
   try {
     const q = showId === "unlinked" ? "" : `?show_id=${encodeURIComponent(showId)}`;
     const res = await api(`/api/v1/blocklist${q}`, { method: "DELETE" });
-    showToast(res?.message || (CURRENT_LANG === "en" ? "Blocklist cleared for title" : "Черный список тайтла очищен"));
+    showToast(res?.message || (CURRENT_LANG === "en" ? "Blocklist cleared for title" : "Черный список тайтла очищен"), "success");
     await loadBlocklist(showId);
   } catch (err) {
     console.error("Failed to clear blocklist for show:", err);
@@ -17660,7 +18074,7 @@ async function confirmClearAllBlocklist() {
 
   try {
     const res = await api("/api/v1/blocklist", { method: "DELETE" });
-    showToast(res?.message || (CURRENT_LANG === "en" ? "All blocklist items removed" : "Все записи черного списка удалены"));
+    showToast(res?.message || (CURRENT_LANG === "en" ? "All blocklist items removed" : "Все записи черного списка удалены"), "success");
     await loadBlocklist("all");
   } catch (err) {
     console.error("Failed to clear all blocklist items:", err);

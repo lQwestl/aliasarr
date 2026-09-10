@@ -11334,7 +11334,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 /* ==========================================================================
-   BLOCKLIST STYLES
+   BLOCKLIST STYLES (NEO-GLASS & VANGUARD LUXE)
    ========================================================================== */
 .blocklist-toolbar {
   display: flex;
@@ -11342,13 +11342,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   align-items: center;
   flex-wrap: wrap;
   gap: 14px;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .blocklist-stats {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -11357,24 +11357,42 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   align-items: center;
   gap: 8px;
   background: var(--panel);
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  border-radius: var(--radius-sm, 8px);
   border: 1px solid var(--border);
   font-size: 13px;
   color: var(--text-muted);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(12px);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.blocklist-stat-badge:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
 }
 
 .blocklist-stat-badge strong {
   color: var(--text);
   font-weight: 700;
+  font-size: 14px;
+}
+
+.blocklist-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .library-search-wrap,
 .blocklist-search-wrap {
   position: relative;
   flex: 1;
-  max-width: 420px;
-  min-width: 200px;
+  max-width: 380px;
+  min-width: 220px;
 }
 
 .library-search-icon,
@@ -11394,6 +11412,20 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   width: 100%;
   padding-left: 36px;
   padding-right: 34px;
+  height: 38px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text);
+  transition: all 0.2s ease;
+}
+
+.library-search-input:focus,
+.blocklist-search-input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.15);
+  outline: none;
 }
 
 .library-search-clear-btn,
@@ -11438,29 +11470,186 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   pointer-events: none;
 }
 
+/* View Mode Switcher (Cards vs Table) */
+.blocklist-view-switcher {
+  display: inline-flex;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  padding: 3px;
+  gap: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-icon-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.btn-icon-mode:hover {
+  color: var(--text);
+  background: var(--panel-alt);
+}
+
+.btn-icon-mode.active {
+  background: rgba(0, 240, 255, 0.12);
+  color: var(--teal, #00f0ff);
+  border-color: rgba(0, 240, 255, 0.3);
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 240, 255, 0.15);
+}
+
+[data-theme="obsidian"] .btn-icon-mode.active {
+  background: rgba(0, 245, 212, 0.12);
+  color: var(--teal, #00f5d4);
+  border-color: rgba(0, 245, 212, 0.3);
+}
+
+/* Reason Filter Chips Bar */
+.blocklist-filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 10px);
+  backdrop-filter: blur(12px);
+}
+
+.blocklist-reason-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.blocklist-reason-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-hover);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.blocklist-reason-chip.active {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--teal, #00f0ff);
+  color: var(--teal, #00f0ff);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 240, 255, 0.2);
+}
+
+.blocklist-reason-chip .chip-count {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-weight: 600;
+}
+
+.blocklist-reason-chip.active .chip-count {
+  background: rgba(0, 240, 255, 0.25);
+  color: #fff;
+}
+
+/* Specific reason chip colors */
+.blocklist-reason-chip.chip-amber.active {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  color: #fbbf24;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+}
+.blocklist-reason-chip.chip-amber.active .chip-count { background: rgba(245, 158, 11, 0.25); }
+
+.blocklist-reason-chip.chip-rose.active {
+  background: rgba(244, 63, 94, 0.15);
+  border-color: #f43f5e;
+  color: #fb7185;
+  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.25);
+}
+.blocklist-reason-chip.chip-rose.active .chip-count { background: rgba(244, 63, 94, 0.25); }
+
+.blocklist-reason-chip.chip-orange.active {
+  background: rgba(249, 115, 22, 0.15);
+  border-color: #f97316;
+  color: #fb923c;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.25);
+}
+.blocklist-reason-chip.chip-orange.active .chip-count { background: rgba(249, 115, 22, 0.25); }
+
+.blocklist-reason-chip.chip-purple.active {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: #a855f7;
+  color: #c084fc;
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.25);
+}
+.blocklist-reason-chip.chip-purple.active .chip-count { background: rgba(168, 85, 247, 0.25); }
+
+.blocklist-reason-chip.chip-blue.active {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: #3b82f6;
+  color: #60a5fa;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+}
+.blocklist-reason-chip.chip-blue.active .chip-count { background: rgba(59, 130, 246, 0.25); }
+
+/* Main Blocklist Layout */
 .blocklist-layout {
   display: grid;
-  grid-template-columns: 290px 1fr;
+  grid-template-columns: 300px 1fr;
   gap: 20px;
   align-items: start;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1080px) {
+  .blocklist-layout {
+    grid-template-columns: 260px 1fr;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 860px) {
   .blocklist-layout {
     grid-template-columns: 1fr;
   }
 }
 
+/* Sidebar */
 .blocklist-shows-sidebar {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius, 14px);
   padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: calc(100vh - 210px);
+  max-height: calc(100vh - 220px);
   overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(16px);
 }
 
 .blocklist-shows-header {
@@ -11468,14 +11657,15 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   justify-content: space-between;
   align-items: center;
   font-weight: 600;
-  padding-bottom: 8px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--border);
 }
 
 .blocklist-section-heading {
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
 }
 
@@ -11516,6 +11706,27 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   box-shadow: 0 1px 4px rgba(0,0,0,0.2);
 }
 
+.blocklist-sidebar-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.blocklist-sidebar-search-wrap i {
+  position: absolute;
+  left: 10px;
+  pointer-events: none;
+}
+
+.blocklist-sidebar-search-input {
+  width: 100%;
+  padding-left: 28px;
+  padding-right: 10px;
+  height: 32px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
 .blocklist-shows-list {
   display: flex;
   flex-direction: column;
@@ -11529,7 +11740,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   padding: 8px 10px;
   border-radius: var(--radius-sm, 8px);
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid transparent;
   background: transparent;
   text-align: left;
@@ -11541,11 +11752,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .blocklist-show-item:hover {
   background: var(--panel-alt);
   border-color: var(--border-hover);
+  transform: translateX(2px);
 }
 
 .blocklist-show-item.active {
   background: rgba(0, 240, 255, 0.1);
   border-color: var(--teal);
+  box-shadow: 0 2px 10px rgba(0, 240, 255, 0.15);
 }
 
 [data-theme="obsidian"] .blocklist-show-item.active {
@@ -11557,7 +11770,6 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   width: 36px;
   height: 52px;
   aspect-ratio: 2 / 3;
-  max-width: 100%;
   border-radius: 6px;
   object-fit: cover;
   background: var(--panel-alt);
@@ -11580,7 +11792,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .blocklist-show-item:hover .blocklist-show-poster {
-  transform: scale(1.03);
+  transform: scale(1.04);
   box-shadow: 0 4px 10px rgba(0,0,0,0.35);
 }
 
@@ -11632,6 +11844,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .blocklist-show-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
   color: var(--text-muted);
   margin-top: 2px;
@@ -11639,17 +11854,24 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 .blocklist-show-badge {
   flex-shrink: 0;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 12px;
 }
 
+/* Main Panel */
 .blocklist-main-panel {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius, 14px);
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(16px);
+  position: relative;
 }
 
 .blocklist-main-header {
@@ -11658,6 +11880,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 .blocklist-current-title-info {
@@ -11669,8 +11893,277 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .blocklist-current-title-info h3 {
   margin: 0;
   font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.blocklist-main-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Cards Grid Mode */
+.blocklist-cards-wrap {
+  width: 100%;
+}
+
+.blocklist-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .blocklist-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Modern Blocklist Card */
+.blocklist-card {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 12px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.blocklist-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--border);
+  transition: background 0.2s ease, width 0.2s ease;
+}
+
+.blocklist-card:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.blocklist-card.selected {
+  border-color: var(--teal, #00f0ff);
+  background: rgba(0, 240, 255, 0.04);
+}
+
+.blocklist-card.selected::before {
+  background: var(--teal, #00f0ff);
+  width: 5px;
+}
+
+/* Card Reason Border Highlights */
+.blocklist-card.reason-amber::before { background: #f59e0b; }
+.blocklist-card.reason-rose::before { background: #f43f5e; }
+.blocklist-card.reason-orange::before { background: #f97316; }
+.blocklist-card.reason-purple::before { background: #a855f7; }
+.blocklist-card.reason-blue::before { background: #3b82f6; }
+
+.blocklist-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.blocklist-card-select-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.blocklist-card-select-wrap input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
+  accent-color: var(--teal);
+  flex-shrink: 0;
+}
+
+.blocklist-card-show-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.blocklist-card-show-badge:hover {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--teal);
+  color: #fff;
+}
+
+.blocklist-card-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.blocklist-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blocklist-card-title {
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--text);
+  line-height: 1.45;
+  word-break: break-word;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  letter-spacing: -0.01em;
+}
+
+.blocklist-card-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.blocklist-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.blocklist-pill.link-pill {
+  color: var(--teal);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.blocklist-pill.link-pill:hover {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: var(--teal);
+  color: #fff;
+}
+
+/* Modern Card Reason Highlight Box */
+.blocklist-reason-box {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  transition: all 0.18s ease;
+}
+
+.blocklist-reason-box-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.blocklist-reason-box-left i {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.blocklist-reason-text {
+  font-weight: 500;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.blocklist-reason-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Reason box color themes */
+.blocklist-reason-box.reason-amber {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+}
+.blocklist-reason-box.reason-rose {
+  background: rgba(244, 63, 94, 0.08);
+  border-color: rgba(244, 63, 94, 0.25);
+  color: #fb7185;
+}
+.blocklist-reason-box.reason-orange {
+  background: rgba(249, 115, 22, 0.08);
+  border-color: rgba(249, 115, 22, 0.25);
+  color: #fb923c;
+}
+.blocklist-reason-box.reason-purple {
+  background: rgba(168, 85, 247, 0.08);
+  border-color: rgba(168, 85, 247, 0.25);
+  color: #c084fc;
+}
+.blocklist-reason-box.reason-blue {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.25);
+  color: #60a5fa;
+}
+
+/* Card Footer Actions */
+.blocklist-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.btn-unblock {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.28) !important;
+  font-weight: 600;
+  transition: all 0.18s ease !important;
+}
+
+.btn-unblock:hover {
+  background: #10b981 !important;
+  color: #fff !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35) !important;
+  transform: translateY(-1px);
 }
 
 /* Table cell styling */
@@ -11854,6 +12347,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   box-shadow: 0 2px 8px rgba(0, 245, 212, 0.25);
 }
 
+.blocklist-actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .btn-icon-xxs {
   width: 18px;
   height: 18px;
@@ -11877,6 +12377,56 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .ico-xxs {
   width: 11px !important;
   height: 11px !important;
+}
+
+/* Floating Batch Bar */
+.blocklist-batch-bar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  background: rgba(18, 24, 38, 0.88);
+  border: 1px solid var(--teal, #00f0ff);
+  border-radius: var(--radius, 12px);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 16px rgba(0, 240, 255, 0.2);
+  animation: slideUpBatch 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 12px;
+}
+
+@keyframes slideUpBatch {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.blocklist-batch-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.blocklist-batch-bar-left strong {
+  color: var(--teal);
+  font-size: 15px;
+}
+
+.blocklist-batch-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* Blocklist Quick Reason Chips & Modal */
