@@ -931,51 +931,83 @@
         </div>
       </div>
 
+      <!-- ПАНЕЛЬ 1: ОБЩИЕ -->
       <div id="settings-general" class="settings-panel active">
-        <div class="card" id="card-system-apikey">
-          <h3><i data-lucide="key" class="ico-sm icon-title"></i> <span data-i18n="settings.apikey_title">API-ключ</span></h3>
-          <div class="form-col">
-            <label><span data-i18n="settings.apikey_label">API-ключ</span> <span class="hint" data-i18n="settings.apikey_hint">используется этим интерфейсом и внешними клиентами для запросов к серверу</span></label>
-            <div class="api-key-container" style="display:flex; flex-direction:column; gap:8px;">
-              <input id="setting-apikey" class="input mono" type="text" readonly style="width:100%;">
-              <div class="api-key-actions-row" style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button class="btn btn-secondary btn-small" id="btn-copy-apikey" onclick="copyApiKey()" data-i18n="common.copy"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="common.copy">Копировать</span></button>
-                <button class="btn btn-secondary btn-small" id="regenerate-key-btn" onclick="regenerateApiKey(this)" data-i18n="settings.btn_regenerate_key"><i data-lucide="refresh-cw" class="ico-xs"></i> <span data-i18n="settings.btn_regenerate_key">↻ Новый ключ</span></button>
+        <!-- API Ключ -->
+        <div class="settings-section-card" id="card-system-apikey">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="key"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="settings.apikey_title">API-ключ</h3>
+                <p class="subtitle" data-i18n="settings.apikey_hint">Используется этим интерфейсом и внешними клиентами для запросов к серверу</p>
               </div>
             </div>
-            <p class="hint" id="apikey-source-hint"></p>
-            <div style="margin-top: 10px;">
-              <button class="btn btn-secondary btn-small" id="btn-api-docs" onclick="window.open('/docs', '_blank')">
-                <i data-lucide="book-open" class="ico-sm" style="margin-right:6px; vertical-align:middle;"></i> <span data-i18n="settings.btn_api_docs">Справочник API</span>
-              </button>
+          </div>
+          <div class="form-grid-modern">
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="settings-field-label" data-i18n="settings.apikey_label">API-ключ</label>
+              <div class="api-key-container" style="display:flex; flex-direction:column; gap:8px;">
+                <input id="setting-apikey" class="input mono" type="text" readonly style="width:100%;">
+                <div class="api-key-actions-row" style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button class="btn btn-secondary btn-small" id="btn-copy-apikey" onclick="copyApiKey()" data-i18n="common.copy"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="common.copy">Копировать</span></button>
+                  <button class="btn btn-secondary btn-small" id="regenerate-key-btn" onclick="regenerateApiKey(this)" data-i18n="settings.btn_regenerate_key"><i data-lucide="refresh-cw" class="ico-xs"></i> <span data-i18n="settings.btn_regenerate_key">↻ Новый ключ</span></button>
+                </div>
+              </div>
+              <p class="hint" id="apikey-source-hint"></p>
+              <div style="margin-top: 10px;">
+                <button class="btn btn-secondary btn-small" id="btn-api-docs" onclick="window.open('/docs', '_blank')">
+                  <i data-lucide="book-open" class="ico-sm" style="margin-right:6px; vertical-align:middle;"></i> <span data-i18n="settings.btn_api_docs">Справочник API</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="card">
-          <h3><i data-lucide="palette" class="ico-sm icon-title"></i> <span data-i18n="settings.interface_title">Интерфейс</span></h3>
-          <div class="form-col">
-            <label data-i18n="settings.language">Язык</label>
-            <select id="setting-language" class="input" style="max-width:220px">
-              <option value="ru">Русский</option>
-              <option value="en">English</option>
-            </select>
-            <label data-i18n="settings.theme">Тема</label>
-            <select id="setting-theme" class="input" style="max-width:220px" onchange="applyTheme(this.value)">
-              <option value="dark" data-i18n="settings.theme_dark">Неоновая полночь</option>
-              <option value="obsidian" data-i18n="settings.theme_obsidian">Обсидиан (Obsidian Aurora)</option>
-              <option value="dracula" data-i18n="settings.theme_dracula">Дракула</option>
-              <option value="light" data-i18n="settings.theme_light">Полярный день</option>
-            </select>
-            <label data-i18n="settings.scrollbar">Полосы прокрутки</label>
-            <select id="setting-scrollbar" class="input" style="max-width:240px" onchange="selectScrollbarMode(this.value)">
-              <option value="autohide" data-i18n="settings.scrollbar_autohide">Автоскрытие при прокрутке</option>
-              <option value="styled" data-i18n="settings.scrollbar_styled">Стилизованные (всегда видны)</option>
-              <option value="hidden" data-i18n="settings.scrollbar_hidden">Скрытые (без полос)</option>
-              <option value="native" data-i18n="settings.scrollbar_native">Системные (по умолчанию)</option>
-            </select>
-            <label class="hint"><span data-i18n="settings.timezone">Часовой пояс</span> <span class="hint" data-i18n="settings.timezone_hint">(единый для календаря, журнала и событий)</span></label>
-            <select id="setting-timezone" class="input" style="max-width:280px">
+        <!-- Интерфейс -->
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="palette"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="settings.interface_title">Интерфейс</h3>
+                <p class="subtitle" data-i18n="settings.interface_subtitle">Язык, цветовая тема оформления, режим прокрутки и часовой пояс</p>
+              </div>
+            </div>
+          </div>
+          <div class="form-grid-modern">
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="settings.language">Язык</label>
+              <select id="setting-language" class="input">
+                <option value="ru">Русский</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="settings.theme">Тема</label>
+              <select id="setting-theme" class="input" onchange="applyTheme(this.value)">
+                <option value="dark" data-i18n="settings.theme_dark">Неоновая полночь</option>
+                <option value="obsidian" data-i18n="settings.theme_obsidian">Обсидиан (Obsidian Aurora)</option>
+                <option value="dracula" data-i18n="settings.theme_dracula">Дракула</option>
+                <option value="light" data-i18n="settings.theme_light">Полярный день</option>
+              </select>
+            </div>
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="settings.scrollbar">Полосы прокрутки</label>
+              <select id="setting-scrollbar" class="input" onchange="selectScrollbarMode(this.value)">
+                <option value="autohide" data-i18n="settings.scrollbar_autohide">Автоскрытие при прокрутке</option>
+                <option value="styled" data-i18n="settings.scrollbar_styled">Стилизованные (всегда видны)</option>
+                <option value="hidden" data-i18n="settings.scrollbar_hidden">Скрытые (без полос)</option>
+                <option value="native" data-i18n="settings.scrollbar_native">Системные (по умолчанию)</option>
+              </select>
+            </div>
+            <div class="settings-field-group">
+              <label class="settings-field-label"><span data-i18n="settings.timezone">Часовой пояс</span> <span class="settings-field-hint" data-i18n="settings.timezone_hint">(календарь, журнал, события)</span></label>
+              <select id="setting-timezone" class="input" style="max-width:280px">
 <option value="Pacific/Midway">Pacific/Midway (UTC-11:00)</option>
 <option value="Pacific/Niue">Pacific/Niue (UTC-11:00)</option>
 <option value="Pacific/Pago_Pago">Pacific/Pago_Pago (UTC-11:00)</option>
@@ -1495,18 +1527,25 @@
 <option value="Pacific/Tongatapu">Pacific/Tongatapu (UTC+13:00)</option>
 <option value="Pacific/Kiritimati">Pacific/Kiritimati (UTC+14:00)</option>
 </select>
-            <div style="margin-top:6px">
-              <button class="btn btn-primary" onclick="saveInterfaceSettings(this)" data-i18n="common.save">Сохранить</button>
             </div>
           </div>
         </div>
 
-        <!-- ДИЗАЙН ИНТЕРФЕЙСА В ОБЩИХ НАСТРОЙКАХ -->
-        <div class="card" style="margin-bottom: 24px;">
-          <h3><i data-lucide="layout-template" class="ico-sm icon-title"></i> <span data-i18n="settings.design_title">Дизайн интерфейса</span></h3>
-          <p class="hint" style="margin-top: 4px; margin-bottom: 22px; max-width: 760px; line-height: 1.6;" data-i18n="settings.design_subtitle">
-            Выберите визуальный стиль и архитектуру компонентов для веб-приложения, Wiki и мобильной версии. Стили можно переключать в любой момент без потери настроек.
-          </p>
+        <!-- Дизайн интерфейса -->
+        <div class="settings-section-card" style="margin-bottom: 24px;">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="layout-template"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="settings.design_title">Дизайн интерфейса</h3>
+                <p class="subtitle" data-i18n="settings.design_subtitle">
+                  Выберите визуальный стиль и архитектуру компонентов для веб-приложения, Wiki и мобильной версии. Стили можно переключать в любой момент без потери настроек.
+                </p>
+              </div>
+            </div>
+          </div>
 
           <div class="design-cards-grid">
             <!-- 1. Классический дизайн -->
@@ -1593,13 +1632,21 @@
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-header-row">
-            <h3><i data-lucide="folder-tree" class="ico-sm icon-title"></i> <span data-i18n="settings.folders_title">Папки и переименование по категориям</span></h3>
+        <!-- Папки и переименование по категориям -->
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="folder-tree"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="settings.folders_title">Папки и переименование по категориям</h3>
+                <p class="subtitle" data-i18n="settings.folders_hint">Категория контента (привязана к выбору «Категория» в карточке видео в Библиотеке) → папка, куда загрузчик сохраняет скачанное → папка, куда Aliasarr переносит и переименовывает готовое</p>
+              </div>
+            </div>
             <button class="btn btn-secondary btn-small" onclick="openTemplatesHelpModal()"><i data-lucide="book-open" class="ico-sm"></i> <span data-i18n="settings.btn_templates_cheatsheet">Справочник шаблонов</span></button>
           </div>
-          <p class="hint" data-i18n="settings.folders_hint">Категория контента (привязана к выбору «Категория» в карточке видео в Библиотеке) →
-            папка, куда загрузчик сохраняет скачанное → папка, куда Aliasarr переносит и переименовывает готовое
+
           <div class="table-responsive">
             <table class="data-table folders-table">
               <thead>
@@ -1613,61 +1660,61 @@
               </thead>
               <tbody>
                 <tr>
-                <td class="folders-table-cat" data-i18n="settings.cat_movies">Фильмы</td>
-                <td>
-                  <div class="folder-picker-row">
-                    <input id="setting-download-movies" class="input mono" type="text" placeholder="/downloads/movies">
-                    <button type="button" class="btn btn-secondary btn-small" onclick="openFolderPicker('setting-download-movies')" data-i18n="common.browse">Обзор</button>
-                  </div>
-                </td>
-                <td>
-                  <div class="folder-picker-row">
-                    <input id="setting-root-movies" class="input mono" type="text" placeholder="/data/movies">
-                    <button type="button" class="btn btn-secondary btn-small" onclick="openFolderPicker('setting-root-movies')" data-i18n="common.browse">Обзор</button>
-                  </div>
-                </td>
-                <td style="text-align:center; color:var(--text-muted); font-family:var(--font-mono); font-size:12px;">—</td>
-                <td><input id="setting-template-movie" class="input mono" type="text" placeholder="{Movie Title} ({Release Year}) {Quality Full}"></td>
-              </tr>
-              <tr>
-                <td class="folders-table-cat" data-i18n="settings.cat_series">Сериалы</td>
-                <td>
-                  <div class="folder-picker-row">
-                    <input id="setting-download-series" class="input mono" type="text" placeholder="/downloads/series">
-                    <button type="button" class="btn btn-secondary btn-small" onclick="openFolderPicker('setting-download-series')" data-i18n="common.browse">Обзор</button>
-                  </div>
-                </td>
-                <td>
-                  <div class="folder-picker-row">
-                    <input id="setting-root-series" class="input mono" type="text" placeholder="/data/series">
-                    <button type="button" class="btn btn-secondary btn-small" onclick="openFolderPicker('setting-root-series')" data-i18n="common.browse">Обзор</button>
-                  </div>
-                </td>
-                <td><input id="setting-season-folder-series" class="input mono" type="text" placeholder="Сезон {season}" data-i18n-placeholder="settings.season_folder_placeholder"></td>
-                <td><input id="setting-template-series" class="input mono" type="text" placeholder="{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"></td>
-              </tr>
-              <tr>
-                <td class="folders-table-cat" data-i18n="settings.cat_anime">Аниме</td>
-                <td>
-                  <div class="folder-picker-row">
-                    <input id="setting-download-anime" class="input mono" type="text" placeholder="/downloads/anime">
-                    <button type="button" class="btn btn-secondary btn-small" onclick="openFolderPicker('setting-download-anime')" data-i18n="common.browse">Обзор</button>
-                  </div>
-                </td>
-                <td>
-                  <div class="folder-picker-row">
-                    <input id="setting-root-anime" class="input mono" type="text" placeholder="/data/anime">
-                    <button type="button" class="btn btn-secondary btn-small" onclick="openFolderPicker('setting-root-anime')" data-i18n="common.browse">Обзор</button>
-                  </div>
-                </td>
-                <td><input id="setting-season-folder-anime" class="input mono" type="text" placeholder="Сезон {season}" data-i18n-placeholder="settings.season_folder_placeholder"></td>
-                <td><input id="setting-template-anime" class="input mono" type="text" placeholder="{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"></td>
-              </tr>
-            </tbody>
-          </table>
+                  <td class="folders-table-cat"><span class="category-badge-chip category-badge-movies" data-i18n="settings.cat_movies"><i data-lucide="film" class="ico-xs"></i> Фильмы</span></td>
+                  <td>
+                    <div class="folder-picker-row">
+                      <input id="setting-download-movies" class="input mono" type="text" placeholder="/downloads/movies">
+                      <button type="button" class="btn btn-secondary btn-small" onclick="openFolderPicker('setting-download-movies')" data-i18n="common.browse">Обзор</button>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="folder-picker-row">
+                      <input id="setting-root-movies" class="input mono" type="text" placeholder="/data/movies">
+                      <button type="button" class="btn btn-secondary btn-small" onclick="openFolderPicker('setting-root-movies')" data-i18n="common.browse">Обзор</button>
+                    </div>
+                  </td>
+                  <td style="text-align:center; color:var(--text-muted); font-family:var(--font-mono); font-size:12px;">—</td>
+                  <td><input id="setting-template-movie" class="input mono" type="text" placeholder="{Movie Title} ({Release Year}) {Quality Full}"></td>
+                </tr>
+                <tr>
+                  <td class="folders-table-cat"><span class="category-badge-chip category-badge-series" data-i18n="settings.cat_series"><i data-lucide="tv" class="ico-xs"></i> Сериалы</span></td>
+                  <td>
+                    <div class="folder-picker-row">
+                      <input id="setting-download-series" class="input mono" type="text" placeholder="/downloads/series">
+                      <button type="button" class="btn btn-secondary btn-small" onclick="openFolderPicker('setting-download-series')" data-i18n="common.browse">Обзор</button>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="folder-picker-row">
+                      <input id="setting-root-series" class="input mono" type="text" placeholder="/data/series">
+                      <button type="button" class="btn btn-secondary btn-small" onclick="openFolderPicker('setting-root-series')" data-i18n="common.browse">Обзор</button>
+                    </div>
+                  </td>
+                  <td><input id="setting-season-folder-series" class="input mono" type="text" placeholder="Сезон {season}" data-i18n-placeholder="settings.season_folder_placeholder"></td>
+                  <td><input id="setting-template-series" class="input mono" type="text" placeholder="{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"></td>
+                </tr>
+                <tr>
+                  <td class="folders-table-cat"><span class="category-badge-chip category-badge-anime" data-i18n="settings.cat_anime"><i data-lucide="sparkles" class="ico-xs"></i> Аниме</span></td>
+                  <td>
+                    <div class="folder-picker-row">
+                      <input id="setting-download-anime" class="input mono" type="text" placeholder="/downloads/anime">
+                      <button type="button" class="btn btn-secondary btn-small" onclick="openFolderPicker('setting-download-anime')" data-i18n="common.browse">Обзор</button>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="folder-picker-row">
+                      <input id="setting-root-anime" class="input mono" type="text" placeholder="/data/anime">
+                      <button type="button" class="btn btn-secondary btn-small" onclick="openFolderPicker('setting-root-anime')" data-i18n="common.browse">Обзор</button>
+                    </div>
+                  </td>
+                  <td><input id="setting-season-folder-anime" class="input mono" type="text" placeholder="Сезон {season}" data-i18n-placeholder="settings.season_folder_placeholder"></td>
+                  <td><input id="setting-template-anime" class="input mono" type="text" placeholder="{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          <div style="margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <div style="margin-top:16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <button class="btn btn-primary" onclick="saveFolderSettings(this)" data-i18n="common.save">Сохранить</button>
             <button type="button" class="btn btn-secondary" onclick="fixAllMediaPermissions(this)" title="Рекурсивно применить права доступа (chmod 0777/0666) ко всем папкам медиатеки для Jellyfin / Plex">
               <i data-lucide="shield-check" class="ico-sm"></i> <span data-i18n="settings.btn_fix_permissions">Исправить права доступа (Jellyfin / Plex)</span>
@@ -1675,66 +1722,137 @@
           </div>
         </div>
 
-        <div class="card">
-          <h3><i data-lucide="file-plus" class="ico-sm icon-title"></i> <span data-i18n="settings.extra_files_title">Дополнительные файлы (Extra Files)</span></h3>
-          <p class="hint" data-i18n="settings.extra_files_hint">
-            Импорт субтитров (.ass, .srt), отдельных аудиодорожек (.mka), шрифтов для аниме (папки fonts/) и описаний (.nfo).
-          </p>
-          <div class="form-col" style="margin-top:10px;">
-            <label class="checkbox-row">
-              <input id="setting-import-extra-files" type="checkbox">
-              <span data-i18n="settings.import_extra_files" style="font-weight:600;">Импортировать дополнительные файлы</span>
-            </label>
-            <label style="margin-top:8px;">
-              <span data-i18n="settings.extra_file_extensions">Расширения дополнительных файлов</span>
-              <span class="hint" data-i18n="settings.extra_file_extensions_hint">(через запятую)</span>
-            </label>
-            <input id="setting-extra-file-extensions" class="input mono" type="text" placeholder="srt, ass, sub, idx, vtt, nfo, mka, ttf, otf, woff">
-            <div style="margin-top:10px;">
+        <!-- Дополнительные файлы (Extra Files) -->
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="file-plus"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="settings.extra_files_title">Дополнительные файлы (Extra Files)</h3>
+                <p class="subtitle" data-i18n="settings.extra_files_hint">Импорт субтитров (.ass, .srt), отдельных аудиодорожек (.mka), шрифтов для аниме (папки fonts/) и описаний (.nfo).</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid-modern">
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
+                <input id="setting-import-extra-files" type="checkbox">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="settings.import_extra_files">Импортировать дополнительные файлы</span>
+              </label>
+            </div>
+
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="settings-field-label">
+                <span data-i18n="settings.extra_file_extensions">Расширения дополнительных файлов</span>
+                <span class="settings-field-hint" data-i18n="settings.extra_file_extensions_hint">(через запятую)</span>
+              </label>
+              <input id="setting-extra-file-extensions" class="input mono" type="text" placeholder="srt, ass, sub, idx, vtt, nfo, mka, ttf, otf, woff">
+            </div>
+
+            <div style="grid-column: 1 / -1; margin-top: 4px;">
               <button class="btn btn-primary" onclick="saveExtraFilesSettings(this)" data-i18n="common.save">Сохранить</button>
             </div>
           </div>
         </div>
 
-        <div class="card">
-          <h3><i data-lucide="file-symlink" class="ico-sm icon-title"></i> <span data-i18n="settings.hardlinks_title">Жесткие ссылки (Hardlinks) и сидирование</span></h3>
-          <p class="hint" data-i18n="settings.hardlinks_hint">
-            При включенном сидировании на трекере файлы импортируются через жесткие ссылки (os.link), не занимая дополнительного места на диске (0 байт) на файловых системах ZFS / Btrfs / ext4.
-          </p>
-          <div class="form-col" style="margin-top:10px;">
-            <label class="checkbox-row">
-              <input id="setting-use-hardlinks" type="checkbox" checked>
-              <span data-i18n="settings.use_hardlinks" style="font-weight:600;">Использовать жесткие ссылки (Hardlinks) вместо копирования</span>
-            </label>
-            <p class="hint" style="font-size:0.8rem; margin-top:2px;" data-i18n="settings.use_hardlinks_subhint">
-              Если жесткая ссылка не может быть создана (разные тома/датасеты), будет выполнен автоматический fallback на обычное копирование.
-            </p>
-            <div style="margin-top:10px;">
+        <!-- Жесткие ссылки (Hardlinks) -->
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="file-symlink"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="settings.hardlinks_title">Жесткие ссылки (Hardlinks) и сидирование</h3>
+                <p class="subtitle" data-i18n="settings.hardlinks_hint">При включенном сидировании на трекере файлы импортируются через жесткие ссылки (os.link), не занимая дополнительного места на диске (0 байт) на файловых системах ZFS / Btrfs / ext4.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid-modern">
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
+                <input id="setting-use-hardlinks" type="checkbox" checked>
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="settings.use_hardlinks">Использовать жесткие ссылки (Hardlinks) вместо копирования</span>
+                <span class="switch-desc" data-i18n="settings.use_hardlinks_subhint">Если жесткая ссылка не может быть создана (разные тома/датасеты), будет выполнен автоматический fallback на обычное копирование.</span>
+              </label>
+            </div>
+
+            <div style="grid-column: 1 / -1; margin-top: 4px;">
               <button class="btn btn-primary" onclick="saveHardlinksSettings(this)" data-i18n="common.save">Сохранить</button>
             </div>
           </div>
         </div>
 
-        <div class="card">
-          <h3><i data-lucide="search" class="ico-sm icon-title"></i> <span data-i18n="settings.autosearch_title">Автопоиск и скачивание</span></h3>
-          <div class="form-col">
-            <label><span data-i18n="settings.min_seeds">Минимальное число сидов для скачивания</span> <span class="hint" data-i18n="settings.min_seeds_hint">(0 — без ограничения)</span></label>
-            <input id="setting-min-seeds" class="input" type="number" min="0" style="max-width:160px">
-            <label class="checkbox-row"><input id="setting-prefer-seeded" type="checkbox" onchange="updateMinSeedsAvailability()"> <span data-i18n="settings.prefer_seeded">Скачивать только самый популярный релиз (с наибольшим числом сидов)</span></label>
-            
-            <label><span data-i18n="settings.monitor_interval">Интервал автопоиска разыскиваемого (Wanted Search)</span> <span class="hint" data-i18n="settings.monitor_interval_hint">(минуты)</span></label>
-            <input id="setting-monitor-interval" class="input" type="number" min="1" style="max-width:160px">
-            
-            <label><span data-i18n="settings.download_check_interval">Интервал проверки завершения загрузок</span> <span class="hint" data-i18n="settings.download_check_seconds_hint">(секунды)</span></label>
-            <input id="setting-download-check-interval" class="input" type="number" min="5" style="max-width:160px">
+        <!-- Автопоиск и скачивание -->
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="search"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="settings.autosearch_title">Автопоиск и скачивание</h3>
+                <p class="subtitle" data-i18n="settings.autosearch_subtitle">Периодичность проверки разыскиваемых релизов, фоновых загрузок и отслеживания раздач</p>
+              </div>
+            </div>
+          </div>
 
-            <label><span data-i18n="settings.tracker_check_interval">Интервал слежения за раздачами (Tracker Ongoing)</span> <span class="hint" data-i18n="settings.tracker_check_interval_hint">(минуты)</span></label>
-            <input id="setting-tracker-interval" class="input" type="number" min="1" style="max-width:160px">
+          <div class="form-grid-modern">
+            <div class="settings-field-group">
+              <label class="settings-field-label">
+                <span data-i18n="settings.min_seeds">Минимальное число сидов</span>
+                <span class="settings-field-hint" data-i18n="settings.min_seeds_hint">(0 — без ограничения)</span>
+              </label>
+              <input id="setting-min-seeds" class="input" type="number" min="0">
+            </div>
 
-            <label><span data-i18n="settings.unaired_check_interval">Интервал активации премьер (Unaired → Wanted)</span> <span class="hint" data-i18n="settings.unaired_check_interval_hint">(минуты)</span></label>
-            <input id="setting-unaired-interval" class="input" type="number" min="1" style="max-width:160px">
+            <div class="settings-field-group">
+              <label class="switch-toggle" style="margin-top: 24px;">
+                <input id="setting-prefer-seeded" type="checkbox" onchange="updateMinSeedsAvailability()">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="settings.prefer_seeded">Скачивать самый популярный релиз (макс. сидов)</span>
+              </label>
+            </div>
 
-            <div>
+            <div class="settings-field-group">
+              <label class="settings-field-label">
+                <span data-i18n="settings.monitor_interval">Интервал автопоиска (Wanted Search)</span>
+                <span class="settings-field-hint" data-i18n="settings.monitor_interval_hint">(минуты)</span>
+              </label>
+              <input id="setting-monitor-interval" class="input" type="number" min="1">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label">
+                <span data-i18n="settings.download_check_interval">Интервал проверки загрузок</span>
+                <span class="settings-field-hint" data-i18n="settings.download_check_seconds_hint">(секунды)</span>
+              </label>
+              <input id="setting-download-check-interval" class="input" type="number" min="5">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label">
+                <span data-i18n="settings.tracker_check_interval">Интервал слежения за раздачами (Ongoing)</span>
+                <span class="settings-field-hint" data-i18n="settings.tracker_check_interval_hint">(минуты)</span>
+              </label>
+              <input id="setting-tracker-interval" class="input" type="number" min="1">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label">
+                <span data-i18n="settings.unaired_check_interval">Интервал активации премьер (Unaired → Wanted)</span>
+                <span class="settings-field-hint" data-i18n="settings.unaired_check_interval_hint">(минуты)</span>
+              </label>
+              <input id="setting-unaired-interval" class="input" type="number" min="1">
+            </div>
+
+            <div style="grid-column: 1 / -1; margin-top: 4px;">
               <button class="btn btn-primary" onclick="saveAutoSearchSettings(this)" data-i18n="common.save">Сохранить</button>
             </div>
           </div>
@@ -1742,139 +1860,218 @@
 
       </div>
 
-      <!-- НАСТРОЙКИ: БЕЗОПАСНОСТЬ -->
+      <!-- ПАНЕЛЬ 2: БЕЗОПАСНОСТЬ -->
       <div id="settings-security" class="settings-panel">
-        <div class="card">
-          <h3><i data-lucide="shield" class="ico-sm icon-title"></i> <span data-i18n="settings.security_title">Безопасность и авторизация</span></h3>
-          <p class="hint" data-i18n="settings.security_hint">Вход по логину и паролю защищает веб-интерфейс. Внешние API-запросы продолжают работать по X-Api-Key заголовку.</p>
-          <div class="form-col">
-            <label class="checkbox-row"><input id="security-login-enabled" type="checkbox" onchange="toggleSecurityLocalAuthFields()"> <span data-i18n="settings.require_login">Требовать вход по логину и паролю</span></label>
-            
-            <div id="security-local-auth-wrap" class="nested-security-wrap">
-              <label class="checkbox-row">
-                <input id="security-auth-disabled-for-local" type="checkbox">
-                <span data-i18n="settings.auth_disabled_for_local" style="font-weight:600;">Отключить авторизацию для локальных адресов (Disabled for Local Addresses)</span>
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="shield"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="settings.security_title">Безопасность и авторизация</h3>
+                <p class="subtitle" data-i18n="settings.security_hint">Вход по логину и паролю защищает веб-интерфейс. Внешние API-запросы продолжают работать по X-Api-Key заголовку.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid-modern">
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
+                <input id="security-login-enabled" type="checkbox" onchange="toggleSecurityLocalAuthFields()">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="settings.require_login">Требовать вход по логину и паролю</span>
               </label>
-              <p class="hint" style="margin: 6px 0 8px 0;" data-i18n="settings.auth_disabled_for_local_hint">Разрешает доступ к веб-интерфейсу без ввода логина и пароля с локальных и приватных IP-адресов (localhost, 127.0.0.1, 192.168.x.x, 10.x.x.x, 172.16-31.x.x). Только главный администратор может изменять эту настройку.</p>
-              <div id="security-current-ip-info" style="font-size:12px; color:var(--text-muted); font-family:var(--font-mono); display:flex; align-items:center; gap:6px;"></div>
+            </div>
+
+            <div id="security-local-auth-wrap" class="nested-security-wrap" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
+                <input id="security-auth-disabled-for-local" type="checkbox">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="settings.auth_disabled_for_local">Отключить авторизацию для локальных адресов (Disabled for Local Addresses)</span>
+                <span class="switch-desc" data-i18n="settings.auth_disabled_for_local_hint">Разрешает доступ к веб-интерфейсу без ввода логина и пароля с локальных и приватных IP-адресов (localhost, 127.0.0.1, 192.168.x.x, 10.x.x.x, 172.16-31.x.x). Только главный администратор может изменять эту настройку.</span>
+              </label>
+              <div id="security-current-ip-info" style="font-size:12px; color:var(--text-muted); font-family:var(--font-mono); display:flex; align-items:center; gap:6px; margin-top:8px;"></div>
             </div>
 
             <!-- 2FA TOTP Общие настройки -->
-            <div id="security-2fa-wrap" class="nested-security-wrap">
-              <label class="checkbox-row">
+            <div id="security-2fa-wrap" class="nested-security-wrap" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
                 <input id="security-2fa-enabled" type="checkbox" onchange="toggleSecurity2FAPolicy()">
-                <span data-i18n="settings.2fa_global_title" style="font-weight:600;">Двухфакторная аутентификация (2FA TOTP)</span>
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="settings.2fa_global_title">Двухфакторная аутентификация (2FA TOTP)</span>
+                <span class="switch-desc" data-i18n="settings.2fa_global_hint">Защита аккаунтов одноразовыми 6-значными кодами из приложений-аутентификаторов. 2FA запрашивается исключительно при входе через внешний IP-адрес (при входе с приватных IP локальной сети 2FA не запрашивается).</span>
               </label>
-              <p class="hint" style="margin: 6px 0 8px 0;" data-i18n="settings.2fa_global_hint">Защита аккаунтов одноразовыми 6-значными кодами из приложений-аутентификаторов. 2FA запрашивается исключительно при входе через внешний IP-адрес (при входе с приватных IP локальной сети 2FA не запрашивается).</p>
-              <div id="security-2fa-policy-wrap" style="margin-top:8px;">
-                <label style="font-size:12px; margin-bottom:4px; display:block;" data-i18n="settings.2fa_policy_label">Режим применения 2FA:</label>
-                <select id="security-2fa-policy" class="input">
+              <div id="security-2fa-policy-wrap" style="margin-top:10px;">
+                <label class="settings-field-label" data-i18n="settings.2fa_policy_label">Режим применения 2FA:</label>
+                <select id="security-2fa-policy" class="input" style="max-width:380px">
                   <option value="users_choice" data-i18n="settings.2fa_policy_choice">Индивидуально (по выбору каждого пользователя)</option>
                   <option value="enforce_all" data-i18n="settings.2fa_policy_enforce">Обязательно для всех пользователей (при входе через WAN)</option>
                 </select>
               </div>
             </div>
-            
-            <label data-i18n="settings.login_username">Логин главного администратора</label>
-            <input id="security-username" class="input" type="text" placeholder="admin" data-i18n-placeholder="common.username" style="max-width:320px">
 
-            <label data-i18n="settings.display_name">Отображаемое имя администратора</label>
-            <input id="security-display-name" class="input" type="text" placeholder="Administrator" data-i18n-placeholder="users.display_name_placeholder" style="max-width:320px">
-            
-            <label><span data-i18n="settings.login_password">Новый пароль администратора</span> <span class="hint" data-i18n="settings.login_password_hint">(оставьте пустым, чтобы не менять)</span></label>
-            <input id="security-password" class="input" type="password" placeholder="Новый пароль" data-i18n-placeholder="settings.new_password_placeholder" style="max-width:320px">
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="settings.login_username">Логин главного администратора</label>
+              <input id="security-username" class="input" type="text" placeholder="admin" data-i18n-placeholder="common.username">
+            </div>
 
-            <div style="margin-top:8px;">
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="settings.display_name">Отображаемое имя администратора</label>
+              <input id="security-display-name" class="input" type="text" placeholder="Administrator" data-i18n-placeholder="users.display_name_placeholder">
+            </div>
+
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="settings-field-label"><span data-i18n="settings.login_password">Новый пароль администратора</span> <span class="settings-field-hint" data-i18n="settings.login_password_hint">(оставьте пустым, чтобы не менять)</span></label>
+              <input id="security-password" class="input" type="password" placeholder="Новый пароль" data-i18n-placeholder="settings.new_password_placeholder" style="max-width:380px">
+            </div>
+
+            <div style="grid-column: 1 / -1; margin-top: 4px;">
               <button class="btn btn-primary" id="security-save-btn" onclick="saveSecuritySettings(this)" data-i18n="common.save">Сохранить</button>
             </div>
           </div>
         </div>
 
         <!-- SSL / HTTPS Настройки -->
-        <div class="card" id="card-ssl-settings">
-          <div class="card-header-row" style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 data-i18n="settings.ssl_title"><i data-lucide="shield-check" class="ico-sm"></i> Безопасный протокол HTTPS (SSL)</h3>
+        <div class="settings-section-card" id="card-ssl-settings">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="shield-check"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="settings.ssl_title">Безопасный протокол HTTPS (SSL)</h3>
+                <p class="subtitle" data-i18n="settings.ssl_hint">Шифрование трафика веб-интерфейса через встроенный самоподписанный SSL-сертификат. Сертификат выпускается на максимальный срок (100 лет / 36500 дней) и автоматически перевыпускается при истечении срока.</p>
+              </div>
+            </div>
             <span id="ssl-status-badge" class="badge badge-secondary">HTTP</span>
           </div>
-          <p class="hint" data-i18n="settings.ssl_hint">Шифрование трафика веб-интерфейса через встроенный самоподписанный SSL-сертификат. Сертификат выпускается на максимальный срок (100 лет / 36500 дней) и автоматически перевыпускается при истечении срока.</p>
-          
-          <div class="form-col" style="margin-top:12px;">
-            <label class="checkbox-row">
-              <input id="ssl-enabled" type="checkbox" onchange="toggleSslFields()">
-              <strong data-i18n="settings.ssl_enable_label">Включить HTTPS (SSL)</strong>
-            </label>
 
-            <!-- Скрытые поля: порт определяется автоматически, авто-продление всегда включено -->
+          <div class="form-grid-modern">
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
+                <input id="ssl-enabled" type="checkbox" onchange="toggleSslFields()">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="settings.ssl_enable_label">Включить HTTPS (SSL)</span>
+              </label>
+            </div>
+
+            <!-- Скрытые поля -->
             <input id="ssl-port" type="hidden" value="8989">
             <input id="ssl-auto-renew" type="hidden" value="true">
 
-            <div id="ssl-details-box" style="margin-top:8px;">
-              <!-- Сертификат инфо -->
-              <div id="ssl-cert-info-card" style="margin-top:14px; padding:14px; background:var(--bg-card-secondary, rgba(0,0,0,0.15)); border-radius:8px; border:1px solid var(--border-color, rgba(255,255,255,0.1));">
+            <div id="ssl-details-box" style="grid-column: 1 / -1;">
+              <div id="ssl-cert-info-card" class="ssl-status-widget">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                  <strong style="font-size:14px;"><i data-lucide="file-check" class="ico-sm"></i> <span data-i18n="settings.ssl_cert_details">Информация о сертификате</span></strong>
+                  <strong style="font-size:14px;"><i data-lucide="file-check" class="ico-sm" style="margin-right:6px; vertical-align:middle;"></i> <span data-i18n="settings.ssl_cert_details">Информация о сертификате</span></strong>
                 </div>
 
-                <div class="meta-grid ssl-meta-grid">
-                  <span style="color:var(--text-secondary);" data-i18n="settings.ssl_valid_to">Срок действия:</span>
-                  <span id="ssl-cert-valid-to" class="mono">—</span>
+                <div class="ssl-meta-grid-modern">
+                  <div class="ssl-meta-item">
+                    <span class="ssl-meta-item-label" data-i18n="settings.ssl_valid_to">Срок действия:</span>
+                    <span id="ssl-cert-valid-to" class="ssl-meta-item-val mono">—</span>
+                  </div>
 
-                  <span style="color:var(--text-secondary);" data-i18n="settings.ssl_days_left">Осталось:</span>
-                  <span id="ssl-cert-days-left" class="mono">—</span>
+                  <div class="ssl-meta-item">
+                    <span class="ssl-meta-item-label" data-i18n="settings.ssl_days_left">Осталось:</span>
+                    <span id="ssl-cert-days-left" class="ssl-meta-item-val mono">—</span>
+                  </div>
 
-                  <span style="color:var(--text-secondary);" data-i18n="settings.ssl_subject">Субъект (SAN):</span>
-                  <span id="ssl-cert-subject" class="mono">aliasarr.local, localhost, 127.0.0.1</span>
+                  <div class="ssl-meta-item">
+                    <span class="ssl-meta-item-label" data-i18n="settings.ssl_subject">Субъект (SAN):</span>
+                    <span id="ssl-cert-subject" class="ssl-meta-item-val mono">aliasarr.local, localhost, 127.0.0.1</span>
+                  </div>
 
-                  <span style="color:var(--text-secondary);" data-i18n="settings.ssl_fingerprint">SHA-256 Отпечаток:</span>
-                  <span id="ssl-cert-fingerprint" class="mono text-wrap" style="font-size:11px; word-break:break-all;">—</span>
+                  <div class="ssl-meta-item" style="grid-column: 1 / -1;">
+                    <span class="ssl-meta-item-label" data-i18n="settings.ssl_fingerprint">SHA-256 Отпечаток:</span>
+                    <span id="ssl-cert-fingerprint" class="ssl-meta-item-val mono text-wrap" style="font-size:11.5px; word-break:break-all;">—</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div style="margin-top:16px;">
+            <div style="grid-column: 1 / -1; margin-top: 6px;">
               <button class="btn btn-primary" id="ssl-save-btn" onclick="saveSslSettings(this)"><i data-lucide="save" class="ico-sm"></i> <span data-i18n="settings.ssl_btn_save">Сохранить настройки SSL</span></button>
             </div>
           </div>
         </div>
 
-        <div class="card">
-          <h3><i data-lucide="terminal" class="ico-sm icon-title"></i> <span data-i18n="settings.docker_reset_title">Сброс пароля Администратора в Docker</span></h3>
-          <p class="hint" data-i18n="settings.docker_reset_hint">Если пароль утерян или забыт, вы можете сбросить его прямо из хост-системы одним из следующих способов:</p>
-          <div class="hint-box" style="margin-top:10px;">
-            <strong data-i18n="settings.docker_reset_m1_title">1. Через команду терминала Docker (рекомендуется):</strong>
-            <pre class="mono" style="margin:6px 0; padding:8px; background:var(--bg-card); border-radius:6px; overflow-x:auto;">docker exec -it aliasarr python -m app.cli reset-admin --password "YourNewPassword"</pre>
-            <span class="hint" data-i18n="settings.docker_reset_m1_hint">Если опустить параметр <code class="mono">--password</code>, система сгенерирует надёжный случайный пароль и выведет его в консоль.</span>
+        <!-- Docker Reset Password -->
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="terminal"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="settings.docker_reset_title">Сброс пароля Администратора в Docker</h3>
+                <p class="subtitle" data-i18n="settings.docker_reset_hint">Если пароль утерян или забыт, вы можете сбросить его прямо из хост-системы одним из следующих способов:</p>
+              </div>
+            </div>
           </div>
-          <div class="hint-box" style="margin-top:10px;">
-            <strong data-i18n="settings.docker_reset_m2_title">2. Через переменную окружения в docker-compose.yml:</strong>
-            <pre class="mono" style="margin:6px 0; padding:8px; background:var(--bg-card); border-radius:6px; overflow-x:auto;">environment:
+
+          <div style="display:flex; flex-direction:column; gap:12px; margin-top:6px;">
+            <div>
+              <strong data-i18n="settings.docker_reset_m1_title" style="font-size:13px;">1. Через команду терминала Docker (рекомендуется):</strong>
+              <div class="terminal-code-box">
+                <pre>docker exec -it aliasarr python -m app.cli reset-admin --password "YourNewPassword"</pre>
+                <button type="button" class="terminal-copy-btn" onclick="navigator.clipboard.writeText('docker exec -it aliasarr python -m app.cli reset-admin --password &quot;YourNewPassword&quot;'); showToast('Скопировано в буфер обмена', 'success')" title="Копировать команду"><i data-lucide="copy" class="ico-xs"></i></button>
+              </div>
+              <span class="hint" data-i18n="settings.docker_reset_m1_hint">Если опустить параметр <code class="mono">--password</code>, система сгенерирует надёжный случайный пароль и выведет его в консоль.</span>
+            </div>
+
+            <div>
+              <strong data-i18n="settings.docker_reset_m2_title" style="font-size:13px;">2. Через переменную окружения в docker-compose.yml:</strong>
+              <div class="terminal-code-box">
+                <pre>environment:
   - ALIASARR_ADMIN_PASSWORD=my_secret_pass</pre>
-          </div>
-          <div class="hint-box" style="margin-top:10px;">
-            <strong data-i18n="settings.docker_reset_m3_title">3. Через файл-триггер в примонтированной папке /config:</strong>
-            <p class="hint" style="margin:4px 0 0 0;" data-i18n="settings.docker_reset_m3_hint">Создайте файл <code class="mono">/config/reset_admin_password.txt</code> с новым паролем. При следующем старте контейнера Aliasarr применит пароль и удалит файл.</p>
+                <button type="button" class="terminal-copy-btn" onclick="navigator.clipboard.writeText('environment:
+  - ALIASARR_ADMIN_PASSWORD=my_secret_pass'); showToast('Скопировано в буфер обмена', 'success')" title="Копировать"><i data-lucide="copy" class="ico-xs"></i></button>
+              </div>
+            </div>
+
+            <div>
+              <strong data-i18n="settings.docker_reset_m3_title" style="font-size:13px;">3. Через файл-триггер в примонтированной папке /config:</strong>
+              <p class="hint" style="margin:4px 0 0 0;" data-i18n="settings.docker_reset_m3_hint">Создайте файл <code class="mono">/config/reset_admin_password.txt</code> с новым паролем. При следующем старте контейнера Aliasarr применит пароль и удалит файл.</p>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- НАСТРОЙКИ: ПОЛЬЗОВАТЕЛИ -->
+      <!-- ПАНЕЛЬ 3: ПОЛЬЗОВАТЕЛИ -->
       <div id="settings-users" class="settings-panel">
-        <div class="card">
-          <div class="card-header-row">
-            <h3 id="user-form-title"><i data-lucide="user-plus" class="ico-sm icon-title"></i> <span data-i18n="users.add_title">Добавить пользователя</span></h3>
-          </div>
-          <div class="form-col">
-            <div class="form-row">
-              <input id="user-form-username" class="input input-grow" placeholder="Логин" data-i18n-placeholder="users.username_placeholder">
-              <input id="user-form-display-name" class="input input-grow" placeholder="Отображаемое имя" data-i18n-placeholder="users.display_name_placeholder">
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="user-plus"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 id="user-form-title" data-i18n="users.add_title">Добавить пользователя</h3>
+                <p class="subtitle" data-i18n="users.subtitle">Управление учетными записями, ролями и гранулярными правами доступа</p>
+              </div>
             </div>
-            <div class="form-row" id="user-form-password-wrap">
-              <input id="user-form-password" class="input input-grow" type="password" placeholder="Пароль" data-i18n-placeholder="users.password_placeholder">
+          </div>
+
+          <div class="form-grid-modern">
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="common.username">Логин</label>
+              <input id="user-form-username" class="input" placeholder="Логин" data-i18n-placeholder="users.username_placeholder">
             </div>
 
-            <div class="form-row" style="align-items:center; gap:12px;">
-              <label style="min-width:140px; margin:0;" data-i18n="settings.session_timeout">Таймаут сессии:</label>
-              <select id="user-form-session-timeout" class="input" style="max-width:280px">
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="users.display_name">Отображаемое имя</label>
+              <input id="user-form-display-name" class="input" placeholder="Отображаемое имя" data-i18n-placeholder="users.display_name_placeholder">
+            </div>
+
+            <div class="settings-field-group" id="user-form-password-wrap">
+              <label class="settings-field-label" data-i18n="common.password">Пароль</label>
+              <input id="user-form-password" class="input" type="password" placeholder="Пароль" data-i18n-placeholder="users.password_placeholder">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="settings.session_timeout">Таймаут сессии</label>
+              <select id="user-form-session-timeout" class="input">
                 <option value="15" data-i18n="timeout.15m">15 минут</option>
                 <option value="30" data-i18n="timeout.30m">30 минут</option>
                 <option value="60" data-i18n="timeout.1h">1 час</option>
@@ -1885,41 +2082,45 @@
                 <option value="43200" selected data-i18n="timeout.30d">30 дней (по умолчанию)</option>
               </select>
             </div>
-            
-            <label class="checkbox-row" style="margin:6px 0;">
-              <input id="user-form-is-admin" type="checkbox" onchange="toggleUserFormAdminMode()"> 
-              <strong data-i18n="users.is_admin_label">Права Администратора (полный неограниченный доступ)</strong>
-            </label>
-            <div id="user-form-self-perm-hint" class="hint" style="display:none; color:var(--warning, #f59e0b); margin:4px 0 8px 0; font-weight:500;"></div>
-            
-            <div id="user-form-permissions-box" style="margin: 8px 0; padding: 12px; background: var(--bg-card-secondary, rgba(0,0,0,0.15)); border-radius: 8px; border: 1px solid var(--border);">
-              <span style="display:block; font-weight:600; margin-bottom:8px;" data-i18n="users.custom_permissions">Индивидуальные права доступа:</span>
-              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px;">
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="view_dashboard" checked> <span data-i18n="perm.view_dashboard">Просмотр дашборда</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="view_library" checked> <span data-i18n="perm.view_library">Просмотр библиотеки</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_library" checked> <span data-i18n="perm.manage_library">Управление библиотекой</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manual_search" checked> <span data-i18n="perm.manual_search">Ручной поиск и захват</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="view_calendar" checked> <span data-i18n="perm.view_calendar">Просмотр календаря</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_calendar" checked> <span data-i18n="perm.manage_calendar">Управление датами в календаре</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="view_activity" checked> <span data-i18n="perm.view_activity">Просмотр активности / загрузок</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_activity" checked> <span data-i18n="perm.manage_activity">Управление загрузками</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="view_history" checked> <span data-i18n="perm.view_history">Просмотр истории</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="view_events" checked> <span data-i18n="perm.view_events">Просмотр событий</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="view_journal" checked> <span data-i18n="perm.view_journal">Просмотр журнала</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_journal"> <span data-i18n="perm.manage_journal">Очистка и скачивание журнала</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="view_release_logs" checked> <span data-i18n="perm.view_release_logs">Просмотр логов релизов</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_release_logs"> <span data-i18n="perm.manage_release_logs">Управление логами релизов</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="view_audit" checked> <span data-i18n="perm.view_audit">Просмотр аудита</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_settings"> <span data-i18n="perm.manage_settings">Настройки приложения</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_indexers"> <span data-i18n="perm.manage_indexers">Индексаторы / Трекеры</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_downloaders"> <span data-i18n="perm.manage_downloaders">Download Clients</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_users"> <span data-i18n="perm.manage_users">Управление пользователями</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="manage_backups"> <span data-i18n="perm.manage_backups">Управление бэкапами</span></label>
-                <label class="checkbox-row"><input type="checkbox" class="user-perm-check" value="use_api_key" checked> <span data-i18n="perm.use_api_key">Персональный API-ключ</span></label>
+
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
+                <input id="user-form-is-admin" type="checkbox" onchange="toggleUserFormAdminMode()">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="users.is_admin_label">Права Администратора (полный неограниченный доступ)</span>
+              </label>
+            </div>
+
+            <div id="user-form-self-perm-hint" class="hint" style="grid-column: 1 / -1; display:none; color:var(--warning, #f59e0b); font-weight:500;"></div>
+
+            <div id="user-form-permissions-box" style="grid-column: 1 / -1;">
+              <div class="settings-field-label" style="margin-bottom:10px;" data-i18n="users.custom_permissions">Индивидуальные права доступа:</div>
+              <div class="triggers-grid">
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_dashboard" checked><div class="trigger-icon"><i data-lucide="layout-dashboard"></i></div><span class="trigger-label" data-i18n="perm.view_dashboard">Просмотр дашборда</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_library" checked><div class="trigger-icon"><i data-lucide="film"></i></div><span class="trigger-label" data-i18n="perm.view_library">Просмотр библиотеки</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_library" checked><div class="trigger-icon"><i data-lucide="edit-3"></i></div><span class="trigger-label" data-i18n="perm.manage_library">Управление библиотекой</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manual_search" checked><div class="trigger-icon"><i data-lucide="search"></i></div><span class="trigger-label" data-i18n="perm.manual_search">Ручной поиск и захват</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_calendar" checked><div class="trigger-icon"><i data-lucide="calendar"></i></div><span class="trigger-label" data-i18n="perm.view_calendar">Просмотр календаря</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_calendar" checked><div class="trigger-icon"><i data-lucide="calendar-plus"></i></div><span class="trigger-label" data-i18n="perm.manage_calendar">Управление датами в календаре</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_activity" checked><div class="trigger-icon"><i data-lucide="activity"></i></div><span class="trigger-label" data-i18n="perm.view_activity">Просмотр активности</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_activity" checked><div class="trigger-icon"><i data-lucide="sliders"></i></div><span class="trigger-label" data-i18n="perm.manage_activity">Управление загрузками</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_history" checked><div class="trigger-icon"><i data-lucide="history"></i></div><span class="trigger-label" data-i18n="perm.view_history">Просмотр истории</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_events" checked><div class="trigger-icon"><i data-lucide="bell"></i></div><span class="trigger-label" data-i18n="perm.view_events">Просмотр событий</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_journal" checked><div class="trigger-icon"><i data-lucide="file-text"></i></div><span class="trigger-label" data-i18n="perm.view_journal">Просмотр журнала</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_journal"><div class="trigger-icon"><i data-lucide="trash-2"></i></div><span class="trigger-label" data-i18n="perm.manage_journal">Очистка и скачивание журнала</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_release_logs" checked><div class="trigger-icon"><i data-lucide="list"></i></div><span class="trigger-label" data-i18n="perm.view_release_logs">Просмотр логов релизов</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_release_logs"><div class="trigger-icon"><i data-lucide="file-x"></i></div><span class="trigger-label" data-i18n="perm.manage_release_logs">Управление логами релизов</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_audit" checked><div class="trigger-icon"><i data-lucide="shield-alert"></i></div><span class="trigger-label" data-i18n="perm.view_audit">Просмотр аудита</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_settings"><div class="trigger-icon"><i data-lucide="settings"></i></div><span class="trigger-label" data-i18n="perm.manage_settings">Настройки приложения</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_indexers"><div class="trigger-icon"><i data-lucide="rss"></i></div><span class="trigger-label" data-i18n="perm.manage_indexers">Индексаторы / Трекеры</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_downloaders"><div class="trigger-icon"><i data-lucide="download-cloud"></i></div><span class="trigger-label" data-i18n="perm.manage_downloaders">Download Clients</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_users"><div class="trigger-icon"><i data-lucide="users"></i></div><span class="trigger-label" data-i18n="perm.manage_users">Управление пользователями</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_backups"><div class="trigger-icon"><i data-lucide="database"></i></div><span class="trigger-label" data-i18n="perm.manage_backups">Управление бэкапами</span></label>
+                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="use_api_key" checked><div class="trigger-icon"><i data-lucide="key"></i></div><span class="trigger-label" data-i18n="perm.use_api_key">Персональный API-ключ</span></label>
               </div>
             </div>
 
-            <div class="form-row">
+            <div class="form-row" style="grid-column: 1 / -1; margin-top: 8px;">
               <button class="btn btn-primary" id="user-form-submit-btn" onclick="submitUser()" data-i18n="common.add">Добавить</button>
               <button class="btn btn-secondary" id="user-form-cancel-btn" style="display:none" onclick="resetUserForm()" data-i18n="common.cancel">Отмена</button>
             </div>
@@ -1944,70 +2145,144 @@
         </div>
       </div>
 
+      <!-- ПАНЕЛЬ 4: ИНДЕКСАТОРЫ -->
       <div id="settings-indexers" class="settings-panel">
-        <div class="card">
-          <div class="card-header-row">
-            <h3 id="idx-form-title"><i data-lucide="search" class="ico-sm icon-title"></i> <span data-i18n="indexers.add_title">Добавить индексатор</span></h3>
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="search"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 id="idx-form-title" data-i18n="indexers.add_title">Добавить индексатор</h3>
+                <p class="subtitle" data-i18n="indexers.subtitle">Подключение Torznab, Newznab, Torrent RSS и трекеров</p>
+              </div>
+            </div>
           </div>
-          <div class="form-col">
-            <input id="idx-name" class="input" placeholder="Название, напр. Rutracker" data-i18n-placeholder="indexers.name_placeholder">
-            <select id="idx-type" class="input" onchange="onIndexerTypeChange()">
-              <option value="torznab" selected>Torznab (Prowlarr / Jackett / Direct)</option>
-              <option value="newznab">Newznab (Usenet)</option>
-              <option value="nyaa">Nyaa.si (Anime Tracker)</option>
-              <option value="torrent_rss">Torrent RSS (Generic Feed)</option>
-              <option value="iptorrents">IPTorrents (RSS/API)</option>
-              <option value="torrentleech">TorrentLeech (RSS)</option>
-            </select>
-            <input id="idx-url" class="input" placeholder="Base URL (Torznab / RSS endpoint)" data-i18n-placeholder="indexers.url_placeholder">
-            <input id="idx-key" class="input" placeholder="API key / Passkey (если требуется)" data-i18n-placeholder="indexers.key_placeholder">
-            <input id="idx-priority" class="input" type="number" placeholder="Приоритет (0-1000, меньше = выше)" value="25" data-i18n-placeholder="indexers.priority_placeholder">
-            <label class="checkbox-row" style="margin-top: 4px;">
-              <input id="idx-enable-seeding" type="checkbox" onchange="toggleIndexerSeedingFields()">
-              <span data-i18n="indexers.enable_seeding">Раздавать скачанные файлы (для приватных трекеров с рейтингом)</span>
-            </label>
-            <div id="idx-seeding-fields" style="display:none; padding: 10px 12px; background: var(--bg-card-hover, rgba(255,255,255,0.03)); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;">
-              <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 140px;">
-                  <label class="input-label" style="font-size: 0.82rem; margin-bottom: 4px; display: block;">
+
+          <div class="form-grid-modern">
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="common.name">Название</label>
+              <input id="idx-name" class="input" placeholder="Название, напр. Rutracker" data-i18n-placeholder="indexers.name_placeholder">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="indexers.type">Тип</label>
+              <select id="idx-type" class="input" onchange="onIndexerTypeChange()">
+                <option value="torznab" selected>Torznab (Prowlarr / Jackett / Direct)</option>
+                <option value="newznab">Newznab (Usenet)</option>
+                <option value="nyaa">Nyaa.si (Anime Tracker)</option>
+                <option value="torrent_rss">Torrent RSS (Generic Feed)</option>
+                <option value="iptorrents">IPTorrents (RSS/API)</option>
+                <option value="torrentleech">TorrentLeech (RSS)</option>
+              </select>
+            </div>
+
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="settings-field-label" data-i18n="indexers.url">Base URL</label>
+              <input id="idx-url" class="input mono" placeholder="Base URL (Torznab / RSS endpoint)" data-i18n-placeholder="indexers.url_placeholder">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="indexers.key">API key / Passkey</label>
+              <input id="idx-key" class="input mono" placeholder="API key / Passkey (если требуется)" data-i18n-placeholder="indexers.key_placeholder">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="indexers.priority">Приоритет (меньше = выше)</label>
+              <input id="idx-priority" class="input" type="number" placeholder="25" value="25" data-i18n-placeholder="indexers.priority_placeholder">
+            </div>
+
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
+                <input id="idx-enable-seeding" type="checkbox" onchange="toggleIndexerSeedingFields()">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="indexers.enable_seeding">Раздавать скачанные файлы (для приватных трекеров с рейтингом)</span>
+              </label>
+            </div>
+
+            <div id="idx-seeding-fields" class="provider-fields-box" style="grid-column: 1 / -1; display:none;">
+              <div class="form-grid-modern">
+                <div class="settings-field-group">
+                  <label class="settings-field-label">
                     <span data-i18n="indexers.seed_ratio_limit">Лимит Ratio (коэффициент)</span>
-                    <span class="hint" style="font-size: 0.75rem;">(напр. 1.5)</span>
+                    <span class="settings-field-hint">(напр. 1.5)</span>
                   </label>
                   <input id="idx-seed-ratio" class="input" type="number" step="0.1" min="0" placeholder="По умолчанию (без лимита)" data-i18n-placeholder="indexers.seed_ratio_placeholder">
                 </div>
-                <div style="flex: 1; min-width: 140px;">
-                  <label class="input-label" style="font-size: 0.82rem; margin-bottom: 4px; display: block;">
+                <div class="settings-field-group">
+                  <label class="settings-field-label">
                     <span data-i18n="indexers.seed_time_limit">Лимит времени раздачи</span>
-                    <span class="hint" style="font-size: 0.75rem;">(часы, напр. 72)</span>
+                    <span class="settings-field-hint">(часы, напр. 72)</span>
                   </label>
                   <input id="idx-seed-time" class="input" type="number" step="1" min="0" placeholder="По умолчанию (без лимита)" data-i18n-placeholder="indexers.seed_time_placeholder">
                 </div>
               </div>
-              <div class="hint" style="margin-top: 6px; font-size: 0.78rem; opacity: 0.85;" data-i18n="indexers.seeding_hint">
+              <p class="hint" style="margin-top: 8px; margin-bottom: 0;" data-i18n="indexers.seeding_hint">
                 При включении сидирования файлы импортируются через Hardlinks (жесткие ссылки, 0 байт места), а раздача в торрент-клиенте продолжается до достижения указанных лимитов.
-              </div>
+              </p>
             </div>
-            <div class="form-row">
+
+            <div class="form-row" style="grid-column: 1 / -1; margin-top: 6px;">
               <button class="btn btn-secondary" onclick="testIndexerAdhoc(this)" data-i18n="common.test">Тест</button>
               <button class="btn btn-secondary" id="idx-cancel-btn" style="display:none" onclick="resetIndexerForm()" data-i18n="common.cancel">Отмена</button>
               <button class="btn btn-primary" id="idx-submit-btn" onclick="submitIndexer()" data-i18n="common.add">Добавить</button>
             </div>
-            <div id="idx-test-result" class="inline-status-box" style="display:none;"></div>
+
+            <div id="idx-test-result" class="inline-status-box" style="grid-column: 1 / -1; display:none;"></div>
           </div>
         </div>
-        <div class="card">
-          <h3><i data-lucide="check-circle-2" class="ico-sm icon-title"></i> <span data-i18n="indexers.check_settings_title">Настройки проверки доступности</span></h3>
-          <div class="form-col">
-            <label class="checkbox-row"><input id="idx-check-enabled" type="checkbox"> <span data-i18n="indexers.auto_check">Автоматически проверять доступность индексаторов</span></label>
-            <label><span data-i18n="indexers.check_interval">Интервал проверки</span> <span class="hint">(минуты)</span></label>
-            <input id="idx-check-interval" class="input" type="number" min="1" style="max-width:160px">
-            <label data-i18n="indexers.check_retries">Число попыток перед тем, как отметить индексатор недоступным</label>
-            <input id="idx-check-retries" class="input" type="number" min="1" style="max-width:160px">
-            <label><span data-i18n="indexers.check_delay">Пауза между попытками</span> <span class="hint">(секунды)</span></label>
-            <input id="idx-check-delay" class="input" type="number" min="0" style="max-width:160px">
-            <div><button class="btn btn-primary" onclick="saveIndexerCheckSettings(this)" data-i18n="common.save">Сохранить</button></div>
+
+        <!-- Настройки проверки доступности -->
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="check-circle-2"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="indexers.check_settings_title">Настройки проверки доступности</h3>
+                <p class="subtitle" data-i18n="indexers.check_settings_subtitle">Периодический мониторинг доступности индексаторов и трекеров</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid-modern">
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
+                <input id="idx-check-enabled" type="checkbox">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="indexers.auto_check">Автоматически проверять доступность индексаторов</span>
+              </label>
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label">
+                <span data-i18n="indexers.check_interval">Интервал проверки</span>
+                <span class="settings-field-hint">(минуты)</span>
+              </label>
+              <input id="idx-check-interval" class="input" type="number" min="1">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="indexers.check_retries">Число попыток перед ошибкой</label>
+              <input id="idx-check-retries" class="input" type="number" min="1">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label">
+                <span data-i18n="indexers.check_delay">Пауза между попытками</span>
+                <span class="settings-field-hint">(секунды)</span>
+              </label>
+              <input id="idx-check-delay" class="input" type="number" min="0">
+            </div>
+
+            <div style="grid-column: 1 / -1; margin-top: 4px;">
+              <button class="btn btn-primary" onclick="saveIndexerCheckSettings(this)" data-i18n="common.save">Сохранить</button>
+            </div>
           </div>
         </div>
+
         <div class="table-responsive">
           <table class="data-table" id="indexers-table">
             <thead><tr><th data-i18n="indexers.col_name">Название</th><th data-i18n="indexers.col_type">Тип</th><th data-i18n="indexers.col_url">URL</th><th data-i18n="indexers.col_priority">Приоритет</th><th data-i18n="indexers.col_availability">Доступность</th><th></th></tr></thead>
@@ -2016,51 +2291,103 @@
         </div>
       </div>
 
+      <!-- ПАНЕЛЬ 5: ЗАГРУЗЧИКИ -->
       <div id="settings-download-clients" class="settings-panel">
-        <div class="card">
-          <h3 id="dc-form-title"><i data-lucide="download-cloud" class="ico-sm icon-title"></i> <span data-i18n="dc.add_title">Добавить download client</span></h3>
-          <div class="form-col">
-            <input id="dc-name" class="input" placeholder="Название" data-i18n-placeholder="common.name">
-            <select id="dc-type" class="input" onchange="onDownloadClientTypeChange()">
-              <option value="qbittorrent" selected>qBittorrent</option>
-              <option value="transmission">Transmission</option>
-              <option value="deluge">Deluge (Web JSON-RPC)</option>
-              <option value="rtorrent">rTorrent / ruTorrent (XML-RPC)</option>
-              <option value="aria2">Aria2 (JSON-RPC)</option>
-              <option value="blackhole">Torrent Blackhole (Watch Folder)</option>
-              <option value="sabnzbd">SABnzbd (Usenet)</option>
-              <option value="nzbget">NZBGet (Usenet)</option>
-            </select>
-            <div id="dc-network-fields">
-              <input id="dc-host" class="input" placeholder="Host (напр. localhost или 192.168.1.10)" data-i18n-placeholder="dc.host_placeholder">
-              <input id="dc-port" class="input" type="number" placeholder="Порт (напр. 8080)" data-i18n-placeholder="common.port">
-              <input id="dc-user" class="input" placeholder="Логин (необязательно)" data-i18n-placeholder="common.username">
-              <input id="dc-pass" class="input" type="password" placeholder="Пароль / API Key / Secret Token" data-i18n-placeholder="common.password">
-            </div>
-            <div id="dc-blackhole-fields" style="display:none">
-              <label class="hint" data-i18n="dc.blackhole_hint">Путь к папке наблюдения (Watch Directory на диске):</label>
-              <input id="dc-watch-dir" class="input mono" placeholder="/data/torrents/watch">
-            </div>
-            <input id="dc-category" class="input" placeholder="Категория / Label (по умолчанию aliasarr)" data-i18n-placeholder="dc.category_placeholder" value="aliasarr">
-            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
-              <div>
-                <label class="hint" style="margin-bottom: 4px;" data-i18n="dc.seed_time_limit_label">Время раздачи (мин, 0 = сразу):</label>
-                <input id="dc-seed-time-limit" class="input" type="number" min="0" placeholder="0 (импорт сразу)" data-i18n-placeholder="dc.seed_time_placeholder">
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="download-cloud"></i>
               </div>
-              <div>
-                <label class="hint" style="margin-bottom: 4px;" data-i18n="dc.seed_ratio_limit_label">Коэффициент раздачи (Ratio):</label>
-                <input id="dc-seed-ratio-limit" class="input" type="number" step="0.1" min="0" placeholder="0 (без ограничения)" data-i18n-placeholder="dc.seed_ratio_placeholder">
+              <div class="settings-card-title-wrap">
+                <h3 id="dc-form-title" data-i18n="dc.add_title">Добавить download client</h3>
+                <p class="subtitle" data-i18n="dc.subtitle">Интеграция с qBittorrent, Transmission, Deluge, rTorrent, Aria2, Usenet</p>
               </div>
             </div>
-            <label class="checkbox-row"><input id="dc-default" type="checkbox"> <span data-i18n="dc.use_default">Использовать по умолчанию</span></label>
-            <div class="form-row">
+          </div>
+
+          <div class="form-grid-modern">
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="common.name">Название</label>
+              <input id="dc-name" class="input" placeholder="Название" data-i18n-placeholder="common.name">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="dc.type">Тип клиента</label>
+              <select id="dc-type" class="input" onchange="onDownloadClientTypeChange()">
+                <option value="qbittorrent" selected>qBittorrent</option>
+                <option value="transmission">Transmission</option>
+                <option value="deluge">Deluge (Web JSON-RPC)</option>
+                <option value="rtorrent">rTorrent / ruTorrent (XML-RPC)</option>
+                <option value="aria2">Aria2 (JSON-RPC)</option>
+                <option value="blackhole">Torrent Blackhole (Watch Folder)</option>
+                <option value="sabnzbd">SABnzbd (Usenet)</option>
+                <option value="nzbget">NZBGet (Usenet)</option>
+              </select>
+            </div>
+
+            <div id="dc-network-fields" style="grid-column: 1 / -1; display: contents;">
+              <div class="settings-field-group">
+                <label class="settings-field-label" data-i18n="dc.host">Хост / IP</label>
+                <input id="dc-host" class="input mono" placeholder="localhost или 192.168.1.10" data-i18n-placeholder="dc.host_placeholder">
+              </div>
+
+              <div class="settings-field-group">
+                <label class="settings-field-label" data-i18n="common.port">Порт</label>
+                <input id="dc-port" class="input mono" type="number" placeholder="8080" data-i18n-placeholder="common.port">
+              </div>
+
+              <div class="settings-field-group">
+                <label class="settings-field-label" data-i18n="common.username">Логин</label>
+                <input id="dc-user" class="input" placeholder="Логин (необязательно)" data-i18n-placeholder="common.username">
+              </div>
+
+              <div class="settings-field-group">
+                <label class="settings-field-label" data-i18n="common.password">Пароль / API Key / Secret Token</label>
+                <input id="dc-pass" class="input mono" type="password" placeholder="Пароль / API Key" data-i18n-placeholder="common.password">
+              </div>
+            </div>
+
+            <div id="dc-blackhole-fields" style="grid-column: 1 / -1; display:none;">
+              <div class="settings-field-group">
+                <label class="settings-field-label" data-i18n="dc.blackhole_hint">Путь к папке наблюдения (Watch Directory на диске):</label>
+                <input id="dc-watch-dir" class="input mono" placeholder="/data/torrents/watch">
+              </div>
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="dc.category">Категория / Label</label>
+              <input id="dc-category" class="input mono" placeholder="aliasarr" data-i18n-placeholder="dc.category_placeholder" value="aliasarr">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="switch-toggle" style="margin-top: 24px;">
+                <input id="dc-default" type="checkbox">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="dc.use_default">Использовать по умолчанию</span>
+              </label>
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="dc.seed_time_limit_label">Время раздачи (мин, 0 = сразу):</label>
+              <input id="dc-seed-time-limit" class="input" type="number" min="0" placeholder="0 (импорт сразу)" data-i18n-placeholder="dc.seed_time_placeholder">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="dc.seed_ratio_limit_label">Коэффициент раздачи (Ratio):</label>
+              <input id="dc-seed-ratio-limit" class="input" type="number" step="0.1" min="0" placeholder="0 (без ограничения)" data-i18n-placeholder="dc.seed_ratio_placeholder">
+            </div>
+
+            <div class="form-row" style="grid-column: 1 / -1; margin-top: 6px;">
               <button class="btn btn-secondary" onclick="testDownloadClientAdhoc(this)" data-i18n="common.test">Тест</button>
               <button class="btn btn-secondary" id="dc-cancel-btn" style="display:none" onclick="resetDownloadClientForm()" data-i18n="common.cancel">Отмена</button>
               <button class="btn btn-primary" id="dc-submit-btn" onclick="submitDownloadClient()" data-i18n="common.add">Добавить</button>
             </div>
-            <div id="dc-test-result" class="inline-status-box" style="display:none;"></div>
+
+            <div id="dc-test-result" class="inline-status-box" style="grid-column: 1 / -1; display:none;"></div>
           </div>
         </div>
+
         <div class="table-responsive">
           <table class="data-table" id="dc-table">
             <thead><tr><th data-i18n="dc.col_name">Название</th><th data-i18n="dc.col_type">Тип</th><th data-i18n="dc.col_host">Хост</th><th data-i18n="dc.col_availability">Доступность</th><th data-i18n="dc.col_default">По умолч.</th><th></th></tr></thead>
@@ -2069,6 +2396,7 @@
         </div>
       </div>
 
+      <!-- ПАНЕЛЬ 6: КАЧЕСТВО -->
       <div id="settings-quality" class="settings-panel">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
           <div>
@@ -2081,30 +2409,49 @@
         </div>
 
         <!-- Профили качества -->
-        <div class="card">
-          <h3 id="qp-form-title"><i data-lucide="sliders" class="ico-sm icon-title"></i> <span data-i18n="qp.add_title">Добавить профиль качества</span></h3>
-          <div class="form-col">
-            <input id="qp-name" class="input" placeholder="Название, напр. HD-1080p" data-i18n-placeholder="qp.name_placeholder">
-            <label class="hint" data-i18n="qp.allowed_label">Разрешённые качества (по возрастанию приоритета)</label>
-            <div class="chip-select" id="qp-quality-chips"></div>
-
-            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px;">
-              <div>
-                <label data-i18n="qp.cutoff_quality_label">Порог качества (Cutoff Quality)</label>
-                <select id="qp-cutoff-quality" class="input"></select>
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="sliders"></i>
               </div>
-              <div>
-                <label data-i18n="qp.cutoff_score_label">Порог очков формата (Cutoff Score)</label>
-                <input id="qp-cutoff-score" class="input" type="number" value="0" placeholder="0">
+              <div class="settings-card-title-wrap">
+                <h3 id="qp-form-title" data-i18n="qp.add_title">Добавить профиль качества</h3>
+                <p class="subtitle" data-i18n="qp.subtitle">Укажите список допустимых качеств и пороговые значения</p>
               </div>
             </div>
+          </div>
 
-            <label class="checkbox-row" style="margin-top:8px;">
-              <input id="qp-upgrade-allowed" type="checkbox" checked>
-              <span data-i18n="qp.upgrade_allowed_label">Разрешить автоматический апгрейд качества / очков до достижения Cutoff</span>
-            </label>
+          <div class="form-grid-modern">
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="settings-field-label" data-i18n="common.name">Название профиля</label>
+              <input id="qp-name" class="input" placeholder="Название, напр. HD-1080p" data-i18n-placeholder="qp.name_placeholder">
+            </div>
 
-            <div class="form-row" style="margin-top:12px;">
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="settings-field-label" data-i18n="qp.allowed_label">Разрешённые качества (по возрастанию приоритета)</label>
+              <div class="chip-select" id="qp-quality-chips"></div>
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="qp.cutoff_quality_label">Порог качества (Cutoff Quality)</label>
+              <select id="qp-cutoff-quality" class="input"></select>
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="qp.cutoff_score_label">Порог очков формата (Cutoff Score)</label>
+              <input id="qp-cutoff-score" class="input" type="number" value="0" placeholder="0">
+            </div>
+
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
+                <input id="qp-upgrade-allowed" type="checkbox" checked>
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="qp.upgrade_allowed_label">Разрешить автоматический апгрейд качества / очков до достижения Cutoff</span>
+              </label>
+            </div>
+
+            <div class="form-row" style="grid-column: 1 / -1; margin-top: 6px;">
               <button class="btn btn-primary" id="qp-submit-btn" onclick="submitQualityProfile()" data-i18n="common.add">Добавить</button>
               <button class="btn btn-secondary" id="qp-cancel-btn" style="display:none" onclick="resetQualityProfileForm()" data-i18n="common.cancel">Отмена</button>
             </div>
@@ -2119,11 +2466,16 @@
         </div>
 
         <!-- Форматы качества -->
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-            <div>
-              <h3 style="margin:0;"><i data-lucide="tags" class="ico-sm icon-title"></i> <span data-i18n="cf.title">Форматы качества</span></h3>
-              <p class="hint" style="margin:4px 0 0 0;" data-i18n="cf.subtitle">Правила распознавания и приоритезации релизов (HDR, TrueHD, Proper, Preferred Groups)</p>
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="tags"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="cf.title">Форматы качества</h3>
+                <p class="subtitle" data-i18n="cf.subtitle">Правила распознавания и приоритезации релизов (HDR, TrueHD, Proper, Preferred Groups)</p>
+              </div>
             </div>
             <div class="cf-header-actions" style="display:flex; gap:8px; align-items:center;">
               <a href="/wiki#section-qualities" target="_blank" onclick="openQualityGuide(event, 'section-qualities')" class="btn btn-secondary btn-small cf-guide-btn" style="gap:6px;" title="Справочник по Regex и форматам качества" data-i18n-title="cf.guide_btn_title">
@@ -2141,30 +2493,49 @@
         </div>
       </div>
 
+      <!-- ПАНЕЛЬ 7: МЕТАДАННЫЕ -->
       <div id="settings-metadata" class="settings-panel">
-        <div class="card">
-          <h3 id="md-form-title"><i data-lucide="database" class="ico-sm icon-title"></i> <span data-i18n="md.add_title">Добавить источник метаданных</span></h3>
-          <div class="form-col">
-            <input id="md-name" class="input" placeholder="Название, напр. TMDB или TheTVDB" data-i18n-placeholder="md.name_placeholder">
-            <select id="md-type" class="input" onchange="toggleCustomMetadataFields()">
-              <option value="skyhook">Sonarr SkyHook (Serials/Anime)</option>
-              <option value="radarr">Radarr SkyHook (Films)</option>
-              <option value="tmdb">TMDB (themoviedb.org)</option>
-              <option value="thetvdb">TheTVDB v4 (thetvdb.com)</option>
-              <option value="tvmaze">TVMaze (tvmaze.com)</option>
-            </select>
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="database"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 id="md-form-title" data-i18n="md.add_title">Добавить источник метаданных</h3>
+                <p class="subtitle" data-i18n="md.subtitle">Поставщики информации о фильмах, сериалах, аниме, постерах и датах релизов</p>
+              </div>
+            </div>
+          </div>
 
-            <div id="md-skyhook-instructions" class="hint-box" style="display:block">
+          <div class="form-grid-modern">
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="common.name">Название</label>
+              <input id="md-name" class="input" placeholder="Название, напр. TMDB или TheTVDB" data-i18n-placeholder="md.name_placeholder">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="md.type">Провайдер</label>
+              <select id="md-type" class="input" onchange="toggleCustomMetadataFields()">
+                <option value="skyhook">Sonarr SkyHook (Serials/Anime)</option>
+                <option value="radarr">Radarr SkyHook (Films)</option>
+                <option value="tmdb">TMDB (themoviedb.org)</option>
+                <option value="thetvdb">TheTVDB v4 (thetvdb.com)</option>
+                <option value="tvmaze">TVMaze (tvmaze.com)</option>
+              </select>
+            </div>
+
+            <div id="md-skyhook-instructions" class="provider-fields-box" style="grid-column: 1 / -1; display:block">
               <strong>Sonarr SkyHook (Serials/Anime):</strong>
               <p style="margin:6px 0 0 0;" data-i18n="md.skyhook_desc">Официальный облачный сервис Sonarr. Работает «из коробки» без API-ключей, предоставляет метаданные TheTVDB, TMDB, AniList для сериалов и аниме.</p>
             </div>
 
-            <div id="md-radarr-instructions" class="hint-box" style="display:none">
+            <div id="md-radarr-instructions" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
               <strong>Radarr SkyHook (Films):</strong>
               <p style="margin:6px 0 0 0;" data-i18n="md.radarr_desc">Официальный облачный сервис Radarr для фильмов. Работает «из коробки» без API-ключей, загружает альтернативные названия (AlternativeTitles), переводы (Translations), постеры, даты кинопроката и цифрового релиза для фильмов.</p>
             </div>
 
-            <div id="md-tmdb-instructions" class="hint-box" style="display:none">
+            <div id="md-tmdb-instructions" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
               <strong data-i18n="md.tmdb_how_title">Как получить ключ TMDB:</strong>
               <ol style="margin:6px 0 0 18px; padding:0;">
                 <li data-i18n="md.tmdb_step1">Зарегистрируйтесь на <a href="https://www.themoviedb.org" target="_blank" rel="noopener">themoviedb.org</a></li>
@@ -2174,23 +2545,25 @@
               <p style="margin:8px 0 0 0;" data-i18n="md.tmdb_important"><strong>Важно:</strong> вставляйте именно <em>Read Access Token</em> (<code>eyJ...</code>), а не короткий API Key v3.</p>
             </div>
 
-            <div id="md-thetvdb-instructions" class="hint-box" style="display:none">
+            <div id="md-thetvdb-instructions" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
               <strong data-i18n="md.thetvdb_title">TheTVDB API v4:</strong>
               <p style="margin:6px 0 0 0;" data-i18n="md.thetvdb_desc">Для использования TheTVDB введите <strong>API Key v4</strong> из личного кабинета <a href="https://thetvdb.com/dashboard/account/api" target="_blank" rel="noopener">thetvdb.com</a>. Если у вас подписка со Subscriber PIN, укажите PIN в поле ниже.</p>
             </div>
 
-            <div id="md-tvmaze-instructions" class="hint-box" style="display:none">
+            <div id="md-tvmaze-instructions" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
               <strong data-i18n="md.tvmaze_title">TVMaze:</strong>
               <p style="margin:6px 0 0 0;" data-i18n="md.tvmaze_desc">Если у вас есть аккаунт TVmaze, для Premium-функций введите <code>ваш_логин:ваш_API_ключ</code>. Ключ можно найти на <a href="https://www.tvmaze.com/dashboard" target="_blank" rel="noopener">tvmaze.com/dashboard</a>.</p>
             </div>
 
-            <input id="md-key" class="input" placeholder="Read Access Token (eyJ...) / API key" data-i18n-placeholder="md.key_placeholder" style="display:none">
-            <input id="md-pin" class="input" placeholder="Subscriber PIN (опционально)" data-i18n-placeholder="md.pin_placeholder" style="display:none; margin-top:8px;">
-            
-            <div class="form-col" style="margin-top: 10px; display:none" id="md-alias-filter-wrap">
-              <label class="hint" data-i18n="md.alias_filter_title">Фильтр алиасов (альтернативных названий) по странам:</label>
-              <p class="hint" style="margin-top: 0;" data-i18n="md.alias_filter_hint">Если ничего не выбрано — загружаются алиасы для всех стран мира.</p>
-              <div id="md-alias-countries" style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <input id="md-key" class="input mono" placeholder="Read Access Token (eyJ...) / API key" data-i18n-placeholder="md.key_placeholder" style="display:none">
+              <input id="md-pin" class="input mono" placeholder="Subscriber PIN (опционально)" data-i18n-placeholder="md.pin_placeholder" style="display:none; margin-top:8px;">
+            </div>
+
+            <div class="settings-field-group" style="grid-column: 1 / -1; display:none" id="md-alias-filter-wrap">
+              <label class="settings-field-label" data-i18n="md.alias_filter_title">Фильтр алиасов (альтернативных названий) по странам:</label>
+              <p class="hint" style="margin-top: 0; margin-bottom: 8px;" data-i18n="md.alias_filter_hint">Если ничего не выбрано — загружаются алиасы для всех стран мира.</p>
+              <div id="md-alias-countries" style="max-height: 160px; overflow-y: auto; border: 1px solid var(--border); padding: 10px; border-radius: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; background: rgba(0,0,0,0.15);">
                 <label class="checkbox-row" style="margin:0"><input type="checkbox" value="RU"> <span data-i18n="country.ru">Россия (RU)</span></label>
                 <label class="checkbox-row" style="margin:0"><input type="checkbox" value="US"> <span data-i18n="country.us">США (US)</span></label>
                 <label class="checkbox-row" style="margin:0"><input type="checkbox" value="GB"> <span data-i18n="country.gb">Великобритания (GB)</span></label>
@@ -2203,14 +2576,17 @@
                 <label class="checkbox-row" style="margin:0"><input type="checkbox" value="IT"> <span data-i18n="country.it">Италия (IT)</span></label>
               </div>
             </div>
-            <div class="form-row">
+
+            <div class="form-row" style="grid-column: 1 / -1; margin-top: 6px;">
               <button class="btn btn-primary" id="md-submit-btn" onclick="submitMetadataSource()" data-i18n="common.add">Добавить</button>
               <button class="btn btn-secondary" id="md-test-btn" onclick="testMetadataSource(this)"><i data-lucide="plug"></i> <span data-i18n="common.test">Тест</span></button>
               <button class="btn btn-secondary" id="md-cancel-btn" style="display:none" onclick="resetMetadataSourceForm()" data-i18n="common.cancel">Отмена</button>
             </div>
-            <div id="md-test-result" class="inline-status-box" style="display:none;"></div>
+
+            <div id="md-test-result" class="inline-status-box" style="grid-column: 1 / -1; display:none;"></div>
           </div>
         </div>
+
         <div class="table-responsive">
           <table class="data-table" id="md-table">
             <thead><tr><th data-i18n="md.col_name">Название</th><th data-i18n="md.col_type">Тип</th><th></th></tr></thead>
@@ -2219,187 +2595,319 @@
         </div>
       </div>
 
+      <!-- ПАНЕЛЬ 8: УВЕДОМЛЕНИЯ -->
       <div id="settings-notifications" class="settings-panel">
-        <div class="card">
-          <h3 id="nt-form-title"><i data-lucide="bell-ring" class="ico-sm icon-title"></i> <span data-i18n="nt.add_title">Добавить уведомление</span></h3>
-          <div class="form-col">
-            <input id="nt-name" class="input" placeholder="Название" data-i18n-placeholder="common.name">
-            <select id="nt-type" class="input" onchange="onNotificationTypeChange()">
-              <option value="telegram">Telegram</option>
-              <option value="discord">Discord</option>
-              <option value="gotify">Gotify</option>
-              <option value="ntfy">Ntfy</option>
-              <option value="pushover">Pushover</option>
-              <option value="slack">Slack</option>
-              <option value="webhook">Webhook</option>
-              <option value="email">Email (SMTP)</option>
-              <option value="pushbullet">Pushbullet</option>
-              <option value="apprise">Apprise</option>
-              <option value="script">Custom Script</option>
-            </select>
+        <div class="settings-section-card">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="bell-ring"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 id="nt-form-title" data-i18n="nt.add_title">Добавить уведомление</h3>
+                <p class="subtitle" data-i18n="nt.subtitle">Настройка оповещений в Telegram, Discord, Ntfy, Webhook и другие каналы</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid-modern">
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="common.name">Название</label>
+              <input id="nt-name" class="input" placeholder="Название, напр. Мой Telegram бот" data-i18n-placeholder="common.name">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="nt.type">Тип провайдера</label>
+              <select id="nt-type" class="input" onchange="onNotificationTypeChange()">
+                <option value="telegram">Telegram</option>
+                <option value="discord">Discord</option>
+                <option value="gotify">Gotify</option>
+                <option value="ntfy">Ntfy</option>
+                <option value="pushover">Pushover</option>
+                <option value="slack">Slack</option>
+                <option value="webhook">Webhook</option>
+                <option value="email">Email (SMTP)</option>
+                <option value="pushbullet">Pushbullet</option>
+                <option value="apprise">Apprise</option>
+                <option value="script">Custom Script</option>
+              </select>
+            </div>
 
             <!-- Telegram -->
-            <div id="nt-fields-telegram">
-              <label class="hint"><span data-i18n="nt.bot_token_label">Токен бота</span> <span class="hint" data-i18n="nt.bot_token_hint">(получить у @BotFather)</span></label>
-              <input id="nt-bot-token" class="input mono" placeholder="123456789:AAExampleTokenHere">
-              <label class="hint" data-i18n="nt.chat_id_label">Идентификатор чата</label>
-              <input id="nt-chat-id" class="input mono" placeholder="-1001234567890 или 123456789" data-i18n-placeholder="nt.chat_id_placeholder">
-              <label class="hint" data-i18n="nt.telegram_thread_id_label">ID темы / топика (необязательно)</label>
-              <input id="nt-telegram-thread-id" class="input mono" placeholder="1234" data-i18n-placeholder="nt.telegram_thread_id_placeholder">
-              <label class="checkbox-row" style="margin-top:6px;"><input id="nt-telegram-silent" type="checkbox"> <span data-i18n="nt.telegram_silent">Без звука</span></label>
+            <div id="nt-fields-telegram" class="provider-fields-box" style="grid-column: 1 / -1;">
+              <div class="form-grid-modern">
+                <div class="settings-field-group">
+                  <label class="settings-field-label">
+                    <span data-i18n="nt.bot_token_label">Токен бота</span>
+                    <span class="settings-field-hint" data-i18n="nt.bot_token_hint">(@BotFather)</span>
+                  </label>
+                  <input id="nt-bot-token" class="input mono" placeholder="123456789:AAExampleTokenHere">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.chat_id_label">Идентификатор чата (Chat ID)</label>
+                  <input id="nt-chat-id" class="input mono" placeholder="-1001234567890 или 123456789" data-i18n-placeholder="nt.chat_id_placeholder">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.telegram_thread_id_label">ID темы / топика (необязательно)</label>
+                  <input id="nt-telegram-thread-id" class="input mono" placeholder="1234" data-i18n-placeholder="nt.telegram_thread_id_placeholder">
+                </div>
+                <div class="settings-field-group">
+                  <label class="switch-toggle" style="margin-top: 24px;">
+                    <input id="nt-telegram-silent" type="checkbox">
+                    <span class="switch-slider"></span>
+                    <span class="switch-title" data-i18n="nt.telegram_silent">Без звука (Silent)</span>
+                  </label>
+                </div>
+              </div>
             </div>
 
             <!-- Discord -->
-            <div id="nt-fields-discord" style="display:none">
-              <label class="hint" data-i18n="nt.discord_webhook_url_label">URL вебхука Discord</label>
-              <input id="nt-discord-webhook-url" class="input mono" placeholder="https://discord.com/api/webhooks/...">
-              <label class="hint" data-i18n="nt.discord_username_label">Имя бота (необязательно)</label>
-              <input id="nt-discord-username" class="input" placeholder="Aliasarr">
-              <label class="hint" data-i18n="nt.discord_avatar_url_label">URL аватара (необязательно)</label>
-              <input id="nt-discord-avatar-url" class="input mono" placeholder="https://example.com/avatar.png">
+            <div id="nt-fields-discord" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
+              <div class="form-grid-modern">
+                <div class="settings-field-group" style="grid-column: 1 / -1;">
+                  <label class="settings-field-label" data-i18n="nt.discord_webhook_url_label">URL вебхука Discord</label>
+                  <input id="nt-discord-webhook-url" class="input mono" placeholder="https://discord.com/api/webhooks/...">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.discord_username_label">Имя бота (необязательно)</label>
+                  <input id="nt-discord-username" class="input" placeholder="Aliasarr">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.discord_avatar_url_label">URL аватара (необязательно)</label>
+                  <input id="nt-discord-avatar-url" class="input mono" placeholder="https://example.com/avatar.png">
+                </div>
+              </div>
             </div>
 
             <!-- Gotify -->
-            <div id="nt-fields-gotify" style="display:none">
-              <label class="hint" data-i18n="nt.gotify_server_url_label">URL сервера Gotify</label>
-              <input id="nt-gotify-server-url" class="input mono" placeholder="https://gotify.example.com">
-              <label class="hint" data-i18n="nt.gotify_app_token_label">App Token</label>
-              <input id="nt-gotify-app-token" class="input mono" placeholder="A...token...">
-              <label class="hint" data-i18n="nt.gotify_priority_label">Приоритет (1-10)</label>
-              <input id="nt-gotify-priority" class="input" type="number" min="1" max="10" value="5">
+            <div id="nt-fields-gotify" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
+              <div class="form-grid-modern">
+                <div class="settings-field-group" style="grid-column: 1 / -1;">
+                  <label class="settings-field-label" data-i18n="nt.gotify_server_url_label">URL сервера Gotify</label>
+                  <input id="nt-gotify-server-url" class="input mono" placeholder="https://gotify.example.com">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.gotify_app_token_label">App Token</label>
+                  <input id="nt-gotify-app-token" class="input mono" placeholder="A...token...">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.gotify_priority_label">Приоритет (1-10)</label>
+                  <input id="nt-gotify-priority" class="input" type="number" min="1" max="10" value="5">
+                </div>
+              </div>
             </div>
 
             <!-- Ntfy -->
-            <div id="nt-fields-ntfy" style="display:none">
-              <label class="hint" data-i18n="nt.ntfy_server_url_label">URL сервера Ntfy (по умолчанию https://ntfy.sh)</label>
-              <input id="nt-ntfy-server-url" class="input mono" placeholder="https://ntfy.sh" value="https://ntfy.sh">
-              <label class="hint" data-i18n="nt.ntfy_topic_label">Топик / Тема</label>
-              <input id="nt-ntfy-topic" class="input mono" placeholder="my_aliasarr_topic">
-              <label class="hint" data-i18n="nt.ntfy_token_label">Access Token (для приватных тем, необязательно)</label>
-              <input id="nt-ntfy-token" class="input mono" placeholder="tk_...">
-              <label class="hint" data-i18n="nt.ntfy_priority_label">Приоритет (1-5)</label>
-              <select id="nt-ntfy-priority" class="input">
-                <option value="1">1 (Min)</option>
-                <option value="2">2 (Low)</option>
-                <option value="3" selected>3 (Default)</option>
-                <option value="4">4 (High)</option>
-                <option value="5">5 (Urgent)</option>
-              </select>
+            <div id="nt-fields-ntfy" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
+              <div class="form-grid-modern">
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.ntfy_server_url_label">URL сервера Ntfy</label>
+                  <input id="nt-ntfy-server-url" class="input mono" placeholder="https://ntfy.sh" value="https://ntfy.sh">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.ntfy_topic_label">Топик / Тема</label>
+                  <input id="nt-ntfy-topic" class="input mono" placeholder="my_aliasarr_topic">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.ntfy_token_label">Access Token (для приватных тем)</label>
+                  <input id="nt-ntfy-token" class="input mono" placeholder="tk_...">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.ntfy_priority_label">Приоритет (1-5)</label>
+                  <select id="nt-ntfy-priority" class="input">
+                    <option value="1">1 (Min)</option>
+                    <option value="2">2 (Low)</option>
+                    <option value="3" selected>3 (Default)</option>
+                    <option value="4">4 (High)</option>
+                    <option value="5">5 (Urgent)</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <!-- Pushover -->
-            <div id="nt-fields-pushover" style="display:none">
-              <label class="hint" data-i18n="nt.pushover_user_key_label">User Key</label>
-              <input id="nt-pushover-user-key" class="input mono" placeholder="u...">
-              <label class="hint" data-i18n="nt.pushover_api_token_label">App API Token</label>
-              <input id="nt-pushover-api-token" class="input mono" placeholder="a...">
-              <label class="hint" data-i18n="nt.pushover_priority_label">Приоритет (-2..2)</label>
-              <select id="nt-pushover-priority" class="input">
-                <option value="-2">-2 (Lowest)</option>
-                <option value="-1">-1 (Low)</option>
-                <option value="0" selected>0 (Normal)</option>
-                <option value="1">1 (High)</option>
-                <option value="2">2 (Emergency)</option>
-              </select>
-              <label class="hint" data-i18n="nt.pushover_sound_label">Звук (необязательно)</label>
-              <input id="nt-pushover-sound" class="input" placeholder="pushover">
+            <div id="nt-fields-pushover" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
+              <div class="form-grid-modern">
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.pushover_user_key_label">User Key</label>
+                  <input id="nt-pushover-user-key" class="input mono" placeholder="u...">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.pushover_api_token_label">App API Token</label>
+                  <input id="nt-pushover-api-token" class="input mono" placeholder="a...">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.pushover_priority_label">Приоритет (-2..2)</label>
+                  <select id="nt-pushover-priority" class="input">
+                    <option value="-2">-2 (Lowest)</option>
+                    <option value="-1">-1 (Low)</option>
+                    <option value="0" selected>0 (Normal)</option>
+                    <option value="1">1 (High)</option>
+                    <option value="2">2 (Emergency)</option>
+                  </select>
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.pushover_sound_label">Звук (необязательно)</label>
+                  <input id="nt-pushover-sound" class="input" placeholder="pushover">
+                </div>
+              </div>
             </div>
 
             <!-- Slack -->
-            <div id="nt-fields-slack" style="display:none">
-              <label class="hint" data-i18n="nt.slack_webhook_url_label">URL вебхука Slack</label>
-              <input id="nt-slack-webhook-url" class="input mono" placeholder="https://hooks.slack.com/services/...">
-              <label class="hint" data-i18n="nt.slack_channel_label">Канал (необязательно, напр. #downloads)</label>
-              <input id="nt-slack-channel" class="input" placeholder="#downloads">
+            <div id="nt-fields-slack" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
+              <div class="form-grid-modern">
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.slack_webhook_url_label">URL вебхука Slack</label>
+                  <input id="nt-slack-webhook-url" class="input mono" placeholder="https://hooks.slack.com/services/...">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.slack_channel_label">Канал (необязательно, напр. #downloads)</label>
+                  <input id="nt-slack-channel" class="input" placeholder="#downloads">
+                </div>
+              </div>
             </div>
 
             <!-- Webhook (Generic) -->
-            <div id="nt-fields-webhook" style="display:none">
-              <label class="hint" data-i18n="nt.webhook_url_label">URL вебхука</label>
-              <input id="nt-webhook-url" class="input mono" placeholder="https://example.com/hook">
-              <label class="hint" data-i18n="nt.webhook_method_label">HTTP метод</label>
-              <select id="nt-webhook-method" class="input">
-                <option value="POST" selected>POST</option>
-                <option value="PUT">PUT</option>
-              </select>
+            <div id="nt-fields-webhook" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
+              <div class="form-grid-modern">
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.webhook_url_label">URL вебхука</label>
+                  <input id="nt-webhook-url" class="input mono" placeholder="https://example.com/hook">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="nt.webhook_method_label">HTTP метод</label>
+                  <select id="nt-webhook-method" class="input">
+                    <option value="POST" selected>POST</option>
+                    <option value="PUT">PUT</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <!-- Email (SMTP) -->
-            <div id="nt-fields-email" style="display:none">
-              <label class="hint" data-i18n="notif.smtp_server">SMTP Сервер</label>
-              <input id="nt-email-server" class="input mono" placeholder="smtp.example.com">
-              <div style="display:flex;gap:8px;">
-                <div style="flex:1;">
-                  <label class="hint" data-i18n="notif.port">Порт</label>
+            <div id="nt-fields-email" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
+              <div class="form-grid-modern">
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="notif.smtp_server">SMTP Сервер</label>
+                  <input id="nt-email-server" class="input mono" placeholder="smtp.example.com">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="notif.port">Порт</label>
                   <input id="nt-email-port" class="input mono" type="number" placeholder="587" value="587">
                 </div>
-                <div style="flex:2;">
-                  <label class="hint" data-i18n="notif.subject_prefix">Префикс темы</label>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="notif.subject_prefix">Префикс темы</label>
                   <input id="nt-email-subject-prefix" class="input" placeholder="[Aliasarr]">
                 </div>
-              </div>
-              <label class="hint" data-i18n="notif.from_email">От кого (From Email)</label>
-              <input id="nt-email-from" class="input mono" placeholder="aliasarr@example.com">
-              <label class="hint" data-i18n="notif.to_email">Кому (To Email)</label>
-              <input id="nt-email-to" class="input mono" placeholder="user@example.com">
-              <label class="hint" data-i18n="notif.smtp_username">Имя пользователя SMTP</label>
-              <input id="nt-email-username" class="input mono" placeholder="user@example.com">
-              <label class="hint" data-i18n="notif.smtp_password">Пароль SMTP</label>
-              <input id="nt-email-password" class="input mono" type="password" placeholder="••••••••">
-              <div style="display:flex;gap:16px;margin-top:6px;">
-                <label class="checkbox-row"><input id="nt-email-ssl" type="checkbox"> <span>SSL</span></label>
-                <label class="checkbox-row"><input id="nt-email-tls" type="checkbox" checked> <span>STARTTLS</span></label>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="notif.from_email">От кого (From Email)</label>
+                  <input id="nt-email-from" class="input mono" placeholder="aliasarr@example.com">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="notif.to_email">Кому (To Email)</label>
+                  <input id="nt-email-to" class="input mono" placeholder="user@example.com">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="notif.smtp_username">Имя пользователя SMTP</label>
+                  <input id="nt-email-username" class="input mono" placeholder="user@example.com">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="notif.smtp_password">Пароль SMTP</label>
+                  <input id="nt-email-password" class="input mono" type="password" placeholder="••••••••">
+                </div>
+                <div class="settings-field-group" style="display:flex; align-items:center; gap:16px;">
+                  <label class="switch-toggle"><input id="nt-email-ssl" type="checkbox"><span class="switch-slider"></span><span class="switch-title">SSL</span></label>
+                  <label class="switch-toggle"><input id="nt-email-tls" type="checkbox" checked><span class="switch-slider"></span><span class="switch-title">STARTTLS</span></label>
+                </div>
               </div>
             </div>
 
             <!-- Pushbullet -->
-            <div id="nt-fields-pushbullet" style="display:none">
-              <label class="hint">API Key / Access Token</label>
-              <input id="nt-pushbullet-api-key" class="input mono" placeholder="o.ABC123xyz...">
-              <label class="hint" data-i18n="notif.device_id">Device ID (необязательно)</label>
-              <input id="nt-pushbullet-device-id" class="input mono" placeholder="ujx...">
+            <div id="nt-fields-pushbullet" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
+              <div class="form-grid-modern">
+                <div class="settings-field-group">
+                  <label class="settings-field-label">API Key / Access Token</label>
+                  <input id="nt-pushbullet-api-key" class="input mono" placeholder="o.ABC123xyz...">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="notif.device_id">Device ID (необязательно)</label>
+                  <input id="nt-pushbullet-device-id" class="input mono" placeholder="ujx...">
+                </div>
+              </div>
             </div>
 
             <!-- Apprise -->
-            <div id="nt-fields-apprise" style="display:none">
-              <label class="hint" data-i18n="notif.apprise_server_url">URL сервера Apprise</label>
-              <input id="nt-apprise-server-url" class="input mono" placeholder="http://localhost:8000/notify/apprise">
-              <label class="hint" data-i18n="notif.tag_optional">Tag (необязательно)</label>
-              <input id="nt-apprise-tag" class="input" placeholder="all">
-              <label class="hint" data-i18n="notif.urls_optional">URLs / Services (необязательно)</label>
-              <input id="nt-apprise-urls" class="input mono" placeholder="mailto://user:pass@gmail.com">
+            <div id="nt-fields-apprise" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
+              <div class="form-grid-modern">
+                <div class="settings-field-group" style="grid-column: 1 / -1;">
+                  <label class="settings-field-label" data-i18n="notif.apprise_server_url">URL сервера Apprise</label>
+                  <input id="nt-apprise-server-url" class="input mono" placeholder="http://localhost:8000/notify/apprise">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="notif.tag_optional">Tag (необязательно)</label>
+                  <input id="nt-apprise-tag" class="input" placeholder="all">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="notif.urls_optional">URLs / Services (необязательно)</label>
+                  <input id="nt-apprise-urls" class="input mono" placeholder="mailto://user:pass@gmail.com">
+                </div>
+              </div>
             </div>
 
             <!-- Custom Script -->
-            <div id="nt-fields-script" style="display:none">
-              <label class="hint" data-i18n="notif.script_path">Путь к скрипту / исполнимому файлу</label>
-              <input id="nt-script-path" class="input mono" placeholder="/config/scripts/notify.sh">
-              <label class="hint" data-i18n="notif.script_args">Аргументы командной строки (необязательно)</label>
-              <input id="nt-script-args" class="input mono" placeholder="--verbose">
+            <div id="nt-fields-script" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
+              <div class="form-grid-modern">
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="notif.script_path">Путь к скрипту / файлу</label>
+                  <input id="nt-script-path" class="input mono" placeholder="/config/scripts/notify.sh">
+                </div>
+                <div class="settings-field-group">
+                  <label class="settings-field-label" data-i18n="notif.script_args">Аргументы (необязательно)</label>
+                  <input id="nt-script-args" class="input mono" placeholder="--verbose">
+                </div>
+              </div>
             </div>
 
-            <label class="checkbox-row"><input id="nt-enabled" type="checkbox" checked> <strong data-i18n="nt.enabled">Включить уведомление</strong></label>
-            <label class="checkbox-row"><input id="nt-include-app-name" type="checkbox"> <span data-i18n="nt.include_app_name">Включить Aliasarr в заголовок</span></label>
-
-            <div style="font-weight:600;font-size:13px;color:var(--text);margin-top:10px;margin-bottom:4px;" data-i18n="nt.triggers_title">События уведомлений:</div>
-            <div class="checkbox-group" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:6px;">
-              <label class="checkbox-row"><input id="nt-on-grab" type="checkbox" checked> <span data-i18n="nt.on_grab">При захвате релиза</span></label>
-              <label class="checkbox-row"><input id="nt-on-import" type="checkbox" checked> <span data-i18n="nt.on_import">При скачивании / импорте</span></label>
-              <label class="checkbox-row"><input id="nt-on-upgrade" type="checkbox" checked> <span data-i18n="nt.on_upgrade">При обновлении качества</span></label>
-              <label class="checkbox-row"><input id="nt-on-rename" type="checkbox"> <span data-i18n="nt.on_rename">При переименовании файлов</span></label>
-              <label class="checkbox-row"><input id="nt-on-series-add" type="checkbox"> <span data-i18n="nt.on_series_add">При добавлении тайтла</span></label>
-              <label class="checkbox-row"><input id="nt-on-series-delete" type="checkbox"> <span data-i18n="nt.on_series_delete">При удалении тайтла</span></label>
-              <label class="checkbox-row"><input id="nt-on-episode-file-delete" type="checkbox"> <span data-i18n="nt.on_file_delete">При удалении файла</span></label>
-              <label class="checkbox-row"><input id="nt-on-backup" type="checkbox"> <span data-i18n="nt.on_backup">При создании бэкапа</span></label>
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
+                <input id="nt-enabled" type="checkbox" checked>
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="nt.enabled">Включить уведомление</span>
+              </label>
             </div>
-            <div class="form-row nt-actions-row" style="margin-top:12px;">
+
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
+                <input id="nt-include-app-name" type="checkbox">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="nt.include_app_name">Включить Aliasarr в заголовок</span>
+              </label>
+            </div>
+
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <div class="settings-field-label" style="margin-bottom:10px;" data-i18n="nt.triggers_title">События уведомлений:</div>
+              <div class="triggers-grid">
+                <label class="trigger-chip-card"><input id="nt-on-grab" type="checkbox" checked><div class="trigger-icon"><i data-lucide="download"></i></div><span class="trigger-label" data-i18n="nt.on_grab">При захвате релиза</span></label>
+                <label class="trigger-chip-card"><input id="nt-on-import" type="checkbox" checked><div class="trigger-icon"><i data-lucide="folder-check"></i></div><span class="trigger-label" data-i18n="nt.on_import">При скачивании / импорте</span></label>
+                <label class="trigger-chip-card"><input id="nt-on-upgrade" type="checkbox" checked><div class="trigger-icon"><i data-lucide="award"></i></div><span class="trigger-label" data-i18n="nt.on_upgrade">При обновлении качества</span></label>
+                <label class="trigger-chip-card"><input id="nt-on-rename" type="checkbox" checked><div class="trigger-icon"><i data-lucide="file-edit"></i></div><span class="trigger-label" data-i18n="nt.on_rename">При переименовании файлов</span></label>
+                <label class="trigger-chip-card"><input id="nt-on-series-add" type="checkbox" checked><div class="trigger-icon"><i data-lucide="plus-circle"></i></div><span class="trigger-label" data-i18n="nt.on_series_add">При добавлении тайтла</span></label>
+                <label class="trigger-chip-card"><input id="nt-on-series-delete" type="checkbox"><div class="trigger-icon"><i data-lucide="trash-2"></i></div><span class="trigger-label" data-i18n="nt.on_series_delete">При удалении тайтла</span></label>
+                <label class="trigger-chip-card"><input id="nt-on-episode-file-delete" type="checkbox"><div class="trigger-icon"><i data-lucide="file-x"></i></div><span class="trigger-label" data-i18n="nt.on_file_delete">При удалении файла</span></label>
+                <label class="trigger-chip-card"><input id="nt-on-backup" type="checkbox"><div class="trigger-icon"><i data-lucide="database"></i></div><span class="trigger-label" data-i18n="nt.on_backup">При создании бэкапа</span></label>
+              </div>
+            </div>
+
+            <div class="form-row nt-actions-row" style="grid-column: 1 / -1; margin-top: 8px;">
               <button class="btn btn-secondary" onclick="testNotificationAdhoc(this)" data-i18n="common.test">Тест</button>
               <button class="btn btn-secondary" id="nt-cancel-btn" onclick="resetNotificationForm()" data-i18n="common.cancel">Отменить</button>
               <button class="btn btn-primary" id="nt-submit-btn" onclick="submitNotification()" data-i18n="common.apply">Применить</button>
             </div>
-            <div id="nt-test-result" class="inline-status-box" style="display:none;"></div>
+
+            <div id="nt-test-result" class="inline-status-box" style="grid-column: 1 / -1; display:none;"></div>
           </div>
         </div>
+
         <div class="table-responsive">
           <table class="data-table" id="nt-table">
             <thead><tr><th data-i18n="nt.col_name">Название</th><th data-i18n="nt.col_type">Тип</th><th data-i18n="nt.col_status">Статус</th><th></th></tr></thead>
