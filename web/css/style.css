@@ -13419,4 +13419,50 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 }
 
+/* Glass Table Container (Neo-Glass) */
+.glass-table-wrap {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 14px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.glass-table-wrap .data-table {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  width: 100%;
+}
+
+.glass-table-wrap .data-table thead th {
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--border);
+}
+
+.glass-table-wrap .data-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.glass-table-wrap .data-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="light"] .glass-table-wrap {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .glass-table-wrap .data-table thead th {
+  background: #f8fafc;
+  border-bottom-color: #e2e8f0;
+}
+
+[data-theme="light"] .glass-table-wrap .data-table tbody tr:hover {
+  background: #f1f5f9;
+}
+
 

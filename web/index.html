@@ -546,7 +546,7 @@
       <div id="library-layout" style="display: flex; gap: 16px; align-items: flex-start; position: relative;">
         <div id="library-content" style="flex: 1; min-width: 0;">
           <div id="shows-grid" class="shows-grid"></div>
-          <div id="shows-table-wrap" class="table-responsive" style="display:none">
+          <div id="shows-table-wrap" class="table-responsive glass-table-wrap" style="display:none">
             <table class="data-table" id="shows-table">
               <thead>
                 <tr>
@@ -697,7 +697,7 @@
           </div>
 
           <!-- Режим таблицы -->
-          <div class="table-responsive" id="blocklist-table-wrap" style="display:none;">
+          <div class="table-responsive glass-table-wrap" id="blocklist-table-wrap" style="display:none;">
             <table class="data-table" id="blocklist-table">
               <thead>
                 <tr>
@@ -747,12 +747,22 @@
               <h1 data-i18n="tab.activity">Активность</h1>
               <p class="subtitle" data-i18n="subtitle.activity">Текущие загрузки во всех download clients</p>
             </div>
+            <div class="header-actions">
+              <button class="btn btn-secondary" onclick="triggerManualCheckDownloads()" title="Проверить завершенные загрузки" id="activity-check-btn">
+                <i data-lucide="check-circle-2"></i>
+                <span data-i18n="activity.btn_check_completed">Проверить загрузки</span>
+              </button>
+              <button class="btn btn-secondary" onclick="loadQueue()" title="Обновить очередь" id="activity-refresh-btn">
+                <i data-lucide="refresh-cw"></i>
+                <span data-i18n="common.refresh">Обновить</span>
+              </button>
+            </div>
           </div>
         </header>
       </div>
-      <div class="table-responsive">
+      <div class="table-responsive glass-table-wrap">
         <table class="data-table" id="queue-table">
-          <thead><tr><th data-i18n="activity.col_name">Заголовок / Серии</th><th data-i18n="activity.col_client">Клиент</th><th data-i18n="activity.col_speed">Скорость / Раздача</th><th data-i18n="activity.col_progress">Прогресс</th><th></th></tr></thead>
+          <thead><tr><th data-i18n="activity.col_name">Заголовок / Серии</th><th style="width:130px;" data-i18n="activity.col_client">Клиент</th><th style="width:160px;" data-i18n="activity.col_speed">Скорость / Раздача</th><th style="width:230px;" data-i18n="activity.col_progress">Прогресс</th><th style="width:80px; text-align:right;"></th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -1050,12 +1060,18 @@
               <h1 data-i18n="tab.history">История</h1>
               <p class="subtitle" data-i18n="subtitle.history">Журнал захваченных релизов</p>
             </div>
+            <div class="header-actions">
+              <button class="btn btn-secondary" onclick="loadHistory()" title="Обновить историю" id="history-refresh-btn">
+                <i data-lucide="refresh-cw"></i>
+                <span data-i18n="common.refresh">Обновить</span>
+              </button>
+            </div>
           </div>
         </header>
       </div>
-      <div class="table-responsive">
+      <div class="table-responsive glass-table-wrap">
         <table class="data-table" id="history-table">
-          <thead><tr><th style="width:145px;" data-i18n="history.col_date">Дата</th><th style="width:140px;" data-i18n="history.col_show">Видео</th><th data-i18n="history.col_release">Релиз</th><th style="width:110px;" data-i18n="history.col_event">Событие</th></tr></thead>
+          <thead><tr><th style="width:160px;" data-i18n="history.col_date">Дата</th><th style="width:200px;" data-i18n="history.col_show">Видео</th><th data-i18n="history.col_release">Релиз</th><th style="width:130px;" data-i18n="history.col_event">Событие</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -1805,7 +1821,7 @@
             <button class="btn btn-secondary btn-small" onclick="openTemplatesHelpModal()"><i data-lucide="book-open" class="ico-sm"></i> <span data-i18n="settings.btn_templates_cheatsheet">Справочник шаблонов</span></button>
           </div>
 
-          <div class="table-responsive">
+          <div class="table-responsive glass-table-wrap">
             <table class="data-table folders-table">
               <thead>
                 <tr>
@@ -2285,7 +2301,7 @@
           </div>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive glass-table-wrap">
           <table class="data-table" id="users-table">
             <thead>
               <tr>
@@ -2441,7 +2457,7 @@
           </div>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive glass-table-wrap">
           <table class="data-table" id="indexers-table">
             <thead><tr><th data-i18n="indexers.col_name">Название</th><th data-i18n="indexers.col_type">Тип</th><th data-i18n="indexers.col_url">URL</th><th data-i18n="indexers.col_priority">Приоритет</th><th data-i18n="indexers.col_availability">Доступность</th><th></th></tr></thead>
             <tbody></tbody>
@@ -2546,7 +2562,7 @@
           </div>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive glass-table-wrap">
           <table class="data-table" id="dc-table">
             <thead><tr><th data-i18n="dc.col_name">Название</th><th data-i18n="dc.col_type">Тип</th><th data-i18n="dc.col_host">Хост</th><th data-i18n="dc.col_availability">Доступность</th><th data-i18n="dc.col_default">По умолч.</th><th></th></tr></thead>
             <tbody></tbody>
@@ -2616,8 +2632,8 @@
           </div>
         </div>
 
-        <div class="table-responsive">
-          <table class="data-table" id="qp-table" style="margin-bottom: 24px;">
+        <div class="table-responsive glass-table-wrap" style="margin-bottom: 24px;">
+          <table class="data-table" id="qp-table">
             <thead><tr><th data-i18n="qp.col_name">Название</th><th data-i18n="qp.col_allowed">Разрешено</th><th data-i18n="qp.col_cutoff">Порог (Cutoff)</th><th></th></tr></thead>
             <tbody></tbody>
           </table>
@@ -2642,7 +2658,7 @@
               <button id="btn-add-custom-format" class="btn btn-primary btn-small" onclick="openAddCustomFormatModal()"><i data-lucide="plus" class="ico-sm"></i> <span data-i18n="cf.add_btn">Добавить формат</span></button>
             </div>
           </div>
-          <div class="table-responsive">
+          <div class="table-responsive glass-table-wrap">
             <table class="data-table" id="cf-table">
               <thead><tr><th data-i18n="common.name">Название</th><th data-i18n="cf.col_score">Очки (Score)</th><th data-i18n="cf.col_renaming">В имени файла</th><th style="width:140px; text-align:right;"></th></tr></thead>
               <tbody id="cf-table-body"></tbody>
@@ -2745,7 +2761,7 @@
           </div>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive glass-table-wrap">
           <table class="data-table" id="md-table">
             <thead><tr><th data-i18n="md.col_name">Название</th><th data-i18n="md.col_type">Тип</th><th></th></tr></thead>
             <tbody></tbody>
@@ -3066,7 +3082,7 @@
           </div>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive glass-table-wrap">
           <table class="data-table" id="nt-table">
             <thead><tr><th data-i18n="nt.col_name">Название</th><th data-i18n="nt.col_type">Тип</th><th data-i18n="nt.col_status">Статус</th><th></th></tr></thead>
             <tbody></tbody>
@@ -3122,7 +3138,7 @@
           </div>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive glass-table-wrap">
           <table class="data-table" id="audit-table">
             <thead>
               <tr>
@@ -3156,7 +3172,7 @@
           <button class="btn btn-danger btn-small" id="journal-clear-btn" onclick="clearJournal()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive glass-table-wrap">
           <table class="data-table" id="journal-table">
             <thead><tr><th style="width:180px;" data-i18n="journal.col_time">Время</th><th style="width:90px;" data-i18n="journal.col_level">Уровень</th><th style="width:160px;" data-i18n="journal.col_component">Компонент</th><th data-i18n="journal.col_message">Сообщение</th></tr></thead>
             <tbody></tbody>
@@ -3164,12 +3180,29 @@
         </div>
         <div class="form-row" id="journal-pagination" style="justify-content:center; margin-top:14px;"></div>
 
-        <div class="card" style="margin-top:20px;">
-          <h3 data-i18n="journal.retention_title">Хранение</h3>
-          <div class="form-col">
-            <label><span data-i18n="journal.retention_label">Хранить записи журнала</span> <span class="hint">(дней)</span></label>
-            <input id="journal-retention-days" class="input" type="number" min="1" style="max-width:160px">
-            <div><button class="btn btn-primary" onclick="saveJournalRetention()" data-i18n="common.save">Сохранить</button></div>
+        <div class="settings-section-card" style="margin-top:24px;">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="archive"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="journal.retention_title">Хранение</h3>
+                <p class="subtitle" data-i18n="journal.retention_subtitle">Настройка срока автоматической очистки устаревших записей журнала</p>
+              </div>
+            </div>
+          </div>
+          <div class="form-grid-modern">
+            <div class="settings-field-group">
+              <label class="settings-field-label">
+                <span data-i18n="journal.retention_label">Хранить записи журнала и событий</span>
+                <span class="settings-field-hint">(дней)</span>
+              </label>
+              <input id="journal-retention-days" class="input" type="number" min="1" style="max-width:200px">
+            </div>
+            <div class="form-row" style="grid-column: 1 / -1; margin-top: 10px;">
+              <button class="btn btn-primary" onclick="saveJournalRetention()" data-i18n="common.save">Сохранить</button>
+            </div>
           </div>
         </div>
       </div>
@@ -3206,7 +3239,7 @@
           <button class="btn btn-danger btn-small" id="release-logs-clear-btn" onclick="clearReleaseLogs()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive glass-table-wrap">
           <table class="data-table" id="release-logs-table">
             <thead>
               <tr>
@@ -3398,7 +3431,7 @@
         </div>
 
         <!-- ТАБЛИЦА СОБРАННЫХ ДАННЫХ -->
-        <div class="table-responsive">
+        <div class="table-responsive glass-table-wrap">
           <table class="data-table" id="dataset-table">
             <colgroup>
               <col class="col-query">
@@ -3441,48 +3474,69 @@
       </div>
 
       <!-- Карточки статистики бэкапов -->
-      <div class="backup-stats-grid" id="backup-stats-container" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px;">
-        <div class="panel" style="padding: 14px 18px; display: flex; align-items: center; gap: 14px; border: 1px solid var(--border); border-radius: var(--radius, 12px);">
-          <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(0, 240, 255, 0.1); color: var(--teal, #00F0FF); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i data-lucide="archive" class="ico-md"></i>
+      <div class="stats-grid-dashboard" id="backup-stats-container" style="margin-bottom: 20px;">
+        <!-- Карточка 1: Всего копий -->
+        <div class="dash-stat-card card-media">
+          <div class="dash-stat-header">
+            <span class="dash-stat-title">
+              <span class="dash-stat-icon-badge"><i data-lucide="archive"></i></span>
+              <span data-i18n="backup.stat_total">Всего копий</span>
+            </span>
           </div>
-          <div>
-            <div class="hint" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="backup.stat_total">Всего копий</div>
-            <div style="font-size: 19px; font-weight: 700; color: var(--text);" id="backup-stat-total-count">—</div>
-            <div class="hint" style="font-size: 12px;" id="backup-stat-total-size">—</div>
-          </div>
-        </div>
-
-        <div class="panel" style="padding: 14px 18px; display: flex; align-items: center; gap: 14px; border: 1px solid var(--border); border-radius: var(--radius, 12px);">
-          <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i data-lucide="clock" class="ico-md"></i>
-          </div>
-          <div>
-            <div class="hint" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="backup.stat_latest">Последний бэкап</div>
-            <div style="font-size: 14px; font-weight: 600; color: var(--text);" id="backup-stat-latest-date">—</div>
-            <div class="hint" style="font-size: 12px;" id="backup-stat-latest-type">—</div>
+          <div class="dash-stat-main-val" id="backup-stat-total-count">—</div>
+          <div class="dash-stat-subitems">
+            <span class="dash-subitem-pill">
+              <span class="subitem-label" data-i18n="backup.stat_total_size">Общий объём:</span>
+              <strong class="subitem-val" id="backup-stat-total-size">—</strong>
+            </span>
           </div>
         </div>
 
-        <div class="panel" style="padding: 14px 18px; display: flex; align-items: center; gap: 14px; border: 1px solid var(--border); border-radius: var(--radius, 12px);">
-          <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(139, 92, 246, 0.1); color: #a78bfa; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i data-lucide="calendar" class="ico-md"></i>
+        <!-- Карточка 2: Последний бэкап -->
+        <div class="dash-stat-card card-monitoring">
+          <div class="dash-stat-header">
+            <span class="dash-stat-title">
+              <span class="dash-stat-icon-badge"><i data-lucide="clock"></i></span>
+              <span data-i18n="backup.stat_latest">Последний бэкап</span>
+            </span>
           </div>
-          <div>
-            <div class="hint" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="backup.stat_schedule">Авто-бэкап</div>
-            <div style="font-size: 14px; font-weight: 600; color: var(--text);" id="backup-stat-schedule">—</div>
-            <div class="hint" style="font-size: 12px;" id="backup-stat-retention">—</div>
+          <div class="dash-stat-main-val" id="backup-stat-latest-date" style="font-size: 18px; line-height: 1.3;">—</div>
+          <div class="dash-stat-subitems">
+            <div id="backup-stat-latest-type">—</div>
           </div>
         </div>
 
-        <div class="panel" style="padding: 14px 18px; display: flex; align-items: center; gap: 14px; border: 1px solid var(--border); border-radius: var(--radius, 12px);">
-          <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(255, 42, 77, 0.1); color: var(--violet, #FF2A4D); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i data-lucide="hard-drive" class="ico-md"></i>
+        <!-- Карточка 3: Авто-бэкап -->
+        <div class="dash-stat-card card-episodes">
+          <div class="dash-stat-header">
+            <span class="dash-stat-title">
+              <span class="dash-stat-icon-badge"><i data-lucide="calendar"></i></span>
+              <span data-i18n="backup.stat_schedule">Авто-бэкап</span>
+            </span>
           </div>
-          <div>
-            <div class="hint" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;" data-i18n="backup.stat_storage">Хранилище</div>
-            <div class="mono" style="font-size: 12px; font-weight: 600; color: var(--text); word-break: break-all;" id="backup-stat-dir">/config/backups</div>
-            <div class="hint" style="font-size: 11px;">ZIP + SQLite Dump</div>
+          <div class="dash-stat-main-val" id="backup-stat-schedule" style="font-size: 20px;">—</div>
+          <div class="dash-stat-subitems">
+            <span class="dash-subitem-pill">
+              <span class="subitem-label" data-i18n="backup.stat_retention_label">Ротация:</span>
+              <strong class="subitem-val" id="backup-stat-retention">—</strong>
+            </span>
+          </div>
+        </div>
+
+        <!-- Карточка 4: Хранилище -->
+        <div class="dash-stat-card card-storage">
+          <div class="dash-stat-header">
+            <span class="dash-stat-title">
+              <span class="dash-stat-icon-badge"><i data-lucide="hard-drive"></i></span>
+              <span data-i18n="backup.stat_storage">Хранилище</span>
+            </span>
+          </div>
+          <div class="dash-stat-main-val mono" id="backup-stat-dir" style="font-size: 14px; word-break: break-all; white-space: normal;">/config/backups</div>
+          <div class="dash-stat-subitems">
+            <span class="dash-subitem-pill">
+              <span class="subitem-label">Формат:</span>
+              <strong class="subitem-val">ZIP + SQLite Dump</strong>
+            </span>
           </div>
         </div>
       </div>
@@ -3506,7 +3560,7 @@
       </div>
 
       <!-- Таблица бэкапов -->
-      <div class="table-responsive">
+      <div class="table-responsive glass-table-wrap">
         <table class="data-table" id="backups-table">
           <thead>
             <tr>
