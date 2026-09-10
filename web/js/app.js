@@ -16537,7 +16537,10 @@ async function clearReleaseLogs() {
   try {
     await api("/api/v1/release-logs", { method: "DELETE" });
     toast(CURRENT_LANG === "en" ? "Release logs cleared" : "Журнал релизов очищен");
-    loadReleaseLogs(1);
+    GROUPED_RELEASE_HISTORY = [];
+    CURRENT_GROUPED_HISTORY = [];
+    closeReleaseHistoryDrawer();
+    loadGroupedReleaseHistory(1);
   } catch (e) {
     toast("Ошибка: " + e.message, true);
   }
