@@ -204,149 +204,194 @@
               <h1 data-i18n="tab.dashboard">Дашборд</h1>
               <p class="subtitle" data-i18n="subtitle.dashboard">Общая картина и мониторинг библиотеки</p>
             </div>
+            <div class="header-actions">
+              <button class="btn btn-secondary" onclick="triggerWantedSearch(this)" title="Запустить поиск разыскиваемых релизов" id="dash-wanted-search-btn">
+                <i data-lucide="sparkles"></i>
+                <span data-i18n="dash.btn_search_wanted">Поиск разыскиваемых</span>
+              </button>
+              <button class="btn btn-secondary" onclick="loadDashboard()" title="Обновить статус дашборда" id="dash-refresh-btn">
+                <i data-lucide="refresh-cw"></i>
+                <span data-i18n="common.refresh">Обновить</span>
+              </button>
+              <button class="btn btn-primary" onclick="openAddShowWizard()" title="Добавить фильм или сериал" id="dash-add-video-btn">
+                <i data-lucide="plus"></i>
+                <span data-i18n="nav.add_video">+ Добавить видео</span>
+              </button>
+            </div>
           </div>
         </header>
       </div>
 
+      <!-- Hero Метрики Дашборда -->
       <div class="stats-grid-dashboard">
         <!-- Карточка 1: Медиатека -->
-        <div class="dash-stat-card">
+        <div class="dash-stat-card card-media" onclick="switchTab('library')" style="cursor:pointer;" title="Перейти в библиотеку">
           <div>
             <div class="dash-stat-header">
-              <span class="dash-stat-title"><i data-lucide="film"></i> <span data-i18n="dash.card_media">Медиатека</span></span>
+              <span class="dash-stat-title">
+                <div class="dash-stat-icon-badge"><i data-lucide="film"></i></div>
+                <span data-i18n="dash.card_media">Медиатека</span>
+              </span>
+              <span class="dash-stat-arrow"><i data-lucide="arrow-up-right" class="ico-xs"></i></span>
             </div>
             <div class="dash-stat-main-val" id="stat-shows">—</div>
           </div>
           <div class="dash-stat-subitems">
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.series">Сериалы</span>
+              <span class="dash-subitem-label category-badge-chip category-badge-series"><i data-lucide="tv" class="ico-xxs"></i> <span data-i18n="dash.series">Сериалы</span></span>
               <span class="dash-subitem-val" id="stat-series">0</span>
             </div>
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.movies">Фильмы</span>
+              <span class="dash-subitem-label category-badge-chip category-badge-movies"><i data-lucide="film" class="ico-xxs"></i> <span data-i18n="dash.movies">Фильмы</span></span>
               <span class="dash-subitem-val" id="stat-movies">0</span>
             </div>
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.anime">Аниме</span>
+              <span class="dash-subitem-label category-badge-chip category-badge-anime"><i data-lucide="sparkles" class="ico-xxs"></i> <span data-i18n="dash.anime">Аниме</span></span>
               <span class="dash-subitem-val" id="stat-anime">0</span>
             </div>
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.total">Всего</span>
+              <span class="dash-subitem-label"><span data-i18n="dash.total">Всего</span></span>
               <span class="dash-subitem-val" id="stat-shows-sub">0</span>
             </div>
           </div>
         </div>
 
-        <!-- Карточка 2: Статус тайтлов -->
-        <div class="dash-stat-card">
+        <!-- Карточка 2: Статус тайтлов и мониторинг -->
+        <div class="dash-stat-card card-monitoring">
           <div>
             <div class="dash-stat-header">
-              <span class="dash-stat-title"><i data-lucide="eye"></i> <span data-i18n="dash.card_title_status">Статус тайтлов</span></span>
+              <span class="dash-stat-title">
+                <div class="dash-stat-icon-badge"><i data-lucide="eye"></i></div>
+                <span data-i18n="dash.card_title_status">Статус тайтлов</span>
+              </span>
             </div>
             <div class="dash-stat-main-val" id="stat-monitored-main">—</div>
+            <div class="dash-stat-progress-wrap" id="stat-monitored-progress-wrap">
+              <div class="dash-stat-progress-bar" id="stat-monitored-progress-bar" style="width: 0%;"></div>
+            </div>
           </div>
           <div class="dash-stat-subitems">
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.monitored">Отслеживается</span>
+              <span class="dash-subitem-label"><i data-lucide="bookmark-check" class="ico-xxs text-teal"></i> <span data-i18n="dash.monitored">Отслеживается</span></span>
               <span class="dash-subitem-val" style="color:var(--teal)" id="stat-monitored">0</span>
             </div>
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.unmonitored">Не отслеж.</span>
+              <span class="dash-subitem-label"><i data-lucide="bookmark-minus" class="ico-xxs text-muted"></i> <span data-i18n="dash.unmonitored">Не отслеж.</span></span>
               <span class="dash-subitem-val" style="color:var(--text-muted)" id="stat-unmonitored">0</span>
             </div>
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.ended">Завершён</span>
+              <span class="dash-subitem-label"><i data-lucide="check-circle-2" class="ico-xxs text-muted"></i> <span data-i18n="dash.ended">Завершён</span></span>
               <span class="dash-subitem-val" id="stat-ended">0</span>
             </div>
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.continuing">Продолжается</span>
+              <span class="dash-subitem-label"><i data-lucide="play-circle" class="ico-xxs text-info"></i> <span data-i18n="dash.continuing">В эфире</span></span>
               <span class="dash-subitem-val" id="stat-continuing">0</span>
             </div>
           </div>
         </div>
 
-        <!-- Карточка 3: Эпизоды и загрузка -->
-        <div class="dash-stat-card">
+        <!-- Карточка 3: Эпизоды и загрузки -->
+        <div class="dash-stat-card card-episodes">
           <div>
             <div class="dash-stat-header">
-              <span class="dash-stat-title"><i data-lucide="layers"></i> <span data-i18n="dash.card_episodes_status">Эпизоды и статус</span></span>
+              <span class="dash-stat-title">
+                <div class="dash-stat-icon-badge"><i data-lucide="layers"></i></div>
+                <span data-i18n="dash.card_episodes_status">Эпизоды и статус</span>
+              </span>
             </div>
             <div class="dash-stat-main-val" id="stat-episodes">—</div>
+            <div class="dash-stat-multi-progress" id="stat-episodes-progress-wrap">
+              <div class="multi-progress-segment seg-downloaded" id="stat-ep-prog-downloaded" style="width: 0%;" title="Скачано"></div>
+              <div class="multi-progress-segment seg-downloading" id="stat-ep-prog-downloading" style="width: 0%;" title="Качается"></div>
+              <div class="multi-progress-segment seg-wanted" id="stat-ep-prog-wanted" style="width: 0%;" title="В поиске"></div>
+            </div>
           </div>
           <div class="dash-stat-subitems">
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.wanted">В поиске</span>
+              <span class="dash-subitem-label"><i data-lucide="search" class="ico-xxs" style="color:#fbbf24"></i> <span data-i18n="dash.wanted">В поиске</span></span>
               <span class="dash-subitem-val" style="color:#fbbf24" id="stat-wanted">0</span>
             </div>
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.downloading">Качается</span>
+              <span class="dash-subitem-label"><i data-lucide="arrow-down-circle" class="ico-xxs" style="color:var(--violet)"></i> <span data-i18n="dash.downloading">Качается</span></span>
               <span class="dash-subitem-val" style="color:var(--violet)" id="stat-downloading">0</span>
             </div>
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.downloaded">Скачано</span>
+              <span class="dash-subitem-label"><i data-lucide="check" class="ico-xxs" style="color:var(--teal)"></i> <span data-i18n="dash.downloaded">Скачано</span></span>
               <span class="dash-subitem-val" style="color:var(--teal)" id="stat-downloaded">0</span>
             </div>
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.unaired">Не вышло</span>
+              <span class="dash-subitem-label"><i data-lucide="clock" class="ico-xxs text-muted"></i> <span data-i18n="dash.unaired">Не вышло</span></span>
               <span class="dash-subitem-val" style="color:var(--text-muted)" id="stat-unaired">0</span>
             </div>
           </div>
         </div>
 
         <!-- Карточка 4: Хранилище и интеграции -->
-        <div class="dash-stat-card">
+        <div class="dash-stat-card card-storage">
           <div>
             <div class="dash-stat-header">
-              <span class="dash-stat-title"><i data-lucide="hard-drive"></i> <span data-i18n="dash.card_files_disk">Файлы и Диск</span></span>
+              <span class="dash-stat-title">
+                <div class="dash-stat-icon-badge"><i data-lucide="hard-drive"></i></div>
+                <span data-i18n="dash.card_files_disk">Файлы и Диск</span>
+              </span>
             </div>
             <div class="dash-stat-main-val" id="stat-size">0 B</div>
           </div>
           <div class="dash-stat-subitems">
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.files">Файлы</span>
+              <span class="dash-subitem-label"><i data-lucide="file-video" class="ico-xxs text-muted"></i> <span data-i18n="dash.files">Файлы</span></span>
               <span class="dash-subitem-val" id="stat-files">0</span>
             </div>
             <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.total_size">Объем</span>
+              <span class="dash-subitem-label"><i data-lucide="database" class="ico-xxs text-muted"></i> <span data-i18n="dash.total_size">Объем</span></span>
               <span class="dash-subitem-val" id="stat-size-sub">0 B</span>
             </div>
-            <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.indexers">Индексаторы</span>
+            <div class="dash-subitem" onclick="switchTab('settings'); setTimeout(() => switchSettingsSubTab('indexers'), 50);" style="cursor:pointer;" title="Настройки индексаторов">
+              <span class="dash-subitem-label"><i data-lucide="search" class="ico-xxs text-info"></i> <span data-i18n="dash.indexers">Индексаторы</span></span>
               <span class="dash-subitem-val" id="stat-indexers">0</span>
             </div>
-            <div class="dash-subitem">
-              <span class="dash-subitem-label" data-i18n="dash.download_clients">Загрузчики</span>
+            <div class="dash-subitem" onclick="switchTab('settings'); setTimeout(() => switchSettingsSubTab('clients'), 50);" style="cursor:pointer;" title="Настройки загрузчиков">
+              <span class="dash-subitem-label"><i data-lucide="download-cloud" class="ico-xxs text-teal"></i> <span data-i18n="dash.download_clients">Загрузчики</span></span>
               <span class="dash-subitem-val" id="stat-clients">0</span>
             </div>
           </div>
         </div>
       </div>
 
+      <!-- Средний ряд: Ближайшие выходы + Последние захваты -->
       <div class="dash-columns">
-        <div class="card">
+        <div class="card dash-feed-card">
           <div class="card-header-row">
-            <h3 data-i18n="dash.upcoming_releases">Ближайшие выходы</h3>
-            <button class="btn-link" onclick="switchTab('calendar')" data-i18n="dash.full_calendar">Весь календарь →</button>
+            <div class="dash-feed-header-left">
+              <div class="dash-feed-icon-badge"><i data-lucide="calendar"></i></div>
+              <h3 data-i18n="dash.upcoming_releases">Ближайшие выходы</h3>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="switchTab('calendar')" data-i18n="dash.full_calendar">Весь календарь →</button>
           </div>
           <div id="dash-calendar" class="simple-list"></div>
         </div>
-        <div class="card">
+        <div class="card dash-feed-card">
           <div class="card-header-row">
-            <h3 data-i18n="dash.recent_grabs">Последние захваты</h3>
-            <button class="btn-link" onclick="switchTab('history')" data-i18n="dash.full_history">Вся история →</button>
+            <div class="dash-feed-header-left">
+              <div class="dash-feed-icon-badge"><i data-lucide="history"></i></div>
+              <h3 data-i18n="dash.recent_grabs">Последние захваты</h3>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="switchTab('history')" data-i18n="dash.full_history">Вся история →</button>
           </div>
           <div id="dash-history" class="simple-list"></div>
         </div>
       </div>
 
+      <!-- Нижний ряд: О программе + Здоровье системы -->
       <div class="dash-columns system-dash-columns">
-        <!-- Карточка 1: О программе (как у Sonarr) -->
+        <!-- Карточка 1: О программе -->
         <div class="card dash-system-card">
           <div class="card-header-row">
-            <h3 class="dash-card-header">
-              <i data-lucide="info" class="ico-sm icon-title" style="color:var(--teal)"></i> 
-              <span data-i18n="dash.about_title">О программе</span>
-            </h3>
+            <div class="dash-feed-header-left">
+              <div class="dash-feed-icon-badge"><i data-lucide="info"></i></div>
+              <h3 class="dash-card-header" data-i18n="dash.about_title">О программе</h3>
+            </div>
+            <span class="badge badge-teal mono" id="dash-about-version">v1.0.0</span>
           </div>
           <div id="dash-about-content" class="about-grid">
             <div class="simple-list-empty" data-i18n="common.loading">Загрузка...</div>
@@ -356,10 +401,10 @@
         <!-- Карточка 2: Здоровье системы -->
         <div class="card dash-system-card">
           <div class="card-header-row">
-            <h3 class="dash-card-header">
-              <i data-lucide="activity" class="ico-sm icon-title" style="color:var(--teal)"></i> 
-              <span data-i18n="dash.system_health">Здоровье системы</span>
-            </h3>
+            <div class="dash-feed-header-left">
+              <div class="dash-feed-icon-badge"><i data-lucide="activity"></i></div>
+              <h3 class="dash-card-header" data-i18n="dash.system_health">Здоровье системы</h3>
+            </div>
             <span class="badge badge-ok" id="dash-health-badge" data-i18n="health.status_ok">В норме</span>
           </div>
           <div id="health-checks" class="health-grid"></div>

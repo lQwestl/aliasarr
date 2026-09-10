@@ -2986,6 +2986,8 @@ function applyUserPermissionsToUI() {
   // 4. Wanted search all button
   const btnSearchWanted = document.getElementById("wanted-search-btn");
   if (btnSearchWanted) btnSearchWanted.style.display = hasPermission("manual_search") ? "" : "none";
+  const btnDashWanted = document.getElementById("dash-wanted-search-btn");
+  if (btnDashWanted) btnDashWanted.style.display = hasPermission("manual_search") ? "" : "none";
 
   // 5. Active tab fallback if currently on forbidden tab
   const activeNav = document.querySelector('.sidebar nav .nav-item.active');
@@ -4506,13 +4508,19 @@ function pad(n) { return String(n).padStart(2, "0"); }
 // =============================================================================
 
 async function triggerWantedSearch(btn) {
-  await withLoading(btn, async () => {
+  if (!hasPermission("manual_search")) {
+    toast(CURRENT_LANG === "en" ? "Permission denied" : "Недостаточно прав", true);
+    return;
+  }
+  const button = btn || document.getElementById("wanted-search-btn") || document.getElementById("dash-wanted-search-btn");
+  await withLoading(button, async () => {
     try {
       const res = await api("/api/v1/search/wanted", { method: "POST" });
-      toast(`${t("common.confirm")}: ${res.grabbed_shows || 0}`, false);
+      toast(t("dash.toast_grabbed_for_shows", { count: res.grabbed_shows || 0 }), false);
+      if (typeof loadQueue === "function") loadQueue();
       await loadDashboard();
     } catch (e) {
-      toast("Ошибка: " + e.message, true);
+      toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + (e.message || e), true);
     }
   });
 }
@@ -4537,12 +4545,39 @@ async function loadDashboard() {
     setElText("stat-ended", stats.ended || 0);
     setElText("stat-continuing", stats.continuing || 0);
 
+    const monProgEl = document.getElementById("stat-monitored-progress-bar");
+    if (monProgEl) {
+      const monPct = totalShows > 0 ? Math.min(100, Math.round((monitored / totalShows) * 100)) : 0;
+      monProgEl.style.width = `${monPct}%`;
+    }
+
     // Эпизоды и загрузки
-    setElText("stat-episodes", `${stats.total_episodes || 0} ${t("dash.episodes_count")}`);
-    setElText("stat-wanted", stats.wanted || 0);
-    setElText("stat-downloading", stats.downloading || 0);
-    setElText("stat-downloaded", stats.downloaded || 0);
-    setElText("stat-unaired", stats.unaired || 0);
+    const totalEpisodes = stats.total_episodes || 0;
+    const wanted = stats.wanted || 0;
+    const downloading = stats.downloading || 0;
+    const downloaded = stats.downloaded || 0;
+    const unaired = stats.unaired || 0;
+
+    setElText("stat-episodes", `${totalEpisodes} ${t("dash.episodes_count")}`);
+    setElText("stat-wanted", wanted);
+    setElText("stat-downloading", downloading);
+    setElText("stat-downloaded", downloaded);
+    setElText("stat-unaired", unaired);
+
+    const totalEpPool = totalEpisodes > 0 ? totalEpisodes : (downloaded + downloading + wanted + unaired);
+    const epDownEl = document.getElementById("stat-ep-prog-downloaded");
+    const epDlEl = document.getElementById("stat-ep-prog-downloading");
+    const epWantEl = document.getElementById("stat-ep-prog-wanted");
+
+    if (totalEpPool > 0) {
+      if (epDownEl) epDownEl.style.width = `${Math.min(100, (downloaded / totalEpPool) * 100)}%`;
+      if (epDlEl) epDlEl.style.width = `${Math.min(100, (downloading / totalEpPool) * 100)}%`;
+      if (epWantEl) epWantEl.style.width = `${Math.min(100, (wanted / totalEpPool) * 100)}%`;
+    } else {
+      if (epDownEl) epDownEl.style.width = "0%";
+      if (epDlEl) epDlEl.style.width = "0%";
+      if (epWantEl) epWantEl.style.width = "0%";
+    }
 
     // Файлы и Диск
     const sizeStr = formatSize(stats.total_size_bytes || 0);
@@ -11105,20 +11140,6 @@ async function confirmDeleteQueueItem() {
   });
 }
 
-async function triggerWantedSearch() {
-  if (!hasPermission("manual_search")) {
-    toast(CURRENT_LANG === "en" ? "Permission denied" : "Недостаточно прав", true);
-    return;
-  }
-  const button = document.getElementById("wanted-search-btn");
-  await withLoading(button, async () => {
-    try {
-      const result = await api("/api/v1/search/wanted", { method: "POST" });
-      toast(t("dash.toast_grabbed_for_shows", { count: result.grabbed_shows }));
-      loadQueue();
-    } catch (e) { toast("Ошибка: " + e.message, true); }
-  });
-}
 
 async function triggerManualCheckDownloads() {
   toast(CURRENT_LANG === "en" ? "Checking completed downloads..." : "Проверка завершённых загрузок...");
