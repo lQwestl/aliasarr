@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import asyncio
+import datetime as dt
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -12,9 +15,22 @@ except ImportError:
 
 
 class TestManualSearchLogging(unittest.TestCase):
+    def _create_mock_decision(self):
+        dec = MagicMock()
+        dec.approved = True
+        dec.quality.name = "1080p"
+        dec.quality.rank = 100
+        dec.quality.to_dict.return_value = {"rank": 100, "name": "1080p"}
+        dec.language_badges = []
+        dec.release_group = "TEST"
+        dec.custom_formats = []
+        dec.custom_format_score = 0
+        dec.rejections = []
+        return dec
+
     def test_search_custom_releases_logs_events(self):
         if not HAS_DEPS:
-            self.skipTest('FastAPI / dependencies not installed in host runner')
+            self.skipTest("FastAPI / dependencies not installed in host runner")
         mock_db = MagicMock()
         mock_indexer = Indexer(id=1, name="RuTracker", enabled=True, priority=1)
         mock_db.query.return_value.filter.return_value.all.return_value = [mock_indexer]
@@ -34,8 +50,11 @@ class TestManualSearchLogging(unittest.TestCase):
         mock_client = AsyncMock()
         mock_client.search.return_value = [mock_rel]
 
+        mock_decision = self._create_mock_decision()
+
         with patch("app.api.indexers.get_indexer_client", return_value=mock_client), \
              patch("app.api.indexers.get_or_create_settings") as mock_settings, \
+             patch("app.api.indexers.DecisionEngine.evaluate_release", return_value=mock_decision), \
              patch("app.api.indexers.manual_logger") as mock_logger:
 
             mock_settings.return_value = MagicMock()
@@ -55,7 +74,7 @@ class TestManualSearchLogging(unittest.TestCase):
 
     def test_search_releases_for_show_logs_events(self):
         if not HAS_DEPS:
-            self.skipTest('FastAPI / dependencies not installed in host runner')
+            self.skipTest("FastAPI / dependencies not installed in host runner")
         mock_db = MagicMock()
         mock_show = Show(id=1, title="Attack on Titan", content_type="anime", year=2013)
         mock_indexer = Indexer(id=1, name="Nyaa", enabled=True, priority=1)
@@ -66,7 +85,18 @@ class TestManualSearchLogging(unittest.TestCase):
             return None
 
         mock_db.get.side_effect = mock_get
-        mock_db.query.return_value.filter.return_value.all.return_value = [mock_indexer]
+
+        def mock_query(model):
+            q = MagicMock()
+            if model == Indexer:
+                q.filter.return_value.all.return_value = [mock_indexer]
+            elif model == Episode:
+                q.filter.return_value.all.return_value = []
+            else:
+                q.filter.return_value.all.return_value = []
+            return q
+
+        mock_db.query.side_effect = mock_query
 
         mock_user = MagicMock(spec=User)
 
@@ -82,9 +112,12 @@ class TestManualSearchLogging(unittest.TestCase):
         mock_client = AsyncMock()
         mock_client.search.return_value = [mock_rel]
 
+        mock_decision = self._create_mock_decision()
+
         with patch("app.api.indexers.get_indexer_client", return_value=mock_client), \
              patch("app.api.indexers.get_or_create_settings") as mock_settings, \
              patch("app.api.indexers.build_alias_candidates", return_value=[]), \
+             patch("app.api.indexers.DecisionEngine.evaluate_release", return_value=mock_decision), \
              patch("app.api.indexers.manual_logger") as mock_logger:
 
             mock_settings.return_value = MagicMock()
@@ -101,14 +134,15 @@ class TestManualSearchLogging(unittest.TestCase):
 
     def test_list_journal_component_filter(self):
         if not HAS_DEPS:
-            self.skipTest('FastAPI / dependencies not installed in host runner')
+            self.skipTest("FastAPI / dependencies not installed in host runner")
         mock_db = MagicMock()
         mock_query = mock_db.query.return_value
         mock_query.filter.return_value = mock_query
         mock_query.count.return_value = 2
+        now = dt.datetime.now(dt.timezone.utc)
         mock_query.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [
-            LogEntry(id=1, level="info", component="aliasarr.manual_search", message="Test search"),
-            LogEntry(id=2, level="info", component="aliasarr.manual_search", message="Test grab"),
+            LogEntry(id=1, created_at=now, level="info", component="aliasarr.manual_search", message="Test search"),
+            LogEntry(id=2, created_at=now, level="info", component="aliasarr.manual_search", message="Test grab"),
         ]
 
         mock_user = MagicMock(spec=User)
@@ -131,3 +165,4 @@ class TestManualSearchLogging(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
