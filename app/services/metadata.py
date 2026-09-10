@@ -2756,7 +2756,7 @@ async def refresh_all_shows_metadata(db, force: bool = False, username: str = "s
     Отслеживается в task_manager и отображается в виджете фоновых операций.
     """
     from app.models.db import Show
-    from app.services.audit import log_audit
+    from app.services.audit_service import log_audit
     from app.services.task_manager import task_manager
 
     all_shows = db.query(Show).all()

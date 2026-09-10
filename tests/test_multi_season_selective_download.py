@@ -328,6 +328,34 @@ class TestMultiSeasonSelectiveDownload(unittest.TestCase):
             self.assertEqual(method, "torrent-add")
             self.assertTrue(args.get("paused"))
 
+    def test_transmission_session_id_caching(self):
+        """Проверяет кэширование X-Transmission-Session-Id между запросами и обработку 409 Conflict."""
+        import asyncio
+        from unittest.mock import AsyncMock, patch, MagicMock
+        from app.services.download_client import TransmissionClient, _TRANSMISSION_SESSION_CACHE
+
+        _TRANSMISSION_SESSION_CACHE.clear()
+        client = TransmissionClient("127.0.0.1", 9091, "admin", "admin")
+
+        mock_resp_409 = MagicMock(status_code=409, headers={"X-Transmission-Session-Id": "sess_123"})
+        mock_resp_200 = MagicMock(status_code=200, headers={}, json=lambda: {"result": "success", "arguments": {"torrents": []}})
+        mock_resp_200.raise_for_status = MagicMock()
+
+        mock_httpx = MagicMock()
+        mock_http_instance = MagicMock()
+        mock_http_instance.post = AsyncMock(side_effect=[mock_resp_409, mock_resp_200, mock_resp_200])
+        mock_httpx.AsyncClient.return_value.__aenter__.return_value = mock_http_instance
+
+        with patch("app.services.download_client.httpx", mock_httpx):
+            # Первый вызов: получает 409, затем повторяет с sess_123
+            res1 = asyncio.run(client._rpc_call("torrent-get"))
+            self.assertEqual(res1, {"torrents": []})
+            self.assertEqual(_TRANSMISSION_SESSION_CACHE.get(client._rpc_url), "sess_123")
+
+            # Второй новый инстанс клиента должен сразу использовать сохраненный сессионный ключ
+            client2 = TransmissionClient("127.0.0.1", 9091, "admin", "admin")
+            self.assertEqual(client2._session_id, "sess_123")
+
     def test_qbittorrent_add_torrent_paused(self):
         """Проверяет, что QBittorrentClient.add_torrent отправляет paused=true при paused=True."""
         import asyncio

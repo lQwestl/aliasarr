@@ -268,6 +268,9 @@ async def _fetch_torrent_content_if_url(url_or_magnet: str) -> tuple[Optional[by
     return None, url_or_magnet
 
 
+_QBITTORRENT_COOKIE_CACHE: dict[str, dict[str, str]] = {}
+
+
 class QBittorrentClient(BaseDownloadClient):
     """Асинхронный клиент qBittorrent Web API v2 через httpx с поддержкой qbittorrentapi."""
 
@@ -275,7 +278,7 @@ class QBittorrentClient(BaseDownloadClient):
         self._base_url = _normalize_client_url(host, port, default_port=8080).rstrip("/")
         self._username = username or ""
         self._password = password or ""
-        self._cookies: dict[str, str] = {}
+        self._cookies: dict[str, str] = dict(_QBITTORRENT_COOKIE_CACHE.get(self._base_url, {}))
         try:
             import qbittorrentapi
             self._sync_client = qbittorrentapi.Client(
@@ -298,6 +301,7 @@ class QBittorrentClient(BaseDownloadClient):
             if resp.status_code == 200:
                 for k, v in resp.cookies.items():
                     self._cookies[k] = v
+                _QBITTORRENT_COOKIE_CACHE[self._base_url] = dict(self._cookies)
         except Exception as exc:
             logger.debug("qBittorrent login attempt: %s", exc)
 
@@ -656,32 +660,39 @@ class QBittorrentClient(BaseDownloadClient):
 
 
 
+_TRANSMISSION_SESSION_CACHE: dict[str, str] = {}
+
+
 class TransmissionClient(BaseDownloadClient):
     """Асинхронный клиент Transmission RPC через httpx с поддержкой transmission_rpc."""
 
     def __init__(self, host: str, port: int, username: str, password: str):
         self._rpc_url = _normalize_client_url(host, port, default_port=9091).rstrip("/") + "/transmission/rpc"
         self._auth = (username, password) if (username or password) else None
-        self._session_id: Optional[str] = None
-        try:
-            import transmission_rpc
-            self._sync_client = transmission_rpc.Client(
-                host=host, port=port, username=username, password=password,
-            )
-        except Exception:
-            self._sync_client = None
+        self._session_id: Optional[str] = _TRANSMISSION_SESSION_CACHE.get(self._rpc_url)
+        self._sync_client = None
 
     async def _rpc_call(self, method: str, arguments: Optional[dict] = None) -> dict:
+        session_id = _TRANSMISSION_SESSION_CACHE.get(self._rpc_url) or self._session_id
         headers = {}
-        if self._session_id:
-            headers["X-Transmission-Session-Id"] = self._session_id
+        if session_id:
+            headers["X-Transmission-Session-Id"] = session_id
 
-        async with httpx.AsyncClient(timeout=30.0, auth=self._auth, verify=False) as client:
+        async with httpx.AsyncClient(timeout=15.0, auth=self._auth, verify=False) as client:
             resp = await client.post(self._rpc_url, json={"method": method, "arguments": arguments or {}}, headers=headers)
             if resp.status_code == 409:
-                self._session_id = resp.headers.get("X-Transmission-Session-Id")
-                headers["X-Transmission-Session-Id"] = self._session_id
+                session_id = resp.headers.get("X-Transmission-Session-Id")
+                if session_id:
+                    self._session_id = session_id
+                    _TRANSMISSION_SESSION_CACHE[self._rpc_url] = session_id
+                    headers["X-Transmission-Session-Id"] = session_id
                 resp = await client.post(self._rpc_url, json={"method": method, "arguments": arguments or {}}, headers=headers)
+
+            new_sid = resp.headers.get("X-Transmission-Session-Id")
+            if new_sid:
+                self._session_id = new_sid
+                _TRANSMISSION_SESSION_CACHE[self._rpc_url] = new_sid
+
             resp.raise_for_status()
             data = resp.json()
             result_str = data.get("result", "")
