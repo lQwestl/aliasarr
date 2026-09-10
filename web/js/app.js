@@ -4739,15 +4739,10 @@ async function loadDashboard() {
 
 async function loadSystemAbout() {
   const el = document.getElementById("dash-about-content");
-  const versionBadge = document.getElementById("dash-about-version");
   if (!el) return;
   try {
     const info = await api("/api/v1/system/about");
     if (!info) return;
-
-    if (versionBadge) {
-      versionBadge.textContent = `v${info.version || '1.0.0'}`;
-    }
 
     const isRu = CURRENT_LANG !== "en";
     const versionVal = `v${escapeHtml(info.version || '1.0.0')} (${escapeHtml(info.branch || 'main')})`;
