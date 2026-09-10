@@ -385,7 +385,13 @@
         </header>
 
         <div class="toolbar" style="flex-wrap: wrap; gap: 8px;">
-          <input id="library-search" class="input input-grow" type="text" placeholder="Найти в библиотеке…" data-i18n-placeholder="library.search_placeholder" oninput="renderLibrary()">
+          <div class="library-search-wrap">
+            <i data-lucide="search" class="library-search-icon"></i>
+            <input id="library-search" class="input library-search-input" type="text" placeholder="Найти в библиотеке…" data-i18n-placeholder="library.search_placeholder" oninput="onLibrarySearchInput()" onkeydown="onLibrarySearchKeyDown(event)">
+            <button id="library-search-clear" class="library-search-clear-btn" onclick="clearLibrarySearch()" style="display:none;" title="Очистить поиск" aria-label="Очистить поиск">
+              <i data-lucide="x"></i>
+            </button>
+          </div>
           <div class="btn-group" id="library-category-btns" style="display:flex;gap:4px;flex-shrink:0;">
             <button class="btn btn-secondary btn-small active" data-category="all" onclick="setLibraryCategory('all')" data-i18n="library.filter_all">Все</button>
             <button class="btn btn-secondary btn-small" data-category="movie" onclick="setLibraryCategory('movie')" data-i18n="library.filter_movies">Фильмы</button>

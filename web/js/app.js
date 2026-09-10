@@ -4846,6 +4846,35 @@ function qualityProfileName(id) {
   return qp ? qp.name : (id ? `Профиль #${id}` : t("common.any_quality"));
 }
 
+function onLibrarySearchInput() {
+  const searchInput = document.getElementById("library-search");
+  const clearBtn = document.getElementById("library-search-clear");
+  if (clearBtn) {
+    clearBtn.style.display = (searchInput && searchInput.value.length > 0) ? "inline-flex" : "none";
+  }
+  renderLibrary();
+}
+
+function onLibrarySearchKeyDown(event) {
+  if (event.key === "Escape") {
+    clearLibrarySearch();
+    event.preventDefault();
+  }
+}
+
+function clearLibrarySearch() {
+  const searchInput = document.getElementById("library-search");
+  if (searchInput) {
+    searchInput.value = "";
+    searchInput.focus();
+  }
+  const clearBtn = document.getElementById("library-search-clear");
+  if (clearBtn) {
+    clearBtn.style.display = "none";
+  }
+  renderLibrary();
+}
+
 function renderLibrary() {
   const viewLabel = document.getElementById("view-switcher-label");
   if (viewLabel) viewLabel.textContent = t(VIEW_MODE_LABELS[LIBRARY_VIEW_MODE]);
@@ -4863,6 +4892,10 @@ function renderLibrary() {
 
   const searchInput = document.getElementById("library-search");
   const query = (searchInput ? searchInput.value : "").toLowerCase().trim();
+  const clearBtn = document.getElementById("library-search-clear");
+  if (clearBtn) {
+    clearBtn.style.display = (searchInput && searchInput.value.length > 0) ? "inline-flex" : "none";
+  }
 
   let shows = CACHED_SHOWS || [];
 

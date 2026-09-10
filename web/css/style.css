@@ -11136,13 +11136,15 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   font-weight: 700;
 }
 
+.library-search-wrap,
 .blocklist-search-wrap {
   position: relative;
   flex: 1;
   max-width: 420px;
-  min-width: 240px;
+  min-width: 200px;
 }
 
+.library-search-icon,
 .blocklist-search-icon {
   position: absolute;
   left: 12px;
@@ -11154,15 +11156,17 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   pointer-events: none;
 }
 
+.library-search-input,
 .blocklist-search-input {
   width: 100%;
   padding-left: 36px;
-  padding-right: 32px;
+  padding-right: 34px;
 }
 
+.library-search-clear-btn,
 .blocklist-search-clear-btn {
   position: absolute;
-  right: 10px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -11172,10 +11176,23 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   padding: 4px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
+.library-search-clear-btn:hover,
 .blocklist-search-clear-btn:hover {
   color: var(--text);
+  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+}
+
+.library-search-clear-btn svg,
+.library-search-clear-btn i,
+.blocklist-search-clear-btn svg,
+.blocklist-search-clear-btn i {
+  width: 16px;
+  height: 16px;
 }
 
 .blocklist-layout {
