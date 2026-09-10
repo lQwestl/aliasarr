@@ -23,7 +23,7 @@ except ImportError:
     httpx = None  # type: ignore
 
 try:
-    from app.models.db import Alias, AliasLanguage, Episode, EpisodeStatus, MetadataSource, Show
+    from app.models.db import Alias, AliasLanguage, Episode, EpisodeStatus, MetadataSource, Show, MovieCollection
 except ImportError:
     class _DummyExpr:
         def __eq__(self, other): return self
@@ -75,6 +75,11 @@ except ImportError:
         content_type = _DummyExpr()
         id = _DummyExpr()
 
+    class MovieCollection:  # type: ignore
+        id = _DummyExpr()
+        tmdb_collection_id = _DummyExpr()
+        title = _DummyExpr()
+
 
 @dataclass
 class MetadataResult:
@@ -113,6 +118,16 @@ class MetadataShowDetails:
     year: Optional[int] = None
     content_type: Optional[str] = None  # "series" | "movie"
     premiere_date: Optional[str] = None  # ISO-дата премьеры/выхода
+    in_cinemas_date: Optional[str] = None
+    digital_release_date: Optional[str] = None
+    physical_release_date: Optional[str] = None
+    edition: Optional[str] = None
+    collection_tmdb_id: Optional[int] = None
+    collection_name: Optional[str] = None
+    collection_overview: Optional[str] = None
+    collection_poster_url: Optional[str] = None
+    collection_backdrop_url: Optional[str] = None
+    collection_order: Optional[int] = None
     imdb_id: Optional[str] = None
     tmdb_id: Optional[int] = None
     tvdb_id: Optional[int] = None
@@ -444,6 +459,57 @@ class TMDBClient(BaseMetadataClient):
                 if vid.get("type") == "Trailer":
                     break
 
+        # Раздельные даты релиза (Radarr / TMDb Release Dates: Theatrical, Digital, Physical)
+        in_cinemas_date = None
+        digital_release_date = None
+        physical_release_date = None
+        rel_results = (data.get("release_dates") or {}).get("results", [])
+        if isinstance(rel_results, list):
+            cinemas_dates = []
+            digital_dates = []
+            physical_dates = []
+            for country_obj in rel_results:
+                if not isinstance(country_obj, dict):
+                    continue
+                for rd in country_obj.get("release_dates", []):
+                    if not isinstance(rd, dict):
+                        continue
+                    rd_type = rd.get("type")
+                    rd_date = str(rd.get("release_date") or "")[:10]
+                    if not rd_date:
+                        continue
+                    if rd_type in (1, 2, 3):  # Premiere, Theatrical limited, Theatrical
+                        cinemas_dates.append(rd_date)
+                    elif rd_type == 4:  # Digital
+                        digital_dates.append(rd_date)
+                    elif rd_type == 5:  # Physical
+                        physical_dates.append(rd_date)
+            if cinemas_dates:
+                in_cinemas_date = min(cinemas_dates)
+            if digital_dates:
+                digital_release_date = min(digital_dates)
+            if physical_dates:
+                physical_release_date = min(physical_dates)
+
+        if not in_cinemas_date and premiere:
+            in_cinemas_date = str(premiere)[:10]
+
+        # Киноколлекция / Франшиза (TMDb Collection)
+        coll_data = data.get("belongs_to_collection")
+        coll_tmdb_id = None
+        coll_name = None
+        coll_poster_url = None
+        coll_backdrop_url = None
+        if isinstance(coll_data, dict):
+            coll_tmdb_id = coll_data.get("id")
+            coll_name = coll_data.get("name")
+            cp = coll_data.get("poster_path")
+            if cp:
+                coll_poster_url = f"{self.IMAGE_BASE}{cp}"
+            cb = coll_data.get("backdrop_path")
+            if cb:
+                coll_backdrop_url = f"{self.IMAGE_BASE}{cb}"
+
         return MetadataShowDetails(
             external_id=f"movie:{tmdb_id}",
             title=title,
@@ -456,10 +522,59 @@ class TMDBClient(BaseMetadataClient):
             genre=", ".join(genres) if genres else None,
             content_type="movie",
             premiere_date=premiere,
+            in_cinemas_date=in_cinemas_date,
+            digital_release_date=digital_release_date,
+            physical_release_date=physical_release_date,
+            collection_tmdb_id=coll_tmdb_id,
+            collection_name=coll_name,
+            collection_poster_url=coll_poster_url,
+            collection_backdrop_url=coll_backdrop_url,
             imdb_id=imdb_id_val,
             tmdb_id=tmdb_id_int,
             trailer_url=trailer_url_val,
         )
+
+    async def get_collection_details(self, tmdb_collection_id: int | str) -> dict:
+        """Получить полный список фильмов киноколлекции/саги из TMDb API."""
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.get(
+                f"{self.BASE_URL}/collection/{tmdb_collection_id}",
+                params={"language": "en-US"},
+                headers=self._headers(),
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        parts = []
+        for p in data.get("parts", []):
+            if not isinstance(p, dict):
+                continue
+            p_id = p.get("id")
+            p_title = p.get("title") or p.get("original_title") or ""
+            p_rel = p.get("release_date") or ""
+            p_year = int(p_rel[:4]) if p_rel and len(p_rel) >= 4 and p_rel[:4].isdigit() else None
+            poster = p.get("poster_path")
+            parts.append({
+                "tmdb_id": p_id,
+                "title": p_title,
+                "year": p_year,
+                "release_date": p_rel[:10] if p_rel else None,
+                "overview": p.get("overview"),
+                "poster_url": f"{self.IMAGE_BASE}{poster}" if poster else None,
+                "rating": p.get("vote_average"),
+            })
+        parts.sort(key=lambda x: x.get("release_date") or "9999")
+
+        c_poster = data.get("poster_path")
+        c_backdrop = data.get("backdrop_path")
+        return {
+            "id": data.get("id"),
+            "name": data.get("name"),
+            "overview": data.get("overview"),
+            "poster_url": f"{self.IMAGE_BASE}{c_poster}" if c_poster else None,
+            "backdrop_url": f"{self.IMAGE_BASE}{c_backdrop}" if c_backdrop else None,
+            "parts": parts,
+        }
 
     async def _get_tv_details(self, tmdb_id: str) -> MetadataShowDetails:
         async with httpx.AsyncClient(timeout=30) as client:
@@ -1257,6 +1372,14 @@ class RadarrClient(BaseMetadataClient):
                 yt_id = data.get("youTubeTrailerId")
                 trailer_url_val = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else None
 
+                in_cinemas_val = str(data.get("inCinemas") or data.get("inCinema") or "")[:10] or None
+                digital_rel_val = str(data.get("digitalRelease") or "")[:10] or None
+                physical_rel_val = str(data.get("physicalRelease") or "")[:10] or None
+
+                coll_data = data.get("collection")
+                coll_tmdb_id_val = data.get("collectionTmdbId") or (coll_data.get("tmdbId") if isinstance(coll_data, dict) else None)
+                coll_title_val = data.get("collectionTitle") or (coll_data.get("title") or coll_data.get("name") if isinstance(coll_data, dict) else None)
+
                 if title and title.strip():
                     return MetadataShowDetails(
                         external_id=f"movie:{clean_id}",
@@ -1271,6 +1394,11 @@ class RadarrClient(BaseMetadataClient):
                         network=data.get("studio"),
                         content_type="movie",
                         premiere_date=str(premiere)[:10] if premiere else None,
+                        in_cinemas_date=in_cinemas_val,
+                        digital_release_date=digital_rel_val,
+                        physical_release_date=physical_rel_val,
+                        collection_tmdb_id=coll_tmdb_id_val,
+                        collection_name=coll_title_val,
                         imdb_id=imdb_id_val,
                         tmdb_id=tmdb_id_val,
                         trailer_url=trailer_url_val,
@@ -1279,6 +1407,11 @@ class RadarrClient(BaseMetadataClient):
         # 3. Fallback на TMDB с сервисным токеном
         tmdb = TMDBClient(api_key=self.RADARR_TMDB_TOKEN, alias_countries=self.alias_countries)
         return await tmdb._get_movie_details(clean_id)
+
+    async def get_collection_details(self, tmdb_collection_id: int | str) -> dict:
+        """Получить киноколлекцию через TMDb API с сервисным токеном Radarr."""
+        tmdb = TMDBClient(api_key=self.RADARR_TMDB_TOKEN, alias_countries=self.alias_countries)
+        return await tmdb.get_collection_details(tmdb_collection_id)
 
 
 class TheTVDBClient(BaseMetadataClient):
@@ -2279,6 +2412,51 @@ async def refresh_show_metadata(db, show) -> dict:
     if new_premiere and show.premiere_date != new_premiere:
         show.premiere_date = new_premiere
         changed = True
+
+    new_in_cinemas = _parse_date(getattr(details, "in_cinemas_date", None))
+    if new_in_cinemas and getattr(show, "in_cinemas_date", None) != new_in_cinemas:
+        show.in_cinemas_date = new_in_cinemas
+        changed = True
+
+    new_digital = _parse_date(getattr(details, "digital_release_date", None))
+    if new_digital and getattr(show, "digital_release_date", None) != new_digital:
+        show.digital_release_date = new_digital
+        changed = True
+
+    new_physical = _parse_date(getattr(details, "physical_release_date", None))
+    if new_physical and getattr(show, "physical_release_date", None) != new_physical:
+        show.physical_release_date = new_physical
+        changed = True
+
+    # Movie Collection auto-link/creation
+    coll_tmdb_id = getattr(details, "collection_tmdb_id", None)
+    coll_name = getattr(details, "collection_name", None)
+    if is_movie and (coll_tmdb_id or coll_name):
+        try:
+            from app.models.db import MovieCollection
+            coll = None
+            if coll_tmdb_id:
+                coll = db.query(MovieCollection).filter(MovieCollection.tmdb_collection_id == coll_tmdb_id).first()
+            if not coll and coll_name:
+                coll = db.query(MovieCollection).filter(MovieCollection.title == coll_name).first()
+            if not coll and coll_name:
+                coll = MovieCollection(
+                    tmdb_collection_id=coll_tmdb_id,
+                    title=coll_name,
+                    overview=getattr(details, "collection_overview", None),
+                    poster_url=getattr(details, "collection_poster_url", None),
+                    backdrop_url=getattr(details, "collection_backdrop_url", None),
+                )
+                db.add(coll)
+                db.flush()
+            if coll and show.collection_id != coll.id:
+                show.collection_id = coll.id
+                changed = True
+            if coll and getattr(details, "collection_order", None) is not None and show.collection_order != details.collection_order:
+                show.collection_order = details.collection_order
+                changed = True
+        except Exception as e:
+            logger.debug("Failed to link movie collection for %s: %s", show.title, e)
 
     # 5. Обновляем серии
     if is_movie:

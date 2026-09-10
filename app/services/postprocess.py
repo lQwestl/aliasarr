@@ -379,6 +379,7 @@ def render_sonarr_token(
     air_date: Optional[dt.date] = None,
     release_group: str = "",
     custom_formats: str = "",
+    edition: str = "",
 ) -> str:
     max_len = None
     from_start = False
@@ -397,6 +398,8 @@ def render_sonarr_token(
 
     if token_norm in ("series title", "show title", "show_title", "show", "series", "movie title", "title"):
         val = show_title
+    elif token_norm in ("movie edition", "edition", "movie_edition"):
+        val = edition or ""
     elif token_norm in ("series cleantitle", "movie cleantitle"):
         val = _clean_title(show_title)
     elif token_norm in ("series titleyear", "movie titleyear"):
@@ -554,18 +557,41 @@ def render_episode_template(
     return re.sub(r"\s+", " ", res).strip()
 
 
-def render_movie_template(template: str, *, show_title: str, year: Optional[int], quality: str) -> str:
-    """Рендерит шаблон для фильма, например: "{Movie Title} ({Release Year}) {Quality Full}"."""
+def render_movie_template(
+    template: str,
+    *,
+    show_title: str = "",
+    movie_title: str = "",
+    year: Optional[int] = None,
+    movie_year: Optional[int] = None,
+    quality: str = "",
+    quality_title: str = "",
+    edition: Optional[str] = None,
+    release_group: str = "",
+    imdb_id: str = "",
+    tmdb_id: str = "",
+) -> str:
+    """Рендерит шаблон для фильма, например: "{Movie Title} ({Release Year}) [{Movie Edition}] {Quality Full}"."""
+    title = movie_title or show_title
+    yr = movie_year if movie_year is not None else year
+    q = quality_title or quality
+
     def _replacer(m):
         raw = m.group(1)
         return render_sonarr_token(
             raw,
-            show_title=show_title,
-            year=year,
-            quality=quality,
+            show_title=title,
+            year=yr,
+            quality=q,
+            edition=edition or "",
+            release_group=release_group,
+            imdb_id=imdb_id,
+            tmdb_id=tmdb_id,
         )
 
     res = re.sub(r"\{([^}]+)\}", _replacer, template or "")
+    # Очищаем пустые скобки, если опциональный токен (например, [ {Movie Edition} ]) был пуст
+    res = re.sub(r"\[\s*\]|\(\s*\)|\{\s*\}", "", res)
     return re.sub(r"\s+", " ", res).strip()
 
 
@@ -1964,8 +1990,28 @@ def process_movie_download(
             matched_videos.sort(key=lambda x: (x[1], os.path.getsize(x[0]) if os.path.exists(x[0]) else 0), reverse=True)
             video_files = [x[0] for x in matched_videos]
 
-    main_file = max(video_files, key=lambda f: os.path.getsize(f) if os.path.exists(f) else 0)
-    ext = os.path.splitext(main_file)[1]
+    # Проверяем наличие многофайловых частей фильма (CD1/CD2, Part 1/Part 2, Disc 1/Disc 2)
+    from app.services.movie_merger import find_movie_parts, merge_movie_parts, is_merge_tool_available
+    movie_parts = find_movie_parts(video_files)
+    merged_staging_created = False
+    staging_file = None
+
+    if movie_parts and len(movie_parts) >= 2 and is_merge_tool_available():
+        logger.info("process_movie_download: Обнаружены части фильма (%d шт): %s. Запуск склейки...", len(movie_parts), movie_parts)
+        if progress_callback:
+            progress_callback(0.3, f"Склейка {len(movie_parts)} частей фильма...")
+        staging_file = os.path.join(movie_root, f".staging_merged_{int(dt.datetime.utcnow().timestamp())}.mkv")
+        merge_ok = merge_movie_parts(movie_parts, staging_file, progress_callback=progress_callback)
+        if merge_ok and os.path.exists(staging_file):
+            main_file = staging_file
+            merged_staging_created = True
+            ext = ".mkv"
+        else:
+            main_file = max(video_files, key=lambda f: os.path.getsize(f) if os.path.exists(f) else 0)
+            ext = os.path.splitext(main_file)[1]
+    else:
+        main_file = max(video_files, key=lambda f: os.path.getsize(f) if os.path.exists(f) else 0)
+        ext = os.path.splitext(main_file)[1]
 
     context_hints = [os.path.basename(download_path), show.title]
     if db:
@@ -2019,6 +2065,17 @@ def process_movie_download(
         except Exception:
             pass
 
+    # Определение издания/версии фильма (Director's Cut, Extended Edition, IMAX...)
+    from app.services.parser import parse_movie_edition
+    movie_edition = None
+    for h in context_hints:
+        ed = parse_movie_edition(h)
+        if ed:
+            movie_edition = ed
+            break
+    if not movie_edition:
+        movie_edition = parse_movie_edition(os.path.basename(main_file))
+
     q_info = detect_file_quality(main_file, context_hints)
     quality = q_info.name
 
@@ -2027,6 +2084,9 @@ def process_movie_download(
         show_title=show.title,
         year=show.year,
         quality=quality,
+        edition=movie_edition,
+        imdb_id=getattr(show, "imdb_id", "") or "",
+        tmdb_id=str(getattr(show, "tmdb_id", "") or ""),
     )
     dest_video_path = os.path.join(movie_root, target_stem + ext)
 
@@ -2044,9 +2104,23 @@ def process_movie_download(
                 os.remove(old_ep.file_path)
             except OSError:
                 pass
-        transfer_res = transfer_media_file(main_file, dest_video_path, keep_source=keep_source, use_hardlinks=use_hardlinks)
+        if merged_staging_created and staging_file and os.path.exists(staging_file):
+            if os.path.exists(dest_video_path) and os.path.abspath(staging_file) != os.path.abspath(dest_video_path):
+                try:
+                    os.remove(dest_video_path)
+                except OSError:
+                    pass
+            shutil.move(staging_file, dest_video_path)
+            transfer_res = "merged"
+        else:
+            transfer_res = transfer_media_file(main_file, dest_video_path, keep_source=keep_source, use_hardlinks=use_hardlinks)
         apply_media_permissions(dest_video_path, is_dir=False)
     except Exception as exc:
+        if staging_file and os.path.exists(staging_file):
+            try:
+                os.remove(staging_file)
+            except OSError:
+                pass
         return [{"file": main_file, "status": "failed", "reason": str(exc)}]
 
     # Копируем шрифты
@@ -2127,18 +2201,26 @@ def process_movie_download(
             file_path=dest_video_path,
             download_progress=1.0,
             downloaded_quality=quality,
+            edition=movie_edition,
             video_codec=q_info.video_codec,
             audio_codec=q_info.audio_codec,
             audio_channels=q_info.audio_channels,
             dynamic_range=q_info.dynamic_range,
             file_size_bytes=os.path.getsize(dest_video_path) if os.path.exists(dest_video_path) else None,
         )
+        if movie_edition:
+            show.edition = movie_edition
+            db.add(show)
         db.add(episode)
     else:
         episode.status = EpisodeStatus.DOWNLOADED
         episode.file_path = dest_video_path
         episode.download_progress = 1.0
         episode.downloaded_quality = quality
+        if movie_edition:
+            episode.edition = movie_edition
+            show.edition = movie_edition
+            db.add(show)
         if q_info.video_codec:
             episode.video_codec = q_info.video_codec
         if q_info.audio_codec:
@@ -2198,6 +2280,8 @@ def process_movie_download(
         action_text = "захардлинкован (раздача сохранена, 0 байт)"
     elif transfer_res == "copy":
         action_text = "скопирован (раздача сохранена)"
+    elif transfer_res == "merged":
+        action_text = f"объединён из {len(movie_parts)} частей (раздача сохранена)"
     else:
         action_text = "перемещён"
 

@@ -93,6 +93,26 @@ class ContentCategory(str, enum.Enum):
     ANIME = "anime"
 
 
+class MovieCollection(Base):
+    """Киноколлекция / Франшиза (Radarr Movie Collection / TMDb Collection).
+    Объединяет фильмы одной серии/саги (например, «Аватар», «Гарри Поттер», «Marvel Cinematic Universe»).
+    """
+    __tablename__ = "movie_collections"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tmdb_collection_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, unique=True, index=True)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    overview: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    poster_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    backdrop_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    monitored: Mapped[bool] = mapped_column(Boolean, default=True)
+    quality_profile_id: Mapped[Optional[int]] = mapped_column(ForeignKey("quality_profiles.id", ondelete="SET NULL"), nullable=True)
+    root_folder: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, default=dt.datetime.utcnow)
+
+    shows: Mapped[list["Show"]] = relationship("Show", back_populates="collection")
+
+
 class Show(Base):
     __tablename__ = "shows"
 
@@ -119,6 +139,15 @@ class Show(Base):
     content_type: Mapped[str] = mapped_column(String(20), default="series", index=True)  # movie | series | anime (см. ContentCategory)
     ova_mode: Mapped[str] = mapped_column(String(20), default="auto")  # auto | season_1 | specials
     premiere_date: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
+    # Раздельные типы дат премьеры для фильмов (Radarr / TMDb Release Dates)
+    in_cinemas_date: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
+    digital_release_date: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
+    physical_release_date: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
+    # Издание / версия фильма (Director's Cut, Extended Edition, IMAX Enhanced...)
+    edition: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    # Привязка к киноколлекции/франшизе
+    collection_id: Mapped[Optional[int]] = mapped_column(ForeignKey("movie_collections.id", ondelete="SET NULL"), nullable=True, index=True)
+    collection_order: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     # Ожидаемый год/квартал выхода (когда точной даты премьеры ещё нет в метаданных)
     expected_year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     expected_quarter: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # 1-4
@@ -141,6 +170,7 @@ class Show(Base):
     shikimori_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     trailer_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
 
+    collection: Mapped[Optional["MovieCollection"]] = relationship("MovieCollection", back_populates="shows")
     aliases: Mapped[list["Alias"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     episodes: Mapped[list["Episode"]] = relationship(back_populates="show", cascade="all, delete-orphan")
     season_splits: Mapped[list["SeasonSplit"]] = relationship(back_populates="show", cascade="all, delete-orphan")
@@ -240,6 +270,7 @@ class Episode(Base):
     downloaded_quality: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     # Технические свойства медиафайла
+    edition: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     video_codec: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     audio_codec: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     audio_channels: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)

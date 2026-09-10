@@ -1344,3 +1344,53 @@ def detect_season_label(release_name: str) -> dict:
 
     return {"type": "none"}
 
+
+# ---------------------------------------------------------------------------
+# Парсер версий и изданий фильмов (Movie Editions)
+# ---------------------------------------------------------------------------
+
+_EDITION_PATTERNS = [
+    # Special Extended Edition / SEE
+    (r"\b(?:special[\s._-]*extended[\s._-]*(?:edition|cut|version)|s\.?e\.?e\.?)\b", "Special Extended Edition"),
+    # Final Cut
+    (r"\b(?:final[\s._-]*cut)\b", "Final Cut"),
+    # Director's Cut
+    (r"\b(?:director(?:'?s)?[\s._-]*cut|directors[\s._-]*cut|режисс[её]рск(?:ая|ую|ой|ие)?[\s._-]*(?:верси[яию]|cut)?|dir(?:ector)?[\s._-]*cut)\b", "Director's Cut"),
+    # Extended Edition / Cut
+    (r"\b(?:extended(?:[\s._-]*(?:edition|cut|version))?|расширенн(?:ая|ую|ой|ые)?[\s._-]*(?:верси[яию]|cut)?|ext\.?(?:cut|edition)?)\b", "Extended Edition"),
+    # Theatrical Cut
+    (r"\b(?:theatrical(?:[\s._-]*(?:cut|edition|version))?|театральн(?:ая|ую|ой)?[\s._-]*(?:верси[яию]|cut)?)\b", "Theatrical Cut"),
+    # IMAX Enhanced / IMAX Edition
+    (r"\b(?:imax(?:[\s._-]*(?:enhanced|edition|cut))?)\b", "IMAX Enhanced"),
+    # Unrated / Uncut
+    (r"\b(?:unrated|uncut|нецензурн(?:ая|ую|ой)?[\s._-]*(?:верси[яию])?)\b", "Unrated"),
+    # Remastered
+    (r"\b(?:remaster(?:ed)?|ремастер(?:инг)?)\b", "Remastered"),
+    # Special Edition
+    (r"\b(?:special[\s._-]*edition|специальн(?:ое|ому|ым)?[\s._-]*издани[ея]|спец\.?[\s._-]*издание)\b", "Special Edition"),
+    # Ultimate Edition
+    (r"\b(?:ultimate[\s._-]*(?:edition|cut))\b", "Ultimate Edition"),
+    # Criterion Collection
+    (r"\b(?:criterion(?:[\s._-]*collection)?)\b", "Criterion Collection"),
+    # Collector's Edition
+    (r"\b(?:collector(?:'?s)?[\s._-]*edition|коллекционн(?:ое|ому|ым)?[\s._-]*издани[ея])\b", "Collector's Edition"),
+    # Open Matte
+    (r"\b(?:open[\s._-]*matte)\b", "Open Matte"),
+]
+
+_COMPILED_EDITION_PATTERNS = [(re.compile(pat, re.IGNORECASE), name) for pat, name in _EDITION_PATTERNS]
+
+
+def parse_movie_edition(name: str) -> Optional[str]:
+    """
+    Извлекает издание / монтажную версию фильма из названия релиза или имени файла.
+    Возвращает нормализованное название издания (например, "Director's Cut", "Extended Edition", "IMAX Enhanced") или None.
+    """
+    if not name:
+        return None
+    for pattern, edition_name in _COMPILED_EDITION_PATTERNS:
+        if pattern.search(name):
+            return edition_name
+    return None
+
+

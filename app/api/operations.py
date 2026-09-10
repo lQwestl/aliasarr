@@ -599,18 +599,54 @@ def get_calendar(
 
     out: list[CalendarEntryOut] = []
     shows_with_episode_entries: set[int] = set()
+    movie_shows_seen: set[int] = set()
+
     for ep in episodes:
         show = db.get(Show, ep.show_id)
         if not show:
             continue
+
+        if show.content_type == "movie":
+            movie_shows_seen.add(show.id)
+            # Для фильмов используем гранулярные даты релиза (кино, цифра, диск), если они заданы
+            has_granular = bool(show.in_cinemas_date or show.digital_release_date or show.physical_release_date)
+            if has_granular:
+                st = _calendar_status(show, ep, ep.air_date, "episode")
+                if show.in_cinemas_date and start <= show.in_cinemas_date <= end:
+                    out.append(CalendarEntryOut(
+                        show_id=show.id, episode_id=ep.id, show_title=show.title, poster_url=show.poster_url,
+                        season=1, episode=1, absolute_episode=None, title="Кинотеатральный релиз",
+                        air_date=show.in_cinemas_date, status=st,
+                        entry_type="episode", content_type="movie", monitored=show.monitored,
+                        overview=show.overview, rating=show.rating, year=show.year,
+                        release_types=["cinemas"],
+                    ))
+                if show.digital_release_date and start <= show.digital_release_date <= end:
+                    out.append(CalendarEntryOut(
+                        show_id=show.id, episode_id=ep.id, show_title=show.title, poster_url=show.poster_url,
+                        season=1, episode=1, absolute_episode=None, title="Цифровой релиз (WEB-DL)",
+                        air_date=show.digital_release_date, status=st,
+                        entry_type="episode", content_type="movie", monitored=show.monitored,
+                        overview=show.overview, rating=show.rating, year=show.year,
+                        release_types=["digital"],
+                    ))
+                if show.physical_release_date and start <= show.physical_release_date <= end:
+                    out.append(CalendarEntryOut(
+                        show_id=show.id, episode_id=ep.id, show_title=show.title, poster_url=show.poster_url,
+                        season=1, episode=1, absolute_episode=None, title="Физический релиз (Blu-ray / DVD)",
+                        air_date=show.physical_release_date, status=st,
+                        entry_type="episode", content_type="movie", monitored=show.monitored,
+                        overview=show.overview, rating=show.rating, year=show.year,
+                        release_types=["physical"],
+                    ))
+                continue
+
         shows_with_episode_entries.add(ep.show_id)
         st = _calendar_status(show, ep, ep.air_date, "episode")
         if status_filter != "all" and st != status_filter:
             continue
 
-        rel_types = []
-        if show.content_type == "movie":
-            rel_types = ["cinemas"]
+        rel_types = ["cinemas"] if show.content_type == "movie" else []
 
         out.append(CalendarEntryOut(
             show_id=ep.show_id, episode_id=ep.id, show_title=show.title, poster_url=show.poster_url,
@@ -621,10 +657,65 @@ def get_calendar(
             release_types=rel_types,
         ))
 
-    # Премьеры фильмов/анонсированных шоу без серий:
+    # Премьеры фильмов/анонсированных шоу без серий или с гранулярными датами:
+    movie_candidates_q = (
+        db.query(Show)
+        .filter(Show.content_type == "movie", Show.in_calendar.is_(True))
+    )
+    if monitored_only:
+        movie_candidates_q = movie_candidates_q.filter(Show.monitored.is_(True))
+
+    for m in movie_candidates_q.all():
+        if m.id in movie_shows_seen:
+            continue
+        st = _calendar_status(m, None, m.premiere_date, "premiere")
+        if status_filter != "all" and st != status_filter:
+            continue
+        has_any = False
+        if m.in_cinemas_date and start <= m.in_cinemas_date <= end:
+            out.append(CalendarEntryOut(
+                show_id=m.id, show_title=m.title, poster_url=m.poster_url,
+                season=None, episode=None, absolute_episode=None, title="Кинотеатральный релиз",
+                air_date=m.in_cinemas_date, status=st,
+                entry_type="premiere", content_type="movie", monitored=m.monitored,
+                overview=m.overview, rating=m.rating, year=m.year,
+                release_types=["cinemas"],
+            ))
+            has_any = True
+        if m.digital_release_date and start <= m.digital_release_date <= end:
+            out.append(CalendarEntryOut(
+                show_id=m.id, show_title=m.title, poster_url=m.poster_url,
+                season=None, episode=None, absolute_episode=None, title="Цифровой релиз (WEB-DL)",
+                air_date=m.digital_release_date, status=st,
+                entry_type="premiere", content_type="movie", monitored=m.monitored,
+                overview=m.overview, rating=m.rating, year=m.year,
+                release_types=["digital"],
+            ))
+            has_any = True
+        if m.physical_release_date and start <= m.physical_release_date <= end:
+            out.append(CalendarEntryOut(
+                show_id=m.id, show_title=m.title, poster_url=m.poster_url,
+                season=None, episode=None, absolute_episode=None, title="Физический релиз (Blu-ray / DVD)",
+                air_date=m.physical_release_date, status=st,
+                entry_type="premiere", content_type="movie", monitored=m.monitored,
+                overview=m.overview, rating=m.rating, year=m.year,
+                release_types=["physical"],
+            ))
+            has_any = True
+        if not has_any and m.premiere_date and start <= m.premiere_date <= end:
+            out.append(CalendarEntryOut(
+                show_id=m.id, show_title=m.title, poster_url=m.poster_url,
+                season=None, episode=None, absolute_episode=None, title=None,
+                air_date=m.premiere_date, status=st,
+                entry_type="premiere", content_type="movie", monitored=m.monitored,
+                overview=m.overview, rating=m.rating, year=m.year,
+                release_types=["cinemas"],
+            ))
+
+    # Премьеры сериалов без серий:
     premiering_q = (
         db.query(Show)
-        .filter(Show.premiere_date.isnot(None), Show.premiere_date >= start, Show.premiere_date <= end)
+        .filter(Show.content_type != "movie", Show.premiere_date.isnot(None), Show.premiere_date >= start, Show.premiere_date <= end)
         .filter(Show.in_calendar.is_(True))
     )
     if monitored_only:
@@ -634,12 +725,10 @@ def get_calendar(
 
     for show in premiering_q.all():
         if show.id in shows_with_episode_entries:
-            continue  # уже показано через собственные серии
+            continue
         st = _calendar_status(show, None, show.premiere_date, "premiere")
         if status_filter != "all" and st != status_filter:
             continue
-
-        rel_types = ["cinemas"] if show.content_type == "movie" else []
 
         out.append(CalendarEntryOut(
             show_id=show.id, show_title=show.title, poster_url=show.poster_url,
@@ -648,7 +737,7 @@ def get_calendar(
             status=st,
             entry_type="premiere", content_type=show.content_type, monitored=show.monitored,
             overview=show.overview, rating=show.rating, year=show.year,
-            release_types=rel_types,
+            release_types=[],
         ))
 
     out.sort(key=lambda e: e.air_date or dt.datetime.min)

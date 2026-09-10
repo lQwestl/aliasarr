@@ -224,6 +224,29 @@ const TRANSLATIONS = {
     "blocklist.global_unlinked": "Другие / Без привязки",
     "blocklist.all_releases": "Все раздачи",
 
+    "library.filter_collections": "Коллекции",
+    "collection.modal_title": "Киноколлекция / Франшиза",
+    "collection.modal_subtitle": "Управление фильмами саги и пакетный импорт",
+    "collection.empty_title": "Коллекции не найдены",
+    "collection.empty_desc": "Киноколлекции и франшизы будут появляться здесь автоматически при добавлении фильмов саги или синхронизации метаданных.",
+    "collection.in_library": "В библиотеке",
+    "collection.missing": "Не хватает",
+    "collection.btn_import_missing": "Импортировать недостающие фильмы",
+    "collection.importing": "Импорт саги...",
+    "collection.btn_add_to_library": "Добавить в библиотеку",
+    "collection.status_in_lib": "В библиотеке",
+    "collection.status_missing": "Отсутствует",
+    "movie.edition": "Издание",
+    "movie.edition_theatrical": "Theatrical Cut",
+    "movie.edition_directors": "Director's Cut",
+    "movie.edition_extended": "Extended Edition",
+    "movie.edition_imax": "IMAX Enhanced",
+    "movie.edition_unrated": "Unrated",
+    "movie.edition_remastered": "Remastered",
+    "movie.date_cinemas": "В кино",
+    "movie.date_digital": "Цифра",
+    "movie.date_physical": "Диск",
+
     "settings.autosearch_subtitle": "Периодичность проверки разыскиваемых релизов, фоновых загрузок и отслеживания раздач",
     "users.subtitle": "Управление учетными записями, ролями и гранулярными правами доступа",
     "users.display_name": "Отображаемое имя",
@@ -1516,6 +1539,29 @@ const TRANSLATIONS = {
     "blocklist.posters_off": "Posters: OFF",
     "blocklist.global_unlinked": "Other / Unlinked",
     "blocklist.all_releases": "All releases",
+
+    "library.filter_collections": "Collections",
+    "collection.modal_title": "Movie Collection / Franchise",
+    "collection.modal_subtitle": "Manage franchise movies and batch import",
+    "collection.empty_title": "No collections found",
+    "collection.empty_desc": "Movie collections and sagas will appear here automatically when adding movies from a franchise.",
+    "collection.in_library": "In Library",
+    "collection.missing": "Missing",
+    "collection.btn_import_missing": "Import Missing Movies",
+    "collection.importing": "Importing saga...",
+    "collection.btn_add_to_library": "Add to Library",
+    "collection.status_in_lib": "In Library",
+    "collection.status_missing": "Missing",
+    "movie.edition": "Edition",
+    "movie.edition_theatrical": "Theatrical Cut",
+    "movie.edition_directors": "Director's Cut",
+    "movie.edition_extended": "Extended Edition",
+    "movie.edition_imax": "IMAX Enhanced",
+    "movie.edition_unrated": "Unrated",
+    "movie.edition_remastered": "Remastered",
+    "movie.date_cinemas": "In Theaters",
+    "movie.date_digital": "Digital",
+    "movie.date_physical": "Physical Disc",
 
     "settings.autosearch_subtitle": "Intervals for wanted search, background downloads and ongoing tracking",
     "users.subtitle": "Manage accounts, roles and granular access permissions",
@@ -5129,11 +5175,12 @@ async function loadHealthCheck() {
 
 let LIBRARY_VIEW_MODE = localStorage.getItem("aliasarr_library_view") || "posters";
 const VIEW_MODE_LABELS = { posters: "library.view_posters", table: "library.view_table", overview: "library.view_overview" };
-const CATEGORY_FILTER_LABELS = { all: "library.filter_all", movie: "library.filter_movies", series: "library.filter_series", anime: "library.filter_anime" };
+const CATEGORY_FILTER_LABELS = { all: "library.filter_all", movie: "library.filter_movies", collections: "library.filter_collections", series: "library.filter_series", anime: "library.filter_anime" };
 const MONITOR_FILTER_LABELS = { all: "library.filter_all", monitored: "library.filter_monitored", unmonitored: "library.filter_unmonitored" };
 
 let LIBRARY_CATEGORY_FILTER = localStorage.getItem("aliasarr_library_cat") || "all";
 let LIBRARY_MONITOR_FILTER = localStorage.getItem("aliasarr_library_mon") || "all";
+let CACHED_COLLECTIONS = [];
 
 function setLibraryCategory(category) {
   if (LIBRARY_CATEGORY_FILTER === category && category !== "all") {
@@ -5426,13 +5473,10 @@ function renderLibrary() {
   updateLibraryFilterButtons();
 
   const grid = document.getElementById("shows-grid");
+  const collectionsGrid = document.getElementById("collections-grid");
   const tableWrap = document.getElementById("shows-table-wrap");
   const overviewWrap = document.getElementById("shows-overview-wrap");
   const empty = document.getElementById("shows-empty");
-
-  if (grid) grid.style.display = LIBRARY_VIEW_MODE === "posters" ? "grid" : "none";
-  if (tableWrap) tableWrap.style.display = LIBRARY_VIEW_MODE === "table" ? "block" : "none";
-  if (overviewWrap) overviewWrap.style.display = LIBRARY_VIEW_MODE === "overview" ? "flex" : "none";
 
   const searchInput = document.getElementById("library-search");
   const query = (searchInput ? searchInput.value : "").toLowerCase().trim();
@@ -5440,6 +5484,25 @@ function renderLibrary() {
   if (clearBtn) {
     clearBtn.style.display = (searchInput && searchInput.value.length > 0) ? "inline-flex" : "none";
   }
+
+  if (LIBRARY_CATEGORY_FILTER === "collections") {
+    if (grid) grid.style.display = "none";
+    if (tableWrap) tableWrap.style.display = "none";
+    if (overviewWrap) overviewWrap.style.display = "none";
+    if (collectionsGrid) collectionsGrid.style.display = "grid";
+    if (empty) empty.style.display = "none";
+    const dashContainer = document.getElementById("library-dashboard-container");
+    if (dashContainer) dashContainer.innerHTML = "";
+    const alphaIndex = document.getElementById("alphabet-index");
+    if (alphaIndex) alphaIndex.style.display = "none";
+    renderCollectionsView(query);
+    return;
+  }
+  if (collectionsGrid) collectionsGrid.style.display = "none";
+
+  if (grid) grid.style.display = LIBRARY_VIEW_MODE === "posters" ? "grid" : "none";
+  if (tableWrap) tableWrap.style.display = LIBRARY_VIEW_MODE === "table" ? "block" : "none";
+  if (overviewWrap) overviewWrap.style.display = LIBRARY_VIEW_MODE === "overview" ? "flex" : "none";
 
   let shows = CACHED_SHOWS || [];
 
@@ -5545,6 +5608,232 @@ function renderLibraryDashboard(shows) {
       </div>
     </div>
   `;
+}
+
+// ---------- MOVIE COLLECTIONS & FRANCHISES (Radarr Style) ----------
+
+async function loadCollections(force = false) {
+  if (!force && CACHED_COLLECTIONS.length) return CACHED_COLLECTIONS;
+  try {
+    CACHED_COLLECTIONS = await api("/api/v1/collections");
+    return CACHED_COLLECTIONS;
+  } catch (e) {
+    CACHED_COLLECTIONS = [];
+    return [];
+  }
+}
+
+async function renderCollectionsView(query = "") {
+  const collectionsGrid = document.getElementById("collections-grid");
+  if (!collectionsGrid) return;
+
+  const collections = await loadCollections();
+  let filtered = collections || [];
+
+  if (LIBRARY_MONITOR_FILTER === "monitored") {
+    filtered = filtered.filter(c => c.monitored === true);
+  } else if (LIBRARY_MONITOR_FILTER === "unmonitored") {
+    filtered = filtered.filter(c => !c.monitored);
+  }
+
+  if (query) {
+    filtered = filtered.filter(c =>
+      (c.title && c.title.toLowerCase().includes(query)) ||
+      (c.overview && c.overview.toLowerCase().includes(query))
+    );
+  }
+
+  if (!filtered.length) {
+    collectionsGrid.innerHTML = `
+      <div class="empty-state" style="grid-column: 1 / -1; padding: 48px 20px;">
+        <div style="font-size: 36px; margin-bottom: 12px; opacity: 0.5;"><i data-lucide="boxes" style="width: 48px; height: 48px;"></i></div>
+        <h3>${t("collection.empty_title")}</h3>
+        <p style="max-width: 500px; margin: 8px auto; color: var(--text-muted); font-size: 13.5px; line-height: 1.5;">${t("collection.empty_desc")}</p>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
+
+  collectionsGrid.innerHTML = filtered.map(renderCollectionCard).join("");
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderCollectionCard(coll) {
+  const bgImg = coll.backdrop_url || coll.poster_url;
+  const posterStyle = bgImg ? `style="background-image:url('${bgImg}')"` : "";
+  const total = coll.shows_count || 0;
+  const downloaded = coll.downloaded_count || 0;
+  const pct = total > 0 ? Math.round((downloaded / total) * 100) : 0;
+  const mTitle = coll.monitored ? t("dash.monitored") : t("dash.unmonitored");
+  const mIcon = coll.monitored ? "bookmark-check" : "bookmark-x";
+  const mClass = coll.monitored ? "monitored" : "unmonitored";
+
+  return `
+    <div class="collection-card" id="collection-card-${coll.id}" onclick="openCollectionModal(${coll.id})">
+      <div class="collection-poster-wrap" ${posterStyle}>
+        <div class="collection-poster-gradient"></div>
+        <span class="collection-poster-badge">
+          <i data-lucide="boxes" class="ico-xxs"></i>
+          <span>${downloaded}/${total}</span>
+        </span>
+      </div>
+      <div class="collection-info-wrap">
+        <h3 class="collection-card-title">${escapeHtml(coll.title)}</h3>
+        <div class="show-monitored-badge-wrap" style="margin: 2px 0;">
+          <span class="show-monitored-pill ${mClass}">
+            <i data-lucide="${mIcon}" class="ico-xs"></i>
+            <span>${escapeHtml(mTitle)}</span>
+          </span>
+        </div>
+        ${coll.overview ? `<p class="collection-card-overview">${escapeHtml(coll.overview)}</p>` : ""}
+        <div class="collection-progress-wrap">
+          <div class="collection-progress-meta">
+            <span>${CURRENT_LANG === 'en' ? 'Saga Progress' : 'Прогресс саги'}</span>
+            <span class="mono">${pct}%</span>
+          </div>
+          <div class="collection-progress-bar">
+            <div class="collection-progress-fill" style="width: ${pct}%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function openCollectionModal(collectionId) {
+  const content = document.getElementById("collection-modal-content");
+  if (!content) return;
+  content.innerHTML = `<div style="padding: 40px; text-align: center; color: var(--text-muted);"><i data-lucide="loader-2" class="status-pill-spin"></i> ${t("common.loading")}</div>`;
+  openModal("collection-modal");
+  if (window.lucide) lucide.createIcons();
+
+  try {
+    const coll = await api(`/api/v1/collections/${collectionId}`);
+    const bg = coll.backdrop_url || coll.poster_url;
+    const backdropStyle = bg ? `style="background-image:url('${bg}')"` : "";
+    const posterStyle = coll.poster_url ? `style="background-image:url('${coll.poster_url}')"` : "";
+
+    const parts = coll.franchise_parts || [];
+    const missingCount = parts.filter(p => !p.in_library).length;
+    const canManageLib = hasPermission("manage_library");
+
+    content.innerHTML = `
+      <div class="collection-hero">
+        <div class="collection-hero-backdrop" ${backdropStyle}></div>
+        <div class="collection-hero-content">
+          <div class="collection-hero-poster" ${posterStyle}>
+            ${coll.poster_url ? "" : `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:800;color:var(--text-muted);"><i data-lucide="boxes"></i></div>`}
+          </div>
+          <div class="collection-hero-meta">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+              <h2 class="collection-hero-title">${escapeHtml(coll.title)}</h2>
+              ${canManageLib && missingCount > 0 ? `
+                <button class="btn btn-primary btn-small" id="btn-import-missing-${coll.id}" onclick="importMissingFranchiseMovies(${coll.id}, this)">
+                  <i data-lucide="download-cloud" class="ico-xs"></i>
+                  <span>${t("collection.btn_import_missing")} (${missingCount})</span>
+                </button>
+              ` : ""}
+            </div>
+            <div class="show-hero-meta-bar" style="margin: 0;">
+              <span class="meta-pill mono">${coll.shows_count} ${t("collection.in_library")}</span>
+              ${missingCount > 0 ? `<span class="meta-pill mono text-warning">${missingCount} ${t("collection.missing")}</span>` : `<span class="meta-pill meta-pill-status status-ended"><i data-lucide="check-circle-2" class="ico-xs"></i> <span>Коллекция собрана</span></span>`}
+            </div>
+            ${coll.overview ? `<p class="collection-hero-overview">${escapeHtml(coll.overview)}</p>` : ""}
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-card-header" style="margin-bottom: 12px;">
+        <div class="settings-card-header-left">
+          <div class="settings-card-icon-badge"><i data-lucide="film"></i></div>
+          <div class="settings-card-title-wrap">
+            <h3 style="margin:0; font-size:16px;">${CURRENT_LANG === 'en' ? 'Franchise Movies' : 'Фильмы франшизы'}</h3>
+            <p class="subtitle" style="margin:0; font-size:12px;">${CURRENT_LANG === 'en' ? 'All movies in chronological/saga order' : 'Все части саги в хронологическом порядке выхода'}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="franchise-parts-grid">
+        ${parts.map((p, idx) => {
+          const partPosterStyle = p.poster_url ? `style="background-image:url('${p.poster_url}')"` : "";
+          const isInLib = p.in_library;
+          const statusBadge = isInLib
+            ? `<span class="badge badge-success" style="font-size:11px;"><i data-lucide="check" class="ico-xxs"></i> ${t("collection.status_in_lib")}</span>`
+            : `<span class="badge badge-secondary" style="font-size:11px; color:var(--text-muted);"><i data-lucide="circle-dashed" class="ico-xxs"></i> ${t("collection.status_missing")}</span>`;
+
+          return `
+            <div class="franchise-part-row">
+              <div class="franchise-part-poster" ${partPosterStyle}></div>
+              <div class="franchise-part-info">
+                <div class="franchise-part-title-row">
+                  <span class="mono" style="font-weight:700; color:var(--teal); font-size:13px;">#${idx + 1}</span>
+                  <span class="franchise-part-title">${escapeHtml(p.title)}</span>
+                  ${p.year ? `<span class="meta-pill mono" style="font-size:11px; padding:2px 6px;">${p.year}</span>` : ""}
+                  ${p.rating ? `<span class="meta-pill meta-pill-rating" style="font-size:11px; padding:2px 6px;"><i data-lucide="star" class="ico-xxs"></i> ${Number(p.rating).toFixed(1)}</span>` : ""}
+                  ${statusBadge}
+                </div>
+                ${p.overview ? `<p style="font-size:12px; color:var(--text-muted); margin:0; line-height:1.4; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;">${escapeHtml(p.overview)}</p>` : ""}
+              </div>
+              <div class="franchise-part-actions">
+                ${isInLib ? `
+                  <button class="btn btn-secondary btn-small" onclick="closeModal('collection-modal'); openShowModal(${p.show_id})" title="${CURRENT_LANG === 'en' ? 'Open Movie' : 'Открыть карточку фильма'}">
+                    <i data-lucide="arrow-up-right" class="ico-xs text-teal"></i>
+                    <span>${CURRENT_LANG === 'en' ? 'Open' : 'Открыть'}</span>
+                  </button>
+                ` : `
+                  ${canManageLib ? `
+                    <button class="btn btn-primary btn-small" onclick="importSingleMovieFromFranchise(${coll.id}, ${p.tmdb_id}, this)">
+                      <i data-lucide="plus" class="ico-xs"></i>
+                      <span>${t("collection.btn_add_to_library")}</span>
+                    </button>
+                  ` : ""}
+                `}
+              </div>
+            </div>
+          `;
+        }).join("") || `<div class="simple-list-empty">${CURRENT_LANG === 'en' ? 'No franchise movies found' : 'Фильмы саги не найдены'}</div>`}
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+  } catch (e) {
+    content.innerHTML = `<p style="color:var(--danger)">${CURRENT_LANG === 'en' ? 'Error loading collection:' : 'Ошибка загрузки коллекции:'} ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function importMissingFranchiseMovies(collectionId, btnEl) {
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = `<i data-lucide="loader-2" class="status-pill-spin ico-xs"></i> <span>${t("collection.importing")}</span>`;
+    if (window.lucide) lucide.createIcons();
+  }
+  try {
+    const res = await api(`/api/v1/collections/${collectionId}/import-missing`, { method: "POST", body: JSON.stringify({}) });
+    toast(CURRENT_LANG === "en" ? `Added ${res.added_count} movies to library` : `Добавлено ${res.added_count} фильмов в библиотеку`, "success");
+    await loadShows(true);
+    await loadCollections(true);
+    await openCollectionModal(collectionId);
+  } catch (e) {
+    toast(formatToastMessage(e.message), "error");
+    if (btnEl) btnEl.disabled = false;
+  }
+}
+
+async function importSingleMovieFromFranchise(collectionId, tmdbId, btnEl) {
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = `<i data-lucide="loader-2" class="status-pill-spin ico-xs"></i>`;
+    if (window.lucide) lucide.createIcons();
+  }
+  try {
+    const res = await api(`/api/v1/collections/${collectionId}/import-missing`, { method: "POST", body: JSON.stringify({}) });
+    toast(CURRENT_LANG === "en" ? `Movie added to library` : `Фильм добавлен в библиотеку`, "success");
+    await loadShows(true);
+    await loadCollections(true);
+    await openCollectionModal(collectionId);
+  } catch (e) {
+    toast(formatToastMessage(e.message), "error");
+    if (btnEl) btnEl.disabled = false;
+  }
 }
 
 function getTaskDisplayTitle(task) {
@@ -5753,6 +6042,12 @@ function renderShowCard(show) {
         ${upgradePill}
       </div>
     `;
+  }
+  if (show.edition) {
+    infoHtml += `<div style="margin: 2px 0;"><span class="badge-edition"><i data-lucide="sparkles" class="ico-xxs"></i> ${escapeHtml(show.edition)}</span></div>`;
+  }
+  if (show.collection_id && show.collection_title) {
+    infoHtml += `<div style="margin: 2px 0;"><span class="badge-collection" onclick="event.stopPropagation(); openCollectionModal(${show.collection_id})" title="${CURRENT_LANG === 'en' ? 'Collection' : 'Коллекция'}: ${escapeHtml(show.collection_title)}"><i data-lucide="boxes" class="ico-xxs"></i> ${escapeHtml(show.collection_title)}</span></div>`;
   }
   if (POSTER_OPTIONS.quality) {
     infoHtml += `<div class="show-quality-badge-wrap"><span class="show-quality-badge">${escapeHtml(qualityProfileName(show.quality_profile_id))}</span></div>`;
@@ -6676,6 +6971,7 @@ async function refreshShowModal() {
             </div>
 
             <div class="show-hero-meta-bar">
+              ${show.edition ? `<span class="badge-edition"><i data-lucide="sparkles" class="ico-xxs"></i> ${escapeHtml(show.edition)}</span>` : ""}
               ${show.rating ? `<span class="meta-pill meta-pill-rating"><i data-lucide="star" class="ico-xs"></i> ${Number(show.rating).toFixed(1)}</span>` : ""}
               ${show.year ? `<span class="meta-pill mono">${show.year}</span>` : ""}
               ${show.status ? `<span class="meta-pill meta-pill-status ${show.status === 'ended' ? 'status-ended' : 'status-continuing'}"><i data-lucide="${statusIco}" class="ico-xs"></i> ${statusLabel}</span>` : ""}
@@ -6685,6 +6981,11 @@ async function refreshShowModal() {
             </div>
 
             <div class="show-hero-badges-row">
+              ${show.collection_id && show.collection_title ? `
+                <span class="show-collection-chip" onclick="openCollectionModal(${show.collection_id})" title="${CURRENT_LANG === 'en' ? 'Part of Collection' : 'Входит в коллекцию'}">
+                  <i data-lucide="boxes" class="ico-xs"></i> <span>${escapeHtml(show.collection_title)}</span>
+                </span>
+              ` : ""}
               ${show.path ? `
                 <span class="meta-badge-glass show-path-badge" title="${escapeHtml(show.path)} (${CURRENT_LANG === 'en' ? 'Click to copy path' : 'Нажмите, чтобы скопировать путь'})"
                   onclick="if(navigator.clipboard){navigator.clipboard.writeText('${escapeHtml(show.path).replace(/'/g, "\\'")}'); toast(CURRENT_LANG==='en'?'Path copied':'Путь скопирован');}">
@@ -7718,11 +8019,38 @@ function renderMovieBlock(show, ep, canManageLib = true) {
   const movieProgressIcon = isDownloaded ? "check-circle-2" : "film";
   const movieProgressText = isDownloaded ? t("status.downloaded") : episodeStatusLabel(ep.status);
 
+  // Гранулярные даты выхода фильма (Кино, Цифра, Диск)
+  let granularDatesHtml = "";
+  const hasGranularDates = Boolean(show.in_cinemas_date || show.digital_release_date || show.physical_release_date);
+  if (hasGranularDates) {
+    granularDatesHtml = `<div class="movie-release-dates-row">`;
+    if (show.in_cinemas_date) {
+      granularDatesHtml += `<span class="movie-date-pill date-cinema" title="${CURRENT_LANG === 'en' ? 'Theatrical Release' : 'Премьера в кинотеатрах'}"><i data-lucide="clapperboard" class="ico-xs"></i> <span>${t("movie.date_cinemas")}: ${formatDateOnly(show.in_cinemas_date)}</span></span>`;
+    }
+    if (show.digital_release_date) {
+      granularDatesHtml += `<span class="movie-date-pill date-digital" title="${CURRENT_LANG === 'en' ? 'Digital Streaming / WEB-DL Release' : 'Цифровой релиз (WEB-DL / VOD)'}"><i data-lucide="monitor" class="ico-xs"></i> <span>${t("movie.date_digital")}: ${formatDateOnly(show.digital_release_date)}</span></span>`;
+    }
+    if (show.physical_release_date) {
+      granularDatesHtml += `<span class="movie-date-pill date-physical" title="${CURRENT_LANG === 'en' ? 'Physical Disc (Blu-ray / DVD) Release' : 'Физический релиз (Blu-ray / DVD)'}"><i data-lucide="disc" class="ico-xs"></i> <span>${t("movie.date_physical")}: ${formatDateOnly(show.physical_release_date)}</span></span>`;
+    }
+    granularDatesHtml += `</div>`;
+  }
+
+  const editionBadge = (show.edition || ep.edition)
+    ? `<span class="badge-edition"><i data-lucide="sparkles" class="ico-xxs"></i> ${escapeHtml(show.edition || ep.edition)}</span>`
+    : "";
+
+  const collectionChip = (show.collection_id && show.collection_title)
+    ? `<span class="badge-collection" onclick="openCollectionModal(${show.collection_id})" title="${CURRENT_LANG === 'en' ? 'Part of Collection' : 'Входит в коллекцию'}"><i data-lucide="boxes" class="ico-xxs"></i> ${escapeHtml(show.collection_title)}</span>`
+    : "";
+
   return `
     <div class="season-block" id="season-block-1">
       <div class="season-header">
-        <div class="season-header-left">
+        <div class="season-header-left" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <span>${t("settings.cat_movies")}</span>
+          ${editionBadge}
+          ${collectionChip}
           <span class="badge-season-progress ${movieProgressClass}">
             <i data-lucide="${movieProgressIcon}"></i>
             <span>${movieProgressText}</span>
@@ -7731,9 +8059,13 @@ function renderMovieBlock(show, ep, canManageLib = true) {
       </div>
       <div class="season-episodes">
         <div class="episode-row" id="episode-row-${ep.id}" data-episode-id="${ep.id}" data-status="${ep.status}">
-          <div class="episode-row-main">
-            <span class="ep-title">${escapeHtml(show.title)}</span>
-            ${renderAirDateBadge(ep.air_date)}
+          <div class="episode-row-main" style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span class="ep-title">${escapeHtml(show.title)}</span>
+              ${editionBadge}
+              ${!hasGranularDates ? renderAirDateBadge(ep.air_date) : ""}
+            </div>
+            ${granularDatesHtml}
           </div>
           <div class="episode-row-meta">
             <div class="episode-badges-wrap">

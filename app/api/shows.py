@@ -147,6 +147,7 @@ def _attach_computed_fields(db: Session, shows: list[Show]) -> list[ShowOut]:
         item.has_upgrade_pending = bool(getattr(show, "upgrade_requested", False) or upg_c > 0)
         item.upgrade_requested = bool(getattr(show, "upgrade_requested", False))
         item.next_airing = next_airing.get(show.id) or show.premiere_date
+        item.collection_title = show.collection.title if getattr(show, "collection", None) else None
         out.append(item)
     return out
 
@@ -158,6 +159,7 @@ def list_shows(db: Session = Depends(get_db), current_user: User = Depends(requi
 
 
 def _find_duplicate_show(db: Session, title: str, metadata_source: Optional[str], metadata_id: Optional[str]) -> Optional[Show]:
+    """Ищет существующий тайтл по metadata_id или нечувствительно к регистру названию."""
     if metadata_source and metadata_id:
         existing = (
             db.query(Show)
@@ -166,36 +168,33 @@ def _find_duplicate_show(db: Session, title: str, metadata_source: Optional[str]
         )
         if existing:
             return existing
-    normalized = title.strip().lower()
-    if not normalized:
-        return None
-    return db.query(Show).filter(func.lower(Show.title) == normalized).first()
+    return db.query(Show).filter(func.lower(Show.title) == title.lower().strip()).first()
 
 
-@router.post("", response_model=ShowOut, status_code=201, summary="Добавить тайтл в библиотеку")
+@router.post("", response_model=ShowOut, status_code=201)
 async def create_show(
     payload: ShowCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_library")),
 ):
-    """
-    Добавление нового фильма, сериала или аниме в библиотеку.
-    Автоматически создаёт служебную запись серии для фильмов и сохраняет алиасы на всех языках.
-    """
-    duplicate = _find_duplicate_show(db, payload.title, payload.metadata_source, payload.metadata_id)
-    if duplicate:
-        raise HTTPException(409, f"Шоу «{duplicate.title}» уже добавлено в библиотеку (id={duplicate.id})")
-
-    if payload.content_type not in ("movie", "series", "anime"):
-        raise HTTPException(400, "content_type должен быть movie, series или anime")
-
     clean_title, clean_year = clean_show_title_and_year(payload.title, payload.year)
+    existing = _find_duplicate_show(db, clean_title, payload.metadata_source, payload.metadata_id)
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Тайтл «{clean_title}» уже есть в библиотеке (ID: {existing.id})",
+        )
 
-    settings = get_or_create_settings(db)
-    final_path = payload.path or get_show_default_path(
-        Show(title=clean_title, year=clean_year, content_type=payload.content_type),
-        settings,
-    )
+    # Определяем корневую директорию для типа медиа
+    final_path = payload.path
+    if not final_path:
+        settings = get_or_create_settings(db)
+        cat_key = payload.content_type if payload.content_type in ("movie", "anime") else "series"
+        root_dir = get_category_root_folder(settings, cat_key)
+        if root_dir:
+            from app.services.postprocess import build_show_folder_name
+            folder_name = build_show_folder_name(clean_title, clean_year, getattr(settings, "folder_format", None))
+            final_path = os.path.join(root_dir, folder_name)
 
     show = Show(
         title=clean_title,
@@ -207,6 +206,9 @@ async def create_show(
         path=final_path,
         quality_profile_id=payload.quality_profile_id,
         content_type=payload.content_type,
+        edition=payload.edition,
+        collection_id=payload.collection_id,
+        collection_order=payload.collection_order,
         imdb_id=payload.imdb_id,
         tmdb_id=payload.tmdb_id,
         tvdb_id=payload.tvdb_id,
@@ -687,7 +689,7 @@ def update_show(
     db.add(show)
     db.commit()
     db.refresh(show)
-    return show
+    return _attach_computed_fields(db, [show])[0]
 
 
 @router.post("/{show_id}/aliases", response_model=AliasOut, status_code=201)

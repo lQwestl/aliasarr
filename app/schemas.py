@@ -79,6 +79,41 @@ class DeleteContentResponse(BaseModel):
     message: str = ""
 
 
+class MovieCollectionCreate(BaseModel):
+    title: str
+    tmdb_collection_id: Optional[int] = None
+    overview: Optional[str] = None
+    poster_url: Optional[str] = None
+    backdrop_url: Optional[str] = None
+    monitored: bool = True
+    quality_profile_id: Optional[int] = None
+    root_folder: Optional[str] = None
+
+
+class MovieCollectionUpdate(BaseModel):
+    title: Optional[str] = None
+    monitored: Optional[bool] = None
+    quality_profile_id: Optional[int] = None
+    root_folder: Optional[str] = None
+
+
+class MovieCollectionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    tmdb_collection_id: Optional[int] = None
+    title: str
+    overview: Optional[str] = None
+    poster_url: Optional[str] = None
+    backdrop_url: Optional[str] = None
+    monitored: bool = True
+    quality_profile_id: Optional[int] = None
+    root_folder: Optional[str] = None
+    created_at: Optional[dt.datetime] = None
+    shows_count: int = 0
+    downloaded_count: int = 0
+    missing_count: int = 0
+
+
 class ShowCreate(BaseModel):
     title: str
     year: Optional[int] = None
@@ -90,6 +125,9 @@ class ShowCreate(BaseModel):
     quality_profile_id: Optional[int] = None
     content_type: str = "series"  # movie | series | anime
     ova_mode: str = "auto"  # auto | season_1 | specials
+    edition: Optional[str] = None
+    collection_id: Optional[int] = None
+    collection_order: Optional[int] = None
     imdb_id: Optional[str] = None
     tmdb_id: Optional[int] = None
     tvdb_id: Optional[int] = None
@@ -115,6 +153,12 @@ class ShowUpdate(BaseModel):
     genre: Optional[str] = None
     content_type: Optional[str] = None
     ova_mode: Optional[str] = None
+    edition: Optional[str] = None
+    in_cinemas_date: Optional[dt.datetime] = None
+    digital_release_date: Optional[dt.datetime] = None
+    physical_release_date: Optional[dt.datetime] = None
+    collection_id: Optional[int] = None
+    collection_order: Optional[int] = None
     expected_year: Optional[int] = None
     expected_quarter: Optional[int] = None
     in_calendar: Optional[bool] = None
@@ -155,6 +199,13 @@ class ShowOut(BaseModel):
     content_type: str = "series"
     ova_mode: str = "auto"
     premiere_date: Optional[dt.datetime] = None
+    in_cinemas_date: Optional[dt.datetime] = None
+    digital_release_date: Optional[dt.datetime] = None
+    physical_release_date: Optional[dt.datetime] = None
+    edition: Optional[str] = None
+    collection_id: Optional[int] = None
+    collection_order: Optional[int] = None
+    collection_title: Optional[str] = None
     expected_year: Optional[int] = None
     expected_quarter: Optional[int] = None
     in_calendar: bool = True
@@ -197,6 +248,7 @@ class EpisodeOut(BaseModel):
     file_path: Optional[str] = None
     has_file: bool = False
     downloaded_quality: Optional[str] = None
+    edition: Optional[str] = None
     # MediaInfo и кастомные форматы
     video_codec: Optional[str] = None
     audio_codec: Optional[str] = None
