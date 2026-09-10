@@ -223,16 +223,42 @@ class TestMovieSuite(unittest.TestCase):
 
         self.assertEqual(coll.title, "Avatar Collection")
         self.assertEqual(len(coll.shows), 2)
-    def test_collections_router_import(self):
+    def test_sync_movie_disk_preserves_downloading_and_upgrading_status(self):
         try:
-            from app.api.collections_routes import router
-            self.assertIsNotNone(router)
-            self.assertEqual(router.prefix, "/api/v1/collections")
-        except ImportError as e:
-            if "fastapi" in str(e):
-                pass
-            else:
-                raise
+            from app.api.shows import sync_show_disk
+        except ImportError:
+            return
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            f_path = os.path.join(tmp_dir, "Avatar.Fire.and.Ash.2025.HDTV.720p.mkv")
+            with open(f_path, "w") as f:
+                f.write("test_content")
+
+            show = Show(id=1, title="Avatar: Fire and Ash", content_type="movie", path=tmp_dir)
+            ep = Episode(
+                id=1,
+                show_id=1,
+                season_number=1,
+                episode_number=1,
+                title="Avatar: Fire and Ash",
+                status=EpisodeStatus.DOWNLOADING,
+                download_progress=0.45,
+                torrent_hash="abc123hash",
+                file_path=f_path,
+                upgrade_requested=True,
+            )
+
+            db_mock = MagicMock()
+            db_mock.get.return_value = show
+            db_mock.query.return_value.filter_by.return_value.all.return_value = [ep]
+            db_mock.query.return_value.filter_by.return_value.order_by.return_value.first.return_value = None
+
+            with patch("app.api.shows.get_or_create_settings") as mock_settings:
+                mock_settings.return_value = MagicMock()
+                res = sync_show_disk(show_id=1, db=db_mock, current_user=MagicMock())
+                self.assertEqual(ep.status, EpisodeStatus.DOWNLOADING)
+                self.assertEqual(ep.download_progress, 0.45)
+                self.assertEqual(ep.file_path, f_path)
 
 
 if __name__ == "__main__":

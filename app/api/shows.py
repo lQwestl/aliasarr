@@ -316,7 +316,7 @@ def get_show(show_id: int, db: Session = Depends(get_db), current_user: User = D
                     file_exists = False
 
                 if file_exists:
-                    if ep.status != EpisodeStatus.DOWNLOADED and not (ep.status == EpisodeStatus.DOWNLOADING and getattr(ep, "torrent_hash", None)):
+                    if ep.status != EpisodeStatus.DOWNLOADED and ep.status != EpisodeStatus.DOWNLOADING:
                         ep.status = EpisodeStatus.DOWNLOADED
                         ep.download_progress = 1.0
                         needs_commit = True
@@ -1426,9 +1426,14 @@ def sync_show_disk(
                 episode = episodes[0]
             if not episode:
                 episode = Episode(show_id=show.id, season_number=1, episode_number=1, title=show.title)
-            episode.status = EpisodeStatus.DOWNLOADED
+            is_active_download = (
+                episode.status == EpisodeStatus.DOWNLOADING
+                or bool(getattr(episode, "torrent_hash", None))
+            )
+            if not is_active_download:
+                episode.status = EpisodeStatus.DOWNLOADED
+                episode.download_progress = 1.0
             episode.file_path = main_file
-            episode.download_progress = 1.0
             episode.downloaded_quality = q_info.name
             episode.video_codec = q_info.video_codec
             episode.audio_codec = q_info.audio_codec
@@ -1465,7 +1470,8 @@ def sync_show_disk(
 
             if matched_ep:
                 is_active_download = (
-                    matched_ep.status == EpisodeStatus.DOWNLOADING and bool(matched_ep.torrent_hash)
+                    matched_ep.status == EpisodeStatus.DOWNLOADING
+                    or bool(getattr(matched_ep, "torrent_hash", None))
                 )
                 if not is_active_download:
                     matched_ep.status = EpisodeStatus.DOWNLOADED
@@ -1513,7 +1519,8 @@ def sync_show_disk(
                 ep.audio_channels = None
                 ep.dynamic_range = None
                 ep.release_group = None
-                ep.download_progress = 0.0
+                if ep.status != EpisodeStatus.DOWNLOADING:
+                    ep.download_progress = 0.0
                 if ep.status == EpisodeStatus.DOWNLOADED:
                     ep.status = target_default_status
                 db.add(ep)
