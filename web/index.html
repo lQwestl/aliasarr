@@ -3960,15 +3960,16 @@
           <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('edit', 'Несоответствие сезона или эпизодов')">Не тот сезон</span>
         </div>
       </div>
-    </div>
-    <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
-      <button class="btn btn-secondary" onclick="closeModal('modal-edit-blocklist')">Отмена</button>
-      <button class="btn btn-primary" onclick="submitEditBlocklist(this)">Сохранить</button>
+      <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-edit-blocklist')">Отмена</button>
+        <button class="btn btn-primary" onclick="submitEditBlocklist(this)">Сохранить</button>
+      </div>
     </div>
   </div>
 </div>
 
-<div id="toast" class="toast"></div>
+<div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+<div id="toast" class="toast" style="display:none;"></div>
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="/ui/static/js/app.js?v=20260909-12"></script>

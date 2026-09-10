@@ -3673,39 +3673,321 @@ function formatToastMessage(message) {
   return text;
 }
 
-let TOAST_TIMEOUT_ID = null;
+function sanitizeToastMessage(str) {
+  if (typeof str !== "string") {
+    if (str === null || str === undefined) return "";
+    str = String(str);
+  }
+  return str
+    // Mask query string & form parameters: apikey, passkey, token, password, etc.
+    .replace(/([?&;]|\b)(apikey|passkey|api_key|token|password|secret|auth|access_token|refresh_token|private_key|key)=([^&\s'"]+)/gi, "$1$2=***")
+    // Mask JSON / quoted key-values
+    .replace(/("?(?:apikey|passkey|api_key|token|password|secret|auth|access_token|refresh_token|private_key|key)"?\s*[:=]\s*)"(?:[^"\\]|\\.)*"/gi, '$1"***"')
+    .replace(/("?(?:apikey|passkey|api_key|token|password|secret|auth|access_token|refresh_token|private_key|key)"?\s*[:=]\s*)'[^']+'/gi, "$1'***'")
+    // Mask Bearer tokens
+    .replace(/(Bearer\s+)[A-Za-z0-9._~+/-]+=*/gi, "$1***")
+    // Remove redundant MDN documentation URLs
+    .replace(/For more information check:\s*https?:\/\/[^\s]+/gi, "")
+    .trim();
+}
+
+function parseToastData(rawInput, defaultType = "info") {
+  const isEn = typeof CURRENT_LANG !== "undefined" && CURRENT_LANG === "en";
+
+  let title = "";
+  let message = "";
+  let details = "";
+  let type = defaultType;
+  let duration = 4500;
+
+  if (typeof rawInput === "object" && rawInput !== null) {
+    if (rawInput instanceof Error) {
+      rawInput = rawInput.message || String(rawInput);
+    } else {
+      title = rawInput.title || "";
+      message = rawInput.message || "";
+      details = rawInput.details || "";
+      if (rawInput.type) type = rawInput.type;
+      if (rawInput.duration) duration = rawInput.duration;
+      return {
+        title: sanitizeToastMessage(title),
+        message: sanitizeToastMessage(message),
+        details: sanitizeToastMessage(details),
+        type,
+        duration: duration || (type === "error" ? 7000 : type === "warning" ? 5500 : 4500)
+      };
+    }
+  }
+
+  let text = sanitizeToastMessage(String(rawInput || ""));
+  text = formatToastMessage(text);
+
+  // Handle 429 Too Many Requests / Rate Limit
+  if (/429|Too Many Requests|лимит запросов/i.test(text)) {
+    type = "error";
+    title = isEn ? "Rate Limit Exceeded (429)" : "Превышен лимит запросов (429)";
+    const urlMatch = text.match(/for url '([^']+)'/i) || text.match(/https?:\/\/[^\s'"]+/i);
+    if (urlMatch) {
+      details = urlMatch[1] || urlMatch[0];
+    }
+    message = isEn 
+      ? "Too many requests to the service. Please wait or check request delay in settings."
+      : "Слишком много запросов к источнику. Пожалуйста, подождите или увеличьте задержку в настройках.";
+  }
+  // Handle 502 / 503 / 504 / Bad Gateway / Service Unavailable
+  else if (/502|503|504|Bad Gateway|Service Unavailable|Gateway Time-out/i.test(text)) {
+    type = "error";
+    title = isEn ? "Service Unavailable" : "Сервер временно недоступен";
+    const urlMatch = text.match(/for url '([^']+)'/i) || text.match(/https?:\/\/[^\s'"]+/i);
+    if (urlMatch) details = urlMatch[1] || urlMatch[0];
+    message = isEn 
+      ? "Remote server returned a gateway error. Please try again later."
+      : "Удалённый сервер вернул ошибку шлюза (502/503/504). Попробуйте позже.";
+  }
+  // Handle 401 / 403 / Unauthorized / Forbidden
+  else if (/401|403|Unauthorized|Forbidden|Неверный логин|доступ запрещён/i.test(text)) {
+    type = "error";
+    title = isEn ? "Authentication Error" : "Ошибка авторизации";
+    const urlMatch = text.match(/for url '([^']+)'/i) || text.match(/https?:\/\/[^\s'"]+/i);
+    if (urlMatch) details = urlMatch[1] || urlMatch[0];
+    message = text.replace(/^(?:Ошибка|Error):\s*/i, "");
+  }
+  // Handle Connection Timeout / ConnectError
+  else if (/ConnectTimeout|ReadTimeout|TimeoutError|Failed to connect|Не удалось связаться/i.test(text)) {
+    type = "error";
+    title = isEn ? "Connection Timeout" : "Таймаут подключения";
+    const urlMatch = text.match(/for url '([^']+)'/i) || text.match(/https?:\/\/[^\s'"]+/i);
+    if (urlMatch) details = urlMatch[1] || urlMatch[0];
+    message = isEn ? "Failed to connect to the remote server." : "Не удалось связаться с удалённым сервером.";
+  }
+  // General Error prefixes
+  else if (/^(?:Ошибка|Error):\s*/i.test(text)) {
+    type = "error";
+    title = isEn ? "Error" : "Ошибка";
+    const clean = text.replace(/^(?:Ошибка|Error):\s*/i, "");
+    const urlMatch = clean.match(/for url '([^']+)'/i);
+    if (urlMatch) {
+      details = urlMatch[1];
+      message = clean.replace(/\s*for url '[^']+'/i, "").trim();
+    } else {
+      message = clean;
+    }
+  }
+  // General Success prefixes
+  else if (/^(?:Успешно|Success):\s*/i.test(text)) {
+    type = "success";
+    title = isEn ? "Success" : "Успешно";
+    message = text.replace(/^(?:Успешно|Success):\s*/i, "");
+  }
+  // General Warning prefixes
+  else if (/^(?:Внимание|Предупреждение|Warning):\s*/i.test(text)) {
+    type = "warning";
+    title = isEn ? "Warning" : "Внимание";
+    message = text.replace(/^(?:Внимание|Предупреждение|Warning):\s*/i, "");
+  }
+  // Fallback when message is plain text
+  else {
+    if (!title) {
+      if (type === "success") title = isEn ? "Success" : "Успешно";
+      else if (type === "error") title = isEn ? "Error" : "Ошибка";
+      else if (type === "warning") title = isEn ? "Warning" : "Внимание";
+      else title = isEn ? "Notification" : "Уведомление";
+    }
+    message = text;
+  }
+
+  if (type === "error") duration = 7000;
+  else if (type === "warning") duration = 5500;
+  else duration = 4000;
+
+  return { title, message, details, type, duration };
+}
 
 function toast(message, isError = false) {
-  let el = document.getElementById("toast");
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "toast";
-    el.className = "toast";
-    document.body.appendChild(el);
+  let type = "info";
+  if (isError === true) {
+    type = "error";
+  } else if (typeof isError === "string") {
+    type = isError;
+  } else if (typeof message === "object" && message && message.type) {
+    type = message.type;
+  } else if (isError === false && typeof message === "string" && /^(?:Успешно|Success|Применен|Полосы|Path copied|Путь скопирован|API-ключ|Пароль)/i.test(message)) {
+    type = "success";
   }
-  if (TOAST_TIMEOUT_ID) {
-    clearTimeout(TOAST_TIMEOUT_ID);
-    TOAST_TIMEOUT_ID = null;
-  }
-  const formatted = formatToastMessage(message);
-  const iconHtml = isError 
-    ? '<i data-lucide="alert-circle" style="color:var(--danger, #f43f5e); width:20px; height:20px; flex-shrink:0;"></i>'
-    : '<i data-lucide="check-circle" style="color:var(--teal, #2dd4bf); width:20px; height:20px; flex-shrink:0;"></i>';
-  
-  el.innerHTML = `${iconHtml}<span>${escapeHtml(formatted)}</span>`;
-  el.className = "toast show" + (isError ? " error" : "");
-  if (window.lucide) lucide.createIcons();
-  
-  TOAST_TIMEOUT_ID = setTimeout(() => {
-    el.className = "toast";
-    TOAST_TIMEOUT_ID = null;
-  }, 4000);
+  showToast(message, type);
 }
 
 function showToast(message, type = "info") {
-  const isError = type === "error" || type === true || type === "warning";
-  toast(message, isError);
+  const isEn = typeof CURRENT_LANG !== "undefined" && CURRENT_LANG === "en";
+  let targetType = type;
+  if (type === true) targetType = "error";
+  else if (type === false) targetType = "success";
+
+  const parsed = parseToastData(message, targetType);
+
+  let container = document.getElementById("toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "toast-container";
+    container.className = "toast-container";
+    container.setAttribute("aria-live", "polite");
+    container.setAttribute("aria-atomic", "true");
+    document.body.appendChild(container);
+  }
+
+  // Cap max simultaneous toasts in stack to 4
+  const maxStack = 4;
+  while (container.children.length >= maxStack) {
+    const oldest = container.firstElementChild;
+    if (oldest) {
+      oldest.classList.remove("show");
+      oldest.classList.add("hide");
+      setTimeout(() => oldest.remove(), 260);
+      if (container.children.length <= maxStack) break;
+    }
+  }
+
+  // Map icons
+  let iconName = "info";
+  if (parsed.type === "success") iconName = "check-circle";
+  else if (parsed.type === "error") iconName = "alert-circle";
+  else if (parsed.type === "warning") iconName = "alert-triangle";
+
+  const card = document.createElement("div");
+  card.className = `toast-card ${parsed.type}`;
+
+  const copyBtnHtml = parsed.type === "error" && (parsed.details || parsed.message) ? `
+    <div class="toast-actions-row">
+      <button class="toast-action-btn copy-toast-btn" type="button">
+        <i data-lucide="copy"></i>
+        <span>${isEn ? "Copy Error" : "Скопировать ошибку"}</span>
+      </button>
+    </div>
+  ` : "";
+
+  const detailsHtml = parsed.details ? `<div class="toast-details-box">${escapeHtml(parsed.details)}</div>` : "";
+  const descHtml = parsed.message ? `<div class="toast-desc">${escapeHtml(parsed.message)}</div>` : "";
+
+  card.innerHTML = `
+    <div class="toast-main-row">
+      <div class="toast-icon-badge">
+        <i data-lucide="${iconName}"></i>
+      </div>
+      <div class="toast-content">
+        <div class="toast-header-row">
+          <span class="toast-title">${escapeHtml(parsed.title)}</span>
+          <button class="toast-dismiss-btn" type="button" aria-label="${isEn ? 'Close' : 'Закрыть'}" title="${isEn ? 'Close' : 'Закрыть'}">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        ${descHtml}
+        ${detailsHtml}
+        ${copyBtnHtml}
+      </div>
+    </div>
+    <div class="toast-progress-track">
+      <div class="toast-progress-bar"></div>
+    </div>
+  `;
+
+  container.appendChild(card);
+  if (window.lucide) lucide.createIcons();
+
+  const progressBar = card.querySelector(".toast-progress-bar");
+  let remainingTime = parsed.duration;
+  let startTime = Date.now();
+  let timerId = null;
+  let isPaused = false;
+
+  const dismiss = () => {
+    if (timerId) {
+      clearTimeout(timerId);
+      timerId = null;
+    }
+    card.classList.remove("show");
+    card.classList.add("hide");
+    setTimeout(() => {
+      if (card.parentNode) card.remove();
+    }, 280);
+  };
+
+  const startTimer = () => {
+    startTime = Date.now();
+    if (progressBar) {
+      progressBar.style.transition = `transform ${remainingTime}ms linear`;
+      progressBar.style.transform = "scaleX(0)";
+    }
+    timerId = setTimeout(dismiss, remainingTime);
+  };
+
+  const pauseTimer = () => {
+    if (isPaused) return;
+    isPaused = true;
+    if (timerId) {
+      clearTimeout(timerId);
+      timerId = null;
+    }
+    const elapsed = Date.now() - startTime;
+    remainingTime = Math.max(1000, remainingTime - elapsed);
+    if (progressBar) {
+      const computedScale = Math.max(0, remainingTime / parsed.duration);
+      progressBar.style.transition = "none";
+      progressBar.style.transform = `scaleX(${computedScale})`;
+    }
+  };
+
+  const resumeTimer = () => {
+    if (!isPaused) return;
+    isPaused = false;
+    startTimer();
+  };
+
+  card.addEventListener("mouseenter", pauseTimer);
+  card.addEventListener("mouseleave", resumeTimer);
+
+  const dismissBtn = card.querySelector(".toast-dismiss-btn");
+  if (dismissBtn) {
+    dismissBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dismiss();
+    });
+  }
+
+  const copyBtn = card.querySelector(".copy-toast-btn");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const textToCopy = [
+        parsed.title,
+        parsed.message,
+        parsed.details
+      ].filter(Boolean).join("\n");
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          copyBtn.innerHTML = `<i data-lucide="check"></i> <span>${isEn ? "Copied!" : "Скопировано!"}</span>`;
+          if (window.lucide) lucide.createIcons();
+          setTimeout(() => {
+            if (copyBtn && card.parentNode) {
+              copyBtn.innerHTML = `<i data-lucide="copy"></i> <span>${isEn ? "Copy Error" : "Скопировать ошибку"}</span>`;
+              if (window.lucide) lucide.createIcons();
+            }
+          }, 1800);
+        }).catch(() => {});
+      }
+    });
+  }
+
+  // Trigger smooth entrance animation
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      card.classList.add("show");
+      startTimer();
+    });
+  });
 }
+
+window.toast = toast;
 window.showToast = showToast;
 
 function showInlineStatus(elementId, message, isSuccess = true) {
