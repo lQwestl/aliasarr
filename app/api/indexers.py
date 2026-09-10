@@ -34,6 +34,7 @@ from app.services.torznab import TorznabClient
 from app.services.user_service import require_permission, get_current_user
 
 logger = logging.getLogger("aliasarr.indexers")
+manual_logger = logging.getLogger("aliasarr.manual_search")
 
 router = APIRouter(prefix="/api/v1/indexers", tags=["indexers"])
 
@@ -277,6 +278,9 @@ async def search_custom_releases(
     show = db.get(Show, show_id) if show_id else None
     alias_candidates = build_alias_candidates(show, db=db) if show else []
 
+    show_info = f", тайтл=«{show.title}» (ID: {show.id})" if show else ""
+    manual_logger.info("Запуск ручного поиска: запрос=«%s»%s, включённых индексаторов: %d", query.strip(), show_info, len(indexers))
+
     target_episodes = []
     if show:
         if season is not None and episode is not None:
@@ -295,14 +299,20 @@ async def search_custom_releases(
 
     async def _fetch_custom(idx: Indexer):
         async with sem:
+            idx_name = getattr(idx, "name", str(idx))
             try:
                 client = get_indexer_client(idx)
                 rels = await asyncio.wait_for(client.search(query.strip()), timeout=12.0)
+                manual_logger.info("Индексатор «%s»: найдено релизов: %d по запросу «%s»", idx_name, len(rels), query.strip())
                 return (idx, rels)
             except RateLimitExceededError as rle:
-                logger.warning("Индексатор %s заблокирован по лимиту запросов (HTTP 429). Пауза %.1fс", getattr(idx, "name", idx), rle.retry_after)
+                manual_logger.warning("Индексатор «%s» заблокирован по лимиту запросов (HTTP 429). Пауза %.1fс", idx_name, rle.retry_after)
                 return (idx, [])
-            except Exception:
+            except asyncio.TimeoutError:
+                manual_logger.warning("Индексатор «%s»: таймаут ожидания ответа (12с) по запросу «%s»", idx_name, query.strip())
+                return (idx, [])
+            except Exception as exc:
+                manual_logger.warning("Индексатор «%s»: ошибка при поиске «%s»: %s", idx_name, query.strip(), exc)
                 return (idx, [])
 
     tasks = [_fetch_custom(idx) for idx in sorted(indexers, key=lambda i: i.priority)]
@@ -340,6 +350,22 @@ async def search_custom_releases(
                 categories=getattr(rel, "categories", None),
             )
 
+            # Проверка в черном списке (Blocklist)
+            if show:
+                from app.services.blocklist_service import is_release_blocked, extract_infohash
+                rel_hash = getattr(rel, "infohash", None) or extract_infohash(getattr(rel, "download_url", None)) or extract_infohash(getattr(rel, "guid", None))
+                is_blocked, block_reason = is_release_blocked(
+                    db,
+                    show=show,
+                    title=rel.title,
+                    torrent_hash=rel_hash,
+                    guid=rel.guid,
+                    download_url=rel.download_url,
+                )
+                if is_blocked:
+                    decision.approved = False
+                    decision.rejections.append(f"В черном списке: {block_reason}")
+
             pub_iso, age_days = _parse_release_age_and_date(getattr(rel, "pub_date", None))
 
             results.append(
@@ -373,6 +399,8 @@ async def search_custom_releases(
             )
 
     results.sort(key=lambda r: (r.approved, r.matched, r.custom_format_score, r.quality_rank, r.seeders), reverse=True)
+    approved_count = sum(1 for r in results if r.approved)
+    manual_logger.info("Ручной поиск завершён: запрос=«%s», найдено уникальных кандидатов: %d (одобрено: %d)", query.strip(), len(results), approved_count)
     return results
 
 
@@ -426,6 +454,9 @@ async def search_releases_for_show(
                 seen_queries.add(fmt.lower())
                 query_terms.append(fmt)
 
+    sample_queries = ", ".join(f"«{t}»" for t in query_terms[:4])
+    manual_logger.info("Запуск ручного поиска: тайтл=«%s» (ID: %d), сформировано поисковых запросов: %d (%s), индексаторов: %d", show.title, show.id, len(query_terms), sample_queries, len(indexers))
+
     seen_guids: set[str] = set()
     results: list[SearchResultOut] = []
 
@@ -434,14 +465,20 @@ async def search_releases_for_show(
 
     async def _fetch_term(idx: Indexer, q_term: str):
         async with sem:
+            idx_name = getattr(idx, "name", str(idx))
             try:
                 client = get_indexer_client(idx)
                 rels = await asyncio.wait_for(client.search(q_term), timeout=12.0)
+                manual_logger.info("Индексатор «%s»: найдено релизов: %d по запросу «%s»", idx_name, len(rels), q_term)
                 return (idx, rels)
             except RateLimitExceededError as rle:
-                logger.warning("Индексатор %s заблокирован по лимиту запросов (HTTP 429). Пауза %.1fс", getattr(idx, "name", idx), rle.retry_after)
+                manual_logger.warning("Индексатор «%s» заблокирован по лимиту запросов (HTTP 429). Пауза %.1fс", idx_name, rle.retry_after)
                 return (idx, [])
-            except Exception:
+            except asyncio.TimeoutError:
+                manual_logger.warning("Индексатор «%s»: таймаут ожидания ответа (12с) по запросу «%s»", idx_name, q_term)
+                return (idx, [])
+            except Exception as exc:
+                manual_logger.warning("Индексатор «%s»: ошибка при поиске «%s»: %s", idx_name, q_term, exc)
                 return (idx, [])
 
     tasks = []
@@ -532,6 +569,8 @@ async def search_releases_for_show(
             )
 
     results.sort(key=lambda r: (r.approved, r.matched, r.custom_format_score, r.quality_rank, r.seeders), reverse=True)
+    approved_count = sum(1 for r in results if r.approved)
+    manual_logger.info("Ручной поиск завершён: тайтл=«%s», найдено уникальных кандидатов: %d (одобрено: %d)", show.title, len(results), approved_count)
     return results
 
 
@@ -768,6 +807,13 @@ async def grab_release(
     from app.services.release_log_service import log_release_event
     indexer_row = db.get(Indexer, payload.indexer_id) if payload.indexer_id else None
     indexer_name = indexer_row.name if indexer_row else "Manual"
+    manual_logger.info(
+        "Ручной захват релиза: «%s» для «%s» передан в клиент «%s» (хэш: %s)",
+        payload.release_title,
+        show.title,
+        download_client_row.name,
+        torrent_hash or "n/a",
+    )
     log_release_event(
         stage="grab",
         level="success",

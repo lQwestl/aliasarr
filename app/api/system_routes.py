@@ -179,6 +179,7 @@ def list_events(
 @router.get("/journal", response_model=LogsPageOut)
 def list_journal(
     level: str = "all",
+    component: Optional[str] = None,
     search: Optional[str] = None,
     page: int = 1,
     page_size: int = 100,
@@ -186,7 +187,7 @@ def list_journal(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("view_journal")),
 ):
-    """Раздел "Журнал": info/warn/debug/error логи самого приложения."""
+    """Раздел "Журнал": info/warn/debug/error логи самого приложения с фильтром по уровню и компоненту."""
     levels = None if level == "all" else [level]
     if levels and levels[0] not in JOURNAL_LEVELS:
         raise HTTPException(400, "Некорректный уровень лога")
@@ -196,6 +197,10 @@ def list_journal(
         q = q.filter(LogEntry.level.in_(levels))
     elif JOURNAL_LEVELS:
         q = q.filter(LogEntry.level.in_(JOURNAL_LEVELS))
+
+    if component and component.strip() and component.strip().lower() != "all":
+        comp_term = f"%{component.strip()}%"
+        q = q.filter(LogEntry.component.ilike(comp_term))
         
     if search and search.strip():
         term = f"%{search.strip()}%"
@@ -215,11 +220,15 @@ def list_journal(
 @router.get("/journal/download")
 def download_journal(
     level: str = "all",
+    component: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_journal")),
 ):
     levels = None if level == "all" else [level]
     q = db.query(LogEntry).filter(LogEntry.level.in_(levels or JOURNAL_LEVELS))
+    if component and component.strip() and component.strip().lower() != "all":
+        comp_term = f"%{component.strip()}%"
+        q = q.filter(LogEntry.component.ilike(comp_term))
     rows = q.order_by(LogEntry.created_at.asc()).all()
     lines = [
         f"{r.created_at.isoformat()}  [{r.level.upper():7}]  {r.component}: {r.message}"

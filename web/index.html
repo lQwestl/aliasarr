@@ -3148,14 +3148,25 @@
       <!-- 2. ПОДПАНЕЛЬ ЖУРНАЛА -->
       <div id="logs-journal" class="logs-panel">
         <div class="form-row journal-toolbar" style="margin-bottom:14px; flex-wrap:wrap; gap:10px;">
-          <select id="journal-level-filter" class="input" style="max-width:200px" onchange="loadJournal(1)">
+          <select id="journal-level-filter" class="input" style="max-width:180px" onchange="loadJournal(1)">
             <option value="all" data-i18n="journal.filter_all">Все уровни</option>
             <option value="debug">Debug</option>
             <option value="info">Info</option>
             <option value="warning">Warn (Предупреждения)</option>
             <option value="error">Error (Ошибки)</option>
           </select>
-          <input type="text" id="journal-search" class="input" style="max-width:260px" placeholder="Поиск по логам…" onkeydown="if(event.key==='Enter') loadJournal(1)">
+          <select id="journal-component-filter" class="input" style="max-width:210px" onchange="loadJournal(1)">
+            <option value="all" data-i18n="journal.filter_comp_all">Все компоненты</option>
+            <option value="manual_search" data-i18n="journal.filter_comp_manual_search">🔍 Ручной поиск</option>
+            <option value="auto_search" data-i18n="journal.filter_comp_auto_search">⚡ Автопоиск</option>
+            <option value="downloads_monitor" data-i18n="journal.filter_comp_downloads">📥 Загрузки и клиенты</option>
+            <option value="postprocess" data-i18n="journal.filter_comp_postprocess">📦 Импорт и перенос</option>
+            <option value="tasks" data-i18n="journal.filter_comp_tasks">⏱ Фоновые задачи</option>
+            <option value="backup" data-i18n="journal.filter_comp_backup">💾 Резервные копии</option>
+            <option value="blocklist" data-i18n="journal.filter_comp_blocklist">⛔ Черный список</option>
+            <option value="indexers" data-i18n="journal.filter_comp_indexers">🌐 Индексаторы</option>
+          </select>
+          <input type="text" id="journal-search" class="input" style="max-width:240px" placeholder="Поиск по логам…" data-i18n-placeholder="journal.search_placeholder" onkeydown="if(event.key==='Enter') loadJournal(1)">
           <button class="btn btn-secondary btn-small" id="journal-refresh-btn" onclick="loadJournal(1)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
           <div class="desktop-spacer" style="flex:1"></div>
           <button class="btn btn-secondary btn-small" id="journal-download-btn" onclick="downloadJournal()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>

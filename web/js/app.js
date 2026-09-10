@@ -959,6 +959,15 @@ const TRANSLATIONS = {
     "events.col_message": "Сообщение",
     "events.empty": "Событий нет",
     "journal.filter_all": "Все уровни",
+    "journal.filter_comp_all": "Все компоненты",
+    "journal.filter_comp_manual_search": "🔍 Ручной поиск",
+    "journal.filter_comp_auto_search": "⚡ Автопоиск",
+    "journal.filter_comp_downloads": "📥 Загрузки и клиенты",
+    "journal.filter_comp_postprocess": "📦 Импорт и перенос",
+    "journal.filter_comp_tasks": "⏱ Фоновые задачи",
+    "journal.filter_comp_backup": "💾 Резервные копии",
+    "journal.filter_comp_blocklist": "⛔ Черный список",
+    "journal.filter_comp_indexers": "🌐 Индексаторы",
     "journal.btn_download": "Скачать .txt",
     "journal.btn_clear": "Очистить",
     "journal.col_time": "Время",
@@ -2238,6 +2247,15 @@ const TRANSLATIONS = {
     "events.col_message": "Message",
     "events.empty": "No events",
     "journal.filter_all": "All levels",
+    "journal.filter_comp_all": "All components",
+    "journal.filter_comp_manual_search": "🔍 Manual Search",
+    "journal.filter_comp_auto_search": "⚡ Auto Search",
+    "journal.filter_comp_downloads": "📥 Downloads & Clients",
+    "journal.filter_comp_postprocess": "📦 Import & Transfer",
+    "journal.filter_comp_tasks": "⏱ Background Tasks",
+    "journal.filter_comp_backup": "💾 Backups",
+    "journal.filter_comp_blocklist": "⛔ Blocklist",
+    "journal.filter_comp_indexers": "🌐 Indexers",
     "journal.btn_download": "Download .txt",
     "journal.btn_clear": "Clear",
     "journal.col_time": "Time",
@@ -15913,6 +15931,15 @@ function translateLogMessage(msg) {
 
   // Release Search & Match Logs
   s = s.replace(/^Поиск по алиасам \((.*?)\) в (\d+) трекерах:\s*найдено (\d+) подходящих кандидатов/g, 'Search by aliases ($1) across $2 trackers: found $3 matching candidates');
+  s = s.replace(/^Запуск ручного поиска:\s*запрос=«(.*?)»(.*?), включённых индексаторов:\s*(\d+)/g, 'Manual search started: query="$1"$2, enabled indexers: $3');
+  s = s.replace(/^Запуск ручного поиска:\s*тайтл=«(.*?)» \(ID:\s*(\d+)\),\s*сформировано поисковых запросов:\s*(\d+) \((.*?)\),\s*индексаторов:\s*(\d+)/g, 'Manual search started: title="$1" (ID: $2), generated queries: $3 ($4), indexers: $5');
+  s = s.replace(/^Индексатор «(.*?)»:\s*найдено релизов:\s*(\d+)\s*по запросу «(.*?)»/g, 'Indexer "$1": found $2 releases for query "$3"');
+  s = s.replace(/^Индексатор «(.*?)»:\s*таймаут ожидания ответа \(12с\)\s*по запросу «(.*?)»/g, 'Indexer "$1": timeout (12s) for query "$2"');
+  s = s.replace(/^Индексатор «(.*?)»:\s*ошибка при поиске «(.*?)»:\s*(.*)/g, 'Indexer "$1": search error for "$2": $3');
+  s = s.replace(/^Индексатор «(.*?)» заблокирован по лимиту запросов \(HTTP 429\)\.\s*Пауза (.*?)с/g, 'Indexer "$1" rate limited (HTTP 429). Retry after $2s');
+  s = s.replace(/^Ручной поиск завершён:\s*запрос=«(.*?)»,\s*найдено уникальных кандидатов:\s*(\d+)\s*\(одобрено:\s*(\d+)\)/g, 'Manual search finished: query="$1", unique candidates: $2 (approved: $3)');
+  s = s.replace(/^Ручной поиск завершён:\s*тайтл=«(.*?)»,\s*найдено уникальных кандидатов:\s*(\d+)\s*\(одобрено:\s*(\d+)\)/g, 'Manual search finished: title="$1", unique candidates: $2 (approved: $3)');
+  s = s.replace(/^Ручной захват релиза:\s*«(.*?)»\s*для «(.*?)»\s*передан в клиент «(.*?)»\s*\(хэш:\s*(.*?)\)/g, 'Manual grab: "$1" for "$2" sent to "$3" (hash: $4)');
   s = s.replace(/^Релиз успешно захвачен для фильма «(.*?)»(.*?) и передан в '(.*?)' \(хэш:\s*(.*?), сиды:\s*(\d+), качество:\s*(.*?)\)/g, 'Release successfully grabbed for movie "$1"$2 and sent to \'$3\' (hash: $4, seeders: $5, quality: $6)');
   s = s.replace(/^Релиз успешно захвачен и передан в '(.*?)' \(хэш:\s*(.*?)\)\.\s*Закрывает серии:\s*(.*)/g, 'Release successfully grabbed and sent to \'$1\' (hash: $2). Covers episodes: $3');
   s = s.replace(/^Спецвыпуск «(.*?)» для «(.*?)» скачан на 100% и ожидает ручного импорта\./g, 'Special episode "$1" for "$2" is 100% downloaded and awaiting manual import.');
@@ -16043,6 +16070,8 @@ async function loadJournal(page) {
   if (page) JOURNAL_STATE.page = page;
   const levelEl = document.getElementById("journal-level-filter");
   const level = levelEl ? levelEl.value : "all";
+  const compEl = document.getElementById("journal-component-filter");
+  const component = compEl ? compEl.value : "all";
   const searchEl = document.getElementById("journal-search");
   const search = searchEl ? searchEl.value.trim() : "";
   const tbody = document.querySelector("#journal-table tbody");
@@ -16054,6 +16083,7 @@ async function loadJournal(page) {
     page_size: "100",
     sort: "desc",
   });
+  if (component && component !== "all") params.set("component", component);
   if (search) params.set("search", search);
 
   try {
@@ -16074,7 +16104,7 @@ async function loadJournal(page) {
         <tr>
           <td class="mono col-time" style="font-size:11.5px; white-space:nowrap;">${formatDateTZ(ev.created_at)}</td>
           <td class="col-level"><span class="status-pill status-${pillClass}">${ev.level.toUpperCase()}</span></td>
-          <td class="col-comp" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><strong>${escapeHtml(ev.component)}</strong></td>
+          <td class="col-comp" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${CURRENT_LANG === "en" ? "Click to filter by component" : "Нажмите для фильтрации по компоненту"}"><a href="javascript:void(0)" onclick="filterJournalByComponent('${escapeHtml(ev.component)}')" style="color:var(--text); text-decoration:none; border-bottom:1px dotted var(--border);"><strong>${escapeHtml(ev.component)}</strong></a></td>
           <td class="mono col-msg" style="font-size:12px; word-break:break-word; overflow-wrap:anywhere; line-height:1.45;">${escapeHtml(translateLogMessage(ev.message))}</td>
         </tr>
       `;
@@ -16091,11 +16121,34 @@ async function loadJournal(page) {
   } catch (e) {}
 }
 
+function filterJournalByComponent(comp) {
+  const compEl = document.getElementById("journal-component-filter");
+  if (!compEl) return;
+  const c = String(comp).toLowerCase();
+  if (c.includes("manual_search")) compEl.value = "manual_search";
+  else if (c.includes("auto_search")) compEl.value = "auto_search";
+  else if (c.includes("download")) compEl.value = "downloads_monitor";
+  else if (c.includes("postprocess")) compEl.value = "postprocess";
+  else if (c.includes("task")) compEl.value = "tasks";
+  else if (c.includes("backup")) compEl.value = "backup";
+  else if (c.includes("blocklist")) compEl.value = "blocklist";
+  else if (c.includes("indexer")) compEl.value = "indexers";
+  else {
+    const searchEl = document.getElementById("journal-search");
+    if (searchEl) searchEl.value = comp;
+  }
+  loadJournal(1);
+}
+
 async function downloadJournal() {
   const levelEl = document.getElementById("journal-level-filter");
   const level = levelEl ? levelEl.value : "all";
+  const compEl = document.getElementById("journal-component-filter");
+  const component = compEl ? compEl.value : "all";
+  const params = new URLSearchParams({ level: level });
+  if (component && component !== "all") params.set("component", component);
   try {
-    const resp = await fetch(`/api/v1/journal/download?level=${level}`, { headers: { "X-Api-Key": API_KEY } });
+    const resp = await fetch(`/api/v1/journal/download?${params.toString()}`, { headers: { "X-Api-Key": API_KEY } });
     if (!resp.ok) throw new Error("HTTP " + resp.status);
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
