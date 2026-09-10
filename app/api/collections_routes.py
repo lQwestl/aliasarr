@@ -9,8 +9,8 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func, or_, and_
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
-from app.core.security import require_permission
+from app.database import get_db
+from app.services.user_service import require_permission, get_current_user
 from app.models.db import Show, MovieCollection, Episode, EpisodeStatus, User
 from app.schemas import (
     MovieCollectionCreate,
