@@ -1674,7 +1674,7 @@ def clear_tasks_history(
     return {"success": True}
 
 
-@router.post("/operations/refresh-all-metadata", summary="Запуск полного обновления метаданных библиотеки")
+@router.api_route("/operations/refresh-all-metadata", methods=["GET", "POST"], summary="Запуск полного обновления метаданных библиотеки")
 async def trigger_refresh_all_metadata(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),

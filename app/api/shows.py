@@ -2916,7 +2916,7 @@ async def refresh_show_cover(
     }
 
 
-@router.post("/{show_id}/refresh-metadata", summary="Обновление метаданных тайтла из сети")
+@router.api_route("/{show_id}/refresh-metadata", methods=["GET", "POST"], summary="Обновление метаданных тайтла из сети")
 async def refresh_single_show_metadata(
     show_id: int,
     db: Session = Depends(get_db),

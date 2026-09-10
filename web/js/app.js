@@ -2906,14 +2906,15 @@ function applyLanguage(lang) {
 
 // ---------- API helper ----------
 async function api(path, options = {}) {
-  const headers = Object.assign({ "Content-Type": "application/json" }, options.headers || {});
+  const opts = typeof options === "string" ? { method: options } : (options || {});
+  const headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
   const sessionToken = sessionStorage.getItem("aliasarr_session_token") || localStorage.getItem("aliasarr_session_token");
   if (sessionToken && !headers["Authorization"]) {
     headers["Authorization"] = `Bearer ${sessionToken}`;
   }
   if (API_KEY) headers["X-Api-Key"] = API_KEY;
 
-  const resp = await fetch(API_BASE + path, Object.assign({}, options, { headers }));
+  const resp = await fetch(API_BASE + path, Object.assign({}, opts, { headers }));
 
   if (resp.status === 401) {
     showLoginScreen();
@@ -8947,7 +8948,7 @@ async function refreshShowMetadata(btn, showId) {
   if (!targetId) return;
   if (btn) btn.classList.add("is-loading");
   try {
-    const res = await api(`/api/v1/shows/${targetId}/refresh-metadata`, "POST");
+    const res = await api(`/api/v1/shows/${targetId}/refresh-metadata`, { method: "POST" });
     showToast(res.message || (CURRENT_LANG === "en" ? "Metadata updated successfully" : "Метаданные тайтла успешно обновлены"));
     await refreshShowModal();
     if (typeof loadShows === "function") {
@@ -15830,7 +15831,7 @@ async function triggerManualMetadataRefresh(btn) {
     statusEl.className = "inline-status-box";
   }
   try {
-    const res = await api("/api/v1/operations/refresh-all-metadata", "POST");
+    const res = await api("/api/v1/operations/refresh-all-metadata", { method: "POST" });
     showToast(res.message || "Запущено фоновое обновление метаданных");
     if (statusEl) {
       statusEl.textContent = res.message || (CURRENT_LANG === "en" ? "Update is running in background (see Background Tasks)" : "Обновление выполняется в фоновом режиме (см. Фоновые операции)");
