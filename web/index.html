@@ -1036,10 +1036,10 @@
 
           <select id="history-status-filter" class="input" style="max-width: 200px;" onchange="loadGroupedReleaseHistory(1)">
             <option value="all" data-i18n="history.filter_all_status">Все статусы</option>
-            <option value="imported" data-i18n="history.filter_imported">🟢 Успешно импортирован</option>
-            <option value="grabbed" data-i18n="history.filter_grabbed">🔵 Захвачен в клиент</option>
-            <option value="rejected" data-i18n="history.filter_rejected">🔴 Отклонено движком</option>
-            <option value="error" data-i18n="history.filter_error">⚠️ Ошибка</option>
+            <option value="imported" data-i18n="history.filter_imported">Успешно импортирован</option>
+            <option value="grabbed" data-i18n="history.filter_grabbed">Захвачен в клиент</option>
+            <option value="rejected" data-i18n="history.filter_rejected">Отклонено движком</option>
+            <option value="error" data-i18n="history.filter_error">Ошибка</option>
           </select>
 
           <select id="history-stage-filter" class="input" style="max-width: 180px;" onchange="loadGroupedReleaseHistory(1)">
@@ -3157,14 +3157,14 @@
           </select>
           <select id="journal-component-filter" class="input" style="max-width:210px" onchange="loadJournal(1)">
             <option value="all" data-i18n="journal.filter_comp_all">Все компоненты</option>
-            <option value="manual_search" data-i18n="journal.filter_comp_manual_search">🔍 Ручной поиск</option>
-            <option value="auto_search" data-i18n="journal.filter_comp_auto_search">⚡ Автопоиск</option>
-            <option value="downloads_monitor" data-i18n="journal.filter_comp_downloads">📥 Загрузки и клиенты</option>
-            <option value="postprocess" data-i18n="journal.filter_comp_postprocess">📦 Импорт и перенос</option>
-            <option value="tasks" data-i18n="journal.filter_comp_tasks">⏱ Фоновые задачи</option>
-            <option value="backup" data-i18n="journal.filter_comp_backup">💾 Резервные копии</option>
-            <option value="blocklist" data-i18n="journal.filter_comp_blocklist">⛔ Черный список</option>
-            <option value="indexers" data-i18n="journal.filter_comp_indexers">🌐 Индексаторы</option>
+            <option value="manual_search" data-i18n="journal.filter_comp_manual_search">Ручной поиск</option>
+            <option value="auto_search" data-i18n="journal.filter_comp_auto_search">Автопоиск</option>
+            <option value="downloads_monitor" data-i18n="journal.filter_comp_downloads">Загрузки и клиенты</option>
+            <option value="postprocess" data-i18n="journal.filter_comp_postprocess">Импорт и перенос</option>
+            <option value="tasks" data-i18n="journal.filter_comp_tasks">Фоновые задачи</option>
+            <option value="backup" data-i18n="journal.filter_comp_backup">Резервные копии</option>
+            <option value="blocklist" data-i18n="journal.filter_comp_blocklist">Черный список</option>
+            <option value="indexers" data-i18n="journal.filter_comp_indexers">Индексаторы</option>
           </select>
           <input type="text" id="journal-search" class="input" style="max-width:240px" placeholder="Поиск по логам…" data-i18n-placeholder="journal.search_placeholder" onkeydown="if(event.key==='Enter') loadJournal(1)">
           <button class="btn btn-secondary btn-small" id="journal-refresh-btn" onclick="loadJournal(1)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
@@ -3296,9 +3296,9 @@
         <div class="form-row dataset-toolbar" style="margin-bottom:14px; flex-wrap:wrap; gap:10px;">
           <select id="dataset-filter-select" class="input" style="max-width:240px" onchange="loadDatasetData(1)">
             <option value="all" data-i18n="harvester.filter_all">Все записи</option>
-            <option value="approved" data-i18n="harvester.filter_approved">🟢 Одобрено DecisionEngine</option>
-            <option value="rejected" data-i18n="harvester.filter_rejected">🔴 Отклонено DecisionEngine</option>
-            <option value="wanted_eps" data-i18n="harvester.filter_wanted_eps">🎯 Закрывает разыскиваемые серии</option>
+            <option value="approved" data-i18n="harvester.filter_approved">Одобрено DecisionEngine</option>
+            <option value="rejected" data-i18n="harvester.filter_rejected">Отклонено DecisionEngine</option>
+            <option value="wanted_eps" data-i18n="harvester.filter_wanted_eps">Закрывает разыскиваемые серии</option>
             <option value="video" data-i18n="harvester.filter_video">Только видео-релизы</option>
             <option value="unknown" data-i18n="harvester.filter_unknown">Не распознано (Unknown)</option>
             <option value="multi_part" data-i18n="harvester.filter_multi_part">Сплит-куры (Part 2+)</option>
@@ -4285,7 +4285,7 @@
       </div>
 
       <div id="ssl-redirect-notice" style="background: rgba(251, 191, 36, 0.08); border-left: 3px solid var(--warning); border-radius: 4px; padding: 10px 12px; font-size: 12.5px; color: var(--text); line-height: 1.4;">
-        <strong>⚠️ Важно для браузера:</strong> Так как используется встроенный самоподписанный сертификат, при первом открытии браузер покажет предупреждение («Подключение не защищено»). Нажмите <strong>«Дополнительно»</strong> ➔ <strong>«Перейти на сайт»</strong> (или «Принять риск и продолжить»).
+        <i data-lucide="alert-triangle" class="ico-xs" style="color:var(--warning); vertical-align:middle; margin-right:4px;"></i> <strong>Важно для браузера:</strong> Так как используется встроенный самоподписанный сертификат, при первом открытии браузер покажет предупреждение («Подключение не защищено»). Нажмите <strong>«Дополнительно»</strong> &rarr; <strong>«Перейти на сайт»</strong> (или «Принять риск и продолжить»).
       </div>
     </div>
 
