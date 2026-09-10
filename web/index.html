@@ -769,119 +769,172 @@
     <div id="calendar-settings-modal" class="modal-overlay">
       <div class="modal modal-large">
         <button class="modal-close" onclick="closeModal('calendar-settings-modal')"><i data-lucide="x"></i></button>
-        <h3 style="margin-top:0;" data-i18n="calendar.settings_title">Настройки календаря</h3>
-
-        <h4 style="margin: 24px 0 12px 0; border-bottom: 1px solid var(--border); padding-bottom: 8px;" data-i18n="calendar.section_local">Локальный</h4>
-        <div class="form-col" style="gap: 16px;">
-          <div class="form-row" style="align-items: flex-start;">
-            <label style="width: 280px; text-align: right; margin-top: 2px;" data-i18n="calendar.collapse_multi">Свернуть несколько эпизодов</label>
-            <div style="flex: 1;">
-              <label class="checkbox-row"><input type="checkbox" id="cal-set-collapse-multi"> <span class="hint" data-i18n="calendar.collapse_multi_hint">Свернуть несколько серий, выходящих в эфир в один и тот же день</span></label>
+        <div class="settings-card-header" style="margin-bottom: 20px;">
+          <div class="settings-card-header-left">
+            <div class="settings-card-icon-badge">
+              <i data-lucide="calendar"></i>
             </div>
-          </div>
-          
-          <div class="form-row" style="align-items: flex-start;">
-            <label style="width: 280px; text-align: right; margin-top: 2px;" data-i18n="calendar.show_info">Показать информацию об эпизоде</label>
-            <div style="flex: 1;">
-              <label class="checkbox-row"><input type="checkbox" id="cal-set-show-info"> <span class="hint" data-i18n="calendar.show_info_hint">Показать название и номер эпизода</span></label>
-            </div>
-          </div>
-
-          <div class="form-row" style="align-items: flex-start;">
-            <label style="width: 280px; text-align: right; margin-top: 2px;" data-i18n="calendar.finale_badge">Значок для финала</label>
-            <div style="flex: 1;">
-              <label class="checkbox-row"><input type="checkbox" id="cal-set-finale-badge"> <span class="hint" data-i18n="calendar.finale_badge_hint">Показывать значок финала сериала/сезона на основе доступной информации об эпизоде</span></label>
-            </div>
-          </div>
-
-          <div class="form-row" style="align-items: flex-start;">
-            <label style="width: 280px; text-align: right; margin-top: 2px;" data-i18n="calendar.unmet_badge">Значок ожидания лучшего качества</label>
-            <div style="flex: 1;">
-              <label class="checkbox-row"><input type="checkbox" id="cal-set-unmet-badge"> <span class="hint" data-i18n="calendar.unmet_badge_hint">Показывать значок на скачанных сериях, если целевое качество из профиля (Cutoff) ещё не достигнуто</span></label>
-            </div>
-          </div>
-
-          <div class="form-row" style="align-items: flex-start;">
-            <label style="width: 280px; text-align: right; margin-top: 2px;" data-i18n="calendar.full_color">Полноцветные события</label>
-            <div style="flex: 1;">
-              <label class="checkbox-row"><input type="checkbox" id="cal-set-full-color"> <span class="hint" data-i18n="calendar.full_color_hint">Изменен стиль, чтобы раскрасить все событие цветом статуса, а не только левый край. Не относится к повестке дня</span></label>
-            </div>
-          </div>
-
-          <div class="form-row" style="align-items: flex-start;">
-            <label style="width: 280px; text-align: right; margin-top: 2px;" data-i18n="calendar.show_cinema">Релизы фильмов в кинотеатрах</label>
-            <div style="flex: 1;">
-              <label class="checkbox-row"><input type="checkbox" id="cal-set-show-cinema"> <span class="hint" data-i18n="calendar.show_cinema_hint">Отображать дату премьеры в кинотеатрах с бейджем «Кино»</span></label>
-            </div>
-          </div>
-
-          <div class="form-row" style="align-items: flex-start;">
-            <label style="width: 280px; text-align: right; margin-top: 2px;" data-i18n="calendar.show_digital">Цифровые релизы фильмов</label>
-            <div style="flex: 1;">
-              <label class="checkbox-row"><input type="checkbox" id="cal-set-show-digital"> <span class="hint" data-i18n="calendar.show_digital_hint">Отображать дату цифрового релиза (WEB-DL / VOD) с бейджем «Цифра»</span></label>
+            <div class="settings-card-title-wrap">
+              <h3 data-i18n="calendar.settings_title">Настройки календаря</h3>
+              <p class="subtitle" data-i18n="calendar.settings_subtitle">Настройка отображения расписания, событий и источников метаданных</p>
             </div>
           </div>
         </div>
 
-        <h4 style="margin: 32px 0 12px 0; border-bottom: 1px solid var(--border); padding-bottom: 8px;" data-i18n="calendar.section_global">Глобальный</h4>
-        <div class="form-col" style="gap: 16px;">
-          <div class="form-row">
-            <label style="width: 280px; text-align: right;" data-i18n="calendar.first_day">Первый день недели</label>
-            <div style="flex: 1;">
-              <select id="cal-set-first-day" class="input" style="width: 100%; max-width: 400px;">
+        <div class="settings-section-card" style="margin-bottom: 16px;">
+          <h4 style="margin: 0 0 16px 0; font-size: 15px; font-weight: 600; display:flex; align-items:center; gap:8px;" data-i18n="calendar.section_local">
+            <i data-lucide="layout" class="ico-xs" style="color:var(--teal);"></i> Локальный
+          </h4>
+          <div class="form-grid-modern">
+            <div class="settings-field-group">
+              <label class="switch-toggle">
+                <input type="checkbox" id="cal-set-collapse-multi">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="calendar.collapse_multi">Свернуть несколько эпизодов</span>
+                <span class="switch-desc" data-i18n="calendar.collapse_multi_hint">Свернуть несколько серий, выходящих в один и тот же день</span>
+              </label>
+            </div>
+
+            <div class="settings-field-group">
+              <label class="switch-toggle">
+                <input type="checkbox" id="cal-set-show-info">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="calendar.show_info">Информация об эпизоде</span>
+                <span class="switch-desc" data-i18n="calendar.show_info_hint">Показать название и номер эпизода</span>
+              </label>
+            </div>
+
+            <div class="settings-field-group">
+              <label class="switch-toggle">
+                <input type="checkbox" id="cal-set-finale-badge">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="calendar.finale_badge">Значок для финала</span>
+                <span class="switch-desc" data-i18n="calendar.finale_badge_hint">Показывать значок финала сериала/сезона</span>
+              </label>
+            </div>
+
+            <div class="settings-field-group">
+              <label class="switch-toggle">
+                <input type="checkbox" id="cal-set-unmet-badge">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="calendar.unmet_badge">Значок ожидания лучшего качества</span>
+                <span class="switch-desc" data-i18n="calendar.unmet_badge_hint">Показывать значок на сериях, если Cutoff ещё не достигнут</span>
+              </label>
+            </div>
+
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
+                <input type="checkbox" id="cal-set-full-color">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="calendar.full_color">Полноцветные события</span>
+                <span class="switch-desc" data-i18n="calendar.full_color_hint">Раскрашивать всю карточку события цветом статуса</span>
+              </label>
+            </div>
+
+            <div class="settings-field-group">
+              <label class="switch-toggle">
+                <input type="checkbox" id="cal-set-show-cinema">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="calendar.show_cinema">Релизы фильмов в кино</span>
+                <span class="switch-desc" data-i18n="calendar.show_cinema_hint">Отображать дату премьеры в кинотеатрах</span>
+              </label>
+            </div>
+
+            <div class="settings-field-group">
+              <label class="switch-toggle">
+                <input type="checkbox" id="cal-set-show-digital">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="calendar.show_digital">Цифровые релизы фильмов</span>
+                <span class="switch-desc" data-i18n="calendar.show_digital_hint">Отображать дату цифрового релиза (WEB-DL / VOD)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section-card" style="margin-bottom: 16px;">
+          <h4 style="margin: 0 0 16px 0; font-size: 15px; font-weight: 600; display:flex; align-items:center; gap:8px;" data-i18n="calendar.section_global">
+            <i data-lucide="globe" class="ico-xs" style="color:var(--teal);"></i> Глобальный
+          </h4>
+          <div class="form-grid-modern">
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="calendar.first_day">Первый день недели</label>
+              <select id="cal-set-first-day" class="input">
                 <option value="1" data-i18n="calendar.monday">Понедельник</option>
                 <option value="0" data-i18n="calendar.sunday">Воскресенье</option>
               </select>
             </div>
-          </div>
 
-          <div class="form-row" style="align-items: flex-start;">
-            <label style="width: 280px; text-align: right; margin-top: 10px;" data-i18n="calendar.week_header">Заголовок столбца недели</label>
-            <div style="flex: 1; display: flex; flex-direction: column;">
-              <select id="cal-set-week-header" class="input" style="width: 100%; max-width: 400px;">
+            <div class="settings-field-group">
+              <label class="settings-field-label" data-i18n="calendar.time_format">Формат времени</label>
+              <select id="cal-set-time-format" class="input">
+                <option value="12h">5pm/5:30pm</option>
+                <option value="24h">17:00/17:30</option>
+              </select>
+            </div>
+
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="settings-field-label">
+                <span data-i18n="calendar.week_header">Заголовок столбца недели</span>
+                <span class="settings-field-hint" data-i18n="calendar.week_header_hint">(когда неделя активна)</span>
+              </label>
+              <select id="cal-set-week-header" class="input">
                 <option value="ddd_MM/DD" data-i18n="calendar.week_header_opt_mm_dd">Вт 03/25</option>
                 <option value="ddd_DD/MM" data-i18n="calendar.week_header_opt_dd_mm">Вт 25/03</option>
                 <option value="ddd_D/M" data-i18n="calendar.week_header_opt_d_m">Вт 25/3</option>
                 <option value="ddd_M/D" data-i18n="calendar.week_header_opt_m_d">Вт 3/25</option>
               </select>
-              <span class="hint" style="margin-top: 6px;" data-i18n="calendar.week_header_hint">Отображается над каждым столбцом, когда неделя активна</span>
             </div>
           </div>
+        </div>
 
-          <div class="form-row">
-            <label style="width: 280px; text-align: right;" data-i18n="calendar.time_format">Формат времени</label>
-            <div style="flex: 1;">
-              <select id="cal-set-time-format" class="input" style="width: 100%; max-width: 400px;">
-                <option value="12h">5pm/5:30pm</option>
-                <option value="24h">17:00/17:30</option>
+        <div class="settings-section-card">
+          <h4 style="margin: 0 0 16px 0; font-size: 15px; font-weight: 600; display:flex; align-items:center; gap:8px;">
+            <i data-lucide="refresh-cw" class="ico-xs" style="color:var(--teal);"></i> <span data-i18n="calendar.poll_title">Синхронизация дат</span>
+          </h4>
+          <div class="form-grid-modern">
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="switch-toggle">
+                <input type="checkbox" id="cal-set-poll-enabled">
+                <span class="switch-slider"></span>
+                <span class="switch-title" data-i18n="calendar.poll_enabled">Опрашивать источник метаданных за датами выхода</span>
+              </label>
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label">
+                <span data-i18n="calendar.poll_interval">Интервал опроса</span>
+                <span class="settings-field-hint">(минуты)</span>
+              </label>
+              <input id="cal-set-poll-interval" class="input" type="number" min="5">
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label">
+                <span data-i18n="calendar.metadata_source_series">Источник (сериалы и аниме)</span>
+              </label>
+              <select id="cal-set-metadata-source-series" class="input">
+                <option value="skyhook" data-i18n="calendar.skyhook_default">Sonarr SkyHook (TVDB Proxy) [По умолчанию]</option>
+                <option value="thetvdb">TheTVDB v4</option>
+                <option value="tmdb">TMDB (The Movie Database)</option>
+                <option value="tvmaze">TVMaze</option>
+                <option value="auto" data-i18n="calendar.source_auto">Авто (источник шоу)</option>
+              </select>
+            </div>
+
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <label class="settings-field-label">
+                <span data-i18n="calendar.metadata_source_movie">Источник (фильмы)</span>
+              </label>
+              <select id="cal-set-metadata-source-movie" class="input">
+                <option value="radarr" data-i18n="calendar.radarr_default">Radarr Movie Cloud (Radarr Hook) [По умолчанию]</option>
+                <option value="tmdb">TMDB (The Movie Database)</option>
+                <option value="auto" data-i18n="calendar.source_auto">Авто (источник фильма)</option>
               </select>
             </div>
           </div>
         </div>
 
-        <hr style="border-color:var(--border); margin:32px 0 16px 0;">
-
-        <label class="checkbox-row"><input type="checkbox" id="cal-set-poll-enabled"> <span data-i18n="calendar.poll_enabled">Опрашивать источник метаданных за датами выхода</span></label>
-        <label class="hint"><span data-i18n="calendar.poll_interval">Интервал опроса</span> <span class="hint" data-i18n="calendar.poll_interval_hint">(минуты, только для видео, добавленных через поиск по метаданным)</span></label>
-        <input id="cal-set-poll-interval" class="input" type="number" min="5" style="max-width:160px; margin-bottom:12px;">
-
-        <label class="hint" style="margin-top:4px;"><span data-i18n="calendar.metadata_source_series">Источник данных для сериалов и аниме</span> <span class="hint" data-i18n="calendar.metadata_source_series_hint">(обновление дат серий, по умолчанию Sonarr SkyHook)</span></label>
-        <select id="cal-set-metadata-source-series" class="input" style="max-width:320px; margin-bottom:12px;">
-          <option value="skyhook" data-i18n="calendar.skyhook_default">Sonarr SkyHook (TVDB Proxy) [По умолчанию]</option>
-          <option value="thetvdb">TheTVDB v4</option>
-          <option value="tmdb">TMDB (The Movie Database)</option>
-          <option value="tvmaze">TVMaze</option>
-          <option value="auto" data-i18n="calendar.source_auto">Авто (источник шоу)</option>
-        </select>
-
-        <label class="hint" style="margin-top:4px;"><span data-i18n="calendar.metadata_source_movie">Источник данных для фильмов</span> <span class="hint" data-i18n="calendar.metadata_source_movie_hint">(обновление дат премьер, по умолчанию Radarr Movie Cloud)</span></label>
-        <select id="cal-set-metadata-source-movie" class="input" style="max-width:320px; margin-bottom:12px;">
-          <option value="radarr" data-i18n="calendar.radarr_default">Radarr Movie Cloud (Radarr Hook) [По умолчанию]</option>
-          <option value="tmdb">TMDB (The Movie Database)</option>
-          <option value="auto" data-i18n="calendar.source_auto">Авто (источник фильма)</option>
-        </select>
-
-        <div class="form-row" style="justify-content:flex-end;">
+        <div class="form-row" style="justify-content:flex-end; margin-top:20px;">
           <button class="btn btn-primary" onclick="saveCalendarSettings()" data-i18n="common.save">Сохранить</button>
         </div>
       </div>
@@ -3590,63 +3643,89 @@
 
 <!-- Модалка добавления/редактирования формата качества -->
 <div id="custom-format-modal" class="modal-overlay">
-  <div class="modal modal-medium" style="max-width: 600px;">
-    <button class="modal-close" onclick="closeModal('custom-format-modal')">×</button>
-    <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
-      <h3 id="cf-modal-title" style="margin:0;"><i data-lucide="tags" class="ico-sm icon-title"></i> <span data-i18n="cf.modal_title">Формат качества</span></h3>
+  <div class="modal modal-medium" style="max-width: 640px;">
+    <button class="modal-close" onclick="closeModal('custom-format-modal')"><i data-lucide="x"></i></button>
+    <div class="settings-card-header" style="margin-bottom: 16px;">
+      <div class="settings-card-header-left">
+        <div class="settings-card-icon-badge">
+          <i data-lucide="tags"></i>
+        </div>
+        <div class="settings-card-title-wrap">
+          <h3 id="cf-modal-title" data-i18n="cf.modal_title">Формат качества</h3>
+          <p class="subtitle" data-i18n="cf.modal_subtitle">Настройка правил сопоставления и приоритетов релизов</p>
+        </div>
+      </div>
       <a href="/wiki#section-qualities" target="_blank" onclick="openQualityGuide(event, 'section-qualities')" class="btn btn-secondary btn-small" style="font-size:12px; gap:4px;" title="Справочник по Regex и форматам качества" data-i18n-title="cf.guide_btn_title">
         <i data-lucide="book-open" class="ico-xs"></i> <span data-i18n="cf.guide_btn">Справочник</span>
       </a>
     </div>
-    <div class="form-col" style="margin-top:14px;">
-      <input type="hidden" id="cf-id">
-      <div id="cf-builtin-banner" class="hint-box" style="display:none; background:rgba(99,102,241,0.08); border-color:var(--accent); margin-bottom:12px;">
-        <i data-lucide="shield-check" class="ico-sm" style="vertical-align:middle; color:var(--accent); margin-right:4px;"></i>
-        <span data-i18n="cf.builtin_notice"><strong>Штатный формат качества.</strong> Вы можете изменять параметры или при необходимости сбросить их к заводским значениям.</span>
+
+    <input type="hidden" id="cf-id">
+    <div id="cf-builtin-banner" class="hint-box" style="display:none; background:rgba(99,102,241,0.08); border-color:var(--accent); margin-bottom:14px;">
+      <i data-lucide="shield-check" class="ico-sm" style="vertical-align:middle; color:var(--accent); margin-right:4px;"></i>
+      <span data-i18n="cf.builtin_notice"><strong>Штатный формат качества.</strong> Вы можете изменять параметры или при необходимости сбросить их к заводским значениям.</span>
+    </div>
+
+    <div class="form-grid-modern">
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="settings-field-label" id="cf-preset-label" data-i18n="cf.preset_label">Готовый пресет / Шаблон</label>
+        <select id="cf-preset" class="input" onchange="onCustomFormatPresetSelect(this.value)">
+          <option value="" data-i18n="cf.preset_placeholder">— Выберите пресет или настройте вручную —</option>
+          <optgroup label="Качество / Источник" data-i18n-label="cf.preset_group_quality">
+            <option value="Remux-2160p">Remux-2160p</option>
+            <option value="Bluray-2160p">Bluray-2160p</option>
+            <option value="WEBDL-2160p">WEBDL-2160p</option>
+            <option value="WEBRip-2160p">WEBRip-2160p</option>
+            <option value="HDTV-2160p">HDTV-2160p</option>
+            <option value="Remux-1080p">Remux-1080p</option>
+            <option value="Bluray-1080p">Bluray-1080p</option>
+            <option value="WEBDL-1080p">WEBDL-1080p</option>
+            <option value="WEBRip-1080p">WEBRip-1080p</option>
+            <option value="HDTV-1080p">HDTV-1080p</option>
+            <option value="Bluray-720p">Bluray-720p</option>
+            <option value="WEBDL-720p">WEBDL-720p</option>
+            <option value="WEBRip-720p">WEBRip-720p</option>
+            <option value="HDTV-720p">HDTV-720p</option>
+            <option value="Bluray-480p">Bluray-480p</option>
+            <option value="WEBDL-480p">WEBDL-480p</option>
+            <option value="WEBRip-480p">WEBRip-480p</option>
+            <option value="HDTV-480p">HDTV-480p</option>
+            <option value="DVDRip-480p">DVDRip-480p</option>
+            <option value="DVD-480p">DVD-480p</option>
+            <option value="TVRip-480p">TVRip-480p</option>
+            <option value="SDTV-480p">SDTV-480p</option>
+            <option value="Workprint-480p">Workprint-480p</option>
+            <option value="Telecine-480p">Telecine-480p</option>
+            <option value="Telesync-480p">Telesync-480p</option>
+            <option value="CAM-480p">CAM-480p</option>
+          </optgroup>
+        </select>
       </div>
-      <label id="cf-preset-label" data-i18n="cf.preset_label">Готовый пресет / Шаблон</label>
-      <select id="cf-preset" class="input" onchange="onCustomFormatPresetSelect(this.value)">
-        <option value="" data-i18n="cf.preset_placeholder">— Выберите пресет или настройте вручную —</option>
-        <optgroup label="Качество / Источник" data-i18n-label="cf.preset_group_quality">
-          <option value="Remux-2160p">Remux-2160p</option>
-          <option value="Bluray-2160p">Bluray-2160p</option>
-          <option value="WEBDL-2160p">WEBDL-2160p</option>
-          <option value="WEBRip-2160p">WEBRip-2160p</option>
-          <option value="HDTV-2160p">HDTV-2160p</option>
-          <option value="Remux-1080p">Remux-1080p</option>
-          <option value="Bluray-1080p">Bluray-1080p</option>
-          <option value="WEBDL-1080p">WEBDL-1080p</option>
-          <option value="WEBRip-1080p">WEBRip-1080p</option>
-          <option value="HDTV-1080p">HDTV-1080p</option>
-          <option value="Bluray-720p">Bluray-720p</option>
-          <option value="WEBDL-720p">WEBDL-720p</option>
-          <option value="WEBRip-720p">WEBRip-720p</option>
-          <option value="HDTV-720p">HDTV-720p</option>
-          <option value="Bluray-480p">Bluray-480p</option>
-          <option value="WEBDL-480p">WEBDL-480p</option>
-          <option value="WEBRip-480p">WEBRip-480p</option>
-          <option value="HDTV-480p">HDTV-480p</option>
-          <option value="DVDRip-480p">DVDRip-480p</option>
-          <option value="DVD-480p">DVD-480p</option>
-          <option value="TVRip-480p">TVRip-480p</option>
-          <option value="SDTV-480p">SDTV-480p</option>
-          <option value="Workprint-480p">Workprint-480p</option>
-          <option value="Telecine-480p">Telecine-480p</option>
-          <option value="Telesync-480p">Telesync-480p</option>
-          <option value="CAM-480p">CAM-480p</option>
-        </optgroup>
-      </select>
-      <label data-i18n="common.name">Название</label>
-      <input id="cf-name" class="input" placeholder="SDTV, Bluray-1080p, HDR10+..." oninput="onCustomFormatNameInput(this.value)">
-      <label data-i18n="cf.score_label">Очки (Score)</label>
-      <input id="cf-score" class="input" type="number" value="100" placeholder="100">
-      <label class="checkbox-row">
-        <input id="cf-include-renaming" type="checkbox">
-        <span data-i18n="cf.include_renaming">Включать в имя файла при переименовании ({Custom Formats})</span>
-      </label>
-      <label data-i18n="cf.regex_pattern">Regex шаблон названия (Release Title Regex)</label>
-      <input id="cf-regex" class="input mono" placeholder="\\bhdr10\\+\\b">
-      <div class="form-row" style="margin-top:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+
+      <div class="settings-field-group">
+        <label class="settings-field-label" data-i18n="common.name">Название</label>
+        <input id="cf-name" class="input" placeholder="SDTV, Bluray-1080p, HDR10+..." oninput="onCustomFormatNameInput(this.value)">
+      </div>
+
+      <div class="settings-field-group">
+        <label class="settings-field-label" data-i18n="cf.score_label">Очки (Score)</label>
+        <input id="cf-score" class="input" type="number" value="100" placeholder="100">
+      </div>
+
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="switch-toggle">
+          <input id="cf-include-renaming" type="checkbox">
+          <span class="switch-slider"></span>
+          <span class="switch-title" data-i18n="cf.include_renaming">Включать в имя файла при переименовании ({Custom Formats})</span>
+        </label>
+      </div>
+
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="settings-field-label" data-i18n="cf.regex_pattern">Regex шаблон названия (Release Title Regex)</label>
+        <input id="cf-regex" class="input mono" placeholder="\bhdr10\+\b">
+      </div>
+
+      <div class="form-row" style="grid-column: 1 / -1; margin-top:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; gap:8px;">
           <button class="btn btn-primary" onclick="submitCustomFormat()" data-i18n="common.save">Сохранить</button>
           <button class="btn btn-secondary" onclick="closeModal('custom-format-modal')" data-i18n="common.cancel">Отмена</button>
@@ -3726,58 +3805,72 @@
 
 <!-- Модалка Опции постера -->
 <div id="poster-options-modal" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <h2 data-i18n="poster_opt.title">Опции постера</h2>
+  <div class="modal modal-medium" style="max-width: 560px;">
+    <button class="modal-close" onclick="closeModal('poster-options-modal')"><i data-lucide="x"></i></button>
+    <div class="settings-card-header" style="margin-bottom: 20px;">
+      <div class="settings-card-header-left">
+        <div class="settings-card-icon-badge">
+          <i data-lucide="sliders-horizontal"></i>
+        </div>
+        <div class="settings-card-title-wrap">
+          <h3 data-i18n="poster_opt.title">Опции постера</h3>
+          <p class="subtitle" data-i18n="poster_opt.subtitle">Настройка масштаба, информационных бейджей и прогресса</p>
+        </div>
+      </div>
     </div>
     
-    <div class="form-col" style="margin-top: 16px;">
-      <div class="form-row" style="align-items: center; justify-content: space-between;">
-        <label style="margin: 0; min-width: 250px; text-align: right; padding-right: 16px;" data-i18n="poster_opt.size">Размер постера</label>
-        <select id="poster-opt-size" class="input" style="flex: 1;" onchange="applyPosterOptions()">
+    <div class="form-grid-modern">
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="settings-field-label" data-i18n="poster_opt.size">Размер постера в сетке</label>
+        <select id="poster-opt-size" class="input" onchange="applyPosterOptions()">
           <option value="small" data-i18n="poster_opt.small">Маленький</option>
           <option value="medium" data-i18n="poster_opt.medium">Средний</option>
           <option value="large" data-i18n="poster_opt.large">Большой</option>
         </select>
       </div>
-      
-      <div class="form-row" style="align-items: center; justify-content: space-between;">
-        <label style="margin: 0; min-width: 250px; text-align: right; padding-right: 16px;" data-i18n="poster_opt.progress_text">Подробный индикатор выполнения</label>
-        <label class="checkbox-row" style="flex: 1; margin: 0;">
-          <input type="checkbox" id="poster-opt-progress-text" onchange="applyPosterOptions()"> 
-          <span style="color: var(--text-muted)" data-i18n="poster_opt.progress_text_hint">Показать текст на индикаторе выполнения</span>
+
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="switch-toggle">
+          <input type="checkbox" id="poster-opt-progress-text" onchange="applyPosterOptions()">
+          <span class="switch-slider"></span>
+          <span class="switch-title" data-i18n="poster_opt.progress_text">Подробный индикатор выполнения</span>
+          <span class="switch-desc" data-i18n="poster_opt.progress_text_hint">Показать текст на индикаторе выполнения</span>
         </label>
       </div>
 
-      <div class="form-row" style="align-items: center; justify-content: space-between;">
-        <label style="margin: 0; min-width: 250px; text-align: right; padding-right: 16px;" data-i18n="poster_opt.show_title">Показать название</label>
-        <label class="checkbox-row" style="flex: 1; margin: 0;">
-          <input type="checkbox" id="poster-opt-title" onchange="applyPosterOptions()"> 
-          <span style="color: var(--text-muted)" data-i18n="poster_opt.show_title_hint">Показать название сериала под постером</span>
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="switch-toggle">
+          <input type="checkbox" id="poster-opt-title" onchange="applyPosterOptions()">
+          <span class="switch-slider"></span>
+          <span class="switch-title" data-i18n="poster_opt.show_title">Показать название</span>
+          <span class="switch-desc" data-i18n="poster_opt.show_title_hint">Показать название тайтла под постером</span>
         </label>
       </div>
 
-      <div class="form-row" style="align-items: center; justify-content: space-between;">
-        <label style="margin: 0; min-width: 250px; text-align: right; padding-right: 16px;" data-i18n="poster_opt.show_monitored">Показать отслеживаемые</label>
-        <label class="checkbox-row" style="flex: 1; margin: 0;">
-          <input type="checkbox" id="poster-opt-monitored" onchange="applyPosterOptions()"> 
-          <span style="color: var(--text-muted)" data-i18n="poster_opt.show_monitored_hint">Показывать статус отслеживания под постером</span>
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="switch-toggle">
+          <input type="checkbox" id="poster-opt-monitored" onchange="applyPosterOptions()">
+          <span class="switch-slider"></span>
+          <span class="switch-title" data-i18n="poster_opt.show_monitored">Показать отслеживаемые</span>
+          <span class="switch-desc" data-i18n="poster_opt.show_monitored_hint">Показывать статус отслеживания под постером</span>
         </label>
       </div>
 
-      <div class="form-row" style="align-items: center; justify-content: space-between;">
-        <label style="margin: 0; min-width: 250px; text-align: right; padding-right: 16px;" data-i18n="poster_opt.show_quality">Показать профиль качества</label>
-        <label class="checkbox-row" style="flex: 1; margin: 0;">
-          <input type="checkbox" id="poster-opt-quality" onchange="applyPosterOptions()"> 
-          <span style="color: var(--text-muted)" data-i18n="poster_opt.show_quality_hint">Показать профиль качества под постером</span>
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="switch-toggle">
+          <input type="checkbox" id="poster-opt-quality" onchange="applyPosterOptions()">
+          <span class="switch-slider"></span>
+          <span class="switch-title" data-i18n="poster_opt.show_quality">Показать профиль качества</span>
+          <span class="switch-desc" data-i18n="poster_opt.show_quality_hint">Показать профиль качества под постером</span>
         </label>
       </div>
 
-      <div class="form-row" style="align-items: center; justify-content: space-between;">
-        <label style="margin: 0; min-width: 250px; text-align: right; padding-right: 16px;" data-i18n="poster_opt.show_tags">Показать теги</label>
-        <label class="checkbox-row" style="flex: 1; margin: 0;">
-          <input type="checkbox" id="poster-opt-tags" onchange="applyPosterOptions()"> 
-          <span style="color: var(--text-muted)" data-i18n="poster_opt.show_tags_hint">Показать теги под постером</span>
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="switch-toggle">
+          <input type="checkbox" id="poster-opt-tags" onchange="applyPosterOptions()">
+          <span class="switch-slider"></span>
+          <span class="switch-title" data-i18n="poster_opt.show_tags">Показать теги</span>
+          <span class="switch-desc" data-i18n="poster_opt.show_tags_hint">Показать теги под постером</span>
         </label>
       </div>
     </div>
@@ -3898,25 +3991,25 @@
 
 <!-- Модалка профиля пользователя (аватар, смена пароля, права) -->
 <div id="profile-modal" class="modal-overlay">
-  <div class="modal modal-medium">
-    <button class="modal-close" onclick="closeModal('profile-modal')">×</button>
-    <div class="profile-header">
+  <div class="modal modal-medium" style="max-width: 680px;">
+    <button class="modal-close" onclick="closeModal('profile-modal')"><i data-lucide="x"></i></button>
+    <div class="profile-header" style="display:flex; gap:16px; align-items:center; margin-bottom:18px;">
       <div class="profile-avatar-container">
         <div class="profile-avatar-lg" id="profile-avatar-view">
           <img id="profile-modal-avatar-img" src="" alt="" style="display:none;">
           <div id="profile-modal-avatar-initial" class="profile-avatar-initial-lg">A</div>
         </div>
-        <div class="profile-avatar-actions">
+        <div class="profile-avatar-actions" style="margin-top:8px; display:flex; gap:6px;">
           <button class="btn btn-secondary btn-small" onclick="document.getElementById('profile-avatar-file').click()" data-i18n="profile.btn_change_avatar">
-            <i data-lucide="camera" class="ico-sm"></i> Сменить аватар
+            <i data-lucide="camera" class="ico-sm"></i> <span data-i18n="users.change_avatar_btn">Сменить аватар</span>
           </button>
           <button class="btn btn-secondary btn-small danger" id="profile-btn-remove-avatar" onclick="removeMyAvatar()" style="display:none;" data-i18n="profile.btn_remove_avatar">Удалить</button>
           <input type="file" id="profile-avatar-file" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none" onchange="handleAvatarFileSelect(event)">
         </div>
       </div>
       <div class="profile-header-info">
-        <h2 id="profile-modal-display-name" style="margin:0;">admin</h2>
-        <div style="display:flex; gap:8px; align-items:center; margin-top:4px;">
+        <h2 id="profile-modal-display-name" style="margin:0; font-size:20px;">admin</h2>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:6px;">
           <span id="profile-modal-username" class="hint mono">@admin</span>
           <span id="profile-modal-role" class="user-role-badge">Admin</span>
         </div>
@@ -3924,36 +4017,42 @@
     </div>
 
     <div class="profile-tabs" style="margin-top:16px;">
-      <div class="settings-tabs" style="margin-bottom:12px; border-bottom:1px solid var(--border);">
-        <button class="settings-tab-btn active" id="btn-ptab-general" onclick="switchProfileSubtab('general')" data-i18n="profile.tab_general">Профиль</button>
-        <button class="settings-tab-btn" id="btn-ptab-perms" onclick="switchProfileSubtab('perms')" data-i18n="profile.tab_permissions">Мои права</button>
-        <button class="settings-tab-btn" id="btn-ptab-apikey" onclick="switchProfileSubtab('apikey')" data-i18n="profile.tab_apikey">API-ключ</button>
-        <button class="settings-tab-btn" id="btn-ptab-2fa" onclick="switchProfileSubtab('2fa')" data-i18n="profile.tab_2fa">2FA TOTP</button>
-        <button class="settings-tab-btn" id="btn-ptab-pwd" onclick="switchProfileSubtab('pwd')" data-i18n="profile.tab_change_password">Смена пароля</button>
+      <div class="settings-tabs" style="margin-bottom:16px;">
+        <button class="settings-tab-btn active" id="btn-ptab-general" onclick="switchProfileSubtab('general')"><i data-lucide="user" class="ico-xs"></i><span data-i18n="profile.tab_general">Профиль</span></button>
+        <button class="settings-tab-btn" id="btn-ptab-perms" onclick="switchProfileSubtab('perms')"><i data-lucide="shield-check" class="ico-xs"></i><span data-i18n="profile.tab_permissions">Мои права</span></button>
+        <button class="settings-tab-btn" id="btn-ptab-apikey" onclick="switchProfileSubtab('apikey')"><i data-lucide="key" class="ico-xs"></i><span data-i18n="profile.tab_apikey">API-ключ</span></button>
+        <button class="settings-tab-btn" id="btn-ptab-2fa" onclick="switchProfileSubtab('2fa')"><i data-lucide="shield" class="ico-xs"></i><span data-i18n="profile.tab_2fa">2FA TOTP</span></button>
+        <button class="settings-tab-btn" id="btn-ptab-pwd" onclick="switchProfileSubtab('pwd')"><i data-lucide="lock" class="ico-xs"></i><span data-i18n="profile.tab_change_password">Смена пароля</span></button>
       </div>
 
       <!-- Вкладка: Профиль -->
       <div id="ptab-general" class="profile-tab-content active">
-        <div class="form-col">
-          <label data-i18n="users.col_username">Логин пользователя</label>
-          <input id="profile-input-username" class="input" type="text" readonly style="max-width:320px; opacity:0.8;">
+        <div class="form-grid-modern">
+          <div class="settings-field-group">
+            <label class="settings-field-label" data-i18n="users.col_username">Логин пользователя</label>
+            <input id="profile-input-username" class="input" type="text" readonly style="opacity:0.8;">
+          </div>
           
-          <label data-i18n="profile.display_name">Отображаемое имя</label>
-          <input id="profile-input-display-name" class="input" type="text" placeholder="Ваше имя" style="max-width:320px;" data-i18n-placeholder="profile.display_name_placeholder">
+          <div class="settings-field-group">
+            <label class="settings-field-label" data-i18n="profile.display_name">Отображаемое имя</label>
+            <input id="profile-input-display-name" class="input" type="text" placeholder="Ваше имя" data-i18n-placeholder="profile.display_name_placeholder">
+          </div>
           
-          <label data-i18n="settings.session_timeout">Таймаут сессии (автоматический выход)</label>
-          <select id="profile-input-session-timeout" class="input" style="max-width:320px">
-            <option value="15" data-i18n="timeout.15m">15 минут</option>
-            <option value="30" data-i18n="timeout.30m">30 минут</option>
-            <option value="60" data-i18n="timeout.1h">1 час</option>
-            <option value="240" data-i18n="timeout.4h">4 часа</option>
-            <option value="720" data-i18n="timeout.12h">12 часов</option>
-            <option value="1440" data-i18n="timeout.24h">24 часа (1 день)</option>
-            <option value="10080" data-i18n="timeout.7d">7 дней</option>
-            <option value="43200" selected data-i18n="timeout.30d">30 дней (по умолчанию)</option>
-          </select>
+          <div class="settings-field-group" style="grid-column: 1 / -1;">
+            <label class="settings-field-label" data-i18n="settings.session_timeout">Таймаут сессии (автоматический выход)</label>
+            <select id="profile-input-session-timeout" class="input">
+              <option value="15" data-i18n="timeout.15m">15 минут</option>
+              <option value="30" data-i18n="timeout.30m">30 минут</option>
+              <option value="60" data-i18n="timeout.1h">1 час</option>
+              <option value="240" data-i18n="timeout.4h">4 часа</option>
+              <option value="720" data-i18n="timeout.12h">12 часов</option>
+              <option value="1440" data-i18n="timeout.24h">24 часа (1 день)</option>
+              <option value="10080" data-i18n="timeout.7d">7 дней</option>
+              <option value="43200" selected data-i18n="timeout.30d">30 дней (по умолчанию)</option>
+            </select>
+          </div>
 
-          <div style="margin-top:8px;">
+          <div style="grid-column: 1 / -1; margin-top:8px;">
             <button class="btn btn-primary" onclick="submitUpdateMyProfile()" data-i18n="common.save">Сохранить</button>
           </div>
         </div>
@@ -3966,19 +4065,26 @@
 
       <!-- Вкладка: API-ключ -->
       <div id="ptab-apikey" class="profile-tab-content" style="display:none;">
-        <div id="profile-apikey-enabled-box" class="form-col">
-          <label><span data-i18n="settings.apikey_label">Персональный API-ключ</span> <span class="hint" data-i18n="profile.apikey_hint">позволяет делать запросы к API с назначенными вам правами доступа (заголовок: X-Api-Key)</span></label>
-          <div class="form-row">
-            <input id="profile-my-apikey" class="input input-grow mono" type="text" readonly placeholder="API-ключ не создан" data-i18n-placeholder="profile.apikey_none">
-            <button class="btn btn-secondary btn-small" id="profile-copy-key-btn" onclick="copyMyApiKey()"><i data-lucide="copy" class="ico-sm"></i> <span data-i18n="common.copy">Копировать</span></button>
-            <button class="btn btn-secondary btn-small" id="profile-regen-key-btn" onclick="regenerateMyApiKey(this)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="profile.btn_generate_key">Новый ключ</span></button>
-            <button class="btn btn-secondary btn-small danger" id="profile-revoke-key-btn" onclick="revokeMyApiKey(this)"><i data-lucide="x-circle" class="ico-sm"></i> <span data-i18n="profile.btn_revoke_key">Отозвать</span></button>
+        <div id="profile-apikey-enabled-box" class="form-grid-modern">
+          <div class="settings-field-group" style="grid-column: 1 / -1;">
+            <label class="settings-field-label">
+              <span data-i18n="settings.apikey_label">Персональный API-ключ</span>
+              <span class="settings-field-hint" data-i18n="profile.apikey_hint">(заголовок: X-Api-Key)</span>
+            </label>
+            <div class="api-key-container" style="display:flex; flex-direction:column; gap:8px;">
+              <input id="profile-my-apikey" class="input mono" type="text" readonly placeholder="API-ключ не создан" data-i18n-placeholder="profile.apikey_none" style="width:100%;">
+              <div class="api-key-actions-row" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-secondary btn-small" id="profile-copy-key-btn" onclick="copyMyApiKey()"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="common.copy">Копировать</span></button>
+                <button class="btn btn-secondary btn-small" id="profile-regen-key-btn" onclick="regenerateMyApiKey(this)"><i data-lucide="refresh-cw" class="ico-xs"></i> <span data-i18n="profile.btn_generate_key">Новый ключ</span></button>
+                <button class="btn btn-secondary btn-small danger" id="profile-revoke-key-btn" onclick="revokeMyApiKey(this)"><i data-lucide="x-circle" class="ico-xs"></i> <span data-i18n="profile.btn_revoke_key">Отозвать</span></button>
+              </div>
+            </div>
+            <p class="hint" style="margin-top:10px; line-height:1.5;">
+              <i data-lucide="lightbulb" class="ico-xs" style="vertical-align:middle; margin-right:4px;"></i> <span data-i18n="profile.apikey_usage_hint">Запросы с персональным API-ключом выполняются только в пределах прав, разрешённых вашей учётной записи.</span>
+            </p>
           </div>
-          <p class="hint" style="margin-top:8px; line-height:1.4;">
-            <i data-lucide="lightbulb" class="ico-sm" style="vertical-align:middle; margin-right:4px;"></i> <span data-i18n="profile.apikey_usage_hint">Запросы с персональным API-ключом выполняются только в пределах прав, разрешённых вашей учётной записи.</span>
-          </p>
         </div>
-        <div id="profile-apikey-disabled-box" style="display:none; padding:12px; background:var(--bg-card-secondary, rgba(0,0,0,0.15)); border-radius:8px; border:1px solid var(--border); color:var(--text-secondary);">
+        <div id="profile-apikey-disabled-box" style="display:none; padding:16px; background:rgba(0,0,0,0.15); border-radius:12px; border:1px solid var(--border); color:var(--text-secondary);">
           <i data-lucide="shield-alert" class="ico-sm" style="vertical-align:middle; margin-right:6px;"></i>
           <span data-i18n="profile.apikey_no_permission">Использование API-ключа отключено для вашей учётной записи. Обратитесь к администратору для предоставления прав.</span>
         </div>
@@ -3986,16 +4092,16 @@
 
       <!-- Вкладка: 2FA TOTP -->
       <div id="ptab-2fa" class="profile-tab-content" style="display:none;">
-        <div class="form-col">
+        <div class="settings-section-card" style="margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <div>
-              <strong data-i18n="profile.2fa_status_title">Статус двухфакторной аутентификации:</strong>
+              <strong data-i18n="profile.2fa_status_title" style="font-size:14px;">Статус двухфакторной аутентификации:</strong>
               <div id="profile-2fa-status-desc" class="hint" style="margin-top:2px;"></div>
             </div>
             <span id="profile-2fa-badge" class="badge"></span>
           </div>
 
-          <p class="hint" style="line-height:1.45; margin-bottom:12px;" data-i18n="profile.2fa_info">
+          <p class="hint" style="line-height:1.5; margin-bottom:16px;" data-i18n="profile.2fa_info">
             2FA защищает вашу учётную запись с помощью временных 6-значных кодов. Запрос 2FA происходит только при подключении через внешний IP-адрес (при входе через приватный локальный IP запрос пропускается).
           </p>
 
@@ -4008,17 +4114,23 @@
 
       <!-- Вкладка: Смена пароля -->
       <div id="ptab-pwd" class="profile-tab-content" style="display:none;">
-        <div class="form-col">
-          <label data-i18n="profile.current_password">Текущий пароль</label>
-          <input id="profile-current-pwd" class="input" type="password" placeholder="••••••••" autocomplete="current-password">
+        <div class="form-grid-modern">
+          <div class="settings-field-group" style="grid-column: 1 / -1;">
+            <label class="settings-field-label" data-i18n="profile.current_password">Текущий пароль</label>
+            <input id="profile-current-pwd" class="input" type="password" placeholder="••••••••" autocomplete="current-password">
+          </div>
           
-          <label data-i18n="profile.new_password">Новый пароль</label>
-          <input id="profile-new-pwd" class="input" type="password" placeholder="Минимум 4 символа" data-i18n-placeholder="profile.new_password_placeholder" autocomplete="new-password">
+          <div class="settings-field-group">
+            <label class="settings-field-label" data-i18n="profile.new_password">Новый пароль</label>
+            <input id="profile-new-pwd" class="input" type="password" placeholder="Минимум 4 символа" data-i18n-placeholder="profile.new_password_placeholder" autocomplete="new-password">
+          </div>
           
-          <label data-i18n="profile.confirm_password">Подтвердите новый пароль</label>
-          <input id="profile-confirm-pwd" class="input" type="password" placeholder="••••••••" autocomplete="new-password">
+          <div class="settings-field-group">
+            <label class="settings-field-label" data-i18n="profile.confirm_password">Подтвердите новый пароль</label>
+            <input id="profile-confirm-pwd" class="input" type="password" placeholder="••••••••" autocomplete="new-password">
+          </div>
           
-          <div style="margin-top:8px;">
+          <div style="grid-column: 1 / -1; margin-top:8px;">
             <button class="btn btn-primary" onclick="submitChangePassword()" data-i18n="profile.btn_save_password">Обновить пароль</button>
           </div>
         </div>
@@ -4079,13 +4191,18 @@
 
 <!-- Модалка настройки 2FA TOTP (QR-код и активация) -->
 <div id="totp-setup-modal" class="modal-overlay">
-  <div class="modal card" style="max-width: 480px;">
-    <div class="card-header-row" style="margin-bottom: 12px;">
-      <h3 style="display:flex; align-items:center; gap:8px; margin:0;">
-        <i data-lucide="shield-check" class="ico-sm" style="color:var(--teal);"></i>
-        <span id="totp-setup-modal-title" data-i18n="totp.modal_title">Настройка 2FA TOTP</span>
-      </h3>
-      <button class="btn-icon-only" onclick="closeModal('totp-setup-modal')"><i data-lucide="x" class="ico-sm"></i></button>
+  <div class="modal modal-medium" style="max-width: 500px;">
+    <button class="modal-close" onclick="closeModal('totp-setup-modal')"><i data-lucide="x"></i></button>
+    <div class="settings-card-header" style="margin-bottom: 16px;">
+      <div class="settings-card-header-left">
+        <div class="settings-card-icon-badge">
+          <i data-lucide="shield-check"></i>
+        </div>
+        <div class="settings-card-title-wrap">
+          <h3 id="totp-setup-modal-title" data-i18n="totp.modal_title">Настройка 2FA TOTP</h3>
+          <p class="subtitle" data-i18n="totp.modal_subtitle">Защита аккаунта временными кодами аутентификации</p>
+        </div>
+      </div>
     </div>
 
     <p style="font-size:13px; line-height:1.45; color:var(--text-muted); margin-bottom:12px;" data-i18n="totp.modal_instruction">
@@ -4093,27 +4210,31 @@
     </p>
 
     <!-- Контейнер QR-кода -->
-    <div style="display:flex; justify-content:center; align-items:center; background:#ffffff; padding:12px; border-radius:8px; margin-bottom:12px; border:1px solid var(--border);">
+    <div style="display:flex; justify-content:center; align-items:center; background:#ffffff; padding:16px; border-radius:12px; margin-bottom:14px; border:1px solid var(--border); box-shadow:0 4px 14px rgba(0,0,0,0.15);">
       <img id="totp-qr-img" src="" alt="2FA QR Code" style="width:190px; height:190px; display:block; object-fit:contain;">
     </div>
 
     <!-- Текстовый секретный ключ с кнопкой копирования -->
-    <label style="font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted);" data-i18n="totp.secret_key_label">Секретный ключ (для ручного ввода):</label>
-    <div class="form-row" style="margin:4px 0 14px 0;">
-      <input id="totp-secret-text" class="input input-grow mono" type="text" readonly style="letter-spacing:1px; font-weight:700;">
-      <button class="btn btn-secondary btn-small" onclick="copyTotpSecret()"><i data-lucide="copy" class="ico-sm"></i> <span data-i18n="common.copy">Копировать</span></button>
-    </div>
+    <div class="form-grid-modern" style="gap:10px;">
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="settings-field-label" data-i18n="totp.secret_key_label">Секретный ключ (для ручного ввода):</label>
+        <div class="form-row" style="margin:4px 0;">
+          <input id="totp-secret-text" class="input input-grow mono" type="text" readonly style="letter-spacing:1px; font-weight:700;">
+          <button class="btn btn-secondary btn-small" onclick="copyTotpSecret()"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="common.copy">Копировать</span></button>
+        </div>
+      </div>
 
-    <p style="font-size:13px; line-height:1.45; color:var(--text-muted); margin-bottom:8px;" data-i18n="totp.verify_instruction">
-      2. Введите 6-значный код из приложения для подтверждения:
-    </p>
-    <div class="form-col">
-      <input id="totp-verify-code" class="input mono" type="text" placeholder="000 000" maxlength="32"
-        style="font-size:18px; letter-spacing:3px; text-align:center;"
-        onkeydown="if(event.key==='Enter') submitConfirm2FASetup()">
-      <p id="totp-setup-error" class="hint" style="color:var(--danger); display:none; text-align:center;"></p>
-      
-      <div class="form-row" style="justify-content:flex-end; gap:8px; margin-top:8px;">
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <p style="font-size:13px; line-height:1.45; color:var(--text-muted); margin-bottom:8px;" data-i18n="totp.verify_instruction">
+          2. Введите 6-значный код из приложения для подтверждения:
+        </p>
+        <input id="totp-verify-code" class="input mono" type="text" placeholder="000 000" maxlength="32"
+          style="font-size:18px; letter-spacing:3px; text-align:center;"
+          onkeydown="if(event.key==='Enter') submitConfirm2FASetup()">
+        <p id="totp-setup-error" class="hint" style="color:var(--danger); display:none; text-align:center; margin-top:6px;"></p>
+      </div>
+
+      <div class="form-row" style="grid-column: 1 / -1; justify-content:flex-end; gap:8px; margin-top:10px;">
         <button class="btn btn-secondary" onclick="closeModal('totp-setup-modal')" data-i18n="common.cancel">Отмена</button>
         <button class="btn btn-primary" id="totp-setup-confirm-btn" onclick="submitConfirm2FASetup()" data-i18n="totp.btn_activate">Активировать 2FA</button>
       </div>
@@ -4216,22 +4337,24 @@
 
 <!-- МОДАЛЬНОЕ ОКНО: НАСТРОЙКИ АВТОБЭКАПА -->
 <div id="backup-schedule-modal" class="modal-overlay">
-  <div class="modal modal-medium">
-    <button class="modal-close" onclick="closeModal('backup-schedule-modal')">×</button>
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-      <div style="width:36px; height:36px; border-radius:8px; background:rgba(139,92,246,0.1); color:#a78bfa; display:flex; align-items:center; justify-content:center;">
-        <i data-lucide="calendar" class="ico-sm"></i>
-      </div>
-      <div>
-        <h2 style="margin:0; font-size:17px;" data-i18n="backup.schedule_title">Расписание автоматического бэкапа</h2>
-        <p class="hint" style="margin:0; font-size:12px;" data-i18n="backup.schedule_subtitle">Автоматическое резервное копирование и ротация архивов</p>
+  <div class="modal modal-medium" style="max-width: 560px;">
+    <button class="modal-close" onclick="closeModal('backup-schedule-modal')"><i data-lucide="x"></i></button>
+    <div class="settings-card-header" style="margin-bottom: 20px;">
+      <div class="settings-card-header-left">
+        <div class="settings-card-icon-badge">
+          <i data-lucide="calendar"></i>
+        </div>
+        <div class="settings-card-title-wrap">
+          <h3 data-i18n="backup.schedule_title">Расписание автоматического бэкапа</h3>
+          <p class="subtitle" data-i18n="backup.schedule_subtitle">Автоматическое резервное копирование и ротация архивов</p>
+        </div>
       </div>
     </div>
 
-    <div class="form-col" style="gap:14px; margin-bottom:16px;">
-      <div>
-        <label class="hint" style="display:block; font-weight:600; color:var(--text); margin-bottom:4px;" data-i18n="backup.schedule_interval_label">Интервал автосоздания:</label>
-        <select id="backup-schedule-interval" class="input" style="font-size:13px;">
+    <div class="form-grid-modern">
+      <div class="settings-field-group">
+        <label class="settings-field-label" data-i18n="backup.schedule_interval_label">Интервал автосоздания:</label>
+        <select id="backup-schedule-interval" class="input">
           <option value="0" data-i18n="backup.interval_disabled">Отключено (Только вручную)</option>
           <option value="1" data-i18n="backup.interval_daily">Ежедневно (Каждые 24 часа)</option>
           <option value="7" data-i18n="backup.interval_weekly">Еженедельно (Раз в 7 дней)</option>
@@ -4239,30 +4362,32 @@
         </select>
       </div>
 
-      <div>
-        <label class="hint" style="display:block; font-weight:600; color:var(--text); margin-bottom:4px;" data-i18n="backup.schedule_type_label">Тип автоматического бэкапа:</label>
-        <select id="backup-schedule-type" class="input" style="font-size:13px;">
+      <div class="settings-field-group">
+        <label class="settings-field-label" data-i18n="backup.schedule_type_label">Тип автоматического бэкапа:</label>
+        <select id="backup-schedule-type" class="input">
           <option value="full" data-i18n="backup.type_full">Полный (Медиатека + Настройки)</option>
           <option value="config" data-i18n="backup.type_config">Только настройки (Конфигурация)</option>
         </select>
       </div>
 
-      <div>
-        <label class="hint" style="display:block; font-weight:600; color:var(--text); margin-bottom:4px;" data-i18n="backup.schedule_retention_label">Лимит хранения (Retention Count):</label>
-        <select id="backup-schedule-retention" class="input" style="font-size:13px;">
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="settings-field-label">
+          <span data-i18n="backup.schedule_retention_label">Лимит хранения (Retention Count):</span>
+          <span class="settings-field-hint" data-i18n="backup.retention_hint">(старые архивы будут удаляться)</span>
+        </label>
+        <select id="backup-schedule-retention" class="input">
           <option value="5" data-i18n="backup.keep_5">Хранить последние 5 копий</option>
           <option value="10" data-i18n="backup.keep_10">Хранить последние 10 копий (Стандарт)</option>
           <option value="20" data-i18n="backup.keep_20">Хранить последние 20 копий</option>
           <option value="50" data-i18n="backup.keep_50">Хранить последние 50 копий</option>
           <option value="0" data-i18n="backup.keep_unlimited">Без ограничений (Не удалять старые)</option>
         </select>
-        <p class="hint" style="font-size:11.5px; margin-top:4px;" data-i18n="backup.retention_hint">При превышении лимита самые старые архивы будут автоматически удаляться.</p>
       </div>
-    </div>
 
-    <div class="form-row" style="justify-content:flex-end; gap:8px;">
-      <button class="btn btn-secondary" onclick="closeModal('backup-schedule-modal')" data-i18n="common.cancel">Отмена</button>
-      <button class="btn btn-primary" onclick="submitSaveBackupSchedule()" data-i18n="common.save">Сохранить</button>
+      <div class="form-row" style="grid-column: 1 / -1; justify-content:flex-end; gap:8px; margin-top:10px;">
+        <button class="btn btn-secondary" onclick="closeModal('backup-schedule-modal')" data-i18n="common.cancel">Отмена</button>
+        <button class="btn btn-primary" onclick="submitSaveBackupSchedule()" data-i18n="common.save">Сохранить</button>
+      </div>
     </div>
   </div>
 </div>
@@ -4372,39 +4497,45 @@
 </div>
 
 <div id="modal-add-blocklist" class="modal-overlay">
-  <div class="modal modal-medium" style="max-width: 560px; width: 95%;">
+  <div class="modal modal-medium" style="max-width: 580px; width: 95%;">
     <button class="modal-close" onclick="closeModal('modal-add-blocklist')"><i data-lucide="x"></i></button>
-    <div class="modal-header" style="margin-bottom: 16px;">
-      <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
-        <i data-lucide="shield-alert" class="ico-sm" style="color:var(--danger)"></i>
-        <span>Заблокировать релиз вручную</span>
-      </h3>
+    <div class="settings-card-header" style="margin-bottom: 16px;">
+      <div class="settings-card-header-left">
+        <div class="settings-card-icon-badge" style="background:rgba(239,68,68,0.15); color:var(--danger);">
+          <i data-lucide="shield-alert"></i>
+        </div>
+        <div class="settings-card-title-wrap">
+          <h3 data-i18n="blocklist.add_title">Заблокировать релиз вручную</h3>
+          <p class="subtitle" data-i18n="blocklist.add_subtitle">Исключение раздачи из автоматического поиска и граббинга</p>
+        </div>
+      </div>
     </div>
-    <div class="modal-body form-col" style="gap:14px;">
+
+    <div class="form-grid-modern">
       <!-- Селектор тайтла -->
-      <div class="form-group" id="add-blocklist-show-group">
-        <label for="add-blocklist-show" style="display:block; margin-bottom:6px; font-weight:500;">Тайтл (сериал / фильм):</label>
-        <select id="add-blocklist-show" class="input" style="width:100%;">
+      <div class="settings-field-group" id="add-blocklist-show-group" style="grid-column: 1 / -1;">
+        <label for="add-blocklist-show" class="settings-field-label" data-i18n="blocklist.show_label">Тайтл (сериал / фильм):</label>
+        <select id="add-blocklist-show" class="input">
           <option value="">Глобальная блокировка (для всех тайтлов)</option>
         </select>
-        <p class="hint" style="font-size:12px; margin-top:4px;">Если выбрать сериал/фильм, релиз будет блокироваться только для него.</p>
+        <p class="hint" style="font-size:12px; margin-top:4px;" data-i18n="blocklist.show_hint">Если выбрать сериал/фильм, релиз будет блокироваться только для него.</p>
       </div>
 
-      <div class="form-group">
-        <label for="add-blocklist-title" style="display:block; margin-bottom:6px; font-weight:500;">Название релиза или инфохэш <span class="text-danger">*</span>:</label>
-        <input type="text" id="add-blocklist-title" class="input" style="width:100%;" placeholder="Например: Release.Name.S01.1080p или 40-символьный хэш">
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label for="add-blocklist-title" class="settings-field-label"><span data-i18n="blocklist.release_title_or_hash">Название релиза или инфохэш</span> <span class="text-danger">*</span>:</label>
+        <input type="text" id="add-blocklist-title" class="input mono" placeholder="Например: Release.Name.S01.1080p или 40-символьный хэш">
       </div>
 
-      <div class="form-group">
-        <label for="add-blocklist-url" style="display:block; margin-bottom:6px; font-weight:500;">Ссылка на раздачу (страница трекера, опционально):</label>
-        <input type="url" id="add-blocklist-url" class="input" style="width:100%;" placeholder="https://rutracker.org/... или https://kinozal.guru/...">
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label for="add-blocklist-url" class="settings-field-label" data-i18n="blocklist.url_optional">Ссылка на раздачу (страница трекера, опционально):</label>
+        <input type="url" id="add-blocklist-url" class="input mono" placeholder="https://rutracker.org/... или https://kinozal.guru/...">
       </div>
 
-      <div class="form-group">
-        <label for="add-blocklist-reason" style="display:block; margin-bottom:6px; font-weight:500;">Причина блокировки:</label>
-        <input type="text" id="add-blocklist-reason" class="input" style="width:100%;" placeholder="Например: Отсутствуют серии / Битая озвучка / Фейк">
-        <div class="blocklist-quick-reasons-wrap">
-          <span class="blocklist-quick-reasons-label">Быстрый выбор:</span>
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label for="add-blocklist-reason" class="settings-field-label" data-i18n="blocklist.reason">Причина блокировки:</label>
+        <input type="text" id="add-blocklist-reason" class="input" placeholder="Например: Отсутствуют серии / Битая озвучка / Фейк">
+        <div class="blocklist-quick-reasons-wrap" style="margin-top:8px;">
+          <span class="blocklist-quick-reasons-label" data-i18n="blocklist.quick_choice">Быстрый выбор:</span>
           <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('add', 'Отсутствуют нужные серии')">Отсутствуют серии</span>
           <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('add', 'Неверная или битая озвучка')">Битая озвучка</span>
           <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('add', 'Фейк / Заглушка')">Фейк</span>
@@ -4412,55 +4543,62 @@
           <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('add', 'Несоответствие сезона или эпизодов')">Не тот сезон</span>
         </div>
       </div>
-    </div>
-    <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
-      <button class="btn btn-secondary" onclick="closeModal('modal-add-blocklist')">Отмена</button>
-      <button class="btn btn-danger" onclick="submitAddBlocklist(this)">Заблокировать</button>
+
+      <div class="form-row" style="grid-column: 1 / -1; justify-content:flex-end; gap:8px; margin-top:14px;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-add-blocklist')" data-i18n="common.cancel">Отмена</button>
+        <button class="btn btn-danger" onclick="submitAddBlocklist(this)" data-i18n="blocklist.btn_block">Заблокировать</button>
+      </div>
     </div>
   </div>
 </div>
 
 <div id="modal-edit-blocklist" class="modal-overlay">
-  <div class="modal modal-medium" style="max-width: 560px; width: 95%;">
+  <div class="modal modal-medium" style="max-width: 580px; width: 95%;">
     <button class="modal-close" onclick="closeModal('modal-edit-blocklist')"><i data-lucide="x"></i></button>
-    <div class="modal-header" style="margin-bottom: 16px;">
-      <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
-        <i data-lucide="edit-3" class="ico-sm" style="color:var(--teal)"></i>
-        <span>Редактировать заблокированный релиз</span>
-      </h3>
+    <div class="settings-card-header" style="margin-bottom: 16px;">
+      <div class="settings-card-header-left">
+        <div class="settings-card-icon-badge">
+          <i data-lucide="edit-3"></i>
+        </div>
+        <div class="settings-card-title-wrap">
+          <h3 data-i18n="blocklist.edit_title">Редактировать заблокированный релиз</h3>
+          <p class="subtitle" data-i18n="blocklist.edit_subtitle">Изменение параметров и причины блокировки</p>
+        </div>
+      </div>
     </div>
-    <div class="modal-body form-col" style="gap:14px;">
+
+    <div class="form-grid-modern">
       <input type="hidden" id="edit-blocklist-id" value="">
 
       <!-- Селектор тайтла -->
-      <div class="form-group" id="edit-blocklist-show-group">
-        <label for="edit-blocklist-show" style="display:block; margin-bottom:6px; font-weight:500;">Тайтл (сериал / фильм):</label>
-        <select id="edit-blocklist-show" class="input" style="width:100%;">
+      <div class="settings-field-group" id="edit-blocklist-show-group" style="grid-column: 1 / -1;">
+        <label for="edit-blocklist-show" class="settings-field-label" data-i18n="blocklist.show_label">Тайтл (сериал / фильм):</label>
+        <select id="edit-blocklist-show" class="input">
           <option value="">Глобальная блокировка (для всех тайтлов)</option>
         </select>
-        <p class="hint" style="font-size:12px; margin-top:4px;">Если выбрать сериал/фильм, релиз будет исключаться только при его поиске.</p>
+        <p class="hint" style="font-size:12px; margin-top:4px;" data-i18n="blocklist.show_edit_hint">Если выбрать сериал/фильм, релиз будет исключаться только при его поиске.</p>
       </div>
 
-      <div class="form-group">
-        <label for="edit-blocklist-title" style="display:block; margin-bottom:6px; font-weight:500;">Название релиза <span class="text-danger">*</span>:</label>
-        <input type="text" id="edit-blocklist-title" class="input" style="width:100%;" placeholder="Название релиза">
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label for="edit-blocklist-title" class="settings-field-label"><span data-i18n="blocklist.release_title">Название релиза</span> <span class="text-danger">*</span>:</label>
+        <input type="text" id="edit-blocklist-title" class="input" placeholder="Название релиза">
       </div>
 
-      <div class="form-group">
-        <label for="edit-blocklist-hash" style="display:block; margin-bottom:6px; font-weight:500;">Инфохэш торрента (опционально):</label>
-        <input type="text" id="edit-blocklist-hash" class="input" style="width:100%;" placeholder="40-символьный SHA1 хэш">
+      <div class="settings-field-group">
+        <label for="edit-blocklist-hash" class="settings-field-label" data-i18n="blocklist.hash_optional">Инфохэш торрента (опционально):</label>
+        <input type="text" id="edit-blocklist-hash" class="input mono" placeholder="40-символьный SHA1 хэш">
       </div>
 
-      <div class="form-group">
-        <label for="edit-blocklist-url" style="display:block; margin-bottom:6px; font-weight:500;">Ссылка на раздачу (страница трекера, опционально):</label>
-        <input type="url" id="edit-blocklist-url" class="input" style="width:100%;" placeholder="https://rutracker.org/... или https://kinozal.guru/...">
+      <div class="settings-field-group">
+        <label for="edit-blocklist-url" class="settings-field-label" data-i18n="blocklist.url_optional">Ссылка на раздачу (страница трекера):</label>
+        <input type="url" id="edit-blocklist-url" class="input mono" placeholder="https://rutracker.org/... или https://kinozal.guru/...">
       </div>
 
-      <div class="form-group">
-        <label for="edit-blocklist-reason" style="display:block; margin-bottom:6px; font-weight:500;">Причина блокировки:</label>
-        <input type="text" id="edit-blocklist-reason" class="input" style="width:100%;" placeholder="Причина блокировки">
-        <div class="blocklist-quick-reasons-wrap">
-          <span class="blocklist-quick-reasons-label">Быстрый выбор:</span>
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label for="edit-blocklist-reason" class="settings-field-label" data-i18n="blocklist.reason">Причина блокировки:</label>
+        <input type="text" id="edit-blocklist-reason" class="input" placeholder="Причина блокировки">
+        <div class="blocklist-quick-reasons-wrap" style="margin-top:8px;">
+          <span class="blocklist-quick-reasons-label" data-i18n="blocklist.quick_choice">Быстрый выбор:</span>
           <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('edit', 'Отсутствуют нужные серии')">Отсутствуют серии</span>
           <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('edit', 'Неверная или битая озвучка')">Битая озвучка</span>
           <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('edit', 'Фейк / Заглушка')">Фейк</span>
@@ -4468,9 +4606,10 @@
           <span class="blocklist-quick-chip" onclick="setBlocklistQuickReason('edit', 'Несоответствие сезона или эпизодов')">Не тот сезон</span>
         </div>
       </div>
-      <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px;">
-        <button class="btn btn-secondary" onclick="closeModal('modal-edit-blocklist')">Отмена</button>
-        <button class="btn btn-primary" onclick="submitEditBlocklist(this)">Сохранить</button>
+
+      <div class="form-row" style="grid-column: 1 / -1; justify-content:flex-end; gap:8px; margin-top:14px;">
+        <button class="btn btn-secondary" onclick="closeModal('modal-edit-blocklist')" data-i18n="common.cancel">Отмена</button>
+        <button class="btn btn-primary" onclick="submitEditBlocklist(this)" data-i18n="common.save">Сохранить</button>
       </div>
     </div>
   </div>
