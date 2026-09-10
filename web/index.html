@@ -206,8 +206,8 @@
             </div>
             <div class="header-actions">
               <button class="btn btn-secondary" onclick="triggerWantedSearch(this)" title="Запустить поиск разыскиваемых релизов" id="dash-wanted-search-btn">
-                <i data-lucide="sparkles"></i>
-                <span data-i18n="dash.btn_search_wanted">Поиск разыскиваемых</span>
+                <i data-lucide="search"></i>
+                <span data-i18n="dash.btn_search_wanted">Поиск Wanted</span>
               </button>
               <button class="btn btn-secondary" onclick="loadDashboard()" title="Обновить статус дашборда" id="dash-refresh-btn">
                 <i data-lucide="refresh-cw"></i>
@@ -215,7 +215,7 @@
               </button>
               <button class="btn btn-primary" onclick="openAddShowWizard()" title="Добавить фильм или сериал" id="dash-add-video-btn">
                 <i data-lucide="plus"></i>
-                <span data-i18n="nav.add_video">+ Добавить видео</span>
+                <span data-i18n="dash.btn_add_video">Добавить видео</span>
               </button>
             </div>
           </div>
@@ -238,19 +238,19 @@
           </div>
           <div class="dash-stat-subitems">
             <div class="dash-subitem">
-              <span class="dash-subitem-label category-badge-chip category-badge-series"><i data-lucide="tv" class="ico-xxs"></i> <span data-i18n="dash.series">Сериалы</span></span>
+              <span class="dash-subitem-label"><i data-lucide="tv" class="ico-xxs" style="color:var(--teal)"></i> <span data-i18n="dash.series">Сериалы</span></span>
               <span class="dash-subitem-val" id="stat-series">0</span>
             </div>
             <div class="dash-subitem">
-              <span class="dash-subitem-label category-badge-chip category-badge-movies"><i data-lucide="film" class="ico-xxs"></i> <span data-i18n="dash.movies">Фильмы</span></span>
+              <span class="dash-subitem-label"><i data-lucide="film" class="ico-xxs" style="color:#fbbf24"></i> <span data-i18n="dash.movies">Фильмы</span></span>
               <span class="dash-subitem-val" id="stat-movies">0</span>
             </div>
             <div class="dash-subitem">
-              <span class="dash-subitem-label category-badge-chip category-badge-anime"><i data-lucide="sparkles" class="ico-xxs"></i> <span data-i18n="dash.anime">Аниме</span></span>
+              <span class="dash-subitem-label"><i data-lucide="clapperboard" class="ico-xxs" style="color:#ff2a4d"></i> <span data-i18n="dash.anime">Аниме</span></span>
               <span class="dash-subitem-val" id="stat-anime">0</span>
             </div>
             <div class="dash-subitem">
-              <span class="dash-subitem-label"><span data-i18n="dash.total">Всего</span></span>
+              <span class="dash-subitem-label"><i data-lucide="layers" class="ico-xxs text-muted"></i> <span data-i18n="dash.total">Всего</span></span>
               <span class="dash-subitem-val" id="stat-shows-sub">0</span>
             </div>
           </div>
@@ -272,8 +272,8 @@
           </div>
           <div class="dash-stat-subitems">
             <div class="dash-subitem">
-              <span class="dash-subitem-label"><i data-lucide="bookmark-check" class="ico-xxs text-teal"></i> <span data-i18n="dash.monitored">Отслеживается</span></span>
-              <span class="dash-subitem-val" style="color:var(--teal)" id="stat-monitored">0</span>
+              <span class="dash-subitem-label"><i data-lucide="bookmark-check" class="ico-xxs" style="color:#10b981"></i> <span data-i18n="dash.monitored">Отслеживается</span></span>
+              <span class="dash-subitem-val" style="color:#10b981" id="stat-monitored">0</span>
             </div>
             <div class="dash-subitem">
               <span class="dash-subitem-label"><i data-lucide="bookmark-minus" class="ico-xxs text-muted"></i> <span data-i18n="dash.unmonitored">Не отслеж.</span></span>
@@ -1852,7 +1852,7 @@
                   <td><input id="setting-template-series" class="input mono" type="text" placeholder="{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"></td>
                 </tr>
                 <tr>
-                  <td class="folders-table-cat"><span class="category-badge-chip category-badge-anime" data-i18n="settings.cat_anime"><i data-lucide="sparkles" class="ico-xs"></i> Аниме</span></td>
+                  <td class="folders-table-cat"><span class="category-badge-chip category-badge-anime" data-i18n="settings.cat_anime"><i data-lucide="clapperboard" class="ico-xs"></i> Аниме</span></td>
                   <td>
                     <div class="folder-picker-row">
                       <input id="setting-download-anime" class="input mono" type="text" placeholder="/downloads/anime">

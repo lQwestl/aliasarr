@@ -3709,7 +3709,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius, 14px);
-  padding: 18px 20px;
+  padding: 16px 18px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(16px);
   display: flex;
@@ -3871,10 +3871,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 .dash-stat-subitems {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 12px;
+  padding-top: 10px;
   margin-top: 6px;
   min-width: 0;
 }
@@ -3883,8 +3883,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11.5px;
   min-width: 0;
   transition: opacity 0.15s ease;
 }
@@ -3897,12 +3897,18 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   color: var(--text-muted);
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 500;
+  font-size: 11.5px;
+}
+
+.dash-subitem-label i,
+.dash-subitem-label svg {
+  flex-shrink: 0;
 }
 
 .dash-subitem-val {
@@ -3910,7 +3916,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   font-weight: 700;
   color: var(--text);
   flex-shrink: 0;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 /* Middle & Bottom Dashboard Feed Rows */

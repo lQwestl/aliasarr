@@ -358,6 +358,7 @@ const TRANSLATIONS = {
     // Dashboard
     "dash.btn_refresh": "Обновить",
     "dash.btn_search_wanted": "Поиск Wanted",
+    "dash.btn_add_video": "Добавить видео",
     "dash.card_media": "Медиатека",
     "dash.series": "Сериалы",
     "dash.movies": "Фильмы",
@@ -1621,6 +1622,7 @@ const TRANSLATIONS = {
     // Dashboard
     "dash.btn_refresh": "Refresh",
     "dash.btn_search_wanted": "Search Wanted",
+    "dash.btn_add_video": "Add Video",
     "dash.card_media": "Media Library",
     "dash.series": "Series",
     "dash.movies": "Movies",
@@ -16134,12 +16136,12 @@ async function loadDatasetData(page = 1) {
         const effSeason = (dbMatch && dbMatch.effective_season !== undefined && dbMatch.effective_season !== null) ? dbMatch.effective_season : analysis.season;
         if (effSeason !== null && effSeason !== undefined) {
           if (effSeason === 0) {
-            parts.push(`<span class="badge badge-purple" title="Сезон 0 / Спецвыпуск"><i data-lucide="sparkles" class="ico-xs"></i> S00</span>`);
+            parts.push(`<span class="badge badge-purple" title="Сезон 0 / Спецвыпуск"><i data-lucide="layers" class="ico-xs"></i> S00</span>`);
           } else {
             parts.push(`<span class="badge badge-info"><i data-lucide="tv" class="ico-xs"></i> S${String(effSeason).padStart(2, "0")}</span>`);
           }
         } else if (analysis.is_ova || analysis.season_label?.type === "ova_ona") {
-          parts.push(`<span class="badge badge-purple" title="OVA / ONA"><i data-lucide="sparkles" class="ico-xs"></i> OVA</span>`);
+          parts.push(`<span class="badge badge-purple" title="OVA / ONA"><i data-lucide="disc" class="ico-xs"></i> OVA</span>`);
         }
 
         if (analysis.part && analysis.part >= 2) {
