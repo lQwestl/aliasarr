@@ -217,6 +217,22 @@ def evaluate_torrent_file_priority(
     target_seasons = {ep.season_number for ep in target_episodes}
     has_wanted_specials = any(ep.season_number == 0 for ep in target_episodes)
 
+    all_show_keys = {(ep.season_number, ep.episode_number) for ep in all_show_episodes} if all_show_episodes else set()
+    all_show_abs = {ep.absolute_number for ep in all_show_episodes if getattr(ep, "absolute_number", None) is not None} if all_show_episodes else set()
+
+    # Подготавливаем карту сквозной/кумулятивной нумерации для мультисезонных паков
+    cumulative_map: dict[int, tuple[int, int, Episode]] = {}
+    if all_show_episodes:
+        regular_eps = [
+            e for e in all_show_episodes
+            if getattr(e, "season_number", 0) is not None and e.season_number > 0 and getattr(e, "episode_number", None) is not None
+        ]
+        regular_eps.sort(key=lambda e: (e.season_number, e.episode_number))
+        unique_regular_seasons = {e.season_number for e in regular_eps}
+        if len(unique_regular_seasons) > 1:
+            for idx, e in enumerate(regular_eps, start=1):
+                cumulative_map[idx] = (e.season_number, e.episode_number, e)
+
     base_name = os.path.basename(file_name)
     dir_name = os.path.dirname(file_name)
 
@@ -232,18 +248,30 @@ def evaluate_torrent_file_priority(
         if re.search(r"\b(?:part|часть|cour|кур)\s*2\b", dir_lower):
             is_part_2 = True
         if season is None:
-            dir_parsed = parse_episode(dir_name)
-            if dir_parsed and dir_parsed.season is not None:
-                season = dir_parsed.season
-            else:
-                s_lbl = detect_season_label(dir_name)
+            # Проверяем сегменты директории от ближайшего (внутреннего) к внешнему
+            dir_segments = [s for s in dir_name.split("/") if s]
+            for seg in reversed(dir_segments):
+                seg_parsed = parse_episode(seg)
+                if seg_parsed and seg_parsed.season is not None and not (seg_parsed.seasons and len(seg_parsed.seasons) > 1):
+                    season = seg_parsed.season
+                    break
+                s_lbl = detect_season_label(seg)
                 if s_lbl["type"] == "numbered":
                     season = s_lbl["season"]
+                    break
+            if season is None:
+                dir_parsed = parse_episode(dir_name)
+                if dir_parsed and dir_parsed.season is not None and not (dir_parsed.seasons and len(dir_parsed.seasons) > 1):
+                    season = dir_parsed.season
+                else:
+                    s_lbl = detect_season_label(dir_name)
+                    if s_lbl["type"] == "numbered":
+                        season = s_lbl["season"]
 
     # Если сезон не определен ни из basename, ни из dir_name, пробуем определить из torrent_name
     if season is None and torrent_name:
         t_parsed = parse_episode(torrent_name)
-        if t_parsed and t_parsed.season is not None:
+        if t_parsed and t_parsed.season is not None and not (t_parsed.seasons and len(t_parsed.seasons) > 1):
             season = t_parsed.season
         else:
             s_lbl = detect_season_label(torrent_name)
@@ -332,6 +360,8 @@ def evaluate_torrent_file_priority(
                 s_div, e_mod = divmod(ep_num, 100)
                 if (s_div, e_mod) in target_keys:
                     return _set_res(1, f"Сопутствующий файл к серии S{s_div:02d}E{e_mod:02d} (ВКЛЮЧЕН)")
+                if (s_div, e_mod) in all_show_keys:
+                    return _set_res(0, f"Сопутствующий файл к неразыскиваемой серии S{s_div:02d}E{e_mod:02d} (ОТКЛЮЧЕН)")
 
             if is_special_file:
                 allow_ova_as_s1 = (ova_mode == "season_1") or (
@@ -353,6 +383,14 @@ def evaluate_torrent_file_priority(
             else:
                 if ep_num in target_abs:
                     return _set_res(1, f"Сопутствующий файл к серии {ep_num} (ВКЛЮЧЕН)")
+                if ep_num in all_show_abs:
+                    return _set_res(0, f"Сопутствующий файл к неразыскиваемой серии {ep_num} (ОТКЛЮЧЕН)")
+                if cumulative_map and ep_num in cumulative_map:
+                    cum_s, cum_ep, _ = cumulative_map[ep_num]
+                    if (cum_s, cum_ep) in target_keys:
+                        return _set_res(1, f"Сопутствующий файл к серии S{cum_s:02d}E{cum_ep:02d} (ВКЛЮЧЕН)")
+                    else:
+                        return _set_res(0, f"Сопутствующий файл к неразыскиваемой серии S{cum_s:02d}E{cum_ep:02d} (ОТКЛЮЧЕН)")
                 for s in target_seasons:
                     if s > 0 and (s, ep_num) in target_keys:
                         return _set_res(1, f"Сопутствующий файл к серии S{s:02d}E{ep_num:02d} (ВКЛЮЧЕН)")
@@ -439,6 +477,8 @@ def evaluate_torrent_file_priority(
                         if matched:
                             out_matched_episodes.append(matched)
                     return _set_res(1, f"Серия S{s_div:02d}E{e_mod:02d} (ВКЛЮЧЕН, разыскивается)")
+                if (s_div, e_mod) in all_show_keys:
+                    return _set_res(0, f"Серия S{s_div:02d}E{e_mod:02d} (ОТКЛЮЧЕН, серия уже скачана/не разыскивается)")
 
             # 2. При известном сезоне (проверяем только если сезон среди разыскиваемых)
             if season is not None:
@@ -463,13 +503,30 @@ def evaluate_torrent_file_priority(
                                     out_matched_episodes.append(matched)
                             return _set_res(1, f"Серия Part 2 S{season:02d}E{ep_num + 12:02d} (ВКЛЮЧЕН, разыскивается)")
             else:
-                # 3. Если сезон не указан явно в имени файла, сопоставляем по сквозной нумерации или регулярным сезонам (s > 0)
+                # 3. Если сезон не указан явно в имени файла/папке:
+                # 3a. Официальная абсолютная нумерация (актуально для аниме)
                 if ep_num in target_abs:
                     if out_matched_episodes is not None:
                         matched = next((ep for ep in target_episodes if getattr(ep, "absolute_number", None) == ep_num), None)
                         if matched:
                             out_matched_episodes.append(matched)
                     return _set_res(1, f"Серия {ep_num} (абсолютная нумерация) (ВКЛЮЧЕН, разыскивается)")
+                if ep_num in all_show_abs:
+                    return _set_res(0, f"Серия {ep_num} (абсолютная нумерация) (ОТКЛЮЧЕН, серия уже скачана/не разыскивается)")
+
+                # 3b. Сквозная кумулятивная нумерация мультисезонных паков (1..N серий для S01-S0N)
+                if cumulative_map and ep_num in cumulative_map:
+                    cum_s, cum_ep, cum_obj = cumulative_map[ep_num]
+                    if (cum_s, cum_ep) in target_keys:
+                        if out_matched_episodes is not None:
+                            matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (cum_s, cum_ep)), cum_obj)
+                            if matched:
+                                out_matched_episodes.append(matched)
+                        return _set_res(1, f"Серия сопоставлена по сквозной нумерации мультипака -> S{cum_s:02d}E{cum_ep:02d} (ВКЛЮЧЕН, разыскивается)")
+                    else:
+                        return _set_res(0, f"Серия сопоставлена по сквозной нумерации мультипака -> S{cum_s:02d}E{cum_ep:02d} (ОТКЛЮЧЕН, серия уже скачана/не разыскивается)")
+
+                # 3c. Сопоставление по регулярным сезонам (для одиночных сезонов или когда сквозная карта неприменима)
                 for s in target_seasons:
                     if s > 0 and (s, ep_num) in target_keys:
                         if out_matched_episodes is not None:
@@ -565,6 +622,10 @@ async def _limit_torrent_files_to_episodes(
             "Не удалось получить список файлов раздачи %s — метаданные торрента ещё не загружены",
             torrent_hash,
         )
+        try:
+            await dl_client.resume_torrent(torrent_hash)
+        except Exception:
+            pass
         return
 
     import_extras = True
@@ -585,42 +646,47 @@ async def _limit_torrent_files_to_episodes(
 
     show_obj = None
     all_show_episodes = []
+    show_ova_mode = "auto"
+    show_words = None
+    alias_offset = 0
+    scoped_season = None
+    t_name = getattr(torrent, "name", "") or ""
+
     if target_eps:
         try:
             show_id = getattr(target_eps[0], "show_id", None)
             if show_id:
-                if db and hasattr(db, "is_active") and db.is_active:
-                    show_obj = db.get(Show, show_id)
-                    all_show_episodes = db.query(Episode).filter(Episode.show_id == show_id).all()
-                else:
-                    from app.database import SessionLocal
-                    with SessionLocal() as s_db:
-                        show_obj = s_db.get(Show, show_id)
-                        all_show_episodes = s_db.query(Episode).filter(Episode.show_id == show_id).all()
+                from app.database import SessionLocal
+                from app.services.matcher import get_show_title_words, build_alias_candidates, best_alias_match
+                with SessionLocal() as s_db:
+                    db_show = s_db.get(Show, show_id)
+                    if db_show:
+                        show_ova_mode = getattr(db_show, "ova_mode", "auto") or "auto"
+                        show_words = get_show_title_words(db_show)
+                        show_alias_cands = build_alias_candidates(db_show)
+                        b_alias, b_score = best_alias_match(t_name, show_alias_cands, threshold=55)
+                        if b_alias:
+                            alias_offset = getattr(b_alias, "episode_offset", 0) or 0
+                            scoped_season = getattr(b_alias, "season_number", None)
+                    raw_eps = s_db.query(Episode).filter(Episode.show_id == show_id).order_by(Episode.season_number, Episode.episode_number).all()
+                    all_show_episodes = [
+                        Episode(
+                            id=e.id,
+                            show_id=e.show_id,
+                            season_number=e.season_number,
+                            episode_number=e.episode_number,
+                            absolute_number=e.absolute_number,
+                            title=e.title,
+                        )
+                        for e in raw_eps
+                    ]
         except Exception as e:
             logger.debug("Не удалось загрузить эпизоды тайтла для пофайлового сопоставления: %s", e)
-    show_ova_mode = getattr(show_obj, "ova_mode", "auto") or "auto"
-    from app.services.matcher import get_show_title_words
-    show_words = get_show_title_words(show_obj)
 
     unwanted_indices = []
     wanted_indices = []
     matched_target_eps = []
     file_reasons: dict[int, str] = {}
-
-    alias_offset = 0
-    scoped_season = None
-    t_name = getattr(torrent, "name", "") or ""
-    if show_obj:
-        try:
-            from app.services.matcher import build_alias_candidates, best_alias_match
-            show_alias_cands = build_alias_candidates(show_obj)
-            b_alias, b_score = best_alias_match(t_name, show_alias_cands, threshold=55)
-            if b_alias:
-                alias_offset = getattr(b_alias, "episode_offset", 0) or 0
-                scoped_season = getattr(b_alias, "season_number", None)
-        except Exception as exc:
-            logger.debug("Ошибка поиска алиаса для пофайловой фильтрации: %s", exc)
 
     for f in torrent.files:
         prio = evaluate_torrent_file_priority(
@@ -2004,8 +2070,9 @@ async def _do_search_and_grab(
             if ep.torrent_hash and ep.status == EpisodeStatus.DOWNLOADING
         }
 
+        should_pause = (show.content_type != "movie")
         try:
-            torrent_hash = await dl_client.add_torrent(rel.download_url, download_client_row.category, save_path)
+            torrent_hash = await dl_client.add_torrent(rel.download_url, download_client_row.category, save_path, paused=should_pause)
             if not torrent_hash:
                 raise RuntimeError(f"Загрузчик '{download_client_row.name}' не подтвердил добавление раздачи (хэш не получен)")
 

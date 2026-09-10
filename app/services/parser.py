@@ -108,13 +108,13 @@ _RE_ROMAN_SEASON = re.compile(
 
 # Префиксные порядковые сезоны: "1st Season", "2nd Season", "3rd Season", "1-й сезон", "1 сезон", "01 сезон", "4th Season Part 1", "1.sezon"
 _RE_PREFIX_SEASON = re.compile(
-    r"(?:^|[\s_.\-\(\[])(\d{1,2})[\s._–-]*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?[\s._–-]*" + _SEASON_WORD + _PART_WORD + r"\b",
+    r"(?:^|[\s_.\-\(\[/\\,])(\d{1,2})[\s._–-]*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?[\s._–-]*" + _SEASON_WORD + _PART_WORD + r"\b",
     re.IGNORECASE,
 )
 
 # Префиксные порядковые сезоны со списком серий: "5 сезон / 0, 10, 19 серия", "1-й сезон / 01, 03, 05 серии"
 _RE_PREFIX_SEASON_EP_LIST = re.compile(
-    r"(?:^|[\s_.\-\(\[/])(\d{1,2})[\s._–-]*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?[\s._–-]*" + _SEASON_WORD + _PART_WORD +
+    r"(?:^|[\s_.\-\(\[/\\,])(\d{1,2})[\s._–-]*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?[\s._–-]*" + _SEASON_WORD + _PART_WORD +
     r"[\s._/–-]+"
     r"((?:\d{1,4}\s*,\s*)+\d{1,4})\s*"
     r"(?:[\s._/–-]*(?:эп(?:изод(?:ов|а)?)?|сери[йия]|eps?|episodes?|выпуск(?:ов|а)?))?",
@@ -124,7 +124,7 @@ _RE_PREFIX_SEASON_EP_LIST = re.compile(
 # Префиксные порядковые сезоны с диапазоном или одиночной серией:
 # "2nd Season - 01", "2nd Season [01-12]", "2-й сезон - 02", "1st Season 05", "1.sezon.06.seriya.iz.20", "1.sezon.14.seriya"
 _RE_PREFIX_SEASON_EP_RANGE = re.compile(
-    r"(?:^|[\s_.\-\(\[])(\d{1,2})[\s._–-]*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?[\s._–-]*" + _SEASON_WORD + _PART_WORD +
+    r"(?:^|[\s_.\-\(\[/\\,])(\d{1,2})[\s._–-]*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?[\s._–-]*" + _SEASON_WORD + _PART_WORD +
     r"[\s._–-]+"
     r"(?:(?:" + _EPISODE_WORD_RU + "|" + _EPISODE_WORD_EN + r")[\s._–-]*)?"
     r"\[?\s*(\d{1,4})\s*[-–~]\s*(\d{1,4})(?:v\d)?\s*\]?"
@@ -134,7 +134,7 @@ _RE_PREFIX_SEASON_EP_RANGE = re.compile(
     re.IGNORECASE,
 )
 _RE_PREFIX_SEASON_EP_SINGLE = re.compile(
-    r"(?:^|[\s_.\-\(\[])(\d{1,2})[\s._–-]*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?[\s._–-]*" + _SEASON_WORD + _PART_WORD +
+    r"(?:^|[\s_.\-\(\[/\\,])(\d{1,2})[\s._–-]*(?:st|nd|rd|th|[-–]?(?:й|ый|ой|ий|я|ая))?[\s._–-]*" + _SEASON_WORD + _PART_WORD +
     r"[\s._–-]+"
     r"(?:(?:" + _EPISODE_WORD_RU + "|" + _EPISODE_WORD_EN + r")[\s._–-]*)?"
     r"\[?\s*(\d{1,4})(?:v\d)?\s*\]?"
@@ -222,13 +222,13 @@ _RE_SXXEXX_MULTI = re.compile(
 
 # "Сезон: 2 / Серии: 1-18 (18)", "Сезон: 2 / Серии: 1-18 из 18", "Season 2 Episodes 1-18"
 _RE_WORDY_SEASON_EP_RANGE = re.compile(
-    r"(?:^|[\s_.\-\(\[])" + _SEASON_WORD + r"[:\.\s_–-]*(\d{1,3})\D{0,25}?(?:" + _EPISODE_WORD_RU + "|" + _EPISODE_WORD_EN + r")[:\.\s_–-]*(\d{1,4})\s*[-–~]\s*(\d{1,4})(?:\s*(?:\(\d+\)|\(\s*из\s*\d+\s*\)|из\s*\d+|of\s*\d+|iz\s*\d+))?",
+    r"(?:^|[\s_.\-\(\[/\\,])" + _SEASON_WORD + r"[:\.\s_–-]*(\d{1,3})\D{0,25}?(?:" + _EPISODE_WORD_RU + "|" + _EPISODE_WORD_EN + r")[:\.\s_–-]*(\d{1,4})\s*[-–~]\s*(\d{1,4})(?:\s*(?:\(\d+\)|\(\s*из\s*\d+\s*\)|из\s*\d+|of\s*\d+|iz\s*\d+))?",
     re.IGNORECASE,
 )
 
 # "Сезон 1 Серия 5" / "Сезон: 2 / Серия: 5" / "Season 5 Episode 3" — сезон и одиночная серия словами
 _RE_WORDY_SEASON_EP_SINGLE = re.compile(
-    r"(?:^|[\s_.\-\(\[])" + _SEASON_WORD + r"[:\.\s_–-]*(\d{1,3})\D{0,25}?(?:" + _EPISODE_WORD_RU + "|" + _EPISODE_WORD_EN + r")[:\.\s_–-]*(\d{1,4})(?:v\d)?(?:\s*(?:из|of|iz|\/|\|)\s*(\d+))?",
+    r"(?:^|[\s_.\-\(\[/\\,])" + _SEASON_WORD + r"[:\.\s_–-]*(\d{1,3})\D{0,25}?(?:" + _EPISODE_WORD_RU + "|" + _EPISODE_WORD_EN + r")[:\.\s_–-]*(\d{1,4})(?:v\d)?(?:\s*(?:из|of|iz|\/|\|)\s*(\d+))?",
     re.IGNORECASE,
 )
 

@@ -64,7 +64,7 @@ class TorrentInfo:
 
 
 class BaseDownloadClient:
-    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None) -> str:
+    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None, paused: bool = False) -> str:
         raise NotImplementedError
 
     async def list_torrents(self) -> list[TorrentInfo]:
@@ -274,7 +274,7 @@ class QBittorrentClient(BaseDownloadClient):
         except Exception as exc:
             logger.debug("qBittorrent login attempt: %s", exc)
 
-    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None) -> str:
+    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None, paused: bool = False) -> str:
         torrent_bytes, resolved_url = await _fetch_torrent_content_if_url(url_or_magnet)
         expected_hash = extract_info_hash_from_url_or_magnet(resolved_url)
         if torrent_bytes and not expected_hash:
@@ -289,6 +289,7 @@ class QBittorrentClient(BaseDownloadClient):
                 add_data = {
                     "category": category or "",
                     "autoTMM": "false",
+                    "paused": "true" if paused else "false",
                 }
                 if save_path:
                     add_data["savepath"] = save_path
@@ -330,7 +331,7 @@ class QBittorrentClient(BaseDownloadClient):
         except Exception as exc:
             logger.warning("Ошибка добавления торрента через httpx в qBittorrent (%s): %s", self._base_url, exc)
             if self._sync_client:
-                sync_res = await asyncio.to_thread(self._add_torrent_sync, resolved_url, category, save_path)
+                sync_res = await asyncio.to_thread(self._add_torrent_sync, resolved_url, category, save_path, paused)
                 if sync_res:
                     return sync_res
             if expected_hash:
@@ -659,7 +660,7 @@ class TransmissionClient(BaseDownloadClient):
                 raise RuntimeError(f"Transmission RPC вернул ошибку: '{result_str}'")
             return data.get("arguments", {})
 
-    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None) -> str:
+    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None, paused: bool = False) -> str:
         torrent_bytes, resolved_url = await _fetch_torrent_content_if_url(url_or_magnet)
         expected_hash = extract_info_hash_from_url_or_magnet(resolved_url)
         if torrent_bytes and not expected_hash:
@@ -676,7 +677,7 @@ class TransmissionClient(BaseDownloadClient):
                 args["labels"] = [category]
             if save_path:
                 args["download-dir"] = save_path
-            args["paused"] = False
+            args["paused"] = bool(paused)
 
             res = await self._rpc_call("torrent-add", args)
             torrent_added = res.get("torrent-added") or res.get("torrent-duplicate") or {}
@@ -684,7 +685,8 @@ class TransmissionClient(BaseDownloadClient):
             if hash_str:
                 if res.get("torrent-duplicate"):
                     try:
-                        await self._rpc_call("torrent-start", {"ids": [hash_str]})
+                        if not paused:
+                            await self._rpc_call("torrent-start", {"ids": [hash_str]})
                         await self._rpc_call("torrent-verify", {"ids": [hash_str]})
                     except Exception as e:
                         logger.debug("Не удалось перезапустить duplicate torrent в Transmission: %s", e)
@@ -695,7 +697,7 @@ class TransmissionClient(BaseDownloadClient):
         except Exception as exc:
             logger.warning("Ошибка add_torrent в Transmission: %s", exc)
             if self._sync_client:
-                sync_res = await asyncio.to_thread(self._add_torrent_sync, resolved_url, category, save_path)
+                sync_res = await asyncio.to_thread(self._add_torrent_sync, resolved_url, category, save_path, paused)
                 if sync_res:
                     return sync_res
             exc_desc = str(exc).strip()
@@ -708,13 +710,15 @@ class TransmissionClient(BaseDownloadClient):
                     exc_desc = f"{type(exc).__name__}"
             raise RuntimeError(f"Ошибка Transmission при добавлении торрента: {exc_desc}")
 
-    def _add_torrent_sync(self, url_or_magnet: str, category: Optional[str], save_path: Optional[str]) -> str:
+    def _add_torrent_sync(self, url_or_magnet: str, category: Optional[str], save_path: Optional[str], paused: bool = False) -> str:
         try:
             kwargs = {}
             if category:
                 kwargs["labels"] = [category]
             if save_path:
                 kwargs["download_dir"] = save_path
+            if paused:
+                kwargs["paused"] = True
             torrent = self._sync_client.add_torrent(url_or_magnet, **kwargs)
             return str(getattr(torrent, "hashString", "") or "")
         except Exception:
@@ -1184,11 +1188,13 @@ class DelugeClient(BaseDownloadClient):
         if not auth_ok:
             raise PermissionError("Deluge login failed (invalid password)")
 
-    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None) -> str:
+    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None, paused: bool = False) -> str:
         await self._auth()
         opts: dict[str, Any] = {}
         if save_path:
             opts["download_location"] = save_path
+        if paused:
+            opts["add_paused"] = True
 
         if url_or_magnet.startswith("magnet:"):
             res = await self._rpc_call("core.add_torrent_magnet", [url_or_magnet, opts])
@@ -1209,16 +1215,17 @@ class DelugeClient(BaseDownloadClient):
         torrents = []
         if isinstance(res, dict):
             for t_hash, data in res.items():
-                torrents.append(
-                    TorrentInfo(
-                        hash=t_hash,
-                        name=data.get("name", ""),
-                        progress=(data.get("progress", 0) or 0) / 100,
-                        state=data.get("state", "").lower(),
-                        save_path=data.get("save_path", ""),
-                        size=data.get("total_size", 0),
+                if isinstance(data, dict):
+                    torrents.append(
+                        TorrentInfo(
+                            hash=t_hash.lower(),
+                            name=data.get("name", ""),
+                            progress=float(data.get("progress", 0.0) or 0.0) / 100.0,
+                            state=data.get("state", "downloading").lower(),
+                            save_path=data.get("save_path", ""),
+                            size=int(data.get("total_size", 0) or 0),
+                        )
                     )
-                )
         return torrents
 
     async def get_torrent(self, torrent_hash: str) -> Optional[TorrentInfo]:
@@ -1304,15 +1311,18 @@ class RTorrentClient(BaseDownloadClient):
             params, _ = xmlrpc.client.loads(resp.content)
             return params[0] if params else None
 
-    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None) -> str:
+    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None, paused: bool = False) -> str:
         extra_args = []
         if save_path:
             extra_args.append(f"d.directory.set={save_path}")
         if category:
             extra_args.append(f"d.custom1.set={category}")
 
+        load_cmd = "load.normal" if paused else "load.start"
+        load_raw_cmd = "load.raw" if paused else "load.raw_start"
+
         if url_or_magnet.startswith("magnet:"):
-            await self._call("load.start", "", url_or_magnet, *extra_args)
+            await self._call(load_cmd, "", url_or_magnet, *extra_args)
             # Извлекаем хеш из magnet ссылки
             m = re.search(r"xt=urn:btih:([a-zA-Z0-9]+)", url_or_magnet, re.IGNORECASE)
             return m.group(1).lower() if m else ""
@@ -1320,7 +1330,7 @@ class RTorrentClient(BaseDownloadClient):
             async with httpx.AsyncClient(timeout=15) as http_client:
                 r = await http_client.get(url_or_magnet)
                 r.raise_for_status()
-                await self._call("load.raw_start", "", xmlrpc.client.Binary(r.content), *extra_args)
+                await self._call(load_raw_cmd, "", xmlrpc.client.Binary(r.content), *extra_args)
             return ""
 
     async def list_torrents(self) -> list[TorrentInfo]:
@@ -1334,12 +1344,14 @@ class RTorrentClient(BaseDownloadClient):
                 if len(row) >= 6:
                     t_hash, name, bytes_done, size_bytes, is_active, directory = row[0], row[1], row[2], row[3], row[4], row[5]
                     prog = (bytes_done / size_bytes) if size_bytes else 0
-                    state = "seeding" if prog >= 1.0 else ("downloading" if is_active else "paused")
+                    state = "downloading" if is_active else "paused"
+                    if bytes_done >= size_bytes and size_bytes > 0:
+                        state = "seeding" if is_active else "paused"
                     torrents.append(
                         TorrentInfo(
                             hash=str(t_hash).lower(),
                             name=str(name),
-                            progress=prog,
+                            progress=max(0.0, min(1.0, prog)),
                             state=state,
                             save_path=str(directory),
                             size=int(size_bytes),
@@ -1410,10 +1422,12 @@ class Aria2Client(BaseDownloadClient):
                 raise ValueError(f"Aria2 error: {res_json['error']}")
             return res_json.get("result")
 
-    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None) -> str:
+    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None, paused: bool = False) -> str:
         opts: dict[str, str] = {}
         if save_path:
             opts["dir"] = save_path
+        if paused:
+            opts["pause"] = "true"
         gid = await self._call("aria2.addUri", [[url_or_magnet], opts])
         return str(gid or "")
 
@@ -1470,7 +1484,10 @@ class Aria2Client(BaseDownloadClient):
             pass
 
     async def resume_torrent(self, torrent_hash: str) -> None:
-        await self._call("aria2.unpause", [torrent_hash])
+        try:
+            await self._call("aria2.unpause", [torrent_hash])
+        except Exception:
+            pass
 
 
 class BlackholeClient(BaseDownloadClient):
@@ -1483,7 +1500,7 @@ class BlackholeClient(BaseDownloadClient):
         except Exception:
             pass
 
-    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None) -> str:
+    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None, paused: bool = False) -> str:
         if url_or_magnet.startswith("magnet:"):
             m = re.search(r"xt=urn:btih:([a-zA-Z0-9]+)", url_or_magnet, re.IGNORECASE)
             infohash = m.group(1).lower() if m else hashlib.sha1(url_or_magnet.encode()).hexdigest()
@@ -1531,7 +1548,7 @@ class SabnzbdClient(BaseDownloadClient):
         self._url = f"{host_clean}:{port}/api" if ":" not in host_clean.split("/")[-1] else f"{host_clean}/api"
         self._api_key = api_key
 
-    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None) -> str:
+    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None, paused: bool = False) -> str:
         params = {
             "mode": "addurl",
             "name": url_or_magnet,
@@ -1540,6 +1557,8 @@ class SabnzbdClient(BaseDownloadClient):
         }
         if category:
             params["cat"] = category
+        if paused:
+            params["pause"] = 1
         async with httpx.AsyncClient(timeout=15) as client:
             resp = await client.get(self._url, params=params)
             resp.raise_for_status()
@@ -1613,9 +1632,9 @@ class NZBGetClient(BaseDownloadClient):
             resp.raise_for_status()
             return resp.json().get("result")
 
-    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None) -> str:
+    async def add_torrent(self, url_or_magnet: str, category: Optional[str] = None, save_path: Optional[str] = None, paused: bool = False) -> str:
         # NZBGet method: append(NZBFilename, Content, Category, Priority, AddToTop, AddPaused, DupeKey, DupeScore, DupeMode)
-        res = await self._call("append", ["release.nzb", url_or_magnet, category or "", 0, False, False, "", 0, "SCORE"])
+        res = await self._call("append", ["release.nzb", url_or_magnet, category or "", 0, False, bool(paused), "", 0, "SCORE"])
         return str(res or "")
 
     async def list_torrents(self) -> list[TorrentInfo]:
