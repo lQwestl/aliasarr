@@ -28,6 +28,7 @@ from app.services.indexer_service import get_indexer_client
 from app.services.matcher import AliasCandidate, build_alias_candidates, match_release
 from app.services.notifications import notify_all
 from app.services.quality import parse_quality, is_upgrade
+from app.services.rate_limiter import RateLimitExceededError, get_rate_limiter
 from app.services.settings_service import get_or_create_settings
 from app.services.torznab import TorznabClient
 from app.services.user_service import require_permission, get_current_user
@@ -298,6 +299,9 @@ async def search_custom_releases(
                 client = get_indexer_client(idx)
                 rels = await asyncio.wait_for(client.search(query.strip()), timeout=12.0)
                 return (idx, rels)
+            except RateLimitExceededError as rle:
+                logger.warning("Индексатор %s заблокирован по лимиту запросов (HTTP 429). Пауза %.1fс", getattr(idx, "name", idx), rle.retry_after)
+                return (idx, [])
             except Exception:
                 return (idx, [])
 
@@ -434,6 +438,9 @@ async def search_releases_for_show(
                 client = get_indexer_client(idx)
                 rels = await asyncio.wait_for(client.search(q_term), timeout=12.0)
                 return (idx, rels)
+            except RateLimitExceededError as rle:
+                logger.warning("Индексатор %s заблокирован по лимиту запросов (HTTP 429). Пауза %.1fс", getattr(idx, "name", idx), rle.retry_after)
+                return (idx, [])
             except Exception:
                 return (idx, [])
 

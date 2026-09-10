@@ -53,6 +53,7 @@ from app.services.notifications import notify_all
 from app.services.parser import ReleaseKind, detect_season_label, parse_episode
 from app.services.quality import is_allowed, parse_quality
 from app.services.indexer_service import get_indexer_client
+from app.services.rate_limiter import RateLimitExceededError, get_rate_limiter
 from app.services.release_log_service import log_release_event
 from app.services.settings_service import get_or_create_settings
 from app.services.torznab import TorznabClient
@@ -1298,6 +1299,12 @@ async def _collect_candidates(
                 client = get_indexer_client(idx)
                 rels = await asyncio.wait_for(client.search(q_term), timeout=15.0)
                 return (idx, rels)
+            except RateLimitExceededError as rle:
+                logger.warning(
+                    "Индексатор %s превысил лимит запросов (HTTP 429). Запросы приостановлены на %.1fс",
+                    getattr(idx, "name", idx), rle.retry_after,
+                )
+                return (idx, [])
             except asyncio.TimeoutError:
                 logger.warning("Индексатор %s: таймаут (15с) при запросе «%s»", getattr(idx, "name", idx), q_term)
                 return (idx, [])

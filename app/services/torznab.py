@@ -19,6 +19,8 @@ try:
 except ImportError:
     httpx = None
 
+from app.services.rate_limiter import RateLimitExceededError, get_rate_limiter
+
 TORZNAB_NS = {"torznab": "http://torznab.com/schemas/2015/feed"}
 
 
@@ -37,10 +39,11 @@ class TorznabRelease:
 
 
 class TorznabClient:
-    def __init__(self, base_url: str, api_key: Optional[str] = None, timeout: int = 30):
+    def __init__(self, base_url: str, api_key: Optional[str] = None, timeout: int = 30, rate_limit_seconds: float = 2.0):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
+        self.rate_limit_seconds = rate_limit_seconds
 
     async def search(self, query: str, categories: Optional[list[int]] = None) -> list[TorznabRelease]:
         params = {"t": "search", "q": query}
@@ -50,9 +53,25 @@ class TorznabClient:
             params["cat"] = ",".join(str(c) for c in categories)
 
         url = f"{self.base_url}/api"
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        rate_limiter = get_rate_limiter()
+        host = rate_limiter.extract_host(url)
+
+        await rate_limiter.acquire(host, min_interval_seconds=self.rate_limit_seconds)
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Aliasarr/2.0",
+            "Accept": "application/rss+xml, application/xml, text/xml, */*",
+        }
+
+        async with httpx.AsyncClient(timeout=self.timeout, headers=headers) as client:
             resp = await client.get(url, params=params)
+            if resp.status_code == 429:
+                retry_after_hdr = resp.headers.get("Retry-After") or resp.headers.get("retry-after")
+                retry_after = rate_limiter.parse_retry_after(retry_after_hdr)
+                actual_backoff = rate_limiter.record_429(host, retry_after)
+                raise RateLimitExceededError(host, actual_backoff, f"Индексатор '{host}' вернул HTTP 429. Пауза {actual_backoff}с")
             resp.raise_for_status()
+            rate_limiter.record_success(host)
             return self._parse_response(resp.text)
 
     def _parse_response(self, xml_text: str) -> list[TorznabRelease]:

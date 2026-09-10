@@ -30,6 +30,8 @@ try:
 except ImportError:
     httpx = None
 
+from app.services.rate_limiter import RateLimitExceededError, get_rate_limiter
+
 logger = logging.getLogger("aliasarr.download_client")
 
 
@@ -189,8 +191,17 @@ async def _fetch_torrent_content_if_url(url_or_magnet: str) -> tuple[Optional[by
 
     current_url = url_or_magnet
     last_err = ""
+    rate_limiter = get_rate_limiter()
+
     for _ in range(5):
         if current_url.startswith("magnet:"):
+            return None, current_url
+
+        host = rate_limiter.extract_host(current_url)
+        try:
+            await rate_limiter.acquire(host, min_interval_seconds=1.5)
+        except RateLimitExceededError as rle:
+            logger.warning("Хост %s заблокирован по лимиту запросов (HTTP 429). Передаем URL напрямую в загрузчик", host)
             return None, current_url
 
         try:
@@ -206,7 +217,20 @@ async def _fetch_torrent_content_if_url(url_or_magnet: str) -> tuple[Optional[by
                         current_url = urllib.parse.urljoin(current_url, location)
                         continue
 
+                if resp.status_code == 429:
+                    retry_hdr = resp.headers.get("Retry-After") or resp.headers.get("retry-after")
+                    retry_after = rate_limiter.parse_retry_after(retry_hdr)
+                    actual_backoff = rate_limiter.record_429(host, retry_after)
+                    if retry_after is not None and retry_after <= 5.0:
+                        logger.warning("HTTP 429 при загрузке торрента с %s. Ожидание %.1fс...", host, retry_after)
+                        await asyncio.sleep(retry_after)
+                        continue
+                    else:
+                        logger.warning("Хост %s вернул HTTP 429 (пауза %.1fс). Передаем URL напрямую в загрузчик", host, actual_backoff)
+                        return None, current_url
+
                 if resp.status_code == 200 and resp.content:
+                    rate_limiter.record_success(host)
                     content = resp.content
                     if content.startswith(b"\x1f\x8b"):
                         try:
@@ -237,6 +261,9 @@ async def _fetch_torrent_content_if_url(url_or_magnet: str) -> tuple[Optional[by
             break
 
     if last_err:
+        if "429" in last_err:
+            logger.warning("Превышен лимит запросов при скачивании .torrent. Передаем ссылку напрямую: %s", url_or_magnet)
+            return None, url_or_magnet
         raise RuntimeError(f"Не удалось скачать .torrent файл с индексатора ({last_err})")
     return None, url_or_magnet
 

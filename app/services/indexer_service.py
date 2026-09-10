@@ -19,6 +19,7 @@ except ImportError:
     httpx = None
 
 import datetime as dt
+from app.services.rate_limiter import RateLimitExceededError, get_rate_limiter
 from app.services.torznab import TorznabRelease
 
 logger = logging.getLogger("aliasarr.indexer_service")
@@ -72,29 +73,58 @@ def _parse_release_age_and_date(pub_date_raw: Any) -> tuple[Optional[str], Optio
     return str(pub_date_raw), None
 
 
-async def _fetch_text_async(url: str, params: Optional[dict] = None, timeout: int = 30) -> str:
+async def _fetch_text_async(url: str, params: Optional[dict] = None, timeout: int = 30, min_interval_seconds: float = 2.0) -> str:
     if params:
         encoded = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
         sep = "&" if "?" in url else "?"
         url = f"{url}{sep}{encoded}"
+
+    rate_limiter = get_rate_limiter()
+    host = rate_limiter.extract_host(url)
+
+    # Проверяем кулдаун и выдерживаем межзапросный интервал к хосту (как в Sonarr RateLimitService)
+    await rate_limiter.acquire(host, min_interval_seconds=min_interval_seconds)
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Aliasarr/2.0",
+        "Accept": "application/rss+xml, application/xml, text/xml, */*",
+    }
+
     if httpx is not None:
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout, headers=headers) as client:
             resp = await client.get(url)
+            if resp.status_code == 429:
+                retry_after_hdr = resp.headers.get("Retry-After") or resp.headers.get("retry-after")
+                retry_after = rate_limiter.parse_retry_after(retry_after_hdr)
+                actual_backoff = rate_limiter.record_429(host, retry_after)
+                raise RateLimitExceededError(host, actual_backoff, f"Индексатор '{host}' вернул HTTP 429 (Слишком много запросов). Пауза {actual_backoff}с")
             resp.raise_for_status()
+            rate_limiter.record_success(host)
             return resp.text
     else:
         def _sync_get():
-            req = urllib.request.Request(url, headers={"User-Agent": "Aliasarr/2.0"})
-            with urllib.request.urlopen(req, timeout=timeout) as r:
-                return r.read().decode("utf-8", errors="replace")
+            req = urllib.request.Request(url, headers=headers)
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as r:
+                    res_text = r.read().decode("utf-8", errors="replace")
+                    rate_limiter.record_success(host)
+                    return res_text
+            except urllib.error.HTTPError as http_err:
+                if http_err.code == 429:
+                    retry_after_hdr = http_err.headers.get("Retry-After") if http_err.headers else None
+                    retry_after = rate_limiter.parse_retry_after(retry_after_hdr)
+                    actual_backoff = rate_limiter.record_429(host, retry_after)
+                    raise RateLimitExceededError(host, actual_backoff, f"Индексатор '{host}' вернул HTTP 429. Пауза {actual_backoff}с")
+                raise
         return await asyncio.to_thread(_sync_get)
 
 
 class BaseIndexerClient:
-    def __init__(self, base_url: str, api_key: Optional[str] = None, timeout: int = 30):
+    def __init__(self, base_url: str, api_key: Optional[str] = None, timeout: int = 30, rate_limit_seconds: float = 2.0):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
+        self.rate_limit_seconds = rate_limit_seconds
 
     async def search(self, query: str, categories: Optional[list[int]] = None) -> list[TorznabRelease]:
         raise NotImplementedError
@@ -111,7 +141,7 @@ class TorznabIndexerClient(BaseIndexerClient):
             params["cat"] = ",".join(str(c) for c in categories)
 
         url = f"{self.base_url}/api" if not self.base_url.endswith("/api") else self.base_url
-        xml_text = await _fetch_text_async(url, params=params, timeout=self.timeout)
+        xml_text = await _fetch_text_async(url, params=params, timeout=self.timeout, min_interval_seconds=self.rate_limit_seconds)
         return self._parse_xml(xml_text)
 
     def _parse_xml(self, xml_text: str) -> list[TorznabRelease]:
@@ -205,7 +235,7 @@ class NewznabIndexerClient(BaseIndexerClient):
             params["cat"] = ",".join(str(c) for c in categories)
 
         url = f"{self.base_url}/api" if not self.base_url.endswith("/api") else self.base_url
-        xml_text = await _fetch_text_async(url, params=params, timeout=self.timeout)
+        xml_text = await _fetch_text_async(url, params=params, timeout=self.timeout, min_interval_seconds=self.rate_limit_seconds)
         return self._parse_xml(xml_text)
 
     def _parse_xml(self, xml_text: str) -> list[TorznabRelease]:
@@ -283,7 +313,7 @@ class NyaaIndexerClient(BaseIndexerClient):
         else:
             params["c"] = "0_0"
 
-        xml_text = await _fetch_text_async(base, params=params, timeout=self.timeout)
+        xml_text = await _fetch_text_async(base, params=params, timeout=self.timeout, min_interval_seconds=self.rate_limit_seconds)
         return self._parse_nyaa_xml(xml_text)
 
     def _parse_nyaa_xml(self, xml_text: str) -> list[TorznabRelease]:
@@ -364,7 +394,7 @@ class TorrentRssIndexerClient(BaseIndexerClient):
             sep = "&" if "?" in url else "?"
             url = f"{url}{sep}passkey={self.api_key}"
 
-        xml_text = await _fetch_text_async(url, timeout=self.timeout)
+        xml_text = await _fetch_text_async(url, timeout=self.timeout, min_interval_seconds=self.rate_limit_seconds)
         releases = self._parse_rss(xml_text)
 
         # Фильтруем по запросу, если передан (для ручного поиска)
