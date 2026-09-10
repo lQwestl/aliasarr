@@ -2760,6 +2760,36 @@
             <tbody></tbody>
           </table>
         </div>
+
+        <!-- СИНХРОНИЗАЦИЯ И ОБНОВЛЕНИЕ МЕТАДАННЫХ -->
+        <div class="settings-section-card" style="margin-top: 24px;">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="refresh-cw"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="md.sync_section_title">Синхронизация метаданных</h3>
+                <p class="subtitle" data-i18n="md.sync_section_desc">Принудительное обновление информации о фильмах, франшизах, сериях и датах выхода из сети</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid-modern">
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <p style="margin: 0 0 16px 0; color: var(--text-muted); font-size: 14px; line-height: 1.5;" data-i18n="md.refresh_all_info">
+                Запускает полный опрос облачных провайдеров (Radarr/Sonarr SkyHook, TMDb) для всей библиотеки: обновляет официальные названия, саги и киноколлекции, постеры, синопсисы и даты премьер.
+              </p>
+              <div class="form-row" style="align-items: center; gap: 12px;">
+                <button type="button" class="btn btn-primary" onclick="triggerManualMetadataRefresh(this)">
+                  <i data-lucide="refresh-cw" class="ico-xs"></i>
+                  <span data-i18n="md.btn_refresh_now">Обновить метаданные всех тайтлов сейчас</span>
+                </button>
+              </div>
+              <div id="md-refresh-status" class="inline-status-box" style="display: none; margin-top: 14px;"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ПАНЕЛЬ 8: УВЕДОМЛЕНИЯ -->
