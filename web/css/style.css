@@ -979,6 +979,15 @@ body::before {
   box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.15);
   transform: none;
 }
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover, 
+.input:-webkit-autofill:focus,
+.input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--text) !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--bg) inset !important;
+  box-shadow: 0 0 0px 1000px var(--bg) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
 .input:disabled, .input-disabled-dim { opacity: 0.5; cursor: not-allowed; }
 .input-grow { flex: 1; }
 textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px 12px; height: auto; resize: vertical; }
@@ -11169,30 +11178,40 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  background: none;
+  background: transparent;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  transition: color 0.15s ease, background 0.15s ease;
+  border-radius: 50%;
+  transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+  z-index: 5;
 }
 
 .library-search-clear-btn:hover,
 .blocklist-search-clear-btn:hover {
-  color: var(--text);
-  background: var(--bg-hover, rgba(255, 255, 255, 0.06));
+  color: var(--danger, #ff4d4f) !important;
+  background: rgba(255, 77, 79, 0.18) !important;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.library-search-clear-btn:active,
+.blocklist-search-clear-btn:active {
+  transform: translateY(-50%) scale(0.92);
 }
 
 .library-search-clear-btn svg,
 .library-search-clear-btn i,
 .blocklist-search-clear-btn svg,
 .blocklist-search-clear-btn i {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
+  pointer-events: none;
 }
 
 .blocklist-layout {

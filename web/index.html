@@ -387,7 +387,7 @@
         <div class="toolbar" style="flex-wrap: wrap; gap: 8px;">
           <div class="library-search-wrap">
             <i data-lucide="search" class="library-search-icon"></i>
-            <input id="library-search" class="input library-search-input" type="text" placeholder="Найти в библиотеке…" data-i18n-placeholder="library.search_placeholder" oninput="onLibrarySearchInput()" onkeydown="onLibrarySearchKeyDown(event)">
+            <input id="library-search" class="input library-search-input" type="text" placeholder="Найти в библиотеке…" data-i18n-placeholder="library.search_placeholder" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onLibrarySearchInput()" onkeydown="onLibrarySearchKeyDown(event)">
             <button id="library-search-clear" class="library-search-clear-btn" onclick="clearLibrarySearch()" style="display:none;" title="Очистить поиск" aria-label="Очистить поиск">
               <i data-lucide="x"></i>
             </button>
@@ -567,8 +567,8 @@
         </div>
         <div class="blocklist-search-wrap">
           <i data-lucide="search" class="blocklist-search-icon"></i>
-          <input type="text" id="blocklist-search-input" class="input blocklist-search-input" placeholder="Поиск по названию раздачи, хэшу или причине..." oninput="onBlocklistSearchInput()">
-          <button id="blocklist-search-clear" class="blocklist-search-clear-btn" onclick="clearBlocklistSearch()" style="display:none;">
+          <input type="text" id="blocklist-search-input" class="input blocklist-search-input" placeholder="Поиск по названию раздачи, хэшу или причине..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onBlocklistSearchInput()">
+          <button id="blocklist-search-clear" class="blocklist-search-clear-btn" onclick="clearBlocklistSearch()" style="display:none;" title="Очистить поиск" aria-label="Очистить поиск">
             <i data-lucide="x"></i>
           </button>
         </div>
