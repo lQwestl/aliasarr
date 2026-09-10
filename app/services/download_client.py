@@ -338,11 +338,13 @@ class QBittorrentClient(BaseDownloadClient):
                 return expected_hash
             raise RuntimeError(f"Ошибка qBittorrent при добавлении торрента: {exc}")
 
-    def _add_torrent_sync(self, url_or_magnet: str, category: Optional[str], save_path: Optional[str]) -> str:
+    def _add_torrent_sync(self, url_or_magnet: str, category: Optional[str], save_path: Optional[str], paused: bool = False) -> str:
         try:
             self._sync_client.auth_log_in()
             before = {t.hash for t in self._sync_client.torrents_info()}
             add_kwargs = {"urls": url_or_magnet, "category": category}
+            if paused:
+                add_kwargs["is_paused"] = True
             if save_path:
                 add_kwargs["save_path"] = save_path
                 add_kwargs["use_auto_torrent_management"] = False

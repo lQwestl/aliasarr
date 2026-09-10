@@ -2072,7 +2072,10 @@ async def _do_search_and_grab(
 
         should_pause = (show.content_type != "movie")
         try:
-            torrent_hash = await dl_client.add_torrent(rel.download_url, download_client_row.category, save_path, paused=should_pause)
+            try:
+                torrent_hash = await dl_client.add_torrent(rel.download_url, download_client_row.category, save_path, paused=should_pause)
+            except TypeError:
+                torrent_hash = await dl_client.add_torrent(rel.download_url, download_client_row.category, save_path)
             if not torrent_hash:
                 raise RuntimeError(f"Загрузчик '{download_client_row.name}' не подтвердил добавление раздачи (хэш не получен)")
 

@@ -129,7 +129,7 @@ class TestUpgradeFeature(unittest.TestCase):
 
         # Mock download client and torznab releases
         class MockDC:
-            async def add_torrent(self, url, category=None, save_path=None):
+            async def add_torrent(self, url, category=None, save_path=None, paused=False, *args, **kwargs):
                 return "test-hash-upgrade-123"
             async def get_torrent(self, torrent_hash):
                 return None

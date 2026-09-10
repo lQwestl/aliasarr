@@ -586,7 +586,10 @@ async def grab_release(
         save_path = settings.download_folder_series
     should_pause = (show.content_type != "movie")
     try:
-        torrent_hash = await client.add_torrent(payload.download_url, download_client_row.category, save_path, paused=should_pause)
+        try:
+            torrent_hash = await client.add_torrent(payload.download_url, download_client_row.category, save_path, paused=should_pause)
+        except TypeError:
+            torrent_hash = await client.add_torrent(payload.download_url, download_client_row.category, save_path)
     except Exception as exc:
         raise HTTPException(502, f"Не удалось отправить релиз в download client: {exc}")
 

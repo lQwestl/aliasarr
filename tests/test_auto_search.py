@@ -79,7 +79,7 @@ class FakeDownloadClient:
     def __init__(self):
         self.added = []
 
-    async def add_torrent(self, url_or_magnet, category=None, save_path=None):
+    async def add_torrent(self, url_or_magnet, category=None, save_path=None, paused=False, *args, **kwargs):
         self.added.append(url_or_magnet)
         return f"hash-{len(self.added)}"
 
@@ -221,7 +221,7 @@ class TestAutoSearch(unittest.TestCase):
             def __init__(self):
                 self.attempts = []
 
-            async def add_torrent(self, url_or_magnet, category=None, save_path=None):
+            async def add_torrent(self, url_or_magnet, category=None, save_path=None, paused=False, *args, **kwargs):
                 self.attempts.append(url_or_magnet)
                 if "guid-fail" in url_or_magnet:
                     raise RuntimeError("HTTP 404: Not Found")
