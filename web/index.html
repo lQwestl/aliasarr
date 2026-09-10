@@ -619,17 +619,6 @@
               <i data-lucide="x"></i>
             </button>
           </div>
-
-          <div class="blocklist-view-switcher" id="blocklist-view-mode-switcher">
-            <button type="button" class="btn-icon-mode active" id="blocklist-view-cards-btn" onclick="setBlocklistViewMode('cards')" title="Вид: Карточки" data-i18n-title="blocklist.view_cards">
-              <i data-lucide="layout-grid" class="ico-xs"></i>
-              <span data-i18n="blocklist.cards_view">Карточки</span>
-            </button>
-            <button type="button" class="btn-icon-mode" id="blocklist-view-table-btn" onclick="setBlocklistViewMode('table')" title="Вид: Таблица" data-i18n-title="blocklist.view_table">
-              <i data-lucide="table" class="ico-xs"></i>
-              <span data-i18n="blocklist.table_view">Таблица</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -664,10 +653,6 @@
               <span id="blocklist-current-count" class="badge badge-primary">0</span>
             </div>
             <div class="blocklist-main-actions">
-              <button type="button" id="blocklist-toggle-table-posters-btn" class="btn btn-sm btn-secondary blocklist-poster-toggle-btn" onclick="toggleBlocklistTablePosters()" title="Показывать мини-постер тайтла в таблице раздач">
-                <i data-lucide="image" class="ico-xs"></i>
-                <span id="blocklist-toggle-table-posters-label">Обложки: Вкл</span>
-              </button>
               <button type="button" id="blocklist-select-all-btn" class="btn btn-sm btn-secondary" onclick="toggleBlocklistSelectAll()" title="Выбрать все раздачи">
                 <i data-lucide="check-square" class="ico-xs"></i>
                 <span data-i18n="blocklist.select_all">Выбрать все</span>
@@ -694,27 +679,6 @@
             <div class="blocklist-cards-grid" id="blocklist-cards-grid">
               <!-- Карточки генерируются JS -->
             </div>
-          </div>
-
-          <!-- Режим таблицы -->
-          <div class="table-responsive glass-table-wrap" id="blocklist-table-wrap" style="display:none;">
-            <table class="data-table" id="blocklist-table">
-              <thead>
-                <tr>
-                  <th style="width:40px; text-align:center;">
-                    <input type="checkbox" id="blocklist-table-check-all" onchange="toggleBlocklistSelectAll(this.checked)" title="Выбрать все">
-                  </th>
-                  <th style="width:38%;" data-i18n="blocklist.col_release">Раздача / Тайтл</th>
-                  <th style="width:12%;" data-i18n="blocklist.col_indexer">Трекер</th>
-                  <th style="width:12%;" data-i18n="blocklist.col_quality">Качество</th>
-                  <th style="width:23%;" data-i18n="blocklist.col_reason">Причина блокировки</th>
-                  <th style="width:15%; text-align:right;" data-i18n="blocklist.col_actions">Действие</th>
-                </tr>
-              </thead>
-              <tbody id="blocklist-table-body">
-                <!-- Записи раздач генерируются JS -->
-              </tbody>
-            </table>
           </div>
 
           <!-- Плавающая панель массовых действий -->
@@ -746,16 +710,6 @@
             <div>
               <h1 data-i18n="tab.activity">Активность</h1>
               <p class="subtitle" data-i18n="subtitle.activity">Текущие загрузки во всех download clients</p>
-            </div>
-            <div class="header-actions">
-              <button class="btn btn-secondary" onclick="triggerManualCheckDownloads()" title="Проверить завершенные загрузки" id="activity-check-btn">
-                <i data-lucide="check-circle-2"></i>
-                <span data-i18n="activity.btn_check_completed">Проверить загрузки</span>
-              </button>
-              <button class="btn btn-secondary" onclick="loadQueue()" title="Обновить очередь" id="activity-refresh-btn">
-                <i data-lucide="refresh-cw"></i>
-                <span data-i18n="common.refresh">Обновить</span>
-              </button>
             </div>
           </div>
         </header>
@@ -1051,30 +1005,67 @@
       </div>
     </div>
 
-    <!-- ИСТОРИЯ -->
+    <!-- ИСТОРИЯ (Релиз-логи с группировкой и выдвижным Neo-Glass таймлайном) -->
     <section id="tab-history" class="tab-panel">
       <div class="panel-sticky-header">
         <header class="panel-header">
           <div class="header-row">
             <div>
               <h1 data-i18n="tab.history">История</h1>
-              <p class="subtitle" data-i18n="subtitle.history">Журнал захваченных релизов</p>
+              <p class="subtitle" data-i18n="subtitle.history">История поиска, сопоставления, решений и импорта релизов</p>
             </div>
             <div class="header-actions">
-              <button class="btn btn-secondary" onclick="loadHistory()" title="Обновить историю" id="history-refresh-btn">
-                <i data-lucide="refresh-cw"></i>
-                <span data-i18n="common.refresh">Обновить</span>
+              <button class="btn btn-secondary" id="history-download-btn" onclick="downloadReleaseLogs()" title="Скачать лог релизов в .txt" data-i18n-title="journal.btn_download">
+                <i data-lucide="download" class="ico-xs"></i>
+                <span data-i18n="journal.btn_download">Скачать .txt</span>
+              </button>
+              <button class="btn btn-danger" id="history-clear-btn" onclick="clearReleaseLogs()" title="Очистить историю релизов" data-i18n-title="journal.btn_clear">
+                <i data-lucide="trash-2" class="ico-xs"></i>
+                <span data-i18n="journal.btn_clear">Очистить</span>
               </button>
             </div>
           </div>
         </header>
+
+        <!-- Тулбар фильтрации и поиска -->
+        <div class="history-toolbar" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 12px 0 14px 0;">
+          <div class="history-search-wrap" style="position: relative; flex: 1; min-width: 260px; max-width: 420px;">
+            <i data-lucide="search" class="ico-xs text-muted" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none;"></i>
+            <input type="text" id="history-search-input" class="input" placeholder="Поиск по названию, релизу или трекеру…" style="padding-left: 36px; width: 100%;" oninput="debounceHistorySearch()">
+          </div>
+
+          <select id="history-status-filter" class="input" style="max-width: 200px;" onchange="loadGroupedReleaseHistory(1)">
+            <option value="all" data-i18n="history.filter_all_status">Все статусы</option>
+            <option value="imported" data-i18n="history.filter_imported">🟢 Успешно импортирован</option>
+            <option value="grabbed" data-i18n="history.filter_grabbed">🔵 Захвачен в клиент</option>
+            <option value="rejected" data-i18n="history.filter_rejected">🔴 Отклонено движком</option>
+            <option value="error" data-i18n="history.filter_error">⚠️ Ошибка</option>
+          </select>
+
+          <select id="history-stage-filter" class="input" style="max-width: 180px;" onchange="loadGroupedReleaseHistory(1)">
+            <option value="all" data-i18n="release_logs.filter_all_stages">Все этапы</option>
+            <option value="search">Поиск (Search)</option>
+            <option value="match">Сопоставление (Match)</option>
+            <option value="filter">Фильтрация (Filter)</option>
+            <option value="decision">Решения (Decision)</option>
+            <option value="grab">Захват (Grab)</option>
+            <option value="import">Импорт (Import)</option>
+          </select>
+
+          <button class="btn btn-secondary btn-small" onclick="loadGroupedReleaseHistory(1)" title="Обновить список" id="history-refresh-btn">
+            <i data-lucide="refresh-cw" class="ico-sm"></i>
+            <span data-i18n="common.refresh">Обновить</span>
+          </button>
+        </div>
       </div>
-      <div class="table-responsive glass-table-wrap">
-        <table class="data-table" id="history-table">
-          <thead><tr><th style="width:160px;" data-i18n="history.col_date">Дата</th><th style="width:200px;" data-i18n="history.col_show">Видео</th><th data-i18n="history.col_release">Релиз</th><th style="width:130px;" data-i18n="history.col_event">Событие</th></tr></thead>
-          <tbody></tbody>
-        </table>
+
+      <!-- Список сгруппированных релизов -->
+      <div id="history-releases-container" class="history-releases-list">
+        <!-- Генерируется динамически -->
       </div>
+
+      <!-- Пагинация -->
+      <div id="history-pagination" class="pagination-row" style="margin-top: 16px; display: flex; justify-content: center; align-items: center;"></div>
     </section>
 
     <!-- НАСТРОЙКИ -->
@@ -3107,7 +3098,6 @@
         <div class="logs-tabs">
           <button class="logs-tab-btn active" data-logs-tab="audit"><i data-lucide="shield-check" class="ico-xs"></i><span data-i18n="nav.audit">Аудит</span></button>
           <button class="logs-tab-btn" data-logs-tab="journal"><i data-lucide="scroll-text" class="ico-xs"></i><span data-i18n="nav.journal">Журнал</span></button>
-          <button class="logs-tab-btn" data-logs-tab="release-logs"><i data-lucide="file-search" class="ico-xs"></i><span data-i18n="nav.release_logs">Релиз логи</span></button>
           <button class="logs-tab-btn" data-logs-tab="dataset-harvester"><i data-lucide="file-code" class="ico-xs"></i><span data-i18n="nav.dataset_harvester">Логи для улучшения парсера</span></button>
         </div>
       </div>
@@ -3207,57 +3197,7 @@
         </div>
       </div>
 
-      <!-- 4. ПОДПАНЕЛЬ РЕЛИЗ ЛОГОВ -->
-      <div id="logs-release-logs" class="logs-panel">
-        <div class="form-row release-logs-toolbar" style="margin-bottom:14px; flex-wrap:wrap; gap:10px;">
-          <select id="release-logs-stage-filter" class="input" style="max-width:180px" onchange="loadReleaseLogs(1)">
-            <option value="all" data-i18n="release_logs.filter_all_stages">Все этапы</option>
-            <option value="search">Поиск (Search)</option>
-            <option value="match">Сопоставление (Match)</option>
-            <option value="filter">Фильтрация (Filter)</option>
-            <option value="decision">Решения (Decision)</option>
-            <option value="grab">Захват / Клиент (Grab)</option>
-            <option value="download">Мониторинг (Download)</option>
-            <option value="import">Импорт (Import)</option>
-          </select>
-
-          <select id="release-logs-level-filter" class="input" style="max-width:170px" onchange="loadReleaseLogs(1)">
-            <option value="all" data-i18n="release_logs.filter_all_levels">Все статусы</option>
-            <option value="success">Успех (Success)</option>
-            <option value="info">Инфо (Info)</option>
-            <option value="warning">Внимание (Warning)</option>
-            <option value="error">Ошибка (Error)</option>
-          </select>
-
-          <input type="text" id="release-logs-search" class="input" style="max-width:260px" placeholder="Поиск по тайтлу или раздаче…" data-i18n-placeholder="release_logs.search_placeholder" onkeydown="if(event.key==='Enter') loadReleaseLogs(1)">
-          
-          <button class="btn btn-secondary btn-small" id="release-logs-refresh-btn" onclick="loadReleaseLogs(1)"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="common.refresh">Обновить</span></button>
-
-          <div class="desktop-spacer" style="flex:1"></div>
- 
-          <button class="btn btn-secondary btn-small" id="release-logs-download-btn" onclick="downloadReleaseLogs()"><i data-lucide="download" class="ico-sm"></i> <span data-i18n="journal.btn_download">Скачать .txt</span></button>
-          <button class="btn btn-danger btn-small" id="release-logs-clear-btn" onclick="clearReleaseLogs()"><i data-lucide="trash-2" class="ico-sm"></i> <span data-i18n="journal.btn_clear">Очистить</span></button>
-        </div>
-
-        <div class="table-responsive glass-table-wrap">
-          <table class="data-table" id="release-logs-table">
-            <thead>
-              <tr>
-                <th style="width:145px;" data-i18n="release_logs.col_time">Время</th>
-                <th style="width:90px;" data-i18n="release_logs.col_stage">Этап</th>
-                <th style="width:85px;" data-i18n="release_logs.col_level">Статус</th>
-                <th style="width:160px;" data-i18n="release_logs.col_show">Тайтл</th>
-                <th data-i18n="release_logs.col_message">Сообщение и принятое решение</th>
-                <th style="width:100px; text-align:center;" data-i18n="common.actions">Действия</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="form-row" id="release-logs-pagination" style="justify-content:center; margin-top:14px;"></div>
-      </div>
-
-      <!-- 5. ПОДПАНЕЛЬ ЛОГОВ ДЛЯ УЛУЧШЕНИЯ И ПАРСЕРА (DATASET HARVESTER) -->
+      <!-- 3. ПОДПАНЕЛЬ ЛОГОВ ДЛЯ УЛУЧШЕНИЯ И ПАРСЕРА (DATASET HARVESTER) -->
       <div id="logs-dataset-harvester" class="logs-panel">
         <!-- ПАНЕЛЬ УПРАВЛЕНИЯ И ЗАПУСКА СБОРА -->
         <div class="panel dataset-panel" style="padding: 16px 20px; margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--radius, 12px);">
@@ -4773,6 +4713,29 @@
     </div>
   </div>
 </div>
+
+<!-- Выдвижная Neo-Glass панель детальной истории релиза (Drawer) -->
+<div id="release-history-drawer-overlay" class="release-drawer-overlay" onclick="closeReleaseHistoryDrawer()"></div>
+<aside id="release-history-drawer" class="release-drawer-panel" aria-label="Детализация истории релиза">
+  <div class="release-drawer-header">
+    <div class="release-drawer-header-left">
+      <div class="release-drawer-icon-badge">
+        <i data-lucide="history"></i>
+      </div>
+      <div class="release-drawer-title-wrap">
+        <h3 id="drawer-release-show-title">Детализация релиза</h3>
+        <p class="subtitle" id="drawer-release-subtitle">Хронология и принятые решения движка</p>
+      </div>
+    </div>
+    <button class="btn-icon-only release-drawer-close" onclick="closeReleaseHistoryDrawer()" title="Закрыть панель (Esc)">
+      <i data-lucide="x" class="ico-sm"></i>
+    </button>
+  </div>
+
+  <div class="release-drawer-body" id="release-history-drawer-body">
+    <!-- Наполняется динамически: Hero-блок релиза + Хронологический таймлайн шагов -->
+  </div>
+</aside>
 
 <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 <div id="toast" class="toast" style="display:none;"></div>

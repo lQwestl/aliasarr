@@ -459,6 +459,17 @@ const TRANSLATIONS = {
     "history.event.grabbed": "захвачено",
     "history.event.imported": "перенесено",
     "history.event.failed": "ошибка",
+    "history.filter_all_status": "Все статусы",
+    "history.filter_imported": "🟢 Успешно импортирован",
+    "history.filter_grabbed": "🔵 Захвачен в клиент",
+    "history.filter_rejected": "🔴 Отклонено движком",
+    "history.filter_error": "⚠️ Ошибка",
+    "history.drawer_title": "Детализация релиза",
+    "history.drawer_subtitle": "Хронология и принятые решения движка",
+    "history.empty_grouped": "История релизов пуста",
+    "history.empty_grouped_desc": "Здесь отображается жизненный цикл всех найденных раздач, их сопоставление, решения движка и импорт.",
+    "history.btn_blocklist": "В чёрный список",
+    "history.btn_manual_search": "Ручной поиск",
 
     // Calendar
     "calendar.today": "Сегодня",
@@ -1727,6 +1738,17 @@ const TRANSLATIONS = {
     "history.event.grabbed": "grabbed",
     "history.event.imported": "imported",
     "history.event.failed": "failed",
+    "history.filter_all_status": "All statuses",
+    "history.filter_imported": "🟢 Successfully Imported",
+    "history.filter_grabbed": "🔵 Grabbed to Client",
+    "history.filter_rejected": "🔴 Rejected by DecisionEngine",
+    "history.filter_error": "⚠️ Error",
+    "history.drawer_title": "Release Details",
+    "history.drawer_subtitle": "Chronology & DecisionEngine steps",
+    "history.empty_grouped": "No release history recorded yet",
+    "history.empty_grouped_desc": "The lifecycle of all found releases, matching, decisions and imports will appear here.",
+    "history.btn_blocklist": "Add to Blocklist",
+    "history.btn_manual_search": "Interactive Search",
 
     // Calendar
     "calendar.today": "Today",
@@ -4274,7 +4296,6 @@ function switchLogsSubTab(subTabId) {
 
   if (subTabId === "audit") loadAuditLogs(1);
   else if (subTabId === "journal") loadJournal(1);
-  else if (subTabId === "release-logs") loadReleaseLogs(1);
   else if (subTabId === "dataset-harvester") loadDatasetHarvester(1);
 
   if (subTabId !== "dataset-harvester" && typeof DATASET_HARVEST_INTERVAL !== "undefined" && DATASET_HARVEST_INTERVAL) {
@@ -4288,8 +4309,12 @@ function switchLogsSubTab(subTabId) {
 function switchTab(tabId) {
   if (!tabId || typeof tabId !== "string" || tabId === "undefined") return;
 
+  if (tabId === "release-logs") {
+    tabId = "history";
+  }
+
   // Handle direct navigation to previous log subtabs
-  const logSubTabs = ["audit", "events", "journal", "release-logs", "dataset-harvester"];
+  const logSubTabs = ["audit", "events", "journal", "dataset-harvester"];
   let targetSubTab = null;
   if (logSubTabs.includes(tabId)) {
     targetSubTab = tabId;
@@ -12027,21 +12052,651 @@ function renderCalendarAgendaList(byDay, rangeStart, rangeEnd) {
 
 
 
+// =============================================================================
+// RELEASE HISTORY (GROUPED RELEASES & NEO-GLASS DRAWER)
+// =============================================================================
+
+let GROUPED_RELEASE_HISTORY = [];
+let CURRENT_GROUPED_HISTORY = [];
+let GROUPED_HISTORY_STATE = {
+  page: 1,
+  pageSize: 20
+};
+let _historySearchDebounceTimer = null;
+
+function debounceHistorySearch() {
+  clearTimeout(_historySearchDebounceTimer);
+  _historySearchDebounceTimer = setTimeout(() => {
+    loadGroupedReleaseHistory(1);
+  }, 250);
+}
+
 async function loadHistory() {
-  const tbody = document.querySelector("#history-table tbody");
+  return loadGroupedReleaseHistory(1);
+}
+
+async function loadGroupedReleaseHistory(page) {
+  if (page) GROUPED_HISTORY_STATE.page = page;
+  const container = document.getElementById("history-releases-container");
+  const paginationEl = document.getElementById("history-pagination");
+  if (!container) return;
+
+  const isRu = CURRENT_LANG !== "en";
+
   try {
-    const entries = await api("/api/v1/history");
-    tbody.innerHTML = entries.map(e => `
-      <tr>
-        <td class="mono col-time" style="font-size:11.5px; white-space:nowrap;">${formatDateTZ(e.created_at)}</td>
-        <td>
-          ${escapeHtml(e.show_title)}
-          ${e.matched_alias ? `<div class="hint">${CURRENT_LANG === "en" ? "by alias" : "по алиасу"} «${escapeHtml(e.matched_alias)}»</div>` : ""}
-        </td>
-        <td class="mono" style="word-break:break-word; overflow-wrap:anywhere; line-height:1.4;">${escapeHtml(e.release_title)}</td>
-        <td>${escapeHtml(t("history.event." + e.event_type) !== "history.event." + e.event_type ? t("history.event." + e.event_type) : e.event_type)}</td>
-      </tr>`).join("") || `<tr><td colspan="4" style="color:var(--text-muted)">${t("history.empty")}</td></tr>`;
-  } catch (e) {}
+    container.innerHTML = `<div style="text-align:center; padding:36px; color:var(--text-muted);"><i data-lucide="loader-2" class="spin ico-md" style="display:inline-block; vertical-align:middle; margin-right:8px;"></i>${t("common.loading")}</div>`;
+    if (window.lucide && lucide.createIcons) lucide.createIcons();
+
+    // Fetch release logs (up to 500 latest entries) and shows metadata
+    const [data, shows] = await Promise.all([
+      api("/api/v1/release-logs?page_size=500&sort=desc").catch(() => ({ items: [], total: 0 })),
+      (!CACHED_SHOWS || !CACHED_SHOWS.length) ? api("/api/v1/shows").catch(() => []) : Promise.resolve(CACHED_SHOWS)
+    ]);
+
+    if (Array.isArray(shows) && shows.length) {
+      CACHED_SHOWS = shows;
+    }
+
+    const showsMap = {};
+    if (Array.isArray(CACHED_SHOWS)) {
+      for (const s of CACHED_SHOWS) {
+        showsMap[s.id] = s;
+      }
+    }
+
+    const rawLogs = (data && Array.isArray(data.items)) ? data.items : [];
+
+    if (rawLogs.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state" style="padding: 48px 16px; text-align: center;">
+          <div style="width: 56px; height: 56px; border-radius: 16px; background: rgba(0,240,255,0.08); color: var(--teal); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px;">
+            <i data-lucide="history" style="width: 28px; height: 28px;"></i>
+          </div>
+          <p style="font-size:16px; font-weight:700; margin:0 0 6px 0;" data-i18n="history.empty_grouped">${t("history.empty_grouped")}</p>
+          <p class="text-muted" style="margin:0 auto; font-size:13px; max-width:480px; line-height:1.5;" data-i18n="history.empty_grouped_desc">${t("history.empty_grouped_desc")}</p>
+        </div>
+      `;
+      if (paginationEl) paginationEl.innerHTML = "";
+      if (window.lucide && lucide.createIcons) lucide.createIcons();
+      return;
+    }
+
+    // Grouping by release / show
+    const groupsMap = new Map();
+
+    for (const item of rawLogs) {
+      let key = "";
+      if (item.release_title && item.release_title.trim()) {
+        key = item.release_title.trim().toLowerCase();
+      } else if (item.show_id) {
+        // Group by show within a 2-hour window
+        const timeHour = item.created_at ? item.created_at.slice(0, 13) : "";
+        key = `show_${item.show_id}_${timeHour}`;
+      } else {
+        key = `msg_${item.message}`;
+      }
+
+      if (!groupsMap.has(key)) {
+        groupsMap.set(key, {
+          key: key,
+          show_id: item.show_id || null,
+          show_title: item.show_title || "",
+          release_title: item.release_title || item.message || "—",
+          indexer: item.indexer || "",
+          link_url: (item.details && typeof item.details === "object") ? (item.details.page_url || item.details.download_url || "") : "",
+          torrent_hash: (item.details && typeof item.details === "object") ? (item.details.hash || item.details.torrent_hash || item.details.info_hash || "") : "",
+          items: [],
+          stages: new Set(),
+          latest_time: item.created_at,
+          first_time: item.created_at,
+          status: "info"
+        });
+      }
+
+      const grp = groupsMap.get(key);
+      if (!grp.show_id && item.show_id) grp.show_id = item.show_id;
+      if ((!grp.show_title || grp.show_title === "—") && item.show_title) grp.show_title = item.show_title;
+      if ((!grp.release_title || grp.release_title === "—") && item.release_title) grp.release_title = item.release_title;
+      if (!grp.indexer && item.indexer) grp.indexer = item.indexer;
+      if (!grp.link_url && item.details && (item.details.page_url || item.details.download_url)) {
+        grp.link_url = item.details.page_url || item.details.download_url;
+      }
+      if (!grp.torrent_hash && item.details && (item.details.hash || item.details.torrent_hash || item.details.info_hash)) {
+        grp.torrent_hash = item.details.hash || item.details.torrent_hash || item.details.info_hash;
+      }
+
+      if (item.stage) grp.stages.add(item.stage);
+
+      if (item.created_at && (!grp.latest_time || new Date(item.created_at) > new Date(grp.latest_time))) {
+        grp.latest_time = item.created_at;
+      }
+      if (item.created_at && (!grp.first_time || new Date(item.created_at) < new Date(grp.first_time))) {
+        grp.first_time = item.created_at;
+      }
+
+      grp.items.push(item);
+    }
+
+    const groups = Array.from(groupsMap.values());
+
+    // Calculate final status and sort timeline items for each group
+    for (const grp of groups) {
+      grp.items.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+      const hasImport = grp.items.some(x => x.stage === "import" && x.level === "success");
+      const hasGrab = grp.items.some(x => x.stage === "grab" && x.level === "success");
+      const hasError = grp.items.some(x => x.level === "error");
+      const hasWarning = grp.items.some(x => x.level === "warning" || x.stage === "filter" || x.stage === "decision");
+
+      if (hasImport) {
+        grp.status = "imported";
+      } else if (hasGrab) {
+        grp.status = "grabbed";
+      } else if (hasError) {
+        grp.status = "error";
+      } else if (hasWarning) {
+        grp.status = "rejected";
+      } else {
+        grp.status = "info";
+      }
+    }
+
+    // Sort groups by latest timestamp desc
+    groups.sort((a, b) => new Date(b.latest_time) - new Date(a.latest_time));
+    GROUPED_RELEASE_HISTORY = groups;
+
+    // Filters
+    const searchVal = (document.getElementById("history-search-input")?.value || "").toLowerCase().trim();
+    const statusVal = document.getElementById("history-status-filter")?.value || "all";
+    const stageVal = document.getElementById("history-stage-filter")?.value || "all";
+
+    const filtered = groups.filter(g => {
+      if (statusVal !== "all" && g.status !== statusVal) return false;
+      if (stageVal !== "all" && !g.stages.has(stageVal)) return false;
+      if (searchVal) {
+        const inShow = (g.show_title || "").toLowerCase().includes(searchVal);
+        const inRel = (g.release_title || "").toLowerCase().includes(searchVal);
+        const inIdx = (g.indexer || "").toLowerCase().includes(searchVal);
+        const inHash = (g.torrent_hash || "").toLowerCase().includes(searchVal);
+        const inMsgs = g.items.some(it => (it.message || "").toLowerCase().includes(searchVal));
+        if (!inShow && !inRel && !inIdx && !inHash && !inMsgs) return false;
+      }
+      return true;
+    });
+
+    CURRENT_GROUPED_HISTORY = filtered;
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state" style="padding: 40px 16px; text-align: center;">
+          <i data-lucide="search-x" class="ico-lg text-muted" style="margin-bottom: 10px;"></i>
+          <p style="font-size:15px; font-weight:600; margin:0 0 4px 0;">${isRu ? "Ничего не найдено" : "No matching releases found"}</p>
+          <p class="text-muted" style="margin:0; font-size:13px;">${isRu ? "Попробуйте изменить параметры поиска или фильтрации" : "Try changing search or filter criteria"}</p>
+        </div>
+      `;
+      if (paginationEl) paginationEl.innerHTML = "";
+      if (window.lucide && lucide.createIcons) lucide.createIcons();
+      return;
+    }
+
+    // Pagination
+    const pageNum = GROUPED_HISTORY_STATE.page;
+    const pageSize = GROUPED_HISTORY_STATE.pageSize;
+    const totalCount = filtered.length;
+    const startIdx = (pageNum - 1) * pageSize;
+    const pageItems = filtered.slice(startIdx, startIdx + pageSize);
+
+    const stageConfig = {
+      search: { label: isRu ? "Поиск" : "Search", icon: "search", cls: "stage-search" },
+      match: { label: isRu ? "Сопоставление" : "Match", icon: "split", cls: "stage-match" },
+      filter: { label: isRu ? "Фильтрация" : "Filter", icon: "filter", cls: "stage-filter" },
+      decision: { label: isRu ? "Решение" : "Decision", icon: "award", cls: "stage-decision" },
+      grab: { label: isRu ? "Захват" : "Grab", icon: "download", cls: "stage-grab" },
+      download: { label: isRu ? "Загрузка" : "Download", icon: "hard-drive", cls: "stage-download" },
+      import: { label: isRu ? "Импорт" : "Import", icon: "check", cls: "stage-import" },
+      error: { label: isRu ? "Ошибка" : "Error", icon: "alert-triangle", cls: "stage-error" }
+    };
+
+    container.innerHTML = pageItems.map((grp, idxInPage) => {
+      const globalIdx = startIdx + idxInPage;
+      const sObj = grp.show_id ? showsMap[grp.show_id] : null;
+      const posterUrl = sObj?.poster_url || "";
+      const showTitleText = grp.show_title || sObj?.title || (isRu ? "Без привязки" : "Unlinked");
+
+      const posterHtml = posterUrl
+        ? `<img src="${escapeHtml(posterUrl)}" class="history-release-poster" alt="" onerror="this.outerHTML='<div class=\\\'history-release-poster placeholder\\\'>${escapeHtml(showTitleText.slice(0, 1))}</div>'"/>`
+        : `<div class="history-release-poster placeholder"><i data-lucide="clapperboard" class="ico-sm text-muted"></i></div>`;
+
+      let statusBadge = "";
+      if (grp.status === "imported") {
+        statusBadge = `<span class="badge badge-ok" style="font-size:11px; padding:3px 8px; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="check" style="width:11px; height:11px;"></i> ${isRu ? "Импортирован" : "Imported"}</span>`;
+      } else if (grp.status === "grabbed") {
+        statusBadge = `<span class="badge badge-teal" style="font-size:11px; padding:3px 8px; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="download" style="width:11px; height:11px;"></i> ${isRu ? "Захвачен" : "Grabbed"}</span>`;
+      } else if (grp.status === "rejected") {
+        statusBadge = `<span class="badge badge-warn" style="font-size:11px; padding:3px 8px; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="x" style="width:11px; height:11px;"></i> ${isRu ? "Отклонён" : "Rejected"}</span>`;
+      } else if (grp.status === "error") {
+        statusBadge = `<span class="badge badge-error" style="font-size:11px; padding:3px 8px; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="alert-triangle" style="width:11px; height:11px;"></i> ${isRu ? "Ошибка" : "Error"}</span>`;
+      } else {
+        statusBadge = `<span class="badge badge-info" style="font-size:11px; padding:3px 8px;">${isRu ? "Инфо" : "Info"}</span>`;
+      }
+
+      const stagePills = Array.from(grp.stages).map(st => {
+        const conf = stageConfig[st] || { label: st, icon: "circle", cls: "" };
+        return `<span class="history-stage-pill ${conf.cls}"><i data-lucide="${conf.icon}" style="width:11px; height:11px;"></i> ${conf.label}</span>`;
+      }).join("");
+
+      return `
+        <div class="history-release-card status-${grp.status}" onclick="openReleaseHistoryDrawer(${globalIdx})">
+          <div class="history-release-header">
+            <div class="history-release-title-row">
+              ${posterHtml}
+              <div class="history-release-meta">
+                <div class="history-release-show-title">
+                  <span>${escapeHtml(showTitleText)}</span>
+                  ${sObj?.year ? `<span class="badge-subtle text-xs" style="font-weight:normal;">${sObj.year}</span>` : ""}
+                  ${grp.indexer ? `<span class="hint mono" style="font-size:11.5px; color:#818cf8; font-weight:normal;">[${escapeHtml(grp.indexer)}]</span>` : ""}
+                </div>
+                <div class="history-release-raw-name">${escapeHtml(grp.release_title)}</div>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+              ${statusBadge}
+              <span class="mono col-time" style="font-size:11.5px; color:var(--text-muted);">${formatDateTZ(grp.latest_time)}</span>
+            </div>
+          </div>
+          <div class="history-release-badges-row">
+            <div class="history-stages-pills-wrap">
+              ${stagePills}
+            </div>
+            <span class="history-release-action-btn">
+              <span>${isRu ? "Детализация" : "Details"}</span>
+              <i data-lucide="chevron-right" class="ico-xs"></i>
+            </span>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    renderPagination("history-pagination", pageNum, pageSize, totalCount, loadGroupedReleaseHistory);
+
+    if (window.lucide && lucide.createIcons) {
+      lucide.createIcons();
+    }
+  } catch (err) {
+    console.error("Failed to load grouped release history:", err);
+    container.innerHTML = `<div style="text-align:center; padding:32px; color:var(--danger);">${isRu ? "Ошибка загрузки истории:" : "Error loading release history:"} ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function openReleaseHistoryDrawer(globalIdx) {
+  const grp = CURRENT_GROUPED_HISTORY[globalIdx];
+  if (!grp) return;
+
+  const overlay = document.getElementById("release-history-drawer-overlay");
+  const drawer = document.getElementById("release-history-drawer");
+  const titleEl = document.getElementById("drawer-release-show-title");
+  const subtitleEl = document.getElementById("drawer-release-subtitle");
+  const bodyEl = document.getElementById("release-history-drawer-body");
+  if (!drawer || !bodyEl) return;
+
+  const isRu = CURRENT_LANG !== "en";
+  const sObj = grp.show_id ? (CACHED_SHOWS || []).find(s => s.id == grp.show_id) : null;
+  const showTitleText = grp.show_title || sObj?.title || (isRu ? "Без привязки к тайтлу" : "Unlinked");
+
+  if (titleEl) titleEl.textContent = showTitleText;
+  if (subtitleEl) subtitleEl.textContent = grp.release_title || (isRu ? "Хронология и принятые решения движка" : "Chronology & Decision steps");
+
+  const posterUrl = sObj?.poster_url || "";
+  const posterHtml = posterUrl
+    ? `<img src="${escapeHtml(posterUrl)}" class="drawer-hero-poster" alt="" onerror="this.outerHTML='<div class=\\\'drawer-hero-poster placeholder\\\'>${escapeHtml(showTitleText.slice(0, 1))}</div>'"/>`
+    : `<div class="drawer-hero-poster placeholder" style="display:flex; align-items:center; justify-content:center; background:var(--panel); border:1px solid var(--border);"><i data-lucide="clapperboard" class="ico-md text-muted"></i></div>`;
+
+  let statusBadge = "";
+  if (grp.status === "imported") {
+    statusBadge = `<span class="badge badge-ok" style="font-size:11px; padding:3px 8px;"><i data-lucide="check" class="ico-xxs"></i> ${isRu ? "Импортирован" : "Imported"}</span>`;
+  } else if (grp.status === "grabbed") {
+    statusBadge = `<span class="badge badge-teal" style="font-size:11px; padding:3px 8px;"><i data-lucide="download" class="ico-xxs"></i> ${isRu ? "Захвачен" : "Grabbed"}</span>`;
+  } else if (grp.status === "rejected") {
+    statusBadge = `<span class="badge badge-warn" style="font-size:11px; padding:3px 8px;"><i data-lucide="x" class="ico-xxs"></i> ${isRu ? "Отклонён" : "Rejected"}</span>`;
+  } else if (grp.status === "error") {
+    statusBadge = `<span class="badge badge-error" style="font-size:11px; padding:3px 8px;"><i data-lucide="alert-triangle" class="ico-xxs"></i> ${isRu ? "Ошибка" : "Error"}</span>`;
+  } else {
+    statusBadge = `<span class="badge badge-info" style="font-size:11px; padding:3px 8px;">${isRu ? "Инфо" : "Info"}</span>`;
+  }
+
+  const hashPill = grp.torrent_hash ? `
+    <div class="blocklist-pill" style="font-size:11px;" title="Infohash: ${escapeHtml(grp.torrent_hash)}">
+      <i data-lucide="hash" class="ico-xxs text-muted"></i>
+      <code>${escapeHtml(grp.torrent_hash.slice(0, 8))}...${escapeHtml(grp.torrent_hash.slice(-4))}</code>
+      <button type="button" class="btn-icon-xxs" onclick="copyBlocklistHash('${escapeHtml(grp.torrent_hash)}', this)" title="${isRu ? 'Скопировать хэш' : 'Copy hash'}">
+        <i data-lucide="copy" class="ico-xxs"></i>
+      </button>
+    </div>
+  ` : "";
+
+  // Hero Card HTML
+  const heroHtml = `
+    <div class="drawer-hero-card">
+      <div class="drawer-hero-top">
+        ${posterHtml}
+        <div class="drawer-hero-info">
+          <div class="drawer-hero-show-title" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span>${escapeHtml(showTitleText)}</span>
+            ${sObj?.year ? `<span class="badge-subtle font-normal text-xs">${sObj.year}</span>` : ""}
+            ${sObj ? `<button type="button" class="btn-icon-xs" onclick="closeReleaseHistoryDrawer(); openShowModal(${sObj.id});" title="${isRu ? 'Открыть карточку тайтла' : 'Open title details'}"><i data-lucide="arrow-up-right" class="ico-xs text-teal"></i></button>` : ""}
+          </div>
+          <div class="drawer-hero-release-title">${escapeHtml(grp.release_title)}</div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:6px;">
+            ${statusBadge}
+            ${grp.indexer ? `<span class="badge badge-secondary mono" style="font-size:11px; color:#818cf8;">[${escapeHtml(grp.indexer)}]</span>` : ""}
+            ${hashPill}
+            <span class="mono hint" style="font-size:11px; margin-left:auto;">${formatDateTZ(grp.latest_time)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="drawer-hero-actions">
+        ${grp.link_url ? `
+          <a href="${escapeHtml(grp.link_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-small" title="${isRu ? 'Открыть страницу на трекере' : 'Open tracker page'}">
+            <i data-lucide="external-link" class="ico-xs"></i>
+            <span>${grp.indexer || (isRu ? "Трекер" : "Tracker")}</span>
+          </a>
+        ` : ""}
+        <button type="button" class="btn btn-danger btn-small" onclick="quickBlocklistFromHistory(${globalIdx})" title="${isRu ? 'Заблокировать эту раздачу в чёрном списке' : 'Add this release to Blocklist'}">
+          <i data-lucide="shield-x" class="ico-xs"></i>
+          <span data-i18n="history.btn_blocklist">${isRu ? "В чёрный список" : "Add to Blocklist"}</span>
+        </button>
+        ${grp.show_id ? `
+          <button type="button" class="btn btn-primary btn-small" onclick="quickManualSearchFromHistory(${grp.show_id})" title="${isRu ? 'Запустить интерактивный ручной поиск' : 'Interactive manual search'}">
+            <i data-lucide="search" class="ico-xs"></i>
+            <span data-i18n="history.btn_manual_search">${isRu ? "Ручной поиск" : "Manual Search"}</span>
+          </button>
+        ` : ""}
+      </div>
+    </div>
+  `;
+
+  // Timeline Steps
+  const stageIcons = {
+    search: "search",
+    match: "split",
+    filter: "filter",
+    decision: "award",
+    grab: "download",
+    download: "hard-drive",
+    import: "check-circle",
+    error: "alert-triangle"
+  };
+
+  const stageTitles = {
+    search: isRu ? "1. Поиск раздач" : "1. Release Search",
+    match: isRu ? "2. Сопоставление и парсинг" : "2. Matching & Parsing",
+    filter: isRu ? "3. Фильтрация и правила" : "3. Filtering & Rules",
+    decision: isRu ? "4. Решение движка (Score)" : "4. Decision Engine (Score)",
+    grab: isRu ? "5. Захват в клиент" : "5. Grab to Client",
+    download: isRu ? "6. Мониторинг загрузки" : "6. Download Progress",
+    import: isRu ? "7. Импорт и перенос файлов" : "7. Import & Hardlink",
+    error: isRu ? "Ошибка обработки" : "Processing Error"
+  };
+
+  const timelineStepsHtml = grp.items.map((item, stepIdx) => {
+    const iconName = stageIcons[item.stage] || "circle";
+    const stageTitle = stageTitles[item.stage] || item.stage;
+    const stepClass = item.level === "error" ? "step-error" : (item.level === "warning" ? "step-warning" : (item.level === "success" ? "step-success" : "step-info"));
+    const levelLabel = item.level === "error" ? (isRu ? "Ошибка" : "Error") :
+                       (item.level === "warning" ? (isRu ? "Внимание" : "Warning") :
+                       (item.level === "success" ? (isRu ? "Успех" : "Success") : (isRu ? "Инфо" : "Info")));
+    const levelBadgeClass = item.level === "error" ? "badge-error" : (item.level === "warning" ? "badge-warn" : (item.level === "success" ? "badge-ok" : "badge-info"));
+
+    // Sub-blocks from item.details
+    let subDetailsHtml = "";
+
+    // 1. Season Split info
+    if (item.details && typeof item.details === "object") {
+      const splitInfo = item.details.split_info;
+      const seasonSplits = item.details.season_splits;
+      const appliedOffset = item.details.applied_offset;
+
+      if (splitInfo) {
+        const partNum = splitInfo.part_number != null ? splitInfo.part_number : 1;
+        const off = splitInfo.episode_offset || 0;
+        const rangeStr = (splitInfo.episode_start && splitInfo.episode_end) ? ` (${isRu ? 'серии' : 'eps'} ${splitInfo.episode_start}–${splitInfo.episode_end})` : "";
+        subDetailsHtml += `
+          <div style="margin-top:8px; padding:8px 12px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); border-radius:6px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div style="display:flex; align-items:center; gap:6px; font-weight:600; color:#60a5fa; font-size:12px;">
+                <i data-lucide="split" style="width:13px; height:13px;"></i>
+                <span>${isRu ? "Разделитель сезона (Season Splitter)" : "Season Splitter Rule"}</span>
+              </div>
+              <span class="badge-tag" style="background:rgba(59,130,246,0.2); color:#60a5fa; font-weight:700; font-size:11px;">
+                ${isRu ? `Часть ${partNum}` : `Part ${partNum}`}${off > 0 ? ` (+${off})` : ""}
+              </span>
+            </div>
+            <div style="margin-top:4px; font-size:11.5px; color:var(--text); line-height:1.4;">
+              ${isRu ? `Сезон <strong>${splitInfo.season_number || 1}${rangeStr}</strong>, смещение: <strong>+${off}</strong>.` : `Season <strong>${splitInfo.season_number || 1}${rangeStr}</strong>, offset: <strong>+${off}</strong>.`}
+              ${splitInfo.matched_alias ? `<div style="margin-top:3px; color:var(--text-muted); font-size:11px;">${isRu ? "Алиас:" : "Alias:"} <code style="color:#818cf8;">${escapeHtml(splitInfo.matched_alias)}</code></div>` : ""}
+            </div>
+          </div>
+        `;
+      } else if (Array.isArray(seasonSplits) && seasonSplits.length > 0) {
+        const partsPills = seasonSplits.map(sp => `
+          <span class="badge-tag" style="background:rgba(59,130,246,0.15); color:#60a5fa; font-size:10.5px; padding:2px 6px;">
+            ${isRu ? `Часть ${sp.part_number}` : `Part ${sp.part_number}`}: ${sp.episode_start}–${sp.episode_end} (+${sp.offset})
+          </span>
+        `).join("");
+        subDetailsHtml += `
+          <div style="margin-top:8px; padding:8px 10px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.2); border-radius:6px;">
+            <div style="font-weight:600; color:#60a5fa; font-size:11.5px; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="split" style="width:12px; height:12px;"></i>
+              <span>${isRu ? "Активные части Разделителя сезона:" : "Configured Season Split Parts:"}</span>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:4px;">${partsPills}</div>
+          </div>
+        `;
+      } else if (appliedOffset && appliedOffset > 0) {
+        const rawEp = item.details.raw_file_episode;
+        const targetEp = item.details.episode;
+        const sNum = item.details.season || 1;
+        subDetailsHtml += `
+          <div style="margin-top:8px; padding:6px 10px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); border-radius:6px; display:flex; align-items:center; justify-content:space-between; font-size:11.5px;">
+            <span style="font-weight:600; color:#60a5fa;">${isRu ? "Маппинг Разделителя:" : "Splitter Mapping:"}</span>
+            <span class="mono"><code>${rawEp != null ? String(rawEp).padStart(2, '0') : '??'}</code> (+${appliedOffset}) → <strong style="color:var(--teal);">S${String(sNum).padStart(2, '0')}E${String(targetEp).padStart(2, '0')}</strong></span>
+          </div>
+        `;
+      }
+    }
+
+    // 2. Ranking comparison table
+    if (item.details && Array.isArray(item.details.ranking_table) && item.details.ranking_table.length > 0) {
+      const rows = item.details.ranking_table.map(cand => {
+        const isWinner = cand.is_winner;
+        const winnerBadge = isWinner
+          ? `<span class="badge-tag" style="background:rgba(52,211,153,0.2); color:#34d399; font-weight:700;"><i data-lucide="check" style="width:10px; height:10px; display:inline-block; vertical-align:middle;"></i> ${isRu ? "Победитель" : "Winner"}</span>`
+          : `<span class="hint mono" style="font-size:11px;">#${cand.rank}</span>`;
+        return `
+          <tr style="${isWinner ? 'background:rgba(52,211,153,0.06); font-weight:500;' : ''}">
+            <td style="text-align:center; white-space:nowrap; padding:4px 6px;">${winnerBadge}</td>
+            <td style="padding:4px 6px;">
+              <div style="font-size:11.5px; word-break:break-all; font-weight:${isWinner ? '600' : '400'};">${escapeHtml(cand.title || "—")}</div>
+              <div style="font-size:10.5px; color:#818cf8;">[${escapeHtml(cand.indexer || "—")}]</div>
+            </td>
+            <td style="text-align:center; font-size:10.5px; padding:4px 6px;"><span class="badge-tag" style="background:rgba(99,102,241,0.15); color:#818cf8;">Q:${cand.quality_rank ?? "—"}</span></td>
+            <td style="text-align:center; font-size:10.5px; padding:4px 6px;"><span class="badge-tag" style="background:rgba(244,114,182,0.15); color:#f472b6;">CF:${cand.cf_score ?? 0}</span></td>
+            <td style="text-align:center; font-size:10.5px; padding:4px 6px;">${cand.seeders ?? "—"}</td>
+            <td style="text-align:center; font-size:10.5px; padding:4px 6px;">${cand.size_gb != null ? cand.size_gb + " GB" : "—"}</td>
+          </tr>
+        `;
+      }).join("");
+
+      subDetailsHtml += `
+        <div style="margin-top:8px;">
+          <div style="font-weight:600; font-size:12px; margin-bottom:4px; display:flex; align-items:center; gap:6px; color:var(--accent);">
+            <i data-lucide="award" style="width:13px; height:13px;"></i>
+            <span>${isRu ? "Сравнение кандидатов и выбор релиза" : "Candidate Comparison & Decision"}</span>
+          </div>
+          <div class="table-responsive" style="max-height:220px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
+            <table class="data-table" style="font-size:11px; margin:0; width:100%;">
+              <thead>
+                <tr>
+                  <th style="width:70px; text-align:center;">${isRu ? "Ранг" : "Rank"}</th>
+                  <th>${isRu ? "Релиз" : "Release"}</th>
+                  <th style="text-align:center;">${isRu ? "Кач-во" : "Quality"}</th>
+                  <th style="text-align:center;">CF</th>
+                  <th style="text-align:center;">${isRu ? "Сиды" : "Seeds"}</th>
+                  <th style="text-align:center;">${isRu ? "Размер" : "Size"}</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // 3. File decisions table
+    if (item.details && Array.isArray(item.details.file_decisions) && item.details.file_decisions.length > 0) {
+      const rows = item.details.file_decisions.map(f => {
+        const isWanted = f.action === "WANTED";
+        const actionBadge = isWanted
+          ? `<span class="badge-tag" style="background:rgba(52,211,153,0.2); color:#34d399; font-weight:700; font-size:10px;">WANTED</span>`
+          : `<span class="badge-tag" style="background:rgba(239,68,68,0.15); color:#f87171; font-weight:600; font-size:10px;">UNWANTED</span>`;
+        return `
+          <tr style="${isWanted ? 'background:rgba(52,211,153,0.04);' : 'opacity:0.75;'}">
+            <td class="mono" style="font-size:10px; text-align:center; width:28px; padding:3px 4px;">${f.id}</td>
+            <td style="font-size:11px; font-family:var(--font-mono); word-break:break-all; padding:3px 6px;">${escapeHtml(f.name || "—")}</td>
+            <td style="text-align:center; white-space:nowrap; width:80px; padding:3px 4px;">${actionBadge}</td>
+            <td style="font-size:10.5px; color:${isWanted ? 'var(--text)' : 'var(--text-muted)'}; line-height:1.2; padding:3px 6px;">${escapeHtml(f.reason || "—")}</td>
+            <td style="text-align:right; font-size:10.5px; white-space:nowrap; width:70px; padding:3px 4px;" class="mono">${f.size_mb != null ? f.size_mb + " MB" : "—"}</td>
+          </tr>
+        `;
+      }).join("");
+
+      subDetailsHtml += `
+        <div style="margin-top:8px;">
+          <div style="font-weight:600; font-size:12px; margin-bottom:4px; display:flex; align-items:center; gap:6px; color:var(--teal);">
+            <i data-lucide="file-check" style="width:13px; height:13px;"></i>
+            <span>${isRu ? "Решения по файлам раздачи (серии)" : "Torrent File Decisions"}</span>
+            <span class="hint" style="font-size:10.5px;">(${item.details.file_decisions.length})</span>
+          </div>
+          <div class="table-responsive" style="max-height:220px; overflow-y:auto; border:1px solid var(--border); border-radius:6px;">
+            <table class="data-table" style="font-size:11px; margin:0; width:100%;">
+              <thead>
+                <tr>
+                  <th style="width:28px; text-align:center;">#</th>
+                  <th>${isRu ? "Файл" : "File"}</th>
+                  <th style="text-align:center; width:80px;">${isRu ? "Статус" : "Status"}</th>
+                  <th>${isRu ? "Причина" : "Reason"}</th>
+                  <th style="text-align:right; width:70px;">${isRu ? "Размер" : "Size"}</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    // 4. Indexer stats tags
+    if (item.details && item.details.indexer_stats && typeof item.details.indexer_stats === "object" && Object.keys(item.details.indexer_stats).length > 0) {
+      const tags = Object.entries(item.details.indexer_stats).map(([idx, count]) => `
+        <span class="badge-tag" style="background:rgba(129,140,248,0.15); color:#818cf8; font-weight:600; font-size:10.5px; padding:2px 6px;">
+          ${escapeHtml(idx)}: <strong>${count}</strong>
+        </span>
+      `).join("");
+      subDetailsHtml += `
+        <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
+          <span class="hint" style="font-size:11px;">${isRu ? "Найдено на трекерах:" : "Tracker stats:"}</span>
+          ${tags}
+        </div>
+      `;
+    }
+
+    // 5. Technical JSON context (collapsed)
+    if (item.details && typeof item.details === "object" && Object.keys(item.details).length > 0) {
+      subDetailsHtml += `
+        <details style="margin-top:6px; background:rgba(0,0,0,0.2); border-radius:6px; border:1px solid var(--border); padding:6px 10px;">
+          <summary style="cursor:pointer; font-size:11px; color:var(--text-muted); font-weight:600; user-select:none;">
+            ${isRu ? "Показать технический контекст JSON" : "Show technical JSON context"}
+          </summary>
+          <pre class="mono" style="font-size:10.5px; background:rgba(0,0,0,0.35); padding:8px; border-radius:6px; border:1px solid var(--border); overflow-x:auto; margin-top:6px; max-height:200px;">${escapeHtml(JSON.stringify(item.details, null, 2))}</pre>
+        </details>
+      `;
+    }
+
+    return `
+      <div class="drawer-timeline-step ${stepClass}">
+        <div class="drawer-timeline-dot">
+          <i data-lucide="${iconName}" style="width:14px; height:14px;"></i>
+        </div>
+        <div class="drawer-timeline-card">
+          <div class="drawer-timeline-header">
+            <span class="drawer-timeline-stage">
+              <span>${stageTitle}</span>
+              <span class="badge ${levelBadgeClass}" style="font-size:10px; padding:1px 5px;">${levelLabel}</span>
+            </span>
+            <span class="drawer-timeline-time">${formatDateTZ(item.created_at)}</span>
+          </div>
+          <div class="drawer-timeline-msg">${escapeHtml(translateLogMessage(item.message))}</div>
+          ${subDetailsHtml}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const timelineHtml = `
+    <div style="margin-top:4px;">
+      <h4 style="margin:0 0 14px 0; font-size:14px; font-weight:700; display:flex; align-items:center; gap:6px; color:var(--text);">
+        <i data-lucide="git-commit" class="ico-xs text-teal"></i>
+        <span>${isRu ? "Хронология событий и этапы обработки" : "Chronological Processing Timeline"}</span>
+      </h4>
+      <div class="drawer-timeline">
+        ${timelineStepsHtml}
+      </div>
+    </div>
+  `;
+
+  bodyEl.innerHTML = heroHtml + timelineHtml;
+
+  if (overlay) overlay.classList.add("open");
+  if (drawer) drawer.classList.add("open");
+  document.body.style.overflow = "hidden";
+
+  if (window.lucide && lucide.createIcons) {
+    lucide.createIcons();
+  }
+}
+
+function closeReleaseHistoryDrawer() {
+  const overlay = document.getElementById("release-history-drawer-overlay");
+  const drawer = document.getElementById("release-history-drawer");
+  if (overlay) overlay.classList.remove("open");
+  if (drawer) drawer.classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+function quickBlocklistFromHistory(globalIdx) {
+  const grp = CURRENT_GROUPED_HISTORY[globalIdx];
+  if (!grp) return;
+
+  closeReleaseHistoryDrawer();
+  openAddBlocklistModal(grp.show_id);
+
+  setTimeout(() => {
+    const titleInput = document.getElementById("add-blocklist-title");
+    if (titleInput) titleInput.value = grp.release_title || "";
+    const urlInput = document.getElementById("add-blocklist-url");
+    if (urlInput && grp.link_url) urlInput.value = grp.link_url;
+    const reasonInput = document.getElementById("add-blocklist-reason");
+    if (reasonInput) reasonInput.value = CURRENT_LANG === "en" ? "Blocked from Release History" : "Заблокировано из истории релизов";
+  }, 100);
+}
+
+function quickManualSearchFromHistory(showId) {
+  if (!showId) return;
+  closeReleaseHistoryDrawer();
+  openShowModal(showId);
+  setTimeout(() => {
+    switchShowTab("interactive-search");
+  }, 150);
 }
 
 // =============================================================================
@@ -17246,6 +17901,10 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     document.querySelectorAll(".show-links-popover.is-open").forEach(pop => pop.classList.remove("is-open"));
+    const drawer = document.getElementById("release-history-drawer");
+    if (drawer && drawer.classList.contains("open")) {
+      closeReleaseHistoryDrawer();
+    }
   }
 });
 
@@ -17789,43 +18448,14 @@ function renderBlocklist() {
     addShowBtn.style.display = (SELECTED_BLOCKLIST_SHOW_ID !== "all" && SELECTED_BLOCKLIST_SHOW_ID !== "unlinked") ? "inline-flex" : "none";
   }
 
-  // Table posters toggle button state
-  const toggleTableBtn = document.getElementById("blocklist-toggle-table-posters-btn");
-  if (toggleTableBtn) {
-    const isTablePosterActive = BLOCKLIST_OPTIONS.showTablePoster !== false;
-    toggleTableBtn.classList.toggle("active", isTablePosterActive);
-    const labelEl = document.getElementById("blocklist-toggle-table-posters-label");
-    if (labelEl) {
-      labelEl.textContent = isTablePosterActive
-        ? (CURRENT_LANG === "en" ? "Posters: ON" : "Обложки: Вкл")
-        : (CURRENT_LANG === "en" ? "Posters: OFF" : "Обложки: Выкл");
-    }
-  }
-
-  // View mode switcher active state
-  const viewMode = BLOCKLIST_OPTIONS.viewMode || "cards";
-  const cardsBtn = document.getElementById("blocklist-view-cards-btn");
-  const tableBtn = document.getElementById("blocklist-view-table-btn");
-  if (cardsBtn) cardsBtn.classList.toggle("active", viewMode === "cards");
-  if (tableBtn) tableBtn.classList.toggle("active", viewMode === "table");
-
-  // Toggle empty state vs views
+  // Toggle empty state vs cards view
   if (filtered.length === 0) {
     if (emptyWrap) emptyWrap.style.display = "block";
     if (cardsWrap) cardsWrap.style.display = "none";
-    if (tableWrap) tableWrap.style.display = "none";
   } else {
     if (emptyWrap) emptyWrap.style.display = "none";
-
-    if (viewMode === "cards") {
-      if (cardsWrap) cardsWrap.style.display = "block";
-      if (tableWrap) tableWrap.style.display = "none";
-      renderBlocklistCards(filtered, showsMap, cardsGrid);
-    } else {
-      if (cardsWrap) cardsWrap.style.display = "none";
-      if (tableWrap) tableWrap.style.display = "block";
-      renderBlocklistTable(filtered, showsMap, tableBody);
-    }
+    if (cardsWrap) cardsWrap.style.display = "block";
+    renderBlocklistCards(filtered, showsMap, cardsGrid);
   }
 
   updateBlocklistBatchUI();
