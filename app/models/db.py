@@ -579,6 +579,8 @@ class ReleaseLog(Base):
     show_title: Mapped[Optional[str]] = mapped_column(String(300), nullable=True, index=True)
     release_title: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     indexer: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    session_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    trigger: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
     message: Mapped[str] = mapped_column(Text, default="")
     details: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 

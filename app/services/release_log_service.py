@@ -25,6 +25,8 @@ def log_release_event(
     release_title: Optional[str] = None,
     indexer: Optional[str] = None,
     details: Optional[dict[str, Any]] = None,
+    session_id: Optional[str] = None,
+    trigger: Optional[str] = None,
     db: Optional[Session] = None,
 ) -> None:
     """
@@ -45,6 +47,8 @@ def log_release_event(
             show_title=show_title,
             release_title=release_title,
             indexer=indexer,
+            session_id=session_id,
+            trigger=trigger,
             message=message[:4000],
             details=details,
         )

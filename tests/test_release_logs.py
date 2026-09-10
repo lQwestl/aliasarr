@@ -70,5 +70,92 @@ class TestReleaseLogs(unittest.TestCase):
         self.assertEqual(ctx2.exception.status_code, 403)
 
 
+    def test_log_release_event_with_session_and_trigger(self):
+        if not HAS_DEPS:
+            self.skipTest("Dependencies not installed in host runner")
+        mock_db = MagicMock()
+        log_release_event(
+            stage="search",
+            level="info",
+            show_title="Test Show 2",
+            show_id=2,
+            release_title="Test.Show.2.S01E01",
+            indexer="RuTor",
+            session_id="sess_12345",
+            trigger="auto_search",
+            message="Поиск запущен",
+            details={"candidates_count": 5},
+            db=mock_db,
+        )
+        self.assertTrue(mock_db.add.called)
+        entry = mock_db.add.call_args[0][0]
+        self.assertEqual(entry.session_id, "sess_12345")
+        self.assertEqual(entry.trigger, "auto_search")
+        self.assertEqual(entry.show_id, 2)
+
+    def test_clear_release_logs_with_show_id(self):
+        if not HAS_DEPS:
+            self.skipTest("Dependencies not installed in host runner")
+        from app.api.release_logs_routes import clear_release_logs
+
+        mock_db = MagicMock()
+        mock_query = MagicMock()
+        mock_filtered = MagicMock()
+        mock_db.query.return_value = mock_query
+        mock_query.filter.return_value = mock_filtered
+        mock_filtered.delete.return_value = 3
+
+        admin_user = User(id=1, username="admin", is_admin=True, is_owner=True, permissions={})
+        res = clear_release_logs(show_id=42, db=mock_db, current_user=admin_user)
+
+        self.assertTrue(res["success"])
+        self.assertEqual(res["deleted"], 3)
+        self.assertEqual(res["show_id"], 42)
+        mock_query.filter.assert_called_once()
+        self.assertTrue(mock_db.commit.called)
+
+    def test_export_release_logs_with_show_id(self):
+        if not HAS_DEPS:
+            self.skipTest("Dependencies not installed in host runner")
+        import asyncio
+        from app.api.release_logs_routes import export_release_logs
+        import datetime as dt
+
+        mock_db = MagicMock()
+        mock_query = MagicMock()
+        mock_filtered = MagicMock()
+        mock_ordered = MagicMock()
+        mock_limited = MagicMock()
+
+        mock_db.query.return_value = mock_query
+        mock_query.filter.return_value = mock_filtered
+        mock_filtered.order_by.return_value = mock_ordered
+        mock_ordered.limit.return_value = mock_limited
+
+        dummy_log = ReleaseLog(
+            id=1,
+            created_at=dt.datetime(2026, 9, 10, 20, 0, 0),
+            stage="grab",
+            level="success",
+            show_id=42,
+            show_title="Avatar",
+            release_title="Avatar.2025.1080p",
+            indexer="RuTracker",
+            session_id="sess_abc",
+            trigger="auto_search",
+            message="Релиз захвачен",
+            details={"hash": "abcdef1234567890"}
+        )
+        mock_limited.all.return_value = [dummy_log]
+
+        admin_user = User(id=1, username="admin", is_admin=True, is_owner=True, permissions={})
+        resp = asyncio.run(export_release_logs(show_id=42, db=mock_db, current_user=admin_user))
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("Avatar", resp.body.decode("utf-8"))
+        self.assertIn("RuTracker", resp.body.decode("utf-8"))
+        self.assertIn("attachment; filename=", resp.headers["Content-Disposition"])
+
+
 if __name__ == "__main__":
     unittest.main()

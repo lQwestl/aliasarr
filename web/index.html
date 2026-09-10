@@ -1031,7 +1031,7 @@
         <div class="history-toolbar" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 12px 0 14px 0;">
           <div class="history-search-wrap" style="position: relative; flex: 1; min-width: 260px; max-width: 420px;">
             <i data-lucide="search" class="ico-xs text-muted" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none;"></i>
-            <input type="text" id="history-search-input" class="input" placeholder="Поиск по названию, релизу или трекеру…" style="padding-left: 36px; width: 100%;" oninput="debounceHistorySearch()">
+            <input type="text" id="history-search-input" class="input" placeholder="Поиск по названию или трекеру…" data-i18n-placeholder="history.search_placeholder" style="padding-left: 36px; width: 100%;" oninput="debounceHistorySearch()">
           </div>
 
           <select id="history-status-filter" class="input" style="max-width: 200px;" onchange="loadGroupedReleaseHistory(1)">

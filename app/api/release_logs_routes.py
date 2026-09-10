@@ -24,6 +24,8 @@ class ReleaseLogOut(BaseModel):
     show_title: Optional[str] = None
     release_title: Optional[str] = None
     indexer: Optional[str] = None
+    session_id: Optional[str] = None
+    trigger: Optional[str] = None
     message: str
     details: Optional[dict[str, Any]] = None
 
@@ -44,6 +46,7 @@ def list_release_logs(
     level: Optional[str] = None,
     query: Optional[str] = None,
     show_id: Optional[int] = None,
+    session_id: Optional[str] = None,
     page: int = 1,
     page_size: int = 50,
     sort: str = "desc",
@@ -61,6 +64,9 @@ def list_release_logs(
 
     if show_id is not None:
         q = q.filter(ReleaseLog.show_id == show_id)
+
+    if session_id:
+        q = q.filter(ReleaseLog.session_id == session_id)
 
     if query:
         search_like = f"%{query.strip()}%"
@@ -80,36 +86,59 @@ def list_release_logs(
 
 @router.delete("")
 def clear_release_logs(
+    show_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_release_logs")),
 ):
-    """Очистить журнал релизов."""
-    count = db.query(ReleaseLog).delete()
+    """Очистить журнал релизов (все записи или записи для конкретного тайтла)."""
+    q = db.query(ReleaseLog)
+    if show_id is not None:
+        q = q.filter(ReleaseLog.show_id == show_id)
+    count = q.delete(synchronize_session=False)
     db.commit()
-    return {"success": True, "deleted": count, "message": f"Очищено записей: {count}"}
+    msg = f"Очищено записей для тайтла {show_id}: {count}" if show_id is not None else f"Очищено записей: {count}"
+    return {"success": True, "deleted": count, "show_id": show_id, "message": msg}
 
 
 @router.get("/export")
 async def export_release_logs(
+    show_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_any_permission("view_release_logs", "manage_release_logs")),
 ):
-    """Выгрузить все логи релизов и диагностику загрузчиков в текстовый файл (.txt) для анализа и отладки."""
-    logs = db.query(ReleaseLog).order_by(ReleaseLog.created_at.asc()).limit(5000).all()
+    """Выгрузить логи релизов (все или конкретного тайтла) и диагностику загрузчиков в текстовый файл (.txt) для анализа и отладки."""
+    q = db.query(ReleaseLog)
+    show_obj = None
+    if show_id is not None:
+        q = q.filter(ReleaseLog.show_id == show_id)
+        from app.models.db import Show
+        show_obj = db.query(Show).filter(Show.id == show_id).first()
+
+    logs = q.order_by(ReleaseLog.created_at.asc()).limit(5000).all()
     lines = []
-    lines.append("=== ALIASARR RELEASE LOGS DUMP ===")
+    if show_obj:
+        lines.append(f"=== ALIASARR RELEASE LOGS: {show_obj.title} ({show_obj.year or 'N/A'}) ===")
+        lines.append(f"Show ID: {show_obj.id}")
+        lines.append(f"Content Type: {show_obj.content_type}")
+        if show_obj.path:
+            lines.append(f"Library Path: {show_obj.path}")
+    else:
+        lines.append("=== ALIASARR RELEASE LOGS DUMP ===")
     lines.append(f"Generated at: {dt.datetime.utcnow().isoformat()}Z")
     lines.append(f"Total entries: {len(logs)}\n" + "=" * 50 + "\n")
 
     for l in logs:
         ts = l.created_at.strftime("%Y-%m-%d %H:%M:%S")
-        lines.append(f"[{ts}] [{l.level.upper()}] [{l.stage.upper()}]")
+        trigger_info = f" [TRIG:{l.trigger.upper()}]" if l.trigger else ""
+        lines.append(f"[{ts}] [{l.level.upper()}] [{l.stage.upper()}]{trigger_info}")
         if l.show_title:
             lines.append(f"  Show: {l.show_title}")
         if l.release_title:
             lines.append(f"  Release: {l.release_title}")
         if l.indexer:
             lines.append(f"  Indexer: {l.indexer}")
+        if l.session_id:
+            lines.append(f"  Session ID: {l.session_id}")
         if l.details and isinstance(l.details, dict):
             src_url = l.details.get("page_url") or l.details.get("download_url")
             if src_url:
@@ -123,50 +152,57 @@ async def export_release_logs(
                 pass
         lines.append("-" * 40)
 
-    # Append Download Clients Diagnostics and RPC logs
-    lines.append("\n\n" + "=" * 50)
-    lines.append("=== DOWNLOAD CLIENTS DIAGNOSTICS & STATUS ===")
-    lines.append("=" * 50 + "\n")
+    # Append Download Clients Diagnostics and RPC logs if exporting all logs
+    if show_id is None:
+        lines.append("\n\n" + "=" * 50)
+        lines.append("=== DOWNLOAD CLIENTS DIAGNOSTICS & STATUS ===")
+        lines.append("=" * 50 + "\n")
 
-    try:
-        clients = db.query(DownloadClient).filter(DownloadClient.enabled == True).all()  # noqa: E712
-        if not clients:
-            lines.append("No active download clients configured.\n")
-        for dc_row in clients:
-            lines.append(f"Client: {dc_row.name} ({dc_row.type}) at {dc_row.host}:{dc_row.port}")
-            try:
-                client_inst = get_client(dc_row)
-                diag = await client_inst.get_client_diagnostics()
-                if diag:
-                    lines.append(f"  Version: {diag.get('version') or diag.get('webapi_version') or 'N/A'}")
-                    lines.append(f"  Download Speed: {diag.get('download_speed_b_s', 0)} B/s, Upload Speed: {diag.get('upload_speed_b_s', 0)} B/s")
-                    if diag.get('free_space_bytes') is not None:
-                        lines.append(f"  Free Space: {diag.get('free_space_bytes')} bytes")
-                    torrents = diag.get("torrents", [])
-                    lines.append(f"  Torrents Count: {len(torrents)}")
-                    if torrents:
-                        lines.append("  Torrents in Client:")
-                        for t in torrents[:30]:
-                            pct = round((t.get('progress') or 0) * 100)
-                            lines.append(f"    - [{t.get('state', 'unknown')}] {t.get('name', t.get('id', '—'))} ({pct}%, size: {t.get('size')} bytes)")
+        try:
+            clients = db.query(DownloadClient).filter(DownloadClient.enabled == True).all()  # noqa: E712
+            if not clients:
+                lines.append("No active download clients configured.\n")
+            for dc_row in clients:
+                lines.append(f"Client: {dc_row.name} ({dc_row.type}) at {dc_row.host}:{dc_row.port}")
+                try:
+                    client_inst = get_client(dc_row)
+                    diag = await client_inst.get_client_diagnostics()
+                    if diag:
+                        lines.append(f"  Version: {diag.get('version') or diag.get('webapi_version') or 'N/A'}")
+                        lines.append(f"  Download Speed: {diag.get('download_speed_b_s', 0)} B/s, Upload Speed: {diag.get('upload_speed_b_s', 0)} B/s")
+                        if diag.get('free_space_bytes') is not None:
+                            lines.append(f"  Free Space: {diag.get('free_space_bytes')} bytes")
+                        torrents = diag.get("torrents", [])
+                        lines.append(f"  Torrents Count: {len(torrents)}")
+                        if torrents:
+                            lines.append("  Torrents in Client:")
+                            for t in torrents[:30]:
+                                pct = round((t.get('progress') or 0) * 100)
+                                lines.append(f"    - [{t.get('state', 'unknown')}] {t.get('name', t.get('id', '—'))} ({pct}%, size: {t.get('size')} bytes)")
 
-                logs = await client_inst.get_client_logs(limit=50)
-                if logs:
-                    lines.append("\n  === Recent Daemon Logs ===")
-                    for entry in logs:
-                        t_str = entry.get("timestamp") or entry.get("time") or ""
-                        msg = entry.get("message") or ""
-                        lvl = entry.get("level") or entry.get("type") or ""
-                        lines.append(f"    [{t_str}] [lvl:{lvl}] {msg}")
-            except Exception as exc:
-                lines.append(f"  Client Error: {exc}")
-            lines.append("-" * 40)
-    except Exception as exc:
-        lines.append(f"Error gathering client diagnostics: {exc}")
+                    logs = await client_inst.get_client_logs(limit=50)
+                    if logs:
+                        lines.append("\n  === Recent Daemon Logs ===")
+                        for entry in logs:
+                            t_str = entry.get("timestamp") or entry.get("time") or ""
+                            msg = entry.get("message") or ""
+                            lvl = entry.get("level") or entry.get("type") or ""
+                            lines.append(f"    [{t_str}] [lvl:{lvl}] {msg}")
+                except Exception as exc:
+                    lines.append(f"  Client Error: {exc}")
+                lines.append("-" * 40)
+        except Exception as exc:
+            lines.append(f"Error gathering client diagnostics: {exc}")
 
+    import re
+    safe_name = ""
+    if show_obj and show_obj.title:
+        safe_name = "_" + re.sub(r"[^\w\-_.]", "_", show_obj.title)[:40]
+
+    filename = f"aliasarr_release_logs{safe_name}_{dt.datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.txt"
     content = "\n".join(lines)
     return Response(
         content=content,
         media_type="text/plain; charset=utf-8",
-        headers={"Content-Disposition": "attachment; filename=aliasarr_release_logs.txt"}
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
