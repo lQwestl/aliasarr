@@ -628,10 +628,20 @@ async def import_show(
             except Exception as e:
                 logger.warning("Failed linking movie to collection during import: %s", e)
 
+        # Назначаем профиль качества по умолчанию в зависимости от категории медиатеки
+        target_qp_id = None
+        if content_type == "movie":
+            target_qp_id = getattr(settings, "default_quality_profile_movie_id", None)
+        elif content_type == "anime":
+            target_qp_id = getattr(settings, "default_quality_profile_anime_id", None)
+        else:
+            target_qp_id = getattr(settings, "default_quality_profile_series_id", None)
+
         show = Show(
             title=details.title,
             year=show_year,
             collection_id=coll_id_to_set,
+            quality_profile_id=target_qp_id,
             metadata_source=source_type_str,
             metadata_id=details.external_id,
             overview=details.overview,

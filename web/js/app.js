@@ -12,6 +12,7 @@ if (window.__ALIASARR_BOOTSTRAP_KEY__) {
 let CACHED_SHOWS = [];
 let CACHED_QUALITY_PROFILES = [];
 let CACHED_METADATA_SOURCES = [];
+let CACHED_APP_SETTINGS = null;
 let LIBRARY_BULK_MODE = false;
 let SELECTED_SHOW_IDS = new Set();
 const QUALITY_OPTIONS = [
@@ -828,6 +829,16 @@ const TRANSLATIONS = {
     // Quality Profiles & Quality Formats
     "quality.settings_title": "Профили и форматы качества",
     "quality.settings_subtitle": "Настройка предпочтительного качества, порогов апгрейда и скоринга релизов",
+    "qp.defaults_title": "Профили качества по умолчанию",
+    "qp.defaults_subtitle": "Привязка профилей качества, автоматически выбираемых при добавлении карточек фильмов, сериалов и аниме",
+    "qp.default_movies": "Фильмы",
+    "qp.default_movies_hint": "(Radarr / TMDb)",
+    "qp.default_series": "Сериалы",
+    "qp.default_series_hint": "(Sonarr / SkyHook)",
+    "qp.default_anime": "Аниме",
+    "qp.default_anime_hint": "(Аниме-сериалы и тайтлы)",
+    "qp.defaults_info_banner": "Выбранный профиль будет автоматически подставляться в окно добавления тайтла при поиске метаданных, а также использоваться при импорте коллекций и фоновом добавлении.",
+    "qp.defaults_saved": "Профили качества по умолчанию сохранены",
     "qp.add_title": "Добавить профиль качества",
     "quality.add_title": "Добавить профиль качества",
     "qp.edit_title": "Редактирование: {name}",
@@ -2147,6 +2158,16 @@ const TRANSLATIONS = {
     // Quality Profiles & Quality Formats
     "quality.settings_title": "Quality Profiles & Formats",
     "quality.settings_subtitle": "Configure preferred quality, upgrade cutoffs and release scoring",
+    "qp.defaults_title": "Default Quality Profiles",
+    "qp.defaults_subtitle": "Assign default quality profiles automatically pre-selected when adding movies, TV series, and anime",
+    "qp.default_movies": "Movies",
+    "qp.default_movies_hint": "(Radarr / TMDb)",
+    "qp.default_series": "TV Series",
+    "qp.default_series_hint": "(Sonarr / SkyHook)",
+    "qp.default_anime": "Anime",
+    "qp.default_anime_hint": "(Anime series and movies)",
+    "qp.defaults_info_banner": "The selected profile will be automatically pre-selected when adding titles via metadata search and applied during collection imports and automated additions.",
+    "qp.defaults_saved": "Default quality profiles saved",
     "qp.add_title": "Add Quality Profile",
     "quality.add_title": "Add Quality Profile",
     "qp.edit_title": "Edit: {name}",
@@ -11283,7 +11304,16 @@ function chooseWizardMetadataResultByIndex(index) {
 }
 
 async function loadQualityProfilesForWizard() {
-  try { CACHED_QUALITY_PROFILES = await api("/api/v1/quality-profiles"); } catch (e) { CACHED_QUALITY_PROFILES = []; }
+  try {
+    const [profiles, settings] = await Promise.all([
+      api("/api/v1/quality-profiles"),
+      api("/api/v1/settings")
+    ]);
+    CACHED_QUALITY_PROFILES = profiles || [];
+    CACHED_APP_SETTINGS = settings;
+  } catch (e) {
+    CACHED_QUALITY_PROFILES = [];
+  }
 }
 
 function renderWizardStep2Content() {
@@ -11299,6 +11329,13 @@ function renderWizardStep2Content() {
   const typeClass = isMovie ? "meta-badge-type-movie" : "meta-badge-type-series";
   const initialLetter = (r.title || "?").trim()[0]?.toUpperCase() || "?";
   const posterStyle = r.poster_url ? `style="background-image: url('${r.poster_url}');"` : "";
+
+  let defaultQpId = "";
+  if (CACHED_APP_SETTINGS) {
+    if (currentType === "movie") defaultQpId = CACHED_APP_SETTINGS.default_quality_profile_movie_id || "";
+    else if (currentType === "anime") defaultQpId = CACHED_APP_SETTINGS.default_quality_profile_anime_id || "";
+    else defaultQpId = CACHED_APP_SETTINGS.default_quality_profile_series_id || "";
+  }
 
   content.innerHTML = `
     <div class="wizard-selected-banner">
@@ -11337,8 +11374,8 @@ function renderWizardStep2Content() {
 
       <label style="margin-top:8px;">${t("library.col_profile")}</label>
       <select id="wizard-quality-profile" class="input">
-        <option value="">${t("common.any_quality")}</option>
-        ${CACHED_QUALITY_PROFILES.map(qp => `<option value="${qp.id}">${escapeHtml(qp.name)}</option>`).join("")}
+        <option value="" ${!defaultQpId ? "selected" : ""}>${t("common.any_quality")}</option>
+        ${CACHED_QUALITY_PROFILES.map(qp => `<option value="${qp.id}" ${String(qp.id) === String(defaultQpId) ? "selected" : ""}>${escapeHtml(qp.name)}</option>`).join("")}
       </select>
 
       <div style="margin-top:8px; display:flex; flex-direction:column; gap:6px;">
@@ -11364,6 +11401,14 @@ function selectWizardContentType(value) {
   document.querySelectorAll("#wizard-content-type-chips .chip").forEach(el => {
     el.classList.toggle("chip-selected", el.dataset.value === value);
   });
+  const qpSelect = document.getElementById("wizard-quality-profile");
+  if (qpSelect && CACHED_APP_SETTINGS) {
+    let targetQpId = "";
+    if (value === "movie") targetQpId = CACHED_APP_SETTINGS.default_quality_profile_movie_id || "";
+    else if (value === "anime") targetQpId = CACHED_APP_SETTINGS.default_quality_profile_anime_id || "";
+    else targetQpId = CACHED_APP_SETTINGS.default_quality_profile_series_id || "";
+    qpSelect.value = targetQpId ? String(targetQpId) : "";
+  }
 }
 
 async function finishWizard(button) {
@@ -13409,6 +13454,7 @@ function updateMinSeedsAvailability() {
 async function loadGeneralSettings() {
   try {
     const s = await api("/api/v1/settings");
+    CACHED_APP_SETTINGS = s;
     const keyInp = document.getElementById("setting-apikey");
     if (keyInp) keyInp.value = s.api_key || "";
 
@@ -15512,18 +15558,61 @@ function renderQualityChips() {
   }
 }
 
-function toggleQualityChip(q) {
-  if (SELECTED_QUALITIES.has(q)) SELECTED_QUALITIES.delete(q); else SELECTED_QUALITIES.add(q);
-  renderQualityChips();
+function populateDefaultQualityProfileSelects(settings, profiles) {
+  const selects = [
+    { el: document.getElementById("setting-default-qp-movies"), val: settings?.default_quality_profile_movie_id },
+    { el: document.getElementById("setting-default-qp-series"), val: settings?.default_quality_profile_series_id },
+    { el: document.getElementById("setting-default-qp-anime"), val: settings?.default_quality_profile_anime_id },
+  ];
+
+  selects.forEach(({ el, val }) => {
+    if (!el) return;
+    el.innerHTML = `<option value="">${t("common.any_quality")}</option>` +
+      (profiles || []).map(qp => `<option value="${qp.id}" ${String(qp.id) === String(val) ? "selected" : ""}>${escapeHtml(qp.name)}</option>`).join("");
+    el.value = val ? String(val) : "";
+  });
+}
+
+async function saveDefaultQualityProfiles() {
+  const movieVal = document.getElementById("setting-default-qp-movies")?.value;
+  const seriesVal = document.getElementById("setting-default-qp-series")?.value;
+  const animeVal = document.getElementById("setting-default-qp-anime")?.value;
+
+  const payload = {
+    default_quality_profile_movie_id: movieVal ? Number(movieVal) : null,
+    default_quality_profile_series_id: seriesVal ? Number(seriesVal) : null,
+    default_quality_profile_anime_id: animeVal ? Number(animeVal) : null,
+  };
+
+  try {
+    const updated = await api("/api/v1/settings", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+    if (CACHED_APP_SETTINGS) {
+      CACHED_APP_SETTINGS.default_quality_profile_movie_id = updated.default_quality_profile_movie_id;
+      CACHED_APP_SETTINGS.default_quality_profile_series_id = updated.default_quality_profile_series_id;
+      CACHED_APP_SETTINGS.default_quality_profile_anime_id = updated.default_quality_profile_anime_id;
+    }
+    toast(t("qp.defaults_saved"));
+  } catch (e) {
+    toast(formatToastMessage(e.message), true);
+  }
 }
 
 async function loadQualityProfiles() {
   renderQualityChips();
   const tbody = document.querySelector("#qp-table tbody");
   try {
-    const items = await api("/api/v1/quality-profiles");
-    CACHED_QUALITY_PROFILES = items;
-    tbody.innerHTML = items.map(q => `
+    const [items, settings] = await Promise.all([
+      api("/api/v1/quality-profiles"),
+      api("/api/v1/settings")
+    ]);
+    CACHED_QUALITY_PROFILES = items || [];
+    CACHED_APP_SETTINGS = settings;
+    populateDefaultQualityProfileSelects(settings, items);
+
+    tbody.innerHTML = (items || []).map(q => `
       <tr>
         <td><strong>${escapeHtml(q.name)}</strong></td>
         <td class="mono">${(q.allowed_qualities || []).join(", ") || t("common.any_quality")}</td>

@@ -2580,6 +2580,64 @@
           </a>
         </div>
 
+        <!-- Профили качества по умолчанию -->
+        <div class="settings-section-card" id="card-default-quality-profiles">
+          <div class="settings-card-header">
+            <div class="settings-card-header-left">
+              <div class="settings-card-icon-badge">
+                <i data-lucide="bookmark-check"></i>
+              </div>
+              <div class="settings-card-title-wrap">
+                <h3 data-i18n="qp.defaults_title">Профили качества по умолчанию</h3>
+                <p class="subtitle" data-i18n="qp.defaults_subtitle">Привязка профилей качества, автоматически выбираемых при добавлении карточек фильмов, сериалов и аниме</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-grid-modern">
+            <div class="settings-field-group">
+              <label class="settings-field-label">
+                <span data-i18n="qp.default_movies">Фильмы</span>
+                <span class="settings-field-hint" data-i18n="qp.default_movies_hint">(Radarr / TMDb)</span>
+              </label>
+              <select id="setting-default-qp-movies" class="input" onchange="saveDefaultQualityProfiles()">
+                <option value="">Любое качество (без ограничений)</option>
+              </select>
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label">
+                <span data-i18n="qp.default_series">Сериалы</span>
+                <span class="settings-field-hint" data-i18n="qp.default_series_hint">(Sonarr / SkyHook)</span>
+              </label>
+              <select id="setting-default-qp-series" class="input" onchange="saveDefaultQualityProfiles()">
+                <option value="">Любое качество (без ограничений)</option>
+              </select>
+            </div>
+
+            <div class="settings-field-group">
+              <label class="settings-field-label">
+                <span data-i18n="qp.default_anime">Аниме</span>
+                <span class="settings-field-hint" data-i18n="qp.default_anime_hint">(Аниме-сериалы и тайтлы)</span>
+              </label>
+              <select id="setting-default-qp-anime" class="input" onchange="saveDefaultQualityProfiles()">
+                <option value="">Любое качество (без ограничений)</option>
+              </select>
+            </div>
+
+            <div class="settings-field-group" style="grid-column: 1 / -1;">
+              <div class="settings-info-banner">
+                <div class="settings-info-banner-icon">
+                  <i data-lucide="info" class="ico-sm"></i>
+                </div>
+                <div class="settings-info-banner-content" data-i18n="qp.defaults_info_banner">
+                  Выбранный профиль будет автоматически подставляться в окно добавления тайтла при поиске метаданных, а также использоваться при импорте коллекций и фоновом добавлении.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Профили качества -->
         <div class="settings-section-card">
           <div class="settings-card-header">

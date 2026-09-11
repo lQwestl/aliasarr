@@ -480,6 +480,11 @@ class AppSettings(Base):
     download_folder_series: Mapped[str] = mapped_column(String(1000), default="")
     download_folder_anime: Mapped[str] = mapped_column(String(1000), default="")
 
+    # Профили качества по умолчанию для добавления тайтлов
+    default_quality_profile_movie_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=None)
+    default_quality_profile_series_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=None)
+    default_quality_profile_anime_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=None)
+
     # Управление медиа: импорт сопутствующих файлов (субтитры, озвучки, шрифты, NFO)
     import_extra_files: Mapped[bool] = mapped_column(Boolean, default=True)
     extra_file_extensions: Mapped[str] = mapped_column(

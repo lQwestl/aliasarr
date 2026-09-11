@@ -186,6 +186,16 @@ async def create_show(
             detail=f"Тайтл «{clean_title}» уже есть в библиотеке (ID: {existing.id})",
         )
 
+    settings = get_or_create_settings(db)
+    qp_id = payload.quality_profile_id
+    if qp_id is None:
+        if payload.content_type == ContentType.MOVIE:
+            qp_id = getattr(settings, "default_quality_profile_movie_id", None)
+        elif payload.content_type == ContentType.ANIME:
+            qp_id = getattr(settings, "default_quality_profile_anime_id", None)
+        else:
+            qp_id = getattr(settings, "default_quality_profile_series_id", None)
+
     show = Show(
         title=clean_title,
         year=clean_year,
@@ -194,7 +204,7 @@ async def create_show(
         overview=payload.overview,
         poster_url=payload.poster_url,
         path=payload.path,
-        quality_profile_id=payload.quality_profile_id,
+        quality_profile_id=qp_id,
         content_type=payload.content_type,
         edition=payload.edition,
         collection_id=payload.collection_id,
@@ -210,7 +220,6 @@ async def create_show(
         trailer_url=payload.trailer_url,
     )
     if not show.path:
-        settings = get_or_create_settings(db)
         show.path = get_show_default_path(show, settings)
     db.add(show)
     db.flush()  # получаем show.id до коммита

@@ -466,10 +466,12 @@ async def import_missing_collection_movies(
         if existing_coll_show and existing_coll_show[0]:
             qp_id = existing_coll_show[0]
         else:
-            # 2. Берем первый профиль качества в системе
-            default_qp = db.query(QualityProfile).first()
-            if default_qp:
-                qp_id = default_qp.id
+            # 2. Берем профиль по умолчанию для фильмов из настроек или первый профиль качества в системе
+            qp_id = getattr(settings, "default_quality_profile_movie_id", None)
+            if not qp_id:
+                default_qp = db.query(QualityProfile).first()
+                if default_qp:
+                    qp_id = default_qp.id
 
     if qp_id and coll.quality_profile_id != qp_id:
         coll.quality_profile_id = qp_id

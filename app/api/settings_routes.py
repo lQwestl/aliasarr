@@ -35,6 +35,10 @@ class SettingsOut(BaseModel):
     download_folder_series: str
     download_folder_anime: str
 
+    default_quality_profile_movie_id: Optional[int] = None
+    default_quality_profile_series_id: Optional[int] = None
+    default_quality_profile_anime_id: Optional[int] = None
+
     import_extra_files: bool = True
     extra_file_extensions: str = "srt, ass, sub, idx, vtt, nfo, mka, ttf, otf, woff"
     use_hardlinks: bool = True
@@ -96,6 +100,10 @@ class SettingsUpdate(BaseModel):
     download_folder_series: Optional[str] = None
     download_folder_anime: Optional[str] = None
 
+    default_quality_profile_movie_id: Optional[int] = None
+    default_quality_profile_series_id: Optional[int] = None
+    default_quality_profile_anime_id: Optional[int] = None
+
     import_extra_files: Optional[bool] = None
     extra_file_extensions: Optional[str] = None
     use_hardlinks: Optional[bool] = None
@@ -155,6 +163,9 @@ def _to_settings_out(settings, is_owner: bool = False) -> SettingsOut:
         download_folder_movies=settings.download_folder_movies,
         download_folder_series=settings.download_folder_series,
         download_folder_anime=settings.download_folder_anime,
+        default_quality_profile_movie_id=getattr(settings, "default_quality_profile_movie_id", None),
+        default_quality_profile_series_id=getattr(settings, "default_quality_profile_series_id", None),
+        default_quality_profile_anime_id=getattr(settings, "default_quality_profile_anime_id", None),
         import_extra_files=getattr(settings, "import_extra_files", True),
         extra_file_extensions=getattr(settings, "extra_file_extensions", "srt, ass, sub, idx, vtt, nfo, mka, ttf, otf, woff") or "srt, ass, sub, idx, vtt, nfo, mka, ttf, otf, woff",
         use_hardlinks=getattr(settings, "use_hardlinks", True),
@@ -263,6 +274,13 @@ def update_settings(
         settings.download_folder_series = payload.download_folder_series
     if payload.download_folder_anime is not None:
         settings.download_folder_anime = payload.download_folder_anime
+
+    if "default_quality_profile_movie_id" in payload.model_fields_set:
+        settings.default_quality_profile_movie_id = payload.default_quality_profile_movie_id
+    if "default_quality_profile_series_id" in payload.model_fields_set:
+        settings.default_quality_profile_series_id = payload.default_quality_profile_series_id
+    if "default_quality_profile_anime_id" in payload.model_fields_set:
+        settings.default_quality_profile_anime_id = payload.default_quality_profile_anime_id
 
     if payload.import_extra_files is not None:
         settings.import_extra_files = payload.import_extra_files
