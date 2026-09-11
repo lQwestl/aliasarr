@@ -11111,7 +11111,16 @@ let WIZARD_STATE = { sourceId: null, selectedResult: null, contentType: "series"
 let WIZARD_SEARCH_RESULTS = [];
 
 function openAddShowWizard() {
-  WIZARD_STATE = { sourceId: WIZARD_STATE.sourceId || null, selectedResult: null, contentType: "series", lastQuery: WIZARD_STATE.lastQuery || "" };
+  const savedSource = localStorage.getItem("aliasarr_wizard_source_id");
+  let effectiveSourceId = null;
+  if (savedSource !== null && savedSource !== "all") {
+    effectiveSourceId = Number(savedSource) || null;
+  } else if (savedSource === "all") {
+    effectiveSourceId = null;
+  } else if (WIZARD_STATE && WIZARD_STATE.sourceId !== null) {
+    effectiveSourceId = WIZARD_STATE.sourceId;
+  }
+  WIZARD_STATE = { sourceId: effectiveSourceId, selectedResult: null, contentType: "series", lastQuery: WIZARD_STATE.lastQuery || "" };
   renderWizardStep(1);
   openModal("wizard-modal");
   setTimeout(() => {
@@ -11133,6 +11142,16 @@ function setWizardStepIndicator(step) {
   });
 }
 
+function onWizardSourceSelectChange(selectEl) {
+  const val = selectEl ? selectEl.value : "all";
+  WIZARD_STATE.sourceId = (val && val !== "all") ? Number(val) : null;
+  localStorage.setItem("aliasarr_wizard_source_id", val);
+  const inputEl = document.getElementById("wizard-search-input");
+  if (inputEl && inputEl.value.trim()) {
+    runWizardMetadataSearch();
+  }
+}
+
 function renderWizardStep(step) {
   setWizardStepIndicator(step);
   const content = document.getElementById("wizard-content");
@@ -11142,7 +11161,7 @@ function renderWizardStep(step) {
     const currentQuery = WIZARD_STATE.lastQuery || "";
     content.innerHTML = `
       <div class="wizard-search-toolbar">
-        <select id="wizard-source-select" class="input wizard-source-select" onchange="if(document.getElementById('wizard-search-input').value.trim()) runWizardMetadataSearch()"></select>
+        <select id="wizard-source-select" class="input wizard-source-select" onchange="onWizardSourceSelectChange(this)"></select>
         <div class="wizard-search-input-wrapper">
           <i data-lucide="search" class="ico-sm wizard-search-icon"></i>
           <input id="wizard-search-input" class="input wizard-search-input" type="text" value="${escapeHtml(currentQuery)}"
@@ -11193,14 +11212,17 @@ async function loadSourcesIntoWizardSelect(selectedSourceId) {
     const items = await api("/api/v1/metadata-sources");
     CACHED_METADATA_SOURCES = items || [];
     const autoLabel = CURRENT_LANG === "en" ? "All Sources" : "Все источники";
-    let optionsHtml = `<option value="all">${autoLabel}</option>`;
+    const isAll = !selectedSourceId || selectedSourceId === "all";
+    let optionsHtml = `<option value="all" ${isAll ? 'selected' : ''}>${autoLabel}</option>`;
     if (items && items.length) {
       optionsHtml += items.map(s => `<option value="${s.id}" ${String(s.id) === String(selectedSourceId) ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join("");
     }
     select.innerHTML = optionsHtml;
+    select.value = isAll ? "all" : String(selectedSourceId);
   } catch (e) {
     console.error("loadSourcesIntoWizardSelect error:", e);
-    select.innerHTML = `<option value="all">${CURRENT_LANG === "en" ? "All Sources" : "Все источники"}</option>`;
+    select.innerHTML = `<option value="all" selected>${CURRENT_LANG === "en" ? "All Sources" : "Все источники"}</option>`;
+    select.value = "all";
   }
 }
 
@@ -11213,7 +11235,8 @@ async function runWizardMetadataSearch() {
   if (!query || !resultsEl) return;
 
   WIZARD_STATE.lastQuery = query;
-  WIZARD_STATE.sourceId = sourceId !== "all" ? sourceId : null;
+  WIZARD_STATE.sourceId = (sourceId && sourceId !== "all") ? Number(sourceId) : null;
+  localStorage.setItem("aliasarr_wizard_source_id", sourceId || "all");
 
   const searchSubtitle = CURRENT_LANG === "en"
     ? "Searching in metadata sources..."
@@ -11296,7 +11319,8 @@ function chooseWizardMetadataResultByIndex(index) {
   const result = WIZARD_SEARCH_RESULTS[index];
   if (!result) return;
   const sourceSelect = document.getElementById("wizard-source-select");
-  const sourceId = (sourceSelect && sourceSelect.value !== "all") ? Number(sourceSelect.value) : (CACHED_METADATA_SOURCES[0]?.id || null);
+  const sourceVal = sourceSelect ? sourceSelect.value : (WIZARD_STATE.sourceId ? String(WIZARD_STATE.sourceId) : "all");
+  const sourceId = (sourceVal && sourceVal !== "all") ? Number(sourceVal) : null;
   WIZARD_STATE.sourceId = sourceId;
   WIZARD_STATE.selectedResult = result;
   WIZARD_STATE.contentType = guessContentTypeFromMetadata(result);
