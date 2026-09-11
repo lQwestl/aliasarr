@@ -617,7 +617,7 @@ const TRANSLATIONS = {
     "settings.apikey_hint": "используется этим интерфейсом и внешними клиентами для запросов к серверу",
     "settings.apikey_source_env": "Ключ задан через переменную окружения ALIASARR_API_KEY — измените её в docker-compose.yml, чтобы поменять ключ.",
     "settings.apikey_source_auto": "Ключ сгенерирован автоматически. Можно сгенерировать новый в любой момент.",
-    "settings.btn_regenerate_key": "↻ Новый ключ",
+    "settings.btn_regenerate_key": "Новый ключ",
     "settings.btn_api_docs": "Справочник API",
     "settings.interface_title": "Интерфейс",
     "settings.language": "Язык",
@@ -750,7 +750,7 @@ const TRANSLATIONS = {
     "profile.display_name_placeholder": "Ваше имя (напр. Олег)",
     "profile.btn_change_avatar": "Сменить аватар",
     "profile.btn_remove_avatar": "Удалить аватар",
-    "profile.btn_generate_key": "↻ Новый ключ",
+    "profile.btn_generate_key": "Новый ключ",
     "profile.btn_revoke_key": "Отозвать",
     "profile.apikey_hint": "позволяет делать запросы к API с назначенными вам правами доступа (заголовок: X-Api-Key)",
     "profile.apikey_no_permission": "Использование API-ключа отключено для вашей учётной записи. Обратитесь к администратору для предоставления прав.",
@@ -1239,7 +1239,7 @@ const TRANSLATIONS = {
     "settings.2fa_policy_choice": "Индивидуально (по выбору каждого пользователя)",
     "settings.2fa_policy_enforce": "Обязательно для всех пользователей (при входе через WAN)",
     "profile.tab_2fa": "2FA TOTP",
-    "profile.2fa_status_title": "Статус двухфакторной аутентификации:",
+    "profile.2fa_status_title": "Статус двухфакторной аутентификации",
     "profile.2fa_status_active": "2FA активирована и защищает учётную запись",
     "profile.2fa_status_inactive": "2FA не настроена",
     "profile.2fa_info": "2FA защищает вашу учётную запись с помощью временных 6-значных кодов. Запрос 2FA происходит только при подключении через внешний IP-адрес (при входе через приватный локальный IP запрос пропускается).",
@@ -1936,7 +1936,7 @@ const TRANSLATIONS = {
     "settings.apikey_hint": "used by this web UI and external clients to query the server",
     "settings.apikey_source_env": "Key is set via ALIASARR_API_KEY environment variable — change it in docker-compose.yml to update the key.",
     "settings.apikey_source_auto": "Key was generated automatically. You can generate a new one at any time.",
-    "settings.btn_regenerate_key": "↻ New Key",
+    "settings.btn_regenerate_key": "New Key",
     "settings.btn_api_docs": "API Docs",
     "settings.interface_title": "Interface",
     "settings.language": "Language",
@@ -2069,7 +2069,7 @@ const TRANSLATIONS = {
     "profile.display_name_placeholder": "Your name (e.g. Alex)",
     "profile.btn_change_avatar": "Change avatar",
     "profile.btn_remove_avatar": "Remove avatar",
-    "profile.btn_generate_key": "↻ New key",
+    "profile.btn_generate_key": "New key",
     "profile.btn_revoke_key": "Revoke",
     "profile.apikey_hint": "allows API requests scoped to your assigned permissions (header: X-Api-Key)",
     "profile.apikey_no_permission": "API key usage is disabled for your account. Please contact an administrator for permissions.",
@@ -2558,7 +2558,7 @@ const TRANSLATIONS = {
     "settings.2fa_policy_choice": "Individual (user choice)",
     "settings.2fa_policy_enforce": "Mandatory for all users (on WAN login)",
     "profile.tab_2fa": "2FA TOTP",
-    "profile.2fa_status_title": "Two-Factor Authentication Status:",
+    "profile.2fa_status_title": "Two-Factor Authentication Status",
     "profile.2fa_status_active": "2FA is active and protecting this account",
     "profile.2fa_status_inactive": "2FA is not configured",
     "profile.2fa_info": "2FA protects your account using time-based 6-digit codes. 2FA is prompted only when accessing via external WAN IP addresses (requests from private LAN addresses bypass 2FA).",
@@ -3316,6 +3316,7 @@ async function loadMy2FAStatus() {
   const is2FA = !!CURRENT_USER.totp_enabled;
   const badgeEl = document.getElementById("profile-2fa-badge");
   const descEl = document.getElementById("profile-2fa-status-desc");
+  const iconBadgeEl = document.getElementById("profile-2fa-icon-badge");
   const enableBtn = document.getElementById("profile-2fa-enable-btn");
   const disableBtn = document.getElementById("profile-2fa-disable-btn");
 
@@ -3325,6 +3326,10 @@ async function loadMy2FAStatus() {
   }
   if (descEl) {
     descEl.textContent = is2FA ? t("profile.2fa_status_active") : t("profile.2fa_status_inactive");
+  }
+  if (iconBadgeEl) {
+    iconBadgeEl.className = is2FA ? "profile-2fa-icon-badge active" : "profile-2fa-icon-badge inactive";
+    iconBadgeEl.innerHTML = `<i data-lucide="${is2FA ? 'shield-check' : 'shield-alert'}" class="ico-md"></i>`;
   }
   if (enableBtn) enableBtn.style.display = is2FA ? "none" : "inline-flex";
   if (disableBtn) disableBtn.style.display = is2FA ? "inline-flex" : "none";
@@ -3535,6 +3540,17 @@ function copyMyApiKey() {
   if (!inpKey || !inpKey.value) return;
   navigator.clipboard.writeText(inpKey.value);
   toast(t("settings.toast_key_copied"));
+}
+
+function toggleApiKeyVisibility(inputId, btnEl) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  const isRevealed = inp.classList.toggle("revealed");
+  const btn = btnEl || inp.parentElement?.querySelector(".api-key-reveal-btn");
+  if (btn) {
+    btn.innerHTML = `<i data-lucide="${isRevealed ? 'eye-off' : 'eye'}" class="ico-xs"></i>`;
+    if (window.lucide) lucide.createIcons();
+  }
 }
 
 async function submitUpdateMyProfile() {

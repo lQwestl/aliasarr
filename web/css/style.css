@@ -14712,6 +14712,154 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   flex-shrink: 0;
 }
 
+/* =============================================================================
+   API KEY BLUR & REVEAL COMPONENT
+   ============================================================================= */
+.api-key-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.api-key-input-wrapper .input {
+  width: 100%;
+  padding-right: 42px !important;
+}
+
+.api-key-blurred {
+  filter: blur(5.5px);
+  user-select: none;
+  transition: filter 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.api-key-blurred:hover,
+.api-key-blurred:focus,
+.api-key-blurred.revealed {
+  filter: blur(0) !important;
+  user-select: text !important;
+}
+
+.api-key-reveal-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background 0.15s ease;
+  z-index: 2;
+}
+
+.api-key-reveal-btn:hover {
+  color: var(--teal, #00f0ff);
+  background: rgba(0, 240, 255, 0.08);
+}
+
+/* =============================================================================
+   SETTINGS INFO BANNER (Vanguard Luxe)
+   ============================================================================= */
+.settings-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(0, 240, 255, 0.04);
+  border: 1px solid rgba(0, 240, 255, 0.18);
+  border-left: 3px solid var(--teal, #00f0ff);
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.settings-info-banner-icon {
+  color: var(--teal, #00f0ff);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.settings-info-banner-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* =============================================================================
+   PROFILE 2FA STATUS CARD (Vanguard Luxe)
+   ============================================================================= */
+.profile-2fa-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.profile-2fa-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.profile-2fa-status-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-2fa-icon-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.profile-2fa-icon-badge.active {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success, #10b981);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+}
+
+.profile-2fa-icon-badge.inactive {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.profile-2fa-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.profile-2fa-subtitle {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+
 
 
 

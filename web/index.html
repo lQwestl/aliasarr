@@ -1113,10 +1113,15 @@
             <div class="settings-field-group" style="grid-column: 1 / -1;">
               <label class="settings-field-label" data-i18n="settings.apikey_label">API-ключ</label>
               <div class="api-key-container" style="display:flex; flex-direction:column; gap:8px;">
-                <input id="setting-apikey" class="input mono" type="text" readonly style="width:100%;">
+                <div class="api-key-input-wrapper">
+                  <input id="setting-apikey" class="input mono api-key-blurred" type="text" readonly style="width:100%;">
+                  <button type="button" class="api-key-reveal-btn" onclick="toggleApiKeyVisibility('setting-apikey', this)" title="Показать/скрыть API-ключ" aria-label="Показать/скрыть API-ключ">
+                    <i data-lucide="eye" class="ico-xs"></i>
+                  </button>
+                </div>
                 <div class="api-key-actions-row" style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <button class="btn btn-secondary btn-small" id="btn-copy-apikey" onclick="copyApiKey()" data-i18n="common.copy"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="common.copy">Копировать</span></button>
-                  <button class="btn btn-secondary btn-small" id="regenerate-key-btn" onclick="regenerateApiKey(this)" data-i18n="settings.btn_regenerate_key"><i data-lucide="refresh-cw" class="ico-xs"></i> <span data-i18n="settings.btn_regenerate_key">↻ Новый ключ</span></button>
+                  <button class="btn btn-secondary btn-small" id="btn-copy-apikey" onclick="copyApiKey()"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="common.copy">Копировать</span></button>
+                  <button class="btn btn-secondary btn-small" id="regenerate-key-btn" onclick="regenerateApiKey(this)"><i data-lucide="refresh-cw" class="ico-xs"></i> <span data-i18n="settings.btn_regenerate_key">Новый ключ</span></button>
                 </div>
               </div>
               <p class="hint" id="apikey-source-hint"></p>
@@ -4214,16 +4219,26 @@
               <span class="settings-field-hint" data-i18n="profile.apikey_hint">(заголовок: X-Api-Key)</span>
             </label>
             <div class="api-key-container" style="display:flex; flex-direction:column; gap:8px;">
-              <input id="profile-my-apikey" class="input mono" type="text" readonly placeholder="API-ключ не создан" data-i18n-placeholder="profile.apikey_none" style="width:100%;">
+              <div class="api-key-input-wrapper">
+                <input id="profile-my-apikey" class="input mono api-key-blurred" type="text" readonly placeholder="API-ключ не создан" data-i18n-placeholder="profile.apikey_none" style="width:100%;">
+                <button type="button" class="api-key-reveal-btn" onclick="toggleApiKeyVisibility('profile-my-apikey', this)" title="Показать/скрыть API-ключ" aria-label="Показать/скрыть API-ключ">
+                  <i data-lucide="eye" class="ico-xs"></i>
+                </button>
+              </div>
               <div class="api-key-actions-row" style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button class="btn btn-secondary btn-small" id="profile-copy-key-btn" onclick="copyMyApiKey()"><i data-lucide="copy" class="ico-xs"></i> <span data-i18n="common.copy">Копировать</span></button>
                 <button class="btn btn-secondary btn-small" id="profile-regen-key-btn" onclick="regenerateMyApiKey(this)"><i data-lucide="refresh-cw" class="ico-xs"></i> <span data-i18n="profile.btn_generate_key">Новый ключ</span></button>
                 <button class="btn btn-secondary btn-small danger" id="profile-revoke-key-btn" onclick="revokeMyApiKey(this)"><i data-lucide="x-circle" class="ico-xs"></i> <span data-i18n="profile.btn_revoke_key">Отозвать</span></button>
               </div>
             </div>
-            <p class="hint" style="margin-top:10px; line-height:1.5;">
-              <i data-lucide="lightbulb" class="ico-xs" style="vertical-align:middle; margin-right:4px;"></i> <span data-i18n="profile.apikey_usage_hint">Запросы с персональным API-ключом выполняются только в пределах прав, разрешённых вашей учётной записи.</span>
-            </p>
+            <div class="settings-info-banner" style="margin-top:14px;">
+              <div class="settings-info-banner-icon">
+                <i data-lucide="info" class="ico-sm"></i>
+              </div>
+              <div class="settings-info-banner-content">
+                <span data-i18n="profile.apikey_usage_hint">Запросы с персональным API-ключом выполняются только в пределах прав, разрешённых вашей учётной записи.</span>
+              </div>
+            </div>
           </div>
         </div>
         <div id="profile-apikey-disabled-box" style="display:none; padding:16px; background:rgba(0,0,0,0.15); border-radius:12px; border:1px solid var(--border); color:var(--text-secondary);">
@@ -4234,20 +4249,30 @@
 
       <!-- Вкладка: 2FA TOTP -->
       <div id="ptab-2fa" class="profile-tab-content" style="display:none;">
-        <div class="settings-section-card" style="margin-bottom:12px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <div>
-              <strong data-i18n="profile.2fa_status_title" style="font-size:14px;">Статус двухфакторной аутентификации:</strong>
-              <div id="profile-2fa-status-desc" class="hint" style="margin-top:2px;"></div>
+        <div class="profile-2fa-card">
+          <div class="profile-2fa-status-header">
+            <div class="profile-2fa-status-info">
+              <div class="profile-2fa-icon-badge" id="profile-2fa-icon-badge">
+                <i data-lucide="shield-check" class="ico-md"></i>
+              </div>
+              <div>
+                <div class="profile-2fa-title" data-i18n="profile.2fa_status_title">Статус двухфакторной аутентификации</div>
+                <div id="profile-2fa-status-desc" class="profile-2fa-subtitle"></div>
+              </div>
             </div>
             <span id="profile-2fa-badge" class="badge"></span>
           </div>
 
-          <p class="hint" style="line-height:1.5; margin-bottom:16px;" data-i18n="profile.2fa_info">
-            2FA защищает вашу учётную запись с помощью временных 6-значных кодов. Запрос 2FA происходит только при подключении через внешний IP-адрес (при входе через приватный локальный IP запрос пропускается).
-          </p>
+          <div class="settings-info-banner">
+            <div class="settings-info-banner-icon">
+              <i data-lucide="info" class="ico-sm"></i>
+            </div>
+            <div class="settings-info-banner-content" data-i18n="profile.2fa_info">
+              2FA защищает вашу учётную запись с помощью временных 6-значных кодов. Запрос 2FA происходит только при подключении через внешний IP-адрес (при входе через приватный локальный IP запрос пропускается).
+            </div>
+          </div>
 
-          <div id="profile-2fa-actions" style="margin-top:6px;">
+          <div id="profile-2fa-actions">
             <button id="profile-2fa-enable-btn" class="btn btn-primary" onclick="openMy2FASetupModal()"><i data-lucide="shield-check" class="ico-sm"></i> <span data-i18n="profile.btn_enable_2fa">Включить 2FA (QR-код)</span></button>
             <button id="profile-2fa-disable-btn" class="btn btn-secondary danger" onclick="disableMy2FA(this)" style="display:none;"><i data-lucide="shield-off" class="ico-sm"></i> <span data-i18n="profile.btn_disable_2fa">Отключить 2FA</span></button>
           </div>
