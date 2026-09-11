@@ -110,6 +110,7 @@ class MovieCollectionOut(BaseModel):
     root_folder: Optional[str] = None
     created_at: Optional[dt.datetime] = None
     shows_count: int = 0
+    parts_count: int = 0
     downloaded_count: int = 0
     missing_count: int = 0
 

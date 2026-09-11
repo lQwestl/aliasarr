@@ -2449,6 +2449,20 @@ async def refresh_show_metadata(db, show) -> dict:
                 )
                 db.add(coll)
                 db.flush()
+            if coll and coll.tmdb_collection_id and coll.parts_count is None and hasattr(client, "get_collection_details"):
+                try:
+                    c_det = await client.get_collection_details(coll.tmdb_collection_id)
+                    if c_det and c_det.get("parts"):
+                        coll.parts_count = len(c_det["parts"])
+                        if not coll.overview and c_det.get("overview"):
+                            coll.overview = c_det.get("overview")
+                        if not coll.poster_url and c_det.get("poster_url"):
+                            coll.poster_url = c_det.get("poster_url")
+                        if not coll.backdrop_url and c_det.get("backdrop_url"):
+                            coll.backdrop_url = c_det.get("backdrop_url")
+                        db.add(coll)
+                except Exception as e:
+                    logger.debug("Failed to prefetch collection parts for %s: %s", coll.title, e)
             if coll and show.collection_id != coll.id:
                 show.collection_id = coll.id
                 changed = True

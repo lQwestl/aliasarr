@@ -5664,18 +5664,22 @@ async function renderCollectionsView(query = "") {
 function renderCollectionCard(coll) {
   const bgImg = coll.backdrop_url || coll.poster_url;
   const posterStyle = bgImg ? `style="background-image:url('${bgImg}')"` : "";
-  const total = coll.shows_count || 0;
+  const total = coll.parts_count || coll.shows_count || 0;
+  const inLib = coll.shows_count || 0;
   const downloaded = coll.downloaded_count || 0;
   const pct = total > 0 ? Math.round((downloaded / total) * 100) : 0;
   const mTitle = coll.monitored ? t("dash.monitored") : t("dash.unmonitored");
   const mIcon = coll.monitored ? "bookmark-check" : "bookmark-x";
   const mClass = coll.monitored ? "monitored" : "unmonitored";
+  const badgeTitle = CURRENT_LANG === "en"
+    ? `${downloaded} of ${total} franchise movies downloaded (${inLib} in library)`
+    : `${downloaded} из ${total} фильмов саги скачано (${inLib} в библиотеке)`;
 
   return `
     <div class="collection-card" id="collection-card-${coll.id}" onclick="openCollectionModal(${coll.id})">
       <div class="collection-poster-wrap" ${posterStyle}>
         <div class="collection-poster-gradient"></div>
-        <span class="collection-poster-badge">
+        <span class="collection-poster-badge" title="${badgeTitle}">
           <i data-lucide="boxes" class="ico-xxs"></i>
           <span>${downloaded}/${total}</span>
         </span>
@@ -5716,7 +5720,7 @@ async function openCollectionModal(collectionId) {
     const posterStyle = coll.poster_url ? `style="background-image:url('${coll.poster_url}')"` : "";
 
     const parts = coll.franchise_parts || [];
-    const missingCount = parts.filter(p => !p.in_library).length;
+    const missingCount = coll.missing_count !== undefined ? coll.missing_count : parts.filter(p => !p.in_library).length;
     const canManageLib = hasPermission("manage_library");
 
     content.innerHTML = `
@@ -5827,7 +5831,10 @@ async function importSingleMovieFromFranchise(collectionId, tmdbId, btnEl) {
     if (window.lucide) lucide.createIcons();
   }
   try {
-    const res = await api(`/api/v1/collections/${collectionId}/import-missing`, { method: "POST", body: JSON.stringify({}) });
+    const res = await api(`/api/v1/collections/${collectionId}/import-missing`, {
+      method: "POST",
+      body: JSON.stringify({ tmdb_id: tmdbId }),
+    });
     toast(CURRENT_LANG === "en" ? `Movie added to library` : `Фильм добавлен в библиотеку`, "success");
     await loadShows(true);
     await loadCollections(true);

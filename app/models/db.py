@@ -105,6 +105,7 @@ class MovieCollection(Base):
     overview: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     poster_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     backdrop_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    parts_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=None)
     monitored: Mapped[bool] = mapped_column(Boolean, default=True)
     quality_profile_id: Mapped[Optional[int]] = mapped_column(ForeignKey("quality_profiles.id", ondelete="SET NULL"), nullable=True)
     root_folder: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)

@@ -51,6 +51,7 @@ class MovieCollectionDetailOut(BaseModel):
     root_folder: Optional[str] = None
     created_at: Optional[dt.datetime] = None
     shows_count: int = 0
+    parts_count: int = 0
     downloaded_count: int = 0
     missing_count: int = 0
     shows: list[ShowOut] = []
@@ -58,6 +59,8 @@ class MovieCollectionDetailOut(BaseModel):
 
 
 class ImportMissingPayload(BaseModel):
+    tmdb_id: Optional[int] = None
+    tmdb_ids: Optional[list[int]] = None
     quality_profile_id: Optional[int] = None
     root_folder: Optional[str] = None
     monitored: bool = True
@@ -106,11 +109,13 @@ def list_collections(
     out: list[MovieCollectionOut] = []
     for c in collections:
         c_out = MovieCollectionOut.model_validate(c)
-        total_s = coll_shows_count.get(c.id, 0)
+        shows_in_lib = coll_shows_count.get(c.id, 0)
         dl_s = coll_downloaded_count.get(c.id, 0)
-        c_out.shows_count = total_s
+        total_parts = c.parts_count or shows_in_lib
+        c_out.shows_count = shows_in_lib
+        c_out.parts_count = total_parts
         c_out.downloaded_count = dl_s
-        c_out.missing_count = max(0, total_s - dl_s)
+        c_out.missing_count = max(0, total_parts - shows_in_lib)
         out.append(c_out)
 
     return out
@@ -170,8 +175,15 @@ async def get_collection_detail(
         except Exception as e:
             logger.debug("Failed to fetch live franchise parts for collection %s: %s", coll.id, e)
 
+    total_parts = len(franchise_parts) if franchise_parts else len(shows)
+    if coll.tmdb_collection_id and total_parts and coll.parts_count != total_parts:
+        coll.parts_count = total_parts
+        db.add(coll)
+        db.commit()
+
     total_s = len(shows)
     dl_s = sum(1 for s in shows_out if s.downloaded_episodes_count > 0)
+    missing_cnt = max(0, total_parts - total_s)
 
     return MovieCollectionDetailOut(
         id=coll.id,
@@ -185,8 +197,9 @@ async def get_collection_detail(
         root_folder=coll.root_folder,
         created_at=coll.created_at,
         shows_count=total_s,
+        parts_count=total_parts,
         downloaded_count=dl_s,
-        missing_count=max(0, total_s - dl_s),
+        missing_count=missing_cnt,
         shows=shows_out,
         franchise_parts=franchise_parts,
     )
@@ -269,7 +282,7 @@ async def import_missing_collection_movies(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_library")),
 ):
-    """Массовый 1-клик импорт всех отсутствующих фильмов саги/франшизы из TMDb в Aliasarr."""
+    """Массовый или точечный импорт недостающих фильмов саги/франшизы из TMDb в Aliasarr."""
     coll = db.get(MovieCollection, collection_id)
     if not coll:
         raise HTTPException(404, "Movie collection not found")
@@ -279,13 +292,18 @@ async def import_missing_collection_movies(
     from app.services.metadata import RadarrClient, refresh_show_metadata
     from app.models.db import Settings
     from app.services.postprocess import build_show_folder_name
-    from app.services.auto_search import search_single_show_background
 
     client = RadarrClient()
     try:
         data = await client.get_collection_details(coll.tmdb_collection_id)
     except Exception as e:
         raise HTTPException(502, f"Не удалось получить список фильмов коллекции из TMDb: {e}")
+
+    parts_list = data.get("parts", [])
+    if parts_list and coll.parts_count != len(parts_list):
+        coll.parts_count = len(parts_list)
+        db.add(coll)
+        db.commit()
 
     settings = db.query(Settings).first()
     root_folder = payload.root_folder or coll.root_folder or (getattr(settings, "movies_root_folder", None) or getattr(settings, "root_folder", None) or "/data/media/movies")
@@ -301,9 +319,16 @@ async def import_missing_collection_movies(
     added_shows: list[dict] = []
     order_idx = 1
 
-    for part in data.get("parts", []):
+    for part in parts_list:
         tmdb_id = part.get("tmdb_id")
         if not tmdb_id or tmdb_id in existing_tmdb_ids:
+            order_idx += 1
+            continue
+
+        if payload.tmdb_id and tmdb_id != payload.tmdb_id:
+            order_idx += 1
+            continue
+        if payload.tmdb_ids and tmdb_id not in payload.tmdb_ids:
             order_idx += 1
             continue
 
@@ -347,18 +372,34 @@ async def import_missing_collection_movies(
         added_shows.append({"id": show.id, "title": show.title, "year": show.year})
         order_idx += 1
 
-        # Фоновое обновление метаданных и автопоиск
+        # Фоновое обновление метаданных
         try:
             await refresh_show_metadata(db, show)
             db.commit()
         except Exception as e:
             logger.debug("Failed to refresh metadata on imported movie %s: %s", show.id, e)
 
-        if payload.auto_search and payload.monitored:
-            try:
-                search_single_show_background(show.id)
-            except Exception as e:
-                logger.debug("Auto-search failed on imported movie %s: %s", show.id, e)
+    # Запускаем фоновый автопоиск через безопасную отдельную сессию БД
+    if payload.auto_search and payload.monitored and added_shows:
+        import asyncio
+        from app.database import SessionLocal
+        from app.services.auto_search import search_and_grab_show
+
+        for s_info in added_shows:
+            target_id = s_info["id"]
+
+            async def _bg_search(sid=target_id):
+                bg_db = SessionLocal()
+                try:
+                    s_obj = bg_db.get(Show, sid)
+                    if s_obj:
+                        await search_and_grab_show(bg_db, s_obj)
+                except Exception as exc:
+                    logger.debug("Background auto-search on movie %s failed: %s", sid, exc)
+                finally:
+                    bg_db.close()
+
+            asyncio.create_task(_bg_search())
 
     return {
         "success": True,
