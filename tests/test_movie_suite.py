@@ -344,7 +344,8 @@ class TestMovieSuite(unittest.TestCase):
         db_mock.query.return_value.filter.return_value.first.return_value = None
 
         # Simulate TMDb failing / timing out
-        with patch("app.services.metadata.RadarrClient.get_collection_details", side_effect=Exception("TMDB Timeout")):
+        with patch("app.api.collections_routes._attach_computed_fields", return_value=[]), \
+             patch("app.services.metadata.RadarrClient.get_collection_details", side_effect=Exception("TMDB Timeout")):
             res = asyncio.run(get_collection_detail(collection_id=77, db=db_mock, current_user=MagicMock()))
             self.assertEqual(len(res.franchise_parts), 2)
             self.assertEqual(res.franchise_parts[0].title, "Devilman: The Birth")
