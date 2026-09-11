@@ -13232,8 +13232,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
-  border-radius: 9999px;
+  padding: 4px 10px;
+  border-radius: 6px;
   font-family: var(--font-display, sans-serif);
   font-weight: 700;
   font-size: 13px;

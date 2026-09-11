@@ -2981,19 +2981,28 @@ function closeModal(id) {
   }
 }
 
-function confirmModal(message, { danger = true } = {}) {
+function confirmModal(message, { danger = true, isHtml = false } = {}) {
   return new Promise((resolve) => {
-    document.getElementById("confirm-message").textContent = message;
+    const msgEl = document.getElementById("confirm-message");
+    if (msgEl) {
+      if (isHtml || (typeof message === "string" && message.includes("<"))) {
+        msgEl.innerHTML = message;
+        if (window.lucide && lucide.createIcons) lucide.createIcons();
+      } else {
+        msgEl.textContent = message;
+      }
+    }
     const okBtn = document.getElementById("confirm-ok-btn");
     const cancelBtn = document.getElementById("confirm-cancel-btn");
-    okBtn.className = "btn btn-solid " + (danger ? "btn-danger" : "btn-primary");
+    if (okBtn) okBtn.className = "btn btn-solid " + (danger ? "btn-danger" : "btn-primary");
 
     const cleanup = () => {
-      okBtn.onclick = null; cancelBtn.onclick = null;
+      if (okBtn) okBtn.onclick = null;
+      if (cancelBtn) cancelBtn.onclick = null;
       closeModal("confirm-modal");
     };
-    okBtn.onclick = () => { cleanup(); resolve(true); };
-    cancelBtn.onclick = () => { cleanup(); resolve(false); };
+    if (okBtn) okBtn.onclick = () => { cleanup(); resolve(true); };
+    if (cancelBtn) cancelBtn.onclick = () => { cleanup(); resolve(false); };
     openModal("confirm-modal");
   });
 }
@@ -8580,10 +8589,18 @@ async function changeQualityProfile(showId, value) {
 }
 
 async function changeContentType(showId, value) {
-  const confirmed = await confirmModal(
-    t("show.confirm_change_category"),
-    { danger: false }
-  );
+  const isRu = CURRENT_LANG !== "en";
+  const targetBadge = value === "anime"
+    ? `<span class="category-badge-chip category-badge-anime" style="vertical-align:middle; display:inline-flex; align-items:center; gap:4px; padding:2px 8px; font-size:12px; margin:0 2px;"><i data-lucide="clapperboard" class="ico-xxs"></i> ${isRu ? "Аниме" : "Anime"}</span>`
+    : (value === "movie"
+      ? `<span class="category-badge-chip category-badge-movies" style="vertical-align:middle; display:inline-flex; align-items:center; gap:4px; padding:2px 8px; font-size:12px; margin:0 2px;"><i data-lucide="film" class="ico-xxs"></i> ${isRu ? "Фильм" : "Movie"}</span>`
+      : `<span class="category-badge-chip category-badge-series" style="vertical-align:middle; display:inline-flex; align-items:center; gap:4px; padding:2px 8px; font-size:12px; margin:0 2px;"><i data-lucide="tv" class="ico-xxs"></i> ${isRu ? "Сериал" : "Series"}</span>`);
+
+  const confirmMsg = isRu
+    ? `Сменить категорию на ${targetBadge}? Это изменит папку/шаблон переименования при следующем скачивании и вид карточки, но уже скачанные файлы никуда не переместятся автоматически.`
+    : `Change category to ${targetBadge}? This will update the destination folder and renaming template for future downloads and the card view, but existing files will not be moved automatically.`;
+
+  const confirmed = await confirmModal(confirmMsg, { danger: false, isHtml: true });
   if (!confirmed) { await refreshShowModal(); return; }
   try {
     await api(`/api/v1/shows/${showId}`, { method: "PUT", body: JSON.stringify({ content_type: value }) });
