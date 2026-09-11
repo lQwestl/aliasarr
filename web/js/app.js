@@ -5767,8 +5767,8 @@ async function openCollectionModal(collectionId) {
               </div>
             </div>
             <div class="show-hero-meta-bar" style="margin: 0; align-items:center; flex-wrap:wrap; gap:8px;">
-              <span class="meta-pill mono">${coll.shows_count} ${t("collection.in_library")}</span>
-              ${missingCount > 0 ? `<span class="meta-pill mono text-warning">${missingCount} ${t("collection.missing")}</span>` : `<span class="meta-pill meta-pill-status status-ended"><i data-lucide="check-circle-2" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Collection Complete' : 'Коллекция собрана'}</span></span>`}
+              <span class="meta-pill mono"><i data-lucide="film" class="ico-xs"></i> ${coll.shows_count} ${t("collection.in_library")}</span>
+              ${missingCount > 0 ? `<span class="meta-pill mono text-warning"><i data-lucide="circle-dashed" class="ico-xs"></i> ${missingCount} ${t("collection.missing")}</span>` : `<span class="meta-pill meta-pill-status status-ended"><i data-lucide="check-circle-2" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Collection Complete' : 'Коллекция собрана'}</span></span>`}
               ${canManageLib ? `
                 <div style="display:inline-flex; align-items:center; gap:6px; margin-left:auto;">
                   <span style="font-size:11.5px; color:var(--text-muted); font-weight:500;">
@@ -5815,7 +5815,7 @@ async function openCollectionModal(collectionId) {
                 <div class="franchise-part-title-row">
                   <span class="mono" style="font-weight:700; color:var(--teal); font-size:13px;">#${idx + 1}</span>
                   <span class="franchise-part-title">${escapeHtml(p.title)}</span>
-                  ${p.year ? `<span class="meta-pill mono" style="font-size:11px; padding:2px 6px;">${p.year}</span>` : ""}
+                  ${p.year ? `<span class="meta-pill mono" style="font-size:11px; padding:2px 6px;"><i data-lucide="calendar" class="ico-xxs"></i> ${p.year}</span>` : ""}
                   ${p.rating ? `<span class="meta-pill meta-pill-rating" style="font-size:11px; padding:2px 6px;"><i data-lucide="star" class="ico-xxs"></i> ${Number(p.rating).toFixed(1)}</span>` : ""}
                   ${statusBadge}
                 </div>
@@ -6138,7 +6138,7 @@ function renderShowCard(show) {
     `;
   }
   if (show.edition) {
-    infoHtml += `<div style="margin: 2px 0;"><span class="badge-edition"><i data-lucide="sparkles" class="ico-xxs"></i> ${escapeHtml(show.edition)}</span></div>`;
+    infoHtml += `<div style="margin: 2px 0;"><span class="badge-edition"><i data-lucide="clapperboard" class="ico-xxs"></i> ${escapeHtml(show.edition)}</span></div>`;
   }
   if (show.collection_id && show.collection_title) {
     infoHtml += `<div style="margin: 2px 0;"><span class="badge-collection" onclick="event.stopPropagation(); openCollectionModal(${show.collection_id})" title="${CURRENT_LANG === 'en' ? 'Collection' : 'Коллекция'}: ${escapeHtml(show.collection_title)}"><i data-lucide="boxes" class="ico-xxs"></i> ${escapeHtml(show.collection_title)}</span></div>`;
@@ -6223,13 +6223,13 @@ function renderShowOverviewRow(show) {
       </div>`;
   }
 
-  const qualityBadge = POSTER_OPTIONS.quality ? `<span class="meta-badge meta-badge-quality">${escapeHtml(qualityProfileName(show.quality_profile_id))}</span>` : "";
-  const seasonsBadge = show.seasons_count ? `<span class="meta-badge">${t("show.seasons_count")}: ${show.seasons_count}</span>` : "";
+  const qualityBadge = POSTER_OPTIONS.quality ? `<span class="meta-badge meta-badge-quality"><i data-lucide="sliders" class="ico-xxs"></i> ${escapeHtml(qualityProfileName(show.quality_profile_id))}</span>` : "";
+  const seasonsBadge = show.seasons_count ? `<span class="meta-badge"><i data-lucide="layers" class="ico-xxs"></i> ${t("show.seasons_count")}: ${show.seasons_count}</span>` : "";
   const ratingBadge = show.rating ? `<span class="meta-badge meta-badge-rating"><i data-lucide="star" class="ico-xs" style="color:var(--warning); vertical-align:middle; margin-right:3px;"></i>${Number(show.rating).toFixed(1)}</span>` : "";
-  const genreBadge = show.genre ? `<span class="meta-badge">${escapeHtml(show.genre)}</span>` : "";
-  const countryBadge = show.country ? `<span class="meta-badge">${escapeHtml(show.country)}</span>` : "";
-  const networkBadge = show.network ? `<span class="meta-badge">${escapeHtml(show.network)}</span>` : "";
-  const nextAirBadge = nextAiring ? `<span class="meta-badge">${t("show.next_airing")}: ${nextAiring}</span>` : "";
+  const genreBadge = show.genre ? `<span class="meta-badge"><i data-lucide="tag" class="ico-xxs"></i> ${escapeHtml(show.genre)}</span>` : "";
+  const countryBadge = show.country ? `<span class="meta-badge"><i data-lucide="globe" class="ico-xxs"></i> ${escapeHtml(show.country)}</span>` : "";
+  const networkBadge = show.network ? `<span class="meta-badge"><i data-lucide="tv" class="ico-xxs"></i> ${escapeHtml(show.network)}</span>` : "";
+  const nextAirBadge = nextAiring ? `<span class="meta-badge"><i data-lucide="calendar" class="ico-xxs"></i> ${t("show.next_airing")}: ${nextAiring}</span>` : "";
 
   const tagsHtml = (POSTER_OPTIONS.tags && aliases) ? `<div class="alias-cluster" style="margin-top:6px;">${aliases}</div>` : "";
 
@@ -7066,13 +7066,13 @@ async function refreshShowModal() {
             </div>
 
             <div class="show-hero-meta-bar">
-              ${show.edition ? `<span class="badge-edition"><i data-lucide="sparkles" class="ico-xxs"></i> ${escapeHtml(show.edition)}</span>` : ""}
+              ${show.edition ? `<span class="badge-edition"><i data-lucide="clapperboard" class="ico-xxs"></i> ${escapeHtml(show.edition)}</span>` : ""}
               ${show.rating ? `<span class="meta-pill meta-pill-rating"><i data-lucide="star" class="ico-xs"></i> ${Number(show.rating).toFixed(1)}</span>` : ""}
-              ${show.year ? `<span class="meta-pill mono">${show.year}</span>` : ""}
+              ${show.year ? `<span class="meta-pill mono"><i data-lucide="calendar" class="ico-xs"></i> ${show.year}</span>` : ""}
               ${show.status ? `<span class="meta-pill meta-pill-status ${show.status === 'ended' ? 'status-ended' : 'status-continuing'}"><i data-lucide="${statusIco}" class="ico-xs"></i> ${statusLabel}</span>` : ""}
-              ${show.genre ? `<span class="meta-pill-text">${escapeHtml(show.genre)}</span>` : ""}
-              ${show.network ? `<span class="meta-pill-text-sub">• ${escapeHtml(show.network)}</span>` : ""}
-              ${show.country ? `<span class="meta-pill mono">${escapeHtml(show.country.toUpperCase())}</span>` : ""}
+              ${show.genre ? `<span class="meta-pill"><i data-lucide="tag" class="ico-xs"></i> ${escapeHtml(show.genre)}</span>` : ""}
+              ${show.network ? `<span class="meta-pill"><i data-lucide="tv" class="ico-xs"></i> ${escapeHtml(show.network)}</span>` : ""}
+              ${show.country ? `<span class="meta-pill mono"><i data-lucide="globe" class="ico-xs"></i> ${escapeHtml(show.country.toUpperCase())}</span>` : ""}
             </div>
 
             <div class="show-hero-badges-row">
@@ -8146,7 +8146,7 @@ function renderMovieBlock(show, ep, canManageLib = true) {
   }
 
   const editionBadge = (show.edition || ep.edition)
-    ? `<span class="badge-edition"><i data-lucide="sparkles" class="ico-xxs"></i> ${escapeHtml(show.edition || ep.edition)}</span>`
+    ? `<span class="badge-edition"><i data-lucide="clapperboard" class="ico-xxs"></i> ${escapeHtml(show.edition || ep.edition)}</span>`
     : "";
 
   const collectionChip = (show.collection_id && show.collection_title)
@@ -9224,8 +9224,8 @@ async function executeShowRemapSearch() {
           <div class="metadata-poster-card" id="remap-card-${idx}" style="${r.poster_url ? `background-image: url('${escapeHtml(r.poster_url)}');` : ''} min-height:190px;" onclick="chooseShowRemapResultByIndex(${idx})" title="${escapeHtml(r.title || '')}">
             ${!r.poster_url ? `<div class="metadata-poster-fallback" style="font-size:32px;">${escapeHtml((r.title || '?')[0].toUpperCase())}</div>` : ""}
             <div class="metadata-poster-top">
-              ${r.year ? `<span class="meta-badge-glass">${escapeHtml(String(r.year))}</span>` : ""}
-              ${r.rating ? `<span class="meta-badge-glass meta-rating">★\u00A0${Number(r.rating).toFixed(1)}</span>` : ""}
+              ${r.year ? `<span class="meta-badge-glass"><i data-lucide="calendar" style="width:11px; height:11px;"></i>${escapeHtml(String(r.year))}</span>` : ""}
+              ${r.rating ? `<span class="meta-badge-glass meta-rating"><i data-lucide="star" style="width:11px; height:11px;"></i>${Number(r.rating).toFixed(1)}</span>` : ""}
             </div>
             <div class="metadata-poster-bottom">
               <div class="metadata-poster-title" style="font-size:12px;">${escapeHtml(r.title)}</div>
@@ -11224,7 +11224,7 @@ function renderMetadataResultCard(r, index) {
   const typeClass = isMovie ? "meta-type-movie" : "meta-type-series";
 
   const yearStr = r.year ? String(r.year) : "";
-  const ratingStr = r.rating ? `★\u00A0${Number(r.rating).toFixed(1)}` : "";
+  const ratingStr = r.rating ? `<span class="meta-badge-glass meta-rating"><i data-lucide="star" style="width:11px; height:11px;"></i>${Number(r.rating).toFixed(1)}</span>` : "";
   const initialLetter = (r.title || "?").trim()[0]?.toUpperCase() || "?";
 
   const bgStyle = r.poster_url ? `style="background-image: url('${r.poster_url}');"` : "";
@@ -11239,9 +11239,9 @@ function renderMetadataResultCard(r, index) {
       <div class="metadata-poster-top">
         <div style="display:flex; align-items:center; gap:4px; min-width:0; overflow:hidden;">
           ${r.content_type ? `<span class="meta-badge-glass ${typeClass}"><i data-lucide="${typeIco}" style="width:11px; height:11px;"></i>${escapeHtml(typeLabel)}</span>` : ""}
-          ${yearStr ? `<span class="meta-badge-glass">${yearStr}</span>` : ""}
+          ${yearStr ? `<span class="meta-badge-glass"><i data-lucide="calendar" style="width:11px; height:11px;"></i>${yearStr}</span>` : ""}
         </div>
-        ${ratingStr ? `<span class="meta-badge-glass meta-rating">${ratingStr}</span>` : ""}
+        ${ratingStr}
       </div>
 
       ${r.already_added ? `
@@ -11295,10 +11295,10 @@ function renderWizardStep2Content() {
         <h3 class="wizard-selected-title">${escapeHtml(formatShowTitleWithYear(r.title, r.year))}</h3>
         <div class="wizard-selected-badges">
           ${r.content_type ? `<span class="meta-badge meta-badge-type ${typeClass}"><i data-lucide="${typeIco}" class="ico-xs"></i>${escapeHtml(typeLabel)}</span>` : ""}
-          ${r.year ? `<span class="meta-badge mono">${r.year}</span>` : ""}
-          ${r.rating ? `<span class="meta-badge meta-badge-rating">★\u00A0${Number(r.rating).toFixed(1)}</span>` : ""}
-          ${r.country ? `<span class="meta-badge">${escapeHtml(r.country)}</span>` : ""}
-          ${r.genre ? `<span class="meta-badge">${escapeHtml(r.genre)}</span>` : ""}
+          ${r.year ? `<span class="meta-badge mono"><i data-lucide="calendar" class="ico-xs"></i> ${r.year}</span>` : ""}
+          ${r.rating ? `<span class="meta-badge meta-badge-rating"><i data-lucide="star" class="ico-xs"></i> ${Number(r.rating).toFixed(1)}</span>` : ""}
+          ${r.country ? `<span class="meta-badge"><i data-lucide="globe" class="ico-xs"></i> ${escapeHtml(r.country)}</span>` : ""}
+          ${r.genre ? `<span class="meta-badge"><i data-lucide="tag" class="ico-xs"></i> ${escapeHtml(r.genre)}</span>` : ""}
         </div>
         ${r.overview ? `<p class="wizard-selected-overview">${escapeHtml(r.overview)}</p>` : ""}
       </div>
@@ -11895,7 +11895,7 @@ function openCalendarEventModal(eKey) {
 
   let badgesHtml = `<span class="badge ${catClass}">${catName}</span>`;
   badgesHtml += `<span class="status-pill status-${e.status}">${escapeHtml(calStatusLabel(e.status))}</span>`;
-  if (e.rating) badgesHtml += `<span class="meta-badge meta-badge-rating">★\u00A0${Number(e.rating).toFixed(1)}</span>`;
+  if (e.rating) badgesHtml += `<span class="meta-badge meta-badge-rating"><i data-lucide="star" class="ico-xs"></i> ${Number(e.rating).toFixed(1)}</span>`;
 
   let releaseBadgesHtml = "";
   if (isMovie && e.release_types && e.release_types.length) {
