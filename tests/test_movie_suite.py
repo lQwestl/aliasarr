@@ -356,6 +356,98 @@ class TestMovieSuite(unittest.TestCase):
             self.assertEqual(res.franchise_parts[1].title, "Devilman: The Demon Bird")
             self.assertTrue(res.franchise_parts[1].in_library)
 
+    def test_get_collection_detail_uses_parts_cache(self):
+        try:
+            import fastapi
+            from app.api.collections_routes import get_collection_detail
+        except ImportError:
+            return
+
+        import asyncio
+        import json
+
+        cached_parts = [
+            {"tmdb_id": 557, "title": "Spider-Man", "year": 2002, "release_date": "2002-05-01", "poster_url": "/sp1.jpg", "rating": 7.3},
+            {"tmdb_id": 558, "title": "Spider-Man 2", "year": 2004, "release_date": "2004-06-25", "poster_url": "/sp2.jpg", "rating": 7.5},
+            {"tmdb_id": 559, "title": "Spider-Man 3", "year": 2007, "release_date": "2007-05-01", "poster_url": "/sp3.jpg", "rating": 6.4},
+        ]
+        coll = MovieCollection(
+            id=10,
+            title="Spider-Man Collection",
+            tmdb_collection_id=556,
+            overview="Sam Raimi Spider-Man trilogy",
+            parts_cache=json.dumps(cached_parts),
+            parts_count=3,
+            monitored=True,
+        )
+        s1 = Show(
+            id=1,
+            title="Spider-Man",
+            year=2002,
+            content_type="movie",
+            collection_id=10,
+            metadata_id="movie:557",
+            tmdb_id=557,
+        )
+
+        db_mock = MagicMock()
+        db_mock.get.return_value = coll
+        db_mock.query.return_value.filter.return_value.order_by.return_value.all.return_value = [s1]
+        db_mock.query.return_value.filter.return_value.first.return_value = None
+
+        with patch("app.api.collections_routes._attach_computed_fields", return_value=[]):
+            res = asyncio.run(get_collection_detail(collection_id=10, db=db_mock, current_user=MagicMock()))
+            self.assertEqual(len(res.franchise_parts), 3)
+            self.assertTrue(res.franchise_parts[0].in_library)
+            self.assertEqual(res.franchise_parts[0].show_id, 1)
+            self.assertFalse(res.franchise_parts[1].in_library)
+            self.assertEqual(res.franchise_parts[1].title, "Spider-Man 2")
+            self.assertFalse(res.franchise_parts[2].in_library)
+
+    def test_refresh_collection_endpoint(self):
+        try:
+            import fastapi
+            from app.api.collections_routes import refresh_collection
+        except ImportError:
+            return
+
+        import asyncio
+
+        coll = MovieCollection(
+            id=10,
+            title="Spider-Man Collection",
+            tmdb_collection_id=556,
+            overview="Old overview",
+            monitored=True,
+        )
+
+        db_mock = MagicMock()
+        db_mock.get.return_value = coll
+        db_mock.query.return_value.filter.return_value.order_by.return_value.all.return_value = []
+        db_mock.query.return_value.filter.return_value.first.return_value = None
+
+        fake_tmdb_data = {
+            "id": 556,
+            "name": "Spider-Man Collection",
+            "overview": "Fresh overview from TMDb",
+            "poster_url": "/fresh_poster.jpg",
+            "backdrop_url": "/fresh_backdrop.jpg",
+            "parts": [
+                {"tmdb_id": 557, "title": "Spider-Man", "year": 2002},
+                {"tmdb_id": 558, "title": "Spider-Man 2", "year": 2004},
+            ],
+        }
+
+        with patch("app.api.collections_routes._attach_computed_fields", return_value=[]), \
+             patch("app.services.metadata.RadarrClient.get_collection_details", new=AsyncMock(return_value=fake_tmdb_data)):
+            res = asyncio.run(refresh_collection(collection_id=10, db=db_mock, current_user=MagicMock()))
+            self.assertEqual(coll.overview, "Fresh overview from TMDb")
+            self.assertEqual(coll.poster_url, "/fresh_poster.jpg")
+            self.assertEqual(coll.parts_count, 2)
+            self.assertIsNotNone(coll.parts_cache)
+            self.assertIsNotNone(coll.last_metadata_refresh_at)
+            db_mock.commit.assert_called()
+
 
 if __name__ == "__main__":
     unittest.main()

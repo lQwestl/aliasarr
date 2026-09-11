@@ -490,10 +490,11 @@ async def on_startup():
                 return
 
             try:
-                from app.services.metadata import refresh_all_shows_metadata
+                from app.services.metadata import refresh_all_shows_metadata, refresh_all_collections_metadata
                 db_refresh = SessionLocal()
                 try:
                     await refresh_all_shows_metadata(db_refresh, username="scheduler")
+                    await refresh_all_collections_metadata(db_refresh)
                 finally:
                     db_refresh.close()
             except Exception as exc:

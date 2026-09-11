@@ -5742,12 +5742,20 @@ async function openCollectionModal(collectionId) {
           <div class="collection-hero-meta">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
               <h2 class="collection-hero-title">${escapeHtml(coll.title)}</h2>
-              ${canManageLib && missingCount > 0 ? `
-                <button class="btn btn-primary btn-small" id="btn-import-missing-${coll.id}" onclick="importMissingFranchiseMovies(${coll.id}, this)">
-                  <i data-lucide="download-cloud" class="ico-xs"></i>
-                  <span>${t("collection.btn_import_missing")} (${missingCount})</span>
-                </button>
-              ` : ""}
+              <div style="display:flex; align-items:center; gap:8px;">
+                ${canManageLib && coll.tmdb_collection_id ? `
+                  <button class="btn btn-secondary btn-small" id="btn-refresh-collection-${coll.id}" onclick="refreshCollectionMetadata(${coll.id}, this)" title="${CURRENT_LANG === 'en' ? 'Refresh franchise metadata from TMDb' : 'Обновить метаданные саги из TMDb'}">
+                    <i data-lucide="refresh-cw" class="ico-xs"></i>
+                    <span>${CURRENT_LANG === 'en' ? 'Refresh' : 'Обновить'}</span>
+                  </button>
+                ` : ""}
+                ${canManageLib && missingCount > 0 ? `
+                  <button class="btn btn-primary btn-small" id="btn-import-missing-${coll.id}" onclick="importMissingFranchiseMovies(${coll.id}, this)">
+                    <i data-lucide="download-cloud" class="ico-xs"></i>
+                    <span>${t("collection.btn_import_missing")} (${missingCount})</span>
+                  </button>
+                ` : ""}
+              </div>
             </div>
             <div class="show-hero-meta-bar" style="margin: 0; align-items:center; flex-wrap:wrap; gap:8px;">
               <span class="meta-pill mono">${coll.shows_count} ${t("collection.in_library")}</span>
@@ -5827,6 +5835,27 @@ async function openCollectionModal(collectionId) {
     if (window.lucide) lucide.createIcons();
   } catch (e) {
     content.innerHTML = `<p style="color:var(--danger)">${CURRENT_LANG === 'en' ? 'Error loading collection:' : 'Ошибка загрузки коллекции:'} ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function refreshCollectionMetadata(collectionId, btnEl) {
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = `<i data-lucide="loader-2" class="status-pill-spin ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Refreshing...' : 'Обновление...'}</span>`;
+    if (window.lucide) lucide.createIcons();
+  }
+  try {
+    await api(`/api/v1/collections/${collectionId}/refresh`, { method: "POST" });
+    toast(CURRENT_LANG === "en" ? "Franchise metadata refreshed" : "Метаданные саги обновлены", "success");
+    await loadCollections(true);
+    await openCollectionModal(collectionId);
+  } catch (e) {
+    toast(formatToastMessage(e.message), "error");
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = `<i data-lucide="refresh-cw" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Refresh' : 'Обновить'}</span>`;
+      if (window.lucide) lucide.createIcons();
+    }
   }
 }
 

@@ -154,40 +154,42 @@ async def get_collection_detail(
             shows_by_tmdb_id[int(clean_id)] = s
 
     franchise_parts: list[FranchisePart] = []
-    if coll.tmdb_collection_id:
+    raw_parts = []
+    if coll.parts_cache:
         try:
-            from app.services.metadata import RadarrClient
-            client = RadarrClient()
-            data = await client.get_collection_details(coll.tmdb_collection_id)
-            for part in data.get("parts", []):
-                tmdb_id = part.get("tmdb_id")
-                matched_show = shows_by_tmdb_id.get(tmdb_id)
-                in_lib = matched_show is not None
-                show_st = None
-                show_id_val = None
-                if matched_show:
-                    show_id_val = matched_show.id
-                    ep = db.query(Episode).filter(Episode.show_id == matched_show.id).first()
-                    show_st = ep.status if ep else "wanted"
+            import json
+            raw_parts = json.loads(coll.parts_cache)
+        except Exception:
+            raw_parts = []
 
-                franchise_parts.append(
-                    FranchisePart(
-                        tmdb_id=tmdb_id,
-                        title=part.get("title") or "",
-                        year=part.get("year"),
-                        release_date=part.get("release_date"),
-                        overview=part.get("overview"),
-                        poster_url=part.get("poster_url"),
-                        rating=part.get("rating"),
-                        in_library=in_lib,
-                        show_id=show_id_val,
-                        show_status=show_st,
-                    )
+    if raw_parts:
+        for part in raw_parts:
+            tmdb_id = part.get("tmdb_id") or part.get("id")
+            matched_show = shows_by_tmdb_id.get(tmdb_id)
+            in_lib = matched_show is not None
+            show_st = None
+            show_id_val = None
+            if matched_show:
+                show_id_val = matched_show.id
+                ep = db.query(Episode).filter(Episode.show_id == matched_show.id).first()
+                show_st = ep.status if ep else "wanted"
+
+            franchise_parts.append(
+                FranchisePart(
+                    tmdb_id=tmdb_id or 0,
+                    title=part.get("title") or "",
+                    year=part.get("year"),
+                    release_date=part.get("release_date"),
+                    overview=part.get("overview"),
+                    poster_url=part.get("poster_url"),
+                    rating=part.get("rating"),
+                    in_library=in_lib,
+                    show_id=show_id_val,
+                    show_status=show_st,
                 )
-        except Exception as e:
-            logger.debug("Failed to fetch live franchise parts for collection %s: %s", coll.id, e)
+            )
 
-    # Fallback: если TMDb недоступен или коллекция локальная, отображаем фильмы саги из локальной БД
+    # Fallback: если parts_cache еще не сформирован или коллекция кастомная, мгновенно строим по локальным shows
     if not franchise_parts and shows:
         for s in shows:
             clean_id = (s.metadata_id or "").replace("movie:", "").replace("tmdb:", "").strip()
@@ -251,6 +253,46 @@ async def get_collection_detail(
         shows=shows_out,
         franchise_parts=franchise_parts,
     )
+
+
+@router.post("/{collection_id}/refresh", response_model=MovieCollectionDetailOut)
+async def refresh_collection(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    """Принудительно обновить метаданные и структуру саги из TMDb API."""
+    coll = db.get(MovieCollection, collection_id)
+    if not coll:
+        raise HTTPException(404, "Movie collection not found")
+    if not coll.tmdb_collection_id:
+        raise HTTPException(400, "Коллекция не привязана к TMDb Collection ID")
+
+    from app.services.metadata import RadarrClient
+    import json
+
+    client = RadarrClient()
+    try:
+        data = await client.get_collection_details(coll.tmdb_collection_id)
+    except Exception as e:
+        raise HTTPException(502, f"Не удалось получить свежие данные саги из TMDb: {e}")
+
+    parts = data.get("parts", [])
+    if parts:
+        coll.parts_count = len(parts)
+        coll.parts_cache = json.dumps(parts)
+    if data.get("overview"):
+        coll.overview = data.get("overview")
+    if data.get("poster_url"):
+        coll.poster_url = data.get("poster_url")
+    if data.get("backdrop_url"):
+        coll.backdrop_url = data.get("backdrop_url")
+    coll.last_metadata_refresh_at = dt.datetime.utcnow()
+    db.add(coll)
+    db.commit()
+    db.refresh(coll)
+
+    return await get_collection_detail(collection_id=coll.id, db=db, current_user=current_user)
 
 
 @router.post("", response_model=MovieCollectionOut, status_code=201)
@@ -343,16 +385,26 @@ async def import_missing_collection_movies(
     from app.services.organizer import clean_show_title_and_year
 
     client = RadarrClient()
+    parts_list = []
     try:
         data = await client.get_collection_details(coll.tmdb_collection_id)
+        parts_list = data.get("parts", [])
+        if parts_list:
+            import json
+            coll.parts_count = len(parts_list)
+            coll.parts_cache = json.dumps(parts_list)
+            coll.last_metadata_refresh_at = dt.datetime.utcnow()
+            db.add(coll)
+            db.commit()
     except Exception as e:
-        raise HTTPException(502, f"Не удалось получить список фильмов коллекции из TMDb: {e}")
-
-    parts_list = data.get("parts", [])
-    if parts_list and coll.parts_count != len(parts_list):
-        coll.parts_count = len(parts_list)
-        db.add(coll)
-        db.commit()
+        if coll.parts_cache:
+            import json
+            try:
+                parts_list = json.loads(coll.parts_cache)
+            except Exception:
+                parts_list = []
+        if not parts_list:
+            raise HTTPException(502, f"Не удалось получить список фильмов коллекции из TMDb: {e}")
 
     settings = get_or_create_settings(db)
     from app.models.db import QualityProfile

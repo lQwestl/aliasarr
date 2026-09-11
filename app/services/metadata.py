@@ -2461,20 +2461,24 @@ async def refresh_show_metadata(db, show) -> dict:
                 )
                 db.add(coll)
                 db.flush()
-            if coll and coll.tmdb_collection_id and coll.parts_count is None and hasattr(client, "get_collection_details"):
-                try:
-                    c_det = await client.get_collection_details(coll.tmdb_collection_id)
-                    if c_det and c_det.get("parts"):
-                        coll.parts_count = len(c_det["parts"])
-                        if not coll.overview and c_det.get("overview"):
-                            coll.overview = c_det.get("overview")
-                        if not coll.poster_url and c_det.get("poster_url"):
-                            coll.poster_url = c_det.get("poster_url")
-                        if not coll.backdrop_url and c_det.get("backdrop_url"):
-                            coll.backdrop_url = c_det.get("backdrop_url")
-                        db.add(coll)
-                except Exception as e:
-                    logger.debug("Failed to prefetch collection parts for %s: %s", coll.title, e)
+            if coll and coll.tmdb_collection_id and hasattr(client, "get_collection_details"):
+                if not getattr(coll, "parts_cache", None) or coll.parts_count is None:
+                    try:
+                        c_det = await client.get_collection_details(coll.tmdb_collection_id)
+                        if c_det and c_det.get("parts"):
+                            import json
+                            coll.parts_count = len(c_det["parts"])
+                            coll.parts_cache = json.dumps(c_det["parts"])
+                            coll.last_metadata_refresh_at = dt.datetime.utcnow()
+                            if not coll.overview and c_det.get("overview"):
+                                coll.overview = c_det.get("overview")
+                            if not coll.poster_url and c_det.get("poster_url"):
+                                coll.poster_url = c_det.get("poster_url")
+                            if not coll.backdrop_url and c_det.get("backdrop_url"):
+                                coll.backdrop_url = c_det.get("backdrop_url")
+                            db.add(coll)
+                    except Exception as e:
+                        logger.debug("Failed to prefetch collection parts for %s: %s", coll.title, e)
             if coll and show.collection_id != coll.id:
                 show.collection_id = coll.id
                 changed = True
@@ -2848,6 +2852,61 @@ async def refresh_all_shows_metadata(db, force: bool = False, username: str = "s
     except Exception as exc:
         task_manager.fail_task(task.id, error=str(exc))
         raise
+
+
+async def refresh_all_collections_metadata(db, force: bool = False) -> dict:
+    """
+    Фоновое регулярное обновление метаданных киноколлекций/саг из TMDb.
+    Синхронизирует список частей франшизы, постеры и описания в БД.
+    """
+    from app.models.db import MovieCollection
+    import json
+
+    colls = db.query(MovieCollection).filter(MovieCollection.tmdb_collection_id.isnot(None)).all()
+    if not colls:
+        return {"total": 0, "updated": 0}
+
+    now = dt.datetime.utcnow()
+    candidates = []
+    for c in colls:
+        if force or not getattr(c, "parts_cache", None) or not getattr(c, "last_metadata_refresh_at", None):
+            candidates.append(c)
+        elif (now - c.last_metadata_refresh_at).days >= 7:
+            candidates.append(c)
+
+    if not candidates:
+        return {"total": len(colls), "updated": 0}
+
+    client = RadarrClient()
+    updated = 0
+    from app.database import SessionLocal
+    for coll in candidates:
+        s_db = SessionLocal()
+        try:
+            db_coll = s_db.get(MovieCollection, coll.id)
+            if not db_coll or not db_coll.tmdb_collection_id:
+                continue
+            c_det = await client.get_collection_details(db_coll.tmdb_collection_id)
+            if c_det and c_det.get("parts"):
+                db_coll.parts_count = len(c_det["parts"])
+                db_coll.parts_cache = json.dumps(c_det["parts"])
+                db_coll.last_metadata_refresh_at = dt.datetime.utcnow()
+                if c_det.get("overview"):
+                    db_coll.overview = c_det.get("overview")
+                if c_det.get("poster_url"):
+                    db_coll.poster_url = c_det.get("poster_url")
+                if c_det.get("backdrop_url"):
+                    db_coll.backdrop_url = c_det.get("backdrop_url")
+                s_db.add(db_coll)
+                s_db.commit()
+                updated += 1
+        except Exception as e:
+            logger.debug("Failed to background refresh collection %s: %s", coll.id, e)
+        finally:
+            s_db.close()
+        await asyncio.sleep(0.1)
+
+    return {"total": len(colls), "updated": updated}
 
 
 def seed_default_metadata_sources(db) -> None:
