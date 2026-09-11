@@ -14950,12 +14950,12 @@ let EDITING_INDEXER_ID = null;
 
 function indexerAvailabilityBadge(i) {
   if (i.last_check_ok === null || i.last_check_ok === undefined) {
-    return `<span class="status-pill status-unmonitored"><i data-lucide="circle" class="ico-xs"></i> ${CURRENT_LANG === "en" ? "unknown" : "неизвестно"}</span>`;
+    return `<span class="badge badge-ghost"><i data-lucide="help-circle" class="ico-xs"></i> ${CURRENT_LANG === "en" ? "unknown" : "неизвестно"}</span>`;
   }
   if (i.last_check_ok) {
-    return `<span class="status-pill status-downloaded"><i data-lucide="check-circle" class="ico-xs"></i> ${CURRENT_LANG === "en" ? "available" : "доступен"}</span>`;
+    return `<span class="badge badge-success"><i data-lucide="check-circle" class="ico-xs"></i> ${CURRENT_LANG === "en" ? "available" : "доступен"}</span>`;
   }
-  return `<span class="status-pill status-missing"><i data-lucide="x-circle" class="ico-xs"></i> ${CURRENT_LANG === "en" ? "unavailable" : "недоступен"}</span>`;
+  return `<span class="badge badge-danger"><i data-lucide="x-circle" class="ico-xs"></i> ${CURRENT_LANG === "en" ? "unavailable" : "недоступен"}</span>`;
 }
 
 async function loadIndexers() {
@@ -14963,11 +14963,11 @@ async function loadIndexers() {
   try {
     const items = await api("/api/v1/indexers");
     tbody.innerHTML = items.map(i => {
-      const seedingBadge = i.enable_seeding ? `<span class="status-pill status-available" style="margin-left:6px; font-size:11px;" title="${CURRENT_LANG === "en" ? `Seeding enabled (ratio: ${i.seed_ratio_limit ?? '∞'}, time: ${i.seed_time_limit_hours ? i.seed_time_limit_hours + 'h' : '∞'})` : `Раздача включена (ratio: ${i.seed_ratio_limit ?? '∞'}, время: ${i.seed_time_limit_hours ? i.seed_time_limit_hours + 'ч' : '∞'})`}"><i data-lucide="upload-cloud" class="ico-xs"></i> ${CURRENT_LANG === "en" ? "Seed" : "Раздача"}${i.seed_ratio_limit ? ` ${i.seed_ratio_limit}x` : ''}</span>` : "";
+      const seedingBadge = i.enable_seeding ? `<span class="badge badge-teal" style="margin-left:6px; font-size:11px;" title="${CURRENT_LANG === "en" ? `Seeding enabled (ratio: ${i.seed_ratio_limit ?? '∞'}, time: ${i.seed_time_limit_hours ? i.seed_time_limit_hours + 'h' : '∞'})` : `Раздача включена (ratio: ${i.seed_ratio_limit ?? '∞'}, время: ${i.seed_time_limit_hours ? i.seed_time_limit_hours + 'ч' : '∞'})`}"><i data-lucide="upload-cloud" class="ico-xs"></i> ${CURRENT_LANG === "en" ? "Seed" : "Раздача"}${i.seed_ratio_limit ? ` ${i.seed_ratio_limit}x` : ''}</span>` : "";
       return `
       <tr>
         <td><strong>${escapeHtml(i.name)}</strong>${seedingBadge}</td>
-        <td>${escapeHtml(i.type)}</td>
+        <td><span class="badge badge-secondary">${escapeHtml(i.type)}</span></td>
         <td class="mono" style="max-width:220px; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(i.base_url)}</td>
         <td>${i.priority}</td>
         <td>${indexerAvailabilityBadge(i)}</td>
@@ -15188,12 +15188,12 @@ async function removeIndexer(id) {
 
 function dcAvailabilityBadge(d) {
   if (d.is_available === true) {
-    return `<span class="status-pill status-available"><i data-lucide="check-circle" class="ico-xs"></i> ${t("dc.status_available")}</span>`;
+    return `<span class="badge badge-success"><i data-lucide="check-circle" class="ico-xs"></i> ${t("dc.status_available")}</span>`;
   }
   if (d.is_available === false) {
-    return `<span class="status-pill status-missing" title="${escapeHtml(d.last_error || "")}"><i data-lucide="x-circle" class="ico-xs"></i> ${t("dc.status_unavailable")}</span>`;
+    return `<span class="badge badge-danger" title="${escapeHtml(d.last_error || "")}"><i data-lucide="x-circle" class="ico-xs"></i> ${t("dc.status_unavailable")}</span>`;
   }
-  return `<span class="status-pill" style="opacity:0.75;"><i data-lucide="help-circle" class="ico-xs"></i> ${t("dc.status_untested")}</span>`;
+  return `<span class="badge badge-ghost"><i data-lucide="help-circle" class="ico-xs"></i> ${t("dc.status_untested")}</span>`;
 }
 
 async function loadDownloadClients() {
@@ -15203,7 +15203,7 @@ async function loadDownloadClients() {
     tbody.innerHTML = items.map(d => `
       <tr>
         <td><strong>${escapeHtml(d.name)}</strong></td>
-        <td><span class="badge badge-subtle">${escapeHtml(d.type)}</span></td>
+        <td><span class="badge badge-secondary">${escapeHtml(d.type)}</span></td>
         <td class="mono">${escapeHtml(d.host)}${d.port ? ":" + d.port : ""}</td>
         <td>${dcAvailabilityBadge(d)}</td>
         <td>${d.is_default ? '<i data-lucide="check" class="ico-sm" style="color:var(--accent)"></i>' : ""}</td>
