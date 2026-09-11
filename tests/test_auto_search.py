@@ -1098,8 +1098,12 @@ class TestSeasonQueries(unittest.TestCase):
         mock_idx_inst = unittest.mock.AsyncMock()
         mock_idx_inst.search.return_value = [ova_rel]
 
+        mock_dc_inst = unittest.mock.AsyncMock()
+        mock_dc_inst.add_torrent.return_value = "grabbed_ova_hash"
+
         with patch.object(auto_search, "get_indexer_client", return_value=mock_idx_inst), \
-             patch.object(auto_search, "_send_to_download_client", return_value="grabbed_ova_hash"):
+             patch.object(auto_search, "get_client", return_value=mock_dc_inst), \
+             patch.object(auto_search, "_limit_torrent_files_to_episodes"):
             res = asyncio.run(auto_search.search_missing_for_show(self.session, show))
 
         self.session.refresh(ep)
