@@ -1211,17 +1211,29 @@ async def _collect_candidates(
 
     # 2. Формируем высокоэффективные поисковые запросы
     if show.content_type == "movie":
-        # Для фильмов формируем только кино-запросы: базовое название, название с годом
-        for b in key_bases:
-            _add_query(b)
-            if show.year:
-                _add_query(f"{b} {show.year}")
-                _add_query(f"{b} ({show.year})")
+        # Для фильмов формируем только полные названия всех алиасов и с годом (без дробления на урезанные ядра)
         for alias in active_aliases:
-            _add_query(alias.text)
-            if show.year and str(show.year) not in alias.text:
-                _add_query(f"{alias.text} {show.year}")
-                _add_query(f"{alias.text} ({show.year})")
+            t = alias.text.strip()
+            if not t:
+                continue
+            _add_query(t)
+            if show.year and str(show.year) not in t:
+                _add_query(f"{t} {show.year}")
+
+            # Если название содержит маркеры томов/частей (Volume N, Vol. N),
+            # также генерируем чистую версию без служебного шума:
+            t_no_vol = re.sub(r"\s*[-–—:]\s*(?:volume|vol)\s*\d+\s*[:\-–—]?\s*", " ", t, flags=re.IGNORECASE).strip()
+            if t_no_vol and t_no_vol.lower() != t.lower():
+                _add_query(t_no_vol)
+                if show.year and str(show.year) not in t_no_vol:
+                    _add_query(f"{t_no_vol} {show.year}")
+
+            # Чистая версия без года в скобках на конце
+            no_yr = re.sub(r"\s*\(\d{4}\)$|\s+\d{4}$", "", t).strip()
+            if no_yr and no_yr.lower() != t.lower():
+                _add_query(no_yr)
+                if show.year:
+                    _add_query(f"{no_yr} {show.year}")
     else:
         # Для сериалов и аниме:
         # Сначала добавляем чистые базовые названия всех алиасов (Base First),
@@ -1293,7 +1305,7 @@ async def _collect_candidates(
     candidates: list[dict] = []
     indexer_stats: dict[str, int] = {getattr(idx, "name", "Indexer"): 0 for idx in indexers}
     rejected_candidates: list[dict] = []
-    max_queries = 6 if show.content_type == "movie" else 12
+    max_queries = 12
     active_queries = query_terms[:max_queries]
 
     # Опрашиваем индексаторы параллельно с пулом семафора, собирая все полученные результаты

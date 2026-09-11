@@ -1028,6 +1028,47 @@ class TestSeasonQueries(unittest.TestCase):
                 self.assertEqual(ep.status, EpisodeStatus.DOWNLOADING, f"S00E{ep.episode_number:02d} should be DOWNLOADING")
                 self.assertEqual(ep.torrent_hash, "occultcombohash")
 
+    def test_movie_auto_search_sends_full_alias_queries(self):
+        """Проверяет, что для фильмов отправляются полные названия алиасов (без обрезки по двоеточию)."""
+        show = make_show(self.session, title="Devilman - Volume 3: Devilman Apocalypse")
+        show.content_type = "movie"
+        show.year = 2000
+        self.session.commit()
+
+        # Добавляем русское и альтернативное названия
+        alias_ru = Alias(show_id=show.id, text="Амон: Апокалипсис Человека-дьявола")
+        alias_en = Alias(show_id=show.id, text="Amon: Apocalypse of Devilman")
+        self.session.add_all([alias_ru, alias_en])
+        make_episode(self.session, show, season=1, episode=1)
+        make_indexer(self.session, name="MovieTracker")
+        make_download_client(self.session)
+        self.session.commit()
+
+        queried_terms = []
+
+        async def fake_search(q):
+            queried_terms.append(q)
+            return []
+
+        mock_idx_inst = unittest.mock.AsyncMock()
+        mock_idx_inst.search.side_effect = fake_search
+
+        with patch.object(auto_search, "get_indexer_client", return_value=mock_idx_inst):
+            asyncio.run(auto_search._collect_candidates(
+                self.session, show,
+                [show.episodes[0]],
+                [show.indexers[0] if hasattr(show, 'indexers') and show.indexers else self.session.query(Indexer).first()],
+            ))
+
+        # Проверяем, что полные названия присутствуют в запросах
+        self.assertIn("Devilman - Volume 3: Devilman Apocalypse", queried_terms)
+        self.assertIn("Devilman - Volume 3: Devilman Apocalypse 2000", queried_terms)
+        self.assertIn("Амон: Апокалипсис Человека-дьявола", queried_terms)
+        self.assertIn("Амон: Апокалипсис Человека-дьявола 2000", queried_terms)
+        self.assertIn("Amon: Apocalypse of Devilman", queried_terms)
+        # Проверяем, что урезанный кусок "Амон" НЕ создавался
+        self.assertNotIn("Амон", queried_terms)
+
 
 if __name__ == "__main__":
     unittest.main()
