@@ -1073,6 +1073,39 @@ class TestSeasonQueries(unittest.TestCase):
         # Проверяем, что урезанный кусок "Амон" НЕ создавался
         self.assertNotIn("Амон", queried_terms)
 
+    def test_movie_auto_search_covers_and_grabs_ova_release(self):
+        """Проверяет, что фильм успешно захватывает OVA релиз (например, Amon Devilman OVA) без отклонения по covers()."""
+        show = make_show(self.session, title="Devilman - Volume 3: Devilman Apocalypse")
+        show.content_type = "movie"
+        show.year = 2000
+        self.session.commit()
+
+        alias_ru = Alias(show_id=show.id, text="Амон: Апокалипсис Человека-дьявола")
+        self.session.add(alias_ru)
+        ep = make_episode(self.session, show, season=1, episode=1, status=EpisodeStatus.WANTED)
+        indexer = make_indexer(self.session, name="RuTracker")
+        dc = make_download_client(self.session)
+        self.session.commit()
+
+        ova_rel = TorznabRelease(
+            title="Амон: Апокалипсис Человека-дьявола / Amon Devilman Mokushiroku / Amon: The Apocalypse of Devilman [OVA] [RUS(int), JAP+Sub] [2000, Мистика, ужасы, DVDRip]",
+            guid="https://rutracker.org/forum/viewtopic.php?t=6343932",
+            download_url="http://fake.local/dl/6343932",
+            size_bytes=2318586761,
+            seeders=9,
+        )
+
+        mock_idx_inst = unittest.mock.AsyncMock()
+        mock_idx_inst.search.return_value = [ova_rel]
+
+        with patch.object(auto_search, "get_indexer_client", return_value=mock_idx_inst), \
+             patch.object(auto_search, "_send_to_download_client", return_value="grabbed_ova_hash"):
+            res = asyncio.run(auto_search.search_missing_for_show(self.session, show))
+
+        self.session.refresh(ep)
+        self.assertEqual(ep.status, EpisodeStatus.DOWNLOADING)
+        self.assertEqual(ep.torrent_hash, "grabbed_ova_hash")
+
 
 if __name__ == "__main__":
     unittest.main()
