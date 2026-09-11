@@ -591,6 +591,108 @@ class TestShowRemapLogic(unittest.TestCase):
         asyncio.run(run_remap_test())
 
 
+@unittest.skipUnless(HAS_FASTAPI, "FastAPI not available")
+class TestFindExistingShow(unittest.TestCase):
+    def test_find_existing_show_different_year_not_matched(self):
+        from app.api.metadata_routes import _find_existing_show
+        from app.models.db import Show
+
+        # DB has "Scary Movie" from year 2000
+        existing_show = Show(
+            id=96,
+            title="Scary Movie",
+            year=2000,
+            content_type="movie",
+            metadata_source="radarr",
+            metadata_id="movie:4247",
+            tmdb_id=4247,
+        )
+
+        mock_db = MagicMock()
+        # Query returns existing_show when queried by title
+        q = MagicMock()
+        q.filter.return_value = q
+        q.first.return_value = None  # for specific ID filter
+        q.all.return_value = [existing_show]  # for candidates
+        mock_db.query.return_value = q
+
+        # Searching for 1991 movie with same title "Scary Movie"
+        found = _find_existing_show(
+            mock_db,
+            metadata_source="radarr",
+            metadata_id="movie:31776",
+            title="Scary Movie",
+            year=1991,
+            content_type="movie",
+        )
+        # MUST return None because 1991 != 2000
+        self.assertIsNone(found)
+
+    def test_find_existing_show_same_year_and_title_matched(self):
+        from app.api.metadata_routes import _find_existing_show
+        from app.models.db import Show
+
+        existing_show = Show(
+            id=96,
+            title="Scary Movie",
+            year=2000,
+            content_type="movie",
+            metadata_source="radarr",
+            metadata_id="movie:4247",
+            tmdb_id=4247,
+        )
+
+        mock_db = MagicMock()
+        q = MagicMock()
+        q.filter.return_value = q
+        q.first.return_value = None
+        q.all.return_value = [existing_show]
+        mock_db.query.return_value = q
+
+        found = _find_existing_show(
+            mock_db,
+            metadata_source="tmdb",
+            metadata_id="tmdb:4247",
+            title="Scary Movie",
+            year=2000,
+            content_type="movie",
+        )
+        self.assertIsNotNone(found)
+        self.assertEqual(found.id, 96)
+
+    def test_find_existing_show_different_content_type_not_matched(self):
+        from app.api.metadata_routes import _find_existing_show
+        from app.models.db import Show
+
+        existing_movie = Show(
+            id=10,
+            title="Scream",
+            year=1996,
+            content_type="movie",
+            metadata_source="radarr",
+            metadata_id="movie:123",
+            tmdb_id=123,
+        )
+
+        mock_db = MagicMock()
+        q = MagicMock()
+        q.filter.return_value = q
+        q.first.return_value = None
+        q.all.return_value = [existing_movie]
+        mock_db.query.return_value = q
+
+        # Searching for TV Series "Scream" (series)
+        found = _find_existing_show(
+            mock_db,
+            metadata_source="skyhook",
+            metadata_id="tvdb:456",
+            title="Scream",
+            year=1996,
+            content_type="series",
+        )
+        self.assertIsNone(found)
+
+
 if __name__ == "__main__":
     unittest.main()
 

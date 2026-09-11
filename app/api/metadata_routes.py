@@ -7,7 +7,7 @@ import datetime as dt
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -83,9 +83,25 @@ def _parse_date(value: Optional[str]) -> Optional[dt.datetime]:
         return None
 
 
-def _find_existing_show(db: Session, *, metadata_source: Optional[str], metadata_id: Optional[str], title: str) -> Optional[Show]:
-    """Ищет уже добавленное шоу — сначала по точному совпадению источника+ID метаданных,
-    затем по совпадению названия (без учёта регистра), чтобы ловить дубли и между источниками."""
+def _find_existing_show(
+    db: Session,
+    *,
+    metadata_source: Optional[str] = None,
+    metadata_id: Optional[str] = None,
+    title: str,
+    year: Optional[int] = None,
+    content_type: Optional[str] = None,
+    imdb_id: Optional[str] = None,
+    tmdb_id: Optional[int] = None,
+    tvdb_id: Optional[int] = None,
+) -> Optional[Show]:
+    """Ищет уже добавленное шоу.
+    1. Точное совпадение по metadata_source + metadata_id.
+    2. Прямое совпадение по metadata_id или числовому ID.
+    3. Совпадение по глобальным уникальным ID (tmdb_id, tvdb_id, imdb_id).
+    4. Совпадение по названию ТОЛЬКО при условии совпадения типа контента (movie/series)
+       И совпадения года выпуска (если год известен для обоих).
+    """
     if metadata_source and metadata_id:
         existing = (
             db.query(Show)
@@ -95,10 +111,69 @@ def _find_existing_show(db: Session, *, metadata_source: Optional[str], metadata
         if existing:
             return existing
 
-    normalized = title.strip().lower()
+    if metadata_id:
+        existing = db.query(Show).filter(Show.metadata_id == metadata_id).first()
+        if existing:
+            return existing
+
+        clean_id_str = metadata_id.split(":")[-1].strip()
+        if clean_id_str.isdigit():
+            num_id = int(clean_id_str)
+            if metadata_id.startswith(("movie:", "radarr:", "tmdb:")) or content_type == "movie":
+                existing = db.query(Show).filter(
+                    or_(
+                        Show.tmdb_id == num_id,
+                        Show.metadata_id.in_([f"movie:{num_id}", f"radarr:{num_id}", f"tmdb:{num_id}", str(num_id)]),
+                    )
+                ).first()
+                if existing:
+                    return existing
+            elif metadata_id.startswith(("tvdb:", "skyhook:")) or content_type in ("series", "anime"):
+                existing = db.query(Show).filter(
+                    or_(
+                        Show.tvdb_id == num_id,
+                        Show.metadata_id.in_([f"tvdb:{num_id}", f"skyhook:{num_id}", str(num_id)]),
+                    )
+                ).first()
+                if existing:
+                    return existing
+
+    if tmdb_id:
+        existing = db.query(Show).filter(Show.tmdb_id == tmdb_id).first()
+        if existing:
+            return existing
+    if tvdb_id:
+        existing = db.query(Show).filter(Show.tvdb_id == tvdb_id).first()
+        if existing:
+            return existing
+    if imdb_id:
+        existing = db.query(Show).filter(Show.imdb_id == imdb_id).first()
+        if existing:
+            return existing
+
+    normalized = (title or "").strip().lower()
     if not normalized:
         return None
-    return db.query(Show).filter(func.lower(Show.title) == normalized).first()
+
+    candidates = db.query(Show).filter(func.lower(Show.title) == normalized).all()
+    if not candidates:
+        return None
+
+    for c in candidates:
+        if content_type:
+            c_type = c.content_type or "series"
+            req_type = "movie" if content_type == "movie" else "series"
+            cand_type = "movie" if c_type == "movie" else "series"
+            if req_type != cand_type:
+                continue
+
+        if year is not None and c.year is not None:
+            if c.year != year:
+                continue
+
+        return c
+
+    return None
 
 
 @router.get("", response_model=list[MetadataSourceOut])
@@ -295,7 +370,12 @@ async def search_all_metadata_sources(
                     seen_keys.add(key)
 
                 existing = _find_existing_show(
-                    db, metadata_source=source_type_str, metadata_id=r.external_id, title=r.title,
+                    db,
+                    metadata_source=source_type_str,
+                    metadata_id=r.external_id,
+                    title=r.title,
+                    year=r.year,
+                    content_type=c_type,
                 )
                 combined_results.append(
                     MetadataSearchResultOut(
@@ -348,7 +428,12 @@ async def search_all_metadata_sources(
                             seen_keys.add(key)
 
                         existing = _find_existing_show(
-                            db, metadata_source=source_type_str, metadata_id=r.external_id, title=r.title,
+                            db,
+                            metadata_source=source_type_str,
+                            metadata_id=r.external_id,
+                            title=r.title,
+                            year=r.year,
+                            content_type=c_type,
                         )
                         combined_results.append(
                             MetadataSearchResultOut(
@@ -378,7 +463,12 @@ async def search_metadata(
     out = []
     for r in results:
         existing = _find_existing_show(
-            db, metadata_source=source_type_str, metadata_id=r.external_id, title=r.title,
+            db,
+            metadata_source=source_type_str,
+            metadata_id=r.external_id,
+            title=r.title,
+            year=r.year,
+            content_type=r.content_type,
         )
         out.append(MetadataSearchResultOut(
             **r.__dict__,
@@ -447,22 +537,30 @@ async def import_show(
             except Exception as e:
                 logger.warning("TMDb emergency details fetch failed: %s", e)
 
-        source_type_str = source.type.value if hasattr(source.type, "value") else str(source.type)
-        existing = _find_existing_show(
-            db, metadata_source=source_type_str, metadata_id=details.external_id, title=details.title,
-        )
-        if existing:
-            raise HTTPException(
-                409,
-                f"Шоу «{existing.title}» уже добавлено в библиотеку (id={existing.id})",
-            )
-
         content_type = payload.content_type or details.content_type or "series"
         if content_type not in ("movie", "series", "anime"):
             raise HTTPException(400, "content_type должен быть movie, series или anime")
 
         premiere_dt = _parse_date(details.premiere_date)
         show_year = premiere_dt.year if premiere_dt else None
+
+        source_type_str = source.type.value if hasattr(source.type, "value") else str(source.type)
+        existing = _find_existing_show(
+            db,
+            metadata_source=source_type_str,
+            metadata_id=details.external_id,
+            title=details.title,
+            year=show_year,
+            content_type=content_type,
+            imdb_id=details.imdb_id,
+            tmdb_id=details.tmdb_id,
+            tvdb_id=details.tvdb_id,
+        )
+        if existing:
+            raise HTTPException(
+                409,
+                f"Шоу «{existing.title}» уже добавлено в библиотеку (id={existing.id})",
+            )
 
         from app.services.settings_service import get_or_create_settings
         from app.services.postprocess import get_show_default_path, sanitize_filename
@@ -485,9 +583,55 @@ async def import_show(
                 settings,
             )
 
+        # Movie Collection auto-link/creation on import
+        coll_tmdb_id = getattr(details, "collection_tmdb_id", None)
+        coll_name = getattr(details, "collection_name", None)
+        coll_id_to_set = None
+        if content_type == "movie" and (coll_tmdb_id or coll_name):
+            try:
+                from app.models.db import MovieCollection
+                coll = None
+                if coll_tmdb_id:
+                    coll = db.query(MovieCollection).filter(MovieCollection.tmdb_collection_id == coll_tmdb_id).first()
+                if not coll and coll_name:
+                    coll = db.query(MovieCollection).filter(MovieCollection.title == coll_name).first()
+                if not coll and coll_name:
+                    coll = MovieCollection(
+                        tmdb_collection_id=coll_tmdb_id,
+                        title=coll_name,
+                        overview=getattr(details, "collection_overview", None),
+                        poster_url=getattr(details, "collection_poster_url", None),
+                        backdrop_url=getattr(details, "collection_backdrop_url", None),
+                    )
+                    db.add(coll)
+                    db.flush()
+                if coll:
+                    coll_id_to_set = coll.id
+                    if coll.tmdb_collection_id and hasattr(client, "get_collection_details"):
+                        if not getattr(coll, "parts_cache", None) or coll.parts_count is None:
+                            try:
+                                c_det = await client.get_collection_details(coll.tmdb_collection_id)
+                                if c_det and c_det.get("parts"):
+                                    import json
+                                    coll.parts_count = len(c_det["parts"])
+                                    coll.parts_cache = json.dumps(c_det["parts"])
+                                    coll.last_metadata_refresh_at = dt.datetime.utcnow()
+                                    if not coll.overview and c_det.get("overview"):
+                                        coll.overview = c_det.get("overview")
+                                    if not coll.poster_url and c_det.get("poster_url"):
+                                        coll.poster_url = c_det.get("poster_url")
+                                    if not coll.backdrop_url and c_det.get("backdrop_url"):
+                                        coll.backdrop_url = c_det.get("backdrop_url")
+                                    db.add(coll)
+                            except Exception as e:
+                                logger.debug("Failed fetching collection details for %s: %s", coll.title, e)
+            except Exception as e:
+                logger.warning("Failed linking movie to collection during import: %s", e)
+
         show = Show(
             title=details.title,
             year=show_year,
+            collection_id=coll_id_to_set,
             metadata_source=source_type_str,
             metadata_id=details.external_id,
             overview=details.overview,

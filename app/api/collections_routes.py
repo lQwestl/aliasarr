@@ -144,16 +144,20 @@ async def get_collection_detail(
     if not coll:
         raise HTTPException(404, "Movie collection not found")
 
-    shows = db.query(Show).filter(Show.collection_id == coll.id).order_by(Show.collection_order, Show.year).all()
-    shows_out = _attach_computed_fields(db, shows)
+    # Проверяем все фильмы в библиотеке, чтобы найти и связать любые фильмы этой саги
+    all_lib_movies = db.query(Show).filter(Show.content_type == "movie").all()
+    movies_by_tmdb: dict[int, Show] = {}
+    movies_by_title_year: dict[tuple[str, Optional[int]], Show] = {}
 
-    shows_by_tmdb_id = {}
-    for s in shows:
-        clean_id = (s.metadata_id or "").replace("movie:", "").replace("tmdb:", "").strip()
+    for s in all_lib_movies:
+        if s.tmdb_id:
+            movies_by_tmdb[s.tmdb_id] = s
+        clean_id = (s.metadata_id or "").replace("movie:", "").replace("tmdb:", "").replace("radarr:", "").strip()
         if clean_id.isdigit():
-            shows_by_tmdb_id[int(clean_id)] = s
+            movies_by_tmdb[int(clean_id)] = s
+        if s.title:
+            movies_by_title_year[(s.title.strip().lower(), s.year)] = s
 
-    franchise_parts: list[FranchisePart] = []
     raw_parts = []
     if coll.parts_cache:
         try:
@@ -162,10 +166,53 @@ async def get_collection_detail(
         except Exception:
             raw_parts = []
 
+    changed_shows = False
     if raw_parts:
         for part in raw_parts:
             tmdb_id = part.get("tmdb_id") or part.get("id")
-            matched_show = shows_by_tmdb_id.get(tmdb_id)
+            p_title = (part.get("title") or "").strip().lower()
+            p_year = part.get("year")
+            matched = None
+            if tmdb_id and tmdb_id in movies_by_tmdb:
+                matched = movies_by_tmdb[tmdb_id]
+            elif (p_title, p_year) in movies_by_title_year:
+                matched = movies_by_title_year[(p_title, p_year)]
+
+            if matched and matched.collection_id != coll.id:
+                matched.collection_id = coll.id
+                db.add(matched)
+                changed_shows = True
+
+    if changed_shows:
+        db.commit()
+
+    shows = db.query(Show).filter(Show.collection_id == coll.id).order_by(Show.collection_order, Show.year).all()
+    shows_out = _attach_computed_fields(db, shows)
+
+    shows_by_tmdb_id = {}
+    shows_by_key = {}
+    for s in shows:
+        clean_id = (s.metadata_id or "").replace("movie:", "").replace("tmdb:", "").replace("radarr:", "").strip()
+        if clean_id.isdigit():
+            shows_by_tmdb_id[int(clean_id)] = s
+        if s.tmdb_id:
+            shows_by_tmdb_id[s.tmdb_id] = s
+        if s.title:
+            shows_by_key[(s.title.strip().lower(), s.year)] = s
+
+    franchise_parts: list[FranchisePart] = []
+
+    if raw_parts:
+        for part in raw_parts:
+            tmdb_id = part.get("tmdb_id") or part.get("id")
+            p_title = (part.get("title") or "").strip().lower()
+            p_year = part.get("year")
+            matched_show = None
+            if tmdb_id and tmdb_id in shows_by_tmdb_id:
+                matched_show = shows_by_tmdb_id[tmdb_id]
+            elif (p_title, p_year) in shows_by_key:
+                matched_show = shows_by_key[(p_title, p_year)]
+
             in_lib = matched_show is not None
             show_st = None
             show_id_val = None
