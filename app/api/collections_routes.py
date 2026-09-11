@@ -240,7 +240,7 @@ async def get_collection_detail(
         overview=coll.overview,
         poster_url=coll.poster_url,
         backdrop_url=coll.backdrop_url,
-        monitored=coll.monitored,
+        monitored=bool(coll.monitored) if coll.monitored is not None else True,
         quality_profile_id=coll.quality_profile_id,
         root_folder=coll.root_folder,
         created_at=coll.created_at,

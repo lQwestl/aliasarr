@@ -29,6 +29,7 @@ except ImportError:
     class MovieCollection:
         def __init__(self, **kwargs):
             self.shows = []
+            self.monitored = True
             for k, v in kwargs.items():
                 setattr(self, k, v)
 
@@ -312,6 +313,7 @@ class TestMovieSuite(unittest.TestCase):
             title="Devilman Saga",
             tmdb_collection_id=99999,
             overview="Devilman saga",
+            monitored=True,
         )
         s1 = Show(
             id=101,
