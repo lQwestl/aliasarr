@@ -33,20 +33,16 @@ class RateLimitExceededError(Exception):
 class AsyncRateLimiter:
     """Асинхронный менеджер частоты запросов и статуса доступности внешних хостов/индексаторов."""
 
-    # Лестница эскалации задержек в секундах (соответствует Sonarr EscalationBackOff.Periods)
-    # [0с, 1мин, 5мин, 15мин, 30мин, 1час, 3часа, 6часов, 12часов, 24часа]
+    # Лестница эскалации задержек в секундах (соответствует стандарту Sonarr/Radarr):
+    # 1-я ошибка: 1мин, 2-я: 5мин, 3-я: 15мин, 4-я: 30мин (максимум)
     ESCALATION_PERIODS = [
         0,
-        60,
-        5 * 60,
-        15 * 60,
-        30 * 60,
-        60 * 60,
-        3 * 60 * 60,
-        6 * 60 * 60,
-        12 * 60 * 60,
-        24 * 60 * 60,
+        60,          # 1 мин
+        5 * 60,      # 5 мин
+        15 * 60,     # 15 мин
+        30 * 60,     # 30 мин (максимальный потолок)
     ]
+    MAX_BACKOFF_CAP: float = 30 * 60.0  # 1800с (30 минут)
 
     def __init__(self):
         self._host_locks: dict[str, asyncio.Lock] = {}
@@ -125,23 +121,26 @@ class AsyncRateLimiter:
                     self._host_locks[host] = asyncio.Lock()
         return self._host_locks[host]
 
-    async def acquire(self, host_or_key: str, min_interval_seconds: float = 2.0) -> None:
+    async def acquire(self, host_or_key: str, min_interval_seconds: float = 2.0, is_probe: bool = False) -> None:
         """Ожидает своей очереди и выдерживает межзапросный интервал к заданному хосту.
-        Если хост заблокирован по 429, выбрасывает RateLimitExceededError.
+        Если хост заблокирован по 429 и is_probe=False, выбрасывает RateLimitExceededError.
+        Если is_probe=True (фоновый Health Check), запрос пропускается для проверки доступности.
         """
         host = self.extract_host(host_or_key)
 
-        # 1. Проверяем блокировку перед взятием лока
-        blocked, remaining = self.is_blocked(host)
-        if blocked:
-            raise RateLimitExceededError(host=host, retry_after=remaining)
+        # 1. Проверяем блокировку перед взятием лока (для обычных запросов)
+        if not is_probe:
+            blocked, remaining = self.is_blocked(host)
+            if blocked:
+                raise RateLimitExceededError(host=host, retry_after=remaining)
 
         lock = await self._get_host_lock(host)
         async with lock:
             # 2. Повторная проверка блокировки после взятия лока
-            blocked, remaining = self.is_blocked(host)
-            if blocked:
-                raise RateLimitExceededError(host=host, retry_after=remaining)
+            if not is_probe:
+                blocked, remaining = self.is_blocked(host)
+                if blocked:
+                    raise RateLimitExceededError(host=host, retry_after=remaining)
 
             now = time.monotonic()
             last_time = self._last_request_times.get(host, 0.0)
@@ -156,7 +155,7 @@ class AsyncRateLimiter:
 
     def record_429(self, host_or_key: str, retry_after: Optional[float] = None) -> float:
         """Регистрирует получение ответа HTTP 429 от хоста, вычисляет длительность паузы
-        и активирует кулдаун для данного хоста.
+        (ограниченную потолком MAX_BACKOFF_CAP = 30 минут) и активирует кулдаун для данного хоста.
         """
         host = self.extract_host(host_or_key)
         now = time.monotonic()
@@ -166,7 +165,7 @@ class AsyncRateLimiter:
         self._escalation_levels[host] = next_level
 
         if retry_after is not None and retry_after > 0:
-            backoff = float(retry_after)
+            backoff = min(float(retry_after), self.MAX_BACKOFF_CAP)
         else:
             backoff = float(self.ESCALATION_PERIODS[next_level] if next_level > 0 else 60)
 
@@ -178,17 +177,10 @@ class AsyncRateLimiter:
         return backoff
 
     def record_success(self, host_or_key: str) -> None:
-        """Регистрирует успешный ответ от хоста, постепенно снижая уровень эскалации."""
+        """Регистрирует успешный ответ от хоста, немедленно снимая блокировку и сбрасывая эскалацию."""
         host = self.extract_host(host_or_key)
-
-        # Очищаем блокировку, если истекла
-        disabled_time = self._disabled_until.get(host)
-        if disabled_time is not None and time.monotonic() >= disabled_time:
-            self._disabled_until.pop(host, None)
-
-        cur_level = self._escalation_levels.get(host, 0)
-        if cur_level > 0:
-            self._escalation_levels[host] = cur_level - 1
+        self._disabled_until.pop(host, None)
+        self._escalation_levels[host] = 0
 
     def reset(self, host_or_key: Optional[str] = None) -> None:
         """Сбрасывает состояние rate limiter для конкретного хоста или для всех хостов (для тестов)."""

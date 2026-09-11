@@ -1293,8 +1293,8 @@ async def _collect_candidates(
     candidates: list[dict] = []
     indexer_stats: dict[str, int] = {getattr(idx, "name", "Indexer"): 0 for idx in indexers}
     rejected_candidates: list[dict] = []
-
-    active_queries = query_terms[:35]
+    max_queries = 6 if show.content_type == "movie" else 12
+    active_queries = query_terms[:max_queries]
 
     # Опрашиваем индексаторы параллельно с пулом семафора, собирая все полученные результаты
     sem = asyncio.Semaphore(8)
@@ -1303,16 +1303,13 @@ async def _collect_candidates(
         async with sem:
             try:
                 client = get_indexer_client(idx)
-                rels = await asyncio.wait_for(client.search(q_term), timeout=15.0)
+                rels = await client.search(q_term)
                 return (idx, rels)
             except RateLimitExceededError as rle:
                 logger.warning(
                     "Индексатор %s превысил лимит запросов (HTTP 429). Запросы приостановлены на %.1fс",
                     getattr(idx, "name", idx), rle.retry_after,
                 )
-                return (idx, [])
-            except asyncio.TimeoutError:
-                logger.warning("Индексатор %s: таймаут (15с) при запросе «%s»", getattr(idx, "name", idx), q_term)
                 return (idx, [])
             except Exception as exc:
                 logger.debug("Индексатор %s запрос «%s»: %s", getattr(idx, "name", idx), q_term, exc)

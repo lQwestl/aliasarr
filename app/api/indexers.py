@@ -185,7 +185,7 @@ async def test_indexer_adhoc(
     """Проверка связи до сохранения индексатора."""
     client = get_indexer_client(payload)
     try:
-        releases = await client.search("test")
+        releases = await client.search("test", is_probe=True)
         return {"success": True, "message": f"Индексатор ответил, найдено релизов: {len(releases)}"}
     except Exception as exc:
         return {"success": False, "message": f"Не удалось подключиться: {exc}"}
@@ -194,7 +194,7 @@ async def test_indexer_adhoc(
 async def _probe_indexer_once(indexer: Indexer) -> bool:
     client = get_indexer_client(indexer)
     try:
-        await client.search("test")
+        await client.search("test", is_probe=True)
         return True
     except Exception:
         return False

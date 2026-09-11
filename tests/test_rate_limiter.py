@@ -91,14 +91,42 @@ class TestRateLimiter(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(ctx.exception.retry_after, 0)
         self.assertEqual(ctx.exception.status_code, 429)
 
-    def test_record_success_deescalates(self):
+    def test_record_success_resets_escalation_and_block(self):
         host = "http://deescalate.test/api"
         self.limiter.record_429(host)
         self.limiter.record_429(host)
         self.assertEqual(self.limiter._escalation_levels.get("deescalate.test"), 2)
+        blocked, _ = self.limiter.is_blocked(host)
+        self.assertTrue(blocked)
 
         self.limiter.record_success(host)
-        self.assertEqual(self.limiter._escalation_levels.get("deescalate.test"), 1)
+        self.assertEqual(self.limiter._escalation_levels.get("deescalate.test", 0), 0)
+        blocked, _ = self.limiter.is_blocked(host)
+        self.assertFalse(blocked)
+
+    def test_max_backoff_cap_at_30_minutes(self):
+        host = "http://large-retry.test/api"
+        # 21 hours (75896s) from remote server must be capped at 1800s (30 min)
+        b = self.limiter.record_429(host, retry_after=75896.0)
+        self.assertEqual(b, 1800.0)
+
+    async def test_probe_bypasses_block_and_unblocks_on_success(self):
+        host = "http://probe-test.test/api"
+        self.limiter.record_429(host, retry_after=1800.0)
+        blocked, remaining = self.limiter.is_blocked(host)
+        self.assertTrue(blocked)
+
+        # Standard acquire must fail with RateLimitExceededError
+        with self.assertRaises(RateLimitExceededError):
+            await self.limiter.acquire(host, min_interval_seconds=0.0, is_probe=False)
+
+        # Health Check probe with is_probe=True must succeed through acquire
+        await self.limiter.acquire(host, min_interval_seconds=0.0, is_probe=True)
+
+        # On successful response from probe, record_success unblocks host
+        self.limiter.record_success(host)
+        blocked_after, _ = self.limiter.is_blocked(host)
+        self.assertFalse(blocked_after)
 
 
 class TestIndexerRateLimitingIntegration(unittest.IsolatedAsyncioTestCase):

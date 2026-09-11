@@ -45,7 +45,7 @@ class TorznabClient:
         self.timeout = timeout
         self.rate_limit_seconds = rate_limit_seconds
 
-    async def search(self, query: str, categories: Optional[list[int]] = None) -> list[TorznabRelease]:
+    async def search(self, query: str, categories: Optional[list[int]] = None, is_probe: bool = False) -> list[TorznabRelease]:
         params = {"t": "search", "q": query}
         if self.api_key:
             params["apikey"] = self.api_key
@@ -56,7 +56,7 @@ class TorznabClient:
         rate_limiter = get_rate_limiter()
         host = rate_limiter.extract_host(url)
 
-        await rate_limiter.acquire(host, min_interval_seconds=self.rate_limit_seconds)
+        await rate_limiter.acquire(host, min_interval_seconds=self.rate_limit_seconds, is_probe=is_probe)
 
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Aliasarr/2.0",

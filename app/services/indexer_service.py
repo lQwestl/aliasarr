@@ -73,7 +73,7 @@ def _parse_release_age_and_date(pub_date_raw: Any) -> tuple[Optional[str], Optio
     return str(pub_date_raw), None
 
 
-async def _fetch_text_async(url: str, params: Optional[dict] = None, timeout: int = 30, min_interval_seconds: float = 2.0) -> str:
+async def _fetch_text_async(url: str, params: Optional[dict] = None, timeout: int = 30, min_interval_seconds: float = 2.0, is_probe: bool = False) -> str:
     if params:
         encoded = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
         sep = "&" if "?" in url else "?"
@@ -83,7 +83,7 @@ async def _fetch_text_async(url: str, params: Optional[dict] = None, timeout: in
     host = rate_limiter.extract_host(url)
 
     # Проверяем кулдаун и выдерживаем межзапросный интервал к хосту (как в Sonarr RateLimitService)
-    await rate_limiter.acquire(host, min_interval_seconds=min_interval_seconds)
+    await rate_limiter.acquire(host, min_interval_seconds=min_interval_seconds, is_probe=is_probe)
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Aliasarr/2.0",
@@ -126,14 +126,14 @@ class BaseIndexerClient:
         self.timeout = timeout
         self.rate_limit_seconds = rate_limit_seconds
 
-    async def search(self, query: str, categories: Optional[list[int]] = None) -> list[TorznabRelease]:
+    async def search(self, query: str, categories: Optional[list[int]] = None, is_probe: bool = False) -> list[TorznabRelease]:
         raise NotImplementedError
 
 
 class TorznabIndexerClient(BaseIndexerClient):
     """Клиент Torznab (Jackett, Prowlarr, трекеры с Torznab API)."""
 
-    async def search(self, query: str, categories: Optional[list[int]] = None) -> list[TorznabRelease]:
+    async def search(self, query: str, categories: Optional[list[int]] = None, is_probe: bool = False) -> list[TorznabRelease]:
         params = {"t": "search", "q": query}
         if self.api_key:
             params["apikey"] = self.api_key
@@ -141,7 +141,8 @@ class TorznabIndexerClient(BaseIndexerClient):
             params["cat"] = ",".join(str(c) for c in categories)
 
         url = f"{self.base_url}/api" if not self.base_url.endswith("/api") else self.base_url
-        xml_text = await _fetch_text_async(url, params=params, timeout=self.timeout, min_interval_seconds=self.rate_limit_seconds)
+        xml_text = await _fetch_text_async(url, params=params, timeout=self.timeout, min_interval_seconds=self.rate_limit_seconds, is_probe=is_probe)
+        return self._parse_xml(xml_text)
         return self._parse_xml(xml_text)
 
     def _parse_xml(self, xml_text: str) -> list[TorznabRelease]:
@@ -227,7 +228,7 @@ class TorznabIndexerClient(BaseIndexerClient):
 class NewznabIndexerClient(BaseIndexerClient):
     """Клиент Newznab для Usenet-индексаторов."""
 
-    async def search(self, query: str, categories: Optional[list[int]] = None) -> list[TorznabRelease]:
+    async def search(self, query: str, categories: Optional[list[int]] = None, is_probe: bool = False) -> list[TorznabRelease]:
         params = {"t": "search", "q": query}
         if self.api_key:
             params["apikey"] = self.api_key
@@ -235,7 +236,7 @@ class NewznabIndexerClient(BaseIndexerClient):
             params["cat"] = ",".join(str(c) for c in categories)
 
         url = f"{self.base_url}/api" if not self.base_url.endswith("/api") else self.base_url
-        xml_text = await _fetch_text_async(url, params=params, timeout=self.timeout, min_interval_seconds=self.rate_limit_seconds)
+        xml_text = await _fetch_text_async(url, params=params, timeout=self.timeout, min_interval_seconds=self.rate_limit_seconds, is_probe=is_probe)
         return self._parse_xml(xml_text)
 
     def _parse_xml(self, xml_text: str) -> list[TorznabRelease]:
@@ -304,7 +305,7 @@ class NewznabIndexerClient(BaseIndexerClient):
 class NyaaIndexerClient(BaseIndexerClient):
     """Прямой RSS/Search клиент для аниме-трекера Nyaa.si."""
 
-    async def search(self, query: str, categories: Optional[list[int]] = None) -> list[TorznabRelease]:
+    async def search(self, query: str, categories: Optional[list[int]] = None, is_probe: bool = False) -> list[TorznabRelease]:
         base = self.base_url or "https://nyaa.si"
         params = {"page": "rss", "q": query}
         # Категория по умолчанию 1_2 (Anime - English-translated) или 1_0 (Anime all)
@@ -313,7 +314,7 @@ class NyaaIndexerClient(BaseIndexerClient):
         else:
             params["c"] = "0_0"
 
-        xml_text = await _fetch_text_async(base, params=params, timeout=self.timeout, min_interval_seconds=self.rate_limit_seconds)
+        xml_text = await _fetch_text_async(base, params=params, timeout=self.timeout, min_interval_seconds=self.rate_limit_seconds, is_probe=is_probe)
         return self._parse_nyaa_xml(xml_text)
 
     def _parse_nyaa_xml(self, xml_text: str) -> list[TorznabRelease]:
@@ -388,13 +389,13 @@ class NyaaIndexerClient(BaseIndexerClient):
 class TorrentRssIndexerClient(BaseIndexerClient):
     """Универсальный парсер стандартных Torrent RSS-лент."""
 
-    async def search(self, query: str, categories: Optional[list[int]] = None) -> list[TorznabRelease]:
+    async def search(self, query: str, categories: Optional[list[int]] = None, is_probe: bool = False) -> list[TorznabRelease]:
         url = self.base_url
         if self.api_key and "passkey=" not in url and "apikey=" not in url:
             sep = "&" if "?" in url else "?"
             url = f"{url}{sep}passkey={self.api_key}"
 
-        xml_text = await _fetch_text_async(url, timeout=self.timeout, min_interval_seconds=self.rate_limit_seconds)
+        xml_text = await _fetch_text_async(url, timeout=self.timeout, min_interval_seconds=self.rate_limit_seconds, is_probe=is_probe)
         releases = self._parse_rss(xml_text)
 
         # Фильтруем по запросу, если передан (для ручного поиска)
