@@ -187,6 +187,34 @@ async def get_collection_detail(
         except Exception as e:
             logger.debug("Failed to fetch live franchise parts for collection %s: %s", coll.id, e)
 
+    # Fallback: если TMDb недоступен или коллекция локальная, отображаем фильмы саги из локальной БД
+    if not franchise_parts and shows:
+        for s in shows:
+            clean_id = (s.metadata_id or "").replace("movie:", "").replace("tmdb:", "").strip()
+            tmdb_id_val = int(clean_id) if clean_id.isdigit() else (s.tmdb_id or s.id or 0)
+            ep = db.query(Episode).filter(Episode.show_id == s.id).first()
+            show_st = ep.status if ep else "wanted"
+            rel_date = None
+            if s.premiere_date:
+                rel_date = s.premiere_date.strftime("%Y-%m-%d")
+            elif s.year:
+                rel_date = f"{s.year}-01-01"
+
+            franchise_parts.append(
+                FranchisePart(
+                    tmdb_id=tmdb_id_val,
+                    title=s.title,
+                    year=s.year,
+                    release_date=rel_date,
+                    overview=s.overview,
+                    poster_url=s.poster_url,
+                    rating=s.rating,
+                    in_library=True,
+                    show_id=s.id,
+                    show_status=show_st,
+                )
+            )
+
     total_parts = len(franchise_parts) if franchise_parts else len(shows)
     if coll.tmdb_collection_id and total_parts and coll.parts_count != total_parts:
         coll.parts_count = total_parts

@@ -5709,7 +5709,11 @@ function renderCollectionCard(coll) {
 async function openCollectionModal(collectionId) {
   const content = document.getElementById("collection-modal-content");
   if (!content) return;
-  content.innerHTML = `<div style="padding: 40px; text-align: center; color: var(--text-muted);"><i data-lucide="loader-2" class="status-pill-spin"></i> ${t("common.loading")}</div>`;
+  content.innerHTML = renderRaysLoaderHtml(
+    CURRENT_LANG === "en" ? "Loading collection" : "Загрузка коллекции",
+    CURRENT_LANG === "en" ? "Fetching franchise details" : "Получение деталей саги",
+    "coll"
+  );
   openModal("collection-modal");
   if (window.lucide) lucide.createIcons();
 

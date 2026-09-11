@@ -260,6 +260,100 @@ class TestMovieSuite(unittest.TestCase):
                 self.assertEqual(ep.download_progress, 0.45)
                 self.assertEqual(ep.file_path, f_path)
 
+    def test_tmdb_collection_details_cache(self):
+        import asyncio
+        from app.services.metadata import TMDBClient, _COLLECTION_DETAILS_CACHE
+
+        _COLLECTION_DETAILS_CACHE.clear()
+        client = TMDBClient()
+
+        fake_resp = MagicMock()
+        fake_resp.json.return_value = {
+            "id": 12345,
+            "name": "Test Saga",
+            "overview": "Overview of saga",
+            "parts": [
+                {"id": 101, "title": "Part 1", "release_date": "2020-01-01"},
+                {"id": 102, "title": "Part 2", "release_date": "2022-01-01"},
+            ],
+        }
+        fake_resp.raise_for_status = MagicMock()
+
+        mock_client_instance = MagicMock()
+        mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
+        mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+        mock_client_instance.get = AsyncMock(return_value=fake_resp)
+
+        mock_httpx = MagicMock()
+        mock_httpx.AsyncClient.return_value = mock_client_instance
+
+        with patch("app.services.metadata.httpx", mock_httpx):
+            res1 = asyncio.run(client.get_collection_details(12345))
+            self.assertEqual(res1["name"], "Test Saga")
+            self.assertEqual(len(res1["parts"]), 2)
+            self.assertEqual(mock_client_instance.get.call_count, 1)
+
+            # Second call should use cache and not call httpx get again
+            res2 = asyncio.run(client.get_collection_details(12345))
+            self.assertEqual(res2["name"], "Test Saga")
+            self.assertEqual(mock_client_instance.get.call_count, 1)
+
+    def test_get_collection_detail_fallback_on_shows(self):
+        try:
+            import fastapi
+            from app.api.collections_routes import get_collection_detail
+        except ImportError:
+            return
+
+        import asyncio
+
+        coll = MovieCollection(
+            id=77,
+            title="Devilman Saga",
+            tmdb_collection_id=99999,
+            overview="Devilman saga",
+        )
+        s1 = Show(
+            id=101,
+            title="Devilman: The Birth",
+            year=1987,
+            content_type="movie",
+            collection_id=77,
+            metadata_id="movie:3001",
+            overview="Part 1 overview",
+            poster_url="/poster1.jpg",
+            rating=7.2,
+            premiere_date=dt.datetime(1987, 11, 1),
+        )
+        s2 = Show(
+            id=102,
+            title="Devilman: The Demon Bird",
+            year=1990,
+            content_type="movie",
+            collection_id=77,
+            metadata_id="movie:3002",
+            overview="Part 2 overview",
+            poster_url="/poster2.jpg",
+            rating=7.5,
+            premiere_date=dt.datetime(1990, 2, 25),
+        )
+
+        db_mock = MagicMock()
+        db_mock.get.return_value = coll
+        db_mock.query.return_value.filter.return_value.order_by.return_value.all.return_value = [s1, s2]
+        db_mock.query.return_value.filter.return_value.first.return_value = None
+
+        # Simulate TMDb failing / timing out
+        with patch("app.services.metadata.RadarrClient.get_collection_details", side_effect=Exception("TMDB Timeout")):
+            res = asyncio.run(get_collection_detail(collection_id=77, db=db_mock, current_user=MagicMock()))
+            self.assertEqual(len(res.franchise_parts), 2)
+            self.assertEqual(res.franchise_parts[0].title, "Devilman: The Birth")
+            self.assertEqual(res.franchise_parts[0].tmdb_id, 3001)
+            self.assertTrue(res.franchise_parts[0].in_library)
+            self.assertEqual(res.franchise_parts[1].title, "Devilman: The Demon Bird")
+            self.assertTrue(res.franchise_parts[1].in_library)
+
 
 if __name__ == "__main__":
     unittest.main()
+

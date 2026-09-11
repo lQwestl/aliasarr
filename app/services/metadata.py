@@ -13,7 +13,11 @@ from dataclasses import dataclass, field
 import datetime as dt
 import logging
 import threading
+import time
 from typing import Optional, List, Dict, Any
+
+# In-memory кеш для информации о коллекциях/сагах TMDb (24 часа)
+_COLLECTION_DETAILS_CACHE: dict[str, tuple[float, dict]] = {}
 
 logger = logging.getLogger("aliasarr.metadata")
 
@@ -535,8 +539,14 @@ class TMDBClient(BaseMetadataClient):
         )
 
     async def get_collection_details(self, tmdb_collection_id: int | str) -> dict:
-        """Получить полный список фильмов киноколлекции/саги из TMDb API."""
-        async with httpx.AsyncClient(timeout=20) as client:
+        """Получить полный список фильмов киноколлекции/саги из TMDb API (с кешированием на 24ч и таймаутом 6с)."""
+        cache_key = str(tmdb_collection_id)
+        now = time.time()
+        cached = _COLLECTION_DETAILS_CACHE.get(cache_key)
+        if cached and (now - cached[0]) < 86400:
+            return cached[1]
+
+        async with httpx.AsyncClient(timeout=6) as client:
             resp = await client.get(
                 f"{self.BASE_URL}/collection/{tmdb_collection_id}",
                 params={"language": "en-US"},
@@ -567,7 +577,7 @@ class TMDBClient(BaseMetadataClient):
 
         c_poster = data.get("poster_path")
         c_backdrop = data.get("backdrop_path")
-        return {
+        result = {
             "id": data.get("id"),
             "name": data.get("name"),
             "overview": data.get("overview"),
@@ -575,6 +585,8 @@ class TMDBClient(BaseMetadataClient):
             "backdrop_url": f"{self.IMAGE_BASE}{c_backdrop}" if c_backdrop else None,
             "parts": parts,
         }
+        _COLLECTION_DETAILS_CACHE[cache_key] = (now, result)
+        return result
 
     async def _get_tv_details(self, tmdb_id: str) -> MetadataShowDetails:
         async with httpx.AsyncClient(timeout=30) as client:
