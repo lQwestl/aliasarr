@@ -2684,11 +2684,8 @@
             <div class="settings-field-group">
               <label class="settings-field-label" data-i18n="md.type">Провайдер</label>
               <select id="md-type" class="input" onchange="toggleCustomMetadataFields()">
-                <option value="skyhook">Sonarr SkyHook (Serials/Anime)</option>
-                <option value="radarr">Radarr SkyHook (Films)</option>
-                <option value="tmdb">TMDB (themoviedb.org)</option>
-                <option value="thetvdb">TheTVDB v4 (thetvdb.com)</option>
-                <option value="tvmaze">TVMaze (tvmaze.com)</option>
+                <option value="skyhook" data-i18n="md.opt_sonarr">Sonarr SkyHook (Сериалы и Аниме)</option>
+                <option value="radarr" data-i18n="md.opt_radarr">Radarr SkyHook (Фильмы)</option>
               </select>
             </div>
 
@@ -2702,52 +2699,55 @@
               <p style="margin:6px 0 0 0;" data-i18n="md.radarr_desc">Официальный облачный сервис Radarr для фильмов. Работает «из коробки» без API-ключей, загружает альтернативные названия (AlternativeTitles), переводы (Translations), постеры, даты кинопроката и цифрового релиза для фильмов.</p>
             </div>
 
-            <div id="md-tmdb-instructions" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
-              <strong data-i18n="md.tmdb_how_title">Как получить ключ TMDB:</strong>
-              <ol style="margin:6px 0 0 18px; padding:0;">
-                <li data-i18n="md.tmdb_step1">Зарегистрируйтесь на <a href="https://www.themoviedb.org" target="_blank" rel="noopener">themoviedb.org</a></li>
-                <li data-i18n="md.tmdb_step2">Откройте <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">Settings → API</a></li>
-                <li data-i18n="md.tmdb_step3">Скопируйте <strong>Read Access Token (v4 auth)</strong> — это длинная строка <code>eyJ...</code></li>
-              </ol>
-              <p style="margin:8px 0 0 0;" data-i18n="md.tmdb_important"><strong>Важно:</strong> вставляйте именно <em>Read Access Token</em> (<code>eyJ...</code>), а не короткий API Key v3.</p>
-            </div>
+            <!-- УПРАВЛЕНИЕ ЯЗЫКАМИ АЛИАСОВ -->
+            <div class="settings-field-group" style="grid-column: 1 / -1;" id="md-alias-languages-section">
+              <label class="settings-field-label">
+                <span data-i18n="md.languages_title">Языки для автоматических алиасов</span>
+                <span id="md-languages-count-hint" class="hint" style="font-weight: normal; margin-left: 8px;"></span>
+              </label>
 
-            <div id="md-thetvdb-instructions" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
-              <strong data-i18n="md.thetvdb_title">TheTVDB API v4:</strong>
-              <p style="margin:6px 0 0 0;" data-i18n="md.thetvdb_desc">Для использования TheTVDB введите <strong>API Key v4</strong> из личного кабинета <a href="https://thetvdb.com/dashboard/account/api" target="_blank" rel="noopener">thetvdb.com</a>. Если у вас подписка со Subscriber PIN, укажите PIN в поле ниже.</p>
-            </div>
+              <!-- Кластер выбранных бейджей языков -->
+              <div id="md-active-languages-chips" class="md-languages-badges-container" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 10px 0;">
+                <!-- Динамически заполняется в JS -->
+              </div>
 
-            <div id="md-tvmaze-instructions" class="provider-fields-box" style="grid-column: 1 / -1; display:none">
-              <strong data-i18n="md.tvmaze_title">TVMaze:</strong>
-              <p style="margin:6px 0 0 0;" data-i18n="md.tvmaze_desc">Если у вас есть аккаунт TVmaze, для Premium-функций введите <code>ваш_логин:ваш_API_ключ</code>. Ключ можно найти на <a href="https://www.tvmaze.com/dashboard" target="_blank" rel="noopener">tvmaze.com/dashboard</a>.</p>
-            </div>
+              <!-- Строка выбора и добавления нового языка -->
+              <div class="md-add-language-row" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+                <select id="md-language-select" class="input" style="flex: 1; min-width: 220px; max-width: 380px;">
+                  <!-- 70 языков заполняются в JS -->
+                </select>
+                <button type="button" id="md-add-language-btn" class="btn btn-secondary" onclick="addSelectedMetadataLanguage()">
+                  <i data-lucide="plus" class="ico-xs"></i> <span data-i18n="md.add_language_btn">Добавить язык</span>
+                </button>
+              </div>
 
-            <div class="settings-field-group" style="grid-column: 1 / -1;">
-              <input id="md-key" class="input mono" placeholder="Read Access Token (eyJ...) / API key" data-i18n-placeholder="md.key_placeholder" style="display:none">
-              <input id="md-pin" class="input mono" placeholder="Subscriber PIN (опционально)" data-i18n-placeholder="md.pin_placeholder" style="display:none; margin-top:8px;">
-            </div>
+              <!-- Быстрые кнопки популярных языков -->
+              <div class="md-quick-languages-row" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 500;" data-i18n="md.quick_add">Быстрый выбор:</span>
+                <button type="button" class="btn-chip-quick" onclick="quickAddMetadataLanguage('ru')">+ Русский</button>
+                <button type="button" class="btn-chip-quick" onclick="quickAddMetadataLanguage('ja')">+ Японский</button>
+                <button type="button" class="btn-chip-quick" onclick="quickAddMetadataLanguage('ko')">+ Корейский</button>
+                <button type="button" class="btn-chip-quick" onclick="quickAddMetadataLanguage('zh')">+ Китайский</button>
+                <button type="button" class="btn-chip-quick" onclick="quickAddMetadataLanguage('fr')">+ Французский</button>
+                <button type="button" class="btn-chip-quick" onclick="quickAddMetadataLanguage('de')">+ Немецкий</button>
+                <button type="button" class="btn-chip-quick" onclick="quickAddMetadataLanguage('es')">+ Испанский</button>
+                <button type="button" class="btn-chip-quick" onclick="quickAddMetadataLanguage('it')">+ Итальянский</button>
+              </div>
 
-            <div class="settings-field-group" style="grid-column: 1 / -1; display:none" id="md-alias-filter-wrap">
-              <label class="settings-field-label" data-i18n="md.alias_filter_title">Фильтр алиасов (альтернативных названий) по странам:</label>
-              <p class="hint" style="margin-top: 0; margin-bottom: 8px;" data-i18n="md.alias_filter_hint">Если ничего не выбрано — загружаются алиасы для всех стран мира.</p>
-              <div id="md-alias-countries" style="max-height: 160px; overflow-y: auto; border: 1px solid var(--border); padding: 10px; border-radius: 8px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; background: rgba(0,0,0,0.15);">
-                <label class="checkbox-row" style="margin:0"><input type="checkbox" value="RU"> <span data-i18n="country.ru">Россия (RU)</span></label>
-                <label class="checkbox-row" style="margin:0"><input type="checkbox" value="US"> <span data-i18n="country.us">США (US)</span></label>
-                <label class="checkbox-row" style="margin:0"><input type="checkbox" value="GB"> <span data-i18n="country.gb">Великобритания (GB)</span></label>
-                <label class="checkbox-row" style="margin:0"><input type="checkbox" value="JP"> <span data-i18n="country.jp">Япония (JP)</span></label>
-                <label class="checkbox-row" style="margin:0"><input type="checkbox" value="KR"> <span data-i18n="country.kr">Юж. Корея (KR)</span></label>
-                <label class="checkbox-row" style="margin:0"><input type="checkbox" value="CN"> <span data-i18n="country.cn">Китай (CN)</span></label>
-                <label class="checkbox-row" style="margin:0"><input type="checkbox" value="FR"> <span data-i18n="country.fr">Франция (FR)</span></label>
-                <label class="checkbox-row" style="margin:0"><input type="checkbox" value="DE"> <span data-i18n="country.de">Германия (DE)</span></label>
-                <label class="checkbox-row" style="margin:0"><input type="checkbox" value="ES"> <span data-i18n="country.es">Испания (ES)</span></label>
-                <label class="checkbox-row" style="margin:0"><input type="checkbox" value="IT"> <span data-i18n="country.it">Италия (IT)</span></label>
+              <!-- Информационная плашка -->
+              <div class="settings-info-banner" style="margin-top: 12px; display: flex; gap: 10px; padding: 12px 14px; background: rgba(0, 240, 255, 0.06); border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 8px;">
+                <i data-lucide="info" class="ico-sm" style="color: var(--teal); flex-shrink: 0; margin-top: 2px;"></i>
+                <div style="font-size: 12px; line-height: 1.45; color: var(--text);">
+                  <strong data-i18n="md.info_banner_title">Автоматическое наполнение алиасов:</strong>
+                  <span data-i18n="md.info_banner_text">Если в базе источника метаданных отсутствует официальный перевод на выбранном языке, алиас для него не будет добавлен автоматически. В таком случае вы всегда можете добавить собственное название на любом языке вручную через поле «Новый алиас» в карточке тайтла.</span>
+                </div>
               </div>
             </div>
 
             <div class="form-row" style="grid-column: 1 / -1; margin-top: 6px;">
               <button class="btn btn-secondary" id="md-test-btn" onclick="testMetadataSource(this)" data-i18n="common.test">Тест</button>
               <button class="btn btn-secondary" id="md-cancel-btn" style="display:none" onclick="resetMetadataSourceForm()" data-i18n="common.cancel">Отмена</button>
-              <button class="btn btn-primary" id="md-submit-btn" onclick="submitMetadataSource()" data-i18n="common.add">Добавить</button>
+              <button class="btn btn-primary" id="md-submit-btn" onclick="submitMetadataSource()" data-i18n="common.save">Сохранить</button>
             </div>
 
             <div id="md-test-result" class="inline-status-box" style="grid-column: 1 / -1; display:none;"></div>

@@ -509,7 +509,7 @@ async def import_missing_collection_movies(
         show = Show(
             title=clean_p_title,
             year=clean_p_year,
-            metadata_source="tmdb",
+            metadata_source="radarr",
             metadata_id=f"movie:{tmdb_id}",
             overview=p_overview,
             poster_url=p_poster,

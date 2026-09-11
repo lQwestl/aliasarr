@@ -305,9 +305,17 @@ class TMDBClient(BaseMetadataClient):
     IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
     DEFAULT_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxYTczNzMzMDE5NjFkMDNmOTdmODUzYTg3NmRkMTIxMiIsInN1YiI6IjU4NjRmNTkyYzNhMzY4MGFiNjAxNzUzNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.gh1BwogCCKOda6xj9FRMgAAj_RYKMMPC3oNlcBtlmwk"
 
-    def __init__(self, api_key: str = "", alias_countries: Optional[list[str]] = None):
+    def __init__(self, api_key: str = "", alias_countries: Optional[list[str]] = None, alias_languages: Optional[list[str]] = None):
         import os as _os
         self.api_key = (api_key or _os.getenv("TMDB_API_KEY", "") or self.DEFAULT_TOKEN).strip()
+        langs = []
+        if alias_languages:
+            langs = [l.lower() for l in alias_languages if l and l.lower() != "en"]
+        elif alias_countries:
+            langs = [c.lower() for c in alias_countries if c and c.lower() != "en"]
+        if not langs:
+            langs = ["ru"]
+        self.alias_languages = langs
         self.alias_countries = [c.upper() for c in alias_countries] if alias_countries else None
 
     def _headers(self) -> dict:
@@ -379,13 +387,16 @@ class TMDBClient(BaseMetadataClient):
             resp.raise_for_status()
             data = resp.json()
 
+        allowed_langs = {"en", "eng"} | {l.lower() for l in (self.alias_languages or ["ru"])}
+
         # Для совместимости с Jellyfin название и папки должны быть на английском
         raw_title = data.get("title") or data.get("original_title") or ""
         aliases = []
         ru_title = None
         eng_trans_title = None
+        extra_lang_titles = []
 
-        # Извлекаем русское и английское название и описание из переводов TMDB
+        # Извлекаем названия и описания из переводов TMDB строго для разрешенных языков
         ru_overview = None
         eng_overview = None
         tr_raw = data.get("translations")
@@ -393,14 +404,17 @@ class TMDBClient(BaseMetadataClient):
         for tr in tr_list:
             if not isinstance(tr, dict):
                 continue
-            iso = tr.get("iso_639_1") or tr.get("language")
+            iso = (tr.get("iso_639_1") or tr.get("language") or "").lower().split("-")[0]
             tr_data = tr.get("data") if isinstance(tr.get("data"), dict) else tr
+            t_t = tr_data.get("title")
             if iso in ("ru", "rus", "russian"):
-                ru_title = tr_data.get("title") or ru_title
+                ru_title = t_t or ru_title
                 ru_overview = tr_data.get("overview") or ru_overview
             elif iso in ("en", "eng", "english"):
-                eng_trans_title = tr_data.get("title") or eng_trans_title
+                eng_trans_title = t_t or eng_trans_title
                 eng_overview = tr_data.get("overview") or eng_overview
+            elif iso in allowed_langs and t_t and t_t.strip():
+                extra_lang_titles.append(t_t.strip())
 
         # Альтернативные названия
         alt_titles = []
@@ -433,13 +447,19 @@ class TMDBClient(BaseMetadataClient):
         else:
             title = raw_title
 
-        # Добавляем все альтернативные и нелатинские названия в алиасы
+        # Добавляем все альтернативные и разрешенные названия в алиасы
         if raw_title and raw_title != title and raw_title not in aliases:
             aliases.append(raw_title)
-        if ru_title and ru_title != title and ru_title not in aliases:
+        if ru_title and ru_title != title and ru_title not in aliases and ("ru" in allowed_langs or "rus" in allowed_langs):
             aliases.append(ru_title)
+        for ext_t in extra_lang_titles:
+            if ext_t != title and ext_t not in aliases:
+                aliases.append(ext_t)
         for t_name, iso in alt_titles:
             if t_name != title and t_name not in aliases:
+                # Включаем если это английское/латинское название или страна/язык входит в разрешенные
+                if not is_latin_text(t_name) and iso and iso.lower() not in allowed_langs:
+                    continue
                 if self.alias_countries is not None and iso and iso not in self.alias_countries:
                     continue
                 aliases.append(t_name)
@@ -954,8 +974,16 @@ class SkyHookClient(BaseMetadataClient):
     BASE_URL = "https://skyhook.sonarr.tv/v1/tvdb"
     RADARR_URL = "https://radarr.servarr.com/v1/api"
 
-    def __init__(self, api_key: str = "", alias_countries: Optional[list[str]] = None, base_url: str = ""):
+    def __init__(self, api_key: str = "", alias_countries: Optional[list[str]] = None, base_url: str = "", alias_languages: Optional[list[str]] = None):
         self.base_url = (base_url or self.BASE_URL).rstrip("/")
+        langs = []
+        if alias_languages:
+            langs = [l.lower() for l in alias_languages if l and l.lower() != "en"]
+        elif alias_countries:
+            langs = [c.lower() for c in alias_countries if c and c.lower() != "en"]
+        if not langs:
+            langs = ["ru"]
+        self.alias_languages = langs
         self.alias_countries = [c.upper() for c in alias_countries] if alias_countries else None
 
     async def search(self, query: str) -> list[MetadataResult]:
@@ -1043,29 +1071,35 @@ class SkyHookClient(BaseMetadataClient):
             resp.raise_for_status()
             data = resp.json()
 
-            # Получаем также русские алиасы и перевод, если доступен
-            ru_data = None
-            try:
-                ru_resp = await client.get(f"{self.base_url}/shows/ru/{tvdb_id}")
-                if ru_resp.status_code == 200:
-                    ru_data = ru_resp.json()
-            except Exception:
-                pass
-
         raw_title = data.get("title") or ""
         aliases: list[str] = []
 
-        # Алиасы из SkyHook
+        # Алиасы из SkyHook (Sonarr отдаёт здесь ромаджи, аббревиатуры и английские названия)
         for al in data.get("aliases", []):
             if isinstance(al, str) and al.strip() and al.strip() != raw_title and al.strip() not in aliases:
                 aliases.append(al.strip())
             elif isinstance(al, dict) and al.get("title") and al["title"] not in aliases:
                 aliases.append(al["title"])
 
-        if ru_data and ru_data.get("title") and ru_data["title"] != raw_title and ru_data["title"] not in aliases:
-            aliases.append(ru_data["title"])
+        overview = data.get("overview")
 
-        overview = (ru_data.get("overview") if ru_data and ru_data.get("overview") else None) or data.get("overview")
+        # Запрашиваем переводы для всех настроенных языков пользователя (до 5 языков)
+        async with httpx.AsyncClient(timeout=15, headers={"User-Agent": "Aliasarr/1.0.0 (Sonarr SkyHook Proxy)"}) as client:
+            for lang in (self.alias_languages or ["ru"]):
+                if not lang or lang.lower() == "en":
+                    continue
+                try:
+                    lang_resp = await client.get(f"{self.base_url}/shows/{lang.lower()}/{tvdb_id}")
+                    if lang_resp.status_code == 200:
+                        lang_data = lang_resp.json()
+                        lt = lang_data.get("title")
+                        if lt and lt.strip() and lt.strip() != raw_title and lt.strip() not in aliases:
+                            aliases.append(lt.strip())
+                        lo = lang_data.get("overview")
+                        if lo and (lang.lower() == "ru" or not overview):
+                            overview = lo
+                except Exception:
+                    pass
 
         # Постер
         poster_url = extract_skyhook_poster(data.get("images", []))
@@ -1125,7 +1159,7 @@ class SkyHookClient(BaseMetadataClient):
         )
 
     async def _get_movie_details(self, tmdb_id: str) -> MetadataShowDetails:
-        radarr = RadarrClient(api_key="", alias_countries=self.alias_countries)
+        radarr = RadarrClient(api_key="", alias_languages=self.alias_languages)
         return await radarr.get_details(f"movie:{tmdb_id}")
 
 
@@ -1143,8 +1177,16 @@ class RadarrClient(BaseMetadataClient):
     # Встроенный сервисный Bearer-токен TMDb из Radarr для прямого резервного поиска
     RADARR_TMDB_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxYTczNzMzMDE5NjFkMDNmOTdmODUzYTg3NmRkMTIxMiIsInN1YiI6IjU4NjRmNTkyYzNhMzY4MGFiNjAxNzUzNCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.gh1BwogCCKOda6xj9FRMgAAj_RYKMMPC3oNlcBtlmwk"
 
-    def __init__(self, api_key: str = "", alias_countries: Optional[list[str]] = None, base_url: str = ""):
+    def __init__(self, api_key: str = "", alias_countries: Optional[list[str]] = None, base_url: str = "", alias_languages: Optional[list[str]] = None):
         self.base_url = (base_url or self.BASE_URL).rstrip("/")
+        langs = []
+        if alias_languages:
+            langs = [l.lower() for l in alias_languages if l and l.lower() != "en"]
+        elif alias_countries:
+            langs = [c.lower() for c in alias_countries if c and c.lower() != "en"]
+        if not langs:
+            langs = ["ru"]
+        self.alias_languages = langs
         self.alias_countries = [c.upper() for c in alias_countries] if alias_countries else None
 
     async def search(self, query: str) -> list[MetadataResult]:
@@ -1306,9 +1348,11 @@ class RadarrClient(BaseMetadataClient):
         if httpx is None:
             return MetadataShowDetails(external_id=f"movie:{clean_id}", title=clean_id, content_type="movie")
 
+        allowed_langs = {"en", "eng"} | {l.lower() for l in (self.alias_languages or ["ru"])}
+
         # 1. Приоритетный прямой запрос к TMDB с сервисным токеном Radarr (надёжно и полно)
         try:
-            tmdb = TMDBClient(api_key=self.RADARR_TMDB_TOKEN, alias_countries=self.alias_countries)
+            tmdb = TMDBClient(api_key=self.RADARR_TMDB_TOKEN, alias_languages=self.alias_languages)
             details = await tmdb._get_movie_details(clean_id)
             if details and details.title and details.title.strip():
                 return details
@@ -1343,18 +1387,31 @@ class RadarrClient(BaseMetadataClient):
                 if original_title and original_title != title and original_title not in aliases:
                     aliases.append(original_title)
 
-                # Собираем все alternativeTitles (Radarr)
+                # Собираем alternativeTitles строго на разрешенных языках или латинице
                 for alt in (data.get("alternativeTitles", []) or data.get("alternateTitles", [])):
-                    t_name = alt.get("title") if isinstance(alt, dict) else str(alt)
-                    if t_name and t_name.strip() and t_name.strip() != title and t_name.strip() not in aliases:
-                        aliases.append(t_name.strip())
+                    if isinstance(alt, dict):
+                        t_name = alt.get("title") or alt.get("cleanTitle")
+                        lang = (alt.get("language") or alt.get("country") or "").lower().split("-")[0]
+                        if not t_name or not t_name.strip():
+                            continue
+                        t_clean = t_name.strip()
+                        if t_clean == title or t_clean in aliases:
+                            continue
+                        if lang and lang in allowed_langs:
+                            aliases.append(t_clean)
+                        elif is_latin_text(t_clean) and not lang:
+                            aliases.append(t_clean)
+                    elif isinstance(alt, str) and alt.strip():
+                        t_clean = alt.strip()
+                        if t_clean != title and t_clean not in aliases and is_latin_text(t_clean):
+                            aliases.append(t_clean)
 
-                # Собираем переводы (Translations)
+                # Собираем переводы (Translations) строго на разрешенных языках
                 for tr in (data.get("translations", []) or []):
                     if isinstance(tr, dict):
                         tr_title = tr.get("title")
-                        tr_lang = (tr.get("language") or "").lower()
-                        if tr_title and tr_title.strip() and tr_title.strip() != title and tr_title.strip() not in aliases:
+                        tr_lang = (tr.get("language") or "").lower().split("-")[0]
+                        if tr_lang in allowed_langs and tr_title and tr_title.strip() and tr_title.strip() != title and tr_title.strip() not in aliases:
                             aliases.append(tr_title.strip())
                         if tr_lang in ("ru", "rus", "russian"):
                             if tr.get("overview"):
@@ -1417,12 +1474,12 @@ class RadarrClient(BaseMetadataClient):
                     )
 
         # 3. Fallback на TMDB с сервисным токеном
-        tmdb = TMDBClient(api_key=self.RADARR_TMDB_TOKEN, alias_countries=self.alias_countries)
+        tmdb = TMDBClient(api_key=self.RADARR_TMDB_TOKEN, alias_languages=self.alias_languages)
         return await tmdb._get_movie_details(clean_id)
 
     async def get_collection_details(self, tmdb_collection_id: int | str) -> dict:
         """Получить киноколлекцию через TMDb API с сервисным токеном Radarr."""
-        tmdb = TMDBClient(api_key=self.RADARR_TMDB_TOKEN, alias_countries=self.alias_countries)
+        tmdb = TMDBClient(api_key=self.RADARR_TMDB_TOKEN, alias_languages=self.alias_languages)
         return await tmdb.get_collection_details(tmdb_collection_id)
 
 
@@ -1968,19 +2025,21 @@ def get_metadata_client(source_row) -> BaseMetadataClient:
     """source_row: модель MetadataSource из БД."""
     type_value = source_row.type.value if hasattr(source_row.type, "value") else str(source_row.type)
     
-    # Извлекаем alias_countries и pin из field_mapping
+    # Извлекаем alias_languages, alias_countries и pin из field_mapping
+    alias_languages = None
     alias_countries = None
     pin = ""
     if isinstance(source_row.field_mapping, dict):
+        alias_languages = source_row.field_mapping.get("alias_languages")
         alias_countries = source_row.field_mapping.get("alias_countries")
         pin = source_row.field_mapping.get("pin", "")
     
     if type_value in ("skyhook", "sonarr"):
-        return SkyHookClient(source_row.api_key or "", alias_countries, base_url=source_row.base_url or "")
+        return SkyHookClient(source_row.api_key or "", alias_countries=alias_countries, base_url=source_row.base_url or "", alias_languages=alias_languages)
     elif type_value in ("radarr", "radarr_skyhook"):
-        return RadarrClient(source_row.api_key or "", alias_countries, base_url=source_row.base_url or "")
+        return RadarrClient(source_row.api_key or "", alias_countries=alias_countries, base_url=source_row.base_url or "", alias_languages=alias_languages)
     elif type_value == "tmdb":
-        return TMDBClient(source_row.api_key or "", alias_countries)
+        return TMDBClient(source_row.api_key or "", alias_countries=alias_countries, alias_languages=alias_languages)
     elif type_value == "tvmaze":
         return TVMazeClient(source_row.api_key or "", alias_countries)
     elif type_value == "thetvdb":
@@ -2910,20 +2969,17 @@ async def refresh_all_collections_metadata(db, force: bool = False) -> dict:
 
 
 def seed_default_metadata_sources(db) -> None:
-    """Создаёт источники метаданных по умолчанию (TMDB, TVMaze, SkyHook, Radarr, TheTVDB),
-    только при первичной инициализации приложения, сохраняя изменения и удалённые пользователем источники."""
+    """Создаёт источники метаданных по умолчанию (Sonarr SkyHook и Radarr SkyHook),
+    только при первичной инициализации приложения, удаляя устаревшие провайдеры."""
     try:
-        import os
         try:
             from app.models.db import MetadataSource, MetadataSourceType
         except ImportError:
             class MetadataSourceType:  # type: ignore
                 SKYHOOK = "skyhook"
                 RADARR = "radarr"
-                TVMAZE = "tvmaze"
-                TMDB = "tmdb"
-                THETVDB = "thetvdb"
             class MetadataSource:  # type: ignore
+                type = _DummyExpr()
                 def __init__(self, **kwargs):
                     for k, v in kwargs.items():
                         setattr(self, k, v)
@@ -2934,9 +2990,10 @@ def seed_default_metadata_sources(db) -> None:
         if getattr(settings, "metadata_sources_seeded", False):
             return
 
+        # Удаляем устаревшие типы источников
         try:
             from sqlalchemy import text
-            db.execute(text("DELETE FROM metadata_sources WHERE type IN ('omdb', 'kinopoisk')"))
+            db.execute(text("DELETE FROM metadata_sources WHERE type IN ('omdb', 'kinopoisk', 'tvmaze', 'tmdb', 'thetvdb')"))
             db.commit()
         except Exception:
             try:
@@ -2947,45 +3004,26 @@ def seed_default_metadata_sources(db) -> None:
         existing_types = {getattr(s, "type", "") for s in db.query(MetadataSource).all()}
         if db.query(MetadataSource).count() == 0 or not existing_types:
             db.add(MetadataSource(
-                name="SkyHook (Sonarr / TVDB Cloud)",
+                name="Sonarr SkyHook (Сериалы / Аниме)",
                 type=getattr(MetadataSourceType, "SKYHOOK", "skyhook"),
                 base_url="https://skyhook.sonarr.tv/v1/tvdb",
                 api_key="",
+                field_mapping={"alias_languages": ["ru"]},
                 enabled=True,
             ))
             db.add(MetadataSource(
-                name="Radarr SkyHook (Movie Cloud)",
+                name="Radarr SkyHook (Фильмы)",
                 type=getattr(MetadataSourceType, "RADARR", "radarr"),
                 base_url="https://api.radarr.video/v1",
                 api_key="",
-                enabled=True,
-            ))
-            db.add(MetadataSource(
-                name="TVMaze",
-                type=getattr(MetadataSourceType, "TVMAZE", "tvmaze"),
-                base_url="https://api.tvmaze.com",
-                api_key="",
-                enabled=True,
-            ))
-            db.add(MetadataSource(
-                name="TMDB (The Movie Database)",
-                type=getattr(MetadataSourceType, "TMDB", "tmdb"),
-                base_url="https://api.themoviedb.org/3",
-                api_key=os.getenv("TMDB_API_KEY", ""),
-                enabled=True,
-            ))
-            db.add(MetadataSource(
-                name="TheTVDB v4",
-                type=getattr(MetadataSourceType, "THETVDB", "thetvdb"),
-                base_url="https://api4.thetvdb.com/v4",
-                api_key=os.getenv("THETVDB_API_KEY", ""),
+                field_mapping={"alias_languages": ["ru"]},
                 enabled=True,
             ))
 
         settings.metadata_sources_seeded = True
         db.add(settings)
         db.commit()
-        logger.info("Инициализированы источники метаданных по умолчанию")
+        logger.info("Инициализированы официальные источники метаданных Sonarr и Radarr SkyHook")
     except Exception as exc:
         try:
             db.rollback()

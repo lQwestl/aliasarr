@@ -861,25 +861,24 @@ const TRANSLATIONS = {
     "md.add_title": "Добавить источник метаданных",
     "metadata.add_title": "Добавить источник метаданных",
     "md.edit_title": "Редактирование: {name}",
-    "md.name_placeholder": "Название, напр. TMDB или TheTVDB",
-    "md.tmdb_how_title": "Как получить ключ TMDB:",
-    "md.tmdb_step1": "Зарегистрируйтесь на <a href=\"https://www.themoviedb.org\" target=\"_blank\" rel=\"noopener\">themoviedb.org</a>",
-    "md.tmdb_step2": "Откройте <a href=\"https://www.themoviedb.org/settings/api\" target=\"_blank\" rel=\"noopener\">Settings → API</a>",
-    "md.tmdb_step3": "Скопируйте <strong>Read Access Token (v4 auth)</strong> — это длинная строка <code>eyJ...</code>",
-    "md.tmdb_important": "<strong>Важно:</strong> вставляйте именно <em>Read Access Token</em> (<code>eyJ...</code>), а не короткий API Key v3.",
-    "md.thetvdb_title": "TheTVDB API v4:",
-    "md.thetvdb_desc": "Для использования TheTVDB введите <strong>API Key v4</strong> из личного кабинета <a href=\"https://thetvdb.com/dashboard/account/api\" target=\"_blank\" rel=\"noopener\">thetvdb.com</a>. Если у вас подписка со Subscriber PIN, укажите PIN в поле ниже.",
-    "md.pin_placeholder": "Subscriber PIN (опционально)",
-    "md.tvmaze_title": "TVMaze:",
-    "md.tvmaze_desc": "Если у вас есть аккаунт TVmaze, для Premium-функций введите <code>ваш_логин:ваш_API_ключ</code>. Ключ можно найти на <a href=\"https://www.tvmaze.com/dashboard\" target=\"_blank\" rel=\"noopener\">tvmaze.com/dashboard</a>.",
-    "md.alias_filter_title": "Фильтр алиасов (альтернативных названий) по странам:",
-    "md.alias_filter_hint": "Если ничего не выбрано — загружаются алиасы для всех стран мира.",
+    "md.name_placeholder": "Название, напр. Sonarr SkyHook или Radarr SkyHook",
+    "md.opt_sonarr": "Sonarr SkyHook (Сериалы и Аниме)",
+    "md.opt_radarr": "Radarr SkyHook (Фильмы)",
+    "md.languages_title": "Языки для автоматических алиасов",
+    "md.add_language_btn": "Добавить язык",
+    "md.quick_add": "Быстрый выбор:",
+    "md.info_banner_title": "Автоматическое наполнение алиасов:",
+    "md.info_banner_text": "Если в базе источника метаданных отсутствует официальный перевод на выбранном языке, алиас для него не будет добавлен автоматически. В таком случае вы всегда можете добавить собственное название на любом языке вручную через поле «Новый алиас» в карточке тайтла.",
+    "md.lang_limit_reached": "Достигнут лимит в 5 дополнительных языков",
+    "md.lang_already_added": "Этот язык уже добавлен",
+    "md.lang_count": "Выбрано {count} из 5 дополнительных языков",
+    "md.lang_primary": "Основной",
     "md.col_name": "Название",
     "md.col_type": "Тип",
     "md.empty": "Источники не добавлены",
 
     "md.auto_refresh_title": "Автоматическое обновление метаданных",
-    "md.auto_refresh_desc": "Регулярная синхронизация со SkyHook/TMDB/TVDB: подтягивание официальных названий для невышедших серий (вместо «Episode N»), добавление новых анонсированных серий и обновление дат премьер.",
+    "md.auto_refresh_desc": "Регулярная синхронизация со SkyHook: подтягивание официальных названий для невышедших серий (вместо «Episode N»), добавление новых анонсированных серий и обновление дат премьер.",
     "md.auto_refresh_checkbox": "Включить автоматическое обновление метаданных библиотеки",
     "md.refresh_interval_label": "Период обновления:",
     "md.interval_6h": "Каждые 6 часов",
@@ -891,7 +890,7 @@ const TRANSLATIONS = {
     "md.btn_refresh_now_title": "Запустить полное обновление метаданных всех тайтлов сейчас",
     "md.sync_section_title": "Синхронизация метаданных",
     "md.sync_section_desc": "Принудительное обновление информации о фильмах, франшизах, сериях и датах выхода из сети",
-    "md.refresh_all_info": "Запускает полный опрос облачных провайдеров (Radarr/Sonarr SkyHook, TMDb) для всей библиотеки: обновляет официальные названия, саги и киноколлекции, постеры, синопсисы и даты премьер.",
+    "md.refresh_all_info": "Запускает полный опрос облачных провайдеров (Radarr/Sonarr SkyHook) для всей библиотеки: обновляет официальные названия, саги и киноколлекции, постеры, синопсисы и даты премьер.",
     "md.settings_saved": "Настройки обновления метаданных сохранены",
     "md.refresh_started": "Запущено фоновое обновление метаданных библиотеки...",
     "library.btn_refresh_all": "Обновить метаданные",
@@ -2181,25 +2180,24 @@ const TRANSLATIONS = {
     "md.add_title": "Add Metadata Source",
     "metadata.add_title": "Add Metadata Source",
     "md.edit_title": "Edit: {name}",
-    "md.name_placeholder": "Name, e.g. TMDB or TheTVDB",
-    "md.tmdb_how_title": "How to get a TMDB key:",
-    "md.tmdb_step1": "Register at <a href=\"https://www.themoviedb.org\" target=\"_blank\" rel=\"noopener\">themoviedb.org</a>",
-    "md.tmdb_step2": "Open <a href=\"https://www.themoviedb.org/settings/api\" target=\"_blank\" rel=\"noopener\">Settings → API</a>",
-    "md.tmdb_step3": "Copy <strong>Read Access Token (v4 auth)</strong> — this is the long <code>eyJ...</code> string",
-    "md.tmdb_important": "<strong>Important:</strong> paste the <em>Read Access Token</em> (<code>eyJ...</code>), not the short API Key v3.",
-    "md.thetvdb_title": "TheTVDB API v4:",
-    "md.thetvdb_desc": "To use TheTVDB, enter your <strong>API Key v4</strong> from your account at <a href=\"https://thetvdb.com/dashboard/account/api\" target=\"_blank\" rel=\"noopener\">thetvdb.com</a>. If you have a User-supported key with Subscriber PIN, enter your PIN below.",
-    "md.pin_placeholder": "Subscriber PIN (optional)",
-    "md.tvmaze_title": "TVMaze:",
-    "md.tvmaze_desc": "If you have a TVmaze account, for Premium features enter <code>your_username:your_API_key</code>. Key can be found at <a href=\"https://www.tvmaze.com/dashboard\" target=\"_blank\" rel=\"noopener\">tvmaze.com/dashboard</a>.",
-    "md.alias_filter_title": "Alias country filter:",
-    "md.alias_filter_hint": "If none selected, aliases for all countries are imported.",
+    "md.name_placeholder": "Name, e.g. Sonarr SkyHook or Radarr SkyHook",
+    "md.opt_sonarr": "Sonarr SkyHook (Series & Anime)",
+    "md.opt_radarr": "Radarr SkyHook (Movies)",
+    "md.languages_title": "Languages for automatic aliases",
+    "md.add_language_btn": "Add language",
+    "md.quick_add": "Quick select:",
+    "md.info_banner_title": "Automatic alias population:",
+    "md.info_banner_text": "If the upstream metadata source lacks an official translation in the selected language, an alias won't be added automatically. You can always add custom titles in any language manually via the «New alias» input on the title card.",
+    "md.lang_limit_reached": "Limit of 5 additional languages reached",
+    "md.lang_already_added": "This language is already added",
+    "md.lang_count": "Selected {count} of 5 additional languages",
+    "md.lang_primary": "Primary",
     "md.col_name": "Name",
     "md.col_type": "Type",
     "md.empty": "No metadata sources added",
 
     "md.auto_refresh_title": "Automatic Metadata Refresh",
-    "md.auto_refresh_desc": "Regular synchronization with SkyHook/TMDB/TVDB: fetching official titles for unreleased episodes (instead of 'Episode N'), adding newly announced episodes and updating premiere dates.",
+    "md.auto_refresh_desc": "Regular synchronization with SkyHook: fetching official titles for unreleased episodes (instead of 'Episode N'), adding newly announced episodes and updating premiere dates.",
     "md.auto_refresh_checkbox": "Enable automatic library metadata refresh",
     "md.refresh_interval_label": "Refresh interval:",
     "md.interval_6h": "Every 6 hours",
@@ -2211,7 +2209,7 @@ const TRANSLATIONS = {
     "md.btn_refresh_now_title": "Start full metadata refresh for all titles now",
     "md.sync_section_title": "Metadata Synchronization",
     "md.sync_section_desc": "Force update movies, franchises, episodes, and release dates from the cloud",
-    "md.refresh_all_info": "Starts a full query of cloud metadata providers (Radarr/Sonarr SkyHook, TMDb) for the entire library: updates official titles, movie collections and sagas, posters, overviews, and premiere dates.",
+    "md.refresh_all_info": "Starts a full query of cloud metadata providers (Radarr/Sonarr SkyHook) for the entire library: updates official titles, movie collections and sagas, posters, overviews, and premiere dates.",
     "md.settings_saved": "Metadata refresh settings saved",
     "md.refresh_started": "Background library metadata refresh started...",
     "library.btn_refresh_all": "Refresh Metadata",
@@ -15865,6 +15863,218 @@ async function deleteCustomFormat(id) {
 
 let EDITING_MD_ID = null;
 
+// Каталог 70 поддерживаемых языков для алиасов
+const ALL_SUPPORTED_LANGUAGES = [
+  { code: "az", name_ru: "Азербайджанский", name_en: "Azerbaijani" },
+  { code: "sq", name_ru: "Албанский", name_en: "Albanian" },
+  { code: "en", name_ru: "Английский", name_en: "English" },
+  { code: "ar", name_ru: "Арабский", name_en: "Arabic" },
+  { code: "hy", name_ru: "Армянский", name_en: "Armenian" },
+  { code: "af", name_ru: "Африкаанс", name_en: "Afrikaans" },
+  { code: "eu", name_ru: "Баскский", name_en: "Basque" },
+  { code: "be", name_ru: "Белорусский", name_en: "Belarusian" },
+  { code: "bn", name_ru: "Бенгальский", name_en: "Bengali" },
+  { code: "my", name_ru: "Бирманский", name_en: "Burmese" },
+  { code: "bg", name_ru: "Болгарский", name_en: "Bulgarian" },
+  { code: "cy", name_ru: "Валлийский", name_en: "Welsh" },
+  { code: "hu", name_ru: "Венгерский", name_en: "Hungarian" },
+  { code: "vi", name_ru: "Вьетнамский", name_en: "Vietnamese" },
+  { code: "gl", name_ru: "Галисийский", name_en: "Galician" },
+  { code: "el", name_ru: "Греческий", name_en: "Greek" },
+  { code: "ka", name_ru: "Грузинский", name_en: "Georgian" },
+  { code: "gu", name_ru: "Гуджарати", name_en: "Gujarati" },
+  { code: "da", name_ru: "Датский", name_en: "Danish" },
+  { code: "he", name_ru: "Иврит", name_en: "Hebrew" },
+  { code: "id", name_ru: "Индонезийский", name_en: "Indonesian" },
+  { code: "ga", name_ru: "Ирландский", name_en: "Irish" },
+  { code: "is", name_ru: "Исландский", name_en: "Icelandic" },
+  { code: "es", name_ru: "Испанский", name_en: "Spanish" },
+  { code: "it", name_ru: "Итальянский", name_en: "Italian" },
+  { code: "kk", name_ru: "Казахский", name_en: "Kazakh" },
+  { code: "kn", name_ru: "Каннада", name_en: "Kannada" },
+  { code: "ca", name_ru: "Каталанский", name_en: "Catalan" },
+  { code: "zh", name_ru: "Китайский", name_en: "Chinese" },
+  { code: "ko", name_ru: "Корейский", name_en: "Korean" },
+  { code: "km", name_ru: "Кхмерский", name_en: "Khmer" },
+  { code: "lo", name_ru: "Лаосский", name_en: "Lao" },
+  { code: "lv", name_ru: "Латышский", name_en: "Latvian" },
+  { code: "lt", name_ru: "Литовский", name_en: "Lithuanian" },
+  { code: "mk", name_ru: "Македонский", name_en: "Macedonian" },
+  { code: "ms", name_ru: "Малайский", name_en: "Malay" },
+  { code: "ml", name_ru: "Малаялам", name_en: "Malayalam" },
+  { code: "mr", name_ru: "Маратхи", name_en: "Marathi" },
+  { code: "mn", name_ru: "Монгольский", name_en: "Mongolian" },
+  { code: "de", name_ru: "Немецкий", name_en: "German" },
+  { code: "ne", name_ru: "Непальский", name_en: "Nepali" },
+  { code: "nl", name_ru: "Нидерландский", name_en: "Dutch" },
+  { code: "no", name_ru: "Норвежский", name_en: "Norwegian" },
+  { code: "pa", name_ru: "Панджаби", name_en: "Punjabi" },
+  { code: "fa", name_ru: "Персидский (Фарси)", name_en: "Persian" },
+  { code: "pl", name_ru: "Польский", name_en: "Polish" },
+  { code: "pt", name_ru: "Португальский", name_en: "Portuguese" },
+  { code: "ro", name_ru: "Румынский", name_en: "Romanian" },
+  { code: "ru", name_ru: "Русский", name_en: "Russian" },
+  { code: "sr", name_ru: "Сербский", name_en: "Serbian" },
+  { code: "si", name_ru: "Сингальский", name_en: "Sinhala" },
+  { code: "sk", name_ru: "Словацкий", name_en: "Slovak" },
+  { code: "sl", name_ru: "Словенский", name_en: "Slovenian" },
+  { code: "sw", name_ru: "Суахили", name_en: "Swahili" },
+  { code: "tl", name_ru: "Тагальский (Филиппинский)", name_en: "Tagalog" },
+  { code: "th", name_ru: "Тайский", name_en: "Thai" },
+  { code: "ta", name_ru: "Тамильский", name_en: "Tamil" },
+  { code: "te", name_ru: "Телугу", name_en: "Telugu" },
+  { code: "tr", name_ru: "Турецкий", name_en: "Turkish" },
+  { code: "uz", name_ru: "Узбекский", name_en: "Uzbek" },
+  { code: "uk", name_ru: "Украинский", name_en: "Ukrainian" },
+  { code: "ur", name_ru: "Урду", name_en: "Urdu" },
+  { code: "fi", name_ru: "Финский", name_en: "Finnish" },
+  { code: "fr", name_ru: "Французский", name_en: "French" },
+  { code: "hi", name_ru: "Хинди", name_en: "Hindi" },
+  { code: "hr", name_ru: "Хорватский", name_en: "Croatian" },
+  { code: "cs", name_ru: "Чешский", name_en: "Czech" },
+  { code: "sv", name_ru: "Шведский", name_en: "Swedish" },
+  { code: "et", name_ru: "Эстонский", name_en: "Estonian" },
+  { code: "ja", name_ru: "Японский", name_en: "Japanese" }
+];
+
+let CURRENT_MD_LANGUAGES = ["ru"];
+const MAX_ADDITIONAL_MD_LANGUAGES = 5;
+
+function populateMetadataLanguageSelect() {
+  const select = document.getElementById("md-language-select");
+  if (!select) return;
+  const currentVal = select.value;
+  const isEn = CURRENT_LANG === "en";
+
+  const availableLangs = ALL_SUPPORTED_LANGUAGES.filter(
+    l => l.code !== "en" && !CURRENT_MD_LANGUAGES.includes(l.code)
+  );
+
+  availableLangs.sort((a, b) => {
+    const nameA = isEn ? a.name_en : a.name_ru;
+    const nameB = isEn ? b.name_en : b.name_ru;
+    return nameA.localeCompare(nameB);
+  });
+
+  if (availableLangs.length === 0) {
+    select.innerHTML = `<option value="">${isEn ? "All languages added" : "Все языки добавлены"}</option>`;
+    select.disabled = true;
+  } else {
+    select.disabled = CURRENT_MD_LANGUAGES.length >= MAX_ADDITIONAL_MD_LANGUAGES;
+    select.innerHTML = availableLangs.map(l => {
+      const name = isEn ? l.name_en : l.name_ru;
+      return `<option value="${escapeHtml(l.code)}">${escapeHtml(name)} (${escapeHtml(l.code.toUpperCase())})</option>`;
+    }).join("");
+    if (availableLangs.some(l => l.code === currentVal)) {
+      select.value = currentVal;
+    }
+  }
+}
+
+function renderMetadataLanguagesChips() {
+  const container = document.getElementById("md-active-languages-chips");
+  const countHint = document.getElementById("md-languages-count-hint");
+  const addBtn = document.getElementById("md-add-language-btn");
+  const select = document.getElementById("md-language-select");
+  const isEn = CURRENT_LANG === "en";
+
+  if (!container) return;
+
+  const count = CURRENT_MD_LANGUAGES.length;
+  if (countHint) {
+    countHint.textContent = isEn
+      ? `(${count}/${MAX_ADDITIONAL_MD_LANGUAGES} additional languages selected)`
+      : `(выбрано ${count} из ${MAX_ADDITIONAL_MD_LANGUAGES} доп. языков)`;
+  }
+
+  const isLimitReached = count >= MAX_ADDITIONAL_MD_LANGUAGES;
+  if (addBtn) addBtn.disabled = isLimitReached;
+  if (select && count >= MAX_ADDITIONAL_MD_LANGUAGES) select.disabled = true;
+
+  let html = `
+    <div class="md-lang-locked-chip" title="${isEn ? 'Base language, always active' : 'Базовый основной язык, активен всегда'}">
+      <i data-lucide="lock" class="ico-xs"></i>
+      <span>English (EN)</span>
+      <span class="badge-lang-role">${isEn ? 'Primary' : 'Основной'}</span>
+    </div>
+  `;
+
+  CURRENT_MD_LANGUAGES.forEach(code => {
+    const langObj = ALL_SUPPORTED_LANGUAGES.find(l => l.code === code) || { code, name_ru: code.toUpperCase(), name_en: code.toUpperCase() };
+    const name = isEn ? langObj.name_en : langObj.name_ru;
+    html += `
+      <div class="md-lang-active-chip">
+        <i data-lucide="globe" class="ico-xs"></i>
+        <span>${escapeHtml(name)} (${escapeHtml(code.toUpperCase())})</span>
+        <button type="button" class="md-lang-remove-btn" onclick="removeMetadataLanguage('${escapeHtml(code)}')" title="${isEn ? 'Remove' : 'Удалить'}">
+          <i data-lucide="x" class="ico-xs"></i>
+        </button>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+  if (window.lucide) lucide.createIcons();
+
+  document.querySelectorAll(".btn-chip-quick").forEach(btn => {
+    const onclickStr = btn.getAttribute("onclick") || "";
+    const match = onclickStr.match(/'([a-z]+)'/);
+    if (match && match[1]) {
+      const code = match[1];
+      if (CURRENT_MD_LANGUAGES.includes(code)) {
+        btn.style.opacity = "0.45";
+        btn.style.cursor = "default";
+      } else {
+        btn.style.opacity = isLimitReached ? "0.6" : "1";
+        btn.style.cursor = isLimitReached ? "not-allowed" : "pointer";
+      }
+    }
+  });
+}
+
+function addSelectedMetadataLanguage() {
+  const select = document.getElementById("md-language-select");
+  if (!select || !select.value) return;
+  const code = select.value.trim().toLowerCase();
+  if (!code) return;
+
+  if (CURRENT_MD_LANGUAGES.length >= MAX_ADDITIONAL_MD_LANGUAGES) {
+    toast(CURRENT_LANG === "en" ? "Limit of 5 additional languages reached" : "Достигнут лимит в 5 дополнительных языков", true);
+    return;
+  }
+  if (CURRENT_MD_LANGUAGES.includes(code)) {
+    toast(CURRENT_LANG === "en" ? "This language is already added" : "Этот язык уже добавлен", true);
+    return;
+  }
+
+  CURRENT_MD_LANGUAGES.push(code);
+  renderMetadataLanguagesChips();
+  populateMetadataLanguageSelect();
+}
+
+function quickAddMetadataLanguage(code) {
+  if (!code) return;
+  code = code.toLowerCase();
+  if (CURRENT_MD_LANGUAGES.includes(code)) {
+    toast(CURRENT_LANG === "en" ? "This language is already added" : "Этот язык уже добавлен");
+    return;
+  }
+  if (CURRENT_MD_LANGUAGES.length >= MAX_ADDITIONAL_MD_LANGUAGES) {
+    toast(CURRENT_LANG === "en" ? "Limit of 5 additional languages reached" : "Достигнут лимит в 5 дополнительных языков", true);
+    return;
+  }
+  CURRENT_MD_LANGUAGES.push(code);
+  renderMetadataLanguagesChips();
+  populateMetadataLanguageSelect();
+}
+
+function removeMetadataLanguage(code) {
+  if (!code) return;
+  CURRENT_MD_LANGUAGES = CURRENT_MD_LANGUAGES.filter(c => c !== code.toLowerCase());
+  renderMetadataLanguagesChips();
+  populateMetadataLanguageSelect();
+}
+
 function toggleCustomMetadataFields() {
   const mdTypeEl = document.getElementById("md-type");
   const type = mdTypeEl ? mdTypeEl.value : "skyhook";
@@ -15872,51 +16082,9 @@ function toggleCustomMetadataFields() {
   if (skyhookInst) skyhookInst.style.display = type === "skyhook" ? "block" : "none";
   const radarrInst = document.getElementById("md-radarr-instructions");
   if (radarrInst) radarrInst.style.display = type === "radarr" ? "block" : "none";
-  const tmdbInst = document.getElementById("md-tmdb-instructions");
-  if (tmdbInst) tmdbInst.style.display = type === "tmdb" ? "block" : "none";
-  const tvdbInst = document.getElementById("md-thetvdb-instructions");
-  if (tvdbInst) tvdbInst.style.display = type === "thetvdb" ? "block" : "none";
-  const tvmazeInst = document.getElementById("md-tvmaze-instructions");
-  if (tvmazeInst) tvmazeInst.style.display = type === "tvmaze" ? "block" : "none";
 
-  const mdKey = document.getElementById("md-key");
-  const mdPin = document.getElementById("md-pin");
-  if (type === "skyhook" || type === "radarr") {
-    if (mdKey) {
-      mdKey.style.display = "none";
-      mdKey.value = "";
-    }
-    if (mdPin) mdPin.style.display = "none";
-  } else if (type === "thetvdb") {
-    if (mdKey) {
-      mdKey.style.display = "block";
-      mdKey.placeholder = "TheTVDB API Key v4";
-    }
-    if (mdPin) mdPin.style.display = "block";
-  } else if (type === "tvmaze") {
-    if (mdKey) {
-      mdKey.style.display = "block";
-      mdKey.placeholder = "API key (optional)";
-    }
-    if (mdPin) mdPin.style.display = "none";
-  } else if (type === "tmdb") {
-    if (mdKey) {
-      mdKey.style.display = "block";
-      mdKey.placeholder = "Read Access Token (eyJ...)";
-    }
-    if (mdPin) mdPin.style.display = "none";
-  } else {
-    if (mdKey) {
-      mdKey.style.display = "block";
-      mdKey.placeholder = "API key";
-    }
-    if (mdPin) mdPin.style.display = "none";
-  }
-  
-  const aliasFilterWrap = document.getElementById("md-alias-filter-wrap");
-  if (aliasFilterWrap) {
-    aliasFilterWrap.style.display = (type === "skyhook" || type === "radarr") ? "none" : "block";
-  }
+  populateMetadataLanguageSelect();
+  renderMetadataLanguagesChips();
 }
 
 async function loadMetadataSources() {
@@ -15976,17 +16144,15 @@ function editMetadataSource(m) {
   EDITING_MD_ID = m.id;
   document.getElementById("md-form-title").textContent = `${t("common.edit")}: ${m.name}`;
   document.getElementById("md-name").value = m.name || "";
-  const typeVal = (m.type && m.type.value) ? m.type.value : (m.type || "tmdb");
+  const typeVal = (m.type && m.type.value) ? m.type.value : (m.type || "skyhook");
   document.getElementById("md-type").value = typeVal;
-  document.getElementById("md-key").value = m.api_key || "";
-  const pinEl = document.getElementById("md-pin");
-  if (pinEl) {
-    pinEl.value = (m.field_mapping && m.field_mapping.pin) || "";
+
+  if (m.field_mapping && Array.isArray(m.field_mapping.alias_languages)) {
+    CURRENT_MD_LANGUAGES = m.field_mapping.alias_languages.filter(l => l && l !== "en");
+  } else {
+    CURRENT_MD_LANGUAGES = ["ru"];
   }
-  const countries = (m.field_mapping && m.field_mapping.alias_countries) || [];
-  document.querySelectorAll('#md-alias-countries input[type="checkbox"]').forEach(cb => {
-    cb.checked = countries.includes(cb.value);
-  });
+
   toggleCustomMetadataFields();
   clearInlineStatus("md-test-result");
   document.getElementById("md-submit-btn").textContent = t("common.save");
@@ -15996,33 +16162,25 @@ function editMetadataSource(m) {
 function resetMetadataSourceForm() {
   EDITING_MD_ID = null;
   document.getElementById("md-form-title").textContent = t("md.add_title");
-  ["md-name", "md-key", "md-pin"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
-  });
-  document.querySelectorAll('#md-alias-countries input[type="checkbox"]').forEach(cb => cb.checked = false);
-  document.getElementById("md-submit-btn").textContent = t("common.add");
+  const nameEl = document.getElementById("md-name");
+  if (nameEl) nameEl.value = "";
+  const typeEl = document.getElementById("md-type");
+  if (typeEl) typeEl.value = "skyhook";
+
+  CURRENT_MD_LANGUAGES = ["ru"];
+  document.getElementById("md-submit-btn").textContent = t("common.save");
   document.getElementById("md-cancel-btn").style.display = "none";
   clearInlineStatus("md-test-result");
   toggleCustomMetadataFields();
 }
 
 async function testMetadataSource(btn) {
-  const name = document.getElementById("md-name").value.trim() || "TheTVDB / TMDB / Radarr";
-  const type = document.getElementById("md-type").value;
-  const isSkyhookOrRadarr = (type === "skyhook" || type === "radarr");
-  const api_key = isSkyhookOrRadarr ? null : document.getElementById("md-key").value.trim();
-  const pin = (document.getElementById("md-pin")?.value || "").trim();
-  let field_mapping = {};
-  if (pin) field_mapping.pin = pin;
+  const name = document.getElementById("md-name").value.trim() || "SkyHook";
+  const type = document.getElementById("md-type").value || "skyhook";
+  let baseUrl = type === "radarr" ? "https://api.radarr.video/v1" : "https://skyhook.sonarr.tv/v1/tvdb";
+  const field_mapping = { alias_languages: CURRENT_MD_LANGUAGES };
 
-  let baseUrl = null;
-  if (type === "radarr") baseUrl = "https://api.radarr.video/v1";
-  else if (type === "tmdb") baseUrl = "https://api.themoviedb.org/3";
-  else if (type === "tvmaze") baseUrl = "https://api.tvmaze.com";
-  else if (type === "thetvdb") baseUrl = "https://api4.thetvdb.com/v4";
-
-  const payload = { name, type, base_url: baseUrl, api_key: api_key || null, field_mapping };
+  const payload = { name, type, base_url: baseUrl, api_key: null, field_mapping };
   await withLoading(btn, async () => {
     try {
       const res = await api("/api/v1/metadata-sources/test", { method: "POST", body: JSON.stringify(payload) });
@@ -16039,33 +16197,16 @@ async function testMetadataSource(btn) {
 
 async function submitMetadataSource() {
   const name = document.getElementById("md-name").value.trim();
-  const type = document.getElementById("md-type").value;
-  const isSkyhookOrRadarr = (type === "skyhook" || type === "radarr");
-  const api_key = isSkyhookOrRadarr ? null : document.getElementById("md-key").value.trim();
-  const pin = (document.getElementById("md-pin")?.value || "").trim();
-  
-  const selectedCountries = isSkyhookOrRadarr
-    ? []
-    : Array.from(document.querySelectorAll('#md-alias-countries input[type="checkbox"]:checked')).map(cb => cb.value);
-  let field_mapping = {};
-  if (selectedCountries.length > 0) {
-    field_mapping.alias_countries = selectedCountries;
-  }
-  if (pin) {
-    field_mapping.pin = pin;
-  }
-  
+  const type = document.getElementById("md-type").value || "skyhook";
+
   if (!name) {
     toast(CURRENT_LANG === "en" ? "Name required" : "Укажите название", true);
     return;
   }
-  let baseUrl = null;
-  if (type === "radarr") baseUrl = "https://api.radarr.video/v1";
-  else if (type === "tmdb") baseUrl = "https://api.themoviedb.org/3";
-  else if (type === "tvmaze") baseUrl = "https://api.tvmaze.com";
-  else if (type === "thetvdb") baseUrl = "https://api4.thetvdb.com/v4";
+  let baseUrl = type === "radarr" ? "https://api.radarr.video/v1" : "https://skyhook.sonarr.tv/v1/tvdb";
+  const field_mapping = { alias_languages: CURRENT_MD_LANGUAGES };
 
-  const payload = { name, type, base_url: baseUrl, api_key: api_key || null, field_mapping };
+  const payload = { name, type, base_url: baseUrl, api_key: null, field_mapping };
   try {
     if (EDITING_MD_ID) {
       await api(`/api/v1/metadata-sources/${EDITING_MD_ID}`, { method: "PUT", body: JSON.stringify(payload) });

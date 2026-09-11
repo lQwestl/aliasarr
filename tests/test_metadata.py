@@ -693,6 +693,135 @@ class TestFindExistingShow(unittest.TestCase):
         self.assertIsNone(found)
 
 
+class TestMetadataLanguageFiltering(unittest.TestCase):
+    def test_radarr_client_filters_aliases_by_configured_languages(self):
+        from app.services.metadata import RadarrClient
+
+        client_ru = RadarrClient(alias_languages=["ru"])
+
+        mock_radarr_response = {
+            "title": "Scary Movie",
+            "originalTitle": "Scary Movie",
+            "overview": "A parody of horror films.",
+            "translations": [
+                {"title": "Очень страшное кино", "language": "ru-RU", "overview": "Пародия на фильмы ужасов."},
+                {"title": "Scary Movie - Das Original", "language": "de-DE"},
+                {"title": "Scary Movie: Film de peur", "language": "fr-FR"},
+                {"title": "Scary Movie - Una commedia che fa paura", "language": "it-IT"},
+                {"title": "Scary Movie: Una película de miedo", "language": "es-ES"},
+                {"title": "最終絶叫計画", "language": "ja-JP"},
+                {"title": "무서운 영화", "language": "ko-KR"},
+                {"title": "惊声尖笑", "language": "zh-CN"},
+            ],
+            "alternativeTitles": [
+                {"title": "Scary Movie (Director's Cut)", "language": "en-US"},
+                {"title": "Film de peur", "language": "fr-FR"},
+                {"title": "Scary Movie (Unrated)", "language": "en-US"},
+            ],
+            "tmdbId": 4247,
+        }
+
+        async def run_test():
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = mock_radarr_response
+
+            mock_client_instance = AsyncMock()
+            mock_client_instance.get.return_value = mock_resp
+            mock_client_instance.__aenter__.return_value = mock_client_instance
+            mock_client_instance.__aexit__.return_value = None
+
+            mock_httpx = MagicMock()
+            mock_httpx.AsyncClient.return_value = mock_client_instance
+
+            with patch.object(client_ru, "_get_movie_by_imdb", return_value=None):
+                with patch("app.services.metadata.TMDBClient._get_movie_details", new_callable=AsyncMock, return_value=None):
+                    with patch("app.services.metadata.httpx", mock_httpx):
+                        details = await client_ru.get_details("movie:4247")
+                        self.assertIsNotNone(details)
+                        # Must contain Russian and English
+                        self.assertIn("Очень страшное кино", details.aliases)
+                        self.assertIn("Scary Movie (Director's Cut)", details.aliases)
+                        self.assertIn("Scary Movie (Unrated)", details.aliases)
+                        # Must NOT contain non-configured languages (de, fr, it, es, ja, ko, zh)
+                        self.assertNotIn("Scary Movie - Das Original", details.aliases)
+                        self.assertNotIn("Scary Movie: Film de peur", details.aliases)
+                        self.assertNotIn("Film de peur", details.aliases)
+                        self.assertNotIn("Scary Movie - Una commedia che fa paura", details.aliases)
+                        self.assertNotIn("Scary Movie: Una película de miedo", details.aliases)
+                        self.assertNotIn("最終絶叫計画", details.aliases)
+                        self.assertNotIn("무서운 영화", details.aliases)
+
+        asyncio.run(run_test())
+
+    def test_radarr_client_includes_extra_selected_languages(self):
+        from app.services.metadata import RadarrClient
+
+        client_multi = RadarrClient(alias_languages=["ru", "ja", "de"])
+
+        mock_radarr_response = {
+            "title": "Scary Movie",
+            "originalTitle": "Scary Movie",
+            "overview": "A parody of horror films.",
+            "translations": [
+                {"title": "Очень страшное кино", "language": "ru-RU"},
+                {"title": "Scary Movie - Das Original", "language": "de-DE"},
+                {"title": "Scary Movie: Film de peur", "language": "fr-FR"},
+                {"title": "最終絶叫計画", "language": "ja-JP"},
+            ],
+            "alternativeTitles": [],
+            "tmdbId": 4247,
+        }
+
+        async def run_test():
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = mock_radarr_response
+
+            mock_client_instance = AsyncMock()
+            mock_client_instance.get.return_value = mock_resp
+            mock_client_instance.__aenter__.return_value = mock_client_instance
+            mock_client_instance.__aexit__.return_value = None
+
+            mock_httpx = MagicMock()
+            mock_httpx.AsyncClient.return_value = mock_client_instance
+
+            with patch("app.services.metadata.TMDBClient._get_movie_details", new_callable=AsyncMock, return_value=None):
+                with patch("app.services.metadata.httpx", mock_httpx):
+                    details = await client_multi.get_details("movie:4247")
+                    self.assertIn("Очень страшное кино", details.aliases)
+                    self.assertIn("Scary Movie - Das Original", details.aliases)
+                    self.assertIn("最終絶叫計画", details.aliases)
+                    self.assertNotIn("Scary Movie: Film de peur", details.aliases)
+
+        asyncio.run(run_test())
+
+    def test_get_metadata_client_passes_alias_languages(self):
+        from app.services.metadata import get_metadata_client, RadarrClient, SkyHookClient
+
+        source_radarr = MagicMock(
+            name="Radarr",
+            type="radarr",
+            base_url="https://api.radarr.video/v1",
+            api_key="",
+            field_mapping={"alias_languages": ["ru", "ja", "ko"]},
+        )
+        client = get_metadata_client(source_radarr)
+        self.assertIsInstance(client, RadarrClient)
+        self.assertEqual(client.alias_languages, ["ru", "ja", "ko"])
+
+        source_sonarr = MagicMock(
+            name="Sonarr",
+            type="skyhook",
+            base_url="https://skyhook.sonarr.tv/v1/tvdb",
+            api_key="",
+            field_mapping={"alias_languages": ["ru", "fr"]},
+        )
+        client2 = get_metadata_client(source_sonarr)
+        self.assertIsInstance(client2, SkyHookClient)
+        self.assertEqual(client2.alias_languages, ["ru", "fr"])
+
+
 if __name__ == "__main__":
     unittest.main()
 
