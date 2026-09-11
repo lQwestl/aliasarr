@@ -726,23 +726,47 @@ def match_release(
 
     # Защита от сериалов, сезон-паков и эпизодов при поиске фильма
     if content_type == "movie":
+        # 1. Явные маркеры ТВ-сериалов (S01, Season 1, Сезон 1, 1-10 серий, E05)
+        if re.search(
+            r"\bS\d{1,2}(?:E\d{1,3})?\b|\bSeason\s*\d+\b|\bСезон\s*\d+\b|\b\d+\s*сезон\b|\b\d+[-_]\d+\s*сери[ияй]\b|\bсери[ияй]\s*\d+[-_]\d+\b|\bE\d{2,}\b|\b\d+\s*сери[ия]\b",
+            release_name,
+            re.IGNORECASE,
+        ):
+            return MatchResult(
+                matched=False, show_id=None, alias_id=None, alias_text=None,
+                score=score, parsed=parsed,
+            )
+
         s_lbl = detect_season_label(release_name)
-        if s_lbl["type"] in ("numbered", "range", "complete", "final"):
+        if s_lbl["type"] in ("range", "complete", "final"):
             return MatchResult(
                 matched=False, show_id=None, alias_id=None, alias_text=None,
                 score=score, parsed=parsed,
             )
-        if (parsed.season is not None and parsed.season > 0) or (parsed.seasons and any(s > 0 for s in parsed.seasons)):
-            return MatchResult(
-                matched=False, show_id=None, alias_id=None, alias_text=None,
-                score=score, parsed=parsed,
-            )
+
+        if s_lbl["type"] == "numbered":
+            s_num = s_lbl.get("season")
+            alias_has_num = False
+            if alias and s_num is not None:
+                s_num_str = str(s_num)
+                alias_has_num = (
+                    re.search(r"\b" + re.escape(s_num_str) + r"\b", alias.text) is not None
+                    or (s_num == 2 and re.search(r"\b(?:II|2)\b", alias.text, re.IGNORECASE) is not None)
+                    or (s_num == 3 and re.search(r"\b(?:III|3)\b", alias.text, re.IGNORECASE) is not None)
+                    or (s_num == 4 and re.search(r"\b(?:IV|4)\b", alias.text, re.IGNORECASE) is not None)
+                    or (s_num == 5 and re.search(r"\b(?:V|5)\b", alias.text, re.IGNORECASE) is not None)
+                    or any(
+                        re.search(r"\b" + re.escape(s_num_str) + r"\b", a.text) is not None
+                        for a in aliases
+                    )
+                )
+            if not alias_has_num:
+                return MatchResult(
+                    matched=False, show_id=None, alias_id=None, alias_text=None,
+                    score=score, parsed=parsed,
+                )
+
         if (parsed.kind == ReleaseKind.SEASON_PACK and parsed.season is not None and parsed.season > 0) or (parsed.episodes and len(parsed.episodes) > 1):
-            return MatchResult(
-                matched=False, show_id=None, alias_id=None, alias_text=None,
-                score=score, parsed=parsed,
-            )
-        if re.search(r"\bS\d{1,2}(?:E\d{1,3})?\b|\bSeason\s*\d+\b|\bСезон\s*\d+\b|\b\d+\s*сезон\b|\b\d+[-_]\d+\s*сери[ияй]\b|\bсери[ияй]\s*\d+[-_]\d+\b|\bE\d{2,}\b|\b\d+\s*сери[ия]\b", release_name, re.IGNORECASE):
             return MatchResult(
                 matched=False, show_id=None, alias_id=None, alias_text=None,
                 score=score, parsed=parsed,

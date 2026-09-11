@@ -1618,14 +1618,32 @@ async def _do_search_and_grab(
 
         # Фильмы: ориентируемся на совпадение по алиасу и исключаем сериалы
         if show.content_type == "movie":
-            s_lbl = detect_season_label(rel.title)
-            if s_lbl["type"] in ("numbered", "range", "complete", "final"):
-                return False
-            if (parsed.season is not None and parsed.season > 0) or (parsed.seasons and any(s > 0 for s in parsed.seasons)):
-                return False
-            if (parsed.kind == ReleaseKind.SEASON_PACK and parsed.season is not None and parsed.season > 0) or (parsed.episodes and len(parsed.episodes) > 1):
-                return False
             if re.search(r"\bS\d{1,2}(?:E\d{1,3})?\b|\bSeason\s*\d+\b|\bСезон\s*\d+\b|\b\d+\s*сезон\b|\b\d+[-_]\d+\s*сери[ияй]\b|\bсери[ияй]\s*\d+[-_]\d+\b|\bE\d{2,}\b|\b\d+\s*сери[ия]\b", rel.title, re.IGNORECASE):
+                return False
+            s_lbl = detect_season_label(rel.title)
+            if s_lbl["type"] in ("range", "complete", "final"):
+                return False
+            if s_lbl["type"] == "numbered":
+                match = c.get("match")
+                alias_cand = getattr(match, "alias_candidate", None) if match else None
+                s_num = s_lbl.get("season")
+                alias_has_num = False
+                if alias_cand and s_num is not None:
+                    s_num_str = str(s_num)
+                    alias_has_num = (
+                        re.search(r"\b" + re.escape(s_num_str) + r"\b", alias_cand.text) is not None
+                        or (s_num == 2 and re.search(r"\b(?:II|2)\b", alias_cand.text, re.IGNORECASE) is not None)
+                        or (s_num == 3 and re.search(r"\b(?:III|3)\b", alias_cand.text, re.IGNORECASE) is not None)
+                        or (s_num == 4 and re.search(r"\b(?:IV|4)\b", alias_cand.text, re.IGNORECASE) is not None)
+                        or (s_num == 5 and re.search(r"\b(?:V|5)\b", alias_cand.text, re.IGNORECASE) is not None)
+                        or any(
+                            re.search(r"\b" + re.escape(s_num_str) + r"\b", a.text) is not None
+                            for a in active_aliases
+                        )
+                    )
+                if not alias_has_num:
+                    return False
+            if (parsed.kind == ReleaseKind.SEASON_PACK and parsed.season is not None and parsed.season > 0) or (parsed.episodes and len(parsed.episodes) > 1):
                 return False
             return True
 

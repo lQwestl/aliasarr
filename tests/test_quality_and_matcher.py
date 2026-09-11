@@ -892,8 +892,60 @@ class TestQualityAndMatcher(unittest.TestCase):
         self.assertTrue(res_ova.matched, "Anime OVA film must match movie content type")
         self.assertEqual(res_ova.alias_text, "Амон: Апокалипсис Человека-дьявола")
 
+    def test_movie_sequel_with_trailing_numbers(self):
+        # 1. The Legend of Hei 2 (2025) Tapochek 2160p HDR without [Movie] tag
+        hei2_aliases = [
+            AliasCandidate(alias_id=1, text="The Legend of Hei 2", language="en", priority=10),
+            AliasCandidate(alias_id=2, text="Легенда о Ло Сяохэе 2", language="ru", priority=20),
+            AliasCandidate(alias_id=3, text="Легенда о Хэй 2", language="ru", priority=30),
+            AliasCandidate(alias_id=4, text="Luo Xiaohei Zhan Ji 2", language="en", priority=40),
+            AliasCandidate(alias_id=5, text="Легенда о Сяохэе Ло 2", language="ru", priority=50),
+        ]
+        rel_hei2_tapochek = (
+            "Легенда о Ло Сяохэе 2 (Легенда о Хэй 2) / Luo Xiaohei Zhan Ji 2 (The Legend of Hei 2) "
+            "(Jie Gu, MTJJ) [2025, мультфильм, фэнтези, приключения, семейный, WEB-DL 2160p] [HDR] [MVO|Anistar, Anibase]"
+        )
+        res_hei2 = match_release(rel_hei2_tapochek, show_id=81, aliases=hei2_aliases, content_type="movie", show_year=2025)
+        self.assertTrue(res_hei2.matched, "The Legend of Hei 2 must match movie content type")
+        self.assertEqual(res_hei2.alias_text, "Легенда о Ло Сяохэе 2")
+        self.assertEqual(res_hei2.score, 100.0)
+
+        # 2. Avatar 2 movie release matching Avatar 2
+        avatar2_aliases = [
+            AliasCandidate(alias_id=1, text="Avatar: The Way of Water", language="en", priority=10),
+            AliasCandidate(alias_id=2, text="Аватар: Путь воды", language="ru", priority=20),
+            AliasCandidate(alias_id=3, text="Avatar 2", language="en", priority=30),
+            AliasCandidate(alias_id=4, text="Аватар 2", language="ru", priority=40),
+        ]
+        rel_avatar2 = "Аватар 2 / Avatar: The Way of Water (2022) 1080p BluRay"
+        res_avatar2 = match_release(rel_avatar2, show_id=2, aliases=avatar2_aliases, content_type="movie", show_year=2022)
+        self.assertTrue(res_avatar2.matched, "Avatar 2 movie must match")
+        self.assertIn(res_avatar2.alias_text, ("Аватар 2", "Avatar: The Way of Water"))
+
+        # 3. Negative check: Avatar 1 (2009) must NOT match Avatar 2 release
+        avatar1_aliases = [
+            AliasCandidate(alias_id=1, text="Avatar", language="en", priority=10),
+            AliasCandidate(alias_id=2, text="Аватар", language="ru", priority=20),
+        ]
+        res_avatar1_bad = match_release(rel_avatar2, show_id=1, aliases=avatar1_aliases, content_type="movie", show_year=2009)
+        self.assertFalse(res_avatar1_bad.matched, "Avatar 1 must NOT match Avatar 2 release")
+
+        # 4. Negative check: Fargo movie (1996) must NOT match Fargo TV Season 2 release
+        fargo_movie_aliases = [
+            AliasCandidate(alias_id=1, text="Fargo", language="en", priority=10),
+            AliasCandidate(alias_id=2, text="Фарго", language="ru", priority=20),
+        ]
+        rel_fargo_s2 = "Fargo.S02.1080p.HDTV"
+        res_fargo_bad = match_release(rel_fargo_s2, show_id=1, aliases=fargo_movie_aliases, content_type="movie", show_year=1996)
+        self.assertFalse(res_fargo_bad.matched, "Fargo movie must NOT match Fargo TV S02")
+
+        rel_fargo_numbered = "Fargo 2 (2015) 1080p HDTV"
+        res_fargo_numbered_bad = match_release(rel_fargo_numbered, show_id=1, aliases=fargo_movie_aliases, content_type="movie", show_year=1996)
+        self.assertFalse(res_fargo_numbered_bad.matched, "Fargo movie must NOT match Fargo 2 release")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
