@@ -1053,11 +1053,15 @@ class TestSeasonQueries(unittest.TestCase):
         mock_idx_inst = unittest.mock.AsyncMock()
         mock_idx_inst.search.side_effect = fake_search
 
+        indexer = self.session.query(Indexer).first()
+        episode = self.session.query(Episode).filter(Episode.show_id == show.id).first()
+
         with patch.object(auto_search, "get_indexer_client", return_value=mock_idx_inst):
             asyncio.run(auto_search._collect_candidates(
-                self.session, show,
-                [show.episodes[0]],
-                [show.indexers[0] if hasattr(show, 'indexers') and show.indexers else self.session.query(Indexer).first()],
+                self.session,
+                show,
+                indexers=[indexer],
+                wanted_episodes=[episode],
             ))
 
         # Проверяем, что полные названия присутствуют в запросах
