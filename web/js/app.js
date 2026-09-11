@@ -236,6 +236,7 @@ const TRANSLATIONS = {
     "collection.btn_add_to_library": "Добавить в библиотеку",
     "collection.status_in_lib": "В библиотеке",
     "collection.status_missing": "Отсутствует",
+    "collection.quality_profile": "Профиль качества",
     "movie.edition": "Издание",
     "movie.edition_theatrical": "Theatrical Cut",
     "movie.edition_directors": "Director's Cut",
@@ -1555,6 +1556,7 @@ const TRANSLATIONS = {
     "collection.btn_add_to_library": "Add to Library",
     "collection.status_in_lib": "In Library",
     "collection.status_missing": "Missing",
+    "collection.quality_profile": "Quality Profile",
     "movie.edition": "Edition",
     "movie.edition_theatrical": "Theatrical Cut",
     "movie.edition_directors": "Director's Cut",
@@ -5713,6 +5715,10 @@ async function openCollectionModal(collectionId) {
   if (window.lucide) lucide.createIcons();
 
   try {
+    if (!CACHED_QUALITY_PROFILES || !CACHED_QUALITY_PROFILES.length) {
+      try { CACHED_QUALITY_PROFILES = await api("/api/v1/quality-profiles"); } catch (e) {}
+    }
+
     const coll = await api(`/api/v1/collections/${collectionId}`);
     const bg = coll.backdrop_url || coll.poster_url;
     const backdropStyle = bg ? `style="background-image:url('${bg}')"` : "";
@@ -5721,6 +5727,7 @@ async function openCollectionModal(collectionId) {
     const parts = coll.franchise_parts || [];
     const missingCount = coll.missing_count !== undefined ? coll.missing_count : parts.filter(p => !p.in_library).length;
     const canManageLib = hasPermission("manage_library");
+    const effectiveQpId = coll.quality_profile_id || (coll.shows && coll.shows.find(s => s.quality_profile_id)?.quality_profile_id) || (CACHED_QUALITY_PROFILES && CACHED_QUALITY_PROFILES[0]?.id) || null;
 
     content.innerHTML = `
       <div class="collection-hero">
@@ -5739,9 +5746,24 @@ async function openCollectionModal(collectionId) {
                 </button>
               ` : ""}
             </div>
-            <div class="show-hero-meta-bar" style="margin: 0;">
+            <div class="show-hero-meta-bar" style="margin: 0; align-items:center; flex-wrap:wrap; gap:8px;">
               <span class="meta-pill mono">${coll.shows_count} ${t("collection.in_library")}</span>
-              ${missingCount > 0 ? `<span class="meta-pill mono text-warning">${missingCount} ${t("collection.missing")}</span>` : `<span class="meta-pill meta-pill-status status-ended"><i data-lucide="check-circle-2" class="ico-xs"></i> <span>Коллекция собрана</span></span>`}
+              ${missingCount > 0 ? `<span class="meta-pill mono text-warning">${missingCount} ${t("collection.missing")}</span>` : `<span class="meta-pill meta-pill-status status-ended"><i data-lucide="check-circle-2" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Collection Complete' : 'Коллекция собрана'}</span></span>`}
+              ${canManageLib ? `
+                <div style="display:inline-flex; align-items:center; gap:6px; margin-left:auto;">
+                  <span style="font-size:11.5px; color:var(--text-muted); font-weight:500;">
+                    <i data-lucide="sliders" class="ico-xxs"></i> ${t("collection.quality_profile")}:
+                  </span>
+                  <select class="input input-small" id="collection-quality-profile-select" style="padding: 2px 8px; font-size: 11.5px; height: 26px; border-radius: 6px; width: auto; background: var(--panel-alt);" onchange="onCollectionQualityProfileChange(${coll.id}, this.value)">
+                    <option value="">${t("common.any_quality")}</option>
+                    ${(CACHED_QUALITY_PROFILES || []).map(qp => `
+                      <option value="${qp.id}" ${qp.id === effectiveQpId ? "selected" : ""}>${escapeHtml(qp.name)}</option>
+                    `).join("")}
+                  </select>
+                </div>
+              ` : `
+                <span class="meta-pill mono" style="margin-left:auto;" title="${t("collection.quality_profile")}"><i data-lucide="sliders" class="ico-xxs"></i> ${qualityProfileName(coll.quality_profile_id || effectiveQpId)}</span>
+              `}
             </div>
             ${coll.overview ? `<p class="collection-hero-overview">${escapeHtml(coll.overview)}</p>` : ""}
           </div>
@@ -5811,8 +5833,13 @@ async function importMissingFranchiseMovies(collectionId, btnEl) {
     btnEl.innerHTML = `<i data-lucide="loader-2" class="status-pill-spin ico-xs"></i> <span>${t("collection.importing")}</span>`;
     if (window.lucide) lucide.createIcons();
   }
+  const qpSelect = document.getElementById("collection-quality-profile-select");
+  const qpId = qpSelect && qpSelect.value ? parseInt(qpSelect.value, 10) : undefined;
   try {
-    const res = await api(`/api/v1/collections/${collectionId}/import-missing`, { method: "POST", body: JSON.stringify({}) });
+    const res = await api(`/api/v1/collections/${collectionId}/import-missing`, {
+      method: "POST",
+      body: JSON.stringify({ quality_profile_id: qpId }),
+    });
     toast(CURRENT_LANG === "en" ? `Added ${res.added_count} movies to library` : `Добавлено ${res.added_count} фильмов в библиотеку`, "success");
     await loadShows(true);
     await loadCollections(true);
@@ -5829,10 +5856,12 @@ async function importSingleMovieFromFranchise(collectionId, tmdbId, btnEl) {
     btnEl.innerHTML = `<i data-lucide="loader-2" class="status-pill-spin ico-xs"></i>`;
     if (window.lucide) lucide.createIcons();
   }
+  const qpSelect = document.getElementById("collection-quality-profile-select");
+  const qpId = qpSelect && qpSelect.value ? parseInt(qpSelect.value, 10) : undefined;
   try {
     const res = await api(`/api/v1/collections/${collectionId}/import-missing`, {
       method: "POST",
-      body: JSON.stringify({ tmdb_id: tmdbId }),
+      body: JSON.stringify({ tmdb_id: tmdbId, quality_profile_id: qpId }),
     });
     toast(CURRENT_LANG === "en" ? `Movie added to library` : `Фильм добавлен в библиотеку`, "success");
     await loadShows(true);
@@ -5841,6 +5870,20 @@ async function importSingleMovieFromFranchise(collectionId, tmdbId, btnEl) {
   } catch (e) {
     toast(formatToastMessage(e.message), "error");
     if (btnEl) btnEl.disabled = false;
+  }
+}
+
+async function onCollectionQualityProfileChange(collectionId, qpId) {
+  try {
+    const val = qpId ? parseInt(qpId, 10) : null;
+    await api(`/api/v1/collections/${collectionId}`, {
+      method: "PUT",
+      body: JSON.stringify({ quality_profile_id: val }),
+    });
+    toast(CURRENT_LANG === "en" ? "Collection quality profile updated" : "Профиль качества коллекции обновлен", "success");
+    await loadCollections(true);
+  } catch (e) {
+    toast(formatToastMessage(e.message), "error");
   }
 }
 

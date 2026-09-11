@@ -193,6 +193,14 @@ async def get_collection_detail(
         db.add(coll)
         db.commit()
 
+    if coll.quality_profile_id is None and shows:
+        for s in shows:
+            if s.quality_profile_id:
+                coll.quality_profile_id = s.quality_profile_id
+                db.add(coll)
+                db.commit()
+                break
+
     total_s = len(shows)
     dl_s = sum(1 for s in shows_out if s.downloaded_episodes_count > 0)
     missing_cnt = max(0, total_parts - total_s)
@@ -319,7 +327,27 @@ async def import_missing_collection_movies(
         db.commit()
 
     settings = get_or_create_settings(db)
+    from app.models.db import QualityProfile
     qp_id = payload.quality_profile_id or coll.quality_profile_id
+    if qp_id is None:
+        # 1. Проверяем профиль у уже добавленных фильмов этой коллекции
+        existing_coll_show = (
+            db.query(Show.quality_profile_id)
+            .filter(Show.collection_id == coll.id, Show.quality_profile_id.isnot(None))
+            .first()
+        )
+        if existing_coll_show and existing_coll_show[0]:
+            qp_id = existing_coll_show[0]
+        else:
+            # 2. Берем первый профиль качества в системе
+            default_qp = db.query(QualityProfile).first()
+            if default_qp:
+                qp_id = default_qp.id
+
+    if qp_id and coll.quality_profile_id != qp_id:
+        coll.quality_profile_id = qp_id
+        db.add(coll)
+        db.commit()
 
     existing_tmdb_ids = set()
     existing_shows = db.query(Show).all()
