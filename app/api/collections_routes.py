@@ -51,7 +51,7 @@ class MovieCollectionDetailOut(BaseModel):
     root_folder: Optional[str] = None
     created_at: Optional[dt.datetime] = None
     shows_count: int = 0
-    parts_count: int = 0
+    parts_count: Optional[int] = 0
     downloaded_count: int = 0
     missing_count: int = 0
     shows: list[ShowOut] = []
@@ -108,15 +108,27 @@ def list_collections(
 
     out: list[MovieCollectionOut] = []
     for c in collections:
-        c_out = MovieCollectionOut.model_validate(c)
         shows_in_lib = coll_shows_count.get(c.id, 0)
         dl_s = coll_downloaded_count.get(c.id, 0)
         total_parts = c.parts_count or shows_in_lib
-        c_out.shows_count = shows_in_lib
-        c_out.parts_count = total_parts
-        c_out.downloaded_count = dl_s
-        c_out.missing_count = max(0, total_parts - shows_in_lib)
-        out.append(c_out)
+        out.append(
+            MovieCollectionOut(
+                id=c.id,
+                tmdb_collection_id=c.tmdb_collection_id,
+                title=c.title,
+                overview=c.overview,
+                poster_url=c.poster_url,
+                backdrop_url=c.backdrop_url,
+                monitored=c.monitored,
+                quality_profile_id=c.quality_profile_id,
+                root_folder=c.root_folder,
+                created_at=c.created_at,
+                shows_count=shows_in_lib,
+                parts_count=total_parts,
+                downloaded_count=dl_s,
+                missing_count=max(0, total_parts - shows_in_lib),
+            )
+        )
 
     return out
 

@@ -5497,7 +5497,7 @@ function renderLibrary() {
     if (dashContainer) dashContainer.innerHTML = "";
     const alphaIndex = document.getElementById("alphabet-index");
     if (alphaIndex) alphaIndex.style.display = "none";
-    renderCollectionsView(query);
+    renderCollectionsView(query, true);
     return;
   }
   if (collectionsGrid) collectionsGrid.style.display = "none";
@@ -5612,24 +5612,23 @@ function renderLibraryDashboard(shows) {
   `;
 }
 
-// ---------- MOVIE COLLECTIONS & FRANCHISES (Radarr Style) ----------
-
 async function loadCollections(force = false) {
-  if (!force && CACHED_COLLECTIONS.length) return CACHED_COLLECTIONS;
+  if (!force && CACHED_COLLECTIONS && CACHED_COLLECTIONS.length > 0) return CACHED_COLLECTIONS;
   try {
     CACHED_COLLECTIONS = await api("/api/v1/collections");
-    return CACHED_COLLECTIONS;
+    return CACHED_COLLECTIONS || [];
   } catch (e) {
+    console.error("Failed to load collections:", e);
     CACHED_COLLECTIONS = [];
     return [];
   }
 }
 
-async function renderCollectionsView(query = "") {
+async function renderCollectionsView(query = "", force = false) {
   const collectionsGrid = document.getElementById("collections-grid");
   if (!collectionsGrid) return;
 
-  const collections = await loadCollections();
+  const collections = await loadCollections(force);
   let filtered = collections || [];
 
   if (LIBRARY_MONITOR_FILTER === "monitored") {
