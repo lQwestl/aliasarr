@@ -12,7 +12,9 @@ class TestRateLimiter(unittest.IsolatedAsyncioTestCase):
         self.limiter = AsyncRateLimiter()
 
     def test_extract_host(self):
-        self.assertEqual(self.limiter.extract_host("http://prowlarr.local:9696/api/v1/search"), "prowlarr.local:9696")
+        self.assertEqual(self.limiter.extract_host("http://prowlarr.local:9696/1/api?t=search"), "prowlarr.local:9696/1")
+        self.assertEqual(self.limiter.extract_host("http://prowlarr.local:9696/2/api"), "prowlarr.local:9696/2")
+        self.assertEqual(self.limiter.extract_host("http://jackett:9117/api/v2.0/indexers/rutracker/results/torznab/api"), "jackett:9117/api/v2.0/indexers/rutracker")
         self.assertEqual(self.limiter.extract_host("https://nyaa.si/?page=rss"), "nyaa.si")
         self.assertEqual(self.limiter.extract_host("TRACKER_CUSTOM"), "tracker_custom")
 

@@ -881,6 +881,17 @@ class TestQualityAndMatcher(unittest.TestCase):
         res_sw = match_release(rel_sw, show_id=10, aliases=sw_aliases, content_type="movie", show_year=1977)
         self.assertTrue(res_sw.matched, "Movie with Episode IV in official title must match")
 
+        # 5. Movie with OVA in title (e.g. Devilman OVA 3 / Amon: Apocalypse of Devilman)
+        devilman_aliases = [
+            AliasCandidate(alias_id=20, text="Devilman - Volume 3: Devilman Apocalypse", language="en", priority=10),
+            AliasCandidate(alias_id=21, text="Амон: Апокалипсис Человека-дьявола", language="ru", priority=20),
+            AliasCandidate(alias_id=22, text="Amon: Apocalypse of Devilman", language="en", priority=30),
+        ]
+        rel_ova = "Амон: Апокалипсис Человека-дьявола / Amon Devilman Mokushiroku / Amon: The Apocalypse of Devilman [OVA] [RUS(int), JAP+Sub] [2000, Мистика, ужасы, DVDRip]"
+        res_ova = match_release(rel_ova, show_id=20, aliases=devilman_aliases, content_type="movie", show_year=2000)
+        self.assertTrue(res_ova.matched, "Anime OVA film must match movie content type")
+        self.assertEqual(res_ova.alias_text, "Амон: Апокалипсис Человека-дьявола")
+
 
 if __name__ == "__main__":
     unittest.main()

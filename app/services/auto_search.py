@@ -1516,6 +1516,8 @@ async def _do_search_and_grab(
 
     candidates = await _collect_candidates(db, show, indexers, wanted_episodes=wanted_episodes)
     query_terms = getattr(candidates, "query_terms", [])
+    indexer_stats = getattr(candidates, "indexer_stats", {})
+    rejected_cands = getattr(candidates, "rejected_candidates", [])
 
     # Фильтр по минимальному числу сидов
     if settings.min_seeds and settings.min_seeds > 0:
@@ -1526,8 +1528,6 @@ async def _do_search_and_grab(
         sample_queries += f" (+ещё {len(query_terms) - 4})"
     query_info = f" по {len(query_terms)} запросам ({sample_queries})" if query_terms else f" по алиасам ({search_terms})"
 
-    indexer_stats = getattr(candidates, "indexer_stats", {})
-    rejected_cands = getattr(candidates, "rejected_candidates", [])
     indexer_summary = ", ".join(f"{name}: {cnt}" for name, cnt in indexer_stats.items() if cnt > 0) or f"{len(indexers)} трекерах"
 
     active_splits = getattr(show, "season_splits", []) or []

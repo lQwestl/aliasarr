@@ -12,6 +12,7 @@ import asyncio
 import datetime as dt
 import email.utils
 import logging
+import re
 import time
 import urllib.parse
 from typing import Optional
@@ -53,14 +54,24 @@ class AsyncRateLimiter:
 
     @staticmethod
     def extract_host(url_or_key: str) -> str:
-        """Извлекает нормализованное имя хоста с портом из URL или строки-ключа."""
+        """Извлекает нормализованный ключ хоста/индексатора из URL или строки-ключа.
+        Для прокси-серверов (Prowlarr, Jackett) сохраняет уникальный путь трекера (например, 'prowlarr:9696/1' или 'jackett:9117/api/v2.0/indexers/rutracker'),
+        чтобы блокировка одного трекера не распространялась на остальные.
+        """
         if not url_or_key:
             return "unknown_host"
         url_str = str(url_or_key).strip()
         if url_str.startswith(("http://", "https://", "ftp://")):
             try:
                 parsed = urllib.parse.urlparse(url_str)
-                return (parsed.netloc or parsed.path or url_str).lower()
+                netloc = (parsed.netloc or "").lower()
+                path = (parsed.path or "").rstrip("/")
+                clean_path = path
+                for _ in range(2):
+                    clean_path = re.sub(r"/(?:api|results/torznab)(?:/)?$", "", clean_path, flags=re.IGNORECASE).rstrip("/")
+                if clean_path and clean_path not in ("", "/api"):
+                    return f"{netloc}{clean_path}".lower()
+                return (netloc or parsed.path or url_str).lower()
             except Exception:
                 pass
         return url_str.lower().rstrip("/")

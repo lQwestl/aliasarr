@@ -727,17 +727,17 @@ def match_release(
     # Защита от сериалов, сезон-паков и эпизодов при поиске фильма
     if content_type == "movie":
         s_lbl = detect_season_label(release_name)
-        if s_lbl["type"] in ("numbered", "range", "complete", "final", "ova_ona"):
+        if s_lbl["type"] in ("numbered", "range", "complete", "final"):
             return MatchResult(
                 matched=False, show_id=None, alias_id=None, alias_text=None,
                 score=score, parsed=parsed,
             )
-        if parsed.season is not None or (parsed.seasons and len(parsed.seasons) > 0):
+        if (parsed.season is not None and parsed.season > 0) or (parsed.seasons and any(s > 0 for s in parsed.seasons)):
             return MatchResult(
                 matched=False, show_id=None, alias_id=None, alias_text=None,
                 score=score, parsed=parsed,
             )
-        if parsed.kind == ReleaseKind.SEASON_PACK or (parsed.episodes and len(parsed.episodes) > 1):
+        if (parsed.kind == ReleaseKind.SEASON_PACK and parsed.season is not None and parsed.season > 0) or (parsed.episodes and len(parsed.episodes) > 1):
             return MatchResult(
                 matched=False, show_id=None, alias_id=None, alias_text=None,
                 score=score, parsed=parsed,
