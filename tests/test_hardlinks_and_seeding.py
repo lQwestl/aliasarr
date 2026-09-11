@@ -126,7 +126,7 @@ class TestHardlinksAndSeeding(unittest.TestCase):
             self.assertEqual(kwargs["data"]["seedingTimeLimit"], "4320")
 
     def test_transmission_set_seeding_limits(self):
-        """Проверяет отправку RPC-запроса лимитов сидирования в Transmission."""
+        """Проверяет отправку RPC-запроса лимитов сидирования в Transmission без ошибочного seedIdleLimit."""
         client = TransmissionClient("127.0.0.1", 9091, "admin", "admin")
 
         with patch.object(client, "_rpc_call", new_callable=AsyncMock) as mock_rpc:
@@ -138,8 +138,8 @@ class TestHardlinksAndSeeding(unittest.TestCase):
             self.assertEqual(args["ids"], ["hash456"])
             self.assertEqual(args["seedRatioLimit"], 2.0)
             self.assertEqual(args["seedRatioMode"], 1)
-            self.assertEqual(args["seedIdleLimit"], 2880)
-            self.assertEqual(args["seedIdleMode"], 1)
+            self.assertNotIn("seedIdleLimit", args)
+            self.assertNotIn("seedIdleMode", args)
 
     def test_check_seeding_torrents_cleans_up_when_limit_reached(self):
         """Проверяет, что _check_seeding_torrents удаляет раздачу и временные файлы при достижении ratio."""
@@ -149,6 +149,7 @@ class TestHardlinksAndSeeding(unittest.TestCase):
         dh = SimpleNamespace(id=10, show_id=1, indexer_id=5, torrent_hash="seedhash1")
 
         db_mock.query.return_value.filter.return_value.order_by.return_value.first.return_value = dh
+        db_mock.query.return_value.filter.return_value.count.return_value = 0
         db_mock.get.side_effect = lambda model, obj_id: indexer if obj_id == 5 else None
 
         torrent_finished = TorrentInfo(
@@ -163,6 +164,96 @@ class TestHardlinksAndSeeding(unittest.TestCase):
         with patch("app.services.downloads_monitor.get_client", return_value=mock_client), \
              patch("app.services.downloads_monitor.log_release_event"):
             asyncio.run(_check_seeding_torrents(db_mock, [dc]))
+
+        mock_client.remove_torrent.assert_called_once_with("seedhash1", delete_files=True)
+
+    def test_check_seeding_torrents_cleans_up_when_time_limit_reached_with_unrelated_specials(self):
+        """Проверяет, что раздача удаляется по истечению 12ч сидирования, даже если в базе у шоу есть спешлы."""
+        db_mock = MagicMock()
+        dc = SimpleNamespace(id=1, name="Transmission", type="transmission", enabled=True, seed_time_limit=None, seed_ratio_limit=None)
+        indexer = SimpleNamespace(id=7, name="Tapochek", enable_seeding=True, seed_ratio_limit=None, seed_time_limit_hours=12)
+        dh = SimpleNamespace(id=20, show_id=2, indexer_id=7, torrent_hash="tapochek_hash")
+
+        db_mock.query.return_value.filter.return_value.order_by.return_value.first.return_value = dh
+        db_mock.query.return_value.filter.return_value.count.return_value = 0
+        db_mock.get.side_effect = lambda model, obj_id: indexer if obj_id == 7 else None
+
+        # Торрент сидировался 12 часов 1 минуту (43260 секунд)
+        torrent_seeded = TorrentInfo(
+            hash="tapochek_hash", name="Anime.Show.S01.1080p", progress=1.0,
+            state="seeding", save_path=self.src_dir, size=15000000000,
+            ratio=0.45, seeding_time=43260,
+        )
+
+        mock_client = AsyncMock()
+        mock_client.list_torrents.return_value = [torrent_seeded]
+
+        with patch("app.services.downloads_monitor.get_client", return_value=mock_client), \
+             patch("app.services.downloads_monitor.log_release_event"):
+            asyncio.run(_check_seeding_torrents(db_mock, [dc]))
+
+        mock_client.remove_torrent.assert_called_once_with("tapochek_hash", delete_files=True)
+
+    def test_check_seeding_torrents_fallback_to_client_seeding_limits(self):
+        """Проверяет применение лимитов сидирования из DownloadClient, если у трекера они не заданы."""
+        db_mock = MagicMock()
+        # Лимит 720 минут (12 часов) и ratio 1.0 в клиенте
+        dc = SimpleNamespace(id=2, name="Transmission", type="transmission", enabled=True, seed_time_limit=720, seed_ratio_limit=1.0)
+        dh = SimpleNamespace(id=30, show_id=3, indexer_id=None, torrent_hash="client_limit_hash")
+
+        db_mock.query.return_value.filter.return_value.order_by.return_value.first.return_value = dh
+        db_mock.query.return_value.filter.return_value.count.return_value = 0
+        db_mock.get.return_value = None
+
+        torrent_seeded = TorrentInfo(
+            hash="client_limit_hash", name="Movie.2025.1080p", progress=1.0,
+            state="seeding", save_path=self.src_dir, size=8000000000,
+            ratio=0.1, seeding_time=43200,
+        )
+
+        mock_client = AsyncMock()
+        mock_client.list_torrents.return_value = [torrent_seeded]
+
+        with patch("app.services.downloads_monitor.get_client", return_value=mock_client), \
+             patch("app.services.downloads_monitor.log_release_event"):
+            asyncio.run(_check_seeding_torrents(db_mock, [dc]))
+
+        mock_client.remove_torrent.assert_called_once_with("client_limit_hash", delete_files=True)
+
+    def test_check_seeding_torrents_ignores_sample_video_files(self):
+        """Проверяет, что семплы/трейлеры в раздаче не блокируют удаление после достижения лимита сидирования."""
+        db_mock = MagicMock()
+        dc = SimpleNamespace(id=1, name="qBit", type="qbittorrent", enabled=True, seed_time_limit=None, seed_ratio_limit=None)
+        indexer = SimpleNamespace(id=5, name="Tracker", enable_seeding=True, seed_ratio_limit=1.0, seed_time_limit_hours=12)
+        dh = SimpleNamespace(id=40, show_id=4, indexer_id=5, torrent_hash="sample_pack_hash")
+        show = SimpleNamespace(id=4, title="Show With Sample", content_type="series")
+
+        # Создаем файл семпла
+        sample_file = os.path.join(self.src_dir, "sample.mkv")
+        with open(sample_file, "wb") as f:
+            f.write(b"sample video")
+
+        db_mock.query.return_value.filter.return_value.order_by.return_value.first.return_value = dh
+        db_mock.query.return_value.filter.return_value.count.return_value = 0
+        db_mock.get.side_effect = lambda model, obj_id: indexer if obj_id == 5 else (show if obj_id == 4 else None)
+
+        torrent_seeded = TorrentInfo(
+            hash="sample_pack_hash", name="Show.With.Sample.S01", progress=1.0,
+            state="seeding", save_path=self.src_dir, size=5000000,
+            ratio=1.2, seeding_time=1000,
+            files=[SimpleNamespace(name="sample.mkv", priority=1, index=0)],
+        )
+
+        mock_client = AsyncMock()
+        mock_client.list_torrents.return_value = [torrent_seeded]
+
+        settings = SimpleNamespace(download_folder_series=self.src_dir, root_folder_series=self.dst_dir)
+        with patch("app.services.downloads_monitor.get_client", return_value=mock_client), \
+             patch("app.services.downloads_monitor.get_or_create_settings", return_value=settings), \
+             patch("app.services.downloads_monitor.log_release_event"):
+            asyncio.run(_check_seeding_torrents(db_mock, [dc]))
+
+        mock_client.remove_torrent.assert_called_once_with("sample_pack_hash", delete_files=True)
 
     @unittest.skipUnless(HAS_FASTAPI, "Requires fastapi")
     def test_get_queue_seeding_metrics(self):

@@ -1116,7 +1116,7 @@ class TransmissionClient(BaseDownloadClient):
         seed_ratio_limit: Optional[float] = None,
         seed_time_limit_minutes: Optional[int] = None,
     ) -> None:
-        if seed_ratio_limit is None and seed_time_limit_minutes is None:
+        if seed_ratio_limit is None:
             return
         args: dict[str, Any] = {"ids": [torrent_hash]}
         if seed_ratio_limit is not None and seed_ratio_limit > 0:
@@ -1124,10 +1124,6 @@ class TransmissionClient(BaseDownloadClient):
             args["seedRatioMode"] = 1  # 1 = use torrent-specific limit
         elif seed_ratio_limit == 0:
             args["seedRatioMode"] = 0  # 0 = global limit
-
-        if seed_time_limit_minutes is not None and seed_time_limit_minutes > 0:
-            args["seedIdleLimit"] = int(seed_time_limit_minutes)
-            args["seedIdleMode"] = 1  # 1 = use torrent-specific idle limit
 
         try:
             await self._rpc_call("torrent-set", args)

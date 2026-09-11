@@ -800,8 +800,8 @@ class TestDownloadsMonitor(unittest.TestCase):
         filter_mock = MagicMock()
         query_mock.filter.return_value = filter_mock
 
-        # pending eps count = 0, unimported specials count = 0, downloaded eps count = 2
-        filter_mock.count.side_effect = [0, 0, 2]
+        # pending eps count = 0, downloaded eps count = 2
+        filter_mock.count.side_effect = [0, 2]
 
         dh = SimpleNamespace(id=1, indexer_id=10, show_id=1, torrent_hash="hash-cleaned")
         indexer = SimpleNamespace(id=10, name="Tracker", enable_seeding=False)
@@ -918,12 +918,10 @@ class TestDownloadsMonitor(unittest.TestCase):
 
                 asyncio.run(check_downloads(db_mock))
 
-                # 1. Проверяем, что спешл переведен в DOWNLOADING с 100% прогрессом и хэшем раздачи
-                self.assertEqual(ep_special.status, "downloading")
-                self.assertEqual(ep_special.torrent_hash, th)
-                self.assertEqual(ep_special.download_progress, 1.0)
+                # 1. Проверяем, что неимпортированные спешлы не искажаются насильно
+                self.assertEqual(ep_special.status, "wanted")
 
-                # 2. Проверяем, что торрент зарегистрирован в _PENDING_MANUAL_IMPORT_TORRENTS
+                # 2. Проверяем, что торрент с неимпортированным видео зарегистрирован в _PENDING_MANUAL_IMPORT_TORRENTS
                 self.assertTrue(is_torrent_pending_manual_import(th))
 
                 # 3. Проверяем, что раздача НЕ удалена из клиента и поставлена на паузу
@@ -966,8 +964,8 @@ class TestDownloadsMonitor(unittest.TestCase):
         filter_mock = MagicMock()
         query_mock.filter.return_value = filter_mock
 
-        # pending=0, unimported_specials=0, downloaded_eps=1
-        filter_mock.count.side_effect = [0, 0, 1]
+        # pending=0, downloaded_eps=1
+        filter_mock.count.side_effect = [0, 1]
 
         dh = SimpleNamespace(id=1, indexer_id=10, show_id=1, torrent_hash=th)
         indexer = SimpleNamespace(id=10, name="Tracker", enable_seeding=False)
