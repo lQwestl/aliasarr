@@ -7157,11 +7157,25 @@ async function refreshShowModal() {
         </div>
         <div class="form-col">
           <label>${t("settings.col_category")}</label>
-          <select class="input" ${canManageLib ? "" : "disabled"} onchange="changeContentType(${show.id}, this.value)">
-            <option value="movie" ${show.content_type === "movie" ? "selected" : ""}>${t("settings.cat_movies")}</option>
-            <option value="series" ${show.content_type === "series" ? "selected" : ""}>${t("settings.cat_series")}</option>
-            <option value="anime" ${show.content_type === "anime" ? "selected" : ""}>${t("settings.cat_anime")}</option>
-          </select>
+          <div style="display:flex; align-items:center; height:38px;">
+            ${show.content_type === "movie" ? `
+              <span class="category-badge-chip category-badge-movies">
+                <i data-lucide="film" class="ico-xs"></i> ${CURRENT_LANG === 'en' ? 'Movie' : 'Фильм'}
+              </span>
+            ` : show.content_type === "anime" ? `
+              <span class="category-badge-chip category-badge-anime ${canManageLib ? 'clickable' : ''}" 
+                    ${canManageLib ? `onclick="changeContentType(${show.id}, 'series')"` : ""} 
+                    title="${canManageLib ? (CURRENT_LANG === 'en' ? 'Click to change category to Series' : 'Нажмите для смены категории на Сериал') : ''}">
+                <i data-lucide="clapperboard" class="ico-xs"></i> ${CURRENT_LANG === 'en' ? 'Anime' : 'Аниме'}
+              </span>
+            ` : `
+              <span class="category-badge-chip category-badge-series ${canManageLib ? 'clickable' : ''}" 
+                    ${canManageLib ? `onclick="changeContentType(${show.id}, 'anime')"` : ""} 
+                    title="${canManageLib ? (CURRENT_LANG === 'en' ? 'Click to change category to Anime' : 'Нажмите для смены категории на Аниме') : ''}">
+                <i data-lucide="tv" class="ico-xs"></i> ${CURRENT_LANG === 'en' ? 'Series' : 'Сериал'}
+              </span>
+            `}
+          </div>
         </div>
         ${show.content_type !== "movie" ? `
         <div class="form-col">
@@ -11188,7 +11202,7 @@ async function runWizardMetadataSearch() {
 
 function renderMetadataResultCard(r, index) {
   const isMovie = r.content_type === "movie";
-  const typeLabel = isMovie ? t("settings.cat_movies") : t("settings.cat_series");
+  const typeLabel = isMovie ? (CURRENT_LANG === 'en' ? 'Movie' : 'Фильм') : (CURRENT_LANG === 'en' ? 'Series' : 'Сериал');
   const typeIco = isMovie ? "film" : "tv";
   const typeClass = isMovie ? "meta-type-movie" : "meta-type-series";
 
@@ -11246,9 +11260,10 @@ function renderWizardStep2Content() {
   if (!content || !WIZARD_STATE.selectedResult) return;
 
   const r = WIZARD_STATE.selectedResult;
-  const currentType = WIZARD_STATE.contentType || "series";
   const isMovie = r.content_type === "movie";
-  const typeLabel = isMovie ? t("settings.cat_movies") : t("settings.cat_series");
+  const currentType = isMovie ? "movie" : (WIZARD_STATE.contentType || "series");
+  WIZARD_STATE.contentType = currentType;
+  const typeLabel = isMovie ? (CURRENT_LANG === 'en' ? 'Movie' : 'Фильм') : (CURRENT_LANG === 'en' ? 'Series' : 'Сериал');
   const typeIco = isMovie ? "film" : "tv";
   const typeClass = isMovie ? "meta-badge-type-movie" : "meta-badge-type-series";
   const initialLetter = (r.title || "?").trim()[0]?.toUpperCase() || "?";
@@ -11274,12 +11289,20 @@ function renderWizardStep2Content() {
 
     <div class="form-col">
       <label>${t("wizard.category_label")} <span class="hint">${t("wizard.category_hint")}</span></label>
-      <div class="chip-select" id="wizard-content-type-chips">
-        ${Object.entries(getContentTypeLabels()).map(([val, label]) => `
-          <button type="button" class="chip ${val === currentType ? "chip-selected" : ""}" data-value="${val}"
-            onclick="selectWizardContentType('${val}')">${label}</button>
-        `).join("")}
-      </div>
+      ${isMovie ? `
+        <div style="display:flex; align-items:center; min-height:36px; margin:4px 0;">
+          <span class="category-badge-chip category-badge-movies">
+            <i data-lucide="film" class="ico-xs"></i> ${CURRENT_LANG === 'en' ? 'Movie' : 'Фильм'}
+          </span>
+        </div>
+      ` : `
+        <div class="chip-select" id="wizard-content-type-chips">
+          <button type="button" class="chip ${currentType === "series" ? "chip-selected" : ""}" data-value="series"
+            onclick="selectWizardContentType('series')">${t("settings.cat_series")}</button>
+          <button type="button" class="chip ${currentType === "anime" ? "chip-selected" : ""}" data-value="anime"
+            onclick="selectWizardContentType('anime')">${t("settings.cat_anime")}</button>
+        </div>
+      `}
 
       <label style="margin-top:8px;">${t("library.col_profile")}</label>
       <select id="wizard-quality-profile" class="input">
@@ -11317,7 +11340,8 @@ async function finishWizard(button) {
     const qualityProfileId = document.getElementById("wizard-quality-profile")?.value;
     const monitored = document.getElementById("wizard-monitored") ? document.getElementById("wizard-monitored").checked : true;
     const runAutoSearch = document.getElementById("wizard-autosearch") ? document.getElementById("wizard-autosearch").checked : true;
-    const contentType = WIZARD_STATE.contentType || "series";
+    const isMovie = WIZARD_STATE.selectedResult?.content_type === "movie";
+    const contentType = isMovie ? "movie" : (WIZARD_STATE.contentType || "series");
 
     if (!WIZARD_STATE.selectedResult) {
       throw new Error(CURRENT_LANG === "en" ? "No title selected" : "Тайтл не выбран");

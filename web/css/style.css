@@ -13240,6 +13240,25 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   letter-spacing: 0.02em;
 }
 
+.category-badge-chip.clickable,
+.category-badge-chip[onclick] {
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.category-badge-chip.clickable:hover,
+.category-badge-chip[onclick]:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+.category-badge-chip.clickable:active,
+.category-badge-chip[onclick]:active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
 .category-badge-movies {
   background: rgba(245, 158, 11, 0.16);
   color: #fbbf24;
