@@ -14298,11 +14298,35 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   border-color: #e9d5ff;
 }
 
-/* Movie Collections Grid & Cards */
+/* Movie Collections Grid & Cards (Full-size Posters & Modern Cyber-Neon Progress) */
 .collections-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 18px;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+.collections-grid.size-large {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+.collections-grid.size-medium {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+.collections-grid.size-small {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+}
+@media (max-width: 1200px) {
+  .collections-grid.size-large { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .collections-grid.size-large { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .collections-grid.size-medium { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+@media (max-width: 540px) {
+  .collections-grid.size-large { grid-template-columns: 1fr; }
+  .collections-grid.size-medium { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .collections-grid.size-small { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .collection-card {
@@ -14324,10 +14348,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 0 16px rgba(99, 102, 241, 0.2);
 }
 
-.collection-poster-wrap {
+.collection-card .collection-poster-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 2 / 3;
   background-size: cover;
   background-position: center;
   background-color: var(--panel-alt);
@@ -14340,7 +14364,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .collection-poster-gradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.85) 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 0%, transparent 40%, rgba(0, 0, 0, 0.85) 100%);
+  pointer-events: none;
 }
 
 .collection-poster-badge {
@@ -14358,62 +14383,86 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  z-index: 3;
+}
+
+/* Cyber-Neon Slim Progress Bar (Variant 1) */
+.collection-neon-progress-wrap {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 10px 8px 10px;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.88) 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 2;
+}
+
+.collection-neon-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: #f1f5f9;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.collection-neon-meta-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.collection-neon-track {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(4px);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.collection-neon-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #06b6d4 0%, #10b981 100%);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+  transition: width 0.35s ease;
+}
+
+.collection-neon-fill.complete {
+  background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.6);
+}
+
+.collection-neon-fill.empty {
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: none;
 }
 
 .collection-info-wrap {
-  padding: 14px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 8px;
+  gap: 6px;
 }
 
 .collection-card-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text);
   line-height: 1.35;
   margin: 0;
-}
-
-.collection-card-overview {
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin: 0;
-}
-
-.collection-progress-wrap {
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.collection-progress-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.collection-progress-bar {
-  height: 6px;
-  background: var(--border);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.collection-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--teal) 0%, #6366f1 100%);
-  border-radius: 999px;
-  transition: width 0.3s ease;
 }
 
 /* Collection Detail Modal / Drawer */

@@ -5497,8 +5497,6 @@ function renderLibrary() {
     if (empty) empty.style.display = "none";
     const dashContainer = document.getElementById("library-dashboard-container");
     if (dashContainer) dashContainer.innerHTML = "";
-    const alphaIndex = document.getElementById("alphabet-index");
-    if (alphaIndex) alphaIndex.style.display = "none";
     renderCollectionsView(query, true);
     return;
   }
@@ -5640,13 +5638,18 @@ async function renderCollectionsView(query = "", force = false) {
   }
 
   if (query) {
+    const qLower = query.toLowerCase();
     filtered = filtered.filter(c =>
-      (c.title && c.title.toLowerCase().includes(query)) ||
-      (c.overview && c.overview.toLowerCase().includes(query))
+      (c.title && c.title.toLowerCase().includes(qLower)) ||
+      (c.overview && c.overview.toLowerCase().includes(qLower))
     );
   }
 
+  const alphaIndex = document.getElementById("alphabet-index");
+
   if (!filtered.length) {
+    if (alphaIndex) alphaIndex.style.display = "none";
+    collectionsGrid.className = "collections-grid size-" + (POSTER_OPTIONS.size || "medium");
     collectionsGrid.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1; padding: 48px 20px;">
         <div style="font-size: 36px; margin-bottom: 12px; opacity: 0.5;"><i data-lucide="boxes" style="width: 48px; height: 48px;"></i></div>
@@ -5658,13 +5661,15 @@ async function renderCollectionsView(query = "", force = false) {
     return;
   }
 
+  collectionsGrid.className = "collections-grid size-" + (POSTER_OPTIONS.size || "medium");
   collectionsGrid.innerHTML = filtered.map(renderCollectionCard).join("");
+  buildAlphabetIndex(filtered);
   if (window.lucide) lucide.createIcons();
 }
 
 function renderCollectionCard(coll) {
-  const bgImg = coll.backdrop_url || coll.poster_url;
-  const posterStyle = bgImg ? `style="background-image:url('${bgImg}')"` : "";
+  const posterImg = coll.poster_url || coll.backdrop_url;
+  const posterStyle = posterImg ? `style="background-image:url('${posterImg}')"` : "";
   const total = coll.parts_count || coll.shows_count || 0;
   const inLib = coll.shows_count || 0;
   const downloaded = coll.downloaded_count || 0;
@@ -5672,36 +5677,30 @@ function renderCollectionCard(coll) {
   const mTitle = coll.monitored ? t("dash.monitored") : t("dash.unmonitored");
   const mIcon = coll.monitored ? "bookmark-check" : "bookmark-x";
   const mClass = coll.monitored ? "monitored" : "unmonitored";
-  const badgeTitle = CURRENT_LANG === "en"
-    ? `${downloaded} of ${total} franchise movies downloaded (${inLib} in library)`
-    : `${downloaded} из ${total} фильмов саги скачано (${inLib} в библиотеке)`;
+  const alphaChar = getShowAlpha(coll);
 
   return `
-    <div class="collection-card" id="collection-card-${coll.id}" onclick="openCollectionModal(${coll.id})">
+    <div class="collection-card" id="collection-card-${coll.id}" data-alpha="${alphaChar}" onclick="openCollectionModal(${coll.id})">
       <div class="collection-poster-wrap" ${posterStyle}>
+        ${!posterImg ? `<div style="font-size: 36px; color: var(--text-muted); opacity: 0.5;"><i data-lucide="boxes"></i></div>` : ""}
         <div class="collection-poster-gradient"></div>
-        <span class="collection-poster-badge" title="${badgeTitle}">
-          <i data-lucide="boxes" class="ico-xxs"></i>
-          <span>${downloaded}/${total}</span>
-        </span>
+        <div class="collection-neon-progress-wrap">
+          <div class="collection-neon-meta">
+            <span class="collection-neon-meta-left"><i data-lucide="boxes" class="ico-xxs"></i> ${downloaded}/${total}</span>
+            <span>${pct}%</span>
+          </div>
+          <div class="collection-neon-track">
+            <div class="collection-neon-fill ${pct === 100 ? 'complete' : (pct === 0 ? 'empty' : '')}" style="width: ${pct}%;"></div>
+          </div>
+        </div>
       </div>
       <div class="collection-info-wrap">
-        <h3 class="collection-card-title">${escapeHtml(coll.title)}</h3>
-        <div class="show-monitored-badge-wrap" style="margin: 2px 0;">
+        <h3 class="collection-card-title" title="${escapeHtml(coll.title)}">${escapeHtml(coll.title)}</h3>
+        <div class="show-monitored-badge-wrap" style="margin-top: 2px;">
           <span class="show-monitored-pill ${mClass}">
             <i data-lucide="${mIcon}" class="ico-xs"></i>
             <span>${escapeHtml(mTitle)}</span>
           </span>
-        </div>
-        ${coll.overview ? `<p class="collection-card-overview">${escapeHtml(coll.overview)}</p>` : ""}
-        <div class="collection-progress-wrap">
-          <div class="collection-progress-meta">
-            <span>${CURRENT_LANG === 'en' ? 'Saga Progress' : 'Прогресс саги'}</span>
-            <span class="mono">${pct}%</span>
-          </div>
-          <div class="collection-progress-bar">
-            <div class="collection-progress-fill" style="width: ${pct}%;"></div>
-          </div>
         </div>
       </div>
     </div>`;
@@ -6010,7 +6009,9 @@ function buildAlphabetIndex(shows) {
 
 function scrollToLetter(char) {
   let target = null;
-  if (LIBRARY_VIEW_MODE === "posters") {
+  if (LIBRARY_CATEGORY_FILTER === "collections") {
+    target = document.querySelector(`.collection-card[data-alpha="${char}"]`);
+  } else if (LIBRARY_VIEW_MODE === "posters") {
     target = document.querySelector(`.show-card[data-alpha="${char}"]`);
   } else if (LIBRARY_VIEW_MODE === "table") {
     target = document.querySelector(`#shows-table-body tr[data-alpha="${char}"]`);
