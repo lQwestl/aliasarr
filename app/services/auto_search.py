@@ -1639,7 +1639,7 @@ async def _do_search_and_grab(
                         or (s_num == 5 and re.search(r"\b(?:V|5)\b", alias_cand.text, re.IGNORECASE) is not None)
                         or any(
                             re.search(r"\b" + re.escape(s_num_str) + r"\b", a.text) is not None
-                            for a in active_aliases
+                            for a in (alias_candidates or [])
                         )
                     )
                 if not alias_has_num:

@@ -1110,9 +1110,47 @@ class TestSeasonQueries(unittest.TestCase):
         self.assertEqual(ep.status, EpisodeStatus.DOWNLOADING)
         self.assertEqual(ep.torrent_hash, "grabbed_ova_hash")
 
+    def test_movie_auto_search_covers_and_grabs_sequel_with_numbers(self):
+        """Проверяет, что фильм-сиквел (например, Elvira's Haunted Hills) успешно захватывается через covers() без NameError."""
+        show = make_show(self.session, title="Elvira's Haunted Hills")
+        show.content_type = "movie"
+        show.year = 2002
+        self.session.commit()
+
+        alias_ru = Alias(show_id=show.id, text="Эльвира - Повелительница Тьмы 2. Проклятые холмы Эльвиры")
+        self.session.add(alias_ru)
+        ep = make_episode(self.session, show, season=1, episode=1, status=EpisodeStatus.WANTED)
+        indexer = make_indexer(self.session, name="Tapochek (Prowlarr)")
+        dc = make_download_client(self.session)
+        self.session.commit()
+
+        sequel_rel = TorznabRelease(
+            title="Эльвира: Повелительница тьмы 2 / Elvira's Haunted Hills (Сэм Ирвин) [2002, комедия, фэнтези, ужасы, HEVC, BDRip 1080p] [MVO]",
+            guid="https://tapochek.net/download.php?id=184924",
+            download_url="http://fake.local/dl/184924",
+            size_bytes=7176233391,
+            seeders=5,
+        )
+
+        mock_idx_inst = unittest.mock.AsyncMock()
+        mock_idx_inst.search.return_value = [sequel_rel]
+
+        mock_dc_inst = unittest.mock.AsyncMock()
+        mock_dc_inst.add_torrent.return_value = "grabbed_elvira_hash"
+
+        with patch.object(auto_search, "get_indexer_client", return_value=mock_idx_inst), \
+             patch.object(auto_search, "get_client", return_value=mock_dc_inst), \
+             patch.object(auto_search, "_limit_torrent_files_to_episodes"):
+            res = asyncio.run(auto_search.search_and_grab_show(self.session, show))
+
+        self.session.refresh(ep)
+        self.assertEqual(ep.status, EpisodeStatus.DOWNLOADING)
+        self.assertEqual(ep.torrent_hash, "grabbed_elvira_hash")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
 
