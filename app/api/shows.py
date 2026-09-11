@@ -148,6 +148,7 @@ def _attach_computed_fields(db: Session, shows: list[Show]) -> list[ShowOut]:
         item.upgrade_requested = bool(getattr(show, "upgrade_requested", False))
         item.next_airing = next_airing.get(show.id) or show.premiere_date
         item.collection_title = show.collection.title if getattr(show, "collection", None) else None
+        item.collection_backdrop_url = show.collection.backdrop_url if (getattr(show, "collection", None) and show.collection.backdrop_url) else None
         out.append(item)
     return out
 

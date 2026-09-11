@@ -6976,7 +6976,8 @@ async function refreshShowModal() {
     const seasonNumbers = Object.keys(seasons).map(Number).sort((a, b) => a - b);
 
     const posterStyle = show.poster_url ? `style="background-image:url('${show.poster_url}')"` : "";
-    const backdropStyle = show.poster_url ? `style="background-image:url('${show.poster_url}')"` : "";
+    const backdropImg = show.collection_backdrop_url || show.backdrop_url || show.poster_url;
+    const backdropStyle = backdropImg ? `style="background-image:url('${backdropImg}')"` : "";
     const initial = (show.title || "?").trim()[0]?.toUpperCase() || "?";
 
     const qpObj = CACHED_QUALITY_PROFILES.find(qp => qp.id === show.quality_profile_id);
@@ -6996,7 +6997,7 @@ async function refreshShowModal() {
     content.innerHTML = `
       <div class="show-hero-container">
         <div class="show-hero-backdrop-wrap">
-          ${show.poster_url ? `<div class="show-hero-backdrop" ${backdropStyle}></div>` : ""}
+          ${backdropImg ? `<div class="show-hero-backdrop" ${backdropStyle}></div>` : ""}
           <div class="show-hero-gradient"></div>
         </div>
 

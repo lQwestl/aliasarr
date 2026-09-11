@@ -207,6 +207,7 @@ class ShowOut(BaseModel):
     collection_id: Optional[int] = None
     collection_order: Optional[int] = None
     collection_title: Optional[str] = None
+    collection_backdrop_url: Optional[str] = None
     expected_year: Optional[int] = None
     expected_quarter: Optional[int] = None
     in_calendar: bool = True
