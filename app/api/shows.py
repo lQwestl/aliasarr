@@ -185,17 +185,6 @@ async def create_show(
             detail=f"Тайтл «{clean_title}» уже есть в библиотеке (ID: {existing.id})",
         )
 
-    # Определяем корневую директорию для типа медиа
-    final_path = payload.path
-    if not final_path:
-        settings = get_or_create_settings(db)
-        cat_key = payload.content_type if payload.content_type in ("movie", "anime") else "series"
-        root_dir = get_category_root_folder(settings, cat_key)
-        if root_dir:
-            from app.services.postprocess import build_show_folder_name
-            folder_name = build_show_folder_name(clean_title, clean_year, getattr(settings, "folder_format", None))
-            final_path = os.path.join(root_dir, folder_name)
-
     show = Show(
         title=clean_title,
         year=clean_year,
@@ -203,7 +192,7 @@ async def create_show(
         metadata_id=payload.metadata_id,
         overview=payload.overview,
         poster_url=payload.poster_url,
-        path=final_path,
+        path=payload.path,
         quality_profile_id=payload.quality_profile_id,
         content_type=payload.content_type,
         edition=payload.edition,
@@ -219,6 +208,9 @@ async def create_show(
         shikimori_id=payload.shikimori_id,
         trailer_url=payload.trailer_url,
     )
+    if not show.path:
+        settings = get_or_create_settings(db)
+        show.path = get_show_default_path(show, settings)
     db.add(show)
     db.flush()  # получаем show.id до коммита
 

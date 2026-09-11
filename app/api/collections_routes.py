@@ -302,8 +302,9 @@ async def import_missing_collection_movies(
         raise HTTPException(400, "Коллекция не привязана к TMDb Collection ID")
 
     from app.services.metadata import RadarrClient, refresh_show_metadata
-    from app.models.db import Settings
-    from app.services.postprocess import build_show_folder_name
+    from app.services.settings_service import get_or_create_settings
+    from app.services.postprocess import get_show_default_path
+    from app.services.organizer import clean_show_title_and_year
 
     client = RadarrClient()
     try:
@@ -317,8 +318,7 @@ async def import_missing_collection_movies(
         db.add(coll)
         db.commit()
 
-    settings = db.query(Settings).first()
-    root_folder = payload.root_folder or coll.root_folder or (getattr(settings, "movies_root_folder", None) or getattr(settings, "root_folder", None) or "/data/media/movies")
+    settings = get_or_create_settings(db)
     qp_id = payload.quality_profile_id or coll.quality_profile_id
 
     existing_tmdb_ids = set()
@@ -349,23 +349,31 @@ async def import_missing_collection_movies(
         p_overview = part.get("overview")
         p_poster = part.get("poster_url")
 
-        folder_name = build_show_folder_name(p_title, p_year, getattr(settings, "folder_format", None))
-        show_path = f"{root_folder.rstrip('/')}/{folder_name}" if root_folder else None
+        clean_p_title, clean_p_year = clean_show_title_and_year(p_title, p_year)
 
         show = Show(
-            title=p_title,
-            year=p_year,
+            title=clean_p_title,
+            year=clean_p_year,
             metadata_source="tmdb",
             metadata_id=f"movie:{tmdb_id}",
             overview=p_overview,
             poster_url=p_poster,
-            path=show_path,
             quality_profile_id=qp_id,
             content_type="movie",
             monitored=payload.monitored,
             collection_id=coll.id,
             collection_order=order_idx,
         )
+
+        custom_root = payload.root_folder or coll.root_folder
+        if custom_root:
+            from app.services.postprocess import sanitize_filename, _title_without_year
+            folder_name = f"{sanitize_filename(_title_without_year(clean_p_title))} ({clean_p_year})" if clean_p_year else sanitize_filename(clean_p_title)
+            import os
+            show.path = os.path.join(custom_root, folder_name)
+        else:
+            show.path = get_show_default_path(show, settings)
+
         db.add(show)
         db.flush()
 
@@ -374,7 +382,7 @@ async def import_missing_collection_movies(
             show_id=show.id,
             season_number=1,
             episode_number=1,
-            title=p_title,
+            title=clean_p_title,
             status=EpisodeStatus.WANTED if payload.monitored else EpisodeStatus.IGNORED,
         ))
         db.commit()
