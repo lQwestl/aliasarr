@@ -1396,10 +1396,11 @@ async def _collect_candidates(
             if not match.matched:
                 score_val = getattr(match, "score", 0.0) or 0.0
                 if score_val > 0.2:
+                    pct = int(score_val * 100) if score_val <= 1.0 else int(score_val)
                     rejected_candidates.append({
                         "title": rel.title,
                         "indexer": idx_name,
-                        "reason": f"Название не сопоставлено (схожесть {int(score_val * 100)}% ниже порога)",
+                        "reason": f"Название не сопоставлено (схожесть {pct}% ниже порога)",
                     })
                 continue
 

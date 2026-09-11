@@ -943,9 +943,67 @@ class TestQualityAndMatcher(unittest.TestCase):
         res_fargo_numbered_bad = match_release(rel_fargo_numbered, show_id=1, aliases=fargo_movie_aliases, content_type="movie", show_year=1996)
         self.assertFalse(res_fargo_numbered_bad.matched, "Fargo movie must NOT match Fargo 2 release")
 
+    def test_heavy_metal_2000_movie_vs_music_and_games(self):
+        from app.services.matcher import is_non_video_release, match_release, AliasCandidate
+
+        hm_aliases = [
+            AliasCandidate(alias_id=1, text="Heavy Metal 2000", language="en", priority=10),
+            AliasCandidate(alias_id=2, text="Тяжёлый металл 2000", language="ru", priority=20),
+            AliasCandidate(alias_id=3, text="Тяжелый металл 2000", language="ru", priority=30),
+            AliasCandidate(alias_id=4, text="Heavy Metal: F.A.K.K.2", language="en", priority=40),
+        ]
+
+        # 1. Real Video Movie Releases for Heavy Metal 2000 -> MUST match as video
+        valid_movie_releases = [
+            ("Тяжелый металл 2000 / Heavy Metal 2000 [2000, Канада, Германия, фантастика, боевик, приключения, BDRip 720p] MVO + Sub Rus, Eng + Original Eng", [2040, 100930]),
+            ("Тяжёлый Металл 2000 / Heavy Metal 2000 [2000, Канада, Германия, Мультфильм, фантастика, боевик, приключения, BDRip 1080p] MVO + Original (Eng) + Sub (Rus, Eng)", [2040, 100930]),
+            ("Тяжелый металл 2000 / Heavy Metal 2000 [2000, Канада, Германия, фантастика, боевик, приключения, BDRemux 1080p] MVO + Sub Rus, Eng + Original Eng", [2040, 100930]),
+            ("Тяжелый металл 2000 / Heavy Metal 2000 (Майкл Колдвей, Мишель Лемир) [2000 г., фантастика, боевик, фэнтези, приключения, мультфильм, DVDRip]", [5000, 100328]),
+            ("Тяжелый металл 2000 / Heavy Metal 2000 [2000, Канада, Германия, фантастика, боевик, BDRip-AVC] MVO + Sub Rus, Eng + Original Eng", [2010, 100209]),
+        ]
+
+        for rel_title, cats in valid_movie_releases:
+            self.assertFalse(is_non_video_release(rel_title, categories=cats), f"Video movie should NOT be non-video: {rel_title}")
+            res = match_release(rel_title, show_id=92, aliases=hm_aliases, content_type="movie", show_year=2000, categories=cats)
+            self.assertTrue(res.matched, f"Movie release failed to match: {rel_title}")
+            self.assertEqual(res.score, 100.0)
+
+        # 2. Other movies/shows with potential keyword collisions -> MUST match as video
+        colliding_video_titles = [
+            ("House.of.the.Dragon.S01E01.1080p.WEB-DL", [5000]),
+            ("Strike the Blood S01E01 1080p", [5000]),
+            ("Fate Stay Night Unlimited Blade Works S01E01 1080p", [5000]),
+            ("A Single Man (2009) 1080p BDRip", [2000]),
+        ]
+        for v_title, cats in colliding_video_titles:
+            self.assertFalse(is_non_video_release(v_title, categories=cats), f"Video title should NOT be non-video: {v_title}")
+
+        # 3. Audio / Music / Soundtrack Releases -> MUST be flagged as non-video
+        audio_releases = [
+            ("Bride - Silence Is Madness (Re-Issue + Bonus Tracks) - 2000, FLAC (tracks+.cue), lossless (Heavy Metal / Christian Metal)", [3040, 101726]),
+            ("Sabaton / Дискография: 2000 - 2026 (39 Releases) / MP3 320 Kbps (Heavy Metal / Power Metal)", [3010, 101727]),
+            ("[24/96] Lefay - 3 альбома (1999-2000), FLAC (image+.cue) (Heavy/Thrash Metal) [3LP]", [3000, 101766]),
+            ("(Heavy Metal) Ария - 2000 И Одна Ночь (Compilation) - 1999 [FLAC, image +.cue, lossless]", [3040, 100477]),
+            ("Dokken - Live From The Sun - 2000, FLAC (tracks+.cue), lossless (Heavy Metal, Hard Rock) [CD]", [3040, 101726]),
+            ("Тяжелый метал / Heavy Metal ; Heavy Metal 2000 (Score Collection) - (by Elmer Bernstein ; Frederic Talgorn ) (3 релиза) - 2001 ; 2008 ; 2024 (1981 ; 2000), FLAC (tracks, tracks+.cue) lossless (Score) [CD ; WEB]", [3000, 100715]),
+            ("(OST) VA - Heavy Metal / Тяжелый металл - 1981, MP3 (tracks), 320 kbps", [3000, 100396]),
+        ]
+        for a_title, cats in audio_releases:
+            self.assertTrue(is_non_video_release(a_title, categories=cats), f"Audio release should be non-video: {a_title}")
+
+        # 4. Game / Software Releases -> MUST be flagged as non-video
+        game_releases = [
+            ("Heavy Metal: F.A.K.K.2 (2000) (RUS) [Repack]", [4050, 100035]),
+            ("Heavy Metal: F.A.K.K. 2 [P] [RUS + ENG / RUS + ENG] (2000, TPS) (1.02) [P2P] [CD]", [4050, 101310]),
+            ("Heavy Metal: F.A.K.K. 2 [L] [ENG + 4 / ENG] (2000, TPS) (1.02) [Gathering] [CD]", [4050, 101310]),
+        ]
+        for g_title, cats in game_releases:
+            self.assertTrue(is_non_video_release(g_title, categories=cats), f"Game release should be non-video: {g_title}")
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
 
