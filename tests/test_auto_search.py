@@ -1104,7 +1104,7 @@ class TestSeasonQueries(unittest.TestCase):
         with patch.object(auto_search, "get_indexer_client", return_value=mock_idx_inst), \
              patch.object(auto_search, "get_client", return_value=mock_dc_inst), \
              patch.object(auto_search, "_limit_torrent_files_to_episodes"):
-            res = asyncio.run(auto_search.search_missing_for_show(self.session, show))
+            res = asyncio.run(auto_search.search_and_grab_show(self.session, show))
 
         self.session.refresh(ep)
         self.assertEqual(ep.status, EpisodeStatus.DOWNLOADING)
