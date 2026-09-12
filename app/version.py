@@ -1,2 +1,2 @@
 VERSION = "2.9.0"
-COMMIT_HASH = "11533ac"
+COMMIT_HASH = "ed6f1b8"
