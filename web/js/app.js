@@ -11536,10 +11536,17 @@ async function loadQueue() {
 
       // 1. Колонка Имя / Серии / Трекер
       const showLabel = i.show_title ? `<div class="queue-show-title">${escapeHtml(i.show_title)}</div>` : "";
-      const releaseName = `<div class="queue-release-name mono" title="${escapeHtml(i.name)}">${escapeHtml(i.name)}</div>`;
-      const badgesHtml = (i.episode_label || i.indexer_name) ? `
+      let epBadgeHtml = "";
+      if (i.episode_label) {
+        if (i.episode_label === "Фильм" || i.episode_label === "Movie" || i.content_type === "movie") {
+          epBadgeHtml = `<span class="badge category-badge-movies" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="film" style="width:11px; height:11px;"></i>${CURRENT_LANG === "en" ? "Movie" : "Фильм"}</span>`;
+        } else {
+          epBadgeHtml = `<span class="badge badge-primary">${escapeHtml(i.episode_label)}</span>`;
+        }
+      }
+      const badgesHtml = (epBadgeHtml || i.indexer_name) ? `
         <div class="queue-badges-row">
-          ${i.episode_label ? `<span class="badge badge-primary">${escapeHtml(i.episode_label)}</span>` : ""}
+          ${epBadgeHtml}
           ${i.indexer_name ? `<span class="badge queue-indexer-badge" title="${escapeHtml(i.indexer_name)}">${escapeHtml(i.indexer_name)}</span>` : ""}
         </div>` : "";
 

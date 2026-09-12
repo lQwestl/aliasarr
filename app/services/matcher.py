@@ -180,6 +180,25 @@ VIDEO_CATEGORY_RANGES = [
     (5000, 5999),  # TV / Anime
 ]
 
+SPORTS_KEYWORDS = re.compile(
+    r"("
+    r"\b(?:футбол|хоккей|баскетбол|волейбол|теннис|биатлон|бокс|мма|ufc|bellator|nhl|нхл|кхл|khl|нба|nba|рпл|apl|epl|la\s*liga|ла\s*лига|серия\s*а|serie\s*a|bundesliga|бундеслиг[ае]|лиг[аие]\s*чемпионов|лиг[аие]\s*европы|champions\s*league|europa\s*league|уефа|uefa|fifa|фифа|чемпионат\s*(?:мир[ае]|европ[ые]|россии)|formula\s*1|формул[аы]\s*1|гран[-_\s]*при|grand\s*prix|match\s*day|highlights|обзор\s*матч[аей]|sports?|полуфинал|финал\s*кубк[ае]|турнир\s*(?:по|atp|wta)|1/2\s*финала|1/4\s*финала|1/8\s*финала|квалификационный\s*раунд|квалификация)\b|"
+    r"\[\s*(?:футбол|хоккей|бокс|мма|ufc|спорт|биатлон|баскетбол|автоспорт|теннис|formula\s*1|f1)\s*\]|"
+    r"\b(?:матч|матчи)\s*[-–—/:]|"
+    r"/\s*(?:первые|ответные)?\s*матчи\s*/"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def is_sports_release(title: str, categories: Optional[list[int]] = None) -> bool:
+    """True, если релиз является спортивной трансляцией (футбол, матч, UFC, TV/Sport 5060 и т.д.)."""
+    if categories and 5060 in categories:
+        return True
+    if SPORTS_KEYWORDS.search(title or ""):
+        return True
+    return False
+
 
 def is_non_video_release(title: str, categories: Optional[list[int]] = None) -> bool:
     """True, если релиз похож на не-видео контент (игры/консоли/ROM/софт/манга/артбук/саундтрек и т.п.)."""
@@ -489,6 +508,7 @@ def best_alias_match(
     release_name: str,
     aliases: Iterable[AliasCandidate],
     threshold: float = 80.0,
+    content_type: str = "series",
 ) -> tuple[Optional[AliasCandidate], float]:
     """
     Находит алиас с максимальным fuzzy-скором против имени релиза.
@@ -519,7 +539,7 @@ def best_alias_match(
         if not norm_alias:
             continue
 
-        base_alias_text = _clean_alias_season_suffix(alias_text)
+        base_alias_text = _clean_alias_season_suffix(alias_text) if content_type != "movie" else alias_text
         base_alias = normalize_title(base_alias_text) if base_alias_text != alias_text else ""
 
         # Проверка совместимости области действия алиаса и сезона релиза
@@ -553,17 +573,20 @@ def best_alias_match(
 
             # 2. Точное совпадение с базовым алиасом (без суффикса ТВ-2 / 2nd Season)
             if base_alias and (seg == base_alias or (base_clean and seg_clean == base_clean)):
-                score = 98.0
-                if is_part_2 and is_alias_part_2:
-                    score += 5.0
-                if score > best_score:
-                    best_score = score
-                    best = alias
-                continue
+                if is_alias_part_2 and not is_part_2:
+                    pass
+                else:
+                    score = 98.0
+                    if is_part_2 and is_alias_part_2:
+                        score += 5.0
+                    if score > best_score:
+                        best_score = score
+                        best = alias
+                    continue
 
             # 3. Нечёткое сравнение
             target_candidates = [norm_alias]
-            if base_alias and base_alias != norm_alias:
+            if base_alias and base_alias != norm_alias and not (is_alias_part_2 and not is_part_2):
                 target_candidates.append(base_alias)
 
             for target_name in target_candidates:
@@ -628,11 +651,18 @@ def match_release(
     show_year: Optional[int] = None,
 ) -> MatchResult:
     """Полный матчинг релиза: алиас (fuzzy) + парсинг номера серии + проверка типа контента и года."""
-    alias, score = best_alias_match(release_name, aliases, threshold)
+    alias, score = best_alias_match(release_name, aliases, threshold, content_type=content_type)
     parsed = parse_episode(release_name)
 
     # Отсеиваем не-видео релизы (игры, консоли, ROM, софт, манга, артбуки, OST/саундтреки)
     if is_non_video_release(release_name, categories=categories):
+        return MatchResult(
+            matched=False, show_id=None, alias_id=None, alias_text=None,
+            score=score, parsed=parsed,
+        )
+
+    # Отсеиваем спортивные трансляции (футбол, матчи, турниры, TV/Sport 5060)
+    if is_sports_release(release_name, categories=categories):
         return MatchResult(
             matched=False, show_id=None, alias_id=None, alias_text=None,
             score=score, parsed=parsed,
@@ -655,10 +685,24 @@ def match_release(
     # Проверка соответствия года выхода (исключает ремейки, перезапуски и одноименные фильмы других годов)
     if isinstance(show_year, int) and show_year > 1900:
         clean_rel = re.sub(r"\b(1080|2160|1440|720|480|360|240)[pi]?\b", "", release_name, flags=re.IGNORECASE)
+
+        # Для фильмов: если в релизе указан диапазон лет (например 2024-2025, 2020-2021) — это сериал, сезон или спорт, а не одиночный фильм
+        if content_type == "movie" and re.search(r"\b(19\d\d|20\d\d)\s*[-–/]\s*(19\d\d|20\d\d)\b", clean_rel):
+            return MatchResult(
+                matched=False, show_id=None, alias_id=None, alias_text=None,
+                score=score, parsed=parsed,
+            )
+
         rel_years = [int(y) for y in re.findall(r"\b(19\d\d|20\d\d)\b", clean_rel)]
         if rel_years:
             if content_type == "movie":
-                has_matching_year = any(abs(y - show_year) <= 1 for y in rel_years)
+                import datetime
+                current_yr = datetime.datetime.now().year
+                if show_year > current_yr:
+                    # Для еще не вышедших фильмов будущих лет требуем строгого совпадения года выпуска
+                    has_matching_year = any(y == show_year for y in rel_years)
+                else:
+                    has_matching_year = any(abs(y - show_year) <= 1 for y in rel_years)
             else:
                 s_lbl = detect_season_label(release_name)
                 s_num = parsed.season or (s_lbl.get("season") if s_lbl.get("type") == "numbered" else None)

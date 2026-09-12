@@ -1180,6 +1180,7 @@ class QueueItemOut(BaseModel):
     protocol: str = "torrent"
     show_id: Optional[int] = None
     show_title: Optional[str] = None
+    content_type: Optional[str] = None
     episode_label: Optional[str] = None
     seeding_time_seconds: int = 0
     seed_time_limit_seconds: Optional[int] = None
@@ -1242,6 +1243,7 @@ async def get_queue(db: Session = Depends(get_db), current_user: User = Depends(
             matching_eps = episodes_by_hash.get(t_hash_clean, [])
             show_id = None
             show_title = None
+            content_type = None
             ep_label = None
 
             if matching_eps:
@@ -1249,10 +1251,14 @@ async def get_queue(db: Session = Depends(get_db), current_user: User = Depends(
                 show_id = s_id
                 if s_id not in show_cache:
                     show_cache[s_id] = db.get(Show, s_id)
-                if show_cache[s_id]:
-                    show_title = show_cache[s_id].title
+                current_show = show_cache.get(s_id)
+                if current_show:
+                    show_title = current_show.title
+                    content_type = current_show.content_type
                 
-                if len(matching_eps) == 1:
+                if current_show and getattr(current_show, "content_type", None) == "movie":
+                    ep_label = "Фильм"
+                elif len(matching_eps) == 1:
                     ep_label = f"S{matching_eps[0].season_number:02d}E{matching_eps[0].episode_number:02d}"
                 else:
                     ep_label = f"{len(matching_eps)} eps"
@@ -1313,6 +1319,7 @@ async def get_queue(db: Session = Depends(get_db), current_user: User = Depends(
                 protocol=getattr(t, "protocol", "torrent") or "torrent",
                 show_id=show_id,
                 show_title=show_title,
+                content_type=content_type,
                 episode_label=ep_label,
                 seeding_time_seconds=seeding_sec,
                 seed_time_limit_seconds=seed_time_limit_sec,

@@ -235,14 +235,17 @@ def _evaluate_record_against_show(
             decision.rejections.append(f"Все серии ({len(covered_eps)} шт.) уже скачаны в медиатеку (нет разыскиваемых)")
 
     if covered_eps:
-        sorted_eps = sorted(covered_eps, key=lambda x: (getattr(x, "season_number", 0), getattr(x, "episode_number", 0)))
-        s_num = getattr(sorted_eps[0], "season_number", 1)
-        if len(sorted_eps) == 1:
-            cov_summary = f"S{s_num:02d}E{sorted_eps[0].episode_number:02d}"
+        if show.content_type == "movie":
+            cov_summary = "Фильм"
         else:
-            cov_summary = f"S{s_num:02d}E{sorted_eps[0].episode_number:02d}-E{sorted_eps[-1].episode_number:02d} ({len(sorted_eps)} сер.)"
+            sorted_eps = sorted(covered_eps, key=lambda x: (getattr(x, "season_number", 0), getattr(x, "episode_number", 0)))
+            s_num = getattr(sorted_eps[0], "season_number", 1)
+            if len(sorted_eps) == 1:
+                cov_summary = f"S{s_num:02d}E{sorted_eps[0].episode_number:02d}"
+            else:
+                cov_summary = f"S{s_num:02d}E{sorted_eps[0].episode_number:02d}-E{sorted_eps[-1].episode_number:02d} ({len(sorted_eps)} сер.)"
     else:
-        cov_summary = "Серии не совпали"
+        cov_summary = "Серии не совпали" if show.content_type != "movie" else "Фильм не совпал"
 
     return {
         "show_id": show.id,

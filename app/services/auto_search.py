@@ -1996,7 +1996,10 @@ async def _do_search_and_grab(
     # Логируем этап принятия решений (Decision Stage): победитель и ранжирование
     decision_chain = []
     for rank_idx, c in enumerate(scored_candidates[:8], 1):
-        c_eps = sorted({f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in c["covered"]})
+        if show.content_type == "movie":
+            c_eps = ["Фильм"]
+        else:
+            c_eps = sorted({f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in c["covered"]})
         decision_chain.append({
             "rank": rank_idx,
             "title": c["rel"].title,
@@ -2011,7 +2014,10 @@ async def _do_search_and_grab(
         })
 
     winner = scored_candidates[0]
-    winner_eps = sorted({f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in winner["covered"]})
+    if show.content_type == "movie":
+        winner_eps = ["Фильм"]
+    else:
+        winner_eps = sorted({f"S{ep.season_number:02d}E{ep.episode_number:02d}" for ep in winner["covered"]})
     ep_cov_str = f"{len(winner['covered'])} серий [{', '.join(winner_eps[:8])}{'...' if len(winner_eps) > 8 else ''}]" if show.content_type != "movie" else "Фильм"
 
     alias_cand = getattr(winner.get("match"), "alias_candidate", None) or getattr(winner.get("rel"), "alias_candidate", None)
