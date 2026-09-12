@@ -8752,21 +8752,11 @@ function renderMovieBlock(show, ep, canManageLib = true) {
     granularDatesHtml += `</div>`;
   }
 
-  const editionBadge = (show.edition || ep.edition)
-    ? `<span class="badge-edition"><i data-lucide="clapperboard" class="ico-xxs"></i> ${escapeHtml(show.edition || ep.edition)}</span>`
-    : "";
-
-  const collectionChip = (show.collection_id && show.collection_title)
-    ? `<span class="badge-collection" onclick="openCollectionModal(${show.collection_id})" title="${CURRENT_LANG === 'en' ? 'Part of Collection' : 'Входит в коллекцию'}"><i data-lucide="boxes" class="ico-xxs"></i> ${escapeHtml(show.collection_title)}</span>`
-    : "";
-
   return `
     <div class="season-block" id="season-block-1">
       <div class="season-header">
         <div class="season-header-left" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
           <span>${t("settings.cat_movies")}</span>
-          ${editionBadge}
-          ${collectionChip}
           <span class="badge-season-progress ${movieProgressClass}">
             <i data-lucide="${movieProgressIcon}"></i>
             <span>${movieProgressText}</span>
@@ -8778,7 +8768,6 @@ function renderMovieBlock(show, ep, canManageLib = true) {
           <div class="episode-row-main" style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               <span class="ep-title">${escapeHtml(show.title)}</span>
-              ${editionBadge}
               ${!hasGranularDates ? renderAirDateBadge(ep.air_date) : ""}
             </div>
             ${granularDatesHtml}
