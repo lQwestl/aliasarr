@@ -190,6 +190,95 @@ def is_latin_text(text: str) -> bool:
     return not has_non_latin_script(str(text))
 
 
+COUNTRY_TO_LANG_MAP: dict[str, str] = {
+    "US": "en", "GB": "en", "UK": "en", "CA": "en", "AU": "en", "NZ": "en", "IE": "en",
+    "RU": "ru", "SU": "ru", "BY": "ru", "KZ": "ru", "UA": "uk",
+    "JP": "ja", "KR": "ko", "CN": "zh", "TW": "zh", "HK": "zh",
+    "FR": "fr", "DE": "de", "IT": "it", "ES": "es", "PT": "pt", "BR": "pt",
+    "HU": "hu", "PL": "pl", "CZ": "cs", "TR": "tr", "AZ": "az", "ID": "id",
+    "NL": "nl", "SE": "sv", "NO": "no", "DK": "da", "FI": "fi", "GR": "el",
+    "IL": "he", "IN": "hi", "TH": "th", "VN": "vi", "AR": "es", "MX": "es",
+    "CL": "es", "CO": "es", "PE": "es", "RO": "ro", "BG": "bg", "RS": "sr",
+}
+
+LANGUAGE_NAME_TO_CODE: dict[str, str] = {
+    "english": "en", "russian": "ru", "japanese": "ja", "korean": "ko", "chinese": "zh",
+    "french": "fr", "german": "de", "italian": "it", "spanish": "es", "portuguese": "pt",
+    "hungarian": "hu", "polish": "pl", "czech": "cs", "turkish": "tr", "azerbaijani": "az",
+    "indonesian": "id", "dutch": "nl", "swedish": "sv", "norwegian": "no", "danish": "da",
+    "finnish": "fi", "greek": "el", "hebrew": "he", "hindi": "hi", "thai": "th",
+    "vietnamese": "vi", "ukrainian": "uk", "arabic": "ar",
+}
+
+
+def normalize_metadata_lang_code(raw_val: Any) -> str:
+    """Приводит код страны, название языка или ISO-код к единому 2-буквенному ISO-639-1 коду языка."""
+    if not raw_val:
+        return ""
+    if isinstance(raw_val, dict):
+        raw_val = raw_val.get("name") or raw_val.get("code") or raw_val.get("iso_639_1") or raw_val.get("iso_3166_1") or ""
+    s = str(raw_val).strip().lower().split("-")[0].split("_")[0]
+    if not s:
+        return ""
+    if s in LANGUAGE_NAME_TO_CODE:
+        return LANGUAGE_NAME_TO_CODE[s]
+    upper_c = s.upper()
+    if upper_c in COUNTRY_TO_LANG_MAP:
+        return COUNTRY_TO_LANG_MAP[upper_c]
+    return s
+
+
+def is_alias_allowed(
+    title: str,
+    iso_or_lang: Any,
+    allowed_langs: set[str],
+    original_lang: Optional[str] = None,
+) -> bool:
+    """
+    Проверяет, разрешено ли добавление альтернативного названия согласно списку языков пользователя.
+    allowed_langs: множество разрешенных кодов языков (например, {'en', 'eng', 'ru', 'rus'}).
+    """
+    if not title or not str(title).strip():
+        return False
+
+    t_clean = str(title).strip()
+    norm_lang = normalize_metadata_lang_code(iso_or_lang)
+
+    # 1. Если язык/страна явно указаны
+    if norm_lang:
+        if norm_lang in allowed_langs:
+            return True
+        if original_lang and norm_lang == original_lang and original_lang in allowed_langs:
+            return True
+        # Язык явно определен и НЕ входит в разрешенные (например 'ja', 'hu', 'fr', 'id', 'az') -> отклоняем
+        return False
+
+    # 2. Если язык/страна не указаны, проверяем по алфавиту/символам
+    # Кириллица
+    if any('\u0400' <= c <= '\u04ff' for c in t_clean):
+        return bool(allowed_langs.intersection({"ru", "rus", "russian", "uk", "ukr", "be"}))
+
+    # CJK / Японские / Корейские / Китайские иероглифы
+    if any(
+        ('\u3040' <= c <= '\u309f') or  # Hiragana
+        ('\u30a0' <= c <= '\u30ff') or  # Katakana
+        ('\u4e00' <= c <= '\u9fff') or  # Kanji / Hanzi
+        ('\uac00' <= c <= '\ud7af')      # Hangul
+        for c in t_clean
+    ):
+        return bool(allowed_langs.intersection({"ja", "jp", "jpn", "japanese", "zh", "zho", "chi", "chinese", "ko", "kor", "korean"}))
+
+    # Арабская вязь
+    if any('\u0600' <= c <= '\u06ff' for c in t_clean):
+        return bool(allowed_langs.intersection({"ar", "ara", "arabic"}))
+
+    # Латиница и цифры без указания конкретного языка (считаем допустимым для английского/оригинала)
+    if is_latin_text(t_clean) and bool(allowed_langs.intersection({"en", "eng", "english"})):
+        return True
+
+    return False
+
+
 from difflib import SequenceMatcher
 
 
@@ -404,7 +493,7 @@ class TMDBClient(BaseMetadataClient):
         for tr in tr_list:
             if not isinstance(tr, dict):
                 continue
-            iso = (tr.get("iso_639_1") or tr.get("language") or "").lower().split("-")[0]
+            iso = normalize_metadata_lang_code(tr.get("iso_639_1") or tr.get("language") or "")
             tr_data = tr.get("data") if isinstance(tr.get("data"), dict) else tr
             t_t = tr_data.get("title")
             if iso in ("ru", "rus", "russian"):
@@ -434,10 +523,11 @@ class TMDBClient(BaseMetadataClient):
         if eng_trans_title and is_latin_text(eng_trans_title):
             eng_candidates.append(eng_trans_title.strip())
         for t_name, iso in alt_titles:
-            if iso in ("US", "GB") and is_latin_text(t_name):
-                if t_name not in eng_candidates:
+            norm_l = normalize_metadata_lang_code(iso)
+            if (iso in ("US", "GB", "CA", "AU", "NZ", "IE") or norm_l == "en") and is_latin_text(t_name):
+                if t_name.strip() not in eng_candidates:
                     eng_candidates.append(t_name.strip())
-            elif is_latin_text(t_name) and t_name.strip() not in eng_candidates:
+            elif not norm_l and is_latin_text(t_name) and t_name.strip() not in eng_candidates:
                 eng_candidates.append(t_name.strip())
 
         if is_latin_text(raw_title):
@@ -448,6 +538,7 @@ class TMDBClient(BaseMetadataClient):
             title = raw_title
 
         # Добавляем все альтернативные и разрешенные названия в алиасы
+        orig_lang = data.get("original_language") or ""
         if raw_title and raw_title != title and raw_title not in aliases:
             aliases.append(raw_title)
         if ru_title and ru_title != title and ru_title not in aliases and ("ru" in allowed_langs or "rus" in allowed_langs):
@@ -457,8 +548,8 @@ class TMDBClient(BaseMetadataClient):
                 aliases.append(ext_t)
         for t_name, iso in alt_titles:
             if t_name != title and t_name not in aliases:
-                # Включаем если это английское/латинское название или страна/язык входит в разрешенные
-                if not is_latin_text(t_name) and iso and iso.lower() not in allowed_langs:
+                # Включаем только если язык/страна входит в разрешенные
+                if not is_alias_allowed(t_name, iso, allowed_langs, original_lang=orig_lang):
                     continue
                 if self.alias_countries is not None and iso and iso not in self.alias_countries:
                     continue
@@ -655,22 +746,30 @@ class TMDBClient(BaseMetadataClient):
                         absolute_number=abs_num,
                     ))
 
+        allowed_langs = {"en", "eng"} | {l.lower() for l in (self.alias_languages or ["ru"])}
         raw_title = show_data.get("name") or show_data.get("original_name") or ""
         aliases = []
         ru_title = None
         ru_overview = None
         eng_trans_title = None
         eng_overview = None
+        extra_lang_titles = []
 
         # Извлекаем русское и английское название и описание из переводов TMDB
         for tr in (show_data.get("translations") or {}).get("translations", []):
-            iso = tr.get("iso_639_1")
-            if iso == "ru":
-                ru_title = (tr.get("data") or {}).get("name")
-                ru_overview = (tr.get("data") or {}).get("overview")
-            elif iso == "en":
-                eng_trans_title = (tr.get("data") or {}).get("name")
-                eng_overview = (tr.get("data") or {}).get("overview")
+            if not isinstance(tr, dict):
+                continue
+            iso = normalize_metadata_lang_code(tr.get("iso_639_1") or tr.get("language") or "")
+            tr_data = tr.get("data") if isinstance(tr.get("data"), dict) else tr
+            t_t = tr_data.get("name") or tr_data.get("title")
+            if iso in ("ru", "rus", "russian"):
+                ru_title = t_t or ru_title
+                ru_overview = tr_data.get("overview") or ru_overview
+            elif iso in ("en", "eng", "english"):
+                eng_trans_title = t_t or eng_trans_title
+                eng_overview = tr_data.get("overview") or eng_overview
+            elif iso in allowed_langs and t_t and t_t.strip():
+                extra_lang_titles.append(t_t.strip())
 
         # Альтернативные названия
         alt_titles = []
@@ -684,10 +783,11 @@ class TMDBClient(BaseMetadataClient):
         if eng_trans_title and is_latin_text(eng_trans_title):
             eng_candidates.append(eng_trans_title.strip())
         for t_name, iso in alt_titles:
-            if iso in ("US", "GB") and is_latin_text(t_name):
-                if t_name not in eng_candidates:
+            norm_l = normalize_metadata_lang_code(iso)
+            if (iso in ("US", "GB", "CA", "AU", "NZ", "IE") or norm_l == "en") and is_latin_text(t_name):
+                if t_name.strip() not in eng_candidates:
                     eng_candidates.append(t_name.strip())
-            elif is_latin_text(t_name) and t_name.strip() not in eng_candidates:
+            elif not norm_l and is_latin_text(t_name) and t_name.strip() not in eng_candidates:
                 eng_candidates.append(t_name.strip())
 
         if is_latin_text(raw_title):
@@ -698,12 +798,18 @@ class TMDBClient(BaseMetadataClient):
             title = raw_title
 
         # Добавляем все альтернативные и нелатинские названия в алиасы
+        orig_lang = show_data.get("original_language") or ""
         if raw_title and raw_title != title and raw_title not in aliases:
             aliases.append(raw_title)
-        if ru_title and ru_title != title and ru_title not in aliases:
+        if ru_title and ru_title != title and ru_title not in aliases and ("ru" in allowed_langs or "rus" in allowed_langs):
             aliases.append(ru_title)
+        for ext_t in extra_lang_titles:
+            if ext_t != title and ext_t not in aliases:
+                aliases.append(ext_t)
         for t_name, iso in alt_titles:
             if t_name != title and t_name not in aliases:
+                if not is_alias_allowed(t_name, iso, allowed_langs, original_lang=orig_lang):
+                    continue
                 if self.alias_countries is not None and iso and iso not in self.alias_countries:
                     continue
                 aliases.append(t_name)
@@ -1384,36 +1490,44 @@ class RadarrClient(BaseMetadataClient):
                 overview = data.get("overview")
 
                 aliases: list[str] = []
+                orig_lang = data.get("originalLanguage")
+                if isinstance(orig_lang, dict):
+                    orig_lang = orig_lang.get("name") or orig_lang.get("code") or ""
+                orig_lang = str(orig_lang or "")
+
                 if original_title and original_title != title and original_title not in aliases:
                     aliases.append(original_title)
 
-                # Собираем alternativeTitles строго на разрешенных языках или латинице
+                # Собираем alternativeTitles строго на разрешенных языках
                 for alt in (data.get("alternativeTitles", []) or data.get("alternateTitles", [])):
                     if isinstance(alt, dict):
                         t_name = alt.get("title") or alt.get("cleanTitle")
-                        lang = (alt.get("language") or alt.get("country") or "").lower().split("-")[0]
+                        raw_lang = alt.get("language") or alt.get("country") or ""
                         if not t_name or not t_name.strip():
                             continue
                         t_clean = t_name.strip()
                         if t_clean == title or t_clean in aliases:
                             continue
-                        if lang and lang in allowed_langs:
-                            aliases.append(t_clean)
-                        elif is_latin_text(t_clean) and not lang:
-                            aliases.append(t_clean)
+                        if not is_alias_allowed(t_clean, raw_lang, allowed_langs, original_lang=orig_lang):
+                            continue
+                        aliases.append(t_clean)
                     elif isinstance(alt, str) and alt.strip():
                         t_clean = alt.strip()
-                        if t_clean != title and t_clean not in aliases and is_latin_text(t_clean):
-                            aliases.append(t_clean)
+                        if t_clean != title and t_clean not in aliases:
+                            if is_alias_allowed(t_clean, "", allowed_langs, original_lang=orig_lang):
+                                aliases.append(t_clean)
 
                 # Собираем переводы (Translations) строго на разрешенных языках
                 for tr in (data.get("translations", []) or []):
                     if isinstance(tr, dict):
-                        tr_title = tr.get("title")
-                        tr_lang = (tr.get("language") or "").lower().split("-")[0]
-                        if tr_lang in allowed_langs and tr_title and tr_title.strip() and tr_title.strip() != title and tr_title.strip() not in aliases:
-                            aliases.append(tr_title.strip())
-                        if tr_lang in ("ru", "rus", "russian"):
+                        tr_title = tr.get("title") or tr.get("name")
+                        raw_lang = tr.get("language") or tr.get("iso_639_1") or ""
+                        norm_tr_lang = normalize_metadata_lang_code(raw_lang)
+                        if norm_tr_lang in allowed_langs and tr_title and tr_title.strip():
+                            tr_clean = tr_title.strip()
+                            if tr_clean != title and tr_clean not in aliases:
+                                aliases.append(tr_clean)
+                        if norm_tr_lang in ("ru", "rus", "russian"):
                             if tr.get("overview"):
                                 overview = tr.get("overview")
 
@@ -1498,12 +1612,13 @@ class TheTVDBClient(BaseMetadataClient):
     BASE_URL = "https://api4.thetvdb.com/v4"
     ARTWORK_BASE = "https://artworks.thetvdb.com"
 
-    def __init__(self, api_key: str = "", pin: str = "", alias_countries: Optional[list[str]] = None, base_url: str = ""):
+    def __init__(self, api_key: str = "", pin: str = "", alias_countries: Optional[list[str]] = None, base_url: str = "", alias_languages: Optional[list[str]] = None):
         self.api_key = (api_key or "").strip()
         self.pin = (pin or "").strip()
         if ":" in self.api_key and not self.pin:
             self.api_key, self.pin = self.api_key.split(":", 1)
         self.alias_countries = [c.upper() for c in alias_countries] if alias_countries else None
+        self.alias_languages = [l.lower() for l in alias_languages] if alias_languages else None
         self.base_url = (base_url or self.BASE_URL).rstrip("/")
         self._token: Optional[str] = None
         self._token_expires_at: Optional[float] = None
@@ -1804,15 +1919,19 @@ class TheTVDBClient(BaseMetadataClient):
             title = eng_alias or raw_name or ru_title or f"Series {tvdb_id}"
 
         # Собираем ВСЕ алиасы для поиска торрентов на трекерах
+        allowed_langs = {"en", "eng"} | {l.lower() for l in (self.alias_languages or ["ru"])}
         aliases = []
         if raw_name and raw_name != title and raw_name not in aliases:
             aliases.append(raw_name)
-        if ru_title and ru_title != title and ru_title not in aliases:
+        if ru_title and ru_title != title and ru_title not in aliases and ("ru" in allowed_langs or "rus" in allowed_langs):
             aliases.append(ru_title)
 
         for a in (aliases_raw if isinstance(aliases_raw, list) else []):
             alias_name = (a.get("name") if isinstance(a, dict) else str(a) if a else "").strip()
+            alias_lang = (a.get("language") if isinstance(a, dict) else "")
             if alias_name and alias_name != title and alias_name not in aliases:
+                if not is_alias_allowed(alias_name, alias_lang, allowed_langs):
+                    continue
                 aliases.append(alias_name)
 
         poster = data.get("image")
@@ -1937,15 +2056,19 @@ class TheTVDBClient(BaseMetadataClient):
             title = eng_alias or raw_name or ru_title or f"Movie {tvdb_id}"
 
         # Собираем ВСЕ алиасы для поиска торрентов на трекерах
+        allowed_langs = {"en", "eng"} | {l.lower() for l in (self.alias_languages or ["ru"])}
         aliases = []
         if raw_name and raw_name != title and raw_name not in aliases:
             aliases.append(raw_name)
-        if ru_title and ru_title != title and ru_title not in aliases:
+        if ru_title and ru_title != title and ru_title not in aliases and ("ru" in allowed_langs or "rus" in allowed_langs):
             aliases.append(ru_title)
 
         for a in (aliases_raw if isinstance(aliases_raw, list) else []):
             alias_name = (a.get("name") if isinstance(a, dict) else str(a) if a else "").strip()
+            alias_lang = (a.get("language") if isinstance(a, dict) else "")
             if alias_name and alias_name != title and alias_name not in aliases:
+                if not is_alias_allowed(alias_name, alias_lang, allowed_langs):
+                    continue
                 aliases.append(alias_name)
 
         poster = data.get("image")
@@ -2043,7 +2166,7 @@ def get_metadata_client(source_row) -> BaseMetadataClient:
     elif type_value == "tvmaze":
         return TVMazeClient(source_row.api_key or "", alias_countries)
     elif type_value == "thetvdb":
-        return TheTVDBClient(source_row.api_key or "", pin=pin, alias_countries=alias_countries, base_url=source_row.base_url or "")
+        return TheTVDBClient(source_row.api_key or "", pin=pin, alias_countries=alias_countries, base_url=source_row.base_url or "", alias_languages=alias_languages)
     return DummyClient()
 
 
