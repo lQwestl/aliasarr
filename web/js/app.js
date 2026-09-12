@@ -11536,6 +11536,7 @@ async function loadQueue() {
 
       // 1. Колонка Имя / Серии / Трекер
       const showLabel = i.show_title ? `<div class="queue-show-title">${escapeHtml(i.show_title)}</div>` : "";
+      const releaseName = `<div class="queue-release-name mono" title="${escapeHtml(i.name)}">${escapeHtml(i.name)}</div>`;
       let epBadgeHtml = "";
       if (i.episode_label) {
         if (i.episode_label === "Фильм" || i.episode_label === "Movie" || i.content_type === "movie") {
