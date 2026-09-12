@@ -1522,7 +1522,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   color: #fff;
   letter-spacing: 0.2px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 .bulk-mode-active .card-style-neoglass .poster-status-pill {

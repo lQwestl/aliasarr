@@ -5974,8 +5974,8 @@ function renderCollectionCard(coll) {
     if (partsBadgeHtml) infoHtml += partsBadgeHtml;
 
     return `
-      <div class="collection-card show-card" id="collection-card-${coll.id}" data-alpha="${alphaChar}" onclick="openCollectionModal(${coll.id})">
-        <div class="collection-poster-wrap show-poster" ${posterStyle}>
+      <div class="collection-card show-card" id="collection-card-${coll.id}" data-alpha="${alphaChar}" onclick="openCollectionModal(${coll.id})" title="${escapeHtml(coll.title)} • ${escapeHtml(statusTooltip)}">
+        <div class="collection-poster-wrap show-poster" ${posterStyle} title="${escapeHtml(statusTooltip)}">
           ${!posterImg ? `<div style="font-size: 36px; color: var(--text-muted); opacity: 0.5;"><i data-lucide="boxes"></i></div>` : ""}
           ${statusPillHtml}
           ${microBarHtml}
@@ -6003,8 +6003,8 @@ function renderCollectionCard(coll) {
     if (monitoredBadgeHtml) cinematicInfoHtml += monitoredBadgeHtml;
 
     return `
-      <div class="collection-card show-card" id="collection-card-${coll.id}" data-alpha="${alphaChar}" onclick="openCollectionModal(${coll.id})">
-        <div class="collection-poster-wrap show-poster" ${posterStyle}>
+      <div class="collection-card show-card" id="collection-card-${coll.id}" data-alpha="${alphaChar}" onclick="openCollectionModal(${coll.id})" title="${escapeHtml(coll.title)} • ${escapeHtml(statusTooltip)}">
+        <div class="collection-poster-wrap show-poster" ${posterStyle} title="${escapeHtml(statusTooltip)}">
           ${!posterImg ? `<div style="font-size: 36px; color: var(--text-muted); opacity: 0.5;"><i data-lucide="boxes"></i></div>` : ""}
           ${cinematicOverlayHtml}
         </div>
@@ -6037,8 +6037,8 @@ function renderCollectionCard(coll) {
   if (partsBadgeHtml) classicInfoHtml += partsBadgeHtml;
 
   return `
-    <div class="collection-card" id="collection-card-${coll.id}" data-alpha="${alphaChar}" onclick="openCollectionModal(${coll.id})">
-      <div class="collection-poster-wrap" ${posterStyle}>
+    <div class="collection-card" id="collection-card-${coll.id}" data-alpha="${alphaChar}" onclick="openCollectionModal(${coll.id})" title="${escapeHtml(coll.title)} • ${escapeHtml(statusTooltip)}">
+      <div class="collection-poster-wrap" ${posterStyle} title="${escapeHtml(statusTooltip)}">
         ${!posterImg ? `<div style="font-size: 36px; color: var(--text-muted); opacity: 0.5;"><i data-lucide="boxes"></i></div>` : ""}
         ${progressHtml}
       </div>
@@ -6596,8 +6596,8 @@ function renderShowCard(show) {
     if (tagsHtml) infoHtml += tagsHtml;
 
     return `
-      <div class="show-card ${selectedClass}" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}">
-        <div class="show-poster" ${posterStyle}>
+      <div class="show-card ${selectedClass}" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}" title="${escapeHtml(formatShowTitleWithYear(show.title, show.year))} • ${escapeHtml(statusInfo.tooltip)}">
+        <div class="show-poster" ${posterStyle} title="${escapeHtml(statusInfo.tooltip)}">
           ${checkboxHtml}
           ${statusPillHtml}
           ${show.poster_url ? "" : initial}
@@ -6644,8 +6644,8 @@ function renderShowCard(show) {
     if (tagsHtml) cinematicInfoHtml += tagsHtml;
 
     return `
-      <div class="show-card ${selectedClass}" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}">
-        <div class="show-poster" ${posterStyle}>
+      <div class="show-card ${selectedClass}" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}" title="${escapeHtml(formatShowTitleWithYear(show.title, show.year))} • ${escapeHtml(statusInfo.tooltip)}">
+        <div class="show-poster" ${posterStyle} title="${escapeHtml(statusInfo.tooltip)}">
           ${checkboxHtml}
           ${show.poster_url ? "" : initial}
           ${cinematicOverlayHtml}
@@ -6668,8 +6668,8 @@ function renderShowCard(show) {
   if (tagsHtml) infoHtml += tagsHtml;
 
   return `
-    <div class="show-card ${selectedClass}" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}">
-      <div class="show-poster" ${posterStyle}>
+    <div class="show-card ${selectedClass}" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}" title="${escapeHtml(formatShowTitleWithYear(show.title, show.year))} • ${escapeHtml(statusInfo.tooltip)}">
+      <div class="show-poster" ${posterStyle} title="${escapeHtml(statusInfo.tooltip)}">
         ${checkboxHtml}
         ${show.poster_url ? "" : initial}
         ${importOverlayHtml}
@@ -6861,8 +6861,8 @@ function renderShowOverviewRow(show) {
     `;
 
     return `
-      <div class="overview-row card-style-neoglass ${selectedClass}" id="show-overview-${show.id}" data-alpha="${getShowAlpha(show)}">
-        <div class="overview-poster-col show-poster" ${posterStyle}>
+      <div class="overview-row card-style-neoglass ${selectedClass}" id="show-overview-${show.id}" data-alpha="${getShowAlpha(show)}" title="${escapeHtml(formatShowTitleWithYear(show.title, show.year))} • ${escapeHtml(statusInfo.tooltip)}">
+        <div class="overview-poster-col show-poster" ${posterStyle} title="${escapeHtml(statusInfo.tooltip)}">
           ${checkboxHtml}
           ${statusPillHtml}
           ${show.poster_url ? "" : initial}
@@ -6901,8 +6901,8 @@ function renderShowOverviewRow(show) {
     `;
 
     return `
-      <div class="overview-row card-style-cinematic ${selectedClass}" id="show-overview-${show.id}" data-alpha="${getShowAlpha(show)}">
-        <div class="overview-poster-col show-poster" ${posterStyle}>
+      <div class="overview-row card-style-cinematic ${selectedClass}" id="show-overview-${show.id}" data-alpha="${getShowAlpha(show)}" title="${escapeHtml(formatShowTitleWithYear(show.title, show.year))} • ${escapeHtml(statusInfo.tooltip)}">
+        <div class="overview-poster-col show-poster" ${posterStyle} title="${escapeHtml(statusInfo.tooltip)}">
           ${checkboxHtml}
           ${show.poster_url ? "" : initial}
           ${cinematicOverlayHtml}
@@ -6928,9 +6928,9 @@ function renderShowOverviewRow(show) {
   // 3. Classic Style
   const progressHtml = computeShowProgressHtml(show, activeTask);
   return `
-    <div class="overview-row card-style-classic ${selectedClass}" id="show-overview-${show.id}" data-alpha="${getShowAlpha(show)}">
+    <div class="overview-row card-style-classic ${selectedClass}" id="show-overview-${show.id}" data-alpha="${getShowAlpha(show)}" title="${escapeHtml(formatShowTitleWithYear(show.title, show.year))} • ${escapeHtml(statusInfo.tooltip)}">
       <div class="overview-poster-col">
-        <div class="overview-poster" ${posterStyle}>
+        <div class="overview-poster" ${posterStyle} title="${escapeHtml(statusInfo.tooltip)}">
           ${checkboxHtml}
           ${show.poster_url ? "" : initial}
         </div>
