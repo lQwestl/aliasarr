@@ -67,7 +67,7 @@ class MetadataSearchResultOut(BaseModel):
 
 
 class ImportShowRequest(BaseModel):
-    source_id: int
+    source_id: Optional[int] = None
     external_id: str
     path: Optional[str] = None
     # Категория контента (movie | series | anime), выбранная пользователем при добавлении

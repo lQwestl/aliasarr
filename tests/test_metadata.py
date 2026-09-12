@@ -821,6 +821,21 @@ class TestMetadataLanguageFiltering(unittest.TestCase):
         self.assertIsInstance(client2, SkyHookClient)
         self.assertEqual(client2.alias_languages, ["ru", "fr"])
 
+    def test_import_show_request_schema_allows_none_source_id(self):
+        try:
+            from app.api.metadata_routes import ImportShowRequest
+            # With source_id = None (All sources in wizard)
+            req = ImportShowRequest(source_id=None, external_id="tvdb:322306", content_type="anime")
+            self.assertIsNone(req.source_id)
+            self.assertEqual(req.external_id, "tvdb:322306")
+            self.assertEqual(req.content_type, "anime")
+
+            # With source_id = int
+            req_with_id = ImportShowRequest(source_id=1, external_id="tvdb:322306", content_type="anime")
+            self.assertEqual(req_with_id.source_id, 1)
+        except ImportError:
+            pass
+
 
 if __name__ == "__main__":
     unittest.main()
