@@ -6096,8 +6096,11 @@ async function openCollectionModal(collectionId) {
       <div class="collection-hero">
         <div class="collection-hero-backdrop" ${backdropStyle}></div>
         <div class="collection-hero-content">
-          <div class="collection-hero-poster" ${posterStyle}>
-            ${coll.poster_url ? "" : `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:800;color:var(--text-muted);"><i data-lucide="boxes"></i></div>`}
+          <div class="collection-hero-poster-wrap">
+            ${coll.poster_url ? `<div class="collection-hero-poster-ambient" ${posterStyle}></div>` : ""}
+            <div class="collection-hero-poster" ${posterStyle}>
+              ${coll.poster_url ? "" : `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:800;color:var(--text-muted);"><i data-lucide="boxes"></i></div>`}
+            </div>
           </div>
           <div class="collection-hero-meta">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
@@ -7652,8 +7655,11 @@ async function refreshShowModal() {
 
         <div class="show-hero-content">
           <div class="show-hero-poster-col">
-            <div class="show-hero-poster" ${posterStyle}>
-              ${show.poster_url ? "" : initial}
+            <div class="show-hero-poster-wrap">
+              ${show.poster_url ? `<div class="show-hero-poster-ambient" ${posterStyle}></div>` : ""}
+              <div class="show-hero-poster" ${posterStyle}>
+                ${show.poster_url ? "" : initial}
+              </div>
             </div>
             ${canManageLib ? `
             <div class="show-hero-poster-actions">

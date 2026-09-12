@@ -4859,14 +4859,38 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   box-sizing: border-box;
 }
 
-.show-hero-poster {
+.show-hero-poster-wrap {
+  position: relative;
   width: 180px;
+  height: 270px;
+  min-height: 270px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.show-hero-poster-ambient {
+  position: absolute;
+  inset: -6px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(18px) saturate(160%) brightness(0.8);
+  opacity: 0.7;
+  border-radius: 16px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.show-hero-poster {
+  position: relative;
+  width: 180px;
+  height: 270px;
   aspect-ratio: 2 / 3;
   min-height: 270px;
   border-radius: 12px;
   background: var(--panel);
-  background-size: cover;
+  background-size: 104% auto;
   background-position: center;
+  background-repeat: no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4874,10 +4898,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   font-size: 52px;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 0, 0, 0.35);
   flex-shrink: 0;
   box-sizing: border-box;
+  overflow: hidden;
+  z-index: 1;
 }
 
 .show-hero-poster-actions {
@@ -5156,8 +5182,16 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     flex-shrink: 0 !important;
   }
 
+  .show-hero-poster-wrap {
+    width: 190px !important;
+    height: 285px !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+  }
+
   .show-hero-poster {
     width: 190px !important;
+    height: 285px !important;
     max-width: 100% !important;
     aspect-ratio: 2 / 3 !important;
     min-height: 285px !important;
@@ -5333,8 +5367,14 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     width: 180px !important;
   }
 
+  .show-hero-poster-wrap {
+    width: 180px !important;
+    height: 270px !important;
+  }
+
   .show-hero-poster {
     width: 180px !important;
+    height: 270px !important;
     min-height: 270px !important;
   }
 
@@ -15251,15 +15291,39 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   align-items: flex-start;
 }
 
-.collection-hero-poster {
+.collection-hero-poster-wrap {
+  position: relative;
   width: 140px;
-  aspect-ratio: 2 / 3;
+  height: 210px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.collection-hero-poster-ambient {
+  position: absolute;
+  inset: -5px;
   background-size: cover;
   background-position: center;
+  filter: blur(16px) saturate(160%) brightness(0.8);
+  opacity: 0.65;
+  border-radius: 14px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.collection-hero-poster {
+  position: relative;
+  width: 140px;
+  height: 210px;
+  aspect-ratio: 2 / 3;
+  background-size: 104% auto;
+  background-position: center;
+  background-repeat: no-repeat;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  z-index: 1;
 }
 
 .collection-hero-meta {
