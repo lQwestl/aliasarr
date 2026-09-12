@@ -601,9 +601,13 @@
             </div>
           </div>
           <div class="toolbar-right" style="display: flex; gap: 8px; align-items: center;">
-            <button class="btn btn-secondary btn-icon-only" onclick="openPosterOptionsModal()" title="Опции постера" data-i18n-title="poster_opt.btn_title">
+            <button class="btn btn-secondary card-style-btn" id="collections-card-style-btn" onclick="openCollectionsCardStyleModal()" title="Стиль карточек саг" data-i18n-title="card_style.btn_title">
+              <i data-lucide="layout-template" class="ico-xs text-teal"></i>
+              <span class="card-style-btn-label" data-i18n="card_style.btn_title">Стиль карточек</span>
+            </button>
+            <button class="btn btn-secondary btn-icon-only" id="collections-poster-options-btn" onclick="openCollectionsPosterOptionsModal()" title="Опции карточек саг" data-i18n-title="collections_poster_opt.btn_title">
               <i data-lucide="sliders-horizontal"></i>
-              <span class="poster-options-btn-label" data-i18n="poster_opt.btn_title">Опции постера</span>
+              <span class="poster-options-btn-label" data-i18n="collections_poster_opt.btn_title">Опции карточек</span>
             </button>
           </div>
         </div>
@@ -4137,7 +4141,7 @@
     <div class="settings-card-header" style="margin-bottom: 20px;">
       <div class="settings-card-header-left">
         <div class="settings-card-icon-badge">
-          <i data-lucide="sparkles"></i>
+          <i data-lucide="layout-template"></i>
         </div>
         <div class="settings-card-title-wrap">
           <h3 data-i18n="card_style.modal_title">Стиль оформления карточек</h3>
@@ -4213,6 +4217,162 @@
 
     <div style="margin-top: 24px; display: flex; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 16px;">
       <button class="btn btn-secondary" onclick="closeModal('card-style-modal')" data-i18n="common.close">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка Опции карточек коллекций -->
+<div id="collections-poster-options-modal" class="modal-overlay">
+  <div class="modal modal-medium" style="max-width: 560px;">
+    <button class="modal-close" onclick="closeModal('collections-poster-options-modal')"><i data-lucide="x"></i></button>
+    <div class="settings-card-header" style="margin-bottom: 20px;">
+      <div class="settings-card-header-left">
+        <div class="settings-card-icon-badge">
+          <i data-lucide="sliders-horizontal"></i>
+        </div>
+        <div class="settings-card-title-wrap">
+          <h3 data-i18n="collections_poster_opt.title">Опции карточек коллекций</h3>
+          <p class="subtitle" data-i18n="collections_poster_opt.subtitle">Настройка масштаба и информационных бейджей франшиз</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-grid-modern">
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="settings-field-label" data-i18n="collections_poster_opt.size">Размер карточек саг в сетке</label>
+        <select id="collections-poster-opt-size" class="input" onchange="applyCollectionsPosterOptions()">
+          <option value="small" data-i18n="poster_opt.small">Маленький</option>
+          <option value="medium" data-i18n="poster_opt.medium">Средний</option>
+          <option value="large" data-i18n="poster_opt.large">Большой</option>
+        </select>
+      </div>
+
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="switch-toggle">
+          <input type="checkbox" id="collections-poster-opt-progress-text" onchange="applyCollectionsPosterOptions()">
+          <span class="switch-slider"></span>
+          <span class="switch-title" data-i18n="collections_poster_opt.progress_text">Индикатор прогресса фильмов</span>
+          <span class="switch-desc" data-i18n="collections_poster_opt.progress_text_hint">Показывать количество скачанных фильмов (например, 2 / 3) и процент</span>
+        </label>
+      </div>
+
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="switch-toggle">
+          <input type="checkbox" id="collections-poster-opt-title" onchange="applyCollectionsPosterOptions()">
+          <span class="switch-slider"></span>
+          <span class="switch-title" data-i18n="collections_poster_opt.show_title">Показать название франшизы</span>
+          <span class="switch-desc" data-i18n="collections_poster_opt.show_title_hint">Отображать название саги</span>
+        </label>
+      </div>
+
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="switch-toggle">
+          <input type="checkbox" id="collections-poster-opt-monitored" onchange="applyCollectionsPosterOptions()">
+          <span class="switch-slider"></span>
+          <span class="switch-title" data-i18n="collections_poster_opt.show_monitored">Показать статус отслеживания</span>
+          <span class="switch-desc" data-i18n="collections_poster_opt.show_monitored_hint">Показывать статус мониторинга саги</span>
+        </label>
+      </div>
+
+      <div class="settings-field-group" style="grid-column: 1 / -1;">
+        <label class="switch-toggle">
+          <input type="checkbox" id="collections-poster-opt-parts" onchange="applyCollectionsPosterOptions()">
+          <span class="switch-slider"></span>
+          <span class="switch-title" data-i18n="collections_poster_opt.show_parts">Показать бейдж количества частей</span>
+          <span class="switch-desc" data-i18n="collections_poster_opt.show_parts_hint">Отображать бейдж общего числа фильмов саги</span>
+        </label>
+      </div>
+    </div>
+    
+    <div style="margin-top: 24px; display: flex; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 16px;">
+      <button class="btn btn-secondary" onclick="closeModal('collections-poster-options-modal')" data-i18n="common.close">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка выбора стиля оформления карточек коллекций -->
+<div id="collections-card-style-modal" class="modal-overlay">
+  <div class="modal modal-medium" style="max-width: 720px;">
+    <button class="modal-close" onclick="closeModal('collections-card-style-modal')"><i data-lucide="x"></i></button>
+    <div class="settings-card-header" style="margin-bottom: 20px;">
+      <div class="settings-card-header-left">
+        <div class="settings-card-icon-badge">
+          <i data-lucide="layout-template"></i>
+        </div>
+        <div class="settings-card-title-wrap">
+          <h3 data-i18n="collections_card_style.modal_title">Стиль карточек коллекций</h3>
+          <p class="subtitle" data-i18n="collections_card_style.modal_subtitle">Выберите визуальный режим оформления франшиз и саг</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-styles-grid">
+      <!-- Стиль 1: Neo-Glass -->
+      <div class="card-style-option" id="coll-card-style-opt-neoglass" onclick="setCollectionsCardStyle('neoglass')">
+        <div class="card-style-badge-recommended" data-i18n="card_style.recommended">Флагман</div>
+        <div class="card-style-preview card-style-preview-neoglass">
+          <div class="mini-card-poster">
+            <div class="mini-status-pill"><span class="mini-dot green"></span> 2 / 3</div>
+            <div class="mini-micro-bar green"></div>
+          </div>
+          <div class="mini-card-info">
+            <div class="mini-title">Avatar Collection</div>
+            <div class="mini-badge"><i data-lucide="bookmark-check" style="width:10px;height:10px;display:inline-block;margin-right:2px;color:#10b981;"></i> Отслеживается</div>
+          </div>
+        </div>
+        <div class="card-style-meta">
+          <div class="card-style-name">
+            <span class="card-style-radio"></span>
+            <span data-i18n="card_style.neoglass_title">Neo-Glass (Парящие бейджи)</span>
+          </div>
+          <p class="card-style-desc" data-i18n="card_style.neoglass_desc">Чистый монолитный постер с парящим стеклянным статусом в углу, ультратонким 3px микро-прогрессом и компактной строкой качества.</p>
+        </div>
+      </div>
+
+      <!-- Стиль 2: Cinematic Luxe -->
+      <div class="card-style-option" id="coll-card-style-opt-cinematic" onclick="setCollectionsCardStyle('cinematic')">
+        <div class="card-style-preview card-style-preview-cinematic">
+          <div class="mini-card-poster">
+            <div class="mini-gradient-bottom">
+              <div class="mini-title-overlay">Avatar Collection</div>
+              <div class="mini-sub-overlay"><span class="mini-dot green"></span> 2 / 3 • 67% • Франшиза</div>
+            </div>
+          </div>
+          <div class="mini-card-info">
+            <div class="mini-meta-line">3 фильма • Отслеживается</div>
+          </div>
+        </div>
+        <div class="card-style-meta">
+          <div class="card-style-name">
+            <span class="card-style-radio"></span>
+            <span data-i18n="card_style.cinematic_title">Cinematic Luxe (Кинематографичный)</span>
+          </div>
+          <p class="card-style-desc" data-i18n="card_style.cinematic_desc">Постер с мягким кинематографичным затемнением снизу, интегрированным статусом и минималистичной строкой метаданных.</p>
+        </div>
+      </div>
+
+      <!-- Стиль 3: Classic -->
+      <div class="card-style-option" id="coll-card-style-opt-classic" onclick="setCollectionsCardStyle('classic')">
+        <div class="card-style-preview card-style-preview-classic">
+          <div class="mini-card-poster"></div>
+          <div class="mini-progress-bar-classic green">2 / 3 (67%)</div>
+          <div class="mini-card-info">
+            <div class="mini-title">Avatar Collection</div>
+            <div class="mini-badge">Отслеживается</div>
+          </div>
+        </div>
+        <div class="card-style-meta">
+          <div class="card-style-name">
+            <span class="card-style-radio"></span>
+            <span data-i18n="card_style.classic_title">Классический (Стандартный)</span>
+          </div>
+          <p class="card-style-desc" data-i18n="card_style.classic_desc">Традиционный вид со сплошной цветной полосой прогресса серий под постером.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 24px; display: flex; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 16px;">
+      <button class="btn btn-secondary" onclick="closeModal('collections-card-style-modal')" data-i18n="common.close">Закрыть</button>
     </div>
   </div>
 </div>
