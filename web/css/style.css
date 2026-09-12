@@ -4756,7 +4756,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .btn-icon-only.danger:hover { border-color: var(--danger); color: var(--danger); }
 .btn-icon-only.btn-small { width: 26px; height: 26px; min-height: 26px; }
 
-#poster-options-btn {
+#poster-options-btn,
+#collections-poster-options-btn {
   width: 38px;
   height: 38px;
   min-height: 38px;
@@ -4765,7 +4766,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 #poster-options-btn svg,
 #poster-options-btn i,
-#poster-options-btn .lucide {
+#poster-options-btn .lucide,
+#collections-poster-options-btn svg,
+#collections-poster-options-btn i,
+#collections-poster-options-btn .lucide {
   width: 20px !important;
   height: 20px !important;
   stroke-width: 2.2px;
@@ -8933,8 +8937,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   /* Poster Options & Card Style Buttons on Mobile */
   #poster-options-btn,
   #card-style-btn,
+  #collections-poster-options-btn,
+  #collections-card-style-btn,
   [data-design="vanguard"] #poster-options-btn,
-  [data-design="vanguard"] #card-style-btn {
+  [data-design="vanguard"] #card-style-btn,
+  [data-design="vanguard"] #collections-poster-options-btn,
+  [data-design="vanguard"] #collections-card-style-btn {
     width: 100% !important;
     max-width: none !important;
     min-width: 0 !important;
@@ -8954,12 +8962,24 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   #card-style-btn svg,
   #card-style-btn i,
   #card-style-btn .lucide,
+  #collections-poster-options-btn svg,
+  #collections-poster-options-btn i,
+  #collections-poster-options-btn .lucide,
+  #collections-card-style-btn svg,
+  #collections-card-style-btn i,
+  #collections-card-style-btn .lucide,
   [data-design="vanguard"] #poster-options-btn svg,
   [data-design="vanguard"] #poster-options-btn i,
   [data-design="vanguard"] #poster-options-btn .lucide,
   [data-design="vanguard"] #card-style-btn svg,
   [data-design="vanguard"] #card-style-btn i,
-  [data-design="vanguard"] #card-style-btn .lucide {
+  [data-design="vanguard"] #card-style-btn .lucide,
+  [data-design="vanguard"] #collections-poster-options-btn svg,
+  [data-design="vanguard"] #collections-poster-options-btn i,
+  [data-design="vanguard"] #collections-poster-options-btn .lucide,
+  [data-design="vanguard"] #collections-card-style-btn svg,
+  [data-design="vanguard"] #collections-card-style-btn i,
+  [data-design="vanguard"] #collections-card-style-btn .lucide {
     width: 20px !important;
     height: 20px !important;
     stroke-width: 2.2px !important;
@@ -10264,7 +10284,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 @media (min-width: 769px) {
   [data-design="vanguard"] .btn-icon-only,
-  [data-design="vanguard"] #poster-options-btn {
+  [data-design="vanguard"] #poster-options-btn,
+  [data-design="vanguard"] #collections-poster-options-btn {
     width: 38px !important;
     height: 38px !important;
     min-height: 38px !important;
@@ -10289,7 +10310,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
   [data-design="vanguard"] #poster-options-btn svg,
   [data-design="vanguard"] #poster-options-btn i,
-  [data-design="vanguard"] #poster-options-btn .lucide {
+  [data-design="vanguard"] #poster-options-btn .lucide,
+  [data-design="vanguard"] #collections-poster-options-btn svg,
+  [data-design="vanguard"] #collections-poster-options-btn i,
+  [data-design="vanguard"] #collections-poster-options-btn .lucide {
     width: 18px !important;
     height: 18px !important;
     display: block !important;
@@ -11156,8 +11180,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   [data-design="vanguard"] #poster-options-btn,
   [data-design="vanguard"] .btn-icon-only#poster-options-btn,
   [data-design="vanguard"] button#poster-options-btn,
+  [data-design="vanguard"] #collections-poster-options-btn,
+  [data-design="vanguard"] .btn-icon-only#collections-poster-options-btn,
+  [data-design="vanguard"] button#collections-poster-options-btn,
   [data-design="vanguard"] #card-style-btn,
-  [data-design="vanguard"] button#card-style-btn {
+  [data-design="vanguard"] button#card-style-btn,
+  [data-design="vanguard"] #collections-card-style-btn,
+  [data-design="vanguard"] button#collections-card-style-btn {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
@@ -11178,7 +11207,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   [data-design="vanguard"] #poster-options-btn .lucide,
   [data-design="vanguard"] #card-style-btn svg,
   [data-design="vanguard"] #card-style-btn i,
-  [data-design="vanguard"] #card-style-btn .lucide {
+  [data-design="vanguard"] #card-style-btn .lucide,
+  [data-design="vanguard"] #collections-poster-options-btn svg,
+  [data-design="vanguard"] #collections-poster-options-btn i,
+  [data-design="vanguard"] #collections-poster-options-btn .lucide,
+  [data-design="vanguard"] #collections-card-style-btn svg,
+  [data-design="vanguard"] #collections-card-style-btn i,
+  [data-design="vanguard"] #collections-card-style-btn .lucide {
     width: 20px !important;
     height: 20px !important;
     stroke-width: 2.2px !important;
@@ -11186,7 +11221,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     display: inline-block !important;
   }
   [data-design="vanguard"] #poster-options-btn .poster-options-btn-label,
-  [data-design="vanguard"] #card-style-btn .card-style-btn-label {
+  [data-design="vanguard"] #card-style-btn .card-style-btn-label,
+  [data-design="vanguard"] #collections-poster-options-btn .poster-options-btn-label,
+  [data-design="vanguard"] #collections-card-style-btn .card-style-btn-label {
     display: inline !important;
     font-size: 13.5px !important;
     font-weight: 500 !important;
