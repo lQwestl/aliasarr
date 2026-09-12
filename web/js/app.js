@@ -4882,7 +4882,8 @@ async function loadSystemAbout() {
     if (!info) return;
 
     const isRu = CURRENT_LANG !== "en";
-    const versionVal = `v${escapeHtml(info.version || '1.0.0')} (${escapeHtml(info.branch || 'main')})`;
+    const commitVal = info.commit || info.branch || 'main';
+    const versionVal = `v${escapeHtml(info.version || '2.9.0')} (${escapeHtml(commitVal)})`;
     const runtimeVal = escapeHtml(info.runtime || 'Docker');
     const pythonVal = escapeHtml(info.python_version || '3.11');
     const dbVal = `${escapeHtml(info.database_type || 'SQLite')}${info.database_version ? ` ${escapeHtml(info.database_version)}` : ''}${info.database_size_formatted ? ` (${info.database_size_formatted})` : ''}`;

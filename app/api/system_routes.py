@@ -31,6 +31,7 @@ from app.services.user_service import require_permission, require_any_permission
 
 import platform
 import sqlite3
+import subprocess
 import sys
 import time
 
@@ -39,6 +40,42 @@ logger = logging.getLogger("aliasarr.system")
 
 BACKUP_DIR = os.getenv("ALIASARR_BACKUP_DIR", "/config/backups")
 APP_START_TIME = time.time()
+
+
+def get_git_commit_short() -> str:
+    commit = os.environ.get("COMMIT_HASH") or os.environ.get("GIT_COMMIT") or os.environ.get("APP_COMMIT")
+    if commit:
+        return commit[:7]
+    try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        res = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=base_dir,
+            stderr=subprocess.DEVNULL,
+            text=True
+        ).strip()
+        if res:
+            return res
+    except Exception:
+        pass
+
+    try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        head_path = os.path.join(base_dir, ".git", "HEAD")
+        if os.path.exists(head_path):
+            with open(head_path, "r") as f:
+                head = f.read().strip()
+            if head.startswith("ref: "):
+                ref_path = os.path.join(base_dir, ".git", head[5:])
+                if os.path.exists(ref_path):
+                    with open(ref_path, "r") as f:
+                        return f.read().strip()[:7]
+            else:
+                return head[:7]
+    except Exception:
+        pass
+
+    return "main"
 
 
 @router.get("/system/about")
@@ -93,12 +130,14 @@ def get_system_about(
     py_ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     arch = platform.machine()
     os_sys = platform.system()
+    short_commit = get_git_commit_short()
 
     return {
         "app_name": "Aliasarr",
-        "version": "2.8.0",
-        "package_version": "2.8.0 (main)",
-        "branch": "main",
+        "version": "2.9.0",
+        "package_version": f"2.9.0 ({short_commit})",
+        "branch": short_commit,
+        "commit": short_commit,
         "python_version": py_ver,
         "os_name": os_sys,
         "os_version": f"{os_sys} {platform.release()}",
@@ -300,7 +339,7 @@ class BackupOut(BaseModel):
     size_bytes: int
     created_at: dt.datetime
     backup_type: str = "full"
-    app_version: str = "2.8.0"
+    app_version: str = "2.9.0"
     stats: Optional[dict] = None
 
 
