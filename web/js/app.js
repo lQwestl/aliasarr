@@ -442,11 +442,13 @@ const TRANSLATIONS = {
     "library.poster_options_title": "Опции постера",
     "library.empty": "Пока нет ни одного видео.",
     "library.add_first": "Добавить первое видео",
-    "library.col_title": "Название",
-    "library.col_network": "Сеть",
-    "library.col_profile": "Профиль качества",
+    "library.col_title": "Тайтл",
+    "library.col_progress": "Прогресс",
+    "library.col_profile": "Профиль",
+    "library.col_network": "Сеть / Студия",
     "library.col_next_air": "Следующий эфир",
     "library.col_seasons": "Сезоны",
+    "library.col_status": "Статус / Эфир",
     "library.col_episodes": "Эпизоды",
     "library.no_results": "Ничего не найдено по запросу",
     "library.legend_continuing": "Продолжается (все эпизоды скачаны)",
@@ -1810,10 +1812,12 @@ const TRANSLATIONS = {
     "library.empty": "No videos yet.",
     "library.add_first": "Add your first video",
     "library.col_title": "Title",
-    "library.col_network": "Network",
+    "library.col_progress": "Progress",
     "library.col_profile": "Quality Profile",
+    "library.col_network": "Network / Studio",
     "library.col_next_air": "Next Airing",
     "library.col_seasons": "Seasons",
+    "library.col_status": "Status / Airing",
     "library.col_episodes": "Episodes",
     "library.no_results": "No results found for query",
     "library.legend_continuing": "Continuing (all episodes downloaded)",
@@ -5765,8 +5769,6 @@ function renderLibrary() {
     if (tableWrap && tableWrap.querySelector("tbody")) tableWrap.querySelector("tbody").innerHTML = "";
     if (overviewWrap) overviewWrap.innerHTML = "";
     if (empty) empty.style.display = "block";
-    const dashContainer = document.getElementById("library-dashboard-container");
-    if (dashContainer) dashContainer.innerHTML = "";
     return;
   }
   if (empty) empty.style.display = "none";
@@ -5777,15 +5779,10 @@ function renderLibrary() {
     const tbody = document.getElementById("shows-table-body");
     if (tbody) tbody.innerHTML = "";
     if (overviewWrap) overviewWrap.innerHTML = emptyMsg;
-    const dashContainer = document.getElementById("library-dashboard-container");
-    if (dashContainer) dashContainer.innerHTML = "";
     const alphaIndex = document.getElementById("alphabet-index");
     if (alphaIndex) alphaIndex.style.display = "none";
     return;
   }
-
-  const dashContainer = document.getElementById("library-dashboard-container");
-  if (dashContainer) dashContainer.innerHTML = renderLibraryDashboard(shows);
 
   if (LIBRARY_VIEW_MODE === "posters") {
     if (grid) {
@@ -5814,35 +5811,6 @@ function renderLibrary() {
   updateLibraryBulkUI(shows);
 }
 
-function renderLibraryDashboard(shows) {
-  if (!shows || !shows.length) return "";
-  return `
-    <div class="library-dashboard-footer">
-      <div class="library-dashboard-legend">
-        <div class="library-legend-item">
-          <div class="library-legend-color status-continuing"></div>
-          <span>${t("library.legend_continuing")}</span>
-        </div>
-        <div class="library-legend-item">
-          <div class="library-legend-color status-ended"></div>
-          <span>${t("library.legend_ended")}</span>
-        </div>
-        <div class="library-legend-item">
-          <div class="library-legend-color status-missing-mon"></div>
-          <span>${t("library.legend_missing_mon")}</span>
-        </div>
-        <div class="library-legend-item">
-          <div class="library-legend-color status-missing-unmon"></div>
-          <span>${t("library.legend_missing_unmon")}</span>
-        </div>
-        <div class="library-legend-item">
-          <div class="library-legend-color status-downloading"></div>
-          <span>${t("library.legend_downloading")}</span>
-        </div>
-      </div>
-    </div>
-  `;
-}
 
 async function loadCollections(force = false) {
   if (!force && CACHED_COLLECTIONS && CACHED_COLLECTIONS.length > 0) return CACHED_COLLECTIONS;
@@ -5946,11 +5914,30 @@ function renderCollectionCard(coll) {
   const alphaChar = getShowAlpha(coll);
   const statusClass = pct === 100 ? "status-ended" : (downloaded > 0 ? "status-downloading" : (coll.monitored ? "status-missing-mon" : "status-missing-unmon"));
 
+  const statusTooltip = pct === 100
+    ? (CURRENT_LANG === "en" ? `Collection complete: all ${total} movies on disk (100%)` : `Коллекция полностью собрана: все ${total} фильмов на диске (100%)`)
+    : (downloaded > 0
+        ? (CURRENT_LANG === "en" ? `Partially collected: ${downloaded} of ${total} movies on disk (${pct}%)` : `Частично собрана: скачано ${downloaded} из ${total} фильмов (${pct}%)`)
+        : (coll.monitored
+            ? (CURRENT_LANG === "en" ? `Missing: 0 of ${total} movies on disk • Monitored` : `Ожидает загрузки: 0 из ${total} фильмов • Отслеживается`)
+            : (CURRENT_LANG === "en" ? `Not downloaded: 0 of ${total} movies • Unmonitored` : `Не скачано: 0 из ${total} фильмов • Мониторинг отключен`)));
+
+  const mTooltip = coll.monitored
+    ? (CURRENT_LANG === "en" ? "Monitored: automatic search for franchise movies is enabled" : "Отслеживается: автоматический поиск частей саги включен")
+    : (CURRENT_LANG === "en" ? "Unmonitored: automatic search is disabled" : "Не отслеживается: автоматический поиск отключен");
+
+  const partsWord = CURRENT_LANG === "en" 
+    ? (total === 1 ? "movie" : "movies") 
+    : (total === 1 ? "фильм" : (total > 1 && total < 5 ? "фильма" : "фильмов"));
+  const partsTooltip = CURRENT_LANG === "en"
+    ? `Franchise consists of ${total} movie parts`
+    : `Франшиза состоит из ${total} частей`;
+
   let monitoredBadgeHtml = "";
   if (COLLECTIONS_POSTER_OPTIONS.monitored !== false) {
     monitoredBadgeHtml = `
       <div class="show-monitored-badge-wrap">
-        <span class="show-monitored-pill ${mClass}">
+        <span class="show-monitored-pill ${mClass}" title="${escapeHtml(mTooltip)}">
           <i data-lucide="${mIcon}" class="ico-xs"></i>
           <span>${escapeHtml(mTitle)}</span>
         </span>
@@ -5960,10 +5947,7 @@ function renderCollectionCard(coll) {
 
   let partsBadgeHtml = "";
   if (COLLECTIONS_POSTER_OPTIONS.partsCount !== false) {
-    const partsWord = CURRENT_LANG === "en" 
-      ? (total === 1 ? "movie" : "movies") 
-      : (total === 1 ? "фильм" : (total > 1 && total < 5 ? "фильма" : "фильмов"));
-    partsBadgeHtml = `<div style="margin: 2px 0;"><span class="badge-collection"><i data-lucide="boxes" class="ico-xxs"></i> ${total} ${partsWord}</span></div>`;
+    partsBadgeHtml = `<div style="margin: 2px 0;"><span class="badge-collection" title="${escapeHtml(partsTooltip)}"><i data-lucide="boxes" class="ico-xxs"></i> ${total} ${partsWord}</span></div>`;
   }
 
   // 1. Neo-Glass Style
@@ -5971,13 +5955,13 @@ function renderCollectionCard(coll) {
     const showText = COLLECTIONS_POSTER_OPTIONS.progressText !== false;
     const pillText = showText ? `<span>${downloaded} / ${total}</span>` : "";
     const statusPillHtml = `
-      <div class="poster-status-pill ${statusClass}" title="${downloaded}/${total} (${pct}%)">
+      <div class="poster-status-pill ${statusClass}" title="${escapeHtml(statusTooltip)}">
         <span class="status-dot ${statusClass}"></span>
         ${pillText}
       </div>
     `;
     const microBarHtml = `
-      <div class="poster-micro-bar">
+      <div class="poster-micro-bar" title="${escapeHtml(statusTooltip)}">
         <div class="poster-micro-bar-fill ${statusClass}" style="width: ${pct}%;"></div>
       </div>
     `;
@@ -6002,24 +5986,20 @@ function renderCollectionCard(coll) {
 
   // 2. Cinematic Luxe Style
   if (CURRENT_COLLECTIONS_CARD_STYLE === "cinematic") {
-    const partsWord = CURRENT_LANG === "en" 
-      ? (total === 1 ? "movie in saga" : "movies in saga") 
-      : (total === 1 ? "фильм в саге" : (total > 1 && total < 5 ? "фильма в саге" : "фильмов в саге"));
-
     const cinematicOverlayHtml = `
       <div class="poster-cinematic-overlay">
         ${COLLECTIONS_POSTER_OPTIONS.title !== false ? `<div class="poster-cinematic-title" title="${escapeHtml(coll.title)}">${escapeHtml(coll.title)}</div>` : ""}
-        <div class="poster-cinematic-status">
+        <div class="poster-cinematic-status" title="${escapeHtml(statusTooltip)}">
           <span class="status-dot ${statusClass}"></span>
           <span class="poster-cinematic-status-text">${downloaded}/${total} • ${pct}% • ${escapeHtml(mTitle)}</span>
         </div>
-        <div class="poster-micro-bar">
+        <div class="poster-micro-bar" title="${escapeHtml(statusTooltip)}">
           <div class="poster-micro-bar-fill ${statusClass}" style="width: ${pct}%;"></div>
         </div>
       </div>
     `;
 
-    let cinematicInfoHtml = `<div class="cinematic-meta-line">${total} ${partsWord}</div>`;
+    let cinematicInfoHtml = `<div class="cinematic-meta-line" title="${escapeHtml(partsTooltip)}">${total} ${partsWord} ${CURRENT_LANG === 'en' ? 'in saga' : 'в саге'}</div>`;
     if (monitoredBadgeHtml) cinematicInfoHtml += monitoredBadgeHtml;
 
     return `
@@ -6036,14 +6016,14 @@ function renderCollectionCard(coll) {
   const showText = COLLECTIONS_POSTER_OPTIONS.progressText !== false;
   const progressHtml = `
     <div class="collection-poster-gradient"></div>
-    <div class="collection-neon-progress-wrap">
+    <div class="collection-neon-progress-wrap" title="${escapeHtml(statusTooltip)}">
       ${showText ? `
         <div class="collection-neon-meta">
           <span class="collection-neon-meta-left"><i data-lucide="boxes" class="ico-xxs"></i> ${downloaded}/${total}</span>
           <span>${pct}%</span>
         </div>
       ` : ""}
-      <div class="collection-neon-track">
+      <div class="collection-neon-track" title="${escapeHtml(statusTooltip)}">
         <div class="collection-neon-fill ${pct === 100 ? 'complete' : (pct === 0 ? 'empty' : '')}" style="width: ${pct}%;"></div>
       </div>
     </div>
@@ -6318,6 +6298,8 @@ function getShowStatusInfo(show, activeTask) {
   let statusClass = "status-ended";
   let labelRu = "Завершен";
   let labelEn = "Ended";
+  let tooltipRu = "";
+  let tooltipEn = "";
 
   if (activeTask) {
     statusClass = "status-importing";
@@ -6331,23 +6313,45 @@ function getShowStatusInfo(show, activeTask) {
       pct,
       progressText: `${pct}%`,
       label: `${taskTitle}: ${pct}%`,
+      tooltip: CURRENT_LANG === 'en' ? `${taskTitle}: ${pct}% (active background process)` : `${taskTitle}: ${pct}% (выполняется фоновый процесс)`,
       activeTask
     };
   }
+
+  const pct = total > 0 ? Math.min(100, Math.round((downloaded / total) * 100)) : 0;
+  const progressText = `${downloaded} / ${total}`;
 
   if (downloading > 0) {
     statusClass = "status-downloading";
     labelRu = "Загрузка";
     labelEn = "Downloading";
+    tooltipRu = isMovie 
+      ? `Загрузка фильма в торрент-клиенте (${pct}%)` 
+      : `Идет загрузка: скачано ${downloaded} из ${total} серий (${pct}%)`;
+    tooltipEn = isMovie 
+      ? `Downloading movie (${pct}%)` 
+      : `Downloading: ${downloaded} of ${total} episodes on disk (${pct}%)`;
   } else if (downloaded < total) {
     if (show.monitored) {
       statusClass = "status-missing-mon";
       labelRu = "Ожидается";
       labelEn = "Missing";
+      tooltipRu = downloaded > 0
+        ? `Частично скачано: ${downloaded} из ${total} ${isMovie ? 'фильмов' : 'серий'} (${pct}%) • Отслеживается`
+        : (isMovie ? `Ожидает загрузки • Отслеживается` : `Ожидает загрузки: 0 из ${total} серий • Отслеживается`);
+      tooltipEn = downloaded > 0
+        ? `Partially downloaded: ${downloaded} of ${total} ${isMovie ? 'movies' : 'episodes'} (${pct}%) • Monitored`
+        : (isMovie ? `Missing • Monitored` : `Missing: 0 of ${total} episodes • Monitored`);
     } else {
       statusClass = "status-missing-unmon";
       labelRu = "Не отслеживается";
       labelEn = "Unmonitored";
+      tooltipRu = downloaded > 0
+        ? `Частично скачано: ${downloaded} из ${total} ${isMovie ? 'фильмов' : 'серий'} (${pct}%) • Мониторинг отключен`
+        : `Не скачано • Мониторинг отключен`;
+      tooltipEn = downloaded > 0
+        ? `Partially downloaded: ${downloaded} of ${total} ${isMovie ? 'movies' : 'episodes'} (${pct}%) • Unmonitored`
+        : `Not downloaded • Unmonitored`;
     }
   } else {
     if (show.content_type === "series" || show.content_type === "anime") {
@@ -6355,21 +6359,25 @@ function getShowStatusInfo(show, activeTask) {
         statusClass = "status-continuing";
         labelRu = "Продолжается";
         labelEn = "Continuing";
+        tooltipRu = `Все вышедшие серии скачаны (100%) • Продолжается`;
+        tooltipEn = `All aired episodes downloaded (100%) • Continuing`;
       } else {
         statusClass = "status-ended";
         labelRu = "Завершен";
         labelEn = "Ended";
+        tooltipRu = `Все серии скачаны (100%) • Завершён`;
+        tooltipEn = `All episodes downloaded (100%) • Ended`;
       }
     } else {
       statusClass = "status-ended";
       labelRu = "Завершен";
       labelEn = "Ended";
+      tooltipRu = `Фильм скачан на диск (100%)`;
+      tooltipEn = `Movie downloaded to disk (100%)`;
     }
   }
 
   show._computed_status = statusClass;
-  const pct = total > 0 ? Math.min(100, Math.round((downloaded / total) * 100)) : 0;
-  const progressText = `${downloaded} / ${total}`;
 
   return {
     statusClass,
@@ -6378,6 +6386,7 @@ function getShowStatusInfo(show, activeTask) {
     pct,
     progressText,
     label: CURRENT_LANG === 'en' ? labelEn : labelRu,
+    tooltip: CURRENT_LANG === 'en' ? tooltipEn : tooltipRu,
     activeTask: null
   };
 }
@@ -6393,7 +6402,7 @@ function computeShowProgressHtml(show, activeTask) {
         textHtml = `<div class="poster-progress-text">${info.progressText}</div>`;
       }
     }
-    return `<div class="poster-progress ${info.statusClass}">${textHtml}</div>`;
+    return `<div class="poster-progress ${info.statusClass}" title="${escapeHtml(info.tooltip)}">${textHtml}</div>`;
   } else {
     show._computed_status = show.monitored ? "status-missing-mon" : "status-missing-unmon";
     return "";
@@ -6523,12 +6532,15 @@ function renderShowCard(show) {
     const mtext = show.monitored ? t("dash.monitored") : t("dash.unmonitored");
     const mClass = show.monitored ? "monitored" : "unmonitored";
     const mIcon = show.monitored ? "bookmark-check" : "bookmark-x";
+    const mTooltip = show.monitored 
+      ? (CURRENT_LANG === "en" ? "Monitored: automatic search for new releases is enabled" : "Отслеживается: автоматический поиск новых релизов включен") 
+      : (CURRENT_LANG === "en" ? "Unmonitored: automatic search is disabled" : "Не отслеживается: автоматический поиск отключен");
     const upgradePill = (show.upgrade_requested || show.has_upgrade_pending)
       ? `<span class="show-upgrade-pill" title="${CURRENT_LANG === 'en' ? 'Quality upgrade pending' : 'Ожидает обновления качества'}"><i data-lucide="arrow-up-circle" class="ico-xs"></i></span>`
       : "";
     monitoredBadgeHtml = `
       <div class="show-monitored-badge-wrap">
-        <span class="show-monitored-pill ${mClass}">
+        <span class="show-monitored-pill ${mClass}" title="${escapeHtml(mTooltip)}">
           <i data-lucide="${mIcon}" class="ico-xs"></i>
           <span>${escapeHtml(mtext)}</span>
         </span>
@@ -6562,13 +6574,13 @@ function renderShowCard(show) {
     const showText = POSTER_OPTIONS.progressText !== false;
     const pillText = showText ? `<span>${escapeHtml(statusInfo.progressText)}</span>` : "";
     const statusPillHtml = `
-      <div class="poster-status-pill ${statusInfo.statusClass}" title="${escapeHtml(statusInfo.label)}">
+      <div class="poster-status-pill ${statusInfo.statusClass}" title="${escapeHtml(statusInfo.tooltip)}">
         <span class="status-dot ${statusInfo.statusClass}"></span>
         ${pillText}
       </div>
     `;
     const microBarHtml = `
-      <div class="poster-micro-bar">
+      <div class="poster-micro-bar" title="${escapeHtml(statusInfo.tooltip)}">
         <div class="poster-micro-bar-fill ${statusInfo.statusClass}" style="width: ${statusInfo.pct}%;"></div>
       </div>
     `;
@@ -6612,11 +6624,11 @@ function renderShowCard(show) {
     const cinematicOverlayHtml = `
       <div class="poster-cinematic-overlay">
         ${POSTER_OPTIONS.title ? `<div class="poster-cinematic-title" title="${escapeHtml(show.title || "")}">${escapeHtml(show.title || "")}</div>` : ""}
-        <div class="poster-cinematic-status">
+        <div class="poster-cinematic-status" title="${escapeHtml(statusInfo.tooltip)}">
           <span class="status-dot ${statusInfo.statusClass}"></span>
           <span class="poster-cinematic-status-text">${escapeHtml(statusInfo.progressText)} • ${escapeHtml(statusInfo.label)}</span>
         </div>
-        <div class="poster-micro-bar">
+        <div class="poster-micro-bar" title="${escapeHtml(statusInfo.tooltip)}">
           <div class="poster-micro-bar-fill ${statusInfo.statusClass}" style="width: ${statusInfo.pct}%;"></div>
         </div>
       </div>
@@ -6668,17 +6680,49 @@ function renderShowCard(show) {
 }
 
 function renderShowTableRow(show) {
-  const nextAiring = show.next_airing ? formatDateOnly(show.next_airing) : "—";
-  const mTitle = show.monitored ? t("dash.monitored") : t("dash.unmonitored");
+  const initial = (show.title || "?").trim()[0]?.toUpperCase() || "?";
+  const posterStyle = show.poster_url ? `style="background-image:url('${show.poster_url}')"` : "";
+  const mTitle = show.monitored 
+    ? (CURRENT_LANG === "en" ? "Monitored: automatic search for new releases is enabled" : "Отслеживается: автоматический поиск новых релизов включен") 
+    : (CURRENT_LANG === "en" ? "Unmonitored: automatic search is disabled" : "Не отслеживается: автоматический поиск отключен");
   const mIcon = show.monitored ? "bookmark-check" : "bookmark-x";
   const mClass = show.monitored ? "monitored" : "unmonitored";
   const isSelected = SELECTED_SHOW_IDS.has(show.id);
   const selectedClass = isSelected ? "is-selected" : "";
   const checkedAttr = isSelected ? "checked" : "";
 
+  // Active Task overlay check
+  const activeTask = (typeof CURRENT_ACTIVE_TASKS !== "undefined" && CURRENT_ACTIVE_TASKS) ? CURRENT_ACTIVE_TASKS.find(t => 
+    (t.show_id && t.show_id === show.id) ||
+    (t.title && t.title.toLowerCase().includes((show.title || "").toLowerCase())) ||
+    (t.message && t.message.toLowerCase().includes((show.title || "").toLowerCase()))
+  ) : null;
+
+  const statusInfo = getShowStatusInfo(show, activeTask);
+
+  const categoryChip = show.content_type === "movie"
+    ? `<span class="category-badge-chip category-badge-movies" style="padding:1px 6px;font-size:9.5px;height:18px;"><i data-lucide="film" class="ico-xxs"></i> ${CURRENT_LANG === 'en' ? 'Movie' : 'Фильм'}</span>`
+    : show.content_type === "anime"
+      ? `<span class="category-badge-chip category-badge-anime" style="padding:1px 6px;font-size:9.5px;height:18px;"><i data-lucide="clapperboard" class="ico-xxs"></i> ${CURRENT_LANG === 'en' ? 'Anime' : 'Аниме'}</span>`
+      : `<span class="category-badge-chip category-badge-series" style="padding:1px 6px;font-size:9.5px;height:18px;"><i data-lucide="tv" class="ico-xxs"></i> ${CURRENT_LANG === 'en' ? 'Series' : 'Сериал'}</span>`;
+
+  const editionChip = show.edition 
+    ? `<span class="badge-edition" style="font-size:9px;padding:1px 5px;height:18px;"><i data-lucide="clapperboard" class="ico-xxs"></i> ${escapeHtml(show.edition)}</span>` 
+    : "";
+
+  const collectionChip = (show.collection_id && show.collection_title)
+    ? `<span class="badge-collection" onclick="event.stopPropagation(); openCollectionModal(${show.collection_id})" title="${CURRENT_LANG === 'en' ? 'Collection' : 'Коллекция'}: ${escapeHtml(show.collection_title)}" style="font-size:9px;padding:1px 5px;height:18px;"><i data-lucide="boxes" class="ico-xxs"></i> ${escapeHtml(show.collection_title)}</span>`
+    : "";
+
+  const qpName = qualityProfileName(show.quality_profile_id);
+  const nextAirStr = show.next_airing ? formatDateOnly(show.next_airing) : null;
+  const statusStr = show.status === "ended" 
+    ? (CURRENT_LANG === "en" ? "Ended" : "Завершён") 
+    : (CURRENT_LANG === "en" ? "Continuing" : "Продолжается");
+
   return `
     <tr id="show-row-${show.id}" class="${selectedClass}" data-alpha="${getShowAlpha(show)}" style="cursor:pointer">
-      <td style="text-align: center; width: 44px;">
+      <td style="text-align: center; width: 48px;">
         ${LIBRARY_BULK_MODE ? `
           <input type="checkbox" class="show-row-checkbox" ${checkedAttr} onclick="event.stopPropagation();" onchange="toggleShowSelection(${show.id}, event)">
         ` : `
@@ -6687,12 +6731,53 @@ function renderShowTableRow(show) {
           </span>
         `}
       </td>
-      <td>${renderShowTitleHtml(show.title, show.year)}</td>
-      <td>${show.network ? escapeHtml(show.network) : "—"}</td>
-      <td>${escapeHtml(qualityProfileName(show.quality_profile_id))}</td>
-      <td class="mono">${nextAiring}</td>
-      <td class="mono">${show.seasons_count || 0}</td>
-      <td class="mono">${show.episodes_count || 0}</td>
+      <td>
+        <div class="table-show-cell">
+          <div class="table-poster-thumb" ${posterStyle}>
+            ${show.poster_url ? "" : initial}
+          </div>
+          <div class="table-show-info">
+            <div class="table-show-title-line">
+              <span class="table-show-title font-semibold">${escapeHtml(show.title)}</span>
+              ${show.year ? `<span class="table-show-year mono">(${show.year})</span>` : ""}
+              ${(show.upgrade_requested || show.has_upgrade_pending) ? `<span class="badge-upgrade-pending" title="${CURRENT_LANG === 'en' ? 'Quality upgrade pending' : 'Ожидает обновления качества'}"><i data-lucide="arrow-up-circle" class="ico-xxs"></i></span>` : ""}
+            </div>
+            <div class="table-show-badges">
+              ${categoryChip}
+              ${editionChip}
+              ${collectionChip}
+              ${show.rating ? `<span class="meta-pill meta-pill-rating" style="padding:1px 5px;font-size:9.5px;height:18px;"><i data-lucide="star" class="ico-xxs"></i> ${Number(show.rating).toFixed(1)}</span>` : ""}
+            </div>
+          </div>
+        </div>
+      </td>
+      <td style="min-width: 140px;">
+        <div class="table-progress-wrap" title="${escapeHtml(statusInfo.tooltip)}">
+          <div class="table-progress-meta">
+            <span class="table-progress-count mono"><span class="status-dot ${statusInfo.statusClass}"></span> ${statusInfo.progressText}</span>
+            <span class="table-progress-pct mono">${statusInfo.pct}%</span>
+          </div>
+          <div class="table-progress-bar">
+            <div class="table-progress-fill ${statusInfo.statusClass}" style="width: ${statusInfo.pct}%;"></div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <span class="badge-quality table-qp-badge" title="${t('library.col_profile')}">${escapeHtml(qpName)}</span>
+      </td>
+      <td>
+        <span class="table-network-text">${show.network ? escapeHtml(show.network) : (show.studio ? escapeHtml(show.studio) : "—")}</span>
+      </td>
+      <td class="mono">
+        ${show.content_type === "movie" 
+          ? `<span class="badge-secondary mono" style="font-size:11px;padding:2px 7px;">1/1</span>` 
+          : `<span class="badge-secondary mono" style="font-size:11px;padding:2px 7px;">${show.seasons_count || 0} ${CURRENT_LANG === 'en' ? 'seas.' : 'сез.'}</span>`}
+      </td>
+      <td>
+        ${nextAirStr 
+          ? `<span class="meta-badge-next-air mono" style="font-size:11px;padding:2px 7px;" title="${CURRENT_LANG === 'en' ? 'Next episode airing date' : 'Дата выхода следующей серии'}"><i data-lucide="calendar" class="ico-xxs"></i> ${nextAirStr}</span>` 
+          : `<span class="status-pill status-${show.status === 'ended' ? 'ended' : 'continuing'}" style="font-size:11px;padding:2px 7px;" title="${escapeHtml(statusInfo.tooltip)}">${statusStr}</span>`}
+      </td>
     </tr>`;
 }
 
@@ -6764,13 +6849,13 @@ function renderShowOverviewRow(show) {
     const showText = POSTER_OPTIONS.progressText !== false;
     const pillText = showText ? `<span>${escapeHtml(statusInfo.progressText)}</span>` : "";
     const statusPillHtml = `
-      <div class="poster-status-pill ${statusInfo.statusClass}" title="${escapeHtml(statusInfo.label)}">
+      <div class="poster-status-pill ${statusInfo.statusClass}" title="${escapeHtml(statusInfo.tooltip)}">
         <span class="status-dot ${statusInfo.statusClass}"></span>
         ${pillText}
       </div>
     `;
     const microBarHtml = `
-      <div class="poster-micro-bar">
+      <div class="poster-micro-bar" title="${escapeHtml(statusInfo.tooltip)}">
         <div class="poster-micro-bar-fill ${statusInfo.statusClass}" style="width: ${statusInfo.pct}%;"></div>
       </div>
     `;
@@ -6805,11 +6890,11 @@ function renderShowOverviewRow(show) {
   if (CURRENT_CARD_STYLE === "cinematic") {
     const cinematicOverlayHtml = `
       <div class="poster-cinematic-overlay">
-        <div class="poster-cinematic-status">
+        <div class="poster-cinematic-status" title="${escapeHtml(statusInfo.tooltip)}">
           <span class="status-dot ${statusInfo.statusClass}"></span>
           <span class="poster-cinematic-status-text">${escapeHtml(statusInfo.progressText)}</span>
         </div>
-        <div class="poster-micro-bar">
+        <div class="poster-micro-bar" title="${escapeHtml(statusInfo.tooltip)}">
           <div class="poster-micro-bar-fill ${statusInfo.statusClass}" style="width: ${statusInfo.pct}%;"></div>
         </div>
       </div>

@@ -551,12 +551,16 @@
         <div id="library-content" style="flex: 1; min-width: 0;">
           <div id="shows-grid" class="shows-grid"></div>
           <div id="shows-table-wrap" class="table-responsive glass-table-wrap" style="display:none">
-            <table class="data-table" id="shows-table">
+            <table class="data-table library-table" id="shows-table">
               <thead>
                 <tr>
-                  <th style="width: 44px; text-align: center;" title="Отслеживание" data-i18n-title="status.monitored_title"><i data-lucide="bookmark" class="ico-xs"></i></th>
-                  <th data-i18n="library.col_title">Название</th><th data-i18n="library.col_network">Сеть</th><th data-i18n="library.col_profile">Профиль качества</th>
-                  <th data-i18n="library.col_next_air">Следующий эфир</th><th data-i18n="library.col_seasons">Сезоны</th><th data-i18n="library.col_episodes">Эпизоды</th>
+                  <th style="width: 48px; text-align: center;" title="Отслеживание" data-i18n-title="status.monitored_title"><i data-lucide="bookmark" class="ico-xs"></i></th>
+                  <th data-i18n="library.col_title">Тайтл</th>
+                  <th data-i18n="library.col_progress">Прогресс</th>
+                  <th data-i18n="library.col_profile">Профиль</th>
+                  <th data-i18n="library.col_network">Сеть / Студия</th>
+                  <th data-i18n="library.col_seasons">Сезоны</th>
+                  <th data-i18n="library.col_status">Статус / Эфир</th>
                 </tr>
               </thead>
               <tbody id="shows-table-body"></tbody>
@@ -567,7 +571,6 @@
             <p data-i18n="library.empty">Пока нет ни одного видео.</p>
             <button class="btn btn-primary" onclick="openAddShowWizard()" data-i18n="library.add_first">Добавить первое видео</button>
           </div>
-          <div id="library-dashboard-container"></div>
         </div> <!-- #library-content -->
         <div id="alphabet-index" class="alphabet-index-container" style="display: none;">
           <!-- Alphabet links generated via JS -->
