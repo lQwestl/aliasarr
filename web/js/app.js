@@ -5494,16 +5494,23 @@ let LIBRARY_POLL_INTERVAL = null;
 function updateShowCardProgressInDOM(show) {
   if (!show) return;
   const statusInfo = getShowStatusInfo(show);
+  const titleWithYear = formatShowTitleWithYear(show.title, show.year);
+  const fullTooltip = `${titleWithYear} • ${statusInfo.tooltip}`;
 
   // 1. Постеры (Grid view)
   const card = document.getElementById(`show-card-${show.id}`);
   if (card) {
+    card.title = fullTooltip;
+    const poster = card.querySelector(".show-poster");
+    if (poster) poster.title = statusInfo.tooltip;
+
     const posterProgress = card.querySelector(".poster-progress");
     const progressText = card.querySelector(".poster-progress-text");
     const isImporting = posterProgress && posterProgress.classList.contains("status-importing");
 
     if (!isImporting && posterProgress) {
       posterProgress.className = `poster-progress ${statusInfo.statusClass}`;
+      posterProgress.title = statusInfo.tooltip;
     }
 
     if (!isImporting && progressText) {
@@ -5518,7 +5525,7 @@ function updateShowCardProgressInDOM(show) {
     const pill = card.querySelector(".poster-status-pill");
     if (pill) {
       pill.className = `poster-status-pill ${statusInfo.statusClass}`;
-      pill.title = statusInfo.label;
+      pill.title = statusInfo.tooltip;
       const dot = pill.querySelector(".status-dot");
       if (dot) dot.className = `status-dot ${statusInfo.statusClass}`;
       const span = pill.querySelector("span:not(.status-dot)");
@@ -5530,11 +5537,14 @@ function updateShowCardProgressInDOM(show) {
     if (microFill) {
       microFill.className = `poster-micro-bar-fill ${statusInfo.statusClass}`;
       microFill.style.width = `${statusInfo.pct}%`;
+      const microBar = card.querySelector(".poster-micro-bar");
+      if (microBar) microBar.title = statusInfo.tooltip;
     }
 
     // Cinematic Overlay
     const cineStatus = card.querySelector(".poster-cinematic-status");
     if (cineStatus) {
+      cineStatus.title = statusInfo.tooltip;
       const dot = cineStatus.querySelector(".status-dot");
       if (dot) dot.className = `status-dot ${statusInfo.statusClass}`;
       const cineText = cineStatus.querySelector(".poster-cinematic-status-text");
@@ -5545,12 +5555,17 @@ function updateShowCardProgressInDOM(show) {
   // 2. Обзор (Overview view)
   const overviewRow = document.getElementById(`show-overview-${show.id}`);
   if (overviewRow) {
+    overviewRow.title = fullTooltip;
+    const overviewPosterCol = overviewRow.querySelector(".overview-poster-col, .overview-poster");
+    if (overviewPosterCol) overviewPosterCol.title = statusInfo.tooltip;
+
     const overviewProgress = overviewRow.querySelector(".poster-progress");
     const progressText = overviewProgress ? overviewProgress.querySelector(".poster-progress-text") : null;
     const isImporting = overviewProgress && overviewProgress.classList.contains("status-importing");
 
     if (!isImporting && overviewProgress && show._computed_status) {
       overviewProgress.className = `poster-progress ${show._computed_status}`;
+      overviewProgress.title = statusInfo.tooltip;
     }
     if (!isImporting && progressText) {
       if (POSTER_OPTIONS.progressText && show.content_type !== "movie") {
@@ -5559,15 +5574,49 @@ function updateShowCardProgressInDOM(show) {
         progressText.textContent = statusInfo.downloaded > 0 ? "1 / 1" : "0 / 1";
       }
     }
+
+    const pill = overviewRow.querySelector(".poster-status-pill");
+    if (pill) {
+      pill.className = `poster-status-pill ${statusInfo.statusClass}`;
+      pill.title = statusInfo.tooltip;
+      const dot = pill.querySelector(".status-dot");
+      if (dot) dot.className = `status-dot ${statusInfo.statusClass}`;
+      const span = pill.querySelector("span:not(.status-dot)");
+      if (span && POSTER_OPTIONS.progressText !== false) span.textContent = statusInfo.progressText;
+    }
+
+    const microFill = overviewRow.querySelector(".poster-micro-bar-fill");
+    if (microFill) {
+      microFill.className = `poster-micro-bar-fill ${statusInfo.statusClass}`;
+      microFill.style.width = `${statusInfo.pct}%`;
+      const microBar = overviewRow.querySelector(".poster-micro-bar");
+      if (microBar) microBar.title = statusInfo.tooltip;
+    }
   }
 
   // 3. Таблица (Table view)
   const tableRow = document.getElementById(`show-row-${show.id}`);
   if (tableRow) {
-    const cells = tableRow.querySelectorAll("td");
-    if (cells.length >= 7) {
-      cells[5].textContent = show.seasons_count || 0;
-      cells[6].textContent = show.episodes_count || 0;
+    const tableProgWrap = tableRow.querySelector(".table-progress-wrap");
+    if (tableProgWrap) {
+      tableProgWrap.title = statusInfo.tooltip;
+      const countEl = tableProgWrap.querySelector(".table-progress-count");
+      if (countEl) {
+        countEl.innerHTML = `<span class="status-dot ${statusInfo.statusClass}"></span> ${statusInfo.progressText}`;
+      }
+      const pctEl = tableProgWrap.querySelector(".table-progress-pct");
+      if (pctEl) {
+        pctEl.textContent = `${statusInfo.pct}%`;
+      }
+      const fillEl = tableProgWrap.querySelector(".table-progress-fill");
+      if (fillEl) {
+        fillEl.className = `table-progress-fill ${statusInfo.statusClass}`;
+        fillEl.style.width = `${statusInfo.pct}%`;
+      }
+    }
+    const statusPill = tableRow.querySelector(".status-pill");
+    if (statusPill) {
+      statusPill.title = statusInfo.tooltip;
     }
   }
 }
