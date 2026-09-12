@@ -16278,6 +16278,15 @@ async function removeDownloadClient(id) {
 let EDITING_QP_ID = null;
 let SELECTED_QUALITIES = new Set();
 
+function toggleQualityChip(q) {
+  if (SELECTED_QUALITIES.has(q)) {
+    SELECTED_QUALITIES.delete(q);
+  } else {
+    SELECTED_QUALITIES.add(q);
+  }
+  renderQualityChips();
+}
+
 function renderQualityChips() {
   const el = document.getElementById("qp-quality-chips");
   if (!el) return;

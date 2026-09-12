@@ -5552,15 +5552,23 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 /* ---------- QUALITY CHIP SELECT ---------- */
 .chip-select { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip-toggle {
-  font-family: var(--font-mono); font-size: 11px; padding: 5px 10px; border-radius: 999px;
+  font-family: var(--font-mono); font-size: 11px; padding: 5px 11px; border-radius: 999px;
   background: var(--panel-alt); border: 1px solid var(--border); color: var(--text-muted); cursor: pointer;
+  user-select: none; transition: all 0.15s ease;
 }
-.chip-toggle.selected { border-color: var(--teal); color: var(--teal); background: rgba(45,212,191,0.1); }
+.chip-toggle:hover {
+  border-color: var(--teal); color: var(--text); background: rgba(45, 212, 191, 0.05);
+}
+.chip-toggle.selected {
+  border-color: var(--teal); color: var(--teal); background: rgba(45, 212, 191, 0.15); font-weight: 600;
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.15);
+}
 .chip {
   font-family: var(--font-mono); font-size: 12px; padding: 6px 14px; border-radius: 999px;
   background: var(--panel-alt); border: 1px solid var(--border); color: var(--text-muted); cursor: pointer;
+  user-select: none; transition: all 0.15s ease;
 }
-.chip-selected { border-color: var(--teal); color: var(--teal); background: rgba(45,212,191,0.1); }
+.chip-selected { border-color: var(--teal); color: var(--teal); background: rgba(45,212,191,0.1); font-weight: 600; }
 
 /* ---------- WIZARD ---------- */
 .wizard-steps { display: flex; gap: 4px; margin-bottom: 20px; }
