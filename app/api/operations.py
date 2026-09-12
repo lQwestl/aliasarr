@@ -1253,8 +1253,8 @@ async def get_queue(db: Session = Depends(get_db), current_user: User = Depends(
                     show_cache[s_id] = db.get(Show, s_id)
                 current_show = show_cache.get(s_id)
                 if current_show:
-                    show_title = current_show.title
-                    content_type = current_show.content_type
+                    show_title = getattr(current_show, "title", None)
+                    content_type = getattr(current_show, "content_type", None)
                 
                 if current_show and getattr(current_show, "content_type", None) == "movie":
                     ep_label = "Фильм"
