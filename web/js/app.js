@@ -432,6 +432,7 @@ const TRANSLATIONS = {
     "library.filter_anime": "Аниме",
     "library.filter_monitored": "Мониторится",
     "library.filter_unmonitored": "Не мониторится",
+    "library.filter_downloading": "Скачиваются",
     "library.view_posters": "Постеры",
     "library.view_table": "Таблица",
     "library.view_overview": "Обзор",
@@ -1781,6 +1782,7 @@ const TRANSLATIONS = {
     "library.filter_anime": "Anime",
     "library.filter_monitored": "Monitored",
     "library.filter_unmonitored": "Unmonitored",
+    "library.filter_downloading": "Downloading",
     "library.view_posters": "Posters",
     "library.view_table": "Table",
     "library.view_overview": "Overview",
@@ -5268,7 +5270,7 @@ async function loadHealthCheck() {
 let LIBRARY_VIEW_MODE = localStorage.getItem("aliasarr_library_view") || "posters";
 const VIEW_MODE_LABELS = { posters: "library.view_posters", table: "library.view_table", overview: "library.view_overview" };
 const CATEGORY_FILTER_LABELS = { all: "library.filter_all", movie: "library.filter_movies", series: "library.filter_series", anime: "library.filter_anime" };
-const MONITOR_FILTER_LABELS = { all: "library.filter_all", monitored: "library.filter_monitored", unmonitored: "library.filter_unmonitored" };
+const MONITOR_FILTER_LABELS = { all: "library.filter_all", monitored: "library.filter_monitored", unmonitored: "library.filter_unmonitored", downloading: "library.filter_downloading" };
 
 let LIBRARY_CATEGORY_FILTER = localStorage.getItem("aliasarr_library_cat") || "all";
 let LIBRARY_MONITOR_FILTER = localStorage.getItem("aliasarr_library_mon") || "all";
@@ -5640,6 +5642,13 @@ function renderLibrary() {
     shows = shows.filter(s => s.monitored === true);
   } else if (LIBRARY_MONITOR_FILTER === "unmonitored") {
     shows = shows.filter(s => !s.monitored);
+  } else if (LIBRARY_MONITOR_FILTER === "downloading") {
+    shows = shows.filter(s => {
+      const st = getShowStatusInfo(s);
+      return (s.downloading_episodes_count > 0) ||
+             (st.statusClass === "status-downloading") ||
+             (st.activeTask && (st.statusClass === "status-importing" || st.activeTask.name?.includes("download") || st.activeTask.type === "download"));
+    });
   }
 
   // Search query filter

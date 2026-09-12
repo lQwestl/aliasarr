@@ -458,13 +458,14 @@
             </div>
 
             <div class="view-switcher" id="monitor-switcher">
-              <button class="btn btn-secondary view-switcher-btn" id="monitor-switcher-btn" onclick="toggleMonitorMenu()" title="Фильтр мониторинга" data-i18n-title="library.monitor_label">
-                <span class="nav-ico" style="margin-right:4px; display:inline-flex; align-items:center;"><i data-lucide="bookmark-check" class="ico-xs"></i></span><span id="monitor-switcher-label" data-i18n="library.filter_all">Все</span> ▾
+              <button class="btn btn-secondary view-switcher-btn" id="monitor-switcher-btn" onclick="toggleMonitorMenu()">
+                <span class="nav-ico" style="margin-right:4px; display:inline-flex; align-items:center;"><i data-lucide="bookmark-check" class="ico-xs"></i></span><span data-i18n="library.monitor_label">Мониторинг:</span> <span id="monitor-switcher-label" data-i18n="library.filter_all">Все</span> ▾
               </button>
               <div class="view-switcher-menu" id="monitor-switcher-menu">
                 <button onclick="selectLibraryMonitor('all')" data-i18n="library.filter_all">Все</button>
                 <button onclick="selectLibraryMonitor('monitored')" data-i18n="library.filter_monitored">Мониторится</button>
                 <button onclick="selectLibraryMonitor('unmonitored')" data-i18n="library.filter_unmonitored">Не мониторится</button>
+                <button onclick="selectLibraryMonitor('downloading')" data-i18n="library.filter_downloading">Скачиваются</button>
               </div>
             </div>
           </div>

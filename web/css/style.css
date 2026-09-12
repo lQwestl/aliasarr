@@ -5585,9 +5585,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .library-toolbar .library-search-wrap {
-  flex: 1 1 220px;
-  min-width: 140px;
-  max-width: 320px;
+  flex: 1 1 200px;
+  min-width: 120px;
+  max-width: 280px;
 }
 
 .library-toolbar .btn-group {
