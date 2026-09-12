@@ -16128,6 +16128,8 @@ function onDownloadClientTypeChange() {
   }
 }
 
+let EDITING_DC_ID = null;
+
 function editDownloadClient(d) {
   EDITING_DC_ID = d.id;
   document.getElementById("dc-form-title").textContent = `${t("common.edit")}: ${d.name}`;
