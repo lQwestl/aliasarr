@@ -483,6 +483,10 @@
               <button onclick="setLibraryView('overview')" data-i18n="library.view_overview">Обзор</button>
             </div>
           </div>
+          <button class="btn btn-secondary card-style-btn" id="card-style-btn" onclick="openCardStyleModal()" title="Стиль карточек" data-i18n-title="card_style.btn_title">
+            <i data-lucide="sparkles" class="ico-xs text-teal"></i>
+            <span class="card-style-btn-label" data-i18n="card_style.btn_title">Стиль карточек</span>
+          </button>
           <button class="btn btn-secondary btn-icon-only" id="poster-options-btn" onclick="openPosterOptionsModal()" title="Опции постера" data-i18n-title="poster_opt.btn_title">
             <i data-lucide="sliders-horizontal"></i>
             <span class="poster-options-btn-label" data-i18n="poster_opt.btn_title">Опции постера</span>
@@ -4082,6 +4086,93 @@
     
     <div style="margin-top: 24px; display: flex; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 16px;">
       <button class="btn btn-secondary" onclick="closeModal('poster-options-modal')" data-i18n="common.close">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка выбора стиля оформления карточек -->
+<div id="card-style-modal" class="modal-overlay">
+  <div class="modal modal-medium" style="max-width: 720px;">
+    <button class="modal-close" onclick="closeModal('card-style-modal')"><i data-lucide="x"></i></button>
+    <div class="settings-card-header" style="margin-bottom: 20px;">
+      <div class="settings-card-header-left">
+        <div class="settings-card-icon-badge">
+          <i data-lucide="sparkles"></i>
+        </div>
+        <div class="settings-card-title-wrap">
+          <h3 data-i18n="card_style.modal_title">Стиль оформления карточек</h3>
+          <p class="subtitle" data-i18n="card_style.modal_subtitle">Выберите визуальный режим отображения постеров и статусов в библиотеке</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-styles-grid">
+      <!-- Стиль 1: Neo-Glass -->
+      <div class="card-style-option" id="card-style-opt-neoglass" onclick="setCardStyle('neoglass')">
+        <div class="card-style-badge-recommended" data-i18n="card_style.recommended">Флагман</div>
+        <div class="card-style-preview card-style-preview-neoglass">
+          <div class="mini-card-poster">
+            <div class="mini-status-pill"><span class="mini-dot green"></span> 12 / 12</div>
+            <div class="mini-micro-bar green"></div>
+          </div>
+          <div class="mini-card-info">
+            <div class="mini-title">Naruto Shippuden (2007)</div>
+            <div class="mini-badge"><i data-lucide="sliders" style="width:10px;height:10px;display:inline-block;margin-right:2px;"></i> HDTV 720 → 1080p</div>
+          </div>
+        </div>
+        <div class="card-style-meta">
+          <div class="card-style-name">
+            <span class="card-style-radio"></span>
+            <span data-i18n="card_style.neoglass_title">Neo-Glass (Парящие бейджи)</span>
+          </div>
+          <p class="card-style-desc" data-i18n="card_style.neoglass_desc">Чистый монолитный постер с парящим стеклянным статусом в углу, ультратонким 3px микро-прогрессом и компактной строкой качества.</p>
+        </div>
+      </div>
+
+      <!-- Стиль 2: Cinematic Luxe -->
+      <div class="card-style-option" id="card-style-opt-cinematic" onclick="setCardStyle('cinematic')">
+        <div class="card-style-preview card-style-preview-cinematic">
+          <div class="mini-card-poster">
+            <div class="mini-gradient-bottom">
+              <div class="mini-title-overlay">Naruto Shippuden</div>
+              <div class="mini-sub-overlay"><span class="mini-dot green"></span> 12 / 12 • Завершено</div>
+            </div>
+          </div>
+          <div class="mini-card-info">
+            <div class="mini-meta-line">Аниме • 2007 • 1080p</div>
+          </div>
+        </div>
+        <div class="card-style-meta">
+          <div class="card-style-name">
+            <span class="card-style-radio"></span>
+            <span data-i18n="card_style.cinematic_title">Cinematic Luxe (Кинематографичный)</span>
+          </div>
+          <p class="card-style-desc" data-i18n="card_style.cinematic_desc">Постер с мягким кинематографичным затемнением снизу, интегрированным статусом и минималистичной строкой метаданных.</p>
+        </div>
+      </div>
+
+      <!-- Стиль 3: Classic -->
+      <div class="card-style-option" id="card-style-opt-classic" onclick="setCardStyle('classic')">
+        <div class="card-style-preview card-style-preview-classic">
+          <div class="mini-card-poster"></div>
+          <div class="mini-progress-bar-classic green">12 / 12</div>
+          <div class="mini-card-info">
+            <div class="mini-title">Naruto Shippuden (2007)</div>
+            <div class="mini-badge">HDTV 720 → 1080p</div>
+          </div>
+        </div>
+        <div class="card-style-meta">
+          <div class="card-style-name">
+            <span class="card-style-radio"></span>
+            <span data-i18n="card_style.classic_title">Классический (Стандартный)</span>
+          </div>
+          <p class="card-style-desc" data-i18n="card_style.classic_desc">Традиционный вид со сплошной цветной полосой прогресса серий под постером.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 24px; display: flex; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 16px;">
+      <button class="btn btn-secondary" onclick="closeModal('card-style-modal')" data-i18n="common.close">Закрыть</button>
     </div>
   </div>
 </div>

@@ -463,6 +463,18 @@ const TRANSLATIONS = {
     "poster_opt.show_tags": "Показать теги",
     "poster_opt.show_tags_hint": "Показать теги под постером",
 
+    // Card Style
+    "card_style.btn_title": "Стиль карточек",
+    "card_style.modal_title": "Стиль оформления карточек",
+    "card_style.modal_subtitle": "Выберите визуальный режим отображения постеров и статусов в библиотеке",
+    "card_style.recommended": "Флагман",
+    "card_style.neoglass_title": "Neo-Glass (Парящие бейджи)",
+    "card_style.neoglass_desc": "Чистый монолитный постер с парящим стеклянным статусом в углу, ультратонким 3px микро-прогрессом и компактной строкой качества.",
+    "card_style.cinematic_title": "Cinematic Luxe (Кинематографичный)",
+    "card_style.cinematic_desc": "Постер с мягким кинематографичным затемнением снизу, интегрированным статусом и минималистичной строкой метаданных.",
+    "card_style.classic_title": "Классический (Стандартный)",
+    "card_style.classic_desc": "Традиционный вид со сплошной цветной полосой прогресса серий под постером.",
+
     // Activity & History
     "activity.search_wanted": "Искать wanted-серии сейчас",
     "activity.check_and_import": "Проверить и перенести",
@@ -1791,6 +1803,18 @@ const TRANSLATIONS = {
     "poster_opt.show_quality_hint": "Show quality profile under poster",
     "poster_opt.show_tags": "Show tags",
     "poster_opt.show_tags_hint": "Show tags under poster",
+
+    // Card Style
+    "card_style.btn_title": "Card Style",
+    "card_style.modal_title": "Card Display Style",
+    "card_style.modal_subtitle": "Choose visual display mode for posters and statuses in your library",
+    "card_style.recommended": "Flagship",
+    "card_style.neoglass_title": "Neo-Glass (Floating Badges)",
+    "card_style.neoglass_desc": "Clean monolithic poster with floating frosted glass status in the corner, ultra-thin 3px micro-progress bar, and compact quality info.",
+    "card_style.cinematic_title": "Cinematic Luxe",
+    "card_style.cinematic_desc": "Poster with soft cinematic vignette at the bottom, integrated status overlay, and minimalist metadata line.",
+    "card_style.classic_title": "Classic (Standard)",
+    "card_style.classic_desc": "Traditional view with solid colored episode progress bar underneath the poster.",
 
     // Activity & History
     "activity.search_wanted": "Search wanted episodes now",
@@ -5265,6 +5289,40 @@ function updateLibraryFilterButtons() {
   if (monLabel) monLabel.textContent = t(MONITOR_FILTER_LABELS[LIBRARY_MONITOR_FILTER] || "library.filter_all");
 }
 
+let CURRENT_CARD_STYLE = localStorage.getItem("aliasarr_card_style") || "neoglass";
+
+function openCardStyleModal() {
+  const options = document.querySelectorAll(".card-style-option");
+  options.forEach(opt => {
+    const isThis = opt.id === `card-style-opt-${CURRENT_CARD_STYLE}`;
+    opt.classList.toggle("active", isThis);
+  });
+  openModal("card-style-modal");
+  if (window.lucide) lucide.createIcons();
+}
+
+function setCardStyle(style) {
+  if (!["neoglass", "cinematic", "classic"].includes(style)) return;
+  CURRENT_CARD_STYLE = style;
+  localStorage.setItem("aliasarr_card_style", style);
+  
+  const options = document.querySelectorAll(".card-style-option");
+  options.forEach(opt => {
+    const isThis = opt.id === `card-style-opt-${CURRENT_CARD_STYLE}`;
+    opt.classList.toggle("active", isThis);
+  });
+
+  const grid = document.getElementById("shows-grid");
+  if (grid) {
+    grid.classList.remove("card-style-neoglass", "card-style-cinematic", "card-style-classic");
+    grid.classList.add(`card-style-${CURRENT_CARD_STYLE}`);
+  }
+
+  if (typeof renderLibrary === "function") {
+    renderLibrary();
+  }
+}
+
 let POSTER_OPTIONS = {
   size: "large",
   progressText: true,
@@ -5305,9 +5363,7 @@ let LIBRARY_POLL_INTERVAL = null;
 
 function updateShowCardProgressInDOM(show) {
   if (!show) return;
-  const total = show.episodes_count || 1;
-  const downloaded = show.downloaded_episodes_count || 0;
-  const downloading = show.downloading_episodes_count || 0;
+  const statusInfo = getShowStatusInfo(show);
 
   // 1. Постеры (Grid view)
   const card = document.getElementById(`show-card-${show.id}`);
@@ -5316,30 +5372,43 @@ function updateShowCardProgressInDOM(show) {
     const progressText = card.querySelector(".poster-progress-text");
     const isImporting = posterProgress && posterProgress.classList.contains("status-importing");
 
-    let statusClass = "status-ended";
-    if (downloading > 0) {
-      statusClass = "status-downloading";
-    } else if (downloaded < total) {
-      statusClass = show.monitored ? "status-missing-mon" : "status-missing-unmon";
-    } else {
-      if ((show.content_type === "series" || show.content_type === "anime") && show.next_airing) {
-        statusClass = "status-continuing";
-      } else {
-        statusClass = "status-ended";
-      }
-    }
-    show._computed_status = statusClass;
-
     if (!isImporting && posterProgress) {
-      posterProgress.className = `poster-progress ${statusClass}`;
+      posterProgress.className = `poster-progress ${statusInfo.statusClass}`;
     }
 
     if (!isImporting && progressText) {
       if (POSTER_OPTIONS.progressText && show.content_type !== "movie") {
-        progressText.textContent = `${downloaded} / ${total}`;
+        progressText.textContent = `${statusInfo.downloaded} / ${statusInfo.total}`;
       } else if (POSTER_OPTIONS.progressText && show.content_type === "movie") {
-        progressText.textContent = downloaded > 0 ? "1 / 1" : "0 / 1";
+        progressText.textContent = statusInfo.downloaded > 0 ? "1 / 1" : "0 / 1";
       }
+    }
+
+    // Neo-Glass Pill & Dot
+    const pill = card.querySelector(".poster-status-pill");
+    if (pill) {
+      pill.className = `poster-status-pill ${statusInfo.statusClass}`;
+      pill.title = statusInfo.label;
+      const dot = pill.querySelector(".status-dot");
+      if (dot) dot.className = `status-dot ${statusInfo.statusClass}`;
+      const span = pill.querySelector("span:not(.status-dot)");
+      if (span && POSTER_OPTIONS.progressText !== false) span.textContent = statusInfo.progressText;
+    }
+
+    // Micro bar
+    const microFill = card.querySelector(".poster-micro-bar-fill");
+    if (microFill) {
+      microFill.className = `poster-micro-bar-fill ${statusInfo.statusClass}`;
+      microFill.style.width = `${statusInfo.pct}%`;
+    }
+
+    // Cinematic Overlay
+    const cineStatus = card.querySelector(".poster-cinematic-status");
+    if (cineStatus) {
+      const dot = cineStatus.querySelector(".status-dot");
+      if (dot) dot.className = `status-dot ${statusInfo.statusClass}`;
+      const cineText = cineStatus.querySelector(".poster-cinematic-status-text");
+      if (cineText) cineText.textContent = `${statusInfo.progressText} • ${statusInfo.label}`;
     }
   }
 
@@ -5601,7 +5670,7 @@ function renderLibrary() {
 
   if (LIBRARY_VIEW_MODE === "posters") {
     if (grid) {
-      grid.className = "shows-grid size-" + POSTER_OPTIONS.size + (LIBRARY_BULK_MODE ? " bulk-mode-active" : "");
+      grid.className = "shows-grid size-" + POSTER_OPTIONS.size + " card-style-" + CURRENT_CARD_STYLE + (LIBRARY_BULK_MODE ? " bulk-mode-active" : "");
       grid.innerHTML = shows.map(renderShowCard).join("");
       shows.forEach(s => document.getElementById("show-card-" + s.id)?.addEventListener("click", (e) => onShowCardClick(s.id, e)));
       if (window.lucide) lucide.createIcons();
@@ -5982,7 +6051,7 @@ function getTaskDisplayTitle(task) {
   return task.title || (CURRENT_LANG === "en" ? "Processing" : "Обработка");
 }
 
-function computeShowProgressHtml(show, activeTask) {
+function getShowStatusInfo(show, activeTask) {
   if (!activeTask && typeof CURRENT_ACTIVE_TASKS !== "undefined" && CURRENT_ACTIVE_TASKS) {
     activeTask = CURRENT_ACTIVE_TASKS.find(t => 
       (t.show_id && t.show_id === show.id) ||
@@ -5991,45 +6060,90 @@ function computeShowProgressHtml(show, activeTask) {
     );
   }
 
-  if (show.episodes_count > 0 || show.content_type === "movie") {
-    const total = show.episodes_count || 1;
-    const downloaded = show.downloaded_episodes_count || 0;
-    const downloading = show.downloading_episodes_count || 0;
-    
-    let statusClass = "status-ended";
-    if (downloading > 0) {
-      statusClass = "status-downloading";
-    } else if (downloaded < total) {
-      statusClass = show.monitored ? "status-missing-mon" : "status-missing-unmon";
+  const isMovie = show.content_type === "movie";
+  const total = isMovie ? 1 : (show.episodes_count || 1);
+  const downloaded = isMovie ? ((show.downloaded_episodes_count || 0) > 0 ? 1 : 0) : (show.downloaded_episodes_count || 0);
+  const downloading = show.downloading_episodes_count || 0;
+
+  let statusClass = "status-ended";
+  let labelRu = "Завершен";
+  let labelEn = "Ended";
+
+  if (activeTask) {
+    statusClass = "status-importing";
+    const taskTitle = getTaskDisplayTitle(activeTask);
+    const pct = Math.min(100, Math.max(0, Math.round((activeTask.progress || 0) * 100)));
+    show._computed_status = statusClass;
+    return {
+      statusClass,
+      total,
+      downloaded,
+      pct,
+      progressText: `${pct}%`,
+      label: `${taskTitle}: ${pct}%`,
+      activeTask
+    };
+  }
+
+  if (downloading > 0) {
+    statusClass = "status-downloading";
+    labelRu = "Загрузка";
+    labelEn = "Downloading";
+  } else if (downloaded < total) {
+    if (show.monitored) {
+      statusClass = "status-missing-mon";
+      labelRu = "Ожидается";
+      labelEn = "Missing";
     } else {
-      if (show.content_type === "series" || show.content_type === "anime") {
-        if (show.next_airing) {
-          statusClass = "status-continuing";
-        } else {
-          statusClass = "status-ended";
-        }
+      statusClass = "status-missing-unmon";
+      labelRu = "Не отслеживается";
+      labelEn = "Unmonitored";
+    }
+  } else {
+    if (show.content_type === "series" || show.content_type === "anime") {
+      if (show.next_airing) {
+        statusClass = "status-continuing";
+        labelRu = "Продолжается";
+        labelEn = "Continuing";
       } else {
         statusClass = "status-ended";
+        labelRu = "Завершен";
+        labelEn = "Ended";
+      }
+    } else {
+      statusClass = "status-ended";
+      labelRu = "Завершен";
+      labelEn = "Ended";
+    }
+  }
+
+  show._computed_status = statusClass;
+  const pct = total > 0 ? Math.min(100, Math.round((downloaded / total) * 100)) : 0;
+  const progressText = `${downloaded} / ${total}`;
+
+  return {
+    statusClass,
+    total,
+    downloaded,
+    pct,
+    progressText,
+    label: CURRENT_LANG === 'en' ? labelEn : labelRu,
+    activeTask: null
+  };
+}
+
+function computeShowProgressHtml(show, activeTask) {
+  if (show.episodes_count > 0 || show.content_type === "movie") {
+    const info = getShowStatusInfo(show, activeTask);
+    let textHtml = "";
+    if (POSTER_OPTIONS.progressText) {
+      if (info.activeTask) {
+        textHtml = `<div class="poster-progress-text">${escapeHtml(info.label)}</div>`;
+      } else {
+        textHtml = `<div class="poster-progress-text">${info.progressText}</div>`;
       }
     }
-    
-    show._computed_status = statusClass;
-    
-    let textHtml = "";
-    if (POSTER_OPTIONS.progressText && show.content_type !== "movie") {
-      textHtml = `<div class="poster-progress-text">${downloaded} / ${total}</div>`;
-    } else if (POSTER_OPTIONS.progressText && show.content_type === "movie") {
-      textHtml = `<div class="poster-progress-text">${downloaded > 0 ? "1 / 1" : "0 / 1"}</div>`;
-    }
-    
-    if (activeTask) {
-      const taskTitle = getTaskDisplayTitle(activeTask);
-      const pct = Math.min(100, Math.max(0, Math.round((activeTask.progress || 0) * 100)));
-      statusClass = "status-importing";
-      textHtml = `<div class="poster-progress-text">${escapeHtml(taskTitle)}: ${pct}%</div>`;
-    }
-
-    return `<div class="poster-progress ${statusClass}">${textHtml}</div>`;
+    return `<div class="poster-progress ${info.statusClass}">${textHtml}</div>`;
   } else {
     show._computed_status = show.monitored ? "status-missing-mon" : "status-missing-unmon";
     return "";
@@ -6139,8 +6253,6 @@ function renderShowCard(show) {
     `;
   }
 
-  // Индикатор прогресса
-  const progressHtml = computeShowProgressHtml(show, activeTask);
   const isSelected = SELECTED_SHOW_IDS.has(show.id);
   const selectedClass = isSelected ? "is-selected" : "";
   const checkedAttr = isSelected ? "checked" : "";
@@ -6151,10 +6263,10 @@ function renderShowCard(show) {
     </div>
   `;
 
-  let infoHtml = "";
-  if (POSTER_OPTIONS.title) {
-    infoHtml += `<div class="show-title">${escapeHtml(formatShowTitleWithYear(show.title, show.year))}</div>`;
-  }
+  const statusInfo = getShowStatusInfo(show, activeTask);
+
+  // Common Info items
+  let monitoredBadgeHtml = "";
   if (POSTER_OPTIONS.monitored) {
     const mtext = show.monitored ? t("dash.monitored") : t("dash.unmonitored");
     const mClass = show.monitored ? "monitored" : "unmonitored";
@@ -6162,7 +6274,7 @@ function renderShowCard(show) {
     const upgradePill = (show.upgrade_requested || show.has_upgrade_pending)
       ? `<span class="show-upgrade-pill" title="${CURRENT_LANG === 'en' ? 'Quality upgrade pending' : 'Ожидает обновления качества'}"><i data-lucide="arrow-up-circle" class="ico-xs"></i></span>`
       : "";
-    infoHtml += `
+    monitoredBadgeHtml = `
       <div class="show-monitored-badge-wrap">
         <span class="show-monitored-pill ${mClass}">
           <i data-lucide="${mIcon}" class="ico-xs"></i>
@@ -6172,18 +6284,124 @@ function renderShowCard(show) {
       </div>
     `;
   }
+
+  let editionHtml = "";
   if (show.edition) {
-    infoHtml += `<div style="margin: 2px 0;"><span class="badge-edition"><i data-lucide="clapperboard" class="ico-xxs"></i> ${escapeHtml(show.edition)}</span></div>`;
+    editionHtml = `<div style="margin: 2px 0;"><span class="badge-edition"><i data-lucide="clapperboard" class="ico-xxs"></i> ${escapeHtml(show.edition)}</span></div>`;
   }
+
+  let collectionHtml = "";
   if (show.collection_id && show.collection_title) {
-    infoHtml += `<div style="margin: 2px 0;"><span class="badge-collection" onclick="event.stopPropagation(); openCollectionModal(${show.collection_id})" title="${CURRENT_LANG === 'en' ? 'Collection' : 'Коллекция'}: ${escapeHtml(show.collection_title)}"><i data-lucide="boxes" class="ico-xxs"></i> ${escapeHtml(show.collection_title)}</span></div>`;
+    collectionHtml = `<div style="margin: 2px 0;"><span class="badge-collection" onclick="event.stopPropagation(); openCollectionModal(${show.collection_id})" title="${CURRENT_LANG === 'en' ? 'Collection' : 'Коллекция'}: ${escapeHtml(show.collection_title)}"><i data-lucide="boxes" class="ico-xxs"></i> ${escapeHtml(show.collection_title)}</span></div>`;
   }
+
+  let qualityHtml = "";
   if (POSTER_OPTIONS.quality) {
-    infoHtml += `<div class="show-quality-badge-wrap"><span class="show-quality-badge">${escapeHtml(qualityProfileName(show.quality_profile_id))}</span></div>`;
+    qualityHtml = `<div class="show-quality-badge-wrap"><span class="show-quality-badge">${escapeHtml(qualityProfileName(show.quality_profile_id))}</span></div>`;
   }
+
+  let tagsHtml = "";
   if (POSTER_OPTIONS.tags && aliases) {
-    infoHtml += `<div class="alias-cluster">${aliases}</div>`;
+    tagsHtml = `<div class="alias-cluster">${aliases}</div>`;
   }
+
+  // 1. Neo-Glass Style (Flagship)
+  if (CURRENT_CARD_STYLE === "neoglass") {
+    const showText = POSTER_OPTIONS.progressText !== false;
+    const pillText = showText ? `<span>${escapeHtml(statusInfo.progressText)}</span>` : "";
+    const statusPillHtml = `
+      <div class="poster-status-pill ${statusInfo.statusClass}" title="${escapeHtml(statusInfo.label)}">
+        <span class="status-dot ${statusInfo.statusClass}"></span>
+        ${pillText}
+      </div>
+    `;
+    const microBarHtml = `
+      <div class="poster-micro-bar">
+        <div class="poster-micro-bar-fill ${statusInfo.statusClass}" style="width: ${statusInfo.pct}%;"></div>
+      </div>
+    `;
+
+    let infoHtml = "";
+    if (POSTER_OPTIONS.title) {
+      infoHtml += `<div class="show-title">${escapeHtml(formatShowTitleWithYear(show.title, show.year))}</div>`;
+    }
+    if (monitoredBadgeHtml) infoHtml += monitoredBadgeHtml;
+    if (editionHtml) infoHtml += editionHtml;
+    if (collectionHtml) infoHtml += collectionHtml;
+    if (qualityHtml) infoHtml += qualityHtml;
+    if (tagsHtml) infoHtml += tagsHtml;
+
+    return `
+      <div class="show-card ${selectedClass}" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}">
+        <div class="show-poster" ${posterStyle}>
+          ${checkboxHtml}
+          ${statusPillHtml}
+          ${show.poster_url ? "" : initial}
+          ${importOverlayHtml}
+          ${microBarHtml}
+        </div>
+        ${infoHtml ? `<div class="show-info">${infoHtml}</div>` : ""}
+      </div>`;
+  }
+
+  // 2. Cinematic Luxe Style
+  if (CURRENT_CARD_STYLE === "cinematic") {
+    const categoryLabel = show.content_type === "movie" 
+      ? (CURRENT_LANG === "en" ? "Movie" : "Фильм") 
+      : (show.content_type === "anime" ? (CURRENT_LANG === "en" ? "Anime" : "Аниме") : (CURRENT_LANG === "en" ? "Series" : "Сериал"));
+    const metaItems = [];
+    if (categoryLabel) metaItems.push(categoryLabel);
+    if (show.year) metaItems.push(show.year);
+    if (POSTER_OPTIONS.quality) {
+      metaItems.push(qualityProfileName(show.quality_profile_id));
+    }
+    const metaLine = metaItems.join(" • ");
+
+    const cinematicOverlayHtml = `
+      <div class="poster-cinematic-overlay">
+        ${POSTER_OPTIONS.title ? `<div class="poster-cinematic-title" title="${escapeHtml(show.title || "")}">${escapeHtml(show.title || "")}</div>` : ""}
+        <div class="poster-cinematic-status">
+          <span class="status-dot ${statusInfo.statusClass}"></span>
+          <span class="poster-cinematic-status-text">${escapeHtml(statusInfo.progressText)} • ${escapeHtml(statusInfo.label)}</span>
+        </div>
+        <div class="poster-micro-bar">
+          <div class="poster-micro-bar-fill ${statusInfo.statusClass}" style="width: ${statusInfo.pct}%;"></div>
+        </div>
+      </div>
+    `;
+
+    let cinematicInfoHtml = "";
+    if (metaLine) {
+      cinematicInfoHtml += `<div class="cinematic-meta-line">${escapeHtml(metaLine)}</div>`;
+    }
+    if (monitoredBadgeHtml) cinematicInfoHtml += monitoredBadgeHtml;
+    if (editionHtml) cinematicInfoHtml += editionHtml;
+    if (collectionHtml) cinematicInfoHtml += collectionHtml;
+    if (tagsHtml) cinematicInfoHtml += tagsHtml;
+
+    return `
+      <div class="show-card ${selectedClass}" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}">
+        <div class="show-poster" ${posterStyle}>
+          ${checkboxHtml}
+          ${show.poster_url ? "" : initial}
+          ${cinematicOverlayHtml}
+          ${importOverlayHtml}
+        </div>
+        ${cinematicInfoHtml ? `<div class="show-info cinematic-info">${cinematicInfoHtml}</div>` : ""}
+      </div>`;
+  }
+
+  // 3. Classic Style (Standard/Legacy)
+  const progressHtml = computeShowProgressHtml(show, activeTask);
+  let infoHtml = "";
+  if (POSTER_OPTIONS.title) {
+    infoHtml += `<div class="show-title">${escapeHtml(formatShowTitleWithYear(show.title, show.year))}</div>`;
+  }
+  if (monitoredBadgeHtml) infoHtml += monitoredBadgeHtml;
+  if (editionHtml) infoHtml += editionHtml;
+  if (collectionHtml) infoHtml += collectionHtml;
+  if (qualityHtml) infoHtml += qualityHtml;
+  if (tagsHtml) infoHtml += tagsHtml;
 
   return `
     <div class="show-card ${selectedClass}" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}">
