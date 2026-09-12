@@ -5558,13 +5558,37 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: none; border: none; color: var(--text); text-align: left; padding: 8px 10px;
   border-radius: 6px; cursor: pointer; font-size: 13px; font-family: var(--font-body);
 }
-.view-switcher-menu button:hover { background: var(--panel-alt); }
-#category-switcher,
-#monitor-switcher {
+#category-switcher {
   display: none;
 }
 .poster-options-btn-label {
   display: none;
+}
+
+/* Library Toolbar Zoned Layout */
+.library-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.library-toolbar .toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 280px;
+  flex-wrap: wrap;
+}
+
+.library-toolbar .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 /* ---------- LIBRARY: OVERVIEW VIEW ---------- */

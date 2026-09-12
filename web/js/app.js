@@ -143,6 +143,7 @@ const TRANSLATIONS = {
     // Navigation & Tabs
     "nav.dashboard": "Дашборд",
     "nav.library": "Библиотека",
+    "nav.collections": "Коллекции",
     "nav.blocklist": "Черный список",
     "nav.activity": "Активность",
     "nav.calendar": "Календарь",
@@ -160,8 +161,15 @@ const TRANSLATIONS = {
     "nav.add_video": "+ Добавить видео",
     "tab.dashboard": "Дашборд",
     "tab.library": "Библиотека",
+    "tab.collections": "Коллекции",
     "tab.blocklist": "Черный список",
+    "subtitle.collections": "Франшизы, саги и киноциклы ваших фильмов",
     "subtitle.blocklist": "Заблокированные раздачи, исключенные из автопоиска и загрузки",
+    "collections.refresh_all": "Синхронизировать",
+    "collections.search_placeholder": "Найти коллекцию…",
+    "collections.empty_title": "Коллекции не найдены",
+    "collections.empty_desc": "Коллекции и саги фильмов появятся здесь автоматически при добавлении фильмов франшизы.",
+    "collections.synced_toast": "Метаданные коллекций синхронизированы",
     // Modern Settings Keys
     "settings.interface_subtitle": "Язык, цветовая тема оформления, режим прокрутки и часовой пояс",
     // Modern Modals Keys
@@ -1484,6 +1492,7 @@ const TRANSLATIONS = {
     // Navigation & Tabs
     "nav.dashboard": "Dashboard",
     "nav.library": "Library",
+    "nav.collections": "Collections",
     "nav.blocklist": "Blocklist",
     "nav.activity": "Activity",
     "nav.calendar": "Calendar",
@@ -1501,8 +1510,15 @@ const TRANSLATIONS = {
     "nav.add_video": "+ Add Video",
     "tab.dashboard": "Dashboard",
     "tab.library": "Library",
+    "tab.collections": "Collections",
     "tab.blocklist": "Blocklist",
+    "subtitle.collections": "Franchises, sagas and movie universes",
     "subtitle.blocklist": "Blocked releases excluded from auto-search and downloads",
+    "collections.refresh_all": "Sync Collections",
+    "collections.search_placeholder": "Search collections…",
+    "collections.empty_title": "No collections found",
+    "collections.empty_desc": "Movie collections and sagas will appear here automatically when adding movies from a franchise.",
+    "collections.synced_toast": "Collections metadata synced",
     // Modern Settings Keys
     "settings.interface_subtitle": "Language, color theme, scrollbar mode and timezone",
     // Modern Modals Keys
@@ -4513,6 +4529,10 @@ function switchTab(tabId) {
     LIBRARY_POLL_INTERVAL = null;
   }
 
+  if (tabId === "collections") {
+    loadCollections(false).then(() => renderCollectionsView());
+  }
+
   if (tabId === "calendar") loadCalendar();
   if (tabId === "history") loadHistory();
   if (tabId === "blocklist") loadBlocklist();
@@ -5247,7 +5267,7 @@ async function loadHealthCheck() {
 
 let LIBRARY_VIEW_MODE = localStorage.getItem("aliasarr_library_view") || "posters";
 const VIEW_MODE_LABELS = { posters: "library.view_posters", table: "library.view_table", overview: "library.view_overview" };
-const CATEGORY_FILTER_LABELS = { all: "library.filter_all", movie: "library.filter_movies", collections: "library.filter_collections", series: "library.filter_series", anime: "library.filter_anime" };
+const CATEGORY_FILTER_LABELS = { all: "library.filter_all", movie: "library.filter_movies", series: "library.filter_series", anime: "library.filter_anime" };
 const MONITOR_FILTER_LABELS = { all: "library.filter_all", monitored: "library.filter_monitored", unmonitored: "library.filter_unmonitored" };
 
 let LIBRARY_CATEGORY_FILTER = localStorage.getItem("aliasarr_library_cat") || "all";
@@ -5357,6 +5377,9 @@ function applyPosterOptions() {
   };
   localStorage.setItem("aliasarr_poster_options", JSON.stringify(POSTER_OPTIONS));
   renderLibrary();
+  if (document.getElementById("tab-collections")?.classList.contains("active")) {
+    renderCollectionsView();
+  }
 }
 
 let LIBRARY_POLL_INTERVAL = null;
@@ -5590,7 +5613,6 @@ function renderLibrary() {
   updateLibraryFilterButtons();
 
   const grid = document.getElementById("shows-grid");
-  const collectionsGrid = document.getElementById("collections-grid");
   const tableWrap = document.getElementById("shows-table-wrap");
   const overviewWrap = document.getElementById("shows-overview-wrap");
   const empty = document.getElementById("shows-empty");
@@ -5601,19 +5623,6 @@ function renderLibrary() {
   if (clearBtn) {
     clearBtn.style.display = (searchInput && searchInput.value.length > 0) ? "inline-flex" : "none";
   }
-
-  if (LIBRARY_CATEGORY_FILTER === "collections") {
-    if (grid) grid.style.display = "none";
-    if (tableWrap) tableWrap.style.display = "none";
-    if (overviewWrap) overviewWrap.style.display = "none";
-    if (collectionsGrid) collectionsGrid.style.display = "grid";
-    if (empty) empty.style.display = "none";
-    const dashContainer = document.getElementById("library-dashboard-container");
-    if (dashContainer) dashContainer.innerHTML = "";
-    renderCollectionsView(query, true);
-    return;
-  }
-  if (collectionsGrid) collectionsGrid.style.display = "none";
 
   if (grid) grid.style.display = LIBRARY_VIEW_MODE === "posters" ? "grid" : "none";
   if (tableWrap) tableWrap.style.display = LIBRARY_VIEW_MODE === "table" ? "block" : "none";
@@ -5737,46 +5746,80 @@ async function loadCollections(force = false) {
   }
 }
 
+function onCollectionsSearchInput() {
+  const searchInput = document.getElementById("collections-search");
+  const clearBtn = document.getElementById("collections-search-clear");
+  if (clearBtn) {
+    clearBtn.style.display = (searchInput && searchInput.value.length > 0) ? "inline-flex" : "none";
+  }
+  renderCollectionsView();
+}
+
+function clearCollectionsSearch() {
+  const searchInput = document.getElementById("collections-search");
+  if (searchInput) {
+    searchInput.value = "";
+    searchInput.focus();
+  }
+  const clearBtn = document.getElementById("collections-search-clear");
+  if (clearBtn) {
+    clearBtn.style.display = "none";
+  }
+  renderCollectionsView();
+}
+
+async function refreshAllCollections() {
+  try {
+    showToast(t("collections.synced_toast") || "Обновление коллекций...", "info");
+    await api("/api/v1/collections/refresh-all", { method: "POST" });
+    await renderCollectionsView("", true);
+    showToast(t("collections.synced_toast") || "Коллекции успешно синхронизированы", "success");
+  } catch (e) {
+    console.error("Failed to refresh collections:", e);
+    showToast(e.message || "Ошибка синхронизации коллекций", "error");
+  }
+}
+
 async function renderCollectionsView(query = "", force = false) {
   const collectionsGrid = document.getElementById("collections-grid");
   if (!collectionsGrid) return;
 
+  const searchInput = document.getElementById("collections-search");
+  const q = (query || (searchInput ? searchInput.value : "")).toLowerCase().trim();
+  const clearBtn = document.getElementById("collections-search-clear");
+  if (clearBtn) {
+    clearBtn.style.display = (searchInput && searchInput.value.length > 0) ? "inline-flex" : "none";
+  }
+
   const collections = await loadCollections(force);
   let filtered = collections || [];
 
-  if (LIBRARY_MONITOR_FILTER === "monitored") {
-    filtered = filtered.filter(c => c.monitored === true);
-  } else if (LIBRARY_MONITOR_FILTER === "unmonitored") {
-    filtered = filtered.filter(c => !c.monitored);
-  }
-
-  if (query) {
-    const qLower = query.toLowerCase();
+  if (q) {
     filtered = filtered.filter(c =>
-      (c.title && c.title.toLowerCase().includes(qLower)) ||
-      (c.overview && c.overview.toLowerCase().includes(qLower))
+      (c.title && c.title.toLowerCase().includes(q)) ||
+      (c.overview && c.overview.toLowerCase().includes(q))
     );
   }
 
-  const alphaIndex = document.getElementById("alphabet-index");
+  const alphaIndex = document.getElementById("collections-alphabet-index");
 
   if (!filtered.length) {
     if (alphaIndex) alphaIndex.style.display = "none";
-    collectionsGrid.className = "collections-grid size-" + (POSTER_OPTIONS.size || "medium");
+    collectionsGrid.className = "shows-grid collections-grid size-" + (POSTER_OPTIONS.size || "medium");
     collectionsGrid.innerHTML = `
       <div class="empty-state" style="grid-column: 1 / -1; padding: 48px 20px;">
         <div style="font-size: 36px; margin-bottom: 12px; opacity: 0.5;"><i data-lucide="boxes" style="width: 48px; height: 48px;"></i></div>
-        <h3>${t("collection.empty_title")}</h3>
-        <p style="max-width: 500px; margin: 8px auto; color: var(--text-muted); font-size: 13.5px; line-height: 1.5;">${t("collection.empty_desc")}</p>
+        <h3>${t("collections.empty_title")}</h3>
+        <p style="max-width: 500px; margin: 8px auto; color: var(--text-muted); font-size: 13.5px; line-height: 1.5;">${t("collections.empty_desc")}</p>
       </div>
     `;
     if (window.lucide) lucide.createIcons();
     return;
   }
 
-  collectionsGrid.className = "collections-grid size-" + (POSTER_OPTIONS.size || "medium");
+  collectionsGrid.className = "shows-grid collections-grid size-" + (POSTER_OPTIONS.size || "medium");
   collectionsGrid.innerHTML = filtered.map(renderCollectionCard).join("");
-  buildAlphabetIndex(filtered);
+  buildAlphabetIndex(filtered, "collections-alphabet-index");
   if (window.lucide) lucide.createIcons();
 }
 
@@ -6162,8 +6205,8 @@ function getShowAlpha(show) {
   return "#";
 }
 
-function buildAlphabetIndex(shows) {
-  const container = document.getElementById("alphabet-index");
+function buildAlphabetIndex(shows, containerId = "alphabet-index") {
+  const container = document.getElementById(containerId);
   if (!container) return;
   if (!shows || shows.length === 0) {
     container.style.display = "none";
@@ -6200,18 +6243,20 @@ function buildAlphabetIndex(shows) {
 
 function scrollToLetter(char) {
   let target = null;
-  if (LIBRARY_CATEGORY_FILTER === "collections") {
-    target = document.querySelector(`.collection-card[data-alpha="${char}"]`);
+  const isCollectionsTab = document.getElementById("tab-collections")?.classList.contains("active");
+  if (isCollectionsTab) {
+    target = document.querySelector(`#tab-collections .collection-card[data-alpha="${char}"]`);
   } else if (LIBRARY_VIEW_MODE === "posters") {
-    target = document.querySelector(`.show-card[data-alpha="${char}"]`);
+    target = document.querySelector(`#tab-library .show-card[data-alpha="${char}"]`);
   } else if (LIBRARY_VIEW_MODE === "table") {
     target = document.querySelector(`#shows-table-body tr[data-alpha="${char}"]`);
   } else {
-    target = document.querySelector(`.overview-row[data-alpha="${char}"]`);
+    target = document.querySelector(`#tab-library .overview-row[data-alpha="${char}"]`);
   }
 
   if (target) {
-    const stickyHeader = document.querySelector("#tab-library .panel-sticky-header");
+    const activePanel = document.querySelector(".tab-panel.active") || document.querySelector("#tab-library");
+    const stickyHeader = activePanel ? activePanel.querySelector(".panel-sticky-header") : null;
     const headerOffset = (stickyHeader ? stickyHeader.offsetHeight : 0) + 16;
     const elementPosition = target.getBoundingClientRect().top;
     const offsetPosition = elementPosition + window.pageYOffset - headerOffset;

@@ -133,6 +133,17 @@ def list_collections(
     return out
 
 
+@router.post("/refresh-all", status_code=200)
+async def refresh_all_collections_route(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    """Синхронизировать метаданные всех коллекций и франшиз."""
+    from app.services.metadata import refresh_all_collections_metadata
+    result = await refresh_all_collections_metadata(db, force=True)
+    return {"success": True, "result": result}
+
+
 @router.get("/{collection_id}", response_model=MovieCollectionDetailOut)
 async def get_collection_detail(
     collection_id: int,
