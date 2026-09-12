@@ -21,6 +21,8 @@ VOLUME ["/config", "/data", "/downloads"]
 
 ENV DATABASE_URL=sqlite:////config/aliasarr.db
 ENV PYTHONUNBUFFERED=1
+ARG COMMIT_HASH=""
+ENV COMMIT_HASH=${COMMIT_HASH}
 
 EXPOSE 8989
 

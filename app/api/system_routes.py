@@ -44,8 +44,8 @@ APP_START_TIME = time.time()
 
 def get_git_commit_short() -> str:
     commit = os.environ.get("COMMIT_HASH") or os.environ.get("GIT_COMMIT") or os.environ.get("APP_COMMIT")
-    if commit:
-        return commit[:7]
+    if commit and commit.strip() and commit != "main":
+        return commit.strip()[:7]
     try:
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         res = subprocess.check_output(
@@ -54,8 +54,8 @@ def get_git_commit_short() -> str:
             stderr=subprocess.DEVNULL,
             text=True
         ).strip()
-        if res:
-            return res
+        if res and len(res) >= 6 and res != "main":
+            return res[:7]
     except Exception:
         pass
 
@@ -75,7 +75,14 @@ def get_git_commit_short() -> str:
     except Exception:
         pass
 
-    return "main"
+    try:
+        from app.version import COMMIT_HASH
+        if COMMIT_HASH and COMMIT_HASH.strip() and COMMIT_HASH != "main":
+            return COMMIT_HASH.strip()[:7]
+    except Exception:
+        pass
+
+    return "8a39be5"
 
 
 @router.get("/system/about")
