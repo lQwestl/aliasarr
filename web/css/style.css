@@ -5570,7 +5570,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
   width: 100%;
 }
@@ -5580,8 +5580,22 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   align-items: center;
   gap: 10px;
   flex: 1;
-  min-width: 280px;
-  flex-wrap: wrap;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.library-toolbar .library-search-wrap {
+  flex: 1 1 220px;
+  min-width: 140px;
+  max-width: 320px;
+}
+
+.library-toolbar .btn-group {
+  flex-shrink: 0;
+}
+
+.library-toolbar #monitor-switcher {
+  flex-shrink: 0;
 }
 
 .library-toolbar .toolbar-right {
