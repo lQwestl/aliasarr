@@ -4351,14 +4351,20 @@
         </div>
       </div>
 
-      <!-- Стиль 3: Classic -->
+      <!-- Стиль 3: Classic (Оригинальный) -->
       <div class="card-style-option" id="coll-card-style-opt-classic" onclick="setCollectionsCardStyle('classic')">
         <div class="card-style-preview card-style-preview-classic">
-          <div class="mini-card-poster"></div>
-          <div class="mini-progress-bar-classic green">2 / 3 (67%)</div>
+          <div class="mini-card-poster">
+            <div class="mini-gradient-bottom" style="padding: 14px 6px 4px 6px; display: flex; flex-direction: column; gap: 2px;">
+              <div class="mini-sub-overlay" style="display: flex; justify-content: space-between; width: 100%; font-size: 8.5px; font-weight: 700; color: #fff; font-family: var(--font-mono);">
+                <span>2 / 3</span><span>67%</span>
+              </div>
+              <div class="mini-micro-bar green" style="height: 3px; border-radius: 999px;"></div>
+            </div>
+          </div>
           <div class="mini-card-info">
             <div class="mini-title">Avatar Collection</div>
-            <div class="mini-badge">Отслеживается</div>
+            <div class="mini-badge"><i data-lucide="bookmark-check" style="width:10px;height:10px;display:inline-block;margin-right:2px;color:#10b981;"></i> Отслеживается</div>
           </div>
         </div>
         <div class="card-style-meta">
@@ -4366,7 +4372,7 @@
             <span class="card-style-radio"></span>
             <span data-i18n="card_style.classic_title">Классический (Стандартный)</span>
           </div>
-          <p class="card-style-desc" data-i18n="card_style.classic_desc">Традиционный вид со сплошной цветной полосой прогресса серий под постером.</p>
+          <p class="card-style-desc" data-i18n="collections_card_style.classic_desc">Оригинальный вид коллекций со встроенным неоновым баром прогресса фильмов на постере, счетчиком частей и процентом.</p>
         </div>
       </div>
     </div>

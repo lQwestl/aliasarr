@@ -499,6 +499,7 @@ const TRANSLATIONS = {
     "collections_poster_opt.btn_title": "Опции карточек саг",
     "collections_card_style.modal_title": "Стиль карточек коллекций",
     "collections_card_style.modal_subtitle": "Выберите визуальный режим оформления франшиз и саг",
+    "collections_card_style.classic_desc": "Оригинальный вид коллекций со встроенным неоновым баром прогресса фильмов на постере, счетчиком частей и процентом.",
 
     // Activity & History
     "activity.search_wanted": "Искать wanted-серии сейчас",
@@ -1865,6 +1866,7 @@ const TRANSLATIONS = {
     "collections_poster_opt.btn_title": "Franchise Card Options",
     "collections_card_style.modal_title": "Collection Card Style",
     "collections_card_style.modal_subtitle": "Select visual presentation style for franchises and sagas",
+    "collections_card_style.classic_desc": "Original collections view with integrated neon progress bar on the poster, parts counter, and percentage.",
 
     // Activity & History
     "activity.search_wanted": "Search wanted episodes now",
@@ -5413,7 +5415,7 @@ function applyPosterOptions() {
   renderLibrary();
 }
 
-let CURRENT_COLLECTIONS_CARD_STYLE = localStorage.getItem("aliasarr_collections_card_style") || "neoglass";
+let CURRENT_COLLECTIONS_CARD_STYLE = localStorage.getItem("aliasarr_collections_card_style") || "classic";
 
 function openCollectionsCardStyleModal() {
   const options = document.querySelectorAll("#collections-card-style-modal .card-style-option");
@@ -6030,29 +6032,37 @@ function renderCollectionCard(coll) {
       </div>`;
   }
 
-  // 3. Classic Style
+  // 3. Classic Style (Original Collection Design)
   const showText = COLLECTIONS_POSTER_OPTIONS.progressText !== false;
   const progressHtml = `
-    <div class="poster-progress ${statusClass}">
-      <div class="poster-progress-fill" style="width: ${pct}%;"></div>
-      ${showText ? `<span class="poster-progress-text">${downloaded} / ${total} (${pct}%)</span>` : ""}
+    <div class="collection-poster-gradient"></div>
+    <div class="collection-neon-progress-wrap">
+      ${showText ? `
+        <div class="collection-neon-meta">
+          <span class="collection-neon-meta-left"><i data-lucide="boxes" class="ico-xxs"></i> ${downloaded}/${total}</span>
+          <span>${pct}%</span>
+        </div>
+      ` : ""}
+      <div class="collection-neon-track">
+        <div class="collection-neon-fill ${pct === 100 ? 'complete' : (pct === 0 ? 'empty' : '')}" style="width: ${pct}%;"></div>
+      </div>
     </div>
   `;
 
   let classicInfoHtml = "";
   if (COLLECTIONS_POSTER_OPTIONS.title !== false) {
-    classicInfoHtml += `<h3 class="collection-card-title show-title" title="${escapeHtml(coll.title)}">${escapeHtml(coll.title)}</h3>`;
+    classicInfoHtml += `<h3 class="collection-card-title" title="${escapeHtml(coll.title)}">${escapeHtml(coll.title)}</h3>`;
   }
   if (monitoredBadgeHtml) classicInfoHtml += monitoredBadgeHtml;
   if (partsBadgeHtml) classicInfoHtml += partsBadgeHtml;
 
   return `
-    <div class="collection-card show-card" id="collection-card-${coll.id}" data-alpha="${alphaChar}" onclick="openCollectionModal(${coll.id})">
-      <div class="collection-poster-wrap show-poster" ${posterStyle}>
+    <div class="collection-card" id="collection-card-${coll.id}" data-alpha="${alphaChar}" onclick="openCollectionModal(${coll.id})">
+      <div class="collection-poster-wrap" ${posterStyle}>
         ${!posterImg ? `<div style="font-size: 36px; color: var(--text-muted); opacity: 0.5;"><i data-lucide="boxes"></i></div>` : ""}
+        ${progressHtml}
       </div>
-      ${progressHtml}
-      ${classicInfoHtml ? `<div class="collection-info-wrap show-info">${classicInfoHtml}</div>` : ""}
+      ${classicInfoHtml ? `<div class="collection-info-wrap">${classicInfoHtml}</div>` : ""}
     </div>`;
 }
 
