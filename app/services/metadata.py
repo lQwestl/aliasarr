@@ -1180,12 +1180,16 @@ class SkyHookClient(BaseMetadataClient):
         raw_title = data.get("title") or ""
         aliases: list[str] = []
 
-        # Алиасы из SkyHook (Sonarr отдаёт здесь ромаджи, аббревиатуры и английские названия)
-        for al in data.get("aliases", []):
-            if isinstance(al, str) and al.strip() and al.strip() != raw_title and al.strip() not in aliases:
-                aliases.append(al.strip())
-            elif isinstance(al, dict) and al.get("title") and al["title"] not in aliases:
-                aliases.append(al["title"])
+        # Алиасы и альтернативные названия из SkyHook (Sonarr отдаёт здесь ромаджи, синонимы и английские названия)
+        for item in (data.get("aliases") or []) + (data.get("alternativeTitles") or []):
+            if isinstance(item, str) and item.strip():
+                t = item.strip()
+                if t != raw_title and t not in aliases:
+                    aliases.append(t)
+            elif isinstance(item, dict):
+                t = (item.get("title") or item.get("cleanTitle") or "").strip()
+                if t and t != raw_title and t not in aliases:
+                    aliases.append(t)
 
         overview = data.get("overview")
 
@@ -1244,6 +1248,21 @@ class SkyHookClient(BaseMetadataClient):
         tvmaze_id_val = int(data.get("tvMazeId")) if str(data.get("tvMazeId") or "").isdigit() else None
         imdb_id_val = data.get("imdbId")
         tmdb_id_val = int(data.get("tmdbId")) if str(data.get("tmdbId") or "").isdigit() else None
+
+        # Обогащение переводами и алиасами на всех настроенных языках (RU, JA, ZH, KO и др.) через TMDb
+        if tmdb_id_val:
+            try:
+                tmdb = TMDBClient(api_key=RadarrClient.RADARR_TMDB_TOKEN, alias_languages=self.alias_languages)
+                tmdb_details = await tmdb._get_tv_details(str(tmdb_id_val))
+                if tmdb_details:
+                    for a in tmdb_details.aliases:
+                        if a and a != raw_title and a not in aliases:
+                            aliases.append(a)
+                    # Если в SkyHook английское описание, а в TMDb есть русское — обогащаем описание
+                    if tmdb_details.overview and ("ru" in (self.alias_languages or ["ru"])) and any('\u0400' <= c <= '\u04ff' for c in tmdb_details.overview):
+                        overview = tmdb_details.overview
+            except Exception as e:
+                logger.debug("TMDb TV enrichment failed for tvdb %s (tmdb %s): %s", tvdb_id, tmdb_id_val, e)
 
         return MetadataShowDetails(
             external_id=f"tvdb:{tvdb_id}",

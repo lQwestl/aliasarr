@@ -836,6 +836,65 @@ class TestMetadataLanguageFiltering(unittest.TestCase):
         except ImportError:
             pass
 
+    def test_skyhook_series_details_enrichment(self):
+        skyhook = SkyHookClient(alias_languages=["ru", "ja", "zh", "ko"])
+        fake_skyhook_payload = {
+            "tvdbId": 79824,
+            "title": "Naruto Shippuden",
+            "overview": "English overview of Naruto...",
+            "originalCountry": "Japan",
+            "genres": ["Anime", "Action"],
+            "tmdbId": 31910,
+            "imdbId": "tt0988824",
+            "aliases": None,
+            "alternativeTitles": [
+                {"title": "Naruto: Shippûden"},
+                {"title": "Naruto: Shippuden"},
+            ],
+            "episodes": [
+                {"seasonNumber": 1, "episodeNumber": 1, "title": "Homecoming", "airDate": "2007-02-15"}
+            ],
+            "images": [{"coverType": "poster", "url": "https://artworks.thetvdb.com/banners/posters/79824-1.jpg"}],
+        }
+
+        fake_tmdb_details = MetadataShowDetails(
+            external_id="tv:31910",
+            title="Naruto Shippuden",
+            aliases=["Наруто: Ураганные хроники", "ナルト 疾風伝", "나루토 질풍전", "火影忍者：疾风传"],
+            overview="Русское описание Наруто...",
+        )
+
+        async def run_test():
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = fake_skyhook_payload
+
+            mock_client_instance = AsyncMock()
+            mock_client_instance.get.return_value = mock_resp
+            mock_client_instance.__aenter__.return_value = mock_client_instance
+            mock_client_instance.__aexit__.return_value = None
+
+            mock_httpx = MagicMock()
+            mock_httpx.AsyncClient.return_value = mock_client_instance
+
+            with patch("app.services.metadata.httpx", mock_httpx), \
+                 patch("app.services.metadata.TMDBClient._get_tv_details", new_callable=AsyncMock, return_value=fake_tmdb_details):
+                details = await skyhook.get_details("tvdb:79824")
+
+            self.assertEqual(details.title, "Naruto Shippuden")
+            # Alternative titles from SkyHook
+            self.assertIn("Naruto: Shippûden", details.aliases)
+            # Enriched localized aliases from TMDb
+            self.assertIn("Наруто: Ураганные хроники", details.aliases)
+            self.assertIn("ナルト 疾風伝", details.aliases)
+            self.assertIn("나루토 질풍전", details.aliases)
+            self.assertIn("火影忍者：疾风传", details.aliases)
+            # Enriched Russian overview
+            self.assertEqual(details.overview, "Русское описание Наруто...")
+            self.assertEqual(details.content_type, "anime")
+
+        asyncio.run(run_test())
+
 
 if __name__ == "__main__":
     unittest.main()
