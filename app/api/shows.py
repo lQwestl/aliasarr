@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response,
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import and_, func, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import re
@@ -999,6 +1000,38 @@ def add_alias(
     show = db.get(Show, show_id)
     if not show:
         raise HTTPException(404, "Show not found")
+    
+    clean_text = (payload.text or "").strip()
+    if not clean_text:
+        raise HTTPException(400, "Текст алиаса не может быть пустым")
+
+    # Проверяем, существует ли уже такой алиас у тайтла
+    existing_alias = (
+        db.query(Alias)
+        .filter(Alias.show_id == show_id, func.lower(Alias.text) == clean_text.lower())
+        .first()
+    )
+    if existing_alias:
+        if payload.language:
+            existing_alias.language = payload.language
+        if payload.source:
+            existing_alias.source = payload.source
+        if payload.priority is not None:
+            existing_alias.priority = payload.priority
+        if payload.season_number is not None:
+            existing_alias.season_number = payload.season_number
+        if payload.episode_start is not None:
+            existing_alias.episode_start = payload.episode_start
+        if payload.episode_end is not None:
+            existing_alias.episode_end = payload.episode_end
+        if payload.episode_offset is not None:
+            existing_alias.episode_offset = payload.episode_offset
+        db.commit()
+        db.refresh(existing_alias)
+        from app.services.auto_search import clear_rejected_cache_for_show
+        clear_rejected_cache_for_show(show_id, db)
+        return existing_alias
+
     # Приоритет по умолчанию — в конец очереди поиска
     priority = payload.priority
     if priority is None:
@@ -1006,7 +1039,7 @@ def add_alias(
         priority = (max_priority or 0) + 1
     alias = Alias(
         show_id=show_id,
-        text=payload.text.strip(),
+        text=clean_text,
         language=payload.language,
         source=payload.source,
         priority=priority,
@@ -1015,9 +1048,21 @@ def add_alias(
         episode_end=payload.episode_end,
         episode_offset=payload.episode_offset,
     )
-    db.add(alias)
-    db.commit()
-    db.refresh(alias)
+    try:
+        db.add(alias)
+        db.commit()
+        db.refresh(alias)
+    except IntegrityError:
+        db.rollback()
+        existing = (
+            db.query(Alias)
+            .filter(Alias.show_id == show_id, func.lower(Alias.text) == clean_text.lower())
+            .first()
+        )
+        if existing:
+            return existing
+        raise HTTPException(400, "Алиас с таким названием уже существует для этого тайтла")
+
     from app.services.auto_search import clear_rejected_cache_for_show
     clear_rejected_cache_for_show(show_id, db)
     return alias
@@ -1040,6 +1085,17 @@ def update_alias(
         text = (dumped["text"] or "").strip()
         if not text:
             raise HTTPException(400, "Текст алиаса не может быть пустым")
+        duplicate = (
+            db.query(Alias)
+            .filter(
+                Alias.show_id == show_id,
+                func.lower(Alias.text) == text.lower(),
+                Alias.id != alias_id,
+            )
+            .first()
+        )
+        if duplicate:
+            raise HTTPException(400, "Алиас с таким текстом уже существует для этого тайтла")
         alias.text = text
     if "language" in dumped:
         alias.language = dumped["language"]
@@ -1048,9 +1104,14 @@ def update_alias(
     for field in ("season_number", "episode_start", "episode_end", "episode_offset"):
         if field in dumped:
             setattr(alias, field, dumped[field])
-    db.add(alias)
-    db.commit()
-    db.refresh(alias)
+    try:
+        db.add(alias)
+        db.commit()
+        db.refresh(alias)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(400, "Алиас с таким текстом уже существует для этого тайтла")
+
     from app.services.auto_search import clear_rejected_cache_for_show
     clear_rejected_cache_for_show(show_id, db)
     return alias
