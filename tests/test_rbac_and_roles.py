@@ -89,7 +89,8 @@ class TestRBACAndRolePresets(unittest.TestCase):
             from app.api.users_routes import get_role_presets
         except ImportError:
             self.skipTest("FastAPI/Dependencies not installed on local host")
-        presets = get_role_presets()
+        admin_user = SimpleNamespace(id=1, username="admin", is_owner=True, is_admin=True)
+        presets = get_role_presets(current_user=admin_user)
         self.assertIsInstance(presets, list)
         keys = [p["key"] for p in presets]
         self.assertEqual(keys, ["admin", "moderator", "user", "viewer", "custom"])

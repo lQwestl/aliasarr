@@ -96,7 +96,7 @@ def list_users(
 @router.post("", status_code=201)
 def create_user(
     payload: UserCreate,
-    request: Optional[Request] = None,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_users")),
 ):
@@ -165,7 +165,7 @@ def get_user(
 def update_user(
     user_id: int,
     payload: UserUpdate,
-    request: Optional[Request] = None,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_permission("manage_users")),
 ):
