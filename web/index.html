@@ -2365,39 +2365,128 @@
             </div>
 
             <div class="settings-field-group" style="grid-column: 1 / -1;">
-              <label class="switch-toggle">
-                <input id="user-form-is-admin" type="checkbox" onchange="toggleUserFormAdminMode()">
-                <span class="switch-slider"></span>
-                <span class="switch-title" data-i18n="users.is_admin_label">Права Администратора (полный неограниченный доступ)</span>
-              </label>
+              <div class="settings-field-label" style="margin-bottom:10px;" data-i18n="users.role_preset_label">Профиль прав (Роль):</div>
+              <input id="user-form-is-admin" type="checkbox" style="display:none;" onchange="toggleUserFormAdminMode()">
+              <div class="role-presets-grid" id="user-form-role-presets">
+                <label class="role-preset-card" onclick="selectUserRolePreset('admin')">
+                  <input type="radio" name="user_role_select" value="admin">
+                  <div class="role-preset-icon"><i data-lucide="crown"></i></div>
+                  <div class="role-preset-info">
+                    <div class="role-preset-title" data-i18n="role.admin">Администратор</div>
+                    <div class="role-preset-desc" data-i18n="role.admin_desc">Полный доступ</div>
+                  </div>
+                </label>
+                <label class="role-preset-card" onclick="selectUserRolePreset('moderator')">
+                  <input type="radio" name="user_role_select" value="moderator">
+                  <div class="role-preset-icon"><i data-lucide="shield"></i></div>
+                  <div class="role-preset-info">
+                    <div class="role-preset-title" data-i18n="role.moderator">Модератор</div>
+                    <div class="role-preset-desc" data-i18n="role.moderator_desc">Медиатека и поиск</div>
+                  </div>
+                </label>
+                <label class="role-preset-card active" onclick="selectUserRolePreset('user')">
+                  <input type="radio" name="user_role_select" value="user" checked>
+                  <div class="role-preset-icon"><i data-lucide="user"></i></div>
+                  <div class="role-preset-info">
+                    <div class="role-preset-title" data-i18n="role.user">Пользователь</div>
+                    <div class="role-preset-desc" data-i18n="role.user_desc">Поиск и запросы</div>
+                  </div>
+                </label>
+                <label class="role-preset-card" onclick="selectUserRolePreset('viewer')">
+                  <input type="radio" name="user_role_select" value="viewer">
+                  <div class="role-preset-icon"><i data-lucide="eye"></i></div>
+                  <div class="role-preset-info">
+                    <div class="role-preset-title" data-i18n="role.viewer">Наблюдатель</div>
+                    <div class="role-preset-desc" data-i18n="role.viewer_desc">Только просмотр</div>
+                  </div>
+                </label>
+                <label class="role-preset-card" onclick="selectUserRolePreset('custom')">
+                  <input type="radio" name="user_role_select" value="custom">
+                  <div class="role-preset-icon"><i data-lucide="sliders"></i></div>
+                  <div class="role-preset-info">
+                    <div class="role-preset-title" data-i18n="role.custom">Настраиваемая</div>
+                    <div class="role-preset-desc" data-i18n="role.custom_desc">Ручной выбор прав</div>
+                  </div>
+                </label>
+              </div>
             </div>
 
             <div id="user-form-self-perm-hint" class="hint" style="grid-column: 1 / -1; display:none; color:var(--warning, #f59e0b); font-weight:500;"></div>
 
             <div id="user-form-permissions-box" style="grid-column: 1 / -1;">
-              <div class="settings-field-label" style="margin-bottom:10px;" data-i18n="users.custom_permissions">Индивидуальные права доступа:</div>
-              <div class="triggers-grid">
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_dashboard" checked><div class="trigger-icon"><i data-lucide="layout-dashboard"></i></div><span class="trigger-label" data-i18n="perm.view_dashboard">Просмотр дашборда</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_library" checked><div class="trigger-icon"><i data-lucide="film"></i></div><span class="trigger-label" data-i18n="perm.view_library">Просмотр библиотеки</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_library" checked><div class="trigger-icon"><i data-lucide="edit-3"></i></div><span class="trigger-label" data-i18n="perm.manage_library">Управление библиотекой</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manual_search" checked><div class="trigger-icon"><i data-lucide="search"></i></div><span class="trigger-label" data-i18n="perm.manual_search">Ручной поиск и захват</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_calendar" checked><div class="trigger-icon"><i data-lucide="calendar"></i></div><span class="trigger-label" data-i18n="perm.view_calendar">Просмотр календаря</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_calendar" checked><div class="trigger-icon"><i data-lucide="calendar-plus"></i></div><span class="trigger-label" data-i18n="perm.manage_calendar">Управление датами в календаре</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_activity" checked><div class="trigger-icon"><i data-lucide="activity"></i></div><span class="trigger-label" data-i18n="perm.view_activity">Просмотр активности</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_activity" checked><div class="trigger-icon"><i data-lucide="sliders"></i></div><span class="trigger-label" data-i18n="perm.manage_activity">Управление загрузками</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_history" checked><div class="trigger-icon"><i data-lucide="history"></i></div><span class="trigger-label" data-i18n="perm.view_history">Просмотр истории</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_events" checked><div class="trigger-icon"><i data-lucide="bell"></i></div><span class="trigger-label" data-i18n="perm.view_events">Просмотр событий</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_journal" checked><div class="trigger-icon"><i data-lucide="file-text"></i></div><span class="trigger-label" data-i18n="perm.view_journal">Просмотр журнала</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_journal"><div class="trigger-icon"><i data-lucide="trash-2"></i></div><span class="trigger-label" data-i18n="perm.manage_journal">Очистка и скачивание журнала</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_release_logs" checked><div class="trigger-icon"><i data-lucide="list"></i></div><span class="trigger-label" data-i18n="perm.view_release_logs">Просмотр логов релизов</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_release_logs"><div class="trigger-icon"><i data-lucide="file-x"></i></div><span class="trigger-label" data-i18n="perm.manage_release_logs">Управление логами релизов</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_audit" checked><div class="trigger-icon"><i data-lucide="shield-alert"></i></div><span class="trigger-label" data-i18n="perm.view_audit">Просмотр аудита</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_settings"><div class="trigger-icon"><i data-lucide="settings"></i></div><span class="trigger-label" data-i18n="perm.manage_settings">Настройки приложения</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_indexers"><div class="trigger-icon"><i data-lucide="rss"></i></div><span class="trigger-label" data-i18n="perm.manage_indexers">Индексаторы / Трекеры</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_downloaders"><div class="trigger-icon"><i data-lucide="download-cloud"></i></div><span class="trigger-label" data-i18n="perm.manage_downloaders">Download Clients</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_users"><div class="trigger-icon"><i data-lucide="users"></i></div><span class="trigger-label" data-i18n="perm.manage_users">Управление пользователями</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_backups"><div class="trigger-icon"><i data-lucide="database"></i></div><span class="trigger-label" data-i18n="perm.manage_backups">Управление бэкапами</span></label>
-                <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="use_api_key" checked><div class="trigger-icon"><i data-lucide="key"></i></div><span class="trigger-label" data-i18n="perm.use_api_key">Персональный API-ключ</span></label>
+              <div class="settings-field-label" style="margin-bottom:12px;" data-i18n="users.custom_permissions">Индивидуальные права доступа:</div>
+
+              <!-- Категория: Медиатека и форматы -->
+              <div class="perm-category-wrap" style="margin-bottom:16px;">
+                <div class="perm-category-header" style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                  <i data-lucide="film" class="ico-xs" style="color:var(--accent);"></i>
+                  <span data-i18n="perm_cat.library">Медиатека и форматы качества</span>
+                </div>
+                <div class="triggers-grid">
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_library" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="film"></i></div><span class="trigger-label" data-i18n="perm.view_library">Просмотр библиотеки</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_library" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="edit-3"></i></div><span class="trigger-label" data-i18n="perm.manage_library">Управление библиотекой</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_quality_profiles" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="award"></i></div><span class="trigger-label" data-i18n="perm.manage_quality_profiles">Профили качества и Custom Formats</span></label>
+                </div>
+              </div>
+
+              <!-- Категория: Поиск и загрузки -->
+              <div class="perm-category-wrap" style="margin-bottom:16px;">
+                <div class="perm-category-header" style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                  <i data-lucide="search" class="ico-xs" style="color:var(--teal);"></i>
+                  <span data-i18n="perm_cat.search_downloads">Поиск и загрузки</span>
+                </div>
+                <div class="triggers-grid">
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manual_search" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="search"></i></div><span class="trigger-label" data-i18n="perm.manual_search">Ручной поиск и захват</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_activity" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="activity"></i></div><span class="trigger-label" data-i18n="perm.view_activity">Просмотр активности</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_activity" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="sliders"></i></div><span class="trigger-label" data-i18n="perm.manage_activity">Управление загрузками</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_history" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="history"></i></div><span class="trigger-label" data-i18n="perm.view_history">Просмотр истории</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_blocklist" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="shield-ban"></i></div><span class="trigger-label" data-i18n="perm.manage_blocklist">Черный список релизов</span></label>
+                </div>
+              </div>
+
+              <!-- Категория: Календарь и расписание -->
+              <div class="perm-category-wrap" style="margin-bottom:16px;">
+                <div class="perm-category-header" style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                  <i data-lucide="calendar" class="ico-xs" style="color:#60a5fa;"></i>
+                  <span data-i18n="perm_cat.calendar">Календарь и расписание</span>
+                </div>
+                <div class="triggers-grid">
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_calendar" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="calendar"></i></div><span class="trigger-label" data-i18n="perm.view_calendar">Просмотр календаря</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_calendar" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="calendar-plus"></i></div><span class="trigger-label" data-i18n="perm.manage_calendar">Управление датами в календаре</span></label>
+                </div>
+              </div>
+
+              <!-- Категория: Диагностика и логи -->
+              <div class="perm-category-wrap" style="margin-bottom:16px;">
+                <div class="perm-category-header" style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                  <i data-lucide="file-text" class="ico-xs" style="color:#f59e0b;"></i>
+                  <span data-i18n="perm_cat.diagnostics_logs">Диагностика и логи</span>
+                </div>
+                <div class="triggers-grid">
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_dashboard" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="layout-dashboard"></i></div><span class="trigger-label" data-i18n="perm.view_dashboard">Просмотр дашборда</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_events" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="bell"></i></div><span class="trigger-label" data-i18n="perm.view_events">Просмотр событий</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_journal" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="file-text"></i></div><span class="trigger-label" data-i18n="perm.view_journal">Просмотр журнала</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_journal" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="trash-2"></i></div><span class="trigger-label" data-i18n="perm.manage_journal">Очистка и скачивание журнала</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_release_logs" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="list"></i></div><span class="trigger-label" data-i18n="perm.view_release_logs">Просмотр логов релизов</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_release_logs" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="file-x"></i></div><span class="trigger-label" data-i18n="perm.manage_release_logs">Управление логами релизов</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="view_audit" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="shield-alert"></i></div><span class="trigger-label" data-i18n="perm.view_audit">Просмотр аудита</span></label>
+                </div>
+              </div>
+
+              <!-- Категория: Системное администрирование -->
+              <div class="perm-category-wrap">
+                <div class="perm-category-header" style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                  <i data-lucide="settings" class="ico-xs" style="color:#ef4444;"></i>
+                  <span data-i18n="perm_cat.system">Системное администрирование и безопасность</span>
+                </div>
+                <div class="triggers-grid">
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_settings" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="settings"></i></div><span class="trigger-label" data-i18n="perm.manage_settings">Настройки приложения</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_indexers" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="rss"></i></div><span class="trigger-label" data-i18n="perm.manage_indexers">Индексаторы / Трекеры</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_downloaders" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="download-cloud"></i></div><span class="trigger-label" data-i18n="perm.manage_downloaders">Download Clients</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_users" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="users"></i></div><span class="trigger-label" data-i18n="perm.manage_users">Управление пользователями</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="manage_backups" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="database"></i></div><span class="trigger-label" data-i18n="perm.manage_backups">Управление бэкапами</span></label>
+                  <label class="trigger-chip-card"><input type="checkbox" class="user-perm-check" value="use_api_key" onchange="onUserPermCheckboxChange()"><div class="trigger-icon"><i data-lucide="key"></i></div><span class="trigger-label" data-i18n="perm.use_api_key">Персональный API-ключ</span></label>
+                </div>
               </div>
             </div>
 

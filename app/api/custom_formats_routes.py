@@ -17,7 +17,7 @@ from app.services.custom_formats import (
     reset_custom_format_to_default,
     seed_default_custom_formats,
 )
-from app.services.user_service import get_current_user, require_permission
+from app.services.user_service import get_current_user, require_any_permission, require_permission
 
 router = APIRouter(prefix="/api/v1/custom-formats", tags=["custom_formats"])
 
@@ -32,7 +32,7 @@ def list_custom_formats(db: Session = Depends(get_db), current_user: User = Depe
 def create_custom_format(
     payload: CustomFormatCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("manage_settings")),
+    current_user: User = Depends(require_any_permission("manage_quality_profiles", "manage_settings")),
 ):
     from sqlalchemy import func
     existing = db.query(CustomFormat).filter(func.lower(CustomFormat.name) == payload.name.strip().lower()).first()
@@ -88,7 +88,7 @@ def update_custom_format(
     format_id: int,
     payload: CustomFormatUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("manage_settings")),
+    current_user: User = Depends(require_any_permission("manage_quality_profiles", "manage_settings")),
 ):
     cf = db.get(CustomFormat, format_id)
     if not cf:
@@ -125,7 +125,7 @@ def update_custom_format(
 def reset_custom_format(
     format_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("manage_settings")),
+    current_user: User = Depends(require_any_permission("manage_quality_profiles", "manage_settings")),
 ):
     cf = db.get(CustomFormat, format_id)
     if not cf:
@@ -144,7 +144,7 @@ def reset_custom_format(
 def delete_custom_format(
     format_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("manage_settings")),
+    current_user: User = Depends(require_any_permission("manage_quality_profiles", "manage_settings")),
 ):
     cf = db.get(CustomFormat, format_id)
     if not cf:

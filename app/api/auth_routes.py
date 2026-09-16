@@ -17,6 +17,7 @@ from app.services.user_service import (
     ALL_PERMISSIONS,
     authenticate_user,
     create_user_session,
+    detect_user_role,
     ensure_master_admin,
     get_current_user,
 )
@@ -102,6 +103,7 @@ def _format_user_out(user: User, include_key: bool = False) -> dict[str, Any]:
         "display_name": user.display_name or user.username,
         "is_admin": user.is_admin,
         "is_owner": user.is_owner,
+        "role": detect_user_role(user),
         "avatar": user.avatar,
         "permissions": perms,
         "enabled": user.enabled,

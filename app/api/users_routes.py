@@ -11,7 +11,7 @@ from app.database import get_db
 from app.models.db import User
 from app.services.audit_service import log_audit
 from app.services.settings_service import get_or_create_settings, hash_password
-from app.services.user_service import ALL_PERMISSIONS, require_permission
+from app.services.user_service import ALL_PERMISSIONS, ROLE_PRESETS, detect_user_role, require_permission
 
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
@@ -20,6 +20,7 @@ class UserCreate(BaseModel):
     username: str
     password: str
     display_name: Optional[str] = None
+    role: Optional[str] = None
     is_admin: bool = False
     permissions: dict[str, bool] | None = None
     enabled: bool = True
@@ -28,6 +29,7 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     display_name: Optional[str] = None
+    role: Optional[str] = None
     is_admin: Optional[bool] = None
     permissions: dict[str, bool] | None = None
     enabled: Optional[bool] = None
@@ -59,6 +61,7 @@ def _format_user(u: User, viewer: Optional[User] = None) -> dict[str, Any]:
         "display_name": u.display_name or u.username,
         "is_admin": u.is_admin,
         "is_owner": u.is_owner,
+        "role": detect_user_role(u),
         "avatar": u.avatar,
         "permissions": perms,
         "enabled": u.enabled,
@@ -71,6 +74,14 @@ def _format_user(u: User, viewer: Optional[User] = None) -> dict[str, Any]:
         "created_at": u.created_at.isoformat() if u.created_at else None,
         "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None,
     }
+
+
+@router.get("/roles/presets")
+def get_role_presets(
+    current_user: User = Depends(require_permission("manage_users")),
+):
+    """Возвращает список готовых ролевых профилей и их разрешений."""
+    return list(ROLE_PRESETS.values())
 
 
 @router.get("")
@@ -99,15 +110,25 @@ def create_user(
     if existing:
         raise HTTPException(409, f"Пользователь '{uname}' уже существует")
 
-    perms = payload.permissions or {}
-    if payload.is_admin:
+    is_admin = payload.is_admin
+    perms = payload.permissions
+    if payload.role and payload.role in ROLE_PRESETS:
+        preset = ROLE_PRESETS[payload.role]
+        if payload.role == "admin":
+            is_admin = True
+        if perms is None:
+            perms = dict(preset["permissions"])
+
+    if perms is None:
+        perms = {}
+    if is_admin:
         perms = {perm: True for perm in ALL_PERMISSIONS}
 
     new_user = User(
         username=uname,
         password_hash=hash_password(payload.password),
         display_name=payload.display_name or uname,
-        is_admin=payload.is_admin,
+        is_admin=is_admin,
         is_owner=False,
         permissions=perms,
         enabled=payload.enabled,
@@ -120,10 +141,10 @@ def create_user(
     log_audit(
         db,
         action="user.create",
-        description=f"Создан пользователь '{new_user.username}' (роль: {'Admin' if new_user.is_admin else 'User'})",
+        description=f"Создан пользователь '{new_user.username}' (роль: {detect_user_role(new_user)})",
         user=current_user,
         request=request,
-        details={"created_user_id": new_user.id, "created_username": new_user.username},
+        details={"created_user_id": new_user.id, "created_username": new_user.username, "role": detect_user_role(new_user)},
     )
     return _format_user(new_user, viewer=current_user)
 
@@ -162,6 +183,8 @@ def update_user(
 
     # Пользователи и назначенные администраторы не могут изменять сами себе роль и права доступа
     if current_user.id == user.id and not current_user.is_owner:
+        if payload.role is not None and payload.role != detect_user_role(user):
+            raise HTTPException(400, "Вы не можете изменять собственную роль")
         if payload.is_admin is not None and payload.is_admin != user.is_admin:
             raise HTTPException(400, "Вы не можете изменять собственную роль администратора")
         if payload.permissions is not None and payload.permissions != (user.permissions or {}):
@@ -171,8 +194,20 @@ def update_user(
 
     if payload.display_name is not None:
         user.display_name = payload.display_name.strip() or user.username
+
+    if payload.role and payload.role in ROLE_PRESETS and not user.is_owner and (current_user.id != user.id or current_user.is_owner):
+        preset = ROLE_PRESETS[payload.role]
+        if payload.role == "admin":
+            user.is_admin = True
+            user.permissions = {perm: True for perm in ALL_PERMISSIONS}
+        else:
+            user.is_admin = False
+            user.permissions = dict(preset["permissions"])
+
     if payload.is_admin is not None and not user.is_owner and current_user.id != user.id:
         user.is_admin = payload.is_admin
+        if user.is_admin:
+            user.permissions = {perm: True for perm in ALL_PERMISSIONS}
     if payload.permissions is not None and (current_user.id != user.id or current_user.is_owner):
         user.permissions = payload.permissions
     if payload.enabled is not None and not user.is_owner and current_user.id != user.id:

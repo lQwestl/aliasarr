@@ -55,7 +55,7 @@ def list_blocklist_entries(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(require_any_permission("manage_library", "manual_search")),
+    current_user: Optional[User] = Depends(require_any_permission("manage_blocklist", "manage_library", "manual_search")),
 ):
     """Возвращает постраничный список записей в черном списке."""
     items, total = blocklist_service.get_blocklist_entries(
@@ -72,7 +72,7 @@ def list_blocklist_entries(
 @router.get("/shows")
 def get_blocked_shows_summary(
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(require_any_permission("manage_library", "manual_search")),
+    current_user: Optional[User] = Depends(require_any_permission("manage_blocklist", "manage_library", "manual_search")),
 ):
     """Возвращает список тайтлов, содержащих заблокированные релизы (для группировки на UI)."""
     return blocklist_service.get_blocked_shows_summary(db)
@@ -82,7 +82,7 @@ def get_blocked_shows_summary(
 def add_manual_block(
     req: ManualBlockRequest,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(require_any_permission("manage_library", "manual_search")),
+    current_user: Optional[User] = Depends(require_any_permission("manage_blocklist", "manage_library", "manual_search")),
 ):
     """Вручную добавляет релиз в черный список."""
     if not req.release_title or not req.release_title.strip():
@@ -117,7 +117,7 @@ def update_blocklist_item(
     item_id: int,
     req: UpdateBlockRequest,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(require_any_permission("manage_library", "manual_search")),
+    current_user: Optional[User] = Depends(require_any_permission("manage_blocklist", "manage_library", "manual_search")),
 ):
     """Редактировать существующую запись в черном списке."""
     clear_show = "show_id" in req.__fields_set__ and (req.show_id is None or req.show_id in (0, -1))
@@ -156,7 +156,7 @@ def update_blocklist_item(
 def delete_blocklist_bulk(
     show_id: Optional[str] = Query(None, description="ID тайтла или 'all' для очистки"),
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(require_any_permission("manage_library", "manual_search")),
+    current_user: Optional[User] = Depends(require_any_permission("manage_blocklist", "manage_library", "manual_search")),
 ):
     """Очистить черный список (целиком или для указанного тайтла через ?show_id=)."""
     if show_id and show_id != "all":
@@ -177,7 +177,7 @@ def delete_blocklist_bulk(
 @router.delete("/clear-all")
 def clear_entire_blocklist(
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(require_any_permission("manage_library", "manual_search")),
+    current_user: Optional[User] = Depends(require_any_permission("manage_blocklist", "manage_library", "manual_search")),
 ):
     """Полная очистка всего черного списка."""
     count = blocklist_service.clear_all_blocklist(db)
@@ -193,7 +193,7 @@ def clear_entire_blocklist(
 def clear_show_blocklist(
     show_id_or_title: str,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(require_any_permission("manage_library", "manual_search")),
+    current_user: Optional[User] = Depends(require_any_permission("manage_blocklist", "manage_library", "manual_search")),
 ):
     """Очистка черного списка для конкретного тайтла."""
     count = blocklist_service.clear_blocklist_for_show(db, show_id_or_title)
@@ -209,7 +209,7 @@ def clear_show_blocklist(
 def remove_blocklist_item(
     item_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(require_any_permission("manage_library", "manual_search")),
+    current_user: Optional[User] = Depends(require_any_permission("manage_blocklist", "manage_library", "manual_search")),
 ):
     """Удаляет конкретную запись из черного списка (разблокирует релиз)."""
     success = blocklist_service.remove_from_blocklist(db, item_id)

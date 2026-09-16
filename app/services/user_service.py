@@ -38,7 +38,154 @@ ALL_PERMISSIONS = {
     "manage_users": "Управление пользователями",
     "manage_backups": "Управление резервными копиями (Бэкап)",
     "use_api_key": "Создание и использование персонального API-ключа",
+    "manage_blocklist": "Управление черным списком релизов (Blocklist)",
+    "manage_quality_profiles": "Управление профилями качества и Custom Formats",
 }
+
+ROLE_PRESETS: dict[str, dict[str, Any]] = {
+    "admin": {
+        "key": "admin",
+        "name": "Администратор",
+        "name_en": "Administrator",
+        "description": "Полный неограниченный доступ ко всем возможностям системы, настройкам, бэкапам и пользователям",
+        "description_en": "Full root access to all features, settings, backups, indexers and user accounts",
+        "icon": "crown",
+        "is_admin": True,
+        "permissions": {perm: True for perm in ALL_PERMISSIONS},
+    },
+    "moderator": {
+        "key": "moderator",
+        "name": "Модератор",
+        "name_en": "Moderator",
+        "description": "Управление библиотекой, профилями качества, поиск/захват релизов, контроль загрузок, логи релизов и аудит",
+        "description_en": "Library management, quality profiles, search/grab, download queues, release logs and audit trail",
+        "icon": "shield",
+        "is_admin": False,
+        "permissions": {
+            "view_dashboard": True,
+            "view_library": True,
+            "manage_library": True,
+            "manual_search": True,
+            "view_calendar": True,
+            "manage_calendar": True,
+            "view_activity": True,
+            "manage_activity": True,
+            "view_history": True,
+            "view_events": True,
+            "view_journal": True,
+            "manage_journal": False,
+            "view_release_logs": True,
+            "manage_release_logs": True,
+            "view_audit": True,
+            "manage_settings": False,
+            "manage_indexers": False,
+            "manage_downloaders": False,
+            "manage_users": False,
+            "manage_backups": False,
+            "use_api_key": True,
+            "manage_blocklist": True,
+            "manage_quality_profiles": True,
+        },
+    },
+    "user": {
+        "key": "user",
+        "name": "Пользователь",
+        "name_en": "User",
+        "description": "Просмотр медиатеки, поиск и захват релизов, просмотр календаря, активности и использование API-ключа",
+        "description_en": "Media browsing, search & grab, calendar, downloads tracking and personal API key",
+        "icon": "user",
+        "is_admin": False,
+        "permissions": {
+            "view_dashboard": True,
+            "view_library": True,
+            "manage_library": False,
+            "manual_search": True,
+            "view_calendar": True,
+            "manage_calendar": False,
+            "view_activity": True,
+            "manage_activity": False,
+            "view_history": True,
+            "view_events": False,
+            "view_journal": False,
+            "manage_journal": False,
+            "view_release_logs": False,
+            "manage_release_logs": False,
+            "view_audit": False,
+            "manage_settings": False,
+            "manage_indexers": False,
+            "manage_downloaders": False,
+            "manage_users": False,
+            "manage_backups": False,
+            "use_api_key": True,
+            "manage_blocklist": False,
+            "manage_quality_profiles": False,
+        },
+    },
+    "viewer": {
+        "key": "viewer",
+        "name": "Наблюдатель",
+        "name_en": "Viewer",
+        "description": "Режим только для чтения: просмотр библиотеки, календаря и активности без права поиска и скачивания",
+        "description_en": "Read-only access: browse library, calendar, and activity without searching or modifying content",
+        "icon": "eye",
+        "is_admin": False,
+        "permissions": {
+            "view_dashboard": True,
+            "view_library": True,
+            "manage_library": False,
+            "manual_search": False,
+            "view_calendar": True,
+            "manage_calendar": False,
+            "view_activity": True,
+            "manage_activity": False,
+            "view_history": True,
+            "view_events": False,
+            "view_journal": False,
+            "manage_journal": False,
+            "view_release_logs": False,
+            "manage_release_logs": False,
+            "view_audit": False,
+            "manage_settings": False,
+            "manage_indexers": False,
+            "manage_downloaders": False,
+            "manage_users": False,
+            "manage_backups": False,
+            "use_api_key": False,
+            "manage_blocklist": False,
+            "manage_quality_profiles": False,
+        },
+    },
+    "custom": {
+        "key": "custom",
+        "name": "Настраиваемая",
+        "name_en": "Custom",
+        "description": "Индивидуальный набор прав, настроенный вручную",
+        "description_en": "Custom set of permissions manually configured by administrator",
+        "icon": "sliders",
+        "is_admin": False,
+        "permissions": {},
+    },
+}
+
+
+def detect_user_role(user: User) -> str:
+    """Вычисляет подходящий пресет роли для пользователя."""
+    if getattr(user, "is_owner", False) or getattr(user, "is_admin", False):
+        return "admin"
+
+    user_perms = user.permissions or {}
+    for role_key in ("moderator", "user", "viewer"):
+        preset_perms = ROLE_PRESETS[role_key]["permissions"]
+        matches = True
+        for p, default_val in preset_perms.items():
+            actual_val = bool(user_perms.get(p, False))
+            if actual_val != default_val:
+                matches = False
+                break
+        if matches:
+            return role_key
+
+    return "custom"
 
 
 def ensure_master_admin(db: Session) -> User:

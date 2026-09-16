@@ -805,6 +805,27 @@ const TRANSLATIONS = {
     "users.role_user": "Пользователь",
     "users.role_owner": "Главный админ",
     "users.never_logged_in": "Никогда",
+    "users.role_preset_label": "Профиль прав (Роль):",
+    "users.custom_permissions": "Индивидуальные права доступа:",
+
+    // Roles
+    "role.admin": "Администратор",
+    "role.admin_desc": "Полный доступ",
+    "role.moderator": "Модератор",
+    "role.moderator_desc": "Медиатека и поиск",
+    "role.user": "Пользователь",
+    "role.user_desc": "Поиск и запросы",
+    "role.viewer": "Наблюдатель",
+    "role.viewer_desc": "Только просмотр",
+    "role.custom": "Настраиваемая",
+    "role.custom_desc": "Ручной выбор прав",
+
+    // Permission Categories
+    "perm_cat.library": "Медиатека и форматы качества",
+    "perm_cat.search_downloads": "Поиск и загрузки",
+    "perm_cat.calendar": "Календарь и расписание",
+    "perm_cat.diagnostics_logs": "Диагностика и логи",
+    "perm_cat.system": "Системное администрирование и безопасность",
 
     // Permissions
     "perm.view_dashboard": "Просмотр дашборда",
@@ -828,6 +849,8 @@ const TRANSLATIONS = {
     "perm.manage_users": "Управление пользователями",
     "perm.manage_backups": "Управление бэкапами",
     "perm.use_api_key": "Персональный API-ключ",
+    "perm.manage_blocklist": "Черный список релизов (Blocklist)",
+    "perm.manage_quality_profiles": "Профили качества и Custom Formats",
 
     // Profile & Auth
     "auth.logout": "Выйти из системы",
@@ -2267,6 +2290,27 @@ const TRANSLATIONS = {
     "users.role_user": "User",
     "users.role_owner": "Master Admin",
     "users.never_logged_in": "Never",
+    "users.role_preset_label": "Permission Profile (Role):",
+    "users.custom_permissions": "Custom granular permissions:",
+
+    // Roles
+    "role.admin": "Administrator",
+    "role.admin_desc": "Full access",
+    "role.moderator": "Moderator",
+    "role.moderator_desc": "Library & search",
+    "role.user": "User",
+    "role.user_desc": "Search & requests",
+    "role.viewer": "Viewer",
+    "role.viewer_desc": "Read-only",
+    "role.custom": "Custom",
+    "role.custom_desc": "Manual permissions",
+
+    // Permission Categories
+    "perm_cat.library": "Library & Quality Formats",
+    "perm_cat.search_downloads": "Search & Downloads",
+    "perm_cat.calendar": "Calendar & Schedule",
+    "perm_cat.diagnostics_logs": "Diagnostics & Logs",
+    "perm_cat.system": "System Administration & Security",
 
     // Permissions
     "perm.view_dashboard": "View dashboard",
@@ -2290,6 +2334,8 @@ const TRANSLATIONS = {
     "perm.manage_users": "Manage users & permissions",
     "perm.manage_backups": "Manage backups",
     "perm.use_api_key": "Personal API key",
+    "perm.manage_blocklist": "Blocklist management",
+    "perm.manage_quality_profiles": "Quality profiles & Custom Formats",
 
     // Profile & Auth
     "auth.logout": "Log out",
@@ -3489,8 +3535,27 @@ function updateUserProfileUI(user) {
   
   const roleBadge = document.getElementById("sidebar-user-role-badge");
   if (roleBadge) {
-    roleBadge.textContent = user.is_owner ? t("users.role_owner") : (user.is_admin ? t("users.role_admin") : t("users.role_user"));
-    roleBadge.className = "user-role-badge " + (user.is_admin ? "admin" : "user");
+    const roleKey = user.is_owner ? "owner" : (user.role || (user.is_admin ? "admin" : "user"));
+    let roleIcon = "user";
+    let roleName = t("role.user");
+    if (user.is_owner) {
+      roleIcon = "crown";
+      roleName = t("users.role_owner");
+    } else if (roleKey === "admin" || user.is_admin) {
+      roleIcon = "crown";
+      roleName = t("role.admin");
+    } else if (roleKey === "moderator") {
+      roleIcon = "shield";
+      roleName = t("role.moderator");
+    } else if (roleKey === "viewer") {
+      roleIcon = "eye";
+      roleName = t("role.viewer");
+    } else if (roleKey === "custom") {
+      roleIcon = "sliders";
+      roleName = t("role.custom");
+    }
+    roleBadge.innerHTML = `<i data-lucide="${roleIcon}"></i> <span>${escapeHtml(roleName)}</span>`;
+    roleBadge.className = "user-role-badge " + roleKey;
   }
 
   const avatarImg = document.getElementById("sidebar-user-avatar-img");
@@ -3541,8 +3606,27 @@ function openProfileModal() {
   
   const roleBadge = document.getElementById("profile-modal-role");
   if (roleBadge) {
-    roleBadge.textContent = u.is_owner ? t("users.role_owner") : (u.is_admin ? t("users.role_admin") : t("users.role_user"));
-    roleBadge.className = "user-role-badge " + (u.is_admin ? "admin" : "user");
+    const roleKey = u.is_owner ? "owner" : (u.role || (u.is_admin ? "admin" : "user"));
+    let roleIcon = "user";
+    let roleName = t("role.user");
+    if (u.is_owner) {
+      roleIcon = "crown";
+      roleName = t("users.role_owner");
+    } else if (roleKey === "admin" || u.is_admin) {
+      roleIcon = "crown";
+      roleName = t("role.admin");
+    } else if (roleKey === "moderator") {
+      roleIcon = "shield";
+      roleName = t("role.moderator");
+    } else if (roleKey === "viewer") {
+      roleIcon = "eye";
+      roleName = t("role.viewer");
+    } else if (roleKey === "custom") {
+      roleIcon = "sliders";
+      roleName = t("role.custom");
+    }
+    roleBadge.innerHTML = `<i data-lucide="${roleIcon}"></i> <span>${escapeHtml(roleName)}</span>`;
+    roleBadge.className = "user-role-badge " + roleKey;
   }
 
   const avatarImg = document.getElementById("profile-modal-avatar-img");
@@ -3561,7 +3645,7 @@ function openProfileModal() {
     if (btnRemove) btnRemove.style.display = "none";
   }
 
-  // Permissions list (all 19 permissions)
+  // Permissions list (all 23 permissions)
   const permsBox = document.getElementById("profile-permissions-list");
   if (permsBox) {
     const allPerms = [
@@ -3586,6 +3670,8 @@ function openProfileModal() {
       { key: "manage_users", label: t("perm.manage_users") },
       { key: "manage_backups", label: t("perm.manage_backups") },
       { key: "use_api_key", label: t("perm.use_api_key") },
+      { key: "manage_blocklist", label: t("perm.manage_blocklist") },
+      { key: "manage_quality_profiles", label: t("perm.manage_quality_profiles") },
     ];
 
     permsBox.innerHTML = allPerms.map(p => {
@@ -16909,6 +16995,130 @@ async function saveSecuritySettings(btn) {
 let EDITING_USER_ID = null;
 let RESETTING_PASSWORD_USER_ID = null;
 
+const ROLE_PRESETS_DEF = {
+  admin: {
+    key: "admin",
+    is_admin: true,
+    permissions: {
+      view_dashboard: true,
+      view_library: true,
+      manage_library: true,
+      manual_search: true,
+      view_calendar: true,
+      manage_calendar: true,
+      view_activity: true,
+      manage_activity: true,
+      view_history: true,
+      view_events: true,
+      view_journal: true,
+      manage_journal: true,
+      view_release_logs: true,
+      manage_release_logs: true,
+      view_audit: true,
+      manage_settings: true,
+      manage_indexers: true,
+      manage_downloaders: true,
+      manage_users: true,
+      manage_backups: true,
+      use_api_key: true,
+      manage_blocklist: true,
+      manage_quality_profiles: true,
+    },
+  },
+  moderator: {
+    key: "moderator",
+    is_admin: false,
+    permissions: {
+      view_dashboard: true,
+      view_library: true,
+      manage_library: true,
+      manual_search: true,
+      view_calendar: true,
+      manage_calendar: true,
+      view_activity: true,
+      manage_activity: true,
+      view_history: true,
+      view_events: true,
+      view_journal: true,
+      manage_journal: false,
+      view_release_logs: true,
+      manage_release_logs: true,
+      view_audit: true,
+      manage_settings: false,
+      manage_indexers: false,
+      manage_downloaders: false,
+      manage_users: false,
+      manage_backups: false,
+      use_api_key: true,
+      manage_blocklist: true,
+      manage_quality_profiles: true,
+    },
+  },
+  user: {
+    key: "user",
+    is_admin: false,
+    permissions: {
+      view_dashboard: true,
+      view_library: true,
+      manage_library: false,
+      manual_search: true,
+      view_calendar: true,
+      manage_calendar: false,
+      view_activity: true,
+      manage_activity: false,
+      view_history: true,
+      view_events: false,
+      view_journal: false,
+      manage_journal: false,
+      view_release_logs: false,
+      manage_release_logs: false,
+      view_audit: false,
+      manage_settings: false,
+      manage_indexers: false,
+      manage_downloaders: false,
+      manage_users: false,
+      manage_backups: false,
+      use_api_key: true,
+      manage_blocklist: false,
+      manage_quality_profiles: false,
+    },
+  },
+  viewer: {
+    key: "viewer",
+    is_admin: false,
+    permissions: {
+      view_dashboard: true,
+      view_library: true,
+      manage_library: false,
+      manual_search: false,
+      view_calendar: true,
+      manage_calendar: false,
+      view_activity: true,
+      manage_activity: false,
+      view_history: true,
+      view_events: false,
+      view_journal: false,
+      manage_journal: false,
+      view_release_logs: false,
+      manage_release_logs: false,
+      view_audit: false,
+      manage_settings: false,
+      manage_indexers: false,
+      manage_downloaders: false,
+      manage_users: false,
+      manage_backups: false,
+      use_api_key: false,
+      manage_blocklist: false,
+      manage_quality_profiles: false,
+    },
+  },
+  custom: {
+    key: "custom",
+    is_admin: false,
+    permissions: {},
+  },
+};
+
 function toggleUserFormAdminMode() {
   const isAdmin = document.getElementById("user-form-is-admin")?.checked;
   const permsBox = document.getElementById("user-form-permissions-box");
@@ -16916,6 +17126,74 @@ function toggleUserFormAdminMode() {
     permsBox.style.opacity = isAdmin ? "0.5" : "1";
     permsBox.style.pointerEvents = isAdmin ? "none" : "auto";
   }
+}
+
+function setRolePresetCardActive(roleKey) {
+  const container = document.getElementById("user-form-role-presets");
+  if (!container) return;
+  container.querySelectorAll(".role-preset-card").forEach(card => {
+    const radio = card.querySelector("input[type='radio']");
+    const isTarget = radio && radio.value === roleKey;
+    if (radio) radio.checked = isTarget;
+    card.classList.toggle("active", isTarget);
+  });
+}
+
+function selectUserRolePreset(roleKey) {
+  setRolePresetCardActive(roleKey);
+  const adminCb = document.getElementById("user-form-is-admin");
+  const isEditingSelf = EDITING_USER_ID && CURRENT_USER && CURRENT_USER.id === EDITING_USER_ID;
+  const isOwner = CURRENT_USER && !!CURRENT_USER.is_owner;
+  const blockPermissions = isEditingSelf && !isOwner;
+  if (blockPermissions) return;
+
+  if (roleKey === "admin") {
+    if (adminCb) adminCb.checked = true;
+    document.querySelectorAll(".user-perm-check").forEach(cb => {
+      cb.checked = true;
+    });
+  } else if (roleKey === "custom") {
+    if (adminCb) adminCb.checked = false;
+  } else {
+    if (adminCb) adminCb.checked = false;
+    const preset = ROLE_PRESETS_DEF[roleKey];
+    if (preset && preset.permissions) {
+      document.querySelectorAll(".user-perm-check").forEach(cb => {
+        cb.checked = !!preset.permissions[cb.value];
+      });
+    }
+  }
+  toggleUserFormAdminMode();
+}
+
+function detectCurrentFormRole() {
+  const adminCb = document.getElementById("user-form-is-admin");
+  if (adminCb && adminCb.checked) return "admin";
+
+  const currentPerms = {};
+  document.querySelectorAll(".user-perm-check").forEach(cb => {
+    currentPerms[cb.value] = cb.checked;
+  });
+
+  for (const roleKey of ["moderator", "user", "viewer"]) {
+    const preset = ROLE_PRESETS_DEF[roleKey];
+    if (!preset) continue;
+    let matches = true;
+    for (const [permKey, defaultVal] of Object.entries(preset.permissions)) {
+      if (Boolean(currentPerms[permKey]) !== Boolean(defaultVal)) {
+        matches = false;
+        break;
+      }
+    }
+    if (matches) return roleKey;
+  }
+  return "custom";
+}
+
+function onUserPermCheckboxChange() {
+  const roleKey = detectCurrentFormRole();
+  setRolePresetCardActive(roleKey);
+  toggleUserFormAdminMode();
 }
 
 function resetUserForm() {
@@ -16942,10 +17220,13 @@ function resetUserForm() {
   if (adminCb) { adminCb.checked = false; adminCb.disabled = false; }
 
   document.querySelectorAll(".user-perm-check").forEach(cb => {
-    cb.checked = true;
     cb.disabled = false;
   });
-  toggleUserFormAdminMode();
+
+  const roleCards = document.querySelectorAll(".role-preset-card");
+  roleCards.forEach(c => c.style.pointerEvents = "auto");
+
+  selectUserRolePreset("user");
 
   const permHint = document.getElementById("user-form-self-perm-hint");
   if (permHint) permHint.style.display = "none";
@@ -16989,6 +17270,14 @@ function editUser(u) {
     cb.checked = u.is_admin || !!perms[cb.value];
     cb.disabled = blockPermissions;
   });
+
+  const roleCards = document.querySelectorAll(".role-preset-card");
+  roleCards.forEach(c => {
+    c.style.pointerEvents = blockPermissions ? "none" : "auto";
+  });
+
+  const detectedRole = u.role || (u.is_owner || u.is_admin ? "admin" : detectCurrentFormRole());
+  setRolePresetCardActive(detectedRole);
   toggleUserFormAdminMode();
 
   const permHint = document.getElementById("user-form-self-perm-hint");
@@ -17060,8 +17349,26 @@ async function loadUsers() {
         ? `<img src="${escapeHtml(u.avatar)}" style="width:28px; height:28px; border-radius:50%; object-fit:cover;">`
         : `<div style="width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px;">${escapeHtml((u.display_name || u.username || "U").charAt(0).toUpperCase())}</div>`;
 
-      const roleText = u.is_owner ? t("users.role_owner") : (u.is_admin ? t("users.role_admin") : t("users.role_user"));
-      const roleBadge = `<span class="user-role-badge ${u.is_admin ? "admin" : "user"}">${escapeHtml(roleText)}</span>`;
+      const roleKey = u.is_owner ? "owner" : (u.role || (u.is_admin ? "admin" : "user"));
+      let roleIcon = "user";
+      let roleName = t("role.user");
+      if (u.is_owner) {
+        roleIcon = "crown";
+        roleName = t("users.role_owner");
+      } else if (roleKey === "admin" || u.is_admin) {
+        roleIcon = "crown";
+        roleName = t("role.admin");
+      } else if (roleKey === "moderator") {
+        roleIcon = "shield";
+        roleName = t("role.moderator");
+      } else if (roleKey === "viewer") {
+        roleIcon = "eye";
+        roleName = t("role.viewer");
+      } else if (roleKey === "custom") {
+        roleIcon = "sliders";
+        roleName = t("role.custom");
+      }
+      const roleBadge = `<span class="user-role-badge ${escapeHtml(roleKey)}"><i data-lucide="${roleIcon}"></i> <span>${escapeHtml(roleName)}</span></span>`;
       const statusBadge = `<span class="${u.enabled ? "status-badge-active" : "status-badge-disabled"}">${u.enabled ? t("users.active") : t("users.disabled")}</span>`;
       const is2FA = !!u.totp_enabled;
       const badge2fa = is2FA
@@ -17125,6 +17432,8 @@ async function submitUser() {
   const displayName = document.getElementById("user-form-display-name")?.value.trim() || "";
   const sessionTimeout = Number(document.getElementById("user-form-session-timeout")?.value) || 43200;
   const isAdmin = !!document.getElementById("user-form-is-admin")?.checked;
+  const activeRoleRadio = document.querySelector("input[name='user_role_select']:checked");
+  const role = activeRoleRadio ? activeRoleRadio.value : (isAdmin ? "admin" : "custom");
 
   const perms = {};
   document.querySelectorAll(".user-perm-check").forEach(cb => {
@@ -17142,6 +17451,7 @@ async function submitUser() {
         method: "PUT",
         body: JSON.stringify({
           display_name: displayName || username,
+          role: role,
           is_admin: isAdmin,
           permissions: perms,
           session_timeout_minutes: sessionTimeout,
@@ -17160,6 +17470,7 @@ async function submitUser() {
           username,
           display_name: displayName || username,
           password,
+          role: role,
           is_admin: isAdmin,
           permissions: perms,
           session_timeout_minutes: sessionTimeout,
