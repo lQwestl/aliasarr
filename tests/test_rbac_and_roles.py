@@ -103,6 +103,7 @@ class TestRBACAndRolePresets(unittest.TestCase):
 
         mock_db = MagicMock()
         mock_db.query.return_value.filter.return_value.first.return_value = None
+        mock_req = MagicMock()
 
         admin_user = SimpleNamespace(id=1, username="admin", is_owner=True, is_admin=True)
 
@@ -112,7 +113,7 @@ class TestRBACAndRolePresets(unittest.TestCase):
             role="moderator",
         )
 
-        resp = create_user(payload=payload, current_user=admin_user, db=mock_db)
+        resp = create_user(payload=payload, request=mock_req, current_user=admin_user, db=mock_db)
         self.assertEqual(resp["username"], "moderator_test")
         self.assertEqual(resp["role"], "moderator")
         self.assertFalse(resp["is_admin"])
