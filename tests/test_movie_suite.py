@@ -560,18 +560,25 @@ class TestMovieSuite(unittest.TestCase):
 
         def mock_query(entity):
             mock_q = MagicMock()
-            def mock_filter(*args, **kwargs):
-                mock_f = MagicMock()
-                def mock_all():
-                    if len(args) > 1:
-                        if any("in" in str(a).lower() for a in args):
-                            return [ep for ep in eps_anime if ep.id in (2024, 2025)]
-                        return [ep for ep in eps_anime if ep.status == EpisodeStatus.WANTED]
-                    return eps_anime
-                mock_f.all.side_effect = mock_all
-                mock_f.first.return_value = None
-                return mock_f
-            mock_q.filter.side_effect = mock_filter
+            if getattr(entity, "__name__", "") == "Episode" or entity == Episode:
+                def mock_filter(*args, **kwargs):
+                    mock_f = MagicMock()
+                    def mock_all():
+                        if len(args) > 1:
+                            if any("in" in str(a).lower() for a in args):
+                                return [ep for ep in eps_anime if ep.id in (2024, 2025)]
+                            return [ep for ep in eps_anime if ep.status == EpisodeStatus.WANTED]
+                        return eps_anime
+                    mock_f.all.side_effect = mock_all
+                    mock_f.first.return_value = None
+                    return mock_f
+                mock_q.filter.side_effect = mock_filter
+                mock_q.all.return_value = eps_anime
+            else:
+                mock_q.filter.return_value.all.return_value = []
+                mock_q.filter.return_value.first.return_value = None
+                mock_q.all.return_value = []
+                mock_q.first.return_value = None
             return mock_q
 
         db_mock3 = MagicMock()
