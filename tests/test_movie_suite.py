@@ -515,6 +515,77 @@ class TestMovieSuite(unittest.TestCase):
         res2 = asyncio.run(search_and_grab_show(db_mock2, show_downloaded))
         self.assertEqual(show_downloaded.last_search_result, "Фильм уже скачан")
 
+        # 3. Anime series: eps 1..23 downloaded, eps 24..25 unaired in future
+        show_anime = Show(
+            id=103,
+            title="Anime Show Season 2",
+            year=2026,
+            content_type="anime",
+            monitored=True,
+            quality_profile_id=1,
+            last_search_result=None,
+        )
+        eps_anime = []
+        for i in range(1, 24):
+            eps_anime.append(Episode(
+                id=2000 + i,
+                show_id=103,
+                season_number=2,
+                episode_number=i,
+                status=EpisodeStatus.DOWNLOADED,
+                file_path=f"/media/anime/ep{i}.mkv",
+                monitored=True,
+                air_date=None,
+            ))
+        eps_anime.append(Episode(
+            id=2024,
+            show_id=103,
+            season_number=2,
+            episode_number=24,
+            status=EpisodeStatus.UNAIRED,
+            air_date=dt.datetime(2026, 9, 19),
+            monitored=True,
+            file_path=None,
+        ))
+        eps_anime.append(Episode(
+            id=2025,
+            show_id=103,
+            season_number=2,
+            episode_number=25,
+            status=EpisodeStatus.UNAIRED,
+            air_date=dt.datetime(2026, 9, 26),
+            monitored=True,
+            file_path=None,
+        ))
+
+        def mock_query(entity):
+            mock_q = MagicMock()
+            def mock_filter(*args, **kwargs):
+                mock_f = MagicMock()
+                def mock_all():
+                    if len(args) > 1:
+                        if any("in" in str(a).lower() for a in args):
+                            return [ep for ep in eps_anime if ep.id in (2024, 2025)]
+                        return [ep for ep in eps_anime if ep.status == EpisodeStatus.WANTED]
+                    return eps_anime
+                mock_f.all.side_effect = mock_all
+                mock_f.first.return_value = None
+                return mock_f
+            mock_q.filter.side_effect = mock_filter
+            return mock_q
+
+        db_mock3 = MagicMock()
+        db_mock3.get.return_value = None
+        db_mock3.query.side_effect = mock_query
+
+        # Global search on anime show
+        res3 = asyncio.run(search_and_grab_show(db_mock3, show_anime))
+        self.assertEqual(show_anime.last_search_result, "Все вышедшие серии скачаны (оставшиеся ещё не вышли)")
+
+        # 4. Search on specifically selected unaired episodes (24, 25)
+        res4 = asyncio.run(search_and_grab_show(db_mock3, show_anime, episode_ids={2024, 2025}))
+        self.assertEqual(show_anime.last_search_result, "Выбранные серии ещё не вышли")
+
 
 if __name__ == "__main__":
     unittest.main()

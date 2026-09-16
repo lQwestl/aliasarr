@@ -1592,11 +1592,14 @@ async def search_selected_episodes(
     if not episodes:
         raise HTTPException(404, "Серии не найдены")
 
-    # Автопоиск ищет только серии в статусе "разыскивается" — выбранные вручную серии,
-    # которые ещё не в этом статусе (например, были проигнорированы), переводим в него.
+    today = dt.date.today()
     for ep in episodes:
         ep.monitored = True
-        if ep.status in (EpisodeStatus.IGNORED, EpisodeStatus.MISSING, EpisodeStatus.UNAIRED):
+        ep_air = getattr(ep, "air_date", None)
+        if isinstance(ep_air, dt.datetime):
+            ep_air = ep_air.date()
+        is_ep_future = bool(ep_air and ep_air > today)
+        if ep.status in (EpisodeStatus.IGNORED, EpisodeStatus.MISSING) and not is_ep_future:
             ep.status = EpisodeStatus.WANTED
         db.add(ep)
     db.commit()
@@ -1609,14 +1612,25 @@ async def search_selected_episodes(
             pass
         grabbed_ids = {g["episode_id"] for g in result.get("grabbed", [])}
         is_movie = getattr(show, "content_type", "series") == "movie"
+        is_all_future = all(
+            ep.status == EpisodeStatus.UNAIRED or (ep.air_date and ((ep.air_date.date() if isinstance(ep.air_date, dt.datetime) else ep.air_date) > today))
+            for ep in episodes
+        )
         if is_movie:
-            message = "Захвачен фильм" if grabbed_ids else "Подходящих релизов для фильма не найдено"
+            if grabbed_ids:
+                message = "Захвачен фильм"
+            elif is_all_future:
+                message = "Фильм ещё не вышел"
+            else:
+                message = "Подходящих релизов для фильма не найдено"
         else:
             if grabbed_ids:
                 if len(grabbed_ids) == 1 and len(payload.episode_ids) == 1:
                     message = "Захвачена 1 серия"
                 else:
                     message = f"Захвачено серий: {len(grabbed_ids)} из {len(payload.episode_ids)}"
+            elif is_all_future:
+                message = "Выбранная серия ещё не вышла (ожидает премьеры)" if len(payload.episode_ids) == 1 else "Выбранные серии ещё не вышли (ожидают премьеры)"
             else:
                 message = "Подходящих релизов для выбранных серий не найдено"
 
@@ -1693,17 +1707,29 @@ async def search_season_episodes(
             db.refresh(show)
         except Exception:
             pass
-        grabbed_ids = {g["episode_id"] for g in result.get("grabbed", [])}
+        today = dt.date.today()
+        is_season_all_future = all(
+            ep.status == EpisodeStatus.UNAIRED or (ep.air_date and ((ep.air_date.date() if isinstance(ep.air_date, dt.datetime) else ep.air_date) > today))
+            for ep in target_episodes
+        )
+        if grabbed_ids:
+            season_msg = f"Сезон {season_number}: захвачено серий {len(grabbed_ids)} из {len(season_episodes)}"
+        elif is_season_all_future:
+            downloaded_in_season = [ep for ep in season_episodes if ep.status == EpisodeStatus.DOWNLOADED or bool(getattr(ep, "file_path", None))]
+            if downloaded_in_season:
+                season_msg = f"Сезон {season_number}: все вышедшие серии скачаны (оставшиеся ещё не вышли)"
+            else:
+                season_msg = f"Сезон {season_number}: серии ещё не вышли"
+        else:
+            season_msg = f"Сезон {season_number}: подходящих релизов не найдено"
+
         return {
             "show_id": show_id,
             "season_number": season_number,
             "grabbed": result.get("grabbed", []),
             "requested": len(season_episodes),
             "success": bool(grabbed_ids),
-            "message": (
-                f"Сезон {season_number}: захвачено серий {len(grabbed_ids)} из {len(season_episodes)}"
-                if grabbed_ids else f"Сезон {season_number}: подходящих релизов не найдено"
-            ),
+            "message": season_msg,
         }
     except Exception as exc:
         try:

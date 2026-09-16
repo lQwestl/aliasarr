@@ -1116,14 +1116,26 @@ async def search_and_grab_show(
                     def _is_ep_downloaded(ep):
                         return ep.status == EpisodeStatus.DOWNLOADED or bool(getattr(ep, "file_path", None))
 
-                    if regular_eps and all(_is_ep_unaired(ep) for ep in regular_eps):
-                        show.last_search_result = "Серии ещё не вышли"
-                    elif regular_eps and all(_is_ep_downloaded(ep) for ep in regular_eps):
-                        show.last_search_result = "Все серии уже скачаны"
-                    elif all_eps and not any(getattr(ep, "monitored", True) for ep in all_eps) and not getattr(show, "monitored", True):
-                        show.last_search_result = "Серии не отслеживаются"
+                    if episode_ids:
+                        target_eps = [ep for ep in all_eps if ep.id in episode_ids]
+                        if target_eps and all(_is_ep_unaired(ep) for ep in target_eps):
+                            show.last_search_result = "Выбранная серия ещё не вышла" if len(target_eps) == 1 else "Выбранные серии ещё не вышли"
+                        elif target_eps and all(_is_ep_downloaded(ep) for ep in target_eps):
+                            show.last_search_result = "Выбранные серии уже скачаны"
+                        else:
+                            show.last_search_result = "Подходящих релизов не найдено"
                     else:
-                        show.last_search_result = "Нет серий в статусе «разыскивается»"
+                        monitored_eps = [ep for ep in regular_eps if getattr(ep, "monitored", True)] or regular_eps
+                        if monitored_eps and all(_is_ep_unaired(ep) for ep in monitored_eps):
+                            show.last_search_result = "Серии ещё не вышли"
+                        elif monitored_eps and all(_is_ep_downloaded(ep) for ep in monitored_eps):
+                            show.last_search_result = "Все серии уже скачаны"
+                        elif monitored_eps and all(_is_ep_downloaded(ep) or _is_ep_unaired(ep) for ep in monitored_eps) and any(_is_ep_unaired(ep) for ep in monitored_eps):
+                            show.last_search_result = "Все вышедшие серии скачаны (оставшиеся ещё не вышли)"
+                        elif all_eps and not any(getattr(ep, "monitored", True) for ep in all_eps) and not getattr(show, "monitored", True):
+                            show.last_search_result = "Серии не отслеживаются"
+                        else:
+                            show.last_search_result = "Нет серий в статусе «разыскивается»"
             elif grabbed_count:
                 if getattr(show, "content_type", "") == "movie":
                     show.last_search_result = "Захвачен фильм"
@@ -1590,7 +1602,7 @@ async def _do_search_and_grab(
         # Определяем минимальную известную дату будущей премьеры в каждом сезоне
         future_season_min_dates: dict[int, dt.date] = {}
         for ep in db.query(Episode).filter(Episode.show_id == show.id).all():
-            air_d = ep.air_date
+            air_d = getattr(ep, "air_date", None)
             if isinstance(air_d, dt.datetime):
                 air_d = air_d.date()
             if air_d and air_d > today:
@@ -1600,18 +1612,18 @@ async def _do_search_and_grab(
 
         filtered_wanted = []
         for ep in wanted_episodes:
-            air_d = ep.air_date
+            air_d = getattr(ep, "air_date", None)
             if isinstance(air_d, dt.datetime):
                 air_d = air_d.date()
             is_future = bool(air_d and air_d > today)
-            if not is_future and air_d is None:
+            if not is_future and air_d is None and ep.status != EpisodeStatus.DOWNLOADED and not getattr(ep, "file_path", None):
                 # Если дата серии не указана, но в этом сезоне уже есть более ранняя серия в будущем
                 s_num = ep.season_number or 1
                 if s_num in future_season_min_dates:
                     is_future = True
 
             if is_future:
-                if ep.status != EpisodeStatus.UNAIRED:
+                if ep.status not in (EpisodeStatus.UNAIRED, EpisodeStatus.DOWNLOADED):
                     ep.status = EpisodeStatus.UNAIRED
                     db.add(ep)
                 continue
