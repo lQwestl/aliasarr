@@ -1000,6 +1000,135 @@ class TestQualityAndMatcher(unittest.TestCase):
         for g_title, cats in game_releases:
             self.assertTrue(is_non_video_release(g_title, categories=cats), f"Game release should be non-video: {g_title}")
 
+    def test_movie_promare_lio_special_pack_matching_and_selective_files(self):
+        from unittest.mock import MagicMock
+        from app.services.matcher import match_release, AliasCandidate, get_show_title_words
+        from app.services.decision_engine import DecisionEngine
+        from app.services.auto_search import evaluate_torrent_file_priority
+
+        promare_aliases = [
+            AliasCandidate(alias_id=1, text="Промар: Лио", language="ru", priority=10),
+            AliasCandidate(alias_id=2, text="Promare: Lio-hen", language="en", priority=20),
+            AliasCandidate(alias_id=3, text="Promare Special - Lio-hen", language="en", priority=30),
+        ]
+
+        release_title = (
+            "Промар: Гало / Промар: Лио / Promare: Galo-hen / Promare: Lio-hen "
+            "[Special] [E2 of 2] [RUS(int, ext), JAP+Sub] [2019, фантастика, меха, комедия, BDRip] [1080p]"
+        )
+
+        # 1. Matcher: Must match movie Promare: Lio with 100 score
+        res = match_release(
+            release_name=release_title,
+            show_id=154,
+            aliases=promare_aliases,
+            content_type="movie",
+            show_year=2019,
+        )
+        self.assertTrue(res.matched, f"Promare: Lio must match special pack release: {release_title}")
+        self.assertIn(res.alias_text, ("Промар: Лио", "Promare: Lio-hen", "Promare Special - Lio-hen"))
+        self.assertEqual(res.score, 100.0)
+
+        # 2. DecisionEngine: Must approve movie release
+        mock_show = MagicMock()
+        mock_show.id = 154
+        mock_show.title = "Промар: Лио"
+        mock_show.content_type = "movie"
+        mock_show.quality_profile_id = 1
+        mock_show.aliases = [
+            MagicMock(id=1, text="Промар: Лио", language=MagicMock(value="ru"), priority=10),
+            MagicMock(id=2, text="Promare: Lio-hen", language=MagicMock(value="en"), priority=20),
+        ]
+        mock_ep = MagicMock()
+        mock_ep.id = 501
+        mock_ep.show_id = 154
+        mock_ep.season_number = 1
+        mock_ep.episode_number = 1
+        mock_ep.status = "wanted"
+        mock_ep.downloaded_quality = None
+        mock_ep.file_path = None
+        mock_show.episodes = [mock_ep]
+
+        mock_profile = MagicMock()
+        mock_profile.id = 1
+        mock_profile.name = "HD-1080p"
+        mock_profile.cutoff = "Bluray-1080p"
+        mock_profile.upgrade_allowed = True
+        mock_profile.allowed_qualities = ["Bluray-1080p", "WEBDL-1080p", "HDTV-1080p"]
+        mock_profile.min_custom_format_score = 0
+        mock_profile.format_items = []
+        mock_profile.min_size_mb = 0
+        mock_profile.max_size_mb = 50000
+
+        mock_db = MagicMock()
+        mock_db.get.return_value = mock_profile
+
+        decision = DecisionEngine.evaluate_release(
+            db=mock_db,
+            title=release_title,
+            show=mock_show,
+            episodes=[mock_ep],
+            size_bytes=1500 * 1024 * 1024,
+            seeders=25,
+            quality_profile=mock_profile,
+        )
+        self.assertTrue(decision.approved, f"Decision rejected: {decision.rejections}")
+
+        # 3. File Priority Evaluation:
+        # Lio-hen file MUST be priority 1, Galo-hen file MUST be priority 0
+        show_words = get_show_title_words(mock_show)
+        reasons = {}
+
+        # Galo-hen -> 0
+        prio_galo = evaluate_torrent_file_priority(
+            file_name="[Group] 01. Promare - Galo-hen.mkv",
+            file_index=0,
+            target_episodes=[mock_ep],
+            content_type="movie",
+            torrent_name=release_title,
+            show_words=show_words,
+            out_file_reasons=reasons,
+        )
+        self.assertEqual(prio_galo, 0)
+        self.assertIn("Сторонний фильм", reasons[0])
+
+        # Lio-hen -> 1
+        prio_lio = evaluate_torrent_file_priority(
+            file_name="[Group] 02. Promare - Lio-hen.mkv",
+            file_index=1,
+            target_episodes=[mock_ep],
+            content_type="movie",
+            torrent_name=release_title,
+            show_words=show_words,
+            out_file_reasons=reasons,
+        )
+        self.assertEqual(prio_lio, 1)
+        self.assertIn("Основной видеофайл", reasons[1])
+
+        # Subtitles for Lio -> 1
+        prio_sub = evaluate_torrent_file_priority(
+            file_name="Subs/Promare - Lio-hen.rus.ass",
+            file_index=2,
+            target_episodes=[mock_ep],
+            content_type="movie",
+            torrent_name=release_title,
+            show_words=show_words,
+            out_file_reasons=reasons,
+        )
+        self.assertEqual(prio_sub, 1)
+
+        # Sample -> 0
+        prio_sample = evaluate_torrent_file_priority(
+            file_name="Sample/sample.mkv",
+            file_index=3,
+            target_episodes=[mock_ep],
+            content_type="movie",
+            torrent_name=release_title,
+            show_words=show_words,
+            out_file_reasons=reasons,
+        )
+        self.assertEqual(prio_sample, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

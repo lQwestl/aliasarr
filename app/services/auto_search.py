@@ -191,11 +191,42 @@ def evaluate_torrent_file_priority(
         "/sample" in fname_lower
     )
 
-    # Для фильмов: все видеофайлы скачиваются (приоритет 1). Исключаются только сэмплы.
+    # Для фильмов: проверяем соответствие видеофайлов целевому тайтлу (селективная загрузка из сборников/паков)
     if content_type == "movie":
         if ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}:
             if is_sample_video:
                 return _set_res(0, "Видеосэмпл к фильму (ОТКЛЮЧЕН)")
+
+            # Проверяем релевантность файла целевому фильму при наличии show_words
+            if show_words:
+                clean_f = os.path.splitext(os.path.basename(file_name))[0]
+                clean_f = re.sub(r"\b(1080|2160|720|480)[pi]?\b|[._\[\](){}\-–—/|]", " ", clean_f).lower()
+                f_words = set(clean_f.split())
+
+                meaningful_show_words = {
+                    w.lower()
+                    for w in show_words
+                    if len(w) >= 2
+                    and w.lower() not in {
+                        "the", "and", "of", "in", "for", "with", "movie", "film",
+                        "special", "фильм", "спешл", "ova", "ona", "rip", "bdrip", "webrip",
+                    }
+                }
+
+                if meaningful_show_words:
+                    matched_words = f_words & meaningful_show_words
+                    # Проверяем наличие маркеров других частей/фильмов сборника
+                    known_part_markers = {
+                        "galo", "гало", "movie1", "movie2", "movie3", "movie4",
+                        "sp1", "sp2", "sp3", "sp01", "sp02", "part1", "part2", "part3",
+                    }
+                    has_foreign_marker = any(
+                        m in f_words for m in known_part_markers
+                        if m not in meaningful_show_words
+                    )
+                    if has_foreign_marker:
+                        return _set_res(0, f"Сторонний фильм/серия из сборника: {os.path.basename(file_name)} (ОТКЛЮЧЕН)")
+
             if out_matched_episodes is not None:
                 matched_target = target_episodes[0] if target_episodes else (all_show_episodes[0] if all_show_episodes else None)
                 if matched_target is not None and matched_target not in out_matched_episodes:
@@ -599,14 +630,9 @@ async def _limit_torrent_files_to_episodes(
     explicit_episode_ids: Optional[set[int]] = None,
     content_type: str = "series",
 ) -> None:
-    """Выключает в загрузчике файлы, не относящиеся к переданным сериям (Sonarr selective download).
+    """Выключает в загрузчике файлы, не относящиеся к переданным сериям или фильму (селективное скачивание).
     
-    Гарантирует, что полный пак или сезонный батч не будет качать чужие сезоны/серии."""
-    if content_type == "movie":
-        # Для фильмов гарантируем, что все файлы фильма включены (галочки стоят)
-        await _ensure_movie_files_wanted(dl_client, torrent_hash)
-        return
-
+    Гарантирует, что полный пак, сезонный батч или сборник фильмов не будет качать чужие серии/фильмы."""
     target_eps = [
         ep for ep in wanted_episodes
         if explicit_episode_ids is None or ep.id in explicit_episode_ids
@@ -716,6 +742,16 @@ async def _limit_torrent_files_to_episodes(
             wanted_indices.append(f.index)
         else:
             unwanted_indices.append(f.index)
+
+    if not wanted_indices and content_type == "movie":
+        for f in torrent.files:
+            f_ext = os.path.splitext(f.name)[1].lower()
+            f_name_lower = f.name.lower().replace("\\", "/")
+            if f_ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"} and not ("/sample" in f_name_lower or f_name_lower.endswith("-sample.mkv")):
+                wanted_indices.append(f.index)
+        if not wanted_indices:
+            wanted_indices = [f.index for f in torrent.files]
+        unwanted_indices = [f.index for f in torrent.files if f.index not in wanted_indices]
 
     if wanted_indices:
         await dl_client.set_files_wanted_unwanted(torrent_hash, wanted_indices, unwanted_indices)
@@ -2292,33 +2328,30 @@ async def _do_search_and_grab(
             except Exception as commit_exc:
                 logger.debug("Commit серий перед запуском выборочной загрузки: %s", commit_exc)
 
-            # Для сериалов/аниме запускаем selective download в фоне, для фильмов — гарантируем включение всех файлов
+            # Для сериалов/аниме/фильмов запускаем selective download в фоне
             if torrent_hash:
                 try:
-                    if show.content_type == "movie":
-                        asyncio.create_task(_ensure_movie_files_wanted(dl_client, torrent_hash))
-                    else:
-                        target_eps_data = [
-                            Episode(
-                                id=ep.id,
-                                show_id=ep.show_id,
-                                season_number=ep.season_number,
-                                episode_number=ep.episode_number,
-                                absolute_number=ep.absolute_number,
-                                title=getattr(ep, "title", None),
-                            )
-                            for ep in covered
-                        ]
-                        asyncio.create_task(
-                            _limit_torrent_files_to_episodes(
-                                dl_client,
-                                torrent_hash,
-                                target_eps_data,
-                                None,
-                                explicit_episode_ids=episode_ids,
-                                content_type=show.content_type,
-                            )
+                    target_eps_data = [
+                        Episode(
+                            id=ep.id,
+                            show_id=ep.show_id,
+                            season_number=ep.season_number,
+                            episode_number=ep.episode_number,
+                            absolute_number=ep.absolute_number,
+                            title=getattr(ep, "title", None),
                         )
+                        for ep in covered
+                    ]
+                    asyncio.create_task(
+                        _limit_torrent_files_to_episodes(
+                            dl_client,
+                            torrent_hash,
+                            target_eps_data,
+                            None,
+                            explicit_episode_ids=episode_ids,
+                            content_type=show.content_type,
+                        )
+                    )
                 except Exception as exc:
                     logger.warning("Не удалось запланировать обработку файлов раздачи: %s", exc)
 

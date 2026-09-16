@@ -744,39 +744,32 @@ async def grab_release(
             ep.downloaded_quality = parsed_rel_q.name
         db.add(ep)
 
-    # Ограничиваем скачивание выбранными сериями для сериалов/аниме, для фильмов — гарантируем включение всех файлов
+    # Ограничиваем скачивание выбранными сериями или фильмом (селективное скачивание из паков/сборников)
     if torrent_hash and target_episodes:
-        if show.content_type == "movie":
-            from app.services.auto_search import _ensure_movie_files_wanted
-            try:
-                background_tasks.add_task(_ensure_movie_files_wanted, client, torrent_hash)
-            except Exception as exc:
-                logger.warning("Не удалось запланировать включение файлов фильма: %s", exc)
-        else:
-            from app.services.auto_search import _limit_torrent_files_to_episodes
-            try:
-                target_eps_data = [
-                    Episode(
-                        id=ep.id,
-                        show_id=show.id,
-                        season_number=ep.season_number,
-                        episode_number=ep.episode_number,
-                        absolute_number=ep.absolute_number,
-                        title=getattr(ep, "title", None),
-                    )
-                    for ep in target_episodes
-                ]
-                background_tasks.add_task(
-                    _limit_torrent_files_to_episodes,
-                    client,
-                    torrent_hash,
-                    target_eps_data,
-                    None,
-                    explicit_episode_ids={ep.id for ep in target_episodes},
-                    content_type=show.content_type,
+        from app.services.auto_search import _limit_torrent_files_to_episodes
+        try:
+            target_eps_data = [
+                Episode(
+                    id=ep.id,
+                    show_id=show.id,
+                    season_number=ep.season_number,
+                    episode_number=ep.episode_number,
+                    absolute_number=ep.absolute_number,
+                    title=getattr(ep, "title", None),
                 )
-            except Exception as exc:
-                logger.warning("Не удалось запланировать ограничение файлов раздачи: %s", exc)
+                for ep in target_episodes
+            ]
+            background_tasks.add_task(
+                _limit_torrent_files_to_episodes,
+                client,
+                torrent_hash,
+                target_eps_data,
+                None,
+                explicit_episode_ids={ep.id for ep in target_episodes},
+                content_type=show.content_type,
+            )
+        except Exception as exc:
+            logger.warning("Не удалось запланировать ограничение файлов раздачи: %s", exc)
 
     # Выставляем лимиты сидирования в торрент-клиенте, если для этого трекера или клиента включена раздача
     indexer_row = db.get(Indexer, payload.indexer_id) if payload.indexer_id else None
