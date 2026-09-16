@@ -65,7 +65,7 @@ from app.services.openapi_service import get_localized_openapi
 app = FastAPI(
     title="Aliasarr API",
     description="Backend API для Aliasarr — системы управления медиатекой с мультиязычными алиасами, парсером сезонов и контролем торрент-клиентов.",
-    version="3.2.0",
+    version="3.3.0",
     docs_url=None,
     redoc_url=None,
     openapi_url=None,

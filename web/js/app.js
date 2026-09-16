@@ -5924,7 +5924,7 @@ async function loadSystemAbout() {
 
     const isRu = CURRENT_LANG !== "en";
     const commitVal = info.commit || info.branch || 'main';
-    const versionVal = `v${escapeHtml(info.version || '3.2.0')} (${escapeHtml(commitVal)})`;
+    const versionVal = `v${escapeHtml(info.version || '3.3.0')} (${escapeHtml(commitVal)})`;
     const runtimeVal = escapeHtml(info.runtime || 'Docker');
     const pythonVal = escapeHtml(info.python_version || '3.11');
     const dbVal = `${escapeHtml(info.database_type || 'SQLite')}${info.database_version ? ` ${escapeHtml(info.database_version)}` : ''}${info.database_size_formatted ? ` (${info.database_size_formatted})` : ''}`;
