@@ -586,6 +586,26 @@ class TestMovieSuite(unittest.TestCase):
         res4 = asyncio.run(search_and_grab_show(db_mock3, show_anime, episode_ids={2024, 2025}))
         self.assertEqual(show_anime.last_search_result, "Выбранные серии ещё не вышли")
 
+    def test_search_season_episodes_api(self):
+        try:
+            from app.api.shows import search_season_episodes
+        except ImportError:
+            return
+        import asyncio
+
+        show = Show(id=10, title="Anime S2", content_type="anime")
+        eps = [
+            Episode(id=1, show_id=10, season_number=2, episode_number=1, status=EpisodeStatus.DOWNLOADED, file_path="/media/ep1.mkv", monitored=True),
+            Episode(id=2, show_id=10, season_number=2, episode_number=2, status=EpisodeStatus.UNAIRED, air_date=dt.datetime(2027, 1, 1), monitored=True),
+        ]
+        db_mock = MagicMock()
+        db_mock.get.return_value = show
+        db_mock.query.return_value.filter.return_value.all.return_value = eps
+
+        with patch("app.services.auto_search.search_and_grab_show", new=AsyncMock(return_value={"grabbed": []})):
+            res = asyncio.run(search_season_episodes(show_id=10, season_number=2, db=db_mock, current_user=MagicMock()))
+            self.assertEqual(res["message"], "Сезон 2: все вышедшие серии скачаны (оставшиеся ещё не вышли)")
+
 
 if __name__ == "__main__":
     unittest.main()

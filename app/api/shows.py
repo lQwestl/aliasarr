@@ -1707,6 +1707,7 @@ async def search_season_episodes(
             db.refresh(show)
         except Exception:
             pass
+        grabbed_ids = {g["episode_id"] for g in result.get("grabbed", [])}
         today = dt.date.today()
         is_season_all_future = all(
             ep.status == EpisodeStatus.UNAIRED or (ep.air_date and ((ep.air_date.date() if isinstance(ep.air_date, dt.datetime) else ep.air_date) > today))
