@@ -35,12 +35,28 @@ try:
         TrackedRelease,
     )
 except ImportError:
-    and_ = None
-    or_ = None
+    and_ = lambda *args: True
+    or_ = lambda *args: True
     Session = object
     DownloadClient = None
     DownloadHistory = None
-    Episode = None
+    class _MockField:
+        def __eq__(self, other): return True
+        def __ne__(self, other): return True
+        def __gt__(self, other): return True
+        def __lt__(self, other): return True
+        def in_(self, other): return True
+
+    class Episode:
+        id = _MockField()
+        show_id = _MockField()
+        status = _MockField()
+        monitored = _MockField()
+        upgrade_requested = _MockField()
+        season_number = _MockField()
+        episode_number = _MockField()
+        air_date = _MockField()
+
     EpisodeStatus = type("EpisodeStatus", (), {"DOWNLOADED": "downloaded", "WANTED": "wanted", "DOWNLOADING": "downloading", "IGNORED": "ignored", "MISSING": "missing", "UNAIRED": "unaired"})
     Indexer = None
     QualityProfile = None
@@ -1064,7 +1080,50 @@ async def search_and_grab_show(
             if reason == "no_enabled_indexers":
                 show.last_search_result = "Нет включённых индексаторов"
             elif reason == "no_wanted_episodes":
-                show.last_search_result = "Фильм уже скачан" if getattr(show, "content_type", "") == "movie" else "Нет серий в статусе «разыскивается»"
+                today = dt.date.today()
+                if getattr(show, "content_type", "") == "movie":
+                    movie_ep = db.query(Episode).filter(Episode.show_id == show.id).first()
+                    is_downloaded = bool(movie_ep and (movie_ep.status == EpisodeStatus.DOWNLOADED or movie_ep.file_path))
+
+                    air_d = getattr(movie_ep, "air_date", None)
+                    if isinstance(air_d, dt.datetime):
+                        air_d = air_d.date()
+
+                    is_unaired = bool(
+                        (movie_ep and movie_ep.status == EpisodeStatus.UNAIRED)
+                        or (air_d and air_d > today)
+                        or (getattr(show, "year", None) and show.year > today.year)
+                    )
+
+                    if is_downloaded:
+                        show.last_search_result = "Фильм уже скачан"
+                    elif is_unaired:
+                        show.last_search_result = "Фильм ещё не вышел"
+                    elif movie_ep and not getattr(movie_ep, "monitored", True) and not getattr(show, "monitored", True):
+                        show.last_search_result = "Фильм не отслеживается"
+                    else:
+                        show.last_search_result = "Фильм ещё не вышел" if is_unaired else "Нет разыскиваемых файлов"
+                else:
+                    all_eps = db.query(Episode).filter(Episode.show_id == show.id).all()
+                    regular_eps = [ep for ep in all_eps if getattr(ep, "season_number", 1) and ep.season_number > 0] or all_eps
+
+                    def _is_ep_unaired(ep):
+                        ep_air = getattr(ep, "air_date", None)
+                        if isinstance(ep_air, dt.datetime):
+                            ep_air = ep_air.date()
+                        return ep.status == EpisodeStatus.UNAIRED or bool(ep_air and ep_air > today)
+
+                    def _is_ep_downloaded(ep):
+                        return ep.status == EpisodeStatus.DOWNLOADED or bool(getattr(ep, "file_path", None))
+
+                    if regular_eps and all(_is_ep_unaired(ep) for ep in regular_eps):
+                        show.last_search_result = "Серии ещё не вышли"
+                    elif regular_eps and all(_is_ep_downloaded(ep) for ep in regular_eps):
+                        show.last_search_result = "Все серии уже скачаны"
+                    elif all_eps and not any(getattr(ep, "monitored", True) for ep in all_eps) and not getattr(show, "monitored", True):
+                        show.last_search_result = "Серии не отслеживаются"
+                    else:
+                        show.last_search_result = "Нет серий в статусе «разыскивается»"
             elif grabbed_count:
                 if getattr(show, "content_type", "") == "movie":
                     show.last_search_result = "Захвачен фильм"

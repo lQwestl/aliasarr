@@ -450,6 +450,71 @@ class TestMovieSuite(unittest.TestCase):
             self.assertIsNotNone(coll.last_metadata_refresh_at)
             db_mock.commit.assert_called()
 
+    # -------------------------------------------------------------------------
+    # 7. SEARCH STATUS MESSAGE FOR UNAIRED & DOWNLOADED MOVIES
+    # -------------------------------------------------------------------------
+
+    def test_search_and_grab_unaired_movie_status_message(self):
+        import asyncio
+        from app.services.auto_search import search_and_grab_show
+
+        # 1. Movie not yet released (year in future, UNAIRED status) -> "Фильм ещё не вышел"
+        show_unaired = Show(
+            id=101,
+            title="Spider-Man: Beyond the Spider-Verse",
+            year=2027,
+            content_type="movie",
+            monitored=False,
+            quality_profile_id=1,
+            last_search_result=None,
+        )
+        ep_unaired = Episode(
+            id=1001,
+            show_id=101,
+            season_number=1,
+            episode_number=1,
+            status=EpisodeStatus.UNAIRED,
+            air_date=dt.datetime(2027, 6, 17),
+            monitored=False,
+            file_path=None,
+        )
+
+        db_mock1 = MagicMock()
+        db_mock1.get.return_value = None
+        db_mock1.query.return_value.filter.return_value.all.return_value = []
+        db_mock1.query.return_value.filter.return_value.first.return_value = ep_unaired
+
+        res1 = asyncio.run(search_and_grab_show(db_mock1, show_unaired))
+        self.assertEqual(show_unaired.last_search_result, "Фильм ещё не вышел")
+
+        # 2. Movie already downloaded -> "Фильм уже скачан"
+        show_downloaded = Show(
+            id=102,
+            title="Inception",
+            year=2010,
+            content_type="movie",
+            monitored=True,
+            quality_profile_id=1,
+            last_search_result=None,
+        )
+        ep_downloaded = Episode(
+            id=1002,
+            show_id=102,
+            season_number=1,
+            episode_number=1,
+            status=EpisodeStatus.DOWNLOADED,
+            file_path="/media/movies/Inception.mkv",
+            monitored=True,
+        )
+
+        db_mock2 = MagicMock()
+        db_mock2.get.return_value = None
+        db_mock2.query.return_value.filter.return_value.all.return_value = []
+        db_mock2.query.return_value.filter.return_value.first.return_value = ep_downloaded
+
+        res2 = asyncio.run(search_and_grab_show(db_mock2, show_downloaded))
+        self.assertEqual(show_downloaded.last_search_result, "Фильм уже скачан")
+
 
 if __name__ == "__main__":
     unittest.main()
