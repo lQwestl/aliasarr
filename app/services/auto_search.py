@@ -1596,8 +1596,8 @@ async def _do_search_and_grab(
                 )
         wanted_episodes = db.query(Episode).filter(Episode.show_id == show.id, status_filter).all()
 
-    # Для сериалов и аниме исключаем из фонового автопоиска серии, чья премьера еще не состоялась в реальности
-    if show.content_type != "movie" and not episode_ids and wanted_episodes:
+    # Для сериалов и аниме исключаем серии, чья премьера еще не состоялась в реальности
+    if show.content_type != "movie" and wanted_episodes:
         today = dt.date.today()
         # Определяем минимальную известную дату будущей премьеры в каждом сезоне
         future_season_min_dates: dict[int, dt.date] = {}
