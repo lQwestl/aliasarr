@@ -54,13 +54,18 @@ from app.services.audit_service import log_audit
 from app.services.parser import ParsedRelease, ReleaseKind, parse_episode
 from app.services.postprocess import (
     _SAMPLE_RE,
+    COMPANION_EXTENSIONS,
+    DELETABLE_COMPANION_EXTENSIONS,
     VIDEO_EXTENSIONS,
     apply_media_permissions,
     copy_file_with_progress,
     extract_companion_tag,
     find_release_files,
     find_video_files,
+    episode_number_in_name,
     get_show_default_path,
+    is_companion_file_name,
+    iter_companion_files,
     match_companion_files_for_episode,
     move_file_with_progress,
     natural_sort_key,
@@ -802,17 +807,12 @@ async def delete_content(
                         deleted_files += 1
                         season_folders_to_check.add(os.path.dirname(fpath))
 
-                        # Удаляем сопутствующие файлы субтитров/аудио
-                        fstem = os.path.splitext(fpath)[0]
-                        parent_dir = os.path.dirname(fpath)
-                        if os.path.isdir(parent_dir):
-                            for sibling in os.listdir(parent_dir):
-                                s_full = os.path.join(parent_dir, sibling)
-                                if os.path.isfile(s_full) and s_full.startswith(fstem) and s_full != fpath:
-                                    try:
-                                        os.remove(s_full)
-                                    except Exception:
-                                        pass
+                        # Удаляем сопутствующие файлы субтитров/аудио/обложек
+                        for companion in iter_companion_files(fpath, DELETABLE_COMPANION_EXTENSIONS):
+                            try:
+                                os.remove(companion)
+                            except Exception:
+                                pass
                     except Exception:
                         pass
 
@@ -829,16 +829,28 @@ async def delete_content(
 
             db.add(ep)
 
-        # Удаляем пустые папки сезонов
+        # Удаляем опустевшие папки сезонов.
+        # Папка сезона — это родитель удалённого файла, а он не обязан быть
+        # вложенной папкой: при импорте в корень тайтла или в корень медиатеки
+        # сюда попадала бы сама корневая папка, и rmtree сносил бы её целиком.
         if payload.delete_files:
+            show_root = os.path.abspath(show.path) if show.path else None
             for s_dir in season_folders_to_check:
-                if s_dir and os.path.isdir(s_dir):
-                    try:
-                        remaining_files = [f for f in os.listdir(s_dir) if not f.startswith(".")]
-                        if not remaining_files:
-                            shutil.rmtree(s_dir, ignore_errors=True)
-                    except Exception:
-                        pass
+                if not s_dir or not os.path.isdir(s_dir):
+                    continue
+                s_dir_abs = os.path.abspath(s_dir)
+                if show_root and s_dir_abs == show_root:
+                    continue
+                try:
+                    require_library_descendant(s_dir_abs, settings)
+                except UnsafeMediaPathError:
+                    continue
+                try:
+                    remaining_files = [f for f in os.listdir(s_dir_abs) if not f.startswith(".")]
+                    if not remaining_files:
+                        shutil.rmtree(s_dir_abs, ignore_errors=True)
+                except Exception:
+                    pass
 
         db.commit()
 
@@ -885,17 +897,12 @@ async def delete_content(
                         os.remove(fpath)
                         deleted_files += 1
 
-                        # Удаляем сопутствующие файлы субтитров/аудио
-                        fstem = os.path.splitext(fpath)[0]
-                        parent_dir = os.path.dirname(fpath)
-                        if os.path.isdir(parent_dir):
-                            for sibling in os.listdir(parent_dir):
-                                s_full = os.path.join(parent_dir, sibling)
-                                if os.path.isfile(s_full) and s_full.startswith(fstem) and s_full != fpath:
-                                    try:
-                                        os.remove(s_full)
-                                    except Exception:
-                                        pass
+                        # Удаляем сопутствующие файлы субтитров/аудио/обложек
+                        for companion in iter_companion_files(fpath, DELETABLE_COMPANION_EXTENSIONS):
+                            try:
+                                os.remove(companion)
+                            except Exception:
+                                pass
                     except Exception:
                         pass
 
@@ -3773,6 +3780,265 @@ async def remap_show_metadata(
     }
 
 
+# ---------------------------------------------------------------------------
+# Смена папки тайтла
+# ---------------------------------------------------------------------------
+
+
+class ChangeShowFolderIn(BaseModel):
+    path: str
+    move_files: bool = True
+
+
+def _normalize_media_path(raw: str) -> str:
+    """Каноничный абсолютный путь без хвостового слеша и без ведущего «//»."""
+    target = os.path.normpath("/" + (raw or "").strip())
+    while target.startswith("//"):
+        target = target[1:]
+    return target
+
+
+def _is_within(child: str, parent: str) -> bool:
+    """True, если child лежит внутри parent (или совпадает с ним)."""
+    try:
+        return os.path.commonpath([child, parent]) == parent
+    except ValueError:
+        return False
+
+
+def _rebase_path(path: str, old_root: str, new_root: str) -> Optional[str]:
+    """Переносит путь из old_root в new_root, сохраняя относительную часть."""
+    if not path:
+        return None
+    abs_path = os.path.abspath(path)
+    if not _is_within(abs_path, old_root):
+        return None
+    rel = os.path.relpath(abs_path, old_root)
+    if rel == ".":
+        return new_root
+    return os.path.normpath(os.path.join(new_root, rel))
+
+
+def _resolve_change_folder_request(db: Session, show: Show, raw_path: str) -> tuple[str, str, Any]:
+    """Общая валидация для предпросмотра и выполнения смены папки."""
+    settings = get_or_create_settings(db)
+
+    if not (raw_path or "").strip():
+        raise HTTPException(400, "Путь не может быть пустым")
+    if not raw_path.strip().startswith("/"):
+        raise HTTPException(400, "Путь должен быть абсолютным")
+
+    new_root = _normalize_media_path(raw_path)
+    if new_root == "/":
+        raise HTTPException(400, "Нельзя использовать корень файловой системы как папку тайтла")
+
+    try:
+        require_library_descendant(new_root, settings)
+    except UnsafeMediaPathError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    old_root = os.path.abspath(show.path) if show.path else ""
+    return old_root, new_root, settings
+
+
+@router.get("/{show_id}/change-folder/preview", summary="Предпросмотр смены папки тайтла")
+def preview_change_show_folder(
+    show_id: int,
+    path: str = Query(..., description="Новая папка тайтла (абсолютный путь)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    """Рассказывает, что произойдёт при смене папки: сколько файлов переедет,
+    существует ли цель, не занята ли она другим тайтлом."""
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Карточка не найдена")
+
+    old_root, new_root, _ = _resolve_change_folder_request(db, show, path)
+
+    episodes = db.query(Episode).filter(Episode.show_id == show.id, Episode.file_path.isnot(None)).all()
+    linked_files = [ep.file_path for ep in episodes if ep.file_path]
+    files_in_db = len(linked_files)
+    files_on_disk = sum(1 for f in linked_files if os.path.isfile(f))
+
+    entries_to_move = 0
+    bytes_to_move = 0
+    if old_root and os.path.isdir(old_root):
+        for dirpath, _dirnames, filenames in os.walk(old_root):
+            for name in filenames:
+                entries_to_move += 1
+                try:
+                    bytes_to_move += os.path.getsize(os.path.join(dirpath, name))
+                except OSError:
+                    pass
+
+    target_exists = os.path.isdir(new_root)
+    target_entries = len(os.listdir(new_root)) if target_exists else 0
+
+    other = (
+        db.query(Show)
+        .filter(Show.id != show.id, Show.path == new_root)
+        .first()
+    )
+
+    warnings: list[str] = []
+    if old_root and new_root == old_root:
+        warnings.append("Новая папка совпадает с текущей — менять нечего")
+    if old_root and _is_within(new_root, old_root):
+        warnings.append("Новая папка находится внутри текущей — перенос файлов невозможен")
+    if old_root and _is_within(old_root, new_root):
+        warnings.append("Текущая папка находится внутри новой — перенос файлов невозможен")
+    if other:
+        warnings.append(f"Эта папка уже назначена тайтлу «{other.title}»")
+    if target_exists and target_entries:
+        warnings.append(f"Папка не пуста: в ней уже {target_entries} объект(ов)")
+    if not old_root or not os.path.isdir(old_root):
+        warnings.append("Текущей папки нет на диске — файлы переносить не из чего")
+
+    return {
+        "show_id": show.id,
+        "old_path": old_root or None,
+        "new_path": new_root,
+        "old_path_exists": bool(old_root and os.path.isdir(old_root)),
+        "target_exists": target_exists,
+        "target_entries": target_entries,
+        "files_to_move": entries_to_move,
+        "bytes_to_move": bytes_to_move,
+        "episodes_linked": files_in_db,
+        "episodes_on_disk": files_on_disk,
+        "warnings": warnings,
+    }
+
+
+@router.post("/{show_id}/change-folder", summary="Сменить папку тайтла")
+def change_show_folder(
+    show_id: int,
+    payload: ChangeShowFolderIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manage_library")),
+):
+    """Меняет папку тайтла на диске.
+
+    move_files=True — содержимое текущей папки переезжает в новую, пути серий в
+    базе перепривязываются, опустевшая старая папка удаляется.
+
+    move_files=False — меняется только путь в базе. Это нужно, когда файлы уже
+    лежат в новом месте (например, их перенесли вручную или средствами NAS):
+    пути серий, которые были внутри старой папки, перепривязываются к новой,
+    сами файлы не трогаются.
+    """
+    show = db.get(Show, show_id)
+    if not show:
+        raise HTTPException(404, "Карточка не найдена")
+
+    old_root, new_root, settings = _resolve_change_folder_request(db, show, payload.path)
+
+    if old_root and new_root == old_root:
+        return {
+            "success": True,
+            "show_id": show.id,
+            "old_path": old_root,
+            "new_path": new_root,
+            "moved_files": 0,
+            "updated_episodes": 0,
+            "errors": [],
+            "message": "Папка не изменилась",
+        }
+
+    errors: list[str] = []
+    moved_files = 0
+    move_files = bool(payload.move_files)
+    source_available = bool(old_root) and os.path.isdir(old_root)
+
+    if move_files and not source_available:
+        # Переносить нечего — молча превращаемся в смену пути, но сообщаем об этом.
+        move_files = False
+        errors.append(f"Текущая папка «{old_root or '—'}» не найдена на диске, перенос файлов пропущен")
+
+    if move_files:
+        if _is_within(new_root, old_root) or _is_within(old_root, new_root):
+            raise HTTPException(400, "Нельзя переносить папку внутрь самой себя или наоборот")
+        try:
+            require_library_descendant(old_root, settings)
+        except UnsafeMediaPathError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        try:
+            os.makedirs(new_root, exist_ok=True)
+            apply_media_permissions(new_root, is_dir=True)
+        except OSError as exc:
+            raise HTTPException(400, f"Не удалось создать папку «{new_root}»: {exc}")
+
+        # Переносим содержимое, а не саму папку: цель может уже существовать.
+        for name in sorted(os.listdir(old_root)):
+            src = os.path.join(old_root, name)
+            dst = os.path.join(new_root, name)
+            if os.path.exists(dst):
+                errors.append(f"«{name}» уже есть в новой папке, файл оставлен на месте")
+                continue
+            try:
+                shutil.move(src, dst)
+                apply_media_permissions(dst, is_dir=os.path.isdir(dst))
+                moved_files += 1
+            except Exception as exc:
+                errors.append(f"Не удалось перенести «{name}»: {exc}")
+
+    # Перепривязываем пути серий, которые лежали внутри старой папки.
+    updated_episodes = 0
+    if old_root:
+        episodes = db.query(Episode).filter(Episode.show_id == show.id, Episode.file_path.isnot(None)).all()
+        for ep in episodes:
+            rebased = _rebase_path(ep.file_path, old_root, new_root)
+            if rebased and rebased != ep.file_path:
+                ep.file_path = rebased
+                updated_episodes += 1
+
+    show.path = new_root
+    db.add(show)
+    db.commit()
+    db.refresh(show)
+
+    # Убираем опустевшую старую папку, но только если она действительно пуста.
+    if move_files and old_root and os.path.isdir(old_root):
+        try:
+            if not os.listdir(old_root):
+                os.rmdir(old_root)
+        except OSError as exc:
+            errors.append(f"Старая папка не удалена: {exc}")
+
+    if not move_files and not os.path.isdir(new_root):
+        try:
+            os.makedirs(new_root, exist_ok=True)
+            apply_media_permissions(new_root, is_dir=True)
+        except OSError as exc:
+            errors.append(f"Не удалось создать папку «{new_root}»: {exc}")
+
+    log_audit(
+        db,
+        "show.change_folder",
+        f"Папка тайтла «{show.title}» изменена: {old_root or '—'} → {new_root}"
+        + (f" (перенесено объектов: {moved_files})" if move_files else " (без переноса файлов)"),
+        username=current_user.username,
+        user=current_user,
+    )
+
+    if move_files:
+        message = f"Папка изменена, перенесено объектов: {moved_files}, обновлено серий: {updated_episodes}"
+    else:
+        message = f"Путь тайтла изменён, обновлено серий: {updated_episodes}"
+
+    return {
+        "success": not errors,
+        "show_id": show.id,
+        "old_path": old_root or None,
+        "new_path": new_root,
+        "moved_files": moved_files,
+        "updated_episodes": updated_episodes,
+        "errors": errors,
+        "message": message,
+    }
+
+
 @router.get("/{show_id}/rename/preview", summary="Предпросмотр переименования файлов тайтла")
 def preview_rename_show(
     show_id: int,
@@ -3991,30 +4257,21 @@ def execute_rename_show(
             old_stem = os.path.splitext(os.path.basename(old_full_path))[0]
             new_stem = os.path.splitext(os.path.basename(new_full_path))[0]
 
-            COMPANION_EXTS = {
-                ".srt", ".ass", ".ssa", ".sub", ".idx", ".vtt",
-                ".mka", ".ac3", ".dts", ".eac3", ".aac", ".flac", ".mp3", ".wav",
-                ".nfo", ".txt"
-            }
+            COMPANION_EXTS = COMPANION_EXTENSIONS
 
             moved_companions = set()
 
-            # 1. Файлы в той же директории, начинающиеся с old_stem
-            if os.path.exists(old_dir):
-                for f_name in os.listdir(old_dir):
-                    src_companion = os.path.join(old_dir, f_name)
-                    if not os.path.isfile(src_companion) or src_companion == old_full_path:
-                        continue
-                    ext_c = os.path.splitext(f_name)[1].lower()
-                    if f_name.startswith(old_stem) and ext_c in COMPANION_EXTS:
-                        suffix = f_name[len(old_stem):]
-                        dst_companion = os.path.join(dest_dir, f"{new_stem}{suffix}")
-                        try:
-                            shutil.move(src_companion, dst_companion)
-                            apply_media_permissions(dst_companion, is_dir=False)
-                            moved_companions.add(src_companion)
-                        except Exception as c_err:
-                            errors.append(f"Ошибка переноса {f_name}: {c_err}")
+            # 1. Спутники в той же директории (имя видеофайла + разделитель + суффикс)
+            for src_companion in iter_companion_files(old_full_path, COMPANION_EXTS):
+                f_name = os.path.basename(src_companion)
+                suffix = f_name[len(old_stem):]
+                dst_companion = os.path.join(dest_dir, f"{new_stem}{suffix}")
+                try:
+                    shutil.move(src_companion, dst_companion)
+                    apply_media_permissions(dst_companion, is_dir=False)
+                    moved_companions.add(src_companion)
+                except Exception as c_err:
+                    errors.append(f"Ошибка переноса {f_name}: {c_err}")
 
             # 2. Файлы в подпапках (Subs, Subtitles, Audio, Audios, Sound, Tracks) или по номеру серии
             potential_dirs = []
@@ -4044,7 +4301,7 @@ def execute_rename_show(
                     if parsed_c and parsed_c.episodes and any(e in ep_nums for e in parsed_c.episodes):
                         if parsed_c.season is None or parsed_c.season == ep.season_number:
                             is_match = True
-                    elif any(f"{n:02d}" in f_name or f"e{n:02d}" in f_name.lower() or f"- {n}" in f_name for n in ep_nums if n is not None):
+                    elif episode_number_in_name(f_name, ep_nums):
                         is_match = True
 
                     if is_match:

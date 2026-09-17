@@ -4425,14 +4425,67 @@
   </div>
 </div>
 
+<!-- Смена папки тайтла -->
+<div id="change-folder-modal" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('change-folder-modal')" aria-label="Закрыть"><i data-lucide="x"></i></button>
+    <h3 style="margin-top:0;" data-i18n="change_folder.title">Папка тайтла</h3>
+
+    <div class="form-group">
+      <label data-i18n="change_folder.current_label">Текущая папка</label>
+      <div class="mono" id="change-folder-current" style="word-break:break-all; color:var(--text-muted);">—</div>
+    </div>
+
+    <div class="form-group">
+      <label for="change-folder-path-input" data-i18n="change_folder.new_label">Новая папка</label>
+      <div class="form-row">
+        <input id="change-folder-path-input" class="input input-grow mono" type="text" spellcheck="false"
+               autocomplete="off" autocapitalize="off" autocorrect="off"
+               placeholder="/media/series/Название" data-i18n-placeholder="change_folder.path_placeholder"
+               oninput="scheduleChangeFolderPreview()">
+        <button class="btn btn-secondary" onclick="openFolderPicker('change-folder-path-input')" data-i18n="common.browse">Обзор</button>
+      </div>
+      <p class="hint" data-i18n="change_folder.picker_hint">В окне обзора можно подняться выше, ввести путь вручную или создать новую папку.</p>
+    </div>
+
+    <div class="form-group">
+      <label data-i18n="change_folder.mode_label">Что сделать с файлами</label>
+      <label class="radio-row" style="display:flex; gap:8px; align-items:flex-start; margin-bottom:6px;">
+        <input type="radio" name="change-folder-mode" value="move" checked onchange="scheduleChangeFolderPreview()">
+        <span>
+          <strong data-i18n="change_folder.mode_move">Перенести файлы</strong><br>
+          <span class="hint" data-i18n="change_folder.mode_move_desc">Содержимое текущей папки переедет в новую, пути серий обновятся, пустая старая папка будет удалена.</span>
+        </span>
+      </label>
+      <label class="radio-row" style="display:flex; gap:8px; align-items:flex-start;">
+        <input type="radio" name="change-folder-mode" value="relink" onchange="scheduleChangeFolderPreview()">
+        <span>
+          <strong data-i18n="change_folder.mode_relink">Только изменить путь</strong><br>
+          <span class="hint" data-i18n="change_folder.mode_relink_desc">Файлы уже лежат в новой папке. Aliasarr обновит пути в базе и не тронет диск.</span>
+        </span>
+      </label>
+    </div>
+
+    <div id="change-folder-preview" class="hint" style="margin-top:12px; min-height:20px;"></div>
+
+    <div class="form-row" style="justify-content:flex-end; margin-top:14px;">
+      <button class="btn btn-secondary" onclick="closeModal('change-folder-modal')" data-i18n="common.cancel">Отмена</button>
+      <button class="btn btn-primary" id="change-folder-apply-btn" onclick="applyChangeShowFolder()" data-i18n="change_folder.btn_apply">Сменить папку</button>
+    </div>
+  </div>
+</div>
+
 <!-- Выбор папки на диске -->
 <div id="folder-picker-modal" class="modal-overlay">
   <div class="modal">
     <button class="modal-close" onclick="closeModal('folder-picker-modal')" aria-label="Закрыть"><i data-lucide="x"></i></button>
     <h3 style="margin-top:0;" data-i18n="folder_picker.title">Выбор папки</h3>
     <div class="form-row" style="margin-bottom:10px;">
-      <button class="btn-icon-only" title="Наверх" data-i18n-title="folder_picker.up_title" onclick="folderPickerNavigateUp()">↑</button>
-      <span class="mono" id="folder-picker-current-path" style="flex:1; word-break:break-all;"></span>
+      <button class="btn-icon-only" id="folder-picker-up-btn" title="Наверх" data-i18n-title="folder_picker.up_title" onclick="folderPickerNavigateUp()" aria-label="Наверх"><i data-lucide="arrow-up" class="ico-sm"></i></button>
+      <input type="text" class="input mono" id="folder-picker-current-path" style="flex:1;" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off"
+             placeholder="/" data-i18n-placeholder="folder_picker.path_placeholder"
+             onkeydown="if(event.key==='Enter'){event.preventDefault(); folderPickerGoToTypedPath();}">
+      <button class="btn btn-secondary btn-small" onclick="folderPickerGoToTypedPath()" data-i18n="folder_picker.btn_go">Перейти</button>
     </div>
     <div id="folder-picker-list" class="folder-picker-list"></div>
     <div class="form-row" style="margin-top:14px;">

@@ -912,6 +912,18 @@ ENDPOINT_CATALOG: dict[tuple[str, str], tuple[str, str, str, str]] = {
         'Принудительно запускает поиск и автоматический захват лучших релизов для тайтла.',
         'Forces immediate auto-search and grabbing of optimal releases for the show.',
     ),
+    ('/api/v1/shows/{show_id}/change-folder', 'POST'): (
+        'Сменить папку тайтла',
+        'Change title folder',
+        'Меняет папку тайтла: переносит содержимое старой папки в новую и перепривязывает пути серий, либо только обновляет путь в базе, если файлы уже перемещены вручную.',
+        'Changes the folder of a title: either moves the contents of the old folder to the new one and re-points episode paths, or only updates the stored path when the files were already moved by hand.',
+    ),
+    ('/api/v1/shows/{show_id}/change-folder/preview', 'GET'): (
+        'Предпросмотр смены папки тайтла',
+        'Preview title folder change',
+        'Сообщает, что произойдёт при смене папки: объём и количество переносимых файлов, существует ли целевая папка и не занята ли она другим тайтлом.',
+        'Reports what a folder change would do: the size and number of files to move, whether the target folder exists and whether another title already uses it.',
+    ),
     ('/api/v1/shows/{show_id}/delete-content', 'POST'): (
         'Удалить файлы тайтла с диска',
         'Delete show files from disk',

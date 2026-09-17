@@ -375,6 +375,21 @@ const TRANSLATIONS = {
     "common.port": "Порт",
     "common.username": "Логин",
     "common.password": "Пароль",
+    "change_folder.btn": "Сменить папку",
+    "change_folder.btn_tooltip": "Выбрать другую папку для тайтла — с переносом файлов или без него",
+    "change_folder.title": "Папка тайтла",
+    "change_folder.current_label": "Текущая папка",
+    "change_folder.new_label": "Новая папка",
+    "change_folder.path_placeholder": "/media/series/Название",
+    "change_folder.picker_hint": "В окне обзора можно подняться выше, ввести путь вручную или создать новую папку.",
+    "change_folder.mode_label": "Что сделать с файлами",
+    "change_folder.mode_move": "Перенести файлы",
+    "change_folder.mode_move_desc": "Содержимое текущей папки переедет в новую, пути серий обновятся, пустая старая папка будет удалена.",
+    "change_folder.mode_relink": "Только изменить путь",
+    "change_folder.mode_relink_desc": "Файлы уже лежат в новой папке. Aliasarr обновит пути в базе и не тронет диск.",
+    "change_folder.btn_apply": "Сменить папку",
+    "change_folder.toast_done": "Папка тайтла изменена",
+    "common.error": "Ошибка",
     "common.loading": "Загрузка…",
     "common.none": "Нет",
     "common.all": "Все",
@@ -472,6 +487,7 @@ const TRANSLATIONS = {
     "library.add_first": "Добавить первое видео",
     "library.col_title": "Тайтл",
     "library.col_progress": "Прогресс",
+    "library.downloaded": "Скачано",
     "library.col_profile": "Профиль",
     "library.col_network": "Сеть / Студия",
     "library.col_next_air": "Следующий эфир",
@@ -1297,6 +1313,7 @@ const TRANSLATIONS = {
     "show.confirm_change_category": "Сменить категорию? Это изменит папку/шаблон переименования при следующем скачивании и вид карточки, но уже скачанные файлы никуда не переместятся автоматически.",
     "show.season": "Сезон",
     "show.download_wanted_episodes": "Скачать выбранные серии",
+    "show.episodes_count": "Серий",
     "show.manual_import": "Ручной импорт",
     "show.btn_remap": "Сменить привязку",
     "show.remap_tooltip": "Сменить привязку метаданных / исправить чужие серии и постер",
@@ -1404,6 +1421,8 @@ const TRANSLATIONS = {
     // Folder Picker & Login Modals
     "folder_picker.title": "Выбор папки",
     "folder_picker.up_title": "Наверх",
+    "folder_picker.path_placeholder": "Путь к папке, например /media/series",
+    "folder_picker.btn_go": "Перейти",
     "folder_picker.new_placeholder": "Имя новой папки…",
     "folder_picker.btn_create": "+ Создать",
     "folder_picker.btn_select": "OK — выбрать эту папку",
@@ -1860,6 +1879,21 @@ const TRANSLATIONS = {
     "common.port": "Port",
     "common.username": "Username",
     "common.password": "Password",
+    "change_folder.btn": "Change Folder",
+    "change_folder.btn_tooltip": "Pick another folder for this title, with or without moving the files",
+    "change_folder.title": "Title Folder",
+    "change_folder.current_label": "Current folder",
+    "change_folder.new_label": "New folder",
+    "change_folder.path_placeholder": "/media/series/Title",
+    "change_folder.picker_hint": "In the browser you can go up, type a path by hand or create a new folder.",
+    "change_folder.mode_label": "What to do with the files",
+    "change_folder.mode_move": "Move the files",
+    "change_folder.mode_move_desc": "The current folder contents move to the new one, episode paths are updated and the emptied old folder is removed.",
+    "change_folder.mode_relink": "Only change the path",
+    "change_folder.mode_relink_desc": "The files are already in the new folder. Aliasarr updates the paths in the database and leaves the disk alone.",
+    "change_folder.btn_apply": "Change Folder",
+    "change_folder.toast_done": "Title folder changed",
+    "common.error": "Error",
     "common.loading": "Loading…",
     "common.none": "None",
     "common.all": "All",
@@ -1957,6 +1991,7 @@ const TRANSLATIONS = {
     "library.add_first": "Add your first video",
     "library.col_title": "Title",
     "library.col_progress": "Progress",
+    "library.downloaded": "Downloaded",
     "library.col_profile": "Quality Profile",
     "library.col_network": "Network / Studio",
     "library.col_next_air": "Next Airing",
@@ -2782,6 +2817,7 @@ const TRANSLATIONS = {
     "show.confirm_change_category": "Change category? This will update the destination folder and renaming template for future downloads and the card view, but existing files will not be moved automatically.",
     "show.season": "Season",
     "show.download_wanted_episodes": "Download Selected Episodes",
+    "show.episodes_count": "Episodes",
     "show.manual_import": "Manual Import",
     "show.btn_remap": "Remap Metadata",
     "show.remap_tooltip": "Change metadata mapping / fix wrong episodes and poster",
@@ -2889,6 +2925,8 @@ const TRANSLATIONS = {
     // Folder Picker & Login Modals
     "folder_picker.title": "Select Folder",
     "folder_picker.up_title": "Up",
+    "folder_picker.path_placeholder": "Folder path, e.g. /media/series",
+    "folder_picker.btn_go": "Go",
     "folder_picker.new_placeholder": "New folder name…",
     "folder_picker.btn_create": "+ Create",
     "folder_picker.btn_select": "OK — Select this folder",
@@ -3438,10 +3476,12 @@ function applyUserPermissionsToUI() {
   const tabLogsDataset = document.querySelector('#tab-logs .logs-tab-btn[data-logs-tab="dataset-harvester"]');
   if (tabLogsDataset) tabLogsDataset.style.display = canSeeDataset ? "" : "none";
 
-  const btnRelLogsClear = document.getElementById("release-logs-clear-btn");
+  // Раздел релиз-логов переехал во вкладку «История»: кнопки там имеют id
+  // history-*, поэтому старые id ниже ничего не находили и права не применялись.
+  const btnRelLogsClear = document.getElementById("history-clear-btn");
   if (btnRelLogsClear) btnRelLogsClear.style.display = hasPermission("manage_release_logs") ? "" : "none";
 
-  const btnRelLogsDl = document.getElementById("release-logs-download-btn");
+  const btnRelLogsDl = document.getElementById("history-download-btn");
   if (btnRelLogsDl) btnRelLogsDl.style.display = canSeeRelLogs ? "" : "none";
 
   const navBackup = document.querySelector('.sidebar nav [data-tab="backup"]');
@@ -5026,6 +5066,24 @@ document.querySelectorAll(".logs-tab-btn").forEach(btn => {
   });
 });
 
+// Синонимы, которыми к подвкладкам настроек обращаются из разметки и из ссылок.
+const SETTINGS_SUBTAB_ALIASES = {
+  clients: "download-clients",
+  downloaders: "download-clients",
+  "download_clients": "download-clients",
+  profiles: "quality",
+};
+
+// Программное переключение подвкладки настроек (например, с плиток дашборда).
+// Делегируем реальной кнопке, чтобы не дублировать логику загрузки разделов.
+function switchSettingsSubTab(subTabId) {
+  const target = SETTINGS_SUBTAB_ALIASES[subTabId] || subTabId;
+  const btn = document.querySelector(`#tab-settings .settings-tab-btn[data-settings-tab="${target}"]`);
+  if (!btn) return false;
+  btn.click();
+  return true;
+}
+
 document.querySelectorAll("#tab-settings .settings-tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll("#tab-settings .settings-tab-btn").forEach(b => b.classList.toggle("active", b === btn));
@@ -5098,6 +5156,19 @@ function renderCloudSearchIconSvg(cls = "ico-xs") {
 
 function escapeHtml(s) {
   return (s || "").toString().replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// Готовит произвольное значение для подстановки аргументом в JS-вызов внутри
+// HTML-атрибута (onclick="fn(...)"). JSON.stringify экранирует кавычки, слеши и
+// переводы строк для JS, escapeHtml — спецсимволы для HTML-атрибута.
+// Подставляется БЕЗ собственных обрамляющих кавычек: onclick="fn(${jsArg(x)})".
+//
+// Ручное доэкранирование апострофа поверх escapeHtml не работает: escapeHtml уже
+// превратил апостроф в &#39;, replace ничего не находит, а парсер HTML возвращает
+// апостроф обратно и рвёт строковый литерал внутри обработчика.
+function jsArg(value) {
+  const raw = (value === null || value === undefined) ? "" : String(value);
+  return escapeHtml(JSON.stringify(raw));
 }
 
 function safeBackgroundImageStyle(rawUrl) {
@@ -9004,7 +9075,7 @@ async function refreshShowModal() {
               ` : ""}
               ${show.path ? `
                 <span class="meta-badge-glass show-path-badge" title="${escapeHtml(show.path)} (${CURRENT_LANG === 'en' ? 'Click to copy path' : 'Нажмите, чтобы скопировать путь'})"
-                  onclick="if(navigator.clipboard){navigator.clipboard.writeText('${escapeHtml(show.path).replace(/'/g, "\\'")}'); toast(CURRENT_LANG==='en'?'Path copied':'Путь скопирован');}">
+                  onclick="copyTextToClipboard(${jsArg(show.path)}, ${jsArg(CURRENT_LANG === 'en' ? 'Path copied' : 'Путь скопирован')})">
                   <i data-lucide="folder" class="ico-xs"></i> <span class="mono">${escapeHtml(show.path)}</span>
                 </span>
               ` : ""}
@@ -9079,6 +9150,9 @@ async function refreshShowModal() {
         <button type="button" class="btn btn-secondary btn-small" onclick="openPreviewRenameModal(${show.id})" title="${t("show.btn_preview_rename")}">
           <i data-lucide="folder-sync" class="ico-sm"></i> <span>${t("show.btn_preview_rename")}</span>
         </button>
+        <button type="button" class="btn btn-secondary btn-small" onclick="openChangeShowFolderModal(${show.id})" title="${t("change_folder.btn_tooltip")}">
+          <i data-lucide="folder-symlink" class="ico-sm"></i> <span>${t("change_folder.btn")}</span>
+        </button>
         <button type="button" class="btn btn-secondary btn-small" onclick="openManualImportModal(${show.id})" title="${t("show.manual_import")}">
           <i data-lucide="hard-drive-download" class="ico-sm"></i> <span>${t("show.manual_import")}</span>
         </button>
@@ -9086,6 +9160,10 @@ async function refreshShowModal() {
           <i data-lucide="shield-check" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Permissions' : 'Права доступа'}</span>
         </button>
         ` : ""}
+        ${!show.path ? `
+        <button type="button" class="btn btn-secondary btn-small" onclick="openChangeShowFolderModal(${show.id})" title="${t("change_folder.btn_tooltip")}">
+          <i data-lucide="folder-symlink" class="ico-sm"></i> <span>${t("change_folder.btn")}</span>
+        </button>` : ""}
         ${(Boolean(CACHED_APP_SETTINGS?.enable_remap_button ?? (localStorage.getItem("aliasarr_enable_remap_button") === "true"))) ? `
         <button type="button" class="btn btn-secondary btn-small" onclick="openShowRemapModal(${show.id})" title="${t("show.remap_tooltip")}">
           <i data-lucide="link-2" class="ico-sm"></i> <span>${t("show.btn_remap")}</span>
@@ -14335,7 +14413,7 @@ function openCalendarEventModal(eKey) {
 
       <div class="cal-ev-modal-actions">
         ${canManage ? `
-          <button class="btn btn-secondary btn-small" onclick="closeModal('calendar-event-modal'); promptEditCalendarDate(${e.episode_id ?? "null"}, ${e.show_id}, '${escapeHtml(e.show_title || '').replace(/'/g, "\\'")}')">
+          <button class="btn btn-secondary btn-small" onclick="closeModal('calendar-event-modal'); promptEditCalendarDate(${e.episode_id ?? "null"}, ${e.show_id}, ${jsArg(e.show_title || '')})">
             <i data-lucide="edit-2" class="ico-xs"></i> <span>${t("calendar.btn_edit_date")}</span>
           </button>
           <button class="btn btn-secondary btn-small" onclick="closeModal('calendar-event-modal'); openInteractiveSearch(${e.show_id}, ${e.episode_id && e.season != null ? e.season : 'null'}, ${e.episode_id && e.episode != null ? e.episode : 'null'})">
@@ -14592,7 +14670,7 @@ function renderCalendarGrid(startDate, numDays, byDay) {
     const moreLabel = t("calendar.more_events", { count: restCount });
 
     const eventsHtml = shown.map(e => renderCalendarEventChip(e)).join("") +
-      (restCount > 0 ? `<div class="calendar-event-more" onclick="openCalendarDayMoreModal('${escapeHtml(key)}')" title="${escapeHtml(moreLabel)}"><i data-lucide="layers" class="ico-xs"></i><span>${escapeHtml(moreLabel)}</span></div>` : "");
+      (restCount > 0 ? `<div class="calendar-event-more" onclick="openCalendarDayMoreModal(${jsArg(key)})" title="${escapeHtml(moreLabel)}"><i data-lucide="layers" class="ico-xs"></i><span>${escapeHtml(moreLabel)}</span></div>` : "");
 
     cells += `<div class="calendar-day-cell ${outside ? "outside-month" : ""} ${isToday ? "is-today" : ""}">
       <div class="calendar-day-number">${d.getDate()}</div>
@@ -14669,7 +14747,7 @@ function renderCalendarEventChip(e) {
     </div>
     <div class="cal-ev-bot">
       <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${timeStr}</div>
-      ${canManageLib ? `<span class="cal-event-edit" title="${t('calendar.btn_edit_date')}" onclick="event.stopPropagation(); promptEditCalendarDate(${e.episode_id ?? "null"}, ${e.show_id}, '${escapeHtml(e.show_title).replace(/'/g, "&apos;")}')"><i data-lucide="pencil" style="width: 12px; height: 12px;"></i></span>` : ""}
+      ${canManageLib ? `<span class="cal-event-edit" title="${t('calendar.btn_edit_date')}" onclick="event.stopPropagation(); promptEditCalendarDate(${e.episode_id ?? "null"}, ${e.show_id}, ${jsArg(e.show_title)})"><i data-lucide="pencil" style="width: 12px; height: 12px;"></i></span>` : ""}
     </div>
   </div>`;
 }
@@ -14910,7 +14988,7 @@ function renderCalendarAgendaList(byDay, rangeStart, rangeEnd) {
                 <button class="cal-btn-action" title="${t('calendar.btn_manual_search')}" onclick="openInteractiveSearch(${e.show_id}, ${e.season ?? 'null'}, ${e.episode ?? 'null'})">
                   <i data-lucide="search"></i>
                 </button>
-                <button class="cal-btn-action" title="${t('calendar.btn_edit_date')}" onclick="promptEditCalendarDate(${e.episode_id ?? 'null'}, ${e.show_id}, '${escapeHtml(e.show_title || '').replace(/'/g, "\\'")}')">
+                <button class="cal-btn-action" title="${t('calendar.btn_edit_date')}" onclick="promptEditCalendarDate(${e.episode_id ?? 'null'}, ${e.show_id}, ${jsArg(e.show_title || '')})">
                   <i data-lucide="edit-2"></i>
                 </button>
               ` : `
@@ -16419,7 +16497,7 @@ function switchTemplatesHelpTab(cat) {
           <div class="template-section-title">${isEn ? "Preset formats (click to apply)" : "Готовые форматы (кликните для применения)"}</div>
           <div class="template-presets-grid">
             ${data.presets.map(p => `
-              <div class="template-preset-btn" onclick="applyTemplatePreset('${escapeHtml(p.template).replace(/'/g, "\\'")}')">
+              <div class="template-preset-btn" onclick="applyTemplatePreset(${jsArg(p.template)})">
                 <div class="template-preset-code">${escapeHtml(p.template)}</div>
                 <div class="template-preset-desc">${escapeHtml(isEn ? (TPL_DESC_EN[p.desc] || p.desc) : p.desc)}: <span style="font-family:var(--font-mono); color:var(--text);">${escapeHtml(p.preview)}</span></div>
               </div>
@@ -16446,7 +16524,7 @@ function switchTemplatesHelpTab(cat) {
             <table class="template-tokens-table">
               <tbody>
                 ${sec.tokens.map(t => `
-                  <tr onclick="insertTemplatePlaceholder('${t.token.replace(/'/g, "\\'")}')" title="${isEn ? "Insert " + escapeHtml(t.token) + " into editor" : "Вставить " + escapeHtml(t.token) + " в редактор"}">
+                  <tr onclick="insertTemplatePlaceholder(${jsArg(t.token)})" title="${isEn ? "Insert " + escapeHtml(t.token) + " into editor" : "Вставить " + escapeHtml(t.token) + " в редактор"}">
                     <td style="width: 40%;"><span class="template-token-code">${escapeHtml(t.token)}</span></td>
                     <td style="width: 60%;"><span class="template-token-example">${escapeHtml(t.example)}</span></td>
                   </tr>
@@ -17301,8 +17379,13 @@ function editUser(u) {
 
 function copyTextToClipboard(text, msg) {
   if (!text) return;
-  navigator.clipboard.writeText(text);
-  toast(msg || t("settings.toast_key_copied"));
+  if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+    toast(CURRENT_LANG === "en" ? "Clipboard is not available" : "Буфер обмена недоступен", true);
+    return;
+  }
+  navigator.clipboard.writeText(text)
+    .then(() => toast(msg || t("settings.toast_key_copied")))
+    .catch(() => toast(CURRENT_LANG === "en" ? "Failed to copy" : "Не удалось скопировать", true));
 }
 
 async function adminRegenerateUserApiKey(userId, username) {
@@ -17382,7 +17465,7 @@ async function loadUsers() {
       let apiKeyActionHtml = "";
       if (isCurrentUserOwner) {
         if (u.api_key) {
-          apiKeyActionHtml = `<button class="btn btn-secondary btn-small" title="${CURRENT_LANG === 'en' ? 'Copy User API Key' : 'Скопировать API-ключ пользователя'}" onclick="copyTextToClipboard('${u.api_key}')"><i data-lucide="copy" class="ico-sm"></i></button>`;
+          apiKeyActionHtml = `<button class="btn btn-secondary btn-small" title="${CURRENT_LANG === 'en' ? 'Copy User API Key' : 'Скопировать API-ключ пользователя'}" onclick="copyTextToClipboard(${jsArg(u.api_key)})"><i data-lucide="copy" class="ico-sm"></i></button>`;
         } else if (u.can_use_api_key) {
           apiKeyActionHtml = `<button class="btn btn-secondary btn-small" title="${CURRENT_LANG === 'en' ? 'Generate API Key for user' : 'Сгенерировать API-ключ пользователю'}" onclick="adminRegenerateUserApiKey(${u.id}, '${escapeHtml(u.username)}')"><i data-lucide="key" class="ico-sm"></i></button>`;
         }
@@ -18897,7 +18980,7 @@ function renderMetadataLanguagesChips() {
       <div class="md-lang-active-chip">
         <i data-lucide="globe" class="ico-xs"></i>
         <span>${escapeHtml(name)} (${escapeHtml(code.toUpperCase())})</span>
-        <button type="button" class="md-lang-remove-btn" onclick="removeMetadataLanguage('${escapeHtml(code)}')" title="${isEn ? 'Remove' : 'Удалить'}">
+        <button type="button" class="md-lang-remove-btn" onclick="removeMetadataLanguage(${jsArg(code)})" title="${isEn ? 'Remove' : 'Удалить'}">
           <i data-lucide="x" class="ico-xs"></i>
         </button>
       </div>
@@ -19962,7 +20045,7 @@ async function loadJournal(page) {
         <tr>
           <td class="mono col-time" style="font-size:11.5px; white-space:nowrap;">${formatDateTZ(ev.created_at)}</td>
           <td class="col-level"><span class="status-pill status-${pillClass}">${ev.level.toUpperCase()}</span></td>
-          <td class="col-comp" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${CURRENT_LANG === "en" ? "Click to filter by component" : "Нажмите для фильтрации по компоненту"}"><a href="javascript:void(0)" onclick="filterJournalByComponent('${escapeHtml(ev.component)}')" style="color:var(--text); text-decoration:none; border-bottom:1px dotted var(--border);"><strong>${escapeHtml(ev.component)}</strong></a></td>
+          <td class="col-comp" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${CURRENT_LANG === "en" ? "Click to filter by component" : "Нажмите для фильтрации по компоненту"}"><a href="javascript:void(0)" onclick="filterJournalByComponent(${jsArg(ev.component)})" style="color:var(--text); text-decoration:none; border-bottom:1px dotted var(--border);"><strong>${escapeHtml(ev.component)}</strong></a></td>
           <td class="mono col-msg" style="font-size:12px; word-break:break-word; overflow-wrap:anywhere; line-height:1.45;">${escapeHtml(translateLogMessage(ev.message))}</td>
         </tr>
       `;
@@ -21096,7 +21179,7 @@ async function loadBackups() {
       const contentsBadges = renderBackupContentBadges(b.stats);
       return `
       <tr>
-        <td><input type="checkbox" class="backup-checkbox" data-name="${escapeHtml(b.name)}" onchange="toggleBackupSelected('${escapeHtml(b.name).replace(/'/g, "&apos;")}', this.checked)"></td>
+        <td><input type="checkbox" class="backup-checkbox" data-name="${escapeHtml(b.name)}" onchange="toggleBackupSelected(${jsArg(b.name)}, this.checked)"></td>
         <td>
           <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
             <strong class="mono" style="font-size:12.5px; color:var(--text);">${escapeHtml(b.name)}</strong>
@@ -21108,13 +21191,13 @@ async function loadBackups() {
         <td class="mono" style="font-size:12px; color:var(--text-muted);">${formatDateTZ(b.created_at)}</td>
         <td style="text-align:right;">
           <div class="row-actions" style="justify-content:flex-end; gap:4px;">
-            <button class="btn-icon-only" title="${t("backup.btn_restore")}" onclick="openRestoreBackupModal('${escapeHtml(b.name).replace(/'/g, "&apos;")}')">
+            <button class="btn-icon-only" title="${t("backup.btn_restore")}" onclick="openRestoreBackupModal(${jsArg(b.name)})">
               <i data-lucide="rotate-ccw" class="ico-sm" style="color:var(--teal, #00F0FF);"></i>
             </button>
-            <button class="btn-icon-only" title="Download" onclick="downloadBackup('${escapeHtml(b.name).replace(/'/g, "&apos;")}')">
+            <button class="btn-icon-only" title="Download" onclick="downloadBackup(${jsArg(b.name)})">
               <i data-lucide="download" class="ico-sm"></i>
             </button>
-            <button class="btn-icon-only danger" title="${t("common.delete")}" onclick="deleteBackup('${escapeHtml(b.name).replace(/'/g, "&apos;")}')">
+            <button class="btn-icon-only danger" title="${t("common.delete")}" onclick="deleteBackup(${jsArg(b.name)})">
               <i data-lucide="trash-2" class="ico-sm"></i>
             </button>
           </div>
@@ -21352,57 +21435,288 @@ async function deleteSelectedBackups() {
 // ---------- ВЫБОР ПАПКИ ----------
 let FOLDER_PICKER_TARGET_ID = null;
 let FOLDER_PICKER_CURRENT_PATH = "/";
+let FOLDER_PICKER_PARENT_PATH = null;
+
+// Приводит путь к каноничному виду: абсолютный, без дублей слешей, «.», «..»
+// и хвостового слеша. Нужно до отправки на сервер, иначе «/downloads/» и
+// «/downloads» дают разные состояния окна.
+function folderPickerNormalizePath(rawPath) {
+  const raw = String(rawPath == null ? "" : rawPath).trim();
+  if (!raw) return "/";
+  const parts = [];
+  for (const part of raw.split("/")) {
+    if (!part || part === ".") continue;
+    if (part === "..") { parts.pop(); continue; }
+    parts.push(part);
+  }
+  return "/" + parts.join("/");
+}
+
+function folderPickerParentOf(rawPath) {
+  const norm = folderPickerNormalizePath(rawPath);
+  if (norm === "/") return null;
+  return folderPickerNormalizePath(norm.split("/").slice(0, -1).join("/"));
+}
 
 async function openFolderPicker(targetInputId) {
   FOLDER_PICKER_TARGET_ID = targetInputId;
   const input = document.getElementById(targetInputId);
-  const startPath = (input.value || "/").trim() || "/";
+  const startPath = folderPickerNormalizePath(input && input.value);
+  FOLDER_PICKER_CURRENT_PATH = "/";
+  FOLDER_PICKER_PARENT_PATH = null;
   openModal("folder-picker-modal");
   await folderPickerLoad(startPath);
 }
 
+// Загружает содержимое папки.
+//
+// Если запрошенной папки на диске ещё нет — а это штатная ситуация, когда в поле
+// подставлен путь тайтла, который создаётся только при первом импорте, — окно не
+// зависает на ошибке, а поднимается к ближайшему существующему родителю. Раньше
+// после такой ошибки FOLDER_PICKER_CURRENT_PATH оставался равным «/», и кнопка
+// «наверх» выглядела неработающей: путь в шапке был один, а навигация шла от корня.
 async function folderPickerLoad(path) {
   const listEl = document.getElementById("folder-picker-list");
+  if (!listEl) return;
+
+  const requested = folderPickerNormalizePath(path);
   listEl.innerHTML = `<p class="hint">${t("common.loading")}</p>`;
-  try {
-    const data = await api(`/api/v1/filesystem/browse?path=${encodeURIComponent(path)}`);
-    FOLDER_PICKER_CURRENT_PATH = data.path;
-    document.getElementById("folder-picker-current-path").textContent = data.path;
-    listEl.innerHTML = data.directories.length
-      ? data.directories.map(d => `
-          <div class="folder-picker-item" onclick="folderPickerLoad('${d.path.replace(/'/g, "\\'")}')">
-            <i data-lucide="folder" class="ico-sm" style="color:var(--accent); vertical-align:middle; margin-right:6px;"></i> <span>${escapeHtml(d.name)}</span>
-          </div>`).join("")
-      : `<p class="hint">—</p>`;
-    if (window.lucide) lucide.createIcons();
-  } catch (e) {
-    listEl.innerHTML = `<p style="color:var(--danger)">${CURRENT_LANG === "en" ? "Error:" : "Ошибка:"} ${escapeHtml(formatToastMessage(e.message))}</p>`;
+
+  let candidate = requested;
+  let lastError = null;
+  let fellBack = false;
+
+  while (candidate !== null) {
+    try {
+      const data = await api(`/api/v1/filesystem/browse?path=${encodeURIComponent(candidate)}`);
+      folderPickerRender(data, fellBack ? requested : null);
+      return;
+    } catch (e) {
+      lastError = e;
+      // 404 — папки нет, 403 — нет прав на неё. В обоих случаях осмысленно
+      // показать ближайшего доступного родителя. Остальные ошибки показываем как есть.
+      if (e && (e.status === 404 || e.status === 403) && candidate !== "/") {
+        candidate = folderPickerParentOf(candidate);
+        fellBack = true;
+        continue;
+      }
+      break;
+    }
   }
+
+  FOLDER_PICKER_PARENT_PATH = null;
+  folderPickerSyncPathField(FOLDER_PICKER_CURRENT_PATH);
+  listEl.innerHTML = `<p style="color:var(--danger)">${CURRENT_LANG === "en" ? "Error:" : "Ошибка:"} ${escapeHtml(formatToastMessage(lastError && lastError.message))}</p>`;
+}
+
+function folderPickerRender(data, missingPath) {
+  const listEl = document.getElementById("folder-picker-list");
+  if (!listEl) return;
+
+  FOLDER_PICKER_CURRENT_PATH = folderPickerNormalizePath(data.path);
+  FOLDER_PICKER_PARENT_PATH = data.parent ? folderPickerNormalizePath(data.parent) : folderPickerParentOf(FOLDER_PICKER_CURRENT_PATH);
+  folderPickerSyncPathField(FOLDER_PICKER_CURRENT_PATH);
+
+  const upBtn = document.getElementById("folder-picker-up-btn");
+  if (upBtn) upBtn.disabled = (FOLDER_PICKER_CURRENT_PATH === "/");
+
+  const notice = missingPath
+    ? `<p class="hint" style="color:var(--warning, var(--text-muted));">${
+        CURRENT_LANG === "en"
+          ? `Folder ${escapeHtml(missingPath)} is not available, showing the nearest existing one.`
+          : `Папка ${escapeHtml(missingPath)} недоступна, открыта ближайшая существующая.`
+      }</p>`
+    : "";
+
+  const items = (data.directories || []).map(d => `
+      <div class="folder-picker-item" onclick="folderPickerLoad(${jsArg(d.path)})" title="${escapeHtml(d.path)}">
+        <i data-lucide="folder" class="ico-sm" style="color:var(--accent); vertical-align:middle; margin-right:6px;"></i> <span>${escapeHtml(d.name)}</span>
+      </div>`).join("");
+
+  listEl.innerHTML = notice + (items || `<p class="hint">—</p>`);
+  if (window.lucide) lucide.createIcons();
+}
+
+function folderPickerSyncPathField(path) {
+  const field = document.getElementById("folder-picker-current-path");
+  if (!field) return;
+  if ("value" in field) field.value = path;
+  else field.textContent = path;
 }
 
 function folderPickerNavigateUp() {
-  if (FOLDER_PICKER_CURRENT_PATH === "/") return;
-  const parent = FOLDER_PICKER_CURRENT_PATH.split("/").slice(0, -1).join("/") || "/";
+  const parent = FOLDER_PICKER_PARENT_PATH || folderPickerParentOf(FOLDER_PICKER_CURRENT_PATH);
+  if (!parent || parent === FOLDER_PICKER_CURRENT_PATH) return;
   folderPickerLoad(parent);
+}
+
+// Переход по пути, введённому вручную в строке адреса.
+function folderPickerGoToTypedPath() {
+  const field = document.getElementById("folder-picker-current-path");
+  if (!field) return;
+  const typed = ("value" in field) ? field.value : field.textContent;
+  folderPickerLoad(typed);
 }
 
 async function folderPickerCreateDir() {
   const nameInput = document.getElementById("folder-picker-new-name");
+  if (!nameInput) return;
   const name = nameInput.value.trim();
   if (!name) return;
-  const newPath = (FOLDER_PICKER_CURRENT_PATH.replace(/\/$/, "")) + "/" + name;
+  if (name === "." || name === ".." || name.includes("/")) {
+    toast(CURRENT_LANG === "en" ? "Folder name cannot contain «/»" : "Имя папки не может содержать «/»", true);
+    return;
+  }
+  const newPath = folderPickerNormalizePath(FOLDER_PICKER_CURRENT_PATH + "/" + name);
   try {
     await api("/api/v1/filesystem/mkdir", { method: "POST", body: JSON.stringify({ path: newPath }) });
     nameInput.value = "";
     await folderPickerLoad(newPath);
-  } catch (e) { toast("Ошибка: " + e.message, true); }
+  } catch (e) { toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + formatToastMessage(e.message), true); }
 }
 
 function folderPickerConfirm() {
   if (FOLDER_PICKER_TARGET_ID) {
-    document.getElementById(FOLDER_PICKER_TARGET_ID).value = FOLDER_PICKER_CURRENT_PATH;
+    const target = document.getElementById(FOLDER_PICKER_TARGET_ID);
+    if (target) {
+      target.value = FOLDER_PICKER_CURRENT_PATH;
+      // Присвоение value не порождает событий, а формы вокруг поля (например,
+      // предпросмотр смены папки) обновляются именно по ним.
+      target.dispatchEvent(new Event("input", { bubbles: true }));
+      target.dispatchEvent(new Event("change", { bubbles: true }));
+    }
   }
   closeModal("folder-picker-modal");
+}
+
+// ---------- СМЕНА ПАПКИ ТАЙТЛА ----------
+let CHANGE_FOLDER_SHOW_ID = null;
+let CHANGE_FOLDER_PREVIEW_TIMER = null;
+let CHANGE_FOLDER_PREVIEW_SEQ = 0;
+
+function changeFolderSelectedMode() {
+  const checked = document.querySelector('input[name="change-folder-mode"]:checked');
+  return checked ? checked.value : "move";
+}
+
+async function openChangeShowFolderModal(showId) {
+  CHANGE_FOLDER_SHOW_ID = showId;
+
+  let show = null;
+  try {
+    show = await api(`/api/v1/shows/${showId}`);
+  } catch (e) {
+    toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + formatToastMessage(e.message), true);
+    return;
+  }
+
+  const currentEl = document.getElementById("change-folder-current");
+  const input = document.getElementById("change-folder-path-input");
+  const previewEl = document.getElementById("change-folder-preview");
+  const moveRadio = document.querySelector('input[name="change-folder-mode"][value="move"]');
+
+  if (currentEl) currentEl.textContent = show.path || (CURRENT_LANG === "en" ? "not set" : "не задана");
+  if (input) input.value = show.path || "";
+  if (moveRadio) moveRadio.checked = true;
+  if (previewEl) previewEl.innerHTML = "";
+
+  openModal("change-folder-modal");
+  if (input) input.focus();
+}
+
+function scheduleChangeFolderPreview() {
+  clearTimeout(CHANGE_FOLDER_PREVIEW_TIMER);
+  CHANGE_FOLDER_PREVIEW_TIMER = setTimeout(loadChangeFolderPreview, 350);
+}
+
+async function loadChangeFolderPreview() {
+  const previewEl = document.getElementById("change-folder-preview");
+  const input = document.getElementById("change-folder-path-input");
+  if (!previewEl || !input || !CHANGE_FOLDER_SHOW_ID) return;
+
+  const path = (input.value || "").trim();
+  if (!path) { previewEl.innerHTML = ""; return; }
+
+  // Ответы приходят вразнобой при быстром наборе — показываем только последний.
+  const seq = ++CHANGE_FOLDER_PREVIEW_SEQ;
+  try {
+    const data = await api(`/api/v1/shows/${CHANGE_FOLDER_SHOW_ID}/change-folder/preview?path=${encodeURIComponent(path)}`);
+    if (seq !== CHANGE_FOLDER_PREVIEW_SEQ) return;
+    previewEl.innerHTML = renderChangeFolderPreview(data);
+  } catch (e) {
+    if (seq !== CHANGE_FOLDER_PREVIEW_SEQ) return;
+    previewEl.innerHTML = `<span style="color:var(--danger)">${escapeHtml(formatToastMessage(e.message))}</span>`;
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderChangeFolderPreview(data) {
+  const isEn = CURRENT_LANG === "en";
+  const mode = changeFolderSelectedMode();
+  const lines = [];
+
+  if (mode === "move" && data.old_path_exists) {
+    lines.push(isEn
+      ? `Will move ${data.files_to_move} file(s), ${formatBytes(data.bytes_to_move)}.`
+      : `Будет перенесено файлов: ${data.files_to_move}, объём: ${formatBytes(data.bytes_to_move)}.`);
+  } else if (mode === "relink") {
+    lines.push(isEn
+      ? `Files stay where they are; ${data.episodes_linked} episode path(s) will be re-pointed.`
+      : `Файлы останутся на месте, будет перепривязано путей серий: ${data.episodes_linked}.`);
+  }
+
+  if (!data.target_exists) {
+    lines.push(isEn ? "The target folder will be created." : "Новая папка будет создана.");
+  }
+
+  const warnings = (data.warnings || []).map(w =>
+    `<div style="color:var(--warning, var(--text-muted)); display:flex; gap:6px; align-items:flex-start;">
+       <i data-lucide="alert-triangle" class="ico-xs" style="margin-top:2px;"></i><span>${escapeHtml(w)}</span>
+     </div>`).join("");
+
+  return lines.map(l => `<div>${escapeHtml(l)}</div>`).join("") + warnings;
+}
+
+async function applyChangeShowFolder() {
+  const input = document.getElementById("change-folder-path-input");
+  const btn = document.getElementById("change-folder-apply-btn");
+  if (!input || !CHANGE_FOLDER_SHOW_ID) return;
+
+  const path = (input.value || "").trim();
+  if (!path) {
+    toast(CURRENT_LANG === "en" ? "Specify the new folder" : "Укажите новую папку", true);
+    return;
+  }
+
+  const moveFiles = changeFolderSelectedMode() === "move";
+  const confirmed = await confirmModal(
+    moveFiles
+      ? (CURRENT_LANG === "en"
+          ? `Move the title files to «${path}»?`
+          : `Перенести файлы тайтла в «${path}»?`)
+      : (CURRENT_LANG === "en"
+          ? `Re-point the title to «${path}» without touching files on disk?`
+          : `Перепривязать тайтл к «${path}» без переноса файлов?`)
+  );
+  if (!confirmed) return;
+
+  await withLoading(btn, async () => {
+    try {
+      const res = await api(`/api/v1/shows/${CHANGE_FOLDER_SHOW_ID}/change-folder`, {
+        method: "POST",
+        body: JSON.stringify({ path, move_files: moveFiles }),
+      });
+
+      toast(res.message || t("change_folder.toast_done"), !res.success);
+      (res.errors || []).forEach(err => toast(err, true));
+
+      closeModal("change-folder-modal");
+      if (typeof openShowModal === "function") await openShowModal(CHANGE_FOLDER_SHOW_ID);
+      if (typeof loadShows === "function") loadShows();
+    } catch (e) {
+      toast((CURRENT_LANG === "en" ? "Error: " : "Ошибка: ") + formatToastMessage(e.message), true);
+    }
+  });
 }
 
 // =============================================================================
@@ -22346,7 +22660,7 @@ function renderBlocklist() {
         : `<div class="blocklist-show-poster placeholder">${sid === 'unlinked' ? '<i data-lucide="shield-alert" class="ico-sm text-danger"></i>' : '<i data-lucide="film" class="ico-sm text-muted"></i>'}</div>`;
 
       sidebarHtml += `
-        <div class="blocklist-show-item ${isActive ? 'active' : ''}" onclick="selectBlocklistShow('${escapeHtml(String(sid))}')">
+        <div class="blocklist-show-item ${isActive ? 'active' : ''}" onclick="selectBlocklistShow(${jsArg(String(sid))})">
           ${posterSize !== 'none' ? thumbHtml : ''}
           <div class="blocklist-show-info">
             <div class="blocklist-show-title" title="${escapeHtml(title)}">${escapeHtml(title)}</div>

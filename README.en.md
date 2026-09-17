@@ -278,6 +278,14 @@ $$\text{Offset} = \text{Starting Episode Number in Card} - \text{Starting Episod
 - **Anime Font Kits**: Copies companion font directories (`.ttf`, `.otf`) while writing `.plexignore` / `.embyignore` markers to prevent media servers from indexing fonts as media.
 - **Clutter Filtration**: Discards openings (OP), endings (ED), samples, promos, trailers, and PV/CM files.
 
+### 8. Changing a Title's Folder Without Losing Links
+- **Pick the folder in the interface**: the "Change Folder" button on a title card opens the filesystem browser — navigate to an existing folder, type a path by hand, or create a new one.
+- **Two modes**: move the contents of the old folder into the new one (episode paths in the database follow, the emptied folder is removed), or only update the stored path when the files were already relocated on the NAS.
+- **Preview before applying**: how many files and how much data would move, whether the target folder exists, and whether another title already claims it.
+- **No silent overwrites**: entries whose names already exist in the target are left in place and reported as conflicts in the operation result.
+
+---
+
 ---
 
 ## Feature Comparison Matrix: Aliasarr vs Sonarr vs Radarr

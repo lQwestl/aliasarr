@@ -502,14 +502,25 @@ class BrowseDirOut(BaseModel):
     directories: list[DirEntryOut]
 
 
+def _normalize_browse_path(raw: str) -> str:
+    """Приводит путь к каноничному абсолютному виду.
+
+    os.path.normpath сохраняет ведущий «//» (POSIX разрешает ему особый смысл),
+    из-за чего «//media» и «/media» выглядели бы как разные папки и родитель
+    вычислялся бы неверно.
+    """
+    target = os.path.normpath("/" + (raw or "").strip())
+    while target.startswith("//"):
+        target = target[1:]
+    return target or "/"
+
+
 @router.get("/filesystem/browse", response_model=BrowseDirOut)
 def browse_filesystem(
     path: str = "/",
     current_user: User = Depends(require_any_permission("manage_settings", "manage_library")),
 ):
-    target = os.path.normpath(path or "/")
-    if not target.startswith("/"):
-        target = "/" + target
+    target = _normalize_browse_path(path)
     if not os.path.isdir(target):
         raise HTTPException(404, f"Папка не найдена: {target}")
 
@@ -526,7 +537,7 @@ def browse_filesystem(
         if os.path.isdir(full):
             directories.append(DirEntryOut(name=name, path=full))
 
-    parent = os.path.dirname(target) if target != "/" else None
+    parent = _normalize_browse_path(os.path.dirname(target)) if target != "/" else None
     return BrowseDirOut(path=target, parent=parent, directories=directories)
 
 
@@ -537,13 +548,19 @@ class CreateDirIn(BaseModel):
 @router.post("/filesystem/mkdir")
 def create_directory(
     payload: CreateDirIn,
-    current_user: User = Depends(require_permission("manage_settings")),
+    # Те же права, что и у обзора файловой системы: окно выбора папки открывается
+    # в том числе при ручном импорте, где у пользователя есть manage_library, но
+    # может не быть manage_settings — иначе кнопка «Создать» отвечала 403.
+    current_user: User = Depends(require_any_permission("manage_settings", "manage_library")),
 ):
     """Создать новую папку прямо из окна выбора директории (удобно, если нужной
     папки ещё не существует)."""
-    target = os.path.normpath(payload.path or "")
-    if not target.startswith("/"):
+    raw = (payload.path or "").strip()
+    if not raw.startswith("/"):
         raise HTTPException(400, "Путь должен быть абсолютным")
+    target = _normalize_browse_path(raw)
+    if target == "/":
+        raise HTTPException(400, "Нельзя создать корневую папку")
     try:
         os.makedirs(target, exist_ok=True)
         from app.services.postprocess import apply_media_permissions

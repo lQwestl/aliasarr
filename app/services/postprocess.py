@@ -81,6 +81,77 @@ VIDEO_EXTENSIONS = {
     ".tp", ".trp", ".m2t", ".iso", ".strm"
 }
 
+# Расширения файлов-спутников видеофайла: субтитры, внешние дорожки, описания.
+COMPANION_EXTENSIONS = SUBTITLE_EXTENSIONS | AUDIO_EXTENSIONS | {".nfo", ".txt"}
+
+# То же плюс обложки и служебные файлы медиасерверов — их удаляют вместе с серией.
+DELETABLE_COMPANION_EXTENSIONS = COMPANION_EXTENSIONS | {
+    ".jpg", ".jpeg", ".png", ".webp", ".tbn", ".bif", ".sfv", ".md5",
+}
+
+# Символы, которыми имя спутника отделяется от имени видеофайла:
+# «Naruto - 1.rus.srt», «Naruto - 1_rus.ass», «Naruto - 1 [RUS].srt».
+_COMPANION_SEPARATORS = (".", "-", "_", " ", "[", "(", "+")
+
+
+def is_companion_file_name(candidate_name: str, media_name: str) -> bool:
+    """Проверяет, что candidate_name — спутник файла media_name (в той же папке).
+
+    Наивная проверка «имя начинается с имени видеофайла» ошибается на релизах без
+    ведущих нулей: для «Naruto - 1.mkv» под неё попадают «Naruto - 10.mkv»,
+    «Naruto - 11.mkv» и их субтитры. Поэтому после совпадения основы требуем
+    разделитель: продолжение имени не должно начинаться с буквы или цифры.
+    """
+    candidate = os.path.basename(candidate_name or "")
+    media = os.path.basename(media_name or "")
+    if not candidate or not media or candidate == media:
+        return False
+
+    stem = os.path.splitext(media)[0]
+    if not stem or not candidate.lower().startswith(stem.lower()):
+        return False
+
+    rest = candidate[len(stem):]
+    if not rest:
+        return False
+    return rest[0] in _COMPANION_SEPARATORS
+
+
+def episode_number_in_name(file_name: str, episode_numbers) -> bool:
+    """Проверяет, что в имени файла встречается один из номеров серии как отдельное число.
+
+    Подстрочный поиск («"01" in name») ловит любое вхождение цифр: для первой серии
+    под него попадали «1080p», «x264» и субтитры десятой серии. Здесь номер должен
+    быть окружён нецифровыми символами, ведущие нули допускаются.
+    """
+    numbers = sorted({n for n in (episode_numbers or []) if n is not None})
+    if not numbers:
+        return False
+    alternatives = "|".join(str(n) for n in numbers)
+    pattern = re.compile(rf"(?:^|[^0-9])0*(?:{alternatives})(?:[^0-9]|$)")
+    return bool(pattern.search(file_name or ""))
+
+
+def iter_companion_files(media_path: str, extensions: Optional[set[str]] = None) -> list[str]:
+    """Возвращает пути файлов-спутников, лежащих рядом с media_path."""
+    directory = os.path.dirname(media_path)
+    if not directory or not os.path.isdir(directory):
+        return []
+
+    allowed = COMPANION_EXTENSIONS if extensions is None else extensions
+    media_name = os.path.basename(media_path)
+    found: list[str] = []
+    for name in sorted(os.listdir(directory)):
+        full = os.path.join(directory, name)
+        if not os.path.isfile(full) or full == media_path:
+            continue
+        if os.path.splitext(name)[1].lower() not in allowed:
+            continue
+        if is_companion_file_name(name, media_name):
+            found.append(full)
+    return found
+
+
 # Папки, содержащие дополнительные материалы, опенинги, эндинги, трейлеры, бонусы
 _EXTRA_DIR_PATTERNS = re.compile(
     r"(?:^|[\\/])(?:op[-_\s]?ed|openings?|endings?|ncop\d*|nced\d*|creditless|credits|theme[-_\s]?songs?|music[-_\s]?videos?|ost|extras?|bonus|featurettes?|behind[-_\s]the[-_\s]scenes|making[-_\s]of|trailers?|samples?|scans?|artworks?|soundtrack|menu|pv|cm|interviews?|deleted[-_\s]scenes?)(?:[\\/]|$)",
@@ -969,7 +1040,12 @@ def match_companion_files_for_episode(
         fname = os.path.basename(cf)
         fstem = os.path.splitext(fname)[0].lower()
 
-        if fstem == video_stem or (fstem.startswith(video_stem) and not any(p.search(fstem[len(video_stem):]) for p in ep_patterns)):
+        # Полное совпадение основы либо основа + разделитель + суффикс языка/озвучки.
+        # Без проверки разделителя «Naruto - 10.srt» считался спутником «Naruto - 1.mkv».
+        if fstem == video_stem or (
+            is_companion_file_name(fname, os.path.basename(video_fpath))
+            and not any(p.search(fstem[len(video_stem):]) for p in ep_patterns)
+        ):
             matched.append(cf)
             continue
 
