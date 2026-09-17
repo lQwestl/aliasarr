@@ -1,2 +1,2 @@
-VERSION = "3.3.0"
-COMMIT_HASH = "bcf0e2a"
+VERSION = "3.4.0"
+COMMIT_HASH = "f47ff8e"
