@@ -13,6 +13,8 @@
   (function () {
     try {
       var theme = localStorage.getItem("vbeacon_theme") || "dark";
+      // Дизайн Servarr Classic основного интерфейса — нейтральная светлая палитра
+      if ((localStorage.getItem("aliasarr_design") || "classic") === "servarr") theme = "light";
       document.documentElement.setAttribute("data-theme", theme);
       document.documentElement.setAttribute("data-glass", localStorage.getItem("aliasarr_glass") || "off");
       var design = localStorage.getItem("aliasarr_design") || "classic";
@@ -2645,8 +2647,8 @@ Occult Academy             Transmission    —       100%      pausedup
     var design = document.documentElement.getAttribute('data-design') || 'classic';
     var label = document.getElementById('wiki-design-label');
     if (!label) return;
-    var ruText = design === 'vanguard' ? 'Авангард' : 'Классика';
-    var enText = design === 'vanguard' ? 'Vanguard' : 'Classic';
+    var ruText = design === 'vanguard' ? 'Авангард' : (design === 'servarr' ? 'Servarr' : 'Классика');
+    var enText = design === 'vanguard' ? 'Vanguard' : (design === 'servarr' ? 'Servarr' : 'Classic');
     label.innerHTML = '<span class="lang-ru" id="wiki-design-label-ru">' + ruText + '</span><span class="lang-en" id="wiki-design-label-en">' + enText + '</span>';
   }
 

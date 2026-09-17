@@ -7,15 +7,19 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='17' fill='%230f1048'/%3E%3Cpath d='M32 14L43 36' stroke='%232a197c' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M15 49L32 14' stroke='%236838f7' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 36H43L49 49' stroke='%236838f7' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Roboto:wght@300;400;500;700&family=Ubuntu+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/ui/static/css/style.css?v=20260913-13">
+<link rel="stylesheet" href="/ui/static/css/servarr.css?v=20260917-4">
 <script>
   // Применяем тему, язык и целевую вкладку сразу, до отрисовки основного контента, чтобы исключить мерцание Дашбордом при перезагрузке
   (function () {
     try {
       var theme = localStorage.getItem("vbeacon_theme") || "dark";
-      document.documentElement.setAttribute("data-theme", theme);
       var design = localStorage.getItem("aliasarr_design") || "classic";
+      // Дизайн Servarr Classic несёт собственную нейтральную палитру (как у Sonarr):
+      // светлая рабочая область + графитовая навигация, поэтому цветовая тема пользователя не применяется.
+      if (design === "servarr") theme = "light";
+      document.documentElement.setAttribute("data-theme", theme);
       document.documentElement.setAttribute("data-design", design);
       var scrollbar = localStorage.getItem("aliasarr_scrollbar") || "autohide";
       document.documentElement.setAttribute("data-scrollbar", scrollbar);
@@ -29,9 +33,10 @@
         dark: { bg: "%230f1048", shadow: "%232a197c", fg: "%236838f7" },
         obsidian: { bg: "%23032015", shadow: "%23064e3b", fg: "%2300F5D4" },
         dracula: { bg: "%2321222c", shadow: "%2344475a", fg: "%23bd93f9" },
-        light: { bg: "%23e0e7ff", shadow: "%23a5b4fc", fg: "%234f46e5" }
+        light: { bg: "%23e0e7ff", shadow: "%23a5b4fc", fg: "%234f46e5" },
+        servarr: { bg: "%233a3f51", shadow: "%23252833", fg: "%237b4dfc" }
       };
-      var c = themeColors[theme] || themeColors.dark;
+      var c = themeColors[design === "servarr" ? "servarr" : theme] || themeColors.dark;
       var iconEl = document.querySelector("link[rel~='icon']");
       if (iconEl) {
         iconEl.href = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='17' fill='" + c.bg + "'/%3E%3Cpath d='M32 14L43 36' stroke='" + c.shadow + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M15 49L32 14' stroke='" + c.fg + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 36H43L49 49' stroke='" + c.fg + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E";
@@ -96,6 +101,47 @@
 
 <!-- ЗАТЕМНЕНИЕ ДЛЯ МОБИЛЬНОГО МЕНЮ (BACKDROP) -->
 <div id="mobile-sidebar-backdrop" class="mobile-sidebar-backdrop" onclick="closeMobileMenu()"></div>
+
+<!-- ШАПКА SERVARR CLASSIC (видна только в дизайне «Servarr Classic», повторяет PageHeader Sonarr) -->
+<header class="servarr-header" id="servarr-header">
+  <div class="servarr-header-logo">
+    <a class="servarr-logo-link" href="#dashboard" onclick="event.preventDefault(); switchTab('dashboard')" title="Aliasarr">
+      <svg class="brand-icon-svg servarr-logo" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="8.5" class="brand-icon-bg"/>
+        <path d="M16 7L21.5 18" class="brand-icon-shadow" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M7.5 24.5L16 7" class="brand-icon-fg" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10.5 18H21.5L24.5 24.5" class="brand-icon-fg" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
+  <div class="servarr-header-toggle">
+    <button class="servarr-header-icon-btn" onclick="toggleMobileMenu()" aria-label="Menu"><i data-lucide="menu"></i></button>
+  </div>
+  <div class="servarr-search">
+    <i data-lucide="search" class="servarr-search-icon"></i>
+    <input id="servarr-search-input" class="servarr-search-input" type="text" placeholder="Поиск" data-i18n-placeholder="servarr.search_placeholder" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onServarrSearchInput()" onfocus="onServarrSearchInput()" onkeydown="onServarrSearchKeyDown(event)" onblur="closeServarrSearchSoon()">
+    <div id="servarr-search-results" class="servarr-search-results" style="display:none;"></div>
+  </div>
+  <div class="servarr-header-right">
+    <button class="servarr-header-icon-btn" onclick="openAddShowWizard()" title="Добавить видео" data-i18n-title="nav.add_video"><i data-lucide="plus"></i></button>
+    <button class="servarr-header-icon-btn servarr-tasks-btn" id="servarr-tasks-btn" onclick="toggleTasksPopup(event)" title="Фоновые операции" data-i18n-title="tasks.widget_tooltip">
+      <i data-lucide="activity"></i>
+      <span id="servarr-tasks-badge" class="servarr-tasks-badge" style="display:none;">0</span>
+    </button>
+    <a class="servarr-header-icon-btn" href="/wiki" target="_blank" rel="noopener noreferrer" onclick="openWiki(event)" title="База знаний и документация" data-i18n-title="nav.wiki_tooltip"><i data-lucide="book-open"></i></a>
+    <div class="servarr-actions-menu" id="servarr-actions-menu">
+      <button class="servarr-header-icon-btn servarr-actions-btn" onclick="toggleServarrActionsMenu(event)" title="Меню" data-i18n-title="servarr.menu"><i data-lucide="user-cog"></i></button>
+      <div class="servarr-menu-content" id="servarr-actions-menu-content" style="display:none;">
+        <div class="servarr-menu-user" id="servarr-menu-user"></div>
+        <button class="servarr-menu-item" onclick="closeServarrActionsMenu(); openProfileModal()"><i data-lucide="user"></i><span data-i18n="profile.modal_title">Мой профиль</span></button>
+        <button class="servarr-menu-item" onclick="closeServarrActionsMenu(); switchTab('settings')"><i data-lucide="settings"></i><span data-i18n="nav.settings">Настройки</span></button>
+        <button class="servarr-menu-item" onclick="closeServarrActionsMenu(); switchTab('logs')"><i data-lucide="file-text"></i><span data-i18n="nav.logs">Логи</span></button>
+        <div class="servarr-menu-separator"></div>
+        <button class="servarr-menu-item" id="servarr-menu-logout" onclick="closeServarrActionsMenu(); logoutUser()"><i data-lucide="log-out"></i><span data-i18n="auth.logout">Выйти</span></button>
+      </div>
+    </div>
+  </div>
+</header>
 
 <div class="app-shell">
   <aside class="sidebar">
@@ -427,7 +473,8 @@
             </div>
             <div class="header-actions" style="display:flex;gap:8px;">
               <button id="btn-library-bulk-toggle" class="btn btn-secondary" onclick="toggleLibraryBulkMode()" title="Выбрать тайтлы и массово редактировать" data-i18n-title="library.bulk_btn_title"><i data-lucide="check-square" class="ico-sm"></i> <span data-i18n="library.bulk_btn">Выбрать тайтлы</span></button>
-              <button class="btn btn-primary" onclick="openAddShowWizard()" data-i18n="nav.add_video">+ Добавить видео</button>
+              <button class="btn btn-primary servarr-hide" onclick="openAddShowWizard()" data-i18n="nav.add_video">+ Добавить видео</button>
+              <button class="btn btn-primary servarr-only" onclick="openAddShowWizard()"><i data-lucide="plus"></i><span data-i18n="dash.btn_add_video">Добавить видео</span></button>
             </div>
           </div>
         </header>
@@ -784,6 +831,9 @@
             <div>
               <h1 data-i18n="tab.activity">Активность</h1>
               <p class="subtitle" data-i18n="subtitle.activity">Текущие загрузки во всех download clients</p>
+            </div>
+            <div class="header-actions servarr-only">
+              <button class="btn btn-secondary" onclick="loadQueue()" title="Обновить" data-i18n-title="common.refresh"><i data-lucide="refresh-cw"></i><span data-i18n="common.refresh">Обновить</span></button>
             </div>
           </div>
         </header>
@@ -1235,6 +1285,7 @@
                 <option value="dracula" data-i18n="settings.theme_dracula">Дракула</option>
                 <option value="light" data-i18n="settings.theme_light">Полярный день</option>
               </select>
+              <div class="settings-field-hint servarr-theme-note" data-i18n="settings.theme_servarr_note">В дизайне Servarr Classic используется собственная нейтральная палитра — выбранная тема применится к другим дизайнам.</div>
             </div>
             <div class="settings-field-group">
               <label class="settings-field-label" data-i18n="settings.scrollbar">Полосы прокрутки</label>
@@ -1878,6 +1929,47 @@
               </div>
               <div class="design-card-footer">
                 <button class="btn btn-primary btn-small w-full" data-i18n="settings.btn_select_design">Выбрать стиль</button>
+              </div>
+            </div>
+            <!-- 3. Servarr Classic -->
+            <div class="design-card" data-design-choice="servarr" onclick="selectDesignSystem('servarr')">
+              <div class="design-card-header">
+                <span class="design-card-badge badge-servarr" data-i18n="settings.design_badge_servarr">SERVARR</span>
+                <div class="design-card-check"><i data-lucide="check" class="ico-xs"></i></div>
+              </div>
+              <div class="design-card-preview preview-servarr">
+                <div class="preview-servarr-header">
+                  <div class="preview-servarr-logo"></div>
+                  <div class="preview-servarr-search"></div>
+                </div>
+                <div class="preview-servarr-body">
+                  <div class="preview-servarr-sidebar">
+                    <div class="preview-servarr-nav active"></div>
+                    <div class="preview-servarr-nav"></div>
+                    <div class="preview-servarr-nav"></div>
+                    <div class="preview-servarr-nav"></div>
+                  </div>
+                  <div class="preview-servarr-main">
+                    <div class="preview-servarr-toolbar">
+                      <span></span><span></span><span></span>
+                    </div>
+                    <div class="preview-servarr-posters">
+                      <div class="preview-servarr-poster"></div>
+                      <div class="preview-servarr-poster"></div>
+                      <div class="preview-servarr-poster"></div>
+                      <div class="preview-servarr-poster"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="design-card-info">
+                <div class="design-card-title" data-i18n="settings.design_servarr_title">Servarr Classic</div>
+                <div class="design-card-desc" data-i18n="settings.design_servarr_desc">
+                  Классическая раскладка Sonarr в цветах Aliasarr: фиолетовая шапка с поиском, графитовый сайдбар, тёмная панель инструментов и нейтральная светлая рабочая область. Собственная палитра — цветовая тема не применяется.
+                </div>
+              </div>
+              <div class="design-card-footer">
+                <button class="btn btn-secondary btn-small w-full" data-i18n="settings.btn_select_design">Выбрать стиль</button>
               </div>
             </div>
           </div>
@@ -5721,6 +5813,6 @@
 <div id="toast" class="toast" style="display:none;"></div>
 
 <script src="https://unpkg.com/lucide@latest"></script>
-<script src="/ui/static/js/app.js?v=20260913-13"></script>
+<script src="/ui/static/js/app.js?v=20260917-servarr"></script>
 </body>
 </html>

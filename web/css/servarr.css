@@ -1,0 +1,3997 @@
+/* =============================================================================
+   SERVARR CLASSIC — дизайн-система в духе Sonarr v4 (светлая тема), в цветах Aliasarr.
+
+   Включается атрибутом data-design="servarr" на <html>. Раскладка и форма элементов
+   повторяют фронтенд Sonarr (frontend/src/Components, Styles/Themes/light.js):
+     • шапка 60px на всю ширину: логотип в колонке 210px, поиск с нижней линией, иконки справа;
+     • графитовый сайдбар 210px, пункты 12px 24px с левой полосой 3px у активного;
+     • тёмная панель инструментов 60px: иконка 21px + подпись 11px под ней;
+     • светлая рабочая область #f5f7fa с отступом 20px, белые карточки, плоские таблицы;
+     • кнопки/поля 4px, шрифт Roboto 14px, line-height 1.528571429.
+   Акцентный синий Sonarr заменён фирменным фиолетовым Aliasarr.
+
+   У дизайна своя палитра: на <html> при нём всегда data-theme="light" (см. applyTheme),
+   поэтому все светлые адаптации компонентов из style.css тоже работают.
+   ============================================================================= */
+
+.servarr-header,
+.servarr-subnav,
+.servarr-theme-note { display: none; }
+:root:not([data-design="servarr"]) .servarr-only { display: none !important; }
+
+/* ---------------------------------------------------------------------------
+   1. Палитра (аналог Styles/Themes/light.js)
+   --------------------------------------------------------------------------- */
+:root[data-design="servarr"],
+:root[data-design="servarr"][data-theme] {
+  /* Фирменные цвета темы: sonarrBlue / sonarrAlternateBlue → фиолетовый Aliasarr */
+  --sv-theme: #7b4dfc;             /* themeBlue: ховеры на тёмном, акценты */
+  --sv-theme-alt: #2a197c;         /* themeAlternateBlue: шапка — тёмный штрих буквы «A» логотипа */
+  --sv-theme-alt-light: #9c7bff;   /* активный пункт сайдбара (читаем на графите) */
+  --sv-theme-red: #c4273c;
+  --sv-dark: #3a3f51;              /* themeDarkColor */
+  --sv-light: #4f566f;             /* themeLightColor */
+
+  --sv-text: #515253;
+  --sv-default: #333;
+  --sv-disabled: #999;
+  --sv-dim: #555;
+  --sv-help: #909293;
+  --sv-white: #fff;
+  --sv-offwhite: #f5f7fa;
+  --sv-dark-gray: #888;
+  --sv-medium-gray: #999;
+  --sv-gray: #adadad;
+  --sv-light-gray: #ddd;
+
+  --sv-primary: #6c3ef8;           /* primaryColor #5d9cec */
+  --sv-selected: #f9be03;
+  --sv-success: #27c24c;
+  --sv-danger: #f05050;
+  --sv-warning: #ffa500;
+  --sv-info: #7b4dfc;
+  --sv-purple: #a347c7;            /* «Качается» — отличим от основного фиолетового */
+  --sv-pink: #ff69b4;
+
+  --sv-page-bg: #f5f7fa;
+  --sv-page-footer-bg: #f1f1f1;
+  --sv-link: #6c3ef8;
+  --sv-link-hover: #4a1fd1;
+
+  --sv-sidebar-color: #e1e2e3;
+  --sv-sidebar-bg: #3a3f51;
+  --sv-sidebar-active-bg: #252833;
+  --sv-toolbar-color: #e1e2e3;
+  --sv-toolbar-bg: #4f566f;
+  --sv-toolbar-menu-bg: #454b60;
+  --sv-toolbar-menu-hover-bg: #3a3f51;
+  --sv-toolbar-label: #8895aa;
+
+  --sv-border: #e5e5e5;
+  --sv-input-border: #dde6e9;
+  --sv-input-shadow: rgba(0, 0, 0, 0.075);
+  --sv-input-focus-border: #a58bfb;
+  --sv-input-focus-shadow: rgba(108, 62, 248, 0.45);
+  --sv-input-error-border: #f05050;
+  --sv-input-error-shadow: rgba(240, 80, 80, 0.6);
+
+  --sv-btn-default-bg: #fff;
+  --sv-btn-default-border: #eaeaea;
+  --sv-btn-default-hover-bg: #f5f5f5;
+  --sv-btn-default-hover-border: #d6d6d6;
+  --sv-btn-primary-bg: #6c3ef8;
+  --sv-btn-primary-border: #6838f7;
+  --sv-btn-primary-hover-bg: #5e2ff0;
+  --sv-btn-primary-hover-border: #5124e6;
+  --sv-btn-success-bg: #27c24c;
+  --sv-btn-success-border: #26be4a;
+  --sv-btn-success-hover-bg: #24b145;
+  --sv-btn-success-hover-border: #1f9c3d;
+  --sv-btn-warning-bg: #ff902b;
+  --sv-btn-warning-border: #ff8d26;
+  --sv-btn-warning-hover-bg: #ff8517;
+  --sv-btn-warning-hover-border: #fc7800;
+  --sv-btn-danger-bg: #f05050;
+  --sv-btn-danger-border: #f04b4b;
+  --sv-btn-danger-hover-bg: #ee3d3d;
+  --sv-btn-danger-hover-border: #ec2626;
+  --sv-icon-hover: #666;
+  --sv-icon-hover-light: #ccc;
+
+  --sv-modal-backdrop: rgba(0, 0, 0, 0.6);
+  --sv-modal-bg: #fff;
+  --sv-card-bg: #fff;
+  --sv-card-shadow: #e1e1e1;
+  --sv-card-alt-bg: #f5f5f5;
+  --sv-series-bg: #ededed;
+  --sv-table-hover: #fafbfc;
+  --sv-scrollbar: #9ea4b9;
+  --sv-scrollbar-hover: #656d8c;
+
+  --sv-alert-danger-border: #ebccd1;  --sv-alert-danger-bg: #f2dede;  --sv-alert-danger: #a94442;
+  --sv-alert-info-border: #d9cffd;    --sv-alert-info-bg: #ece6fe;    --sv-alert-info: #4b2aa8;
+  --sv-alert-success-border: #d6e9c6; --sv-alert-success-bg: #dff0d8; --sv-alert-success: #3c763d;
+  --sv-alert-warning-border: #faebcc; --sv-alert-warning-bg: #fcf8e3; --sv-alert-warning: #8a6d3b;
+
+  --sv-popover-title-bg: #f7f7f7;
+  --sv-popover-body-bg: #e9e9e9;
+
+  --sv-calendar-today: #c5c5c5;
+  --sv-calendar-bg: #e4eaec;
+  --sv-calendar-border: #cecece;
+
+  --sv-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --sv-mono: ui-monospace, 'SF Mono', Menlo, 'JetBrains Mono', Consolas, monospace;
+
+  /* Переменные приложения → палитра Servarr */
+  --bg: var(--sv-page-bg);
+  --panel: #ffffff;
+  --panel-alt: #f7f8fa;
+  --border: var(--sv-border);
+  --border-hover: #d6d6d6;
+  --text: var(--sv-text);
+  --text-muted: var(--sv-help);
+  --teal: var(--sv-primary);
+  --violet: var(--sv-purple);
+  --primary: var(--sv-primary);
+  --accent: var(--sv-info);
+  --danger: var(--sv-danger);
+  --success: var(--sv-success);
+  --warning: var(--sv-warning);
+  --gradient: linear-gradient(0deg, var(--sv-primary), var(--sv-primary));
+  --radius: 4px;
+  --radius-sm: 4px;
+  --radius-lg: 4px;
+  --font-display: var(--sv-font);
+  --font-body: var(--sv-font);
+  /* моноширинный шрифт приложения используется в метках и чипах — в Servarr там обычный шрифт */
+  --font-mono: var(--sv-font);
+  --scrollbar-thumb: var(--sv-scrollbar);
+  --scrollbar-thumb-hover: var(--sv-scrollbar-hover);
+  --scrollbar-width: 10px;
+  --brand-icon-bg: #0f1048;
+  --brand-icon-bg-border: rgba(255, 255, 255, 0.18);
+  --brand-icon-fg: #8b62ff;
+  --brand-icon-shadow: #3b2596;
+  --brand-name-color: #fff;
+  --brand-name-glow: transparent;
+
+  --sv-header-height: 60px;
+  --sv-sidebar-width: 210px;
+  --sv-toolbar-height: 60px;
+  --sv-content-padding: 20px;
+}
+
+/* ---------------------------------------------------------------------------
+   2. База: шрифт, фон, прокрутка, никаких «стеклянных» эффектов
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] body {
+  background: var(--sv-page-bg);
+  color: var(--sv-text);
+  font-family: var(--sv-font);
+  font-size: 14px;
+  line-height: 1.528571429;
+}
+[data-design="servarr"] body::before { display: none; }
+
+[data-design="servarr"] button,
+[data-design="servarr"] input,
+[data-design="servarr"] optgroup,
+[data-design="servarr"] select,
+[data-design="servarr"] textarea {
+  font-family: inherit;
+}
+
+[data-design="servarr"] h1,
+[data-design="servarr"] h2,
+[data-design="servarr"] h3,
+[data-design="servarr"] h4 {
+  font-family: var(--sv-font);
+  letter-spacing: 0;
+}
+
+[data-design="servarr"] a { color: var(--sv-link); }
+[data-design="servarr"] a:hover { color: var(--sv-link-hover); }
+
+[data-design="servarr"] .mono { font-family: var(--sv-font); }
+[data-design="servarr"] code,
+[data-design="servarr"] pre,
+[data-design="servarr"] kbd,
+[data-design="servarr"] textarea.input,
+[data-design="servarr"] input.input.mono {
+  font-family: var(--sv-mono);
+}
+
+/* «Стекло» и неоновые эффекты у Sonarr отсутствуют */
+[data-design="servarr"] * {
+  --glass-blur: none;
+  text-shadow: none;
+}
+[data-design="servarr"] .text-teal { color: var(--sv-primary) !important; }
+[data-design="servarr"] .text-muted { color: var(--sv-help) !important; }
+[data-design="servarr"] .text-danger { color: var(--sv-danger) !important; }
+[data-design="servarr"] .hint { color: var(--sv-help); }
+
+/* Прокрутка как у Sonarr (Styles/Mixins/scroller.css) — всегда тонкая, серо-синяя */
+[data-design="servarr"],
+[data-design="servarr"] * {
+  scrollbar-color: var(--sv-scrollbar) transparent;
+}
+[data-design="servarr"][data-scrollbar="autohide"]:not(.is-scrolling) * { scrollbar-color: transparent transparent; }
+[data-design="servarr"] ::-webkit-scrollbar { width: 10px; height: 10px; }
+[data-design="servarr"] ::-webkit-scrollbar-track { background-color: transparent; }
+[data-design="servarr"][data-scrollbar="styled"] ::-webkit-scrollbar-thumb,
+[data-design="servarr"][data-scrollbar="autohide"].is-scrolling ::-webkit-scrollbar-thumb,
+[data-design="servarr"][data-scrollbar="native"] ::-webkit-scrollbar-thumb,
+[data-design="servarr"]:not([data-scrollbar]) ::-webkit-scrollbar-thumb {
+  min-height: 100px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background-color: var(--sv-scrollbar);
+  background-clip: padding-box;
+}
+[data-design="servarr"] ::-webkit-scrollbar-thumb:hover { background-color: var(--sv-scrollbar-hover) !important; }
+
+/* ---------------------------------------------------------------------------
+   3. Каркас: шапка / сайдбар / контент (Components/Page)
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .servarr-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  height: var(--sv-header-height);
+  background-color: var(--sv-theme-alt);
+  color: var(--sv-white);
+}
+
+[data-design="servarr"] .servarr-header-logo {
+  display: flex;
+  align-items: center;
+  flex: 0 0 var(--sv-sidebar-width);
+  padding-left: 20px;
+}
+[data-design="servarr"] .servarr-logo-link { line-height: 0; display: inline-block; }
+[data-design="servarr"] .servarr-logo { width: 32px; height: 32px; }
+
+[data-design="servarr"] .servarr-header-toggle {
+  display: none;
+  justify-content: center;
+  flex: 0 0 45px;
+  margin-right: 14px;
+}
+
+[data-design="servarr"] .servarr-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+}
+[data-design="servarr"] .servarr-search-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--sv-white);
+  flex-shrink: 0;
+}
+[data-design="servarr"] .servarr-search-input {
+  margin-left: 8px;
+  padding: 6px 16px 6px 0;
+  width: 200px;
+  height: 35px;
+  border: none;
+  border-bottom: solid 1px var(--sv-white);
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  color: var(--sv-white);
+  font-size: 14px;
+  outline: 0;
+  transition: border 0.3s ease-out;
+}
+[data-design="servarr"] .servarr-search-input::placeholder {
+  color: var(--sv-white);
+  opacity: 1;
+  transition: color 0.3s ease-out;
+}
+[data-design="servarr"] .servarr-search-input:focus { border-bottom-color: transparent; }
+[data-design="servarr"] .servarr-search-input:focus::placeholder { color: transparent; }
+
+[data-design="servarr"] .servarr-search-results {
+  position: absolute;
+  top: 47px;
+  left: 22px;
+  z-index: 95;
+  overflow-y: auto;
+  min-width: 100%;
+  width: 360px;
+  max-height: 380px;
+  border: 1px solid var(--sv-dark);
+  border-radius: 4px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  background-color: var(--sv-dark);
+  box-shadow: inset 0 1px 1px var(--sv-input-shadow);
+  color: var(--sv-sidebar-color);
+}
+[data-design="servarr"] .servarr-search-section {
+  padding: 5px 8px;
+  color: var(--sv-disabled);
+}
+[data-design="servarr"] .servarr-search-list {
+  margin: 0 0 5px;
+  padding-left: 0;
+  list-style-type: none;
+}
+[data-design="servarr"] .servarr-search-item {
+  display: flex;
+  align-items: center;
+  padding: 5px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+[data-design="servarr"] .servarr-search-item.highlighted,
+[data-design="servarr"] .servarr-search-item:hover { background-color: var(--sv-light); }
+[data-design="servarr"] .servarr-search-poster {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 50px;
+  object-fit: cover;
+  background: var(--sv-light);
+}
+[data-design="servarr"] .servarr-search-meta {
+  min-width: 0;
+  margin-left: 10px;
+}
+[data-design="servarr"] .servarr-search-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 16px;
+  line-height: 1.3;
+}
+[data-design="servarr"] .servarr-search-sub {
+  color: var(--sv-disabled);
+  font-size: 12px;
+}
+[data-design="servarr"] .servarr-search-empty {
+  padding: 8px 16px;
+  color: var(--sv-disabled);
+}
+[data-design="servarr"] .servarr-search-add {
+  padding: 5px 8px 8px;
+  border-top: 1px solid var(--sv-light);
+  cursor: pointer;
+  text-align: center;
+}
+[data-design="servarr"] .servarr-search-add:hover { color: var(--sv-theme-alt-light); }
+
+[data-design="servarr"] .servarr-header-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-grow: 1;
+  padding-right: 10px;
+}
+[data-design="servarr"] .servarr-header-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  width: 40px;
+  height: var(--sv-header-height);
+  border: 0;
+  background: none;
+  color: var(--sv-white);
+  cursor: pointer;
+  text-decoration: none;
+}
+[data-design="servarr"] .servarr-header-icon-btn:hover { color: #b9a4ff; }
+[data-design="servarr"] .servarr-header-icon-btn svg,
+[data-design="servarr"] .servarr-header-icon-btn i { width: 18px; height: 18px; }
+[data-design="servarr"] .servarr-tasks-btn.has-running svg { animation: servarrPulse 1.4s ease-in-out infinite; }
+@keyframes servarrPulse { 50% { opacity: 0.45; } }
+[data-design="servarr"] .servarr-tasks-badge {
+  position: absolute;
+  top: 12px;
+  right: 4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--sv-warning);
+  color: var(--sv-white);
+  font-size: 11px;
+  font-weight: bold;
+  line-height: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-design="servarr"] .servarr-actions-menu { position: relative; }
+[data-design="servarr"] .servarr-actions-btn { margin-right: 5px; width: 30px; }
+[data-design="servarr"] .servarr-menu-content {
+  position: absolute;
+  top: calc(var(--sv-header-height) - 4px);
+  right: 0;
+  z-index: 2000;
+  min-width: 180px;
+  background-color: var(--sv-toolbar-menu-bg);
+  line-height: 20px;
+}
+[data-design="servarr"] .servarr-menu-user {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--sv-dark);
+  color: var(--sv-white);
+}
+[data-design="servarr"] .servarr-menu-user-name { font-weight: bold; }
+[data-design="servarr"] .servarr-menu-user-role { color: var(--sv-toolbar-label); font-size: 12px; }
+[data-design="servarr"] .servarr-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 20px;
+  border: 0;
+  background-color: var(--sv-toolbar-menu-bg);
+  color: var(--sv-sidebar-color);
+  font-size: 14px;
+  line-height: 20px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+[data-design="servarr"] .servarr-menu-item:hover {
+  background-color: var(--sv-toolbar-menu-hover-bg);
+  color: #fbfcfc;
+}
+[data-design="servarr"] .servarr-menu-item svg { width: 14px; height: 14px; margin-right: 8px; }
+[data-design="servarr"] .servarr-menu-separator { height: 1px; background: var(--sv-dark); }
+
+/* Каркас: шапка фиксирована, ниже — сайдбар и прокручиваемый контент */
+[data-design="servarr"] .app-shell {
+  display: flex;
+  min-height: 100vh;
+  padding-top: var(--sv-header-height);
+}
+
+[data-design="servarr"] .sidebar {
+  position: fixed;
+  top: var(--sv-header-height);
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+  width: var(--sv-sidebar-width);
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--sv-sidebar-bg);
+  box-shadow: none;
+  color: var(--sv-white);
+  overflow-x: hidden;
+  overflow-y: auto;
+  --text: var(--sv-sidebar-color);
+  --text-muted: var(--sv-toolbar-label);
+  --border: rgba(255, 255, 255, 0.08);
+  --panel: var(--sv-sidebar-bg);
+  --panel-alt: var(--sv-sidebar-active-bg);
+}
+[data-design="servarr"] .sidebar .sidebar-header-row,
+[data-design="servarr"] .sidebar > .btn-block,
+[data-design="servarr"] .sidebar .user-profile-badge { display: none !important; }
+
+[data-design="servarr"] .sidebar .nav {
+  display: block;
+  flex: 1 0 auto;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+[data-design="servarr"] .sidebar .nav-item,
+[data-design="servarr"] .sidebar .nav-item-wiki {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  margin: 0;
+  padding: 12px 24px;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sv-sidebar-color);
+  font-family: var(--sv-font);
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 1.528571429;
+  letter-spacing: 0;
+  text-align: left;
+  text-decoration: none;
+  transform: none;
+  transition: border-left 0.3s ease-in-out;
+}
+[data-design="servarr"] .sidebar .nav-item:hover,
+[data-design="servarr"] .sidebar .nav-item:focus-visible,
+[data-design="servarr"] .sidebar .nav-item-wiki:hover {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--sv-theme);
+  transform: none;
+}
+[data-design="servarr"] .sidebar .nav-item .nav-ico,
+[data-design="servarr"] .sidebar .nav-item-wiki .nav-ico {
+  display: inline-block;
+  flex: 0 0 18px;
+  width: 16px;
+  height: 16px;
+  margin-right: 7px;
+  opacity: 1;
+  color: inherit;
+  filter: none;
+  transform: none;
+}
+[data-design="servarr"] .sidebar .nav-item.active {
+  border-left: 3px solid var(--sv-theme-alt-light);
+  background-color: var(--sv-sidebar-active-bg);
+  box-shadow: none;
+  color: var(--sv-theme-alt-light);
+  font-weight: normal;
+}
+[data-design="servarr"] .sidebar .nav-item.active:hover { color: var(--sv-theme-alt-light); }
+[data-design="servarr"] .sidebar .nav-item-wiki::before,
+[data-design="servarr"] .sidebar .nav-wiki-badge { display: none; }
+[data-design="servarr"] .sidebar .nav-wiki-ext-ico {
+  width: 12px;
+  height: 12px;
+  margin-left: 6px;
+  color: inherit;
+  opacity: 0.6;
+}
+
+/* Вложенные пункты: у Sonarr показываются под активным разделом, фон как у активного */
+[data-design="servarr"] .servarr-subnav {
+  display: none;
+  background-color: var(--sv-sidebar-active-bg);
+  border-left: 3px solid var(--sv-theme-alt-light);
+}
+[data-design="servarr"] .servarr-subnav.open { display: block; }
+[data-design="servarr"] .sidebar .nav-item.active:has(+ .servarr-subnav.open) { padding-bottom: 12px; }
+[data-design="servarr"] .servarr-subnav-item {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 10px 24px 10px 35px;
+  border: 0;
+  background: none;
+  color: var(--sv-sidebar-color);
+  font-family: var(--sv-font);
+  font-size: 14px;
+  line-height: 1.528571429;
+  text-align: left;
+  cursor: pointer;
+}
+[data-design="servarr"] .servarr-subnav-item:hover { color: var(--sv-theme); }
+[data-design="servarr"] .servarr-subnav-item.active { color: var(--sv-theme-alt-light); }
+
+/* Сообщения внизу сайдбара (Page/Sidebar/Messages) — виджет фоновых задач */
+[data-design="servarr"] .sidebar .sidebar-footer {
+  margin: auto 0 20px;
+  padding: 20px 0 0;
+  border: 0;
+  background: transparent;
+}
+[data-design="servarr"] .tasks-status-widget {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+[data-design="servarr"] .tasks-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-left: 3px solid var(--sv-success);
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--sv-sidebar-color);
+}
+[data-design="servarr"] .tasks-status-widget.has-running .tasks-status-pill { border-left-color: var(--sv-info); }
+[data-design="servarr"] .tasks-status-pill .tasks-spinner,
+[data-design="servarr"] .tasks-status-pill .tasks-idle-icon {
+  flex: 0 0 auto;
+  margin: 10px 11px 10px 24px;
+}
+[data-design="servarr"] .tasks-status-pill .tasks-idle-icon {
+  width: 14px;
+  color: var(--sv-success);
+  font-size: 12px;
+  text-align: center;
+}
+[data-design="servarr"] .tasks-status-pill .tasks-spinner {
+  width: 14px;
+  height: 14px;
+  border-color: rgba(255, 255, 255, 0.2);
+  border-top-color: var(--sv-sidebar-color);
+}
+[data-design="servarr"] .tasks-status-info {
+  min-width: 0;
+  margin-right: 24px;
+  padding: 2px 0;
+}
+[data-design="servarr"] .tasks-status-text {
+  color: var(--sv-sidebar-color);
+  font-size: 13px;
+  font-weight: normal;
+}
+[data-design="servarr"] .tasks-status-sub { color: var(--sv-toolbar-label); font-size: 12px; }
+[data-design="servarr"] .tasks-count-badge,
+[data-design="servarr"] .tasks-status-progress-badge {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--sv-info);
+  color: var(--sv-white);
+  font-size: 11px;
+  box-shadow: none;
+}
+[data-design="servarr"] .tasks-status-widget:hover .tasks-status-text { color: var(--sv-theme); }
+
+/* Всплывающее окно фоновых задач — как выпадающее меню Sonarr */
+[data-design="servarr"] .tasks-popup {
+  top: var(--sv-header-height);
+  right: 10px;
+  bottom: auto;
+  left: auto;
+  z-index: 2000;
+  border: 1px solid var(--sv-border);
+  border-radius: 4px;
+  background: var(--sv-white);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+  color: var(--sv-text);
+}
+
+[data-design="servarr"] .content {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
+  margin: 0 0 0 var(--sv-sidebar-width);
+  padding: 0 var(--sv-content-padding) var(--sv-content-padding);
+}
+
+/* ---------------------------------------------------------------------------
+   4. Панель инструментов страницы (Components/Page/Toolbar)
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .content .panel-sticky-header {
+  flex-wrap: nowrap !important;
+  position: sticky;
+  top: var(--sv-header-height);
+  z-index: 50;
+  display: flex;
+  align-items: stretch;
+  margin: 0 calc(var(--sv-content-padding) * -1) var(--sv-content-padding);
+  padding: 0 20px;
+  min-height: var(--sv-toolbar-height);
+  border: 0;
+  border-radius: 0;
+  background: var(--sv-toolbar-bg);
+  box-shadow: none;
+  color: var(--sv-toolbar-color);
+  line-height: 60px;
+  --text: var(--sv-toolbar-color);
+  --text-muted: var(--sv-toolbar-label);
+  --border: rgba(229, 229, 229, 0.35);
+  --panel: var(--sv-toolbar-menu-bg);
+  --panel-alt: var(--sv-toolbar-menu-bg);
+}
+[data-design="servarr"] .content .panel-sticky-header .panel-header,
+[data-design="servarr"] .content .panel-sticky-header .panel-header .header-row {
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+[data-design="servarr"] .content .panel-sticky-header .panel-header { order: 2; margin-left: auto; }
+[data-design="servarr"] .content .panel-sticky-header .panel-header:not(:has(.header-actions > *)) { display: none; }
+[data-design="servarr"] .content .panel-sticky-header .header-row > div:first-child:not(.header-actions) { display: none; }
+[data-design="servarr"] .content .panel-sticky-header .header-actions {
+  display: flex !important;
+  align-items: stretch;
+  gap: 0 !important;
+  margin: 0;
+}
+[data-design="servarr"] .content .panel-sticky-header .header-actions > * { margin: 0 !important; }
+[data-design="servarr"] .content .panel-sticky-header > .toolbar,
+[data-design="servarr"] .content .panel-sticky-header > .settings-tabs,
+[data-design="servarr"] .content .panel-sticky-header > .logs-tabs,
+[data-design="servarr"] .content .panel-sticky-header > div:not(.panel-header):not(.library-bulk-bar):not([id$="bulk-bar"]) {
+  order: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Кнопка панели: иконка сверху, подпись 11px снизу (PageToolbarButton) */
+[data-design="servarr"] .content .panel-sticky-header .btn,
+[data-design="servarr"] .content .panel-sticky-header .settings-tab-btn,
+[data-design="servarr"] .content .panel-sticky-header .logs-tab-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: 0;
+  padding: 4px 3px 0;
+  min-width: 60px;
+  width: auto;
+  max-width: 110px;
+  height: var(--sv-toolbar-height);
+  min-height: var(--sv-toolbar-height);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sv-toolbar-color);
+  font-family: var(--sv-font);
+  font-size: 11px;
+  font-weight: normal;
+  line-height: 12px;
+  white-space: normal;
+  text-align: center;
+  transform: none;
+  cursor: pointer;
+}
+[data-design="servarr"] .content .panel-sticky-header .btn > svg,
+[data-design="servarr"] .content .panel-sticky-header .btn > i,
+[data-design="servarr"] .content .panel-sticky-header .btn > .nav-ico,
+[data-design="servarr"] .content .panel-sticky-header .settings-tab-btn > svg,
+[data-design="servarr"] .content .panel-sticky-header .logs-tab-btn > svg {
+  flex: 0 0 auto;
+  width: 21px !important;
+  height: 21px !important;
+  margin: 0 0 3px !important;
+  color: inherit !important;
+  opacity: 1;
+  stroke-width: 2;
+}
+[data-design="servarr"] .content .panel-sticky-header .btn > span,
+[data-design="servarr"] .content .panel-sticky-header .settings-tab-btn > span,
+[data-design="servarr"] .content .panel-sticky-header .logs-tab-btn > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  max-width: 100%;
+  max-height: 24px;
+  padding: 0 3px;
+  color: var(--sv-toolbar-label);
+  font-size: 11px;
+  font-weight: normal;
+  line-height: 12px;
+  text-overflow: ellipsis;
+}
+[data-design="servarr"] .content .panel-sticky-header .btn:hover,
+[data-design="servarr"] .content .panel-sticky-header .settings-tab-btn:hover,
+[data-design="servarr"] .content .panel-sticky-header .logs-tab-btn:hover {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--sv-theme-alt-light);
+  transform: none;
+}
+[data-design="servarr"] .content .panel-sticky-header .btn.active,
+[data-design="servarr"] .content .panel-sticky-header .settings-tab-btn.active,
+[data-design="servarr"] .content .panel-sticky-header .logs-tab-btn.active {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--sv-theme-alt-light);
+  font-weight: normal;
+}
+[data-design="servarr"] .content .panel-sticky-header .btn.active > span,
+[data-design="servarr"] .content .panel-sticky-header .settings-tab-btn.active > span,
+[data-design="servarr"] .content .panel-sticky-header .logs-tab-btn.active > span { color: var(--sv-theme-alt-light); }
+[data-design="servarr"] .content .panel-sticky-header .btn:disabled { color: var(--sv-disabled); cursor: default; }
+
+/* Кнопки без иконки — подпись крупнее, как пункт меню панели */
+[data-design="servarr"] .content .panel-sticky-header .btn:not(:has(svg)):not(:has(i)) {
+  padding: 0 10px;
+  color: var(--sv-toolbar-color);
+  font-size: 13px;
+  line-height: 16px;
+}
+[data-design="servarr"] .content .panel-sticky-header .btn.btn-primary:not(:has(svg)):not(:has(i))::before {
+  content: "";
+  display: block;
+  width: 21px;
+  height: 21px;
+  margin-bottom: 3px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+[data-design="servarr"] .content .panel-sticky-header .btn.btn-primary:not(:has(svg)):not(:has(i)) {
+  flex-direction: column;
+  color: var(--sv-toolbar-color);
+  font-size: 11px;
+  line-height: 12px;
+}
+
+/* Разделитель между группами панели (PageToolbarSeparator) */
+[data-design="servarr"] .content .panel-sticky-header .panel-header::before {
+  content: "";
+  align-self: center;
+  margin: 10px 20px;
+  height: 40px;
+  border-right: 1px solid #e5e5e5;
+  opacity: 0.35;
+}
+
+/* Табы настроек/логов в панели */
+[data-design="servarr"] .content .panel-sticky-header .settings-tabs,
+[data-design="servarr"] .content .panel-sticky-header .logs-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+/* Внутренняя раскладка панелей инструментов разделов */
+[data-design="servarr"] .content .panel-sticky-header .toolbar {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+[data-design="servarr"] .content .panel-sticky-header .toolbar-left,
+[data-design="servarr"] .content .panel-sticky-header .toolbar-right {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+}
+[data-design="servarr"] .content .panel-sticky-header .toolbar-left { flex: 1 1 auto; min-width: 0; }
+[data-design="servarr"] .content .panel-sticky-header .toolbar-right { flex: 0 0 auto; }
+[data-design="servarr"] .content .panel-sticky-header .btn-group {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 0 0 0 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+[data-design="servarr"] .content .panel-sticky-header .btn-group .btn { min-width: 0; padding: 0 9px; }
+[data-design="servarr"] .content .panel-sticky-header .btn-group .btn.active {
+  color: var(--sv-white);
+  box-shadow: inset 0 -3px 0 var(--sv-theme-alt-light);
+}
+
+/* Поиск внутри панели — в стиле поиска шапки Sonarr */
+[data-design="servarr"] .content .panel-sticky-header .library-search-wrap,
+[data-design="servarr"] .content .panel-sticky-header .blocklist-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 1 240px;
+  min-width: 140px;
+  max-width: 240px;
+  margin: 0 10px 0 0;
+}
+[data-design="servarr"] .content .panel-sticky-header .library-search-icon,
+[data-design="servarr"] .content .panel-sticky-header .blocklist-search-icon {
+  left: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--sv-toolbar-color);
+}
+[data-design="servarr"] .content .panel-sticky-header input.input,
+[data-design="servarr"] .content .panel-sticky-header .library-search-input,
+[data-design="servarr"] .content .panel-sticky-header .blocklist-search-input {
+  height: 35px;
+  padding: 6px 26px 6px 22px;
+  border: 0;
+  border-bottom: 1px solid var(--sv-toolbar-color);
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--sv-white);
+  font-size: 14px;
+}
+[data-design="servarr"] .content .panel-sticky-header input.input::placeholder { color: var(--sv-toolbar-label); }
+[data-design="servarr"] .content .panel-sticky-header input.input:focus { border-bottom-color: var(--sv-theme-alt-light); }
+[data-design="servarr"] .content .panel-sticky-header .library-search-clear-btn,
+[data-design="servarr"] .content .panel-sticky-header .blocklist-search-clear-btn {
+  right: 0;
+  color: var(--sv-toolbar-color);
+  background: transparent !important;
+}
+[data-design="servarr"] .content .panel-sticky-header select.input {
+  align-self: center;
+  height: 35px;
+  margin: 0 6px;
+  border: 1px solid var(--sv-light);
+  background-color: var(--sv-toolbar-menu-bg);
+  color: var(--sv-toolbar-color);
+}
+
+/* Выпадающие меню (Components/Menu) */
+[data-design="servarr"] .view-switcher { position: relative; display: flex; align-items: stretch; }
+[data-design="servarr"] .content .panel-sticky-header .view-switcher-btn { font-size: 0 !important; }
+[data-design="servarr"] .content .panel-sticky-header .view-switcher-btn > .nav-ico { margin: 0 0 3px !important; }
+[data-design="servarr"] .content .panel-sticky-header .view-switcher-btn > .nav-ico svg { width: 21px; height: 21px; }
+[data-design="servarr"] .content .panel-sticky-header .view-switcher-btn > span[data-i18n$="_label"] { display: none; }
+[data-design="servarr"] .content .panel-sticky-header .view-switcher-btn > span:last-of-type::after {
+  content: "";
+  display: inline-block;
+  margin-left: 3px;
+  border-top: 4px solid currentColor;
+  border-right: 3px solid transparent;
+  border-left: 3px solid transparent;
+  vertical-align: middle;
+}
+[data-design="servarr"] .view-switcher-menu {
+  top: 100%;
+  right: 0;
+  z-index: 2000;
+  min-width: 150px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: var(--sv-toolbar-menu-bg);
+  box-shadow: none;
+  line-height: 20px;
+}
+[data-design="servarr"] .view-switcher-menu.open { gap: 0; }
+[data-design="servarr"] .view-switcher-menu button {
+  display: block;
+  max-width: 250px;
+  padding: 10px 20px;
+  border-radius: 0;
+  background-color: var(--sv-toolbar-menu-bg);
+  color: var(--sv-sidebar-color);
+  font-family: var(--sv-font);
+  font-size: 14px;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-design="servarr"] .view-switcher-menu button:hover,
+[data-design="servarr"] .view-switcher-menu button.active {
+  background-color: var(--sv-toolbar-menu-hover-bg);
+  color: #fbfcfc;
+}
+
+/* Панель массового выбора — нижняя панель Sonarr (SeriesIndexSelectFooter) */
+[data-design="servarr"] .library-bulk-bar,
+[data-design="servarr"] [id$="-bulk-bar"] {
+  order: 3;
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: var(--sv-sidebar-width);
+  z-index: 70;
+  display: flex;
+  margin: 0;
+  padding: 10px 20px;
+  border: 0;
+  border-top: 1px solid var(--sv-border);
+  border-radius: 0;
+  background: var(--sv-white);
+  box-shadow: 0 0 10px 1px var(--sv-card-shadow);
+  color: var(--sv-text);
+  line-height: 1.528571429;
+  animation: none;
+  --text: var(--sv-text);
+  --text-muted: var(--sv-help);
+  --border: var(--sv-border);
+  --panel: #fff;
+  --panel-alt: #f7f8fa;
+}
+[data-design="servarr"] .library-bulk-bar .btn,
+[data-design="servarr"] [id$="-bulk-bar"] .btn {
+  flex-direction: row;
+  gap: 5px;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  height: 30px;
+  min-height: 30px;
+  padding: 1px 10px;
+  font-size: 13px;
+}
+[data-design="servarr"] .library-bulk-bar .btn > svg { width: 14px !important; height: 14px !important; margin: 0 !important; }
+[data-design="servarr"] .library-bulk-bar .btn > span { color: inherit; font-size: 13px; }
+[data-design="servarr"] .library-bulk-bar select.input {
+  height: 30px;
+  margin: 0;
+  border: 1px solid var(--sv-input-border);
+  background-color: #fff;
+  color: var(--sv-text);
+}
+[data-design="servarr"] .bulk-count-badge {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sv-text);
+  font-family: var(--sv-font);
+  font-size: 14px;
+  font-weight: bold;
+}
+[data-design="servarr"] .bulk-mode-active .content,
+[data-design="servarr"] .content:has(.library-bulk-bar[style*="flex"]) { padding-bottom: 80px; }
+
+/* ---------------------------------------------------------------------------
+   5. Кнопки (Components/Link/Button.css)
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: auto;
+  min-height: 35px;
+  padding: 6px 16px;
+  overflow: hidden;
+  border: 1px solid var(--sv-btn-default-border);
+  border-radius: 4px;
+  background: var(--sv-btn-default-bg);
+  box-shadow: none;
+  color: var(--sv-default);
+  font-family: var(--sv-font);
+  font-size: 14px;
+  font-weight: normal;
+  line-height: normal;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  vertical-align: middle;
+  transform: none;
+  transition: none;
+}
+[data-design="servarr"] .btn:hover {
+  border-color: var(--sv-btn-default-hover-border);
+  background: var(--sv-btn-default-hover-bg);
+  box-shadow: none;
+  color: var(--sv-default);
+  text-decoration: none;
+  transform: none;
+}
+[data-design="servarr"] .btn:focus-visible { border-color: var(--sv-btn-default-hover-border); outline: none; }
+[data-design="servarr"] .btn:active { transform: none; }
+[data-design="servarr"] .btn:disabled,
+[data-design="servarr"] .btn.disabled,
+[data-design="servarr"] .btn.isDisabled { opacity: 0.65; cursor: default; }
+[data-design="servarr"] .btn svg,
+[data-design="servarr"] .btn i { width: 14px; height: 14px; flex-shrink: 0; }
+
+[data-design="servarr"] .btn-secondary { /* kinds.DEFAULT */ }
+
+[data-design="servarr"] .btn-primary,
+[data-design="servarr"] .btn.btn-primary {
+  border-color: var(--sv-btn-primary-border);
+  background: var(--sv-btn-primary-bg);
+  color: var(--sv-white);
+  font-weight: normal;
+}
+[data-design="servarr"] .btn-primary:hover {
+  border-color: var(--sv-btn-primary-hover-border);
+  background: var(--sv-btn-primary-hover-bg);
+  box-shadow: none;
+  color: var(--sv-white);
+}
+
+[data-design="servarr"] .btn-danger,
+[data-design="servarr"] .btn.btn-danger {
+  border-color: var(--sv-btn-danger-border);
+  background: var(--sv-btn-danger-bg);
+  color: var(--sv-white);
+}
+[data-design="servarr"] .btn-danger:hover {
+  border-color: var(--sv-btn-danger-hover-border);
+  background: var(--sv-btn-danger-hover-bg);
+  box-shadow: none;
+  color: var(--sv-white);
+}
+
+[data-design="servarr"] .btn-success,
+[data-design="servarr"] .btn.btn-success {
+  border-color: var(--sv-btn-success-border);
+  background: var(--sv-btn-success-bg);
+  color: var(--sv-white);
+}
+[data-design="servarr"] .btn-success:hover {
+  border-color: var(--sv-btn-success-hover-border);
+  background: var(--sv-btn-success-hover-bg);
+  color: var(--sv-white);
+}
+
+[data-design="servarr"] .btn-warning,
+[data-design="servarr"] .btn.btn-warning {
+  border-color: var(--sv-btn-warning-border);
+  background: var(--sv-btn-warning-bg);
+  color: var(--sv-white);
+}
+[data-design="servarr"] .btn-warning:hover {
+  border-color: var(--sv-btn-warning-hover-border);
+  background: var(--sv-btn-warning-hover-bg);
+  color: var(--sv-white);
+}
+
+/* Нажатая/выбранная кнопка вне панели — как primary */
+[data-design="servarr"] .btn.active,
+[data-design="servarr"] .btn-secondary.active {
+  border-color: var(--sv-btn-primary-border);
+  background: var(--sv-btn-primary-bg);
+  box-shadow: none;
+  color: var(--sv-white);
+  font-weight: normal;
+}
+
+/* Размеры: sizes.SMALL / LARGE */
+[data-design="servarr"] .btn-small,
+[data-design="servarr"] .btn-sm {
+  height: auto;
+  min-height: 0;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+[data-design="servarr"] .btn-small svg,
+[data-design="servarr"] .btn-sm svg { width: 12px; height: 12px; }
+[data-design="servarr"] .btn-large { padding: 10px 20px; font-size: 16px; }
+[data-design="servarr"] .btn-block { width: 100%; }
+
+/* Группы кнопок (left/center/right) */
+[data-design="servarr"] .btn-group { gap: 0; }
+[data-design="servarr"] .btn-group > .btn + .btn { margin-left: -1px; }
+[data-design="servarr"] .btn-group > .btn:not(:first-child):not(:last-child) { border-radius: 0; }
+[data-design="servarr"] .btn-group > .btn:first-child:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+[data-design="servarr"] .btn-group > .btn:last-child:not(:first-child) { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+
+/* Иконочные кнопки (Components/Link/IconButton.css) */
+[data-design="servarr"] .btn-icon-only,
+[data-design="servarr"] .btn.btn-icon-only {
+  display: inline-flex;
+  width: auto;
+  min-width: 22px;
+  height: auto;
+  min-height: 0;
+  margin: 0 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font-size: inherit;
+}
+[data-design="servarr"] .btn-icon-only:hover,
+[data-design="servarr"] .btn.btn-icon-only:hover {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sv-icon-hover);
+}
+[data-design="servarr"] .btn-icon-only.btn-danger,
+[data-design="servarr"] .btn-icon-only.danger { color: var(--sv-danger); background: transparent; }
+[data-design="servarr"] .btn-icon-only svg { width: 16px; height: 16px; }
+
+[data-design="servarr"] .btn-text-small,
+[data-design="servarr"] .btn-link {
+  color: var(--sv-link);
+  font-family: var(--sv-font);
+}
+[data-design="servarr"] .btn-text-small:hover,
+[data-design="servarr"] .btn-link:hover { color: var(--sv-link-hover); text-decoration: underline; }
+
+/* ---------------------------------------------------------------------------
+   6. Поля ввода (Components/Form)
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .input,
+[data-design="servarr"] input.input,
+[data-design="servarr"] select.input,
+[data-design="servarr"] textarea.input {
+  height: 35px;
+  padding: 6px 16px;
+  border: 1px solid var(--sv-input-border);
+  border-radius: 4px;
+  background-color: #fff;
+  box-shadow: inset 0 1px 1px var(--sv-input-shadow);
+  color: var(--sv-text);
+  font-family: var(--sv-font);
+  font-size: 14px;
+  line-height: 1.528571429;
+  transform: none;
+  transition: none;
+}
+[data-design="servarr"] select.input { padding: 0 11px; }
+[data-design="servarr"] textarea.input {
+  height: auto;
+  min-height: 70px;
+  padding: 6px 16px;
+  font-family: var(--sv-mono);
+  font-size: 14px;
+}
+[data-design="servarr"] .input:focus {
+  outline: 0;
+  border-color: var(--sv-input-focus-border);
+  box-shadow: inset 0 1px 1px var(--sv-input-shadow), 0 0 8px var(--sv-input-focus-shadow);
+  transform: none;
+}
+[data-design="servarr"] .input::placeholder { color: var(--sv-disabled); }
+[data-design="servarr"] .input[readonly],
+[data-design="servarr"] .input.readonly { background-color: #eee; }
+[data-design="servarr"] .input:disabled { opacity: 0.7; cursor: not-allowed; }
+[data-design="servarr"] .input.has-error,
+[data-design="servarr"] .input.error,
+[data-design="servarr"] .input.is-invalid {
+  border-color: var(--sv-input-error-border);
+  box-shadow: inset 0 1px 1px var(--sv-input-shadow), 0 0 8px var(--sv-input-error-shadow);
+}
+[data-design="servarr"] .input:-webkit-autofill,
+[data-design="servarr"] .input:-webkit-autofill:hover,
+[data-design="servarr"] .input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--sv-text) !important;
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+}
+[data-design="servarr"] .input-small,
+[data-design="servarr"] .input.input-small {
+  height: 30px;
+  padding: 2px 8px;
+  font-size: 13px;
+}
+
+/* Подписи полей (FormLabel) */
+[data-design="servarr"] .settings-field-label,
+[data-design="servarr"] .form-label,
+[data-design="servarr"] .form-col label,
+[data-design="servarr"] .field-label {
+  color: var(--sv-text);
+  font-family: var(--sv-font);
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 0;
+  text-transform: none;
+}
+[data-design="servarr"] .settings-field-hint,
+[data-design="servarr"] .form-hint,
+[data-design="servarr"] .field-hint {
+  color: var(--sv-help);
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 20px;
+}
+[data-design="servarr"] .servarr-theme-note { display: block; margin-top: 5px; }
+[data-design="servarr"] .servarr-theme-locked select { opacity: 0.7; }
+
+/* Чекбоксы (CheckInput): 20×20, радиус 2px, заливка primary с галочкой */
+[data-design="servarr"] input[type="checkbox"]:not(.show-card-checkbox):not([role="switch"]) {
+  accent-color: var(--sv-primary);
+}
+[data-design="servarr"] .checkbox-row { color: var(--sv-text); font-size: 14px; }
+
+html[data-design="servarr"] .switch-toggle {
+  display: inline-grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 0;
+  align-items: start;
+}
+html[data-design="servarr"] .switch-toggle > input { grid-column: 1; grid-row: 1; }
+html[data-design="servarr"] .switch-toggle > .switch-slider { grid-column: 1; grid-row: 1 / span 2; }
+html[data-design="servarr"] .switch-toggle > .switch-title,
+html[data-design="servarr"] .switch-toggle > .switch-label-wrap { grid-column: 2; grid-row: 1; min-height: 21px; }
+html[data-design="servarr"] .switch-toggle > .switch-desc { grid-column: 2; grid-row: 2; }
+html[data-design="servarr"] .switch-label-wrap { gap: 0; }
+
+html[data-design="servarr"][data-theme] .switch-slider,
+html[data-design="servarr"][data-theme] .switch-toggle:hover .switch-slider {
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: none;
+  transition: none;
+}
+html[data-design="servarr"][data-theme] .switch-slider::before {
+  top: 2px;
+  left: 6px;
+  width: 6px;
+  height: 11px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  opacity: 0;
+  transform: rotate(45deg);
+  transition: none;
+}
+html[data-design="servarr"][data-theme] .switch-toggle input[type="checkbox"]:checked + .switch-slider {
+  border-color: var(--sv-primary);
+  background: var(--sv-primary);
+  box-shadow: none;
+}
+html[data-design="servarr"][data-theme] .switch-toggle input[type="checkbox"]:checked + .switch-slider::before {
+  background: transparent;
+  box-shadow: none;
+  opacity: 1;
+  transform: rotate(45deg);
+}
+html[data-design="servarr"][data-theme] .switch-toggle input[type="checkbox"]:focus-visible + .switch-slider {
+  border-color: var(--sv-input-focus-border);
+  box-shadow: inset 0 1px 1px var(--sv-input-shadow), 0 0 8px var(--sv-input-focus-shadow);
+}
+html[data-design="servarr"][data-theme] .switch-toggle input[type="checkbox"]:disabled + .switch-slider {
+  border-color: #ddd;
+  background: #ddd;
+  opacity: 0.7;
+}
+html[data-design="servarr"][data-theme] .switch-title {
+  color: var(--sv-text);
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 21px;
+}
+html[data-design="servarr"][data-theme] .switch-desc {
+  color: var(--sv-help);
+  font-size: 14px;
+  line-height: 20px;
+}
+html[data-design="servarr"][data-theme] .wizard-switch-card {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Переключатель как отдельная строка формы: подпись слева (жирная), флажок и подсказка справа */
+html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child {
+  grid-column: 1 / -1;
+  grid-row: auto;
+  display: grid;
+  grid-template-columns: 270px 20px minmax(0, 1fr);
+  column-gap: 0;
+  padding: 0;
+  min-height: 35px;
+  text-align: start;
+}
+html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child > .switch-title,
+html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child > .switch-label-wrap > .switch-title {
+  grid-column: 1;
+  grid-row: 1;
+  padding: 7px 20px 0 0;
+  font-weight: bold;
+  text-align: end;
+}
+html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child > .switch-slider {
+  grid-column: 2;
+  grid-row: 1;
+  margin-top: 7px;
+}
+html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child > .switch-desc {
+  grid-column: 3;
+  grid-row: 1;
+  padding: 7px 0 0 8px;
+}
+@media (max-width: 1024px) {
+  html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child {
+    grid-template-columns: 20px minmax(0, 1fr);
+    column-gap: 8px;
+  }
+  html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child > .switch-title { grid-column: 2; padding: 0; text-align: start; }
+  html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child > .switch-slider { grid-column: 1; grid-row: 1 / span 2; margin-top: 1px; }
+  html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child > .switch-desc { grid-column: 2; grid-row: 2; padding: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   7. Метки (Components/Label.css)
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .badge,
+[data-design="servarr"] .meta-badge,
+[data-design="servarr"] .badge-tag,
+[data-design="servarr"] .category-badge-chip,
+[data-design="servarr"] .show-quality-badge,
+[data-design="servarr"] .badge-edition,
+[data-design="servarr"] .badge-collection {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: auto;
+  margin: 2px;
+  padding: 2px 5px;
+  border: 1px solid var(--sv-light);
+  border-radius: 4px;
+  background: var(--sv-light);
+  box-shadow: none;
+  color: var(--sv-white);
+  font-family: var(--sv-font);
+  font-size: 12px;
+  font-weight: normal;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
+  white-space: nowrap;
+  backdrop-filter: none;
+}
+[data-design="servarr"] .badge svg,
+[data-design="servarr"] .meta-badge svg,
+[data-design="servarr"] .category-badge-chip svg { width: 11px; height: 11px; }
+
+[data-design="servarr"] .badge-success,
+[data-design="servarr"] .badge-ok,
+[data-design="servarr"] .badge.success { border-color: var(--sv-success); background: var(--sv-success); color: #eee; }
+[data-design="servarr"] .badge-danger,
+[data-design="servarr"] .badge-error,
+[data-design="servarr"] .badge.danger,
+[data-design="servarr"] .badge.error { border-color: var(--sv-danger); background: var(--sv-danger); color: var(--sv-white); }
+[data-design="servarr"] .badge-warning,
+[data-design="servarr"] .badge-warn,
+[data-design="servarr"] .badge.warning { border-color: var(--sv-warning); background: var(--sv-warning); color: var(--sv-white); }
+[data-design="servarr"] .badge-info,
+[data-design="servarr"] .badge-teal,
+[data-design="servarr"] .badge.info { border-color: var(--sv-info); background: var(--sv-info); color: var(--sv-white); }
+[data-design="servarr"] .badge-primary,
+[data-design="servarr"] .badge.primary { border-color: var(--sv-primary); background: var(--sv-primary); color: var(--sv-white); }
+[data-design="servarr"] .badge-secondary,
+[data-design="servarr"] .badge-ghost,
+[data-design="servarr"] .badge-tag,
+[data-design="servarr"] .badge.inverse { border-color: #ddd; background: #ddd; color: var(--sv-default); }
+[data-design="servarr"] .badge-purple { border-color: var(--sv-purple); background: var(--sv-purple); color: var(--sv-white); }
+[data-design="servarr"] .category-badge-movies { border-color: #ff902b; background: #ff902b; color: #fff; }
+[data-design="servarr"] .category-badge-series { border-color: var(--sv-primary); background: var(--sv-primary); color: #fff; }
+[data-design="servarr"] .category-badge-anime { border-color: var(--sv-theme-red); background: var(--sv-theme-red); color: #fff; }
+[data-design="servarr"] .badge-collection { border-color: var(--sv-dark); background: var(--sv-dark); cursor: pointer; }
+[data-design="servarr"] .badge-edition { border-color: var(--sv-purple); background: var(--sv-purple); }
+
+/* Скругления: у Sonarr максимум 4px (кроме аватаров и индикаторов) */
+[data-design="servarr"] :is([class*="chip"], [class*="-card"], [class*="pill"], [class*="-box"], [class*="tag"]):not([class*="avatar"]):not([class*="spinner"]):not(.switch-slider) {
+  border-radius: 4px;
+}
+
+/* Карточки-переключатели (события уведомлений, права, роли) */
+[data-design="servarr"] .trigger-chip-card,
+[data-design="servarr"] .user-perm-check,
+[data-design="servarr"] .role-preset-card,
+[data-design="servarr"] .card-style-option {
+  border: 1px solid var(--sv-border);
+  background: #fff;
+  box-shadow: none;
+  transform: none;
+}
+[data-design="servarr"] .trigger-chip-card:hover,
+[data-design="servarr"] .user-perm-check:hover,
+[data-design="servarr"] .role-preset-card:hover {
+  border-color: var(--sv-btn-default-hover-border);
+  background: var(--sv-btn-default-hover-bg);
+  transform: none;
+}
+[data-design="servarr"] .trigger-chip-card:has(input:checked),
+[data-design="servarr"] .user-perm-check:has(input:checked),
+[data-design="servarr"] .role-preset-card.active,
+[data-design="servarr"] .role-preset-card.selected {
+  border-color: var(--sv-primary);
+  background: #f3effe;
+  box-shadow: none;
+}
+[data-design="servarr"] .trigger-chip-card .trigger-icon {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sv-dark-gray);
+}
+[data-design="servarr"] .trigger-chip-card:has(input:checked) .trigger-icon { color: var(--sv-primary); }
+[data-design="servarr"] .trigger-label { color: var(--sv-text); }
+
+/* ---------------------------------------------------------------------------
+   8. Карточки и секции
+   Sonarr: Card — белая, радиус 3px, мягкая тень 0 0 10px 1px #e1e1e1;
+           FieldSet — без рамки, заголовок 21px с линией снизу.
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .card,
+[data-design="servarr"] .panel,
+[data-design="servarr"] .dash-stat-card,
+[data-design="servarr"] .history-card,
+[data-design="servarr"] .search-release-card,
+[data-design="servarr"] .wizard-step-card {
+  border: 0;
+  border-radius: 3px;
+  background: var(--sv-card-bg);
+  box-shadow: 0 0 10px 1px var(--sv-card-shadow);
+  color: var(--sv-default);
+  backdrop-filter: none;
+  transform: none;
+}
+[data-design="servarr"] .card { padding: 10px 20px 20px; margin-bottom: 20px; }
+[data-design="servarr"] .card:hover,
+[data-design="servarr"] .dash-stat-card:hover {
+  border: 0;
+  box-shadow: 0 0 10px 1px var(--sv-card-shadow);
+  transform: none;
+}
+[data-design="servarr"] .card h3,
+[data-design="servarr"] .dash-card-header {
+  color: var(--sv-text);
+  font-size: 21px;
+  font-weight: normal;
+}
+
+/* Настройки: секция = FieldSet */
+[data-design="servarr"] .settings-section-card {
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+[data-design="servarr"] .settings-card-header {
+  align-items: flex-end;
+  margin: 0 0 21px;
+  padding: 0 0 2px;
+  border-bottom: 1px solid var(--sv-border);
+}
+[data-design="servarr"] .settings-card-header-left { align-items: flex-end; gap: 0; }
+[data-design="servarr"] .settings-card-icon-badge { display: none; }
+[data-design="servarr"] .settings-card-title-wrap h3 {
+  display: inline;
+  margin: 0;
+  color: var(--sv-text);
+  font-size: 21px;
+  font-weight: normal;
+  line-height: 1.528571429;
+}
+[data-design="servarr"] .settings-card-title-wrap .subtitle,
+[data-design="servarr"] .settings-card-title-wrap .hint {
+  margin: 0 0 4px;
+  color: var(--sv-help);
+  font-size: 14px;
+  line-height: 20px;
+}
+[data-design="servarr"] .settings-card-header .btn { margin-bottom: 6px; }
+
+/* Поля формы: FormGroup (подпись слева 250px, справа поле + подсказка) */
+[data-design="servarr"] .form-grid-modern,
+[data-design="servarr"] .form-grid-modern.grid-3col {
+  display: block;
+  max-width: 1200px;
+}
+[data-design="servarr"] .settings-field-group {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  grid-auto-rows: auto;
+  column-gap: 20px;
+  row-gap: 0;
+  align-items: start;
+  margin-bottom: 20px;
+  max-width: 1200px;
+}
+[data-design="servarr"] .settings-field-group > * { grid-column: 2; min-width: 0; }
+[data-design="servarr"] .settings-field-group > * + *:not(:nth-child(2)) { margin-top: 5px; }
+[data-design="servarr"] .settings-field-group > .settings-field-label,
+[data-design="servarr"] .settings-field-group > label:first-child:not(.switch-toggle) {
+  grid-column: 1;
+  grid-row: 1 / span 12;
+  display: block;
+  margin: 0;
+  padding-top: 8px;
+  min-height: 35px;
+  text-align: end;
+  line-height: 20px;
+}
+[data-design="servarr"] .settings-field-group > .settings-field-label .settings-field-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 16px;
+}
+[data-design="servarr"] .settings-field-group > .input,
+[data-design="servarr"] .settings-field-group > select.input { max-width: 100% !important; width: 100%; }
+[data-design="servarr"] .settings-field-group > .settings-field-hint,
+[data-design="servarr"] .settings-field-group > .hint { margin-top: 0; }
+[data-design="servarr"] .settings-field-group.full-width { max-width: 1200px; }
+[data-design="servarr"] .settings-field-group:has(> .switch-toggle:only-child),
+[data-design="servarr"] .settings-field-group:not(:has(> .settings-field-label, > label:first-child)) {
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+
+@media (max-width: 1024px) {
+  [data-design="servarr"] .settings-field-group { display: block; }
+  [data-design="servarr"] .settings-field-group > .settings-field-label,
+  [data-design="servarr"] .settings-field-group > label:first-child:not(.switch-toggle) {
+    display: block;
+    justify-content: flex-start;
+    padding-top: 0;
+    min-height: 0;
+    margin-bottom: 5px;
+    text-align: start;
+  }
+  [data-design="servarr"] .settings-field-group > * + * { margin-top: 5px; }
+}
+
+/* ---------------------------------------------------------------------------
+   9. Таблицы (Components/Table)
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .table-responsive,
+[data-design="servarr"] .glass-table-wrap,
+[data-design="servarr"] .shows-table-wrap {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+[data-design="servarr"] table,
+[data-design="servarr"] .data-table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  background: transparent;
+  color: var(--sv-text);
+  font-size: 14px;
+}
+[data-design="servarr"] .data-table th,
+[data-design="servarr"] table th {
+  padding: 8px;
+  border: none !important;
+  background: transparent !important;
+  color: var(--sv-text);
+  font-family: var(--sv-font);
+  font-size: 14px !important;
+  font-weight: bold !important;
+  letter-spacing: 0 !important;
+  text-align: left;
+  text-transform: none !important;
+  box-shadow: none;
+}
+[data-design="servarr"] .data-table td,
+[data-design="servarr"] table td {
+  padding: 8px;
+  border: 0;
+  border-top: 1px solid var(--sv-border);
+  color: var(--sv-text);
+  font-size: 14px;
+  line-height: 1.52857143;
+}
+[data-design="servarr"] .data-table tr,
+[data-design="servarr"] table tr {
+  background: transparent;
+  box-shadow: none;
+  transition: background-color 500ms;
+}
+[data-design="servarr"] .data-table tbody tr:hover,
+[data-design="servarr"] table tbody tr:hover {
+  background-color: var(--sv-table-hover) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+[data-design="servarr"] .data-table tbody tr:nth-child(even) { background: transparent; }
+
+/* ---------------------------------------------------------------------------
+   10. Модальные окна (Components/Modal)
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .modal-overlay {
+  z-index: 1000;
+  background-color: var(--sv-modal-backdrop);
+  backdrop-filter: none;
+}
+[data-design="servarr"] .modal,
+[data-design="servarr"] .modal-box {
+  padding: 30px;
+  border: 0;
+  border-radius: 6px;
+  background-color: var(--sv-modal-bg);
+  box-shadow: none;
+  color: var(--sv-text);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+/* Заголовок окна (ModalHeader): 18px, отбивка снизу, во всю ширину окна */
+[data-design="servarr"] .modal > h2:first-of-type,
+[data-design="servarr"] .modal > h3:first-of-type,
+[data-design="servarr"] .modal > .modal-header,
+[data-design="servarr"] .modal > .settings-card-header:first-of-type,
+[data-design="servarr"] .modal > .wizard-header {
+  flex-shrink: 0;
+  margin: -30px -30px 30px !important;
+  padding: 15px 60px 15px 30px !important;
+  min-height: 60px;
+  border: 0;
+  border-bottom: 1px solid var(--sv-border) !important;
+  border-radius: 0;
+  background: transparent;
+  color: var(--sv-text);
+  font-family: var(--sv-font);
+  font-size: 18px !important;
+  font-weight: normal !important;
+  line-height: 1.528571429;
+}
+[data-design="servarr"] .modal > .modal-close + div:not([class]) > h3:first-child { font-size: 18px; font-weight: normal; }
+[data-design="servarr"] .modal-header h2,
+[data-design="servarr"] .modal-header h3,
+[data-design="servarr"] .modal > .settings-card-header .settings-card-title-wrap h3 {
+  margin: 0;
+  color: inherit;
+  font-size: 18px !important;
+  font-weight: normal !important;
+}
+[data-design="servarr"] .modal > .settings-card-header .settings-card-title-wrap .subtitle { font-size: 13px; margin: 0; }
+[data-design="servarr"] .modal h3 { color: var(--sv-text); font-weight: normal; }
+[data-design="servarr"] .modal-header svg { width: 18px; height: 18px; }
+[data-design="servarr"] .modal-body { padding: 0; }
+/* Подвал окна (ModalFooter) */
+[data-design="servarr"] .modal > .modal-footer,
+[data-design="servarr"] .modal .modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+  margin: 30px -30px -30px;
+  padding: 15px 30px;
+  border: 0;
+  border-top: 1px solid var(--sv-border);
+  border-radius: 0;
+  background: transparent;
+}
+[data-design="servarr"] .modal-close,
+[data-design="servarr"] .modal .modal-close {
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 60px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sv-text);
+  transform: none;
+}
+[data-design="servarr"] .modal-close:hover,
+[data-design="servarr"] .modal .modal-close:hover {
+  border: 0;
+  background: transparent;
+  color: var(--sv-dark-gray);
+  transform: none;
+}
+[data-design="servarr"] .modal-close svg { width: 18px; height: 18px; stroke-width: 2.5; }
+
+/* ---------------------------------------------------------------------------
+   11. Уведомления: всплывающие сообщения и встроенные статусы (Alert)
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .toast-card {
+  border: 0;
+  border-left: 3px solid var(--sv-info);
+  border-radius: 0;
+  background: var(--sv-sidebar-bg);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+  color: var(--sv-sidebar-color);
+  backdrop-filter: none;
+}
+[data-design="servarr"] .toast-card.is-error,
+[data-design="servarr"] .toast-card.error,
+[data-design="servarr"] .toast-card.is-500-error { border-left-color: var(--sv-danger); background: var(--sv-sidebar-bg); }
+[data-design="servarr"] .toast-card.success { border-left-color: var(--sv-success); }
+[data-design="servarr"] .toast-card.warning { border-left-color: var(--sv-warning); }
+[data-design="servarr"] .toast-card .toast-title { color: var(--sv-white); font-weight: bold; }
+[data-design="servarr"] .toast-card .toast-desc { color: var(--sv-sidebar-color); }
+[data-design="servarr"] .toast-card .toast-details-box {
+  border: 0;
+  border-radius: 0;
+  background: var(--sv-sidebar-active-bg);
+  color: var(--sv-sidebar-color);
+}
+[data-design="servarr"] .toast-icon-badge {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sv-sidebar-color);
+}
+[data-design="servarr"] .toast-card .toast-action-btn {
+  border: 1px solid var(--sv-btn-primary-border);
+  border-radius: 4px;
+  background: var(--sv-btn-primary-bg);
+  color: #fff;
+}
+[data-design="servarr"] .toast-card .toast-action-btn.secondary {
+  border-color: var(--sv-light);
+  background: var(--sv-light);
+  color: var(--sv-sidebar-color);
+}
+
+[data-design="servarr"] .inline-status-box,
+[data-design="servarr"] .alert,
+[data-design="servarr"] .info-box,
+[data-design="servarr"] .warning-box {
+  margin: 5px 0;
+  padding: 15px;
+  border: 1px solid var(--sv-alert-info-border);
+  border-radius: 4px;
+  background: var(--sv-alert-info-bg);
+  box-shadow: none;
+  color: var(--sv-alert-info);
+}
+[data-design="servarr"] .inline-status-box.success,
+[data-design="servarr"] .alert-success { border-color: var(--sv-alert-success-border); background: var(--sv-alert-success-bg); color: var(--sv-alert-success); }
+[data-design="servarr"] .inline-status-box.error,
+[data-design="servarr"] .alert-danger,
+[data-design="servarr"] .alert-error { border-color: var(--sv-alert-danger-border); background: var(--sv-alert-danger-bg); color: var(--sv-alert-danger); }
+[data-design="servarr"] .inline-status-box.warning,
+[data-design="servarr"] .alert-warning,
+[data-design="servarr"] .warning-box { border-color: var(--sv-alert-warning-border); background: var(--sv-alert-warning-bg); color: var(--sv-alert-warning); }
+
+/* ---------------------------------------------------------------------------
+   12. Библиотека: постеры Sonarr (Series/Index/Posters)
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .shows-grid { gap: 0; margin: 0 -10px; }
+[data-design="servarr"] .shows-grid.size-large { grid-template-columns: repeat(auto-fill, minmax(222px, 1fr)); gap: 0; }
+[data-design="servarr"] .shows-grid.size-medium { grid-template-columns: repeat(auto-fill, minmax(182px, 1fr)); gap: 0; }
+[data-design="servarr"] .shows-grid.size-small { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 0; }
+
+[data-design="servarr"] .shows-grid > .show-card,
+[data-design="servarr"] .show-card.servarr-poster-card {
+  position: relative;
+  margin: 10px;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  transition: all 200ms ease-in;
+}
+[data-design="servarr"] .shows-grid > .show-card:hover {
+  z-index: 2;
+  border: 0;
+  box-shadow: 0 0 12px #000;
+  transform: none;
+  transition: all 200ms ease-in;
+}
+[data-design="servarr"] .shows-grid > .show-card.is-selected {
+  box-shadow: 0 0 0 3px var(--sv-primary) !important;
+  transform: none;
+}
+[data-design="servarr"] .show-card .show-poster {
+  position: relative;
+  border: 0;
+  border-radius: 0 !important;
+  background-color: var(--sv-series-bg);
+  color: var(--sv-offwhite);
+  font-family: var(--sv-font);
+  font-weight: normal;
+}
+[data-design="servarr"] .servarr-poster-overlay-title {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  background: #707070;
+  color: var(--sv-offwhite);
+  font-size: 20px;
+  text-align: center;
+}
+[data-design="servarr"] .servarr-poster-status {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  border-width: 0 25px 25px 0;
+  border-style: solid;
+  border-color: transparent var(--sv-gray) transparent transparent;
+}
+
+/* Полоса прогресса под постером (Components/ProgressBar, small / detailed) */
+[data-design="servarr"] .servarr-progress {
+  container-type: inline-size;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 5px;
+  border-radius: 0;
+  background-color: #fff;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+[data-design="servarr"] .servarr-progress.is-detailed { height: 15px; }
+[data-design="servarr"] .servarr-progress.is-empty { background-color: var(--sv-series-bg); box-shadow: none; }
+[data-design="servarr"] .servarr-progress .poster-micro-bar-fill {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  overflow: hidden;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+  transition: width 0.6s ease;
+}
+[data-design="servarr"] .servarr-progress .poster-micro-bar-fill.status-continuing { background-color: var(--sv-primary); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15); }
+[data-design="servarr"] .servarr-progress .poster-micro-bar-fill.status-ended { background-color: var(--sv-success); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15); }
+[data-design="servarr"] .servarr-progress .poster-micro-bar-fill.status-missing-mon { background-color: var(--sv-danger); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15); }
+[data-design="servarr"] .servarr-progress .poster-micro-bar-fill.status-missing-unmon { background-color: var(--sv-warning); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15); }
+[data-design="servarr"] .servarr-progress .poster-micro-bar-fill.status-downloading { background-color: var(--sv-purple); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15); }
+[data-design="servarr"] .servarr-progress .poster-micro-bar-fill.status-importing { background-color: var(--sv-info); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15); }
+[data-design="servarr"] .servarr-progress-back,
+[data-design="servarr"] .servarr-progress-front {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 15px;
+  cursor: default;
+}
+[data-design="servarr"] .servarr-progress-back { right: 0; color: var(--sv-dark-gray); }
+[data-design="servarr"] .servarr-progress-front {
+  width: 100cqw;
+  color: #fff;
+}
+[data-design="servarr"] .servarr-progress-text {
+  font-family: var(--sv-font);
+  font-size: 12px;
+  line-height: 15px;
+  white-space: nowrap;
+}
+
+/* Подписи под постером — серый фон, мелкий текст по центру */
+[data-design="servarr"] .show-card .servarr-poster-info,
+[data-design="servarr"] .show-card .show-info {
+  padding: 0 0 2px;
+  border: 0;
+  background-color: var(--sv-series-bg);
+  color: var(--sv-text);
+  font-size: 12px;
+  text-align: center;
+}
+[data-design="servarr"] .servarr-poster-title,
+[data-design="servarr"] .servarr-poster-line {
+  overflow: hidden;
+  padding: 0 4px;
+  max-width: 100%;
+  background-color: var(--sv-series-bg);
+  font-size: 12px;
+  line-height: 1.528571429;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[data-design="servarr"] .servarr-poster-line svg { width: 11px; height: 11px; vertical-align: -1px; color: var(--sv-primary); }
+[data-design="servarr"] .show-card .servarr-poster-info > div[style] { margin: 0 !important; }
+[data-design="servarr"] .show-card .servarr-poster-info .badge-collection,
+[data-design="servarr"] .show-card .servarr-poster-info .badge-edition {
+  max-width: calc(100% - 4px);
+  overflow: hidden;
+  padding: 1px 3px;
+  border-radius: 2px;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+/* Алиасы — как теги Sonarr (Label kind=info size=small) */
+[data-design="servarr"] .show-card .alias-cluster {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  width: auto;
+  justify-content: space-around;
+  gap: 0;
+  overflow: hidden;
+  height: 21px;
+  margin: 0;
+  padding: 0 3px;
+  background-color: var(--sv-series-bg);
+}
+[data-design="servarr"] .show-card .alias-chip {
+  flex: 0 1 auto;
+  display: inline-block;
+  width: auto;
+  min-width: 0;
+  word-break: normal;
+  text-align: center;
+  max-width: 100%;
+  margin: 2px;
+  padding: 1px 3px;
+  overflow: hidden;
+  border: 1px solid var(--sv-info);
+  border-radius: 2px;
+  background: var(--sv-info);
+  box-shadow: none;
+  color: #fff;
+  font-family: var(--sv-font);
+  font-size: 11px;
+  font-weight: normal;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[data-design="servarr"] .show-card .alias-chip.interactive:hover {
+  border-color: var(--sv-theme-alt);
+  background: var(--sv-theme-alt);
+  color: #fff;
+  transform: none;
+}
+
+/* Чекбокс выбора на постере */
+[data-design="servarr"] .show-card-checkbox-wrap {
+  top: 0;
+  left: 0;
+  padding: 6px;
+  border: 0;
+  border-radius: 0 0 4px 0;
+  background: rgba(58, 63, 81, 0.85);
+  backdrop-filter: none;
+}
+[data-design="servarr"] .show-card-checkbox,
+[data-design="servarr"] .show-row-checkbox { accent-color: var(--sv-primary); }
+
+/* Алфавитная полоса (Components/Page/PageJumpBar): только существующие буквы, на всю высоту */
+[data-design="servarr"] .alphabet-index-container {
+  position: sticky;
+  top: calc(var(--sv-header-height) + var(--sv-toolbar-height) + 10px);
+  width: 30px;
+  height: calc(100vh - var(--sv-header-height) - var(--sv-toolbar-height) - 30px);
+  max-height: none;
+  justify-content: space-around;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0 !important;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+[data-design="servarr"] .alphabet-link {
+  flex: 1 1 25px;
+  width: auto;
+  height: auto;
+  max-height: 40px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--sv-border);
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--sv-text);
+  font-family: var(--sv-font);
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  opacity: 1;
+  transform: none !important;
+}
+[data-design="servarr"] .alphabet-link.active { color: var(--sv-text); }
+[data-design="servarr"] .alphabet-link.active:hover,
+[data-design="servarr"][data-theme] .alphabet-link.active:hover { color: #777; background: transparent; }
+[data-design="servarr"] .alphabet-link.active:last-of-type { border-bottom: 0; }
+[data-design="servarr"] .alphabet-link.disabled { display: none; }
+@media (max-width: 768px) {
+  [data-design="servarr"] .alphabet-index-container { display: none !important; }
+}
+
+/* Легенда под библиотекой (Series/Index/SeriesIndexFooter) */
+[data-design="servarr"] .library-legend,
+[data-design="servarr"] .library-footer {
+  margin-top: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 12px;
+}
+[data-design="servarr"] .library-legend-color {
+  width: 30px;
+  height: 16px;
+  margin-right: 8px;
+  border-radius: 4px;
+  box-shadow: none;
+}
+[data-design="servarr"] .library-legend-color.status-continuing { background: var(--sv-primary); }
+[data-design="servarr"] .library-legend-color.status-ended { background: var(--sv-success); }
+[data-design="servarr"] .library-legend-color.status-missing-mon { background: var(--sv-danger); }
+[data-design="servarr"] .library-legend-color.status-missing-unmon { background: var(--sv-warning); }
+[data-design="servarr"] .library-legend-color.status-downloading { background: var(--sv-purple); }
+[data-design="servarr"] .library-legend-color.status-importing { background: var(--sv-info); }
+
+/* Кнопки панели с жёсткими размерами по id в style.css */
+[data-design="servarr"] .content .panel-sticky-header #poster-options-btn,
+[data-design="servarr"] .content .panel-sticky-header #collections-poster-options-btn,
+[data-design="servarr"] .content .panel-sticky-header #card-style-btn,
+[data-design="servarr"] .content .panel-sticky-header #collections-card-style-btn {
+  width: auto;
+  min-width: 60px;
+  height: var(--sv-toolbar-height);
+  min-height: var(--sv-toolbar-height);
+  border-radius: 0;
+  color: var(--sv-toolbar-color);
+}
+[data-design="servarr"] .content .panel-sticky-header #poster-options-btn svg,
+[data-design="servarr"] .content .panel-sticky-header #collections-poster-options-btn svg { width: 21px !important; height: 21px !important; stroke-width: 2px; }
+[data-design="servarr"] .content .panel-sticky-header .poster-options-btn-label { display: -webkit-box !important; }
+[data-design="servarr"] .content .panel-sticky-header #poster-options-btn:hover,
+[data-design="servarr"] .content .panel-sticky-header #collections-poster-options-btn:hover { color: var(--sv-theme-alt-light); }
+/* Стиль карточек задаёт сам дизайн — выбор стиля карточек библиотеки не нужен */
+[data-design="servarr"] #card-style-btn { display: none !important; }
+
+/* ---------------------------------------------------------------------------
+   13. Карточка тайтла (Series/Details): затемнённый задник, белый текст,
+       заголовок 50px/300, метки themeLightColor, сезоны — белые блоки с рамкой
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] #show-modal .modal,
+[data-design="servarr"] #collection-modal .modal {
+  padding: 0 0 20px;
+  background: var(--sv-page-bg);
+}
+[data-design="servarr"] #collection-modal-content { padding: 0 !important; }
+[data-design="servarr"] #collection-modal-content > :not(.collection-hero) { margin-left: 20px; margin-right: 20px; }
+[data-design="servarr"] #show-modal .modal-close,
+[data-design="servarr"] #collection-modal .modal-close {
+  top: 0;
+  right: 0;
+  color: #e1e2e3;
+}
+[data-design="servarr"] #show-modal .modal-close:hover,
+[data-design="servarr"] #collection-modal .modal-close:hover { color: var(--sv-icon-hover-light); }
+
+/* Коллекции: такой же затемнённый задник, как у карточки тайтла */
+[data-design="servarr"] .collection-hero {
+  margin: 0 0 20px;
+  border: 0;
+  border-radius: 0 !important;
+  background: #1c1e26;
+  --text: #fff;
+  --text-muted: rgba(255, 255, 255, 0.75);
+  --border: rgba(255, 255, 255, 0.15);
+  --panel: rgba(255, 255, 255, 0.08);
+  --panel-alt: rgba(255, 255, 255, 0.08);
+}
+[data-design="servarr"] .collection-hero-backdrop { filter: none; transform: none; }
+[data-design="servarr"] .collection-hero-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0.7;
+}
+[data-design="servarr"] .collection-hero-content { gap: 35px; padding: 30px 60px 30px 30px; }
+[data-design="servarr"] .collection-hero-poster-ambient { display: none; }
+[data-design="servarr"] .collection-hero-poster {
+  border: 0;
+  border-radius: 0;
+  background-size: cover;
+  box-shadow: none;
+}
+[data-design="servarr"] .collection-hero-title {
+  color: #fff;
+  font-size: 50px;
+  font-weight: 300;
+  line-height: 60px;
+}
+[data-design="servarr"] .collection-hero-overview { color: #fff; font-size: 15px; }
+[data-design="servarr"] .collection-hero .show-hero-meta-bar .meta-pill {
+  margin-right: 15px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-family: var(--sv-font);
+  font-size: 20px;
+  font-weight: 300;
+}
+[data-design="servarr"] .collection-hero .btn:not(.btn-primary) { border-color: var(--sv-light); background: var(--sv-light); color: #e1e2e3; }
+[data-design="servarr"] .collection-hero select.input { border-color: var(--sv-light); background: var(--sv-light) !important; color: #fff; }
+[data-design="servarr"] .franchise-part-card,
+[data-design="servarr"] .franchise-parts-grid > * {
+  border: 1px solid var(--sv-border);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: none;
+  transform: none;
+}
+[data-design="servarr"] #show-modal-content > :not(.show-hero-container),
+[data-design="servarr"] #show-modal-task-banner { margin-left: 20px; margin-right: 20px; }
+
+[data-design="servarr"] .show-hero-container {
+  margin: 0 0 20px;
+  border: 0;
+  border-radius: 0;
+  background: #1c1e26;
+  box-shadow: none;
+  color: #fff;
+  --text: #fff;
+  --text-muted: rgba(255, 255, 255, 0.75);
+  --border: rgba(255, 255, 255, 0.15);
+  --panel: rgba(255, 255, 255, 0.08);
+  --panel-alt: rgba(255, 255, 255, 0.08);
+}
+[data-design="servarr"] .show-hero-backdrop-wrap,
+[data-design="servarr"] .show-hero-backdrop,
+[data-design="servarr"] .show-hero-gradient {
+  border-radius: 0;
+  clip-path: none;
+}
+[data-design="servarr"] .show-hero-backdrop {
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  filter: none;
+  transform: none;
+}
+[data-design="servarr"] .show-hero-gradient,
+[data-design="servarr"][data-theme="light"] .show-hero-gradient {
+  background: #000;
+  opacity: 0.7;
+}
+[data-design="servarr"] .show-hero-content {
+  gap: 35px;
+  padding: 30px 60px 30px 30px;
+}
+[data-design="servarr"] .show-hero-poster-col,
+[data-design="servarr"] .show-hero-poster-wrap,
+[data-design="servarr"] .show-hero-poster {
+  width: 250px;
+  min-width: 250px;
+  max-width: 250px;
+}
+[data-design="servarr"] .show-hero-poster-wrap,
+[data-design="servarr"] .show-hero-poster { height: 368px; min-height: 368px; }
+[data-design="servarr"] .show-hero-poster {
+  border: 0;
+  border-radius: 0;
+  background-size: cover;
+  box-shadow: none;
+  color: var(--sv-offwhite);
+  font-family: var(--sv-font);
+  font-weight: 300;
+}
+[data-design="servarr"] .show-hero-poster-ambient { display: none; }
+[data-design="servarr"] .show-hero-poster-actions .btn,
+[data-design="servarr"][data-theme="light"] .show-hero-poster-actions .btn {
+  border-color: var(--sv-light);
+  background: var(--sv-light);
+  color: #e1e2e3;
+}
+[data-design="servarr"] .show-hero-poster-actions .btn:hover {
+  border-color: var(--sv-dark);
+  background: var(--sv-dark);
+  color: #fff;
+}
+[data-design="servarr"] .show-hero-meta { gap: 0; }
+[data-design="servarr"] .show-hero-title,
+[data-design="servarr"][data-theme="light"] .show-hero-title {
+  margin: 0 0 5px;
+  color: #fff;
+  font-family: var(--sv-font);
+  font-size: 50px;
+  font-weight: 300;
+  line-height: 60px;
+  text-shadow: none;
+  text-wrap: balance;
+}
+[data-design="servarr"] .show-hero-meta-bar {
+  gap: 0;
+  margin-bottom: 8px;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 300;
+}
+[data-design="servarr"] .show-hero-meta-bar .meta-pill,
+[data-design="servarr"][data-theme="light"] .show-hero-meta-bar .meta-pill {
+  margin: 0 15px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #fff;
+  font-family: var(--sv-font);
+  font-size: 20px;
+  font-weight: 300;
+}
+[data-design="servarr"] .show-hero-meta-bar .meta-pill svg { width: 18px; height: 18px; }
+[data-design="servarr"] .show-hero-meta-bar .meta-pill-rating svg { color: var(--sv-theme-red); fill: var(--sv-theme-red); }
+
+[data-design="servarr"] .show-hero-badges-row { gap: 0; margin-bottom: 4px; }
+[data-design="servarr"] .show-hero-badges-row > *,
+[data-design="servarr"] .show-hero-badges-row .meta-badge-glass,
+[data-design="servarr"] .show-collection-chip,
+[data-design="servarr"] .show-hero-badges-row .show-link-pill,
+[data-design="servarr"] .show-hero-badges-row .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  margin: 5px 10px 5px 0;
+  padding: 3px 7px;
+  border: 1px solid var(--sv-light);
+  border-radius: 6px;
+  background: var(--sv-light);
+  box-shadow: none;
+  color: #fff;
+  font-family: var(--sv-font);
+  font-size: 17px;
+  font-weight: 300;
+  line-height: 1.3;
+  backdrop-filter: none;
+  transform: none;
+}
+[data-design="servarr"] .show-hero-badges-row .mono { font-family: var(--sv-font); }
+[data-design="servarr"] .show-hero-badges-row svg { width: 16px; height: 16px; }
+[data-design="servarr"] .show-hero-badges-row > *:hover { border-color: var(--sv-dark); background: var(--sv-dark); color: #fff; transform: none; }
+[data-design="servarr"] .show-hero-badges-row .is-unmonitored { border-color: var(--sv-dark-gray); background: var(--sv-dark-gray); }
+
+[data-design="servarr"] .show-hero-overview,
+[data-design="servarr"][data-theme="light"] .show-hero-overview {
+  max-height: 150px;
+  margin: 8px 0 0;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.528571429;
+  text-wrap: balance;
+}
+[data-design="servarr"] .show-aliases-accordion-header {
+  border: 1px solid var(--sv-light);
+  border-radius: 4px;
+  background: rgba(79, 86, 111, 0.6);
+  color: #e1e2e3;
+}
+[data-design="servarr"] .show-aliases-accordion-header:hover { background: var(--sv-light); color: #fff; }
+[data-design="servarr"] .show-aliases-count-badge {
+  border: 0;
+  border-radius: 2px;
+  background: var(--sv-info);
+  color: #fff;
+}
+[data-design="servarr"] .show-aliases-accordion-body { color: #fff; }
+
+/* Переключатель языка названия */
+[data-design="servarr"] .title-lang-chip,
+[data-design="servarr"] .title-lang-tag {
+  border-radius: 4px;
+  box-shadow: none;
+  font-family: var(--sv-font);
+}
+
+/* Панели действий под шапкой */
+[data-design="servarr"] .show-detail-settings-bar,
+[data-design="servarr"] .show-detail-path-actions-bar,
+[data-design="servarr"] .show-detail-path {
+  padding: 15px 20px;
+  border: 1px solid var(--sv-border);
+  border-radius: 4px;
+  background: var(--sv-card-bg);
+  box-shadow: none;
+}
+[data-design="servarr"] .show-detail-settings-bar .form-col label {
+  color: var(--sv-text);
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 0;
+  text-transform: none;
+}
+[data-design="servarr"] .show-actions-row { gap: 5px; margin: 0 0 20px; }
+
+/* Сезоны (SeriesDetailsSeason) */
+[data-design="servarr"] .season-block {
+  margin-bottom: 20px;
+  overflow: hidden;
+  border: 1px solid var(--sv-border);
+  border-radius: 4px;
+  background-color: var(--sv-card-bg);
+}
+[data-design="servarr"] .season-header {
+  padding: 15px 10px;
+  background: var(--sv-card-bg);
+  color: var(--sv-text);
+  font-size: 24px;
+}
+[data-design="servarr"] .season-header-left {
+  gap: 10px;
+  font-weight: normal;
+}
+[data-design="servarr"] .season-header-left > span:not([class*="badge"]),
+[data-design="servarr"] .season-header-left .season-title { font-size: 24px; line-height: 24px; }
+[data-design="servarr"] .season-caret { color: var(--sv-text); }
+[data-design="servarr"] .season-block.collapsed .season-caret { transform: rotate(-90deg); }
+[data-design="servarr"] .season-episodes { padding-top: 0; border-top: 1px solid var(--sv-border); }
+[data-design="servarr"] .season-progress { color: #777; font-family: var(--sv-font); font-size: 14px; }
+[data-design="servarr"] .badge-season-progress {
+  padding: 3px 7px;
+  border: 1px solid;
+  border-radius: 6px;
+  box-shadow: none;
+  font-family: var(--sv-font);
+  font-size: 14px;
+  font-weight: normal;
+}
+[data-design="servarr"] .badge-season-complete,
+[data-design="servarr"][data-theme="light"] .badge-season-complete { border-color: var(--sv-success); background: var(--sv-success); color: #eee; }
+[data-design="servarr"] .badge-season-partial,
+[data-design="servarr"][data-theme="light"] .badge-season-partial { border-color: var(--sv-danger); background: var(--sv-danger); color: #fff; }
+[data-design="servarr"] .badge-season-empty,
+[data-design="servarr"][data-theme="light"] .badge-season-empty { border-color: var(--sv-light); background: var(--sv-light); color: #fff; }
+
+[data-design="servarr"] .episode-row {
+  padding: 8px 10px;
+  border-top: 1px solid var(--sv-border);
+  background: transparent;
+  color: var(--sv-text);
+  font-size: 14px;
+  transition: background-color 500ms;
+}
+[data-design="servarr"] .episode-row:first-child { border-top: 0; }
+[data-design="servarr"] .episode-row:hover { background-color: var(--sv-table-hover); }
+[data-design="servarr"] .episode-row .mono { color: var(--sv-text); }
+
+/* Статусы серий (EpisodeStatus): метки-«пилюли» → Label */
+[data-design="servarr"] .status-pill {
+  padding: 2px 5px;
+  border: 1px solid;
+  border-radius: 4px;
+  box-shadow: none;
+  font-family: var(--sv-font);
+  font-size: 12px;
+  font-weight: normal;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ---------------------------------------------------------------------------
+   14. Календарь (Calendar)
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .calendar-grid {
+  gap: 0;
+  border: 0;
+  border-top: 1px solid var(--sv-calendar-border);
+  border-right: 1px solid var(--sv-calendar-border);
+  border-radius: 0;
+  background: transparent;
+}
+[data-design="servarr"] .calendar-weekday-header {
+  padding: 0;
+  border-left: 1px solid var(--sv-calendar-border);
+  background-color: var(--sv-calendar-bg);
+  color: var(--sv-text);
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 1.528571429;
+  text-align: center;
+}
+[data-design="servarr"] .calendar-day-cell {
+  min-height: 70px;
+  padding: 0 0 2px;
+  border-bottom: 1px solid var(--sv-calendar-border);
+  border-left: 1px solid var(--sv-calendar-border);
+  background: transparent;
+}
+[data-design="servarr"] .calendar-day-cell.outside-month { opacity: 1; color: var(--sv-disabled); }
+[data-design="servarr"] .calendar-day-cell.outside-month .calendar-event { opacity: 0.6; }
+[data-design="servarr"] .calendar-day-number {
+  position: static;
+  padding-right: 5px;
+  border-bottom: 1px solid var(--sv-calendar-border);
+  color: inherit;
+  font-family: var(--sv-font);
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 1.528571429;
+  text-align: right;
+}
+[data-design="servarr"] .calendar-day-cell.is-today {
+  background: transparent;
+  box-shadow: none;
+}
+[data-design="servarr"] .calendar-day-cell.is-today .calendar-day-number {
+  background-color: var(--sv-calendar-today);
+  color: var(--sv-text);
+}
+[data-design="servarr"] .calendar-event {
+  position: relative;
+  margin: 4px 2px;
+  padding: 5px;
+  border: 0;
+  border-bottom: 1px solid var(--sv-calendar-border);
+  border-left: 4px solid var(--sv-calendar-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--sv-text);
+  font-size: 12px;
+  line-height: 1.528571429;
+  transition: none;
+}
+[data-design="servarr"] .calendar-event:hover { filter: none; transform: none; }
+[data-design="servarr"] .cal-ev-title {
+  margin-right: 10px;
+  color: #242424;
+  font-family: var(--sv-font);
+  font-size: 14px;
+  font-weight: normal;
+}
+[data-design="servarr"] .cal-ev-mid,
+[data-design="servarr"] .cal-ev-bot { color: #666; }
+[data-design="servarr"] .cal-ev-ep-title,
+[data-design="servarr"] .cal-ev-ep-num,
+[data-design="servarr"] .cal-ev-bot { opacity: 1; font-family: var(--sv-font); font-size: 12px; }
+[data-design="servarr"] .cal-event-edit:hover { color: var(--sv-icon-hover); }
+
+[data-design="servarr"] .calendar-event.status-unaired { border-left-color: var(--sv-primary); }
+[data-design="servarr"] .calendar-event.status-unmonitored { border-left-color: var(--sv-gray); opacity: 1; }
+[data-design="servarr"] .calendar-event.status-on_air { border-left-color: var(--sv-warning); }
+[data-design="servarr"] .calendar-event.status-missing { border-left-color: var(--sv-danger); }
+[data-design="servarr"] .calendar-event.status-downloading { border-left-color: var(--sv-purple); }
+[data-design="servarr"] .calendar-event.status-downloaded { border-left-color: var(--sv-success); }
+
+[data-design="servarr"] .calendar-full-color.calendar-event { border-left: 4px solid transparent; color: var(--sv-text); }
+[data-design="servarr"] .calendar-full-color.status-unaired { background-color: rgba(108, 62, 248, 0.35); }
+[data-design="servarr"] .calendar-full-color.status-unmonitored { background-color: rgba(173, 173, 173, 0.5); }
+[data-design="servarr"] .calendar-full-color.status-on_air { background-color: rgba(255, 165, 0, 0.6); }
+[data-design="servarr"] .calendar-full-color.status-missing { background-color: rgba(240, 80, 80, 0.6); }
+[data-design="servarr"] .calendar-full-color.status-downloading { background-color: rgba(163, 71, 199, 0.4); }
+[data-design="servarr"] .calendar-full-color.status-downloaded { background-color: rgba(39, 194, 76, 0.4); }
+[data-design="servarr"] .calendar-full-color .cal-ev-title { color: #242424; }
+
+[data-design="servarr"] .calendar-event-more {
+  margin: 4px 2px;
+  padding: 3px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--sv-link);
+  font-weight: normal;
+}
+[data-design="servarr"] .calendar-event-more:hover { color: var(--sv-link-hover); background: transparent; }
+
+[data-design="servarr"] .cal-release-badge {
+  border: 0;
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: normal;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #fff;
+}
+[data-design="servarr"] .cal-badge-cinema { background: var(--sv-theme-red); }
+[data-design="servarr"] .cal-badge-digital { background: var(--sv-primary); }
+[data-design="servarr"] .cal-badge-physical { background: var(--sv-purple); }
+
+/* Легенда (Calendar/Legend): полоса слева + подпись */
+[data-design="servarr"] .calendar-legend {
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 12px;
+}
+[data-design="servarr"] .calendar-legend-group { gap: 0; }
+[data-design="servarr"] .calendar-legend-item {
+  margin: 3px 6px 3px 0;
+  padding: 0 0 0 5px;
+  width: 150px;
+  border-left: 4px solid;
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--sv-text);
+  font-size: 14px;
+  font-weight: normal;
+  cursor: default;
+}
+[data-design="servarr"] .calendar-legend-item.status-unaired { border-left-color: var(--sv-primary); }
+[data-design="servarr"] .calendar-legend-item.status-unmonitored { border-left-color: var(--sv-gray); }
+[data-design="servarr"] .calendar-legend-item.status-on_air { border-left-color: var(--sv-warning); }
+[data-design="servarr"] .calendar-legend-item.status-missing { border-left-color: var(--sv-danger); }
+[data-design="servarr"] .calendar-legend-item.status-downloading { border-left-color: var(--sv-purple); }
+[data-design="servarr"] .calendar-legend-item.status-downloaded { border-left-color: var(--sv-success); }
+[data-design="servarr"] .calendar-legend-icon-item { color: var(--sv-text); font-size: 14px; font-weight: normal; }
+
+[data-design="servarr"] .calendar-day-header {
+  padding: 0 0 5px;
+  border: 0;
+  border-bottom: 1px solid var(--sv-calendar-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--sv-text);
+  font-size: 18px;
+}
+[data-design="servarr"] .calendar-card {
+  border: 0;
+  border-bottom: 1px solid var(--sv-calendar-border);
+  border-left: 4px solid var(--sv-calendar-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Панель календаря: кнопки навигации и название периода */
+[data-design="servarr"] .content .panel-sticky-header .calendar-toolbar,
+[data-design="servarr"] .content .panel-sticky-header .calendar-toolbar-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+[data-design="servarr"] .content .panel-sticky-header .calendar-toolbar { align-items: stretch; width: 100%; }
+[data-design="servarr"] .content .panel-sticky-header .calendar-period-label {
+  margin: 0 15px;
+  color: var(--sv-white);
+  font-size: 18px;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+   15. Дашборд и списки
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .dash-stat-card {
+  padding: 15px 20px;
+  border-top: 0 !important;
+}
+[data-design="servarr"] .dash-stat-card::before,
+[data-design="servarr"] .dash-stat-card::after { display: none !important; }
+[data-design="servarr"] .dash-stat-icon-badge,
+[data-design="servarr"] .dash-feed-icon-badge {
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  color: var(--sv-text) !important;
+}
+[data-design="servarr"] .dash-stat-title {
+  color: var(--sv-help);
+  font-family: var(--sv-font);
+  font-size: 14px;
+  font-weight: normal;
+  letter-spacing: 0;
+  text-transform: none;
+}
+[data-design="servarr"] .dash-stat-main-val {
+  color: var(--sv-text);
+  font-family: var(--sv-font);
+  font-size: 30px;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+[data-design="servarr"] .dash-subitem-label { color: var(--sv-help); font-size: 13px; font-weight: normal; }
+[data-design="servarr"] .dash-subitem-val { color: var(--sv-text); font-family: var(--sv-font); font-size: 13px; font-weight: bold; }
+[data-design="servarr"] .dash-stat-subitems { border-top: 1px solid var(--sv-border); }
+[data-design="servarr"] .dash-stat-progress-wrap,
+[data-design="servarr"] .dash-stat-multi-progress {
+  height: 5px;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+[data-design="servarr"] .dash-stat-progress-bar,
+[data-design="servarr"] .multi-progress-segment {
+  border-radius: 0;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+[data-design="servarr"] .dash-stat-progress-bar { background: var(--sv-success); }
+[data-design="servarr"] .seg-downloaded { background: var(--sv-success); }
+[data-design="servarr"] .seg-downloading { background: var(--sv-purple); }
+[data-design="servarr"] .seg-wanted { background: var(--sv-danger); }
+[data-design="servarr"] .dash-card-header { margin: 0; }
+[data-design="servarr"] .card-header-row {
+  margin: 0 -20px 10px;
+  padding: 0 20px 5px;
+  border-bottom: 1px solid var(--sv-border);
+}
+
+[data-design="servarr"] .simple-list { gap: 0; }
+[data-design="servarr"] .simple-list-row,
+[data-design="servarr"] .health-item,
+[data-design="servarr"] .about-grid > * {
+  margin: 0;
+  padding: 8px;
+  border: 0;
+  border-top: 1px solid var(--sv-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sv-text);
+  font-size: 14px;
+  transform: none;
+}
+[data-design="servarr"] .simple-list-row:first-child,
+[data-design="servarr"] .health-item:first-child,
+[data-design="servarr"] .about-grid > *:first-child { border-top: 0; }
+[data-design="servarr"] .simple-list-row:hover,
+[data-design="servarr"][data-theme] .simple-list-row:hover {
+  border-color: var(--sv-border);
+  background: var(--sv-table-hover);
+  box-shadow: none;
+  transform: none;
+}
+[data-design="servarr"] .simple-list-empty,
+[data-design="servarr"] .empty-state { color: var(--sv-help); }
+[data-design="servarr"] .health-item-title { color: var(--sv-text); font-weight: bold; }
+[data-design="servarr"] .health-item-msg { color: var(--sv-help); }
+
+/* «Пустые» состояния разделов */
+[data-design="servarr"] .empty-state-icon,
+[data-design="servarr"] .empty-icon-wrap,
+[data-design="servarr"] [class*="empty"] [class*="icon-badge"] {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sv-disabled);
+}
+
+/* Строка действий, перенесённая в панель инструментов (см. servarrAdoptToolbars) */
+[data-design="servarr"] .content .panel-sticky-header .servarr-adopted-toolbar {
+  display: flex !important;
+  align-items: stretch !important;
+  flex-wrap: nowrap !important;
+  gap: 0 !important;
+  margin: 0 !important;
+}
+[data-design="servarr"] .content .panel-sticky-header .servarr-adopted-toolbar .btn:not([style*="display:none"]):not([style*="display: none"]) { display: inline-flex !important; flex-direction: column !important; gap: 0 !important; }
+
+/* Поля поиска вне панели — сохраняем место под иконку */
+[data-design="servarr"] .library-search-input,
+[data-design="servarr"] .blocklist-search-input { padding-left: 36px; padding-right: 34px; }
+
+/* ---------------------------------------------------------------------------
+   16. Узкие экраны (Sonarr: breakpointSmall) — шапка с гамбургером,
+       сайдбар выезжает поверх, панель инструментов прокручивается по горизонтали
+   --------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  [data-design="servarr"] .mobile-top-bar,
+  [data-design="servarr"] .mobile-bottom-bar { display: none !important; }
+
+  [data-design="servarr"] .servarr-header { padding-top: env(safe-area-inset-top, 0px); height: calc(var(--sv-header-height) + env(safe-area-inset-top, 0px)); }
+  [data-design="servarr"] .servarr-header-logo { flex: 0 0 60px; padding-left: 14px; }
+  [data-design="servarr"] .servarr-header-toggle { display: flex; }
+  [data-design="servarr"] .servarr-header-toggle .servarr-header-icon-btn svg { width: 20px; height: 20px; }
+  [data-design="servarr"] .servarr-search { flex: 1 1 auto; min-width: 0; }
+  [data-design="servarr"] .servarr-search-input { min-width: 0; width: 100%; max-width: 200px; }
+  [data-design="servarr"] .servarr-search-results { left: 0; width: min(360px, calc(100vw - 20px)); }
+  [data-design="servarr"] .servarr-header-right { flex: 0 0 auto; padding-right: 0; }
+  [data-design="servarr"] .servarr-header-icon-btn { width: 36px; }
+
+  [data-design="servarr"] .app-shell {
+    display: flex;
+    flex-direction: column;
+    padding-top: calc(var(--sv-header-height) + env(safe-area-inset-top, 0px)) !important;
+  }
+  /* overflow-x: hidden делает контейнер прокрутки и ломает «липкую» панель — clip не делает */
+  html[data-design="servarr"],
+  html[data-design="servarr"] body,
+  [data-design="servarr"] .app-shell { overflow-x: clip !important; }
+
+  [data-design="servarr"] .sidebar {
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
+    width: var(--sv-sidebar-width);
+    max-width: 85vw;
+    height: 100vh;
+    height: 100dvh;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+    border: 0;
+    background: var(--sv-sidebar-bg);
+    box-shadow: none;
+    transform: translateX(-100%);
+    transition: transform 300ms ease-in-out;
+  }
+  [data-design="servarr"] .sidebar.mobile-open { transform: translateX(0); }
+  [data-design="servarr"] .sidebar .sidebar-header-row {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    flex: 0 0 auto;
+    height: var(--sv-header-height);
+    margin: 0;
+    padding: 0 0 0 20px;
+    border: 0;
+  }
+  [data-design="servarr"] .sidebar .brand { margin: 0; gap: 0; }
+  [data-design="servarr"] .sidebar .brand-mark-logo { width: 32px; height: 32px; box-shadow: none; }
+  [data-design="servarr"] .sidebar .brand-name { display: none; }
+  [data-design="servarr"] .sidebar .mobile-drawer-close {
+    width: 30px;
+    height: 30px;
+    margin-right: 15px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #e1e2e3;
+  }
+  [data-design="servarr"] .sidebar .mobile-drawer-close:hover,
+  [data-design="servarr"] .sidebar .mobile-drawer-close:active { color: var(--sv-theme); border: 0; }
+  [data-design="servarr"] .mobile-sidebar-backdrop { background: rgba(0, 0, 0, 0.6); backdrop-filter: none; }
+  [data-design="servarr"] .sidebar .sidebar-footer { margin-bottom: 0; padding-bottom: 20px; }
+
+  [data-design="servarr"] .content {
+    width: 100%;
+    margin: 0;
+    padding: 0 10px 10px !important;
+  }
+
+  [data-design="servarr"] .content .panel-sticky-header {
+    position: sticky !important;
+    top: calc(var(--sv-header-height) + env(safe-area-inset-top, 0px)) !important;
+    z-index: 50 !important;
+    margin: 0 -10px 10px !important;
+    padding: 0 10px !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    border: 0 !important;
+  }
+  [data-design="servarr"] .content .panel-sticky-header::-webkit-scrollbar { display: none; }
+  [data-design="servarr"] .content .panel-sticky-header .panel-header,
+  [data-design="servarr"] .content .panel-sticky-header .header-row {
+    flex-direction: row !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+  [data-design="servarr"] .content .panel-sticky-header .header-actions,
+  [data-design="servarr"] #tab-library .panel-sticky-header .header-actions,
+  [data-design="servarr"] #tab-collections .panel-sticky-header .header-actions,
+  [data-design="servarr"] .content .panel-sticky-header .toolbar,
+  [data-design="servarr"] .content .panel-sticky-header .toolbar-left,
+  [data-design="servarr"] .content .panel-sticky-header .toolbar-right,
+  [data-design="servarr"] .content .panel-sticky-header .library-toolbar,
+  [data-design="servarr"] .content .panel-sticky-header .collections-toolbar,
+  [data-design="servarr"] .content .panel-sticky-header .settings-tabs,
+  [data-design="servarr"] .content .panel-sticky-header .logs-tabs,
+  [data-design="servarr"] #tab-settings .panel-sticky-header .settings-tabs,
+  [data-design="servarr"] #tab-logs .panel-sticky-header .logs-tabs,
+  [data-design="servarr"] #tab-logs .panel-sticky-header .settings-tabs,
+  [data-design="servarr"] .content .panel-sticky-header .servarr-adopted-toolbar {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    gap: 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+  [data-design="servarr"] .content .panel-sticky-header > * { flex: 0 0 auto !important; }
+  [data-design="servarr"] .content .panel-sticky-header .btn,
+  [data-design="servarr"] #tab-library .panel-sticky-header .header-actions .btn,
+  [data-design="servarr"] #tab-collections .panel-sticky-header .header-actions .btn,
+  [data-design="servarr"] #tab-settings .panel-sticky-header .settings-tab-btn,
+  [data-design="servarr"] #tab-logs .panel-sticky-header .logs-tab-btn,
+  [data-design="servarr"] .content .panel-sticky-header .settings-tab-btn,
+  [data-design="servarr"] .content .panel-sticky-header .logs-tab-btn,
+  [data-design="servarr"] .content .panel-sticky-header .view-switcher-btn,
+  [data-design="servarr"] .content .panel-sticky-header #poster-options-btn,
+  [data-design="servarr"] .content .panel-sticky-header #collections-poster-options-btn {
+    display: inline-flex !important;
+    flex-direction: column !important;
+    flex: 0 0 auto !important;
+    gap: 0 !important;
+    width: auto !important;
+    min-width: 54px !important;
+    max-width: 96px !important;
+    height: var(--sv-toolbar-height) !important;
+    min-height: var(--sv-toolbar-height) !important;
+    margin: 0 !important;
+    padding: 8px 3px 4px !important;
+    justify-content: flex-start !important;
+    line-height: 12px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 11px !important;
+  }
+  [data-design="servarr"] .content .panel-sticky-header .view-switcher-btn { line-height: 0 !important; }
+  [data-design="servarr"] .content .panel-sticky-header .view-switcher-btn { font-size: 0 !important; }
+  [data-design="servarr"] .content .panel-sticky-header .btn > span,
+  [data-design="servarr"] .content .panel-sticky-header .settings-tab-btn > span,
+  [data-design="servarr"] .content .panel-sticky-header .logs-tab-btn > span,
+  [data-design="servarr"] .content .panel-sticky-header .poster-options-btn-label {
+    display: -webkit-box !important;
+    color: var(--sv-toolbar-label) !important;
+    font-size: 11px !important;
+    font-weight: normal !important;
+  }
+  [data-design="servarr"] .content .panel-sticky-header .btn.active > span,
+  [data-design="servarr"] .content .panel-sticky-header .settings-tab-btn.active > span,
+  [data-design="servarr"] .content .panel-sticky-header .logs-tab-btn.active > span { color: var(--sv-theme-alt-light) !important; }
+  [data-design="servarr"] .content .panel-sticky-header .view-switcher,
+  [data-design="servarr"] .content .panel-sticky-header #view-switcher,
+  [data-design="servarr"] .content .panel-sticky-header #monitor-switcher,
+  [data-design="servarr"] .content .panel-sticky-header #category-switcher {
+    display: flex !important;
+    width: auto !important;
+    margin: 0 !important;
+  }
+  [data-design="servarr"] .content .panel-sticky-header #library-category-btns { display: none !important; }
+  [data-design="servarr"] .content .panel-sticky-header .library-search-wrap,
+  [data-design="servarr"] .content .panel-sticky-header .blocklist-search-wrap {
+    flex: 0 0 150px !important;
+    width: 150px !important;
+    min-width: 0 !important;
+    max-width: 150px !important;
+  }
+  [data-design="servarr"] .content .panel-sticky-header .library-search-input { min-height: 0 !important; }
+  [data-design="servarr"] .content .panel-sticky-header .panel-header::before { margin: 10px 10px; }
+  /* Выпадающие меню панели должны выходить за пределы прокручиваемой полосы */
+  [data-design="servarr"] .content .panel-sticky-header .view-switcher-menu {
+    position: fixed !important;
+    top: calc(var(--sv-header-height) * 2 + env(safe-area-inset-top, 0px)) !important;
+    right: 10px !important;
+    left: auto !important;
+    width: auto !important;
+  }
+
+  [data-design="servarr"] .library-bulk-bar,
+  [data-design="servarr"] [id$="-bulk-bar"] { left: 0; }
+
+  [data-design="servarr"] .shows-grid,
+  [data-design="servarr"] .shows-grid.size-large,
+  [data-design="servarr"] .shows-grid.size-medium {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 0 !important;
+    margin: 0 -5px;
+  }
+  [data-design="servarr"] .shows-grid.size-small { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important; gap: 0 !important; }
+  [data-design="servarr"] .shows-grid > .show-card { margin: 5px; }
+
+  [data-design="servarr"] .show-hero-content { padding: 15px 50px 15px 15px !important; text-align: left !important; align-items: flex-start !important; }
+  [data-design="servarr"] .show-hero-title { font-size: 30px !important; line-height: 34px !important; }
+  [data-design="servarr"] .show-hero-meta-bar,
+  [data-design="servarr"] .show-hero-meta-bar .meta-pill { font-size: 15px !important; justify-content: flex-start !important; }
+  [data-design="servarr"] .show-hero-badges-row { justify-content: flex-start !important; }
+  [data-design="servarr"] .show-hero-badges-row > * { font-size: 14px !important; }
+}
+
+@media (max-width: 1200px) {
+  [data-design="servarr"] .show-hero-poster-col { display: none !important; }
+}
+
+@media (max-width: 768px) {
+  [data-design="servarr"] .content { padding-bottom: 10px !important; }
+  [data-design="servarr"] .modal,
+  [data-design="servarr"] .modal-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+    padding: 15px !important;
+  }
+  [data-design="servarr"] .modal > h2:first-of-type,
+  [data-design="servarr"] .modal > h3:first-of-type,
+  [data-design="servarr"] .modal > .modal-header,
+  [data-design="servarr"] .modal > .settings-card-header:first-of-type,
+  [data-design="servarr"] .modal > .wizard-header { margin: -15px -15px 15px !important; padding: 15px 60px 15px 15px !important; }
+  [data-design="servarr"] .modal > .modal-footer,
+  [data-design="servarr"] .modal .modal-footer { margin: 15px -15px -15px; padding: 15px; }
+  [data-design="servarr"] #show-modal .modal,
+  [data-design="servarr"] #collection-modal .modal { padding: 0 0 15px !important; }
+  [data-design="servarr"] #show-modal-content > :not(.show-hero-container) { margin-left: 10px; margin-right: 10px; }
+  [data-design="servarr"] .settings-card-header { flex-wrap: wrap; }
+  [data-design="servarr"] .calendar-legend-item { width: auto; }
+}
+
+/* Шапка календаря над сеткой (Calendar/Header/CalendarHeader) */
+[data-design="servarr"] .servarr-calendar-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+[data-design="servarr"] .servarr-calendar-nav {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  gap: 0;
+}
+[data-design="servarr"] .servarr-calendar-nav .btn {
+  min-height: 0;
+  height: auto;
+  padding: 6px 16px;
+  font-size: 14px;
+  line-height: normal;
+}
+[data-design="servarr"] .servarr-calendar-nav .btn:nth-child(1) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+[data-design="servarr"] .servarr-calendar-nav .btn:nth-child(2) { order: 3; margin-left: 5px; }
+[data-design="servarr"] .servarr-calendar-nav .btn:nth-child(3) { order: 2; margin-left: -1px; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+[data-design="servarr"] .servarr-calendar-nav .calendar-period-label {
+  order: 4;
+  flex: 1 1 auto;
+  margin: 0;
+  color: var(--sv-text);
+  font-size: 18px;
+  font-weight: normal;
+  text-align: center;
+}
+[data-design="servarr"] select.servarr-calendar-view {
+  flex: 0 0 auto;
+  width: auto;
+  height: 31px;
+  min-height: 0;
+}
+@media (max-width: 768px) {
+  [data-design="servarr"] .servarr-calendar-header { flex-wrap: wrap; gap: 5px; }
+  [data-design="servarr"] .servarr-calendar-nav .calendar-period-label { order: -1; flex: 1 0 100%; margin-bottom: 5px; }
+  [data-design="servarr"] .servarr-calendar-nav .btn { padding: 4px 12px; }
+}
+/* Остальные фильтры календаря в панели — одной строкой */
+[data-design="servarr"] .content .panel-sticky-header .calendar-toolbar-group:not(.servarr-calendar-nav) select.input {
+  width: auto !important;
+  max-width: 180px;
+  flex: 0 0 auto !important;
+}
+@media (max-width: 768px) {
+  [data-design="servarr"] .content .panel-sticky-header .calendar-toolbar-group,
+  [data-design="servarr"] .content .panel-sticky-header .calendar-toolbar-group:last-child {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    width: auto !important;
+    gap: 0 !important;
+  }
+  [data-design="servarr"] .content .panel-sticky-header .calendar-toolbar-group:last-child select {
+    width: auto !important;
+    height: 35px !important;
+    margin: 0 4px !important;
+    font-size: 13px !important;
+  }
+  [data-design="servarr"] .content .panel-sticky-header .calendar-toolbar-group:last-child button,
+  [data-design="servarr"] .content .panel-sticky-header #calendar-search-missing-btn,
+  [data-design="servarr"] .content .panel-sticky-header #calendar-ical-btn {
+    grid-column: auto !important;
+    height: var(--sv-toolbar-height) !important;
+    padding: 8px 3px 4px !important;
+    font-size: 11px !important;
+  }
+  [data-design="servarr"] .servarr-calendar-nav,
+  [data-design="servarr"] .servarr-calendar-nav.calendar-toolbar-group:first-child {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+  [data-design="servarr"] .servarr-calendar-nav .btn-small {
+    min-width: 0 !important;
+    height: auto !important;
+    padding: 4px 12px !important;
+  }
+  [data-design="servarr"] .servarr-calendar-nav .calendar-period-label {
+    margin: 0 0 5px !important;
+    font-size: 18px !important;
+    text-align: center !important;
+  }
+  [data-design="servarr"] .servarr-calendar-header select.servarr-calendar-view { margin-left: auto; }
+}
+
+/* ---------------------------------------------------------------------------
+   17. Карточка выбора дизайна (видна во всех дизайнах)
+   --------------------------------------------------------------------------- */
+.design-card-badge.badge-servarr {
+  background: #2a197c;
+  border: 1px solid #2a197c;
+  color: #fff;
+}
+.design-card-preview.preview-servarr {
+  gap: 0;
+  padding: 0;
+  background: #f5f7fa;
+  border-color: rgba(58, 63, 81, 0.35);
+}
+.preview-servarr-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 16px;
+  padding: 0 6px;
+  background: #2a197c;
+}
+.preview-servarr-logo {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: #0f1048;
+  box-shadow: inset 0 0 0 2px #8b62ff;
+}
+.preview-servarr-search {
+  width: 46px;
+  height: 6px;
+  margin-left: 26px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.9);
+}
+.preview-servarr-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.preview-servarr-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 0 0 26%;
+  padding-top: 6px;
+  background: #3a3f51;
+}
+.preview-servarr-nav {
+  height: 5px;
+  margin: 0 8px 0 6px;
+  border-radius: 1px;
+  background: rgba(225, 226, 227, 0.55);
+}
+.preview-servarr-nav.active {
+  margin-left: 0;
+  padding-left: 6px;
+  height: 9px;
+  border-left: 2px solid #9c7bff;
+  border-radius: 0;
+  background: #252833;
+  box-shadow: inset 8px 0 0 -4px #9c7bff;
+}
+.preview-servarr-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.preview-servarr-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 16px;
+  padding: 0 8px;
+  background: #4f566f;
+}
+.preview-servarr-toolbar span {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: rgba(225, 226, 227, 0.75);
+}
+.preview-servarr-posters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px;
+}
+.preview-servarr-poster {
+  aspect-ratio: 2 / 3;
+  background: linear-gradient(160deg, #7b4dfc, #3a3f51);
+  box-shadow: inset 0 -3px 0 #27c24c;
+}
+.preview-servarr-poster:nth-child(2) { background: linear-gradient(160deg, #ff902b, #c4273c); box-shadow: inset 0 -3px 0 #6c3ef8; }
+.preview-servarr-poster:nth-child(3) { background: linear-gradient(160deg, #4f566f, #252833); box-shadow: inset 0 -3px 0 #f05050; }
+.preview-servarr-poster:nth-child(4) { background: linear-gradient(160deg, #27c24c, #3a3f51); box-shadow: inset 0 -3px 0 #a347c7; }
+
+/* Карточки выбора дизайна внутри самого Servarr Classic */
+[data-design="servarr"] .design-card {
+  border: 1px solid var(--sv-border);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: none;
+  transform: none;
+}
+[data-design="servarr"] .design-card:hover { border-color: var(--sv-btn-default-hover-border); transform: none; box-shadow: none; }
+[data-design="servarr"] .design-card.active { border-color: var(--sv-primary); box-shadow: 0 0 0 1px var(--sv-primary); }
+[data-design="servarr"] .design-card-preview { border-radius: 2px; }
+
+/* ---------------------------------------------------------------------------
+   18. Экран входа (Sonarr Login: панель 325px, тёмная шапка с логотипом)
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .login-screen {
+  z-index: 3000;
+  background: var(--sv-page-bg);
+  backdrop-filter: none;
+}
+[data-design="servarr"] .login-box {
+  width: 325px;
+  max-width: calc(100vw - 20px);
+  padding: 0 0 20px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 0 10px 1px var(--sv-card-shadow);
+  color: var(--sv-text);
+}
+[data-design="servarr"] .login-box > .brand-mark-logo {
+  width: 100% !important;
+  height: 90px !important;
+  margin: 0 0 20px !important;
+  border-radius: 0;
+  background: var(--sv-dark);
+  box-shadow: none;
+}
+[data-design="servarr"] .login-box > .brand-mark-logo:hover { transform: none; box-shadow: none; }
+[data-design="servarr"] .login-box > .brand-mark-logo svg { width: 60px; height: 60px; }
+[data-design="servarr"] .login-box > :not(.brand-mark-logo) { padding: 0 20px; }
+[data-design="servarr"] .login-box h2 {
+  color: var(--sv-text);
+  font-family: var(--sv-font) !important;
+  font-size: 21px;
+  font-weight: normal;
+}
+[data-design="servarr"] .login-box .form-col { gap: 15px; }
+[data-design="servarr"] .login-box .btn { width: 100%; }
+[data-design="servarr"] .hint,
+[data-design="servarr"] p.hint { font-family: var(--sv-font); font-size: 14px; }
+
+/* Вкладки внутри окон и страниц (Sonarr Tabs: нижняя полоса 4px у выбранной) */
+[data-design="servarr"] .settings-tabs,
+[data-design="servarr"] .logs-tabs,
+[data-design="servarr"] .template-cat-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--sv-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+[data-design="servarr"] .settings-tabs .settings-tab-btn,
+[data-design="servarr"] .settings-tabs .template-cat-btn,
+[data-design="servarr"] .logs-tabs .logs-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 12px;
+  border: 0;
+  border-bottom: 4px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sv-text);
+  font-family: var(--sv-font);
+  font-size: 14px;
+  font-weight: normal;
+  transform: none;
+}
+[data-design="servarr"] .settings-tabs .settings-tab-btn:hover,
+[data-design="servarr"] .settings-tabs .template-cat-btn:hover { background: transparent; color: var(--sv-link-hover); }
+[data-design="servarr"] .settings-tabs .settings-tab-btn.active,
+[data-design="servarr"] .settings-tabs .template-cat-btn.active,
+[data-design="servarr"] .logs-tabs .logs-tab-btn.active {
+  border-bottom-color: var(--sv-link);
+  background: transparent;
+  box-shadow: none;
+  color: var(--sv-text);
+}
+[data-design="servarr"] .settings-tabs .settings-tab-btn svg { width: 14px; height: 14px; }
+
+/* Всплывающие уведомления — ниже шапки */
+[data-design="servarr"] .toast-container { top: calc(var(--sv-header-height) + 10px); right: 10px; }
+[data-design="servarr"] .toast-card { padding: 10px 15px; }
+[data-design="servarr"] .toast-icon-badge svg { color: var(--sv-sidebar-color); }
+
+/* Шапка окна профиля */
+[data-design="servarr"] .profile-avatar,
+[data-design="servarr"] .user-avatar-initial { box-shadow: none; }
+[data-design="servarr"] #collections-card-style-btn { display: none !important; }
+[data-design="servarr"] .collection-card.servarr-poster-card { cursor: pointer; }
+[data-design="servarr"] .collection-card.servarr-poster-card .collection-poster-wrap { background-color: var(--sv-series-bg); }
+
+/* Переключатель языка названия на тёмном заднике */
+[data-design="servarr"] :is(.show-hero-container, .collection-hero) :is(.title-lang-chip, .title-lang-more-btn) {
+  border: 1px solid var(--sv-light);
+  background: rgba(79, 86, 111, 0.75);
+  box-shadow: none;
+  color: #e1e2e3;
+  font-family: var(--sv-font);
+  font-size: 12px;
+}
+[data-design="servarr"] :is(.show-hero-container, .collection-hero) :is(.title-lang-chip, .title-lang-more-btn):hover { border-color: var(--sv-dark); background: var(--sv-dark); color: #fff; }
+[data-design="servarr"] :is(.show-hero-container, .collection-hero) .title-lang-chip.active {
+  border-color: var(--sv-primary);
+  background: var(--sv-primary);
+  color: #fff;
+  font-weight: normal;
+}
+[data-design="servarr"] .title-lang-tag { background: rgba(0, 0, 0, 0.2); font-family: var(--sv-font); }
+
+/* ---------------------------------------------------------------------------
+   19. Выравнивание форм настроек: одна сетка «подпись 250px | 20px | поле»
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] #tab-settings .settings-panel { max-width: 1200px; }
+
+/* Группа без собственной подписи — просто контейнер строк */
+[data-design="servarr"] .settings-field-group:not(:has(> .settings-field-label, > label:not(.switch-toggle), > div:first-child > .settings-field-label)) {
+  display: block;
+  max-width: 1200px;
+}
+[data-design="servarr"] .settings-field-group:not(:has(> .settings-field-label, > label:not(.switch-toggle), > div:first-child > .settings-field-label)) > :not(.settings-field-group):not(.switch-toggle):not(.form-grid-modern):not(.provider-fields-box) {
+  margin-left: 270px !important;
+  max-width: calc(100% - 270px);
+}
+[data-design="servarr"] .settings-field-group .settings-field-group {
+  max-width: 1200px !important;
+  margin: 0 0 20px !important;
+}
+[data-design="servarr"] .settings-field-group > * + *:not(:nth-child(2)) { margin-top: 5px; }
+
+/* Любой переключатель, стоящий строкой формы (не только первый в группе) */
+html[data-design="servarr"] .settings-field-group > .switch-toggle {
+  grid-column: 1 / -1;
+  grid-row: auto;
+  display: grid;
+  grid-template-columns: 270px 20px minmax(0, 1fr);
+  column-gap: 0;
+  width: 100%;
+  margin: 0 !important;
+  padding: 0;
+  min-height: 35px;
+  text-align: start;
+}
+html[data-design="servarr"] .settings-field-group > .switch-toggle + .switch-toggle { margin-top: 10px !important; }
+html[data-design="servarr"] .settings-field-group > .switch-toggle > .switch-title,
+html[data-design="servarr"] .settings-field-group > .switch-toggle > .switch-label-wrap {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  padding: 7px 20px 0 0;
+  font-weight: bold;
+  text-align: end;
+}
+html[data-design="servarr"] .settings-field-group > .switch-toggle > .switch-label-wrap > .switch-title { font-weight: bold; }
+html[data-design="servarr"] .settings-field-group > .switch-toggle > .switch-label-wrap > .switch-desc { display: block; font-weight: normal; }
+html[data-design="servarr"] .settings-field-group > .switch-toggle > .switch-slider {
+  grid-column: 2;
+  grid-row: 1;
+  margin-top: 7px;
+}
+html[data-design="servarr"] .settings-field-group > .switch-toggle > .switch-desc {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  padding: 7px 0 0 8px;
+}
+@media (max-width: 1024px) {
+  html[data-design="servarr"] .settings-field-group > .switch-toggle { grid-template-columns: 20px minmax(0, 1fr); column-gap: 8px; }
+  html[data-design="servarr"] .settings-field-group > .switch-toggle > .switch-title,
+  html[data-design="servarr"] .settings-field-group > .switch-toggle > .switch-label-wrap { grid-column: 2; grid-row: 1; padding: 0; text-align: start; }
+  html[data-design="servarr"] .settings-field-group > .switch-toggle > .switch-slider { grid-column: 1; grid-row: 1 / span 2; margin-top: 1px; }
+  html[data-design="servarr"] .settings-field-group > .switch-toggle > .switch-desc { grid-column: 2; grid-row: 2; padding: 0; }
+  [data-design="servarr"] .settings-field-group:not(:has(> .settings-field-label, > label:not(.switch-toggle), > div:first-child > .settings-field-label)) > :not(.settings-field-group):not(.switch-toggle):not(.form-grid-modern):not(.provider-fields-box) { margin-left: 0 !important; max-width: 100%; }
+}
+
+/* Вложенные блоки полей провайдера — без собственной рамки, та же сетка */
+[data-design="servarr"] .provider-fields-box {
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 0 !important;
+  background: transparent;
+  box-shadow: none;
+}
+/* Текстовые описания провайдера и информационные плашки — Alert info в колонке полей */
+[data-design="servarr"] .provider-fields-box:not(:has(.settings-field-group, input, select, textarea)),
+[data-design="servarr"] .settings-info-banner {
+  margin: 0 0 20px 270px !important;
+  padding: 15px !important;
+  border: 1px solid var(--sv-alert-info-border) !important;
+  border-radius: 4px !important;
+  background: var(--sv-alert-info-bg) !important;
+  color: var(--sv-alert-info) !important;
+  font-size: 14px !important;
+  line-height: 1.528571429 !important;
+}
+[data-design="servarr"] .settings-field-group > .settings-info-banner { margin: 10px 0 0 !important; }
+[data-design="servarr"] .settings-info-banner * { color: inherit !important; font-size: 14px !important; line-height: 1.528571429 !important; }
+[data-design="servarr"] .settings-info-banner svg { color: var(--sv-alert-info) !important; }
+@media (max-width: 1024px) {
+  [data-design="servarr"] .provider-fields-box:not(:has(.settings-field-group, input, select, textarea)),
+  [data-design="servarr"] .settings-info-banner { margin-left: 0 !important; }
+}
+
+/* Строки кнопок формы — под колонкой полей */
+[data-design="servarr"] #tab-settings .form-grid-modern > .form-row:not(:has(input, select, textarea)),
+[data-design="servarr"] #tab-settings .settings-section-card > .form-row:not(:has(input, select, textarea)) {
+  margin-left: 270px;
+  gap: 10px;
+}
+@media (max-width: 1024px) {
+  [data-design="servarr"] #tab-settings .form-grid-modern > .form-row:not(:has(input, select, textarea)),
+  [data-design="servarr"] #tab-settings .settings-section-card > .form-row:not(:has(input, select, textarea)) { margin-left: 0; }
+}
+[data-design="servarr"] #tab-settings .form-grid-modern > :not(.settings-field-group):not(.provider-fields-box):not(.settings-info-banner):not(:has(input:not([type=checkbox]), select, textarea, table)) {
+  margin-left: 270px;
+}
+@media (max-width: 1024px) {
+  [data-design="servarr"] #tab-settings .form-grid-modern > :not(.settings-field-group):not(.provider-fields-box):not(.settings-info-banner):not(:has(input:not([type=checkbox]), select, textarea, table)) { margin-left: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   20. Читаемость: никаких микрошрифтов и бледных надписей
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] body {
+  -webkit-font-smoothing: auto;
+  text-rendering: optimizeLegibility;
+}
+[data-design="servarr"] .settings-field-label { font-size: 14px !important; }
+[data-design="servarr"] .settings-field-hint,
+[data-design="servarr"] .field-hint { font-size: 13px !important; }
+
+/* Метки, чипы, счётчики: не меньше 12px, обычный шрифт, контрастный цвет */
+[data-design="servarr"] :is(.badge, .meta-badge, .meta-pill, .meta-badge-glass, .badge-cf-score, .badge-tag,
+  .category-badge-chip, .status-pill, .cal-release-badge, .btn-chip-quick, .chip, .chip-toggle,
+  .md-lang-badge, .show-quality-badge, .show-monitored-pill, .badge-season-progress) {
+  font-family: var(--sv-font) !important;
+  font-size: max(12px, 1em) !important;
+  letter-spacing: 0 !important;
+}
+
+/* Выбор качеств (chip-select) — кнопки-метки Sonarr */
+[data-design="servarr"] .chip-select { gap: 5px; }
+[data-design="servarr"] .chip-toggle,
+[data-design="servarr"] .chip {
+  padding: 4px 9px;
+  border: 1px solid var(--sv-input-border);
+  border-radius: 4px !important;
+  background: #fff;
+  box-shadow: none;
+  color: var(--sv-text);
+  font-size: 13px !important;
+  font-weight: normal;
+}
+[data-design="servarr"] .chip-toggle:hover,
+[data-design="servarr"] .chip:hover { border-color: var(--sv-btn-default-hover-border); background: var(--sv-btn-default-hover-bg); color: var(--sv-default); }
+[data-design="servarr"] .chip-toggle.selected,
+[data-design="servarr"] .chip-selected {
+  border-color: var(--sv-primary);
+  background: var(--sv-primary);
+  box-shadow: none;
+  color: #fff;
+  font-weight: normal;
+}
+[data-design="servarr"] .btn-chip-quick {
+  padding: 2px 8px;
+  border: 1px solid var(--sv-input-border);
+  border-radius: 4px !important;
+  background: #fff;
+  color: var(--sv-text);
+  font-size: 13px !important;
+}
+[data-design="servarr"] .btn-chip-quick:hover { border-color: var(--sv-primary); color: var(--sv-primary); }
+[data-design="servarr"] .md-quick-languages-row > span { font-size: 13px !important; color: var(--sv-help) !important; }
+
+/* Очки формата качества */
+[data-design="servarr"] .badge-cf-score {
+  display: inline-block;
+  min-width: 42px;
+  padding: 2px 6px;
+  border: 1px solid var(--sv-light);
+  border-radius: 4px !important;
+  background: var(--sv-light);
+  color: #fff;
+  font-size: 12px !important;
+  text-align: center;
+  box-shadow: none;
+}
+[data-design="servarr"] .badge-cf-score.positive { border-color: var(--sv-success); background: var(--sv-success); color: #fff; }
+[data-design="servarr"] .badge-cf-score.negative { border-color: var(--sv-danger); background: var(--sv-danger); color: #fff; }
+[data-design="servarr"] #cf-table-body .badge { border-color: #ddd !important; background: #ddd !important; color: var(--sv-default) !important; }
+[data-design="servarr"] .badge-accent { border-color: var(--sv-primary); background: var(--sv-primary); color: #fff; }
+
+/* Строка Regex: подпись с кнопкой «Очистить» — в колонке подписей */
+[data-design="servarr"] .settings-field-group:has(> div:first-child > .settings-field-label) { display: grid !important; }
+[data-design="servarr"] .settings-field-group:has(> div:first-child > .settings-field-label) > div:first-child {
+  grid-column: 1;
+  grid-row: 1 / span 12;
+  display: flex !important;
+  flex-direction: column;
+  align-items: flex-end !important;
+  justify-content: flex-start !important;
+  gap: 2px;
+  margin: 0 !important;
+  padding-top: 8px;
+  max-width: none;
+}
+[data-design="servarr"] .settings-field-group:has(> div:first-child > .settings-field-label) > div:first-child .settings-field-label { padding-top: 0; min-height: 0; }
+[data-design="servarr"] .settings-field-group:has(> div:first-child > .settings-field-label) > :not(:first-child) {
+  grid-column: 2;
+  margin-left: 0 !important;
+  max-width: 100%;
+}
+[data-design="servarr"] .settings-field-group .btn-link { font-size: 13px !important; color: var(--sv-link) !important; }
+@media (max-width: 1024px) {
+  [data-design="servarr"] .settings-field-group:has(> div:first-child > .settings-field-label) { display: block !important; }
+  [data-design="servarr"] .settings-field-group:has(> div:first-child > .settings-field-label) > div:first-child { flex-direction: row; justify-content: space-between !important; align-items: center !important; padding-top: 0; }
+}
+[data-design="servarr"] .settings-field-group > .hint,
+[data-design="servarr"] .settings-field-group > span.hint { font-size: 13px !important; color: var(--sv-help) !important; }
+
+/* Алиасы в карточке тайтла (на тёмном заднике) */
+[data-design="servarr"] .show-hero-aliases-block .alias-manager { gap: 6px; }
+[data-design="servarr"] .show-hero-container .alias-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 8px;
+  border: 1px solid var(--sv-light);
+  border-radius: 4px !important;
+  background: rgba(58, 63, 81, 0.92);
+  box-shadow: none;
+  color: #fff;
+  font-family: var(--sv-font) !important;
+  font-size: 14px;
+  font-weight: normal;
+  letter-spacing: 0;
+  text-transform: none;
+}
+[data-design="servarr"] .show-hero-container .alias-chip * { font-family: var(--sv-font) !important; letter-spacing: 0; }
+[data-design="servarr"] .show-hero-container .alias-chip-text { color: #fff; font-size: 14px; }
+[data-design="servarr"] .show-hero-container .alias-chip-priority {
+  padding: 0 5px;
+  border: 0;
+  border-radius: 2px !important;
+  background: var(--sv-info);
+  color: #fff;
+  font-size: 11px;
+  line-height: 16px;
+  opacity: 1;
+}
+[data-design="servarr"] .show-hero-container .alias-chip-scope { color: #c9cdd8; font-size: 12px; }
+[data-design="servarr"] .show-hero-container .alias-chip-actions { display: inline-flex; gap: 0; }
+[data-design="servarr"] .show-hero-container .alias-chip-actions button {
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px !important;
+  background: transparent;
+  color: #e1e2e3;
+  opacity: 1;
+}
+[data-design="servarr"] .show-hero-container .alias-chip-actions button:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+[data-design="servarr"] .show-hero-container .alias-chip-actions .alias-chip-remove:hover { color: #ff8a8a; }
+[data-design="servarr"] .show-hero-container .alias-chip-actions svg { width: 14px; height: 14px; }
+[data-design="servarr"] .show-aliases-accordion-body {
+  border-color: var(--sv-light);
+  background: rgba(28, 30, 38, 0.6);
+}
+[data-design="servarr"] .show-hero-container .alias-manager + * .input,
+[data-design="servarr"] .show-hero-aliases-block .input { border-color: var(--sv-light); }
+[data-design="servarr"] .show-hero-aliases-block .btn { border-color: var(--sv-light); background: var(--sv-light); color: #fff; }
+[data-design="servarr"] .show-hero-aliases-block .btn:hover { border-color: var(--sv-dark); background: var(--sv-dark); }
+[data-design="servarr"] .show-hero-badges-row .btn,
+[data-design="servarr"] .show-hero-badges-row button { min-height: 0; height: auto; font-size: 17px; line-height: 1.3; }
+[data-design="servarr"] .settings-field-group:has(> div:first-child > .settings-field-label) > div:first-child .settings-field-label { text-align: end; }
+[data-design="servarr"] .settings-field-group .btn-link { text-transform: none !important; letter-spacing: 0 !important; }
+[data-design="servarr"] .settings-field-group .hint { font-weight: normal !important; }
+
+/* Формы внутри окон: колонка подписей пропорциональная (окна бывают узкими) */
+[data-design="servarr"] .modal .settings-field-group { grid-template-columns: 35% minmax(0, 1fr); }
+html[data-design="servarr"] .modal .settings-field-group > .switch-toggle { grid-template-columns: calc(35% + 20px) 20px minmax(0, 1fr); }
+[data-design="servarr"] .modal .settings-field-group:not(:has(> .settings-field-label, > label:not(.switch-toggle), > div:first-child > .settings-field-label)) > :not(.settings-field-group):not(.switch-toggle):not(.form-grid-modern):not(.provider-fields-box) {
+  margin-left: calc(35% + 20px) !important;
+  max-width: calc(65% - 20px);
+}
+[data-design="servarr"] .modal .provider-fields-box:not(:has(.settings-field-group, input, select, textarea)),
+[data-design="servarr"] .modal .settings-info-banner { margin-left: calc(35% + 20px) !important; }
+[data-design="servarr"] .modal .settings-field-group > .input,
+[data-design="servarr"] .modal .settings-field-group > select.input { min-width: 0; }
+@media (max-width: 768px) {
+  [data-design="servarr"] .modal .settings-field-group { display: block; }
+  html[data-design="servarr"] .modal .settings-field-group > .switch-toggle { grid-template-columns: 20px minmax(0, 1fr); column-gap: 8px; }
+  [data-design="servarr"] .modal .settings-field-group:not(:has(> .settings-field-label, > label:not(.switch-toggle), > div:first-child > .settings-field-label)) > :not(.settings-field-group):not(.switch-toggle):not(.form-grid-modern):not(.provider-fields-box) { margin-left: 0 !important; max-width: 100%; }
+}
+
+/* Быстрые причины блокировки */
+[data-design="servarr"] .blocklist-quick-chip {
+  display: inline-block;
+  margin: 2px;
+  padding: 2px 8px;
+  border: 1px solid var(--sv-input-border);
+  border-radius: 4px !important;
+  background: #fff;
+  color: var(--sv-text);
+  font-size: 13px !important;
+  cursor: pointer;
+}
+[data-design="servarr"] .blocklist-quick-chip:hover { border-color: var(--sv-primary); color: var(--sv-primary); }
+
+/* Сведения о сертификате */
+[data-design="servarr"] .ssl-status-widget,
+[data-design="servarr"] .ssl-meta-grid-modern {
+  border: 1px solid var(--sv-border) !important;
+  border-radius: 4px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+}
+[data-design="servarr"] .ssl-meta-item-label { color: var(--sv-help); font-size: 13px; }
+[data-design="servarr"] .ssl-meta-item-val { color: var(--sv-text); font-size: 14px; }
+[data-design="servarr"] .form-row > .input { min-width: 0; }
+[data-design="servarr"] .settings-field-group:not(:has(> .settings-field-label, > label:not(.switch-toggle), > div:first-child > .settings-field-label)) > :is(input, select, textarea).input {
+  width: calc(100% - 270px) !important;
+  max-width: calc(100% - 270px) !important;
+}
+[data-design="servarr"] .modal .settings-field-group:not(:has(> .settings-field-label, > label:not(.switch-toggle), > div:first-child > .settings-field-label)) > :is(input, select, textarea).input {
+  width: calc(65% - 20px) !important;
+  max-width: calc(65% - 20px) !important;
+}
+@media (max-width: 1024px) {
+  [data-design="servarr"] .settings-field-group:not(:has(> .settings-field-label, > label:not(.switch-toggle), > div:first-child > .settings-field-label)) > :is(input, select, textarea).input { width: 100% !important; max-width: 100% !important; }
+}
+@media (max-width: 768px) {
+  [data-design="servarr"] .modal .settings-field-group:not(:has(> .settings-field-label, > label:not(.switch-toggle), > div:first-child > .settings-field-label)) > :is(input, select, textarea).input { width: 100% !important; max-width: 100% !important; }
+}
+
+[data-design="servarr"] .badge-season-progress { font-size: 14px !important; padding: 2px 7px; }
+@media (max-width: 1024px) {
+  [data-design="servarr"] .settings-field-group > .settings-field-label,
+  [data-design="servarr"] .settings-field-group > label:first-child:not(.switch-toggle),
+  [data-design="servarr"] .settings-field-group > .settings-field-label .settings-field-hint { text-align: start !important; }
+  [data-design="servarr"] .settings-field-group > .settings-field-label .settings-field-hint { display: inline; margin-left: 6px; }
+  [data-design="servarr"] #tab-settings .settings-panel .form-grid-modern > * { margin-left: 0 !important; }
+  html[data-design="servarr"] .settings-field-group > .switch-toggle { grid-template-columns: 20px minmax(0, 1fr) !important; }
+}
+
+/* ---------------------------------------------------------------------------
+   21. Кнопки панели инструментов — одна геометрия (PageToolbarButton):
+       отступ 8px → иконка 21px → 3px → блок подписи 24px (1–2 строки по центру)
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .servarr-hide { display: none !important; }
+
+[data-design="servarr"] .content .panel-sticky-header :is(.btn, .settings-tab-btn, .logs-tab-btn):has(svg) {
+  justify-content: flex-start !important;
+  padding: 8px 3px 4px !important;
+}
+[data-design="servarr"] .content .panel-sticky-header :is(.btn, .settings-tab-btn, .logs-tab-btn) > svg,
+[data-design="servarr"] .content .panel-sticky-header :is(.btn, .settings-tab-btn, .logs-tab-btn) > .nav-ico {
+  flex: 0 0 21px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 21px !important;
+  height: 21px !important;
+  margin: 0 !important;
+  line-height: 0 !important;
+}
+[data-design="servarr"] .content .panel-sticky-header :is(.btn, .settings-tab-btn, .logs-tab-btn) > .nav-ico svg {
+  width: 21px !important;
+  height: 21px !important;
+  margin: 0 !important;
+}
+/* подпись центрируется в оставшихся 24px под иконкой */
+[data-design="servarr"] .content .panel-sticky-header :is(.btn, .settings-tab-btn, .logs-tab-btn):has(svg) > span:not(.nav-ico) {
+  margin-top: auto !important;
+  margin-bottom: auto !important;
+  line-height: 12px !important;
+  max-height: 24px !important;
+  text-align: center;
+}
+/* кнопки только с текстом (фильтры категорий) — текст по центру высоты */
+[data-design="servarr"] .content .panel-sticky-header .btn:not(:has(svg)) {
+  justify-content: center !important;
+}
+
+/* История: строка фильтров без собственных отступов */
+[data-design="servarr"] .content .panel-sticky-header .history-toolbar {
+  flex-wrap: nowrap !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  padding: 0 !important;
+}
+[data-design="servarr"] .content .panel-sticky-header .history-toolbar > select.input { align-self: center; margin: 0 6px !important; }
+[data-design="servarr"] .content .panel-sticky-header .history-search-wrap {
+  display: flex;
+  align-items: center;
+  flex: 0 1 280px !important;
+  min-width: 160px !important;
+  max-width: 280px !important;
+  margin-right: 10px;
+}
+[data-design="servarr"] .content .panel-sticky-header .history-search-wrap svg {
+  left: 0 !important;
+  width: 14px;
+  height: 14px;
+  color: var(--sv-toolbar-color) !important;
+}
+[data-design="servarr"] .content .panel-sticky-header .history-search-wrap .input { padding-left: 22px !important; }
+/* у переключателей вида есть текстовый узел « ▾» — не даём ему занимать высоту */
+[data-design="servarr"] .content .panel-sticky-header .view-switcher-btn { line-height: 0 !important; }
+
+html[data-design="servarr"] #tab-library .panel-sticky-header .header-actions .btn.servarr-hide { display: none !important; }
+html[data-design="servarr"] .content .panel-sticky-header .view-switcher-btn > span[data-i18n$="_label"] { display: none !important; }
+
+/* ---------------------------------------------------------------------------
+   22. Единая высота кнопок и плашек (удобные зоны нажатия)
+       • обычные кнопки — 35px, маленькие — 30px, иконочные — 30×30
+       • плашки в шапке карточки тайтла — 32px
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .btn-small,
+[data-design="servarr"] .btn-sm,
+[data-design="servarr"] .btn.btn-small,
+[data-design="servarr"] .btn.btn-sm {
+  height: 30px;
+  min-height: 30px;
+  padding: 0 10px;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1;
+}
+[data-design="servarr"] .btn-small svg,
+[data-design="servarr"] .btn-sm svg { width: 14px; height: 14px; }
+
+[data-design="servarr"] .btn-icon-only,
+[data-design="servarr"] .btn.btn-icon-only {
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  margin: 0;
+  border-radius: 4px;
+}
+[data-design="servarr"] .btn-icon-only:hover,
+[data-design="servarr"] .btn.btn-icon-only:hover { background: rgba(58, 63, 81, 0.08); }
+[data-design="servarr"] .btn-icon-only svg,
+[data-design="servarr"] .btn.btn-icon-only svg { width: 18px; height: 18px; }
+[data-design="servarr"] .btn-icon-only.btn-small,
+[data-design="servarr"] .btn.btn-icon-only.btn-small { width: 30px; height: 30px; padding: 0; }
+[data-design="servarr"] .row-actions { display: inline-flex; align-items: center; gap: 2px; }
+
+/* Кнопки внутри карточки тайтла — все одной высоты */
+[data-design="servarr"] #show-modal .btn:not(.btn-icon-only):not(.modal-close) {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 14px;
+  line-height: 1;
+}
+[data-design="servarr"] #show-modal .btn-icon-only,
+[data-design="servarr"] #show-modal .btn.btn-icon-only { width: 32px; min-width: 32px; height: 32px; min-height: 32px; }
+[data-design="servarr"] #show-modal .show-actions-row,
+[data-design="servarr"] #show-modal .show-detail-path-actions-bar,
+[data-design="servarr"] #show-modal .season-header-actions,
+[data-design="servarr"] #show-modal .season-main-buttons,
+[data-design="servarr"] #show-modal .season-icon-buttons { align-items: center; gap: 6px; }
+[data-design="servarr"] #show-modal .show-hero-poster-actions { gap: 6px; }
+[data-design="servarr"] #show-modal .show-hero-poster-actions .btn { flex: 1 1 0; padding: 0 8px; font-size: 13px; }
+[data-design="servarr"] #show-modal .search-status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 14px !important;
+}
+[data-design="servarr"] #show-modal .category-badge-chip { height: 32px !important; padding: 0 12px !important; font-size: 14px !important; }
+[data-design="servarr"] #show-modal .badge-season-progress { height: 28px; display: inline-flex; align-items: center; }
+
+/* Плашки в шапке карточки тайтла (как Label size=large у Sonarr), одна высота */
+[data-design="servarr"] .show-hero-badges-row { align-items: center; gap: 8px; margin: 4px 0 8px; }
+[data-design="servarr"] .show-hero-badges-row > :is(.meta-badge-glass, .show-collection-chip, .btn, button),
+[data-design="servarr"] .show-hero-badges-row .show-links-trigger {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-width: 100%;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border: 1px solid var(--sv-light) !important;
+  border-radius: 4px !important;
+  background: var(--sv-light) !important;
+  box-shadow: none !important;
+  color: #fff !important;
+  font-family: var(--sv-font) !important;
+  font-size: 15px !important;
+  font-weight: normal !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+  cursor: default;
+}
+[data-design="servarr"] .show-hero-badges-row > :is(.meta-badge-glass, .show-collection-chip) > span,
+[data-design="servarr"] .show-hero-badges-row .show-links-trigger > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 15px !important;
+  line-height: 1 !important;
+}
+[data-design="servarr"] .show-hero-badges-row svg { flex: 0 0 auto; width: 16px !important; height: 16px !important; margin: 0 !important; }
+[data-design="servarr"] .show-hero-badges-row .show-path-badge { max-width: 420px; cursor: pointer; }
+[data-design="servarr"] .show-hero-badges-row .show-collection-chip,
+[data-design="servarr"] .show-hero-badges-row .show-links-trigger { cursor: pointer; }
+[data-design="servarr"] .show-hero-badges-row > :is(.meta-badge-glass.show-path-badge, .show-collection-chip):hover,
+[data-design="servarr"] .show-hero-badges-row .show-links-trigger:hover,
+[data-design="servarr"] .show-links-dropdown-wrapper:hover .show-links-trigger {
+  border-color: var(--sv-dark) !important;
+  background: var(--sv-dark) !important;
+  color: #fff !important;
+  transform: none !important;
+}
+[data-design="servarr"] .show-hero-badges-row .is-unmonitored { border-color: var(--sv-dark-gray) !important; background: var(--sv-dark-gray) !important; }
+
+/* Обёртка «Ссылки» — не плашка, а контейнер */
+[data-design="servarr"] .show-hero-badges-row > .show-links-dropdown-wrapper {
+  display: inline-flex;
+  height: 32px;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 14px !important;
+  font-weight: normal !important;
+}
+
+/* Всплывающий список ссылок — тёмная подсказка Sonarr (Tooltip inverse) с метками */
+[data-design="servarr"] .show-links-popover,
+[data-design="servarr"][data-theme] .show-links-popover {
+  top: calc(100% + 8px);
+  left: 0;
+  right: auto;
+  min-width: 240px;
+  max-width: min(420px, 90vw);
+  padding: 10px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--sv-dark);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-family: var(--sv-font);
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 1.4;
+  transform: none;
+}
+[data-design="servarr"] .show-links-popover::before,
+[data-design="servarr"][data-theme] .show-links-popover::before {
+  left: 18px;
+  right: auto;
+  border-bottom-color: var(--sv-dark);
+}
+[data-design="servarr"] .show-links-popover::after,
+[data-design="servarr"][data-theme] .show-links-popover::after { display: none; }
+[data-design="servarr"] .show-links-popover-header {
+  margin: 0 0 8px;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--sv-light);
+  color: #c9cdd8;
+  font-size: 12px;
+  font-weight: normal;
+  letter-spacing: 0;
+  text-transform: none;
+}
+[data-design="servarr"] .show-links-list { gap: 6px; }
+[data-design="servarr"] .show-link-item,
+[data-design="servarr"][data-theme] .show-link-item:not(:has(.show-link-pill-trailer)) {
+  height: 28px;
+  border-radius: 4px !important;
+  background: var(--sv-primary);
+  box-shadow: none;
+  transform: none;
+}
+[data-design="servarr"] .show-link-item:hover,
+[data-design="servarr"][data-theme] .show-link-item:not(:has(.show-link-pill-trailer)):hover {
+  background: var(--sv-btn-primary-hover-bg);
+  box-shadow: none;
+  transform: none;
+}
+[data-design="servarr"] .show-link-item:has(.show-link-pill-trailer) { background: var(--sv-theme-red) !important; }
+[data-design="servarr"] .show-link-item:has(.show-link-pill-trailer):hover { background: #a61f31 !important; box-shadow: none; }
+[data-design="servarr"] .show-link-pill {
+  height: 28px;
+  padding: 0 9px;
+  gap: 5px;
+  font-family: var(--sv-font) !important;
+  font-size: 13px !important;
+  font-weight: normal;
+  line-height: 1;
+  letter-spacing: 0;
+}
+[data-design="servarr"] .show-link-pill svg { width: 12px; height: 12px; }
+[data-design="servarr"] .show-link-copy-btn {
+  height: 28px;
+  width: 28px;
+  padding: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0 !important;
+  background: rgba(0, 0, 0, 0.15);
+}
+[data-design="servarr"] .show-link-copy-btn svg { width: 13px; height: 13px; }
+/* ссылки в подсказке: убираем стили плашек шапки */
+[data-design="servarr"] .show-hero-badges-row .show-link-pill {
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #fff !important;
+  height: 28px !important;
+  padding: 0 9px !important;
+  font-size: 13px !important;
+  font-weight: normal !important;
+}
+[data-design="servarr"] .show-hero-badges-row .show-link-copy-btn { height: 28px !important; width: 28px !important; margin: 0 !important; }
+[data-design="servarr"] #show-modal .show-hero-poster-actions .btn { height: 32px !important; min-height: 32px !important; }
+
+/* Плашки в строках серий/фильмов: 28px */
+[data-design="servarr"] #show-modal :is(.status-pill, .movie-date-pill, .episode-badges-wrap .badge, .ep-quality-badge, .badge-upgrade-pending) {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 4px !important;
+  font-family: var(--sv-font) !important;
+  font-size: 13px !important;
+  font-weight: normal !important;
+  line-height: 1;
+  white-space: nowrap;
+}
+[data-design="servarr"] #show-modal :is(.status-pill, .movie-date-pill) svg { width: 14px; height: 14px; }
+[data-design="servarr"] .movie-release-dates-row { display: flex; flex-wrap: wrap; gap: 6px; }
+[data-design="servarr"] .movie-date-pill { border: 1px solid var(--sv-light) !important; background: var(--sv-light) !important; color: #fff !important; }
+[data-design="servarr"] .movie-date-pill.date-cinema { border-color: var(--sv-theme-red) !important; background: var(--sv-theme-red) !important; }
+[data-design="servarr"] .movie-date-pill.date-digital { border-color: var(--sv-primary) !important; background: var(--sv-primary) !important; }
+[data-design="servarr"] .movie-date-pill.date-physical { border-color: var(--sv-purple) !important; background: var(--sv-purple) !important; }
+
+/* Статусы серий — цветные метки Sonarr */
+[data-design="servarr"] .status-pill:is(.status-wanted, .status-missing) { border: 1px solid var(--sv-danger); background: var(--sv-danger); color: #fff; }
+[data-design="servarr"] .status-pill.status-downloaded { border: 1px solid var(--sv-success); background: var(--sv-success); color: #fff; }
+[data-design="servarr"] .status-pill.status-unaired { border: 1px solid var(--sv-primary); background: var(--sv-primary); color: #fff; }
+[data-design="servarr"] .status-pill.status-downloading { border: 1px solid var(--sv-purple); background: var(--sv-purple); color: #fff; }
+[data-design="servarr"] .status-pill.status-ignored { border: 1px solid var(--sv-gray); background: var(--sv-gray); color: #fff; }
+[data-design="servarr"] .episode-badges-wrap,
+[data-design="servarr"] .episode-row-meta,
+[data-design="servarr"] .ep-actions { display: flex; align-items: center; gap: 6px; }

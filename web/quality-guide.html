@@ -13,6 +13,8 @@
   (function () {
     try {
       var theme = localStorage.getItem("vbeacon_theme") || "dark";
+      // Дизайн Servarr Classic основного интерфейса — нейтральная светлая палитра
+      if ((localStorage.getItem("aliasarr_design") || "classic") === "servarr") theme = "light";
       document.documentElement.setAttribute("data-theme", theme);
       document.documentElement.setAttribute("data-glass", localStorage.getItem("aliasarr_glass") || "off");
       var design = localStorage.getItem("aliasarr_design") || "classic";
@@ -1426,9 +1428,9 @@
     var label = document.getElementById('guide-design-label');
     if (label) {
       if (CURRENT_LANG === 'en') {
-        label.innerText = d === 'vanguard' ? 'Vanguard' : 'Classic';
+        label.innerText = d === 'vanguard' ? 'Vanguard' : (d === 'servarr' ? 'Servarr' : 'Classic');
       } else {
-        label.innerText = d === 'vanguard' ? 'Авангард' : 'Классика';
+        label.innerText = d === 'vanguard' ? 'Авангард' : (d === 'servarr' ? 'Servarr' : 'Классика');
       }
     }
   }

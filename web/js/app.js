@@ -30,7 +30,8 @@ function updateFavicon(theme) {
     dark: { bg: "%230f1048", shadow: "%232a197c", fg: "%236838f7" },
     obsidian: { bg: "%23032015", shadow: "%23064e3b", fg: "%2300F5D4" },
     dracula: { bg: "%2321222c", shadow: "%2344475a", fg: "%23bd93f9" },
-    light: { bg: "%23e0e7ff", shadow: "%23a5b4fc", fg: "%234f46e5" }
+    light: { bg: "%23e0e7ff", shadow: "%23a5b4fc", fg: "%234f46e5" },
+    servarr: { bg: "%233a3f51", shadow: "%23252833", fg: "%237b4dfc" }
   };
   const c = themeColors[theme] || themeColors.dark;
   const href = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='17' fill='" + c.bg + "'/%3E%3Cpath d='M32 14L43 36' stroke='" + c.shadow + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M15 49L32 14' stroke='" + c.fg + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 36H43L49 49' stroke='" + c.fg + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E";
@@ -45,21 +46,52 @@ function updateFavicon(theme) {
   document.head.appendChild(newLink);
 }
 
-function applyTheme(theme) {
-  const t = theme || "dark";
-  document.documentElement.setAttribute("data-theme", t);
-  try { localStorage.setItem("vbeacon_theme", t); } catch (e) {}
-  updateFavicon(t);
+// Выбранная пользователем цветовая тема (dark / obsidian / dracula / light).
+// В дизайне Servarr Classic на <html> фактически выставляется "light": у дизайна своя нейтральная
+// палитра (светлая рабочая область + графитовая навигация, как у Sonarr), а светлая база темы
+// переиспользует все адаптации компонентов под светлый фон.
+let USER_THEME = (function () { try { return localStorage.getItem("vbeacon_theme") || "dark"; } catch (e) { return "dark"; } })();
+
+function isServarrDesign() {
+  return document.documentElement.getAttribute("data-design") === "servarr";
 }
 
-// ---------- ДИЗАЙН-СИСТЕМА (classic / vanguard) ----------
+function applyTheme(theme) {
+  const t = theme || "dark";
+  USER_THEME = t;
+  try { localStorage.setItem("vbeacon_theme", t); } catch (e) {}
+  const effective = isServarrDesign() ? "light" : t;
+  document.documentElement.setAttribute("data-theme", effective);
+  updateFavicon(isServarrDesign() ? "servarr" : t);
+}
+
+// ---------- ДИЗАЙН-СИСТЕМА (classic / vanguard / servarr) ----------
+const DESIGN_SYSTEMS = ["classic", "vanguard", "servarr"];
+
 function applyDesign(design, isUserAction = false) {
-  const d = (design === "vanguard") ? "vanguard" : "classic";
+  const d = DESIGN_SYSTEMS.includes(design) ? design : "classic";
   document.documentElement.setAttribute("data-design", d);
   try { localStorage.setItem("aliasarr_design", d); } catch (e) {}
+  const changed = document.documentElement.dataset.appliedDesign && document.documentElement.dataset.appliedDesign !== d;
+  document.documentElement.dataset.appliedDesign = d;
+  applyTheme(USER_THEME);
   updateDesignSettingsUI(d);
+  servarrAdoptToolbars(d === "servarr");
+  if (d === "servarr") servarrSyncSubnav();
+  // Карточки библиотеки у Servarr Classic строятся по-своему — перерисовываем при смене дизайна
+  if (changed && typeof renderLibrary === "function" && CACHED_SHOWS && CACHED_SHOWS.length) {
+    try { renderLibrary(); } catch (e) {}
+  }
+  if (changed && typeof renderCollectionsView === "function" && document.getElementById("collections-grid")?.children.length) {
+    try { renderCollectionsView(); } catch (e) {}
+  }
   if (isUserAction) {
-    const name = d === "vanguard" ? (CURRENT_LANG === "en" ? "Vanguard Luxe (Awwwards-Tier)" : "Авангард Luxe (Awwwards-Tier)") : (CURRENT_LANG === "en" ? "Classic Neo-Glass" : "Классический Neo-Glass");
+    const names = {
+      vanguard: CURRENT_LANG === "en" ? "Vanguard Luxe (Awwwards-Tier)" : "Авангард Luxe (Awwwards-Tier)",
+      servarr: "Servarr Classic",
+      classic: CURRENT_LANG === "en" ? "Classic Neo-Glass" : "Классический Neo-Glass",
+    };
+    const name = names[d];
     toast(CURRENT_LANG === "en" ? `Design applied: ${name}` : `Применен дизайн: ${name}`);
   }
 }
@@ -73,6 +105,8 @@ function updateDesignSettingsUI(currentDesign) {
   document.querySelectorAll(".design-card[data-design-choice]").forEach(card => {
     card.classList.toggle("active", card.dataset.designChoice === d);
   });
+  const themeSelect = document.getElementById("setting-theme");
+  if (themeSelect) themeSelect.closest(".settings-field-group")?.classList.toggle("servarr-theme-locked", d === "servarr");
   const classicCard = document.getElementById("design-card-classic");
   const vanguardCard = document.getElementById("design-card-vanguard");
   if (classicCard) classicCard.classList.toggle("active", d === "classic");
@@ -709,6 +743,15 @@ const TRANSLATIONS = {
     "settings.design_vanguard_desc": "Современный футуристичный стиль: парящие островные панели, мягкие закругления, плавные микро-анимации и глубокое матовое стекло.",
     "settings.design_badge_classic": "Классика",
     "settings.design_badge_vanguard": "AVANGARD LUXE",
+    "settings.design_badge_servarr": "SERVARR",
+    "settings.design_servarr_title": "Servarr Classic",
+    "settings.design_servarr_desc": "Классическая раскладка Sonarr в цветах Aliasarr: фиолетовая шапка с поиском, графитовый сайдбар, тёмная панель инструментов и нейтральная светлая рабочая область. Собственная палитра — цветовая тема не применяется.",
+    "settings.theme_servarr_note": "В дизайне Servarr Classic используется собственная нейтральная палитра — выбранная тема применится к другим дизайнам.",
+    "servarr.search_placeholder": "Поиск",
+    "servarr.search_no_results": "Ничего не найдено",
+    "servarr.search_existing": "В библиотеке",
+    "servarr.search_add_new": "Искать «{q}» для добавления",
+    "servarr.menu": "Меню",
     "settings.btn_select_design": "Выбрать стиль",
     "settings.apikey_title": "API-ключ",
     "settings.apikey_label": "API-ключ",
@@ -2213,6 +2256,15 @@ const TRANSLATIONS = {
     "settings.design_vanguard_desc": "Modern futuristic design: floating island navigation, sleek rounded geometry, smooth micro-interactions, and deep frosted glass.",
     "settings.design_badge_classic": "Classic",
     "settings.design_badge_vanguard": "AVANGARD LUXE",
+    "settings.design_badge_servarr": "SERVARR",
+    "settings.design_servarr_title": "Servarr Classic",
+    "settings.design_servarr_desc": "The classic Sonarr layout in Aliasarr colors: violet header with search, graphite sidebar, dark page toolbar and a neutral light workspace. Uses its own palette — the color theme is not applied.",
+    "settings.theme_servarr_note": "Servarr Classic uses its own neutral palette — the selected theme applies to the other designs.",
+    "servarr.search_placeholder": "Search",
+    "servarr.search_no_results": "No results found",
+    "servarr.search_existing": "Existing Series",
+    "servarr.search_add_new": "Search for “{q}” to add",
+    "servarr.menu": "Menu",
     "settings.btn_select_design": "Select Style",
     "settings.apikey_title": "API Key",
     "settings.apikey_label": "API Key",
@@ -3294,6 +3346,7 @@ function applyLanguage(lang) {
     refreshShowModal();
   }
 
+  servarrSyncSubnav();
   checkConnection();
 }
 
@@ -5001,6 +5054,7 @@ function switchTab(tabId) {
   document.querySelectorAll(".nav-item[data-tab]").forEach(el => el.classList.toggle("active", el.dataset.tab === tabId));
   document.querySelectorAll(".mobile-bottom-item[data-tab]").forEach(el => el.classList.toggle("active", el.dataset.tab === tabId));
   document.querySelectorAll(".tab-panel").forEach(el => el.classList.toggle("active", el.id === "tab-" + tabId));
+  servarrSyncSubnav();
   
   closeMobileMenu();
   window.scrollTo({ top: 0, behavior: "instant" });
@@ -6667,6 +6721,13 @@ function updateShowCardProgressInDOM(show) {
       if (span && POSTER_OPTIONS.progressText !== false) span.textContent = statusInfo.progressText;
     }
 
+    // Servarr Classic: текст полосы прогресса (двухслойный, как в Sonarr)
+    card.querySelectorAll(".servarr-progress-text").forEach(el => {
+      el.textContent = statusInfo.activeTask ? statusInfo.label : statusInfo.progressText;
+    });
+    const svBar = card.querySelector(".servarr-progress");
+    if (svBar) svBar.title = statusInfo.tooltip;
+
     // Micro bar
     const microFill = card.querySelector(".poster-micro-bar-fill");
     if (microFill) {
@@ -7147,6 +7208,35 @@ function renderCollectionCard(coll) {
   let partsBadgeHtml = "";
   if (COLLECTIONS_POSTER_OPTIONS.partsCount !== false) {
     partsBadgeHtml = `<div style="margin: 2px 0;"><span class="badge-collection" title="${escapeHtml(partsTooltip)}"><i data-lucide="boxes" class="ico-xxs"></i> ${total} ${partsWord}</span></div>`;
+  }
+
+  // 0. Servarr Classic: постер как у Sonarr/Radarr
+  if (isServarrDesign()) {
+    const detailed = COLLECTIONS_POSTER_OPTIONS.progressText !== false;
+    const label = `${downloaded} / ${total}`;
+    let svInfo = "";
+    if (COLLECTIONS_POSTER_OPTIONS.title !== false) {
+      svInfo += `<div class="servarr-poster-title" title="${escapeHtml(collDisplayTitle)}">${escapeHtml(collDisplayTitle)}</div>`;
+    }
+    if (COLLECTIONS_POSTER_OPTIONS.monitored !== false) {
+      svInfo += `<div class="servarr-poster-line" title="${escapeHtml(mTooltip)}">${escapeHtml(mTitle)}</div>`;
+    }
+    if (COLLECTIONS_POSTER_OPTIONS.partsCount !== false) {
+      svInfo += `<div class="servarr-poster-line" title="${escapeHtml(partsTooltip)}">${total} ${partsWord}</div>`;
+    }
+    return `
+      <div class="collection-card show-card servarr-poster-card" id="collection-card-${coll.id}" data-alpha="${alphaChar}" onclick="openCollectionModal(${coll.id})" title="${escapeHtml(collDisplayTitle)} • ${escapeHtml(statusTooltip)}">
+        <div class="collection-poster-wrap show-poster" ${posterStyle} title="${escapeHtml(statusTooltip)}">
+          ${!posterImg ? `<div class="servarr-poster-overlay-title">${escapeHtml(collDisplayTitle)}</div>` : ""}
+        </div>
+        <div class="servarr-progress ${detailed ? "is-detailed" : ""}" title="${escapeHtml(statusTooltip)}">
+          ${detailed ? `<div class="servarr-progress-back"><span class="servarr-progress-text">${escapeHtml(label)}</span></div>` : ""}
+          <div class="poster-micro-bar-fill ${statusClass}" style="width: ${pct}%;">
+            ${detailed ? `<div class="servarr-progress-front"><span class="servarr-progress-text">${escapeHtml(label)}</span></div>` : ""}
+          </div>
+        </div>
+        ${svInfo ? `<div class="show-info servarr-poster-info">${svInfo}</div>` : ""}
+      </div>`;
   }
 
   // 1. Neo-Glass Style
@@ -7782,6 +7872,47 @@ function renderShowCard(show) {
   let tagsHtml = "";
   if (POSTER_OPTIONS.tags && aliases) {
     tagsHtml = `<div class="alias-cluster">${aliases}</div>`;
+  }
+
+  // 0. Servarr Classic: постер Sonarr (постер → полоса прогресса → подписи на сером фоне)
+  if (isServarrDesign()) {
+    const hasProgress = show.episodes_count > 0 || show.content_type === "movie";
+    const detailed = POSTER_OPTIONS.progressText !== false;
+    const progressLabel = statusInfo.activeTask ? statusInfo.label : statusInfo.progressText;
+    const progressHtml = hasProgress ? `
+      <div class="servarr-progress ${detailed ? "is-detailed" : ""}" title="${escapeHtml(statusInfo.tooltip)}">
+        ${detailed ? `<div class="servarr-progress-back"><span class="servarr-progress-text">${escapeHtml(progressLabel)}</span></div>` : ""}
+        <div class="poster-micro-bar-fill servarr-progress-fill ${statusInfo.statusClass}" style="width: ${statusInfo.pct}%;">
+          ${detailed ? `<div class="servarr-progress-front"><span class="servarr-progress-text">${escapeHtml(progressLabel)}</span></div>` : ""}
+        </div>
+      </div>` : `<div class="servarr-progress is-empty"></div>`;
+
+    let svInfo = "";
+    if (POSTER_OPTIONS.title) {
+      svInfo += `<div class="servarr-poster-title">${escapeHtml(formatShowTitleWithYear(show.title, show.year))}</div>`;
+    }
+    if (POSTER_OPTIONS.monitored) {
+      const upgrade = (show.upgrade_requested || show.has_upgrade_pending)
+        ? ` <i data-lucide="arrow-up-circle" class="ico-xxs" title="${CURRENT_LANG === 'en' ? 'Quality upgrade pending' : 'Ожидает обновления качества'}"></i>` : "";
+      svInfo += `<div class="servarr-poster-line">${escapeHtml(show.monitored ? t("dash.monitored") : t("dash.unmonitored"))}${upgrade}</div>`;
+    }
+    if (POSTER_OPTIONS.quality) {
+      svInfo += `<div class="servarr-poster-line">${escapeHtml(qualityProfileName(show.quality_profile_id))}</div>`;
+    }
+    if (editionHtml) svInfo += editionHtml;
+    if (collectionHtml) svInfo += collectionHtml;
+    if (tagsHtml) svInfo += tagsHtml;
+
+    return `
+      <div class="show-card servarr-poster-card ${selectedClass}" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}" title="${escapeHtml(formatShowTitleWithYear(show.title, show.year))} • ${escapeHtml(statusInfo.tooltip)}">
+        <div class="show-poster" ${posterStyle} title="${escapeHtml(statusInfo.tooltip)}">
+          ${checkboxHtml}
+          ${show.poster_url ? "" : `<div class="servarr-poster-overlay-title">${escapeHtml(show.title || initial)}</div>`}
+          ${importOverlayHtml}
+        </div>
+        ${progressHtml}
+        ${svInfo ? `<div class="show-info servarr-poster-info">${svInfo}</div>` : ""}
+      </div>`;
   }
 
   // 1. Neo-Glass Style (Flagship)
@@ -21769,6 +21900,14 @@ function renderTasksStatusWidget(data) {
   const recent = data.recent || [];
   const runningCount = running.length;
 
+  const svBadge = document.getElementById("servarr-tasks-badge");
+  const svBtn = document.getElementById("servarr-tasks-btn");
+  if (svBadge) {
+    svBadge.style.display = runningCount > 0 ? "inline-flex" : "none";
+    svBadge.textContent = runningCount;
+  }
+  if (svBtn) svBtn.classList.toggle("has-running", runningCount > 0);
+
   const mobBadge = document.getElementById("mobile-tasks-badge");
   if (mobBadge) {
     if (runningCount > 0) {
@@ -23134,6 +23273,298 @@ async function submitEditBlocklist(btn) {
   });
 }
 
+
+// =============================================================================
+//   SERVARR CLASSIC: поиск в шапке, меню действий, вложенные пункты сайдбара
+// =============================================================================
+let _SERVARR_SEARCH_INDEX = -1;
+let _SERVARR_SEARCH_ITEMS = [];
+let _SERVARR_SEARCH_LOADING = false;
+
+function _servarrNormalize(v) {
+  return String(v || "").toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
+async function onServarrSearchInput() {
+  const input = document.getElementById("servarr-search-input");
+  const box = document.getElementById("servarr-search-results");
+  if (!input || !box) return;
+  const q = input.value.trim();
+  if (!q) {
+    box.style.display = "none";
+    box.innerHTML = "";
+    _SERVARR_SEARCH_ITEMS = [];
+    return;
+  }
+  if ((!CACHED_SHOWS || !CACHED_SHOWS.length) && !_SERVARR_SEARCH_LOADING) {
+    _SERVARR_SEARCH_LOADING = true;
+    try { CACHED_SHOWS = (await api("/api/v1/shows")) || []; } catch (e) {} finally { _SERVARR_SEARCH_LOADING = false; }
+  }
+  const nq = _servarrNormalize(q);
+  const scored = [];
+  (CACHED_SHOWS || []).forEach(show => {
+    const names = [show.title].concat((show.aliases || []).map(a => (typeof a === "string" ? a : a && a.text)));
+    let best = -1;
+    names.forEach((n, idx) => {
+      const nn = _servarrNormalize(n);
+      if (!nn) return;
+      let sc = -1;
+      if (nn === nq) sc = 100;
+      else if (nn.startsWith(nq)) sc = 80;
+      else if (nn.includes(" " + nq)) sc = 60;
+      else if (nn.includes(nq)) sc = 40;
+      if (sc >= 0 && idx > 0) sc -= 5;
+      if (sc > best) best = sc;
+    });
+    if (best >= 0) scored.push({ show, score: best });
+  });
+  scored.sort((a, b) => b.score - a.score || String(a.show.title).localeCompare(String(b.show.title)));
+  _SERVARR_SEARCH_ITEMS = scored.slice(0, 8).map(x => x.show);
+  _SERVARR_SEARCH_INDEX = _SERVARR_SEARCH_ITEMS.length ? 0 : -1;
+  renderServarrSearchResults(q);
+}
+
+function renderServarrSearchResults(q) {
+  const box = document.getElementById("servarr-search-results");
+  if (!box) return;
+  let html = "";
+  if (_SERVARR_SEARCH_ITEMS.length) {
+    html += `<div class="servarr-search-section">${escapeHtml(t("servarr.search_existing"))}</div><ul class="servarr-search-list">`;
+    _SERVARR_SEARCH_ITEMS.forEach((show, idx) => {
+      const poster = show.poster_url ? `<img class="servarr-search-poster" src="${escapeHtml(show.poster_url)}" alt="" loading="lazy">` : `<div class="servarr-search-poster"></div>`;
+      const year = show.year ? ` (${show.year})` : "";
+      const typeKey = show.content_type === "movie" ? "library.filter_movies" : (show.content_type === "anime" ? "library.filter_anime" : "library.filter_series");
+      html += `<li class="servarr-search-item${idx === _SERVARR_SEARCH_INDEX ? " highlighted" : ""}" onmousedown="event.preventDefault(); openServarrSearchResult(${idx})">
+        ${poster}
+        <div class="servarr-search-meta">
+          <div class="servarr-search-title">${escapeHtml(show.title || "")}${escapeHtml(year)}</div>
+          <div class="servarr-search-sub">${escapeHtml(t(typeKey))}${show.network ? " · " + escapeHtml(show.network) : ""}</div>
+        </div>
+      </li>`;
+    });
+    html += `</ul>`;
+  } else {
+    html += `<div class="servarr-search-empty">${escapeHtml(t("servarr.search_no_results"))}</div>`;
+  }
+  html += `<div class="servarr-search-add" onmousedown="event.preventDefault(); openServarrSearchAddNew()">${escapeHtml(t("servarr.search_add_new", { q }))}</div>`;
+  box.innerHTML = html;
+  box.style.display = "block";
+}
+
+function onServarrSearchKeyDown(e) {
+  const box = document.getElementById("servarr-search-results");
+  if (e.key === "Escape") {
+    e.target.value = "";
+    if (box) box.style.display = "none";
+    e.target.blur();
+    return;
+  }
+  if (!_SERVARR_SEARCH_ITEMS.length) {
+    if (e.key === "Enter") openServarrSearchAddNew();
+    return;
+  }
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    e.preventDefault();
+    const n = _SERVARR_SEARCH_ITEMS.length;
+    _SERVARR_SEARCH_INDEX = (_SERVARR_SEARCH_INDEX + (e.key === "ArrowDown" ? 1 : -1) + n) % n;
+    box.querySelectorAll(".servarr-search-item").forEach((el, i) => el.classList.toggle("highlighted", i === _SERVARR_SEARCH_INDEX));
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    openServarrSearchResult(Math.max(0, _SERVARR_SEARCH_INDEX));
+  }
+}
+
+function _servarrResetSearch() {
+  const input = document.getElementById("servarr-search-input");
+  const box = document.getElementById("servarr-search-results");
+  if (input) { input.value = ""; input.blur(); }
+  if (box) { box.style.display = "none"; box.innerHTML = ""; }
+  _SERVARR_SEARCH_ITEMS = [];
+}
+
+function openServarrSearchResult(idx) {
+  const show = _SERVARR_SEARCH_ITEMS[idx];
+  _servarrResetSearch();
+  if (show && typeof openShowModal === "function") openShowModal(show.id);
+}
+
+function openServarrSearchAddNew() {
+  const input = document.getElementById("servarr-search-input");
+  const q = input ? input.value.trim() : "";
+  _servarrResetSearch();
+  if (typeof openAddShowWizard === "function") openAddShowWizard();
+  if (q) {
+    setTimeout(() => {
+      const wizInput = document.getElementById("wizard-search-input");
+      if (wizInput) {
+        wizInput.value = q;
+        wizInput.focus();
+        if (typeof runWizardMetadataSearch === "function") runWizardMetadataSearch();
+      }
+    }, 150);
+  }
+}
+
+function closeServarrSearchSoon() {
+  setTimeout(() => {
+    const box = document.getElementById("servarr-search-results");
+    if (box) box.style.display = "none";
+  }, 120);
+}
+
+function toggleServarrActionsMenu(event) {
+  if (event) event.stopPropagation();
+  const menu = document.getElementById("servarr-actions-menu-content");
+  if (!menu) return;
+  const open = menu.style.display === "none";
+  if (open) {
+    const userBox = document.getElementById("servarr-menu-user");
+    const nameEl = document.getElementById("sidebar-user-name");
+    const roleEl = document.getElementById("sidebar-user-role-badge");
+    const badge = document.getElementById("user-profile-badge");
+    const hasUser = badge && badge.style.display !== "none" && nameEl;
+    if (userBox) {
+      userBox.style.display = hasUser ? "block" : "none";
+      if (hasUser) {
+        userBox.innerHTML = `<div class="servarr-menu-user-name">${escapeHtml(nameEl.textContent || "")}</div><div class="servarr-menu-user-role">${escapeHtml(roleEl ? roleEl.textContent : "")}</div>`;
+      }
+    }
+    const logout = document.getElementById("servarr-menu-logout");
+    if (logout) logout.style.display = hasUser ? "" : "none";
+  }
+  menu.style.display = open ? "block" : "none";
+  if (open && window.lucide) lucide.createIcons();
+}
+
+function closeServarrActionsMenu() {
+  const menu = document.getElementById("servarr-actions-menu-content");
+  if (menu) menu.style.display = "none";
+}
+
+document.addEventListener("click", (e) => {
+  const wrap = document.getElementById("servarr-actions-menu");
+  if (wrap && !wrap.contains(e.target)) closeServarrActionsMenu();
+});
+
+// Вложенные пункты сайдбара (как у Sonarr: Settings → Media Management, Profiles, ...).
+// Строятся из вкладок разделов «Настройки» и «Логи» и показываются только у активного раздела.
+const SERVARR_SUBNAV_SOURCES = [
+  { tab: "settings", selector: "#tab-settings .settings-tabs .settings-tab-btn" },
+  { tab: "logs", selector: "#tab-logs .logs-tabs .logs-tab-btn" },
+];
+
+function servarrBuildSubnav() {
+  SERVARR_SUBNAV_SOURCES.forEach(src => {
+    const parent = document.querySelector(`.sidebar .nav-item[data-tab="${src.tab}"]`);
+    if (!parent) return;
+    let box = document.getElementById(`servarr-subnav-${src.tab}`);
+    if (!box) {
+      box = document.createElement("div");
+      box.id = `servarr-subnav-${src.tab}`;
+      box.className = "servarr-subnav";
+      box.dataset.parentTab = src.tab;
+      parent.insertAdjacentElement("afterend", box);
+    }
+    const buttons = Array.from(document.querySelectorAll(src.selector));
+    box.innerHTML = "";
+    buttons.forEach((btn, idx) => {
+      const label = (btn.querySelector("span") || btn).textContent.trim();
+      const child = document.createElement("button");
+      child.type = "button";
+      child.className = "servarr-subnav-item" + (btn.classList.contains("active") ? " active" : "");
+      child.textContent = label;
+      child.addEventListener("click", () => {
+        if (!document.getElementById(`tab-${src.tab}`)?.classList.contains("active")) switchTab(src.tab);
+        const target = document.querySelectorAll(src.selector)[idx];
+        if (target) target.click();
+        servarrSyncSubnav();
+      });
+      box.appendChild(child);
+    });
+    if (!box.dataset.observed) {
+      box.dataset.observed = "1";
+      const obs = new MutationObserver(() => servarrSyncSubnav());
+      buttons.forEach(btn => obs.observe(btn, { attributes: true, attributeFilter: ["class"] }));
+    }
+  });
+}
+
+// Элементы, которые в Servarr Classic меняют место (как в Sonarr) и возвращаются при смене дизайна:
+//  • строка действий бэкапов → панель инструментов раздела (кнопки «Backup Now / Restore»);
+//  • навигация календаря и выбор вида → шапка календаря над сеткой (CalendarHeader).
+const SERVARR_RELOCATE = [
+  { panel: "tab-backup", selector: ".backup-actions-row", target: "toolbar", cls: "servarr-adopted-toolbar" },
+  { panel: "tab-calendar", selector: ".calendar-toolbar-group:first-child", target: "#calendar-body", cls: "servarr-calendar-nav", wrap: "servarr-calendar-header" },
+  { panel: "tab-calendar", selector: "#calendar-view-select", target: "#calendar-body", cls: "servarr-calendar-view", wrap: "servarr-calendar-header" },
+];
+
+function servarrAdoptToolbars(active) {
+  SERVARR_RELOCATE.forEach((item, idx) => {
+    const panel = document.getElementById(item.panel);
+    if (!panel) return;
+    const markerId = `servarr-relocate-marker-${idx}`;
+    let marker = document.getElementById(markerId);
+    const el = marker && marker._servarrEl ? marker._servarrEl : panel.querySelector(item.selector);
+    if (!el) return;
+    if (active && !el.classList.contains(item.cls)) {
+      if (!marker) {
+        marker = document.createElement("span");
+        marker.id = markerId;
+        marker.hidden = true;
+        marker._servarrEl = el;
+      }
+      el.parentElement.insertBefore(marker, el);
+      el.classList.add(item.cls);
+      if (item.target === "toolbar") {
+        const header = panel.querySelector(".panel-sticky-header");
+        if (header) header.insertBefore(el, header.firstChild);
+      } else {
+        const anchor = panel.querySelector(item.target);
+        if (!anchor) return;
+        let host = anchor;
+        if (item.wrap) {
+          host = panel.querySelector(`.${item.wrap}`);
+          if (!host) {
+            host = document.createElement("div");
+            host.className = item.wrap;
+            anchor.parentElement.insertBefore(host, anchor);
+          }
+          host.appendChild(el);
+        } else {
+          anchor.parentElement.insertBefore(el, anchor);
+        }
+      }
+    } else if (!active && marker && el.classList.contains(item.cls)) {
+      el.classList.remove(item.cls);
+      marker.parentElement.insertBefore(el, marker);
+      marker.remove();
+    }
+  });
+  if (!active) {
+    document.querySelectorAll(".servarr-calendar-header").forEach(h => { if (!h.children.length) h.remove(); });
+  }
+}
+
+function servarrSyncSubnav() {
+  servarrAdoptToolbars(isServarrDesign());
+  if (!isServarrDesign()) return;
+  if (!document.querySelector(".servarr-subnav")) servarrBuildSubnav();
+  SERVARR_SUBNAV_SOURCES.forEach(src => {
+    const box = document.getElementById(`servarr-subnav-${src.tab}`);
+    if (!box) return;
+    const parentActive = document.getElementById(`tab-${src.tab}`)?.classList.contains("active");
+    box.classList.toggle("open", !!parentActive);
+    const buttons = document.querySelectorAll(src.selector);
+    box.querySelectorAll(".servarr-subnav-item").forEach((child, idx) => {
+      const btn = buttons[idx];
+      child.classList.toggle("active", !!(btn && btn.classList.contains("active")));
+      if (btn) {
+        const label = (btn.querySelector("span") || btn).textContent.trim();
+        if (label && child.textContent !== label) child.textContent = label;
+      }
+    });
+  });
+}
 
 // Применяем язык/тему/дизайн/скроллбар из localStorage сразу, не дожидаясь ответа /api/v1/settings —
 // они всё равно будут перезаписаны актуальными значениями в loadGeneralSettings().
