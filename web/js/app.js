@@ -3326,6 +3326,12 @@ function applyLanguage(lang) {
     const val = t(el.getAttribute("data-i18n-title"));
     if (val) el.setAttribute("title", val);
   });
+  // data-label питает CSS-подписи в мобильной карточной раскладке таблиц
+  // (см. .folders-table td[data-label]::before)
+  document.querySelectorAll("[data-i18n-label]").forEach(el => {
+    const val = t(el.getAttribute("data-i18n-label"));
+    if (val) el.setAttribute("data-label", val);
+  });
 
   // Обновляем текущий активный вид, только если панель уже активна в DOM
   const activeNav = document.querySelector(".nav-item.active");
@@ -6049,7 +6055,7 @@ async function loadSystemAbout() {
 
     const isRu = CURRENT_LANG !== "en";
     const commitVal = info.commit || info.branch || 'main';
-    const versionVal = `v${escapeHtml(info.version || '3.4.0')} (${escapeHtml(commitVal)})`;
+    const versionVal = `v${escapeHtml(info.version || '3.4.1')} (${escapeHtml(commitVal)})`;
     const runtimeVal = escapeHtml(info.runtime || 'Docker');
     const pythonVal = escapeHtml(info.python_version || '3.11');
     const dbVal = `${escapeHtml(info.database_type || 'SQLite')}${info.database_version ? ` ${escapeHtml(info.database_version)}` : ''}${info.database_size_formatted ? ` (${info.database_size_formatted})` : ''}`;

@@ -56,7 +56,7 @@ from app.services.settings_service import get_or_create_settings
 logger = logging.getLogger("aliasarr.backup")
 
 BACKUP_DIR = os.getenv("ALIASARR_BACKUP_DIR", "/config/backups")
-APP_VERSION = "3.4.0"
+APP_VERSION = "3.4.1"
 
 CONFIG_TABLES = {
     "app_settings": AppSettings,

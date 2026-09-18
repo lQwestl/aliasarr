@@ -893,7 +893,12 @@ body::before {
 }
 
 /* ---------- MAIN CONTENT ---------- */
-.content { flex: 1; padding: 28px 36px; max-width: 1800px; margin: 0 auto; }
+/* min-width: 0 — as a flex item .content defaults to min-width:auto, so any
+   panel with a wide min-content (a long <select> option, a nowrap label, a
+   wide table) stretches it past the shell and the right-hand side of the
+   panel is clipped with no way to scroll to it. Affects desktop too: at
+   1440px the settings panel pushed .content to 1320px / right edge 1560px. */
+.content { flex: 1; min-width: 0; padding: 28px 36px; max-width: 1800px; margin: 0 auto; }
 
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
@@ -4120,9 +4125,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   color: #ef4444;
 }
 
-/* Modal Title & Header collision protection with close button */
+/* Modal Title & Header collision protection with close button.
+   Scoped to modals only: .settings-card-header is also used by settings panels,
+   where a blanket padding-right steals 48px of width and pushes header actions
+   out of the card (very visible on mobile). */
 .modal-header,
-.settings-card-header,
+.modal .settings-card-header,
 .modal-title,
 .wizard-header,
 .modal > h2,
@@ -9285,9 +9293,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     stroke-width: 2.2 !important;
   }
 
-  /* Prevent elements from colliding with fixed modal close button on mobile */
+  /* Prevent elements from colliding with fixed modal close button on mobile.
+     Scoped to modals — see the desktop rule above for why. */
   .modal-header,
-  .settings-card-header,
+  .modal .settings-card-header,
   .modal-title,
   .wizard-header,
   .modal > h2,
@@ -15139,7 +15148,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .form-grid-modern.grid-1col {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .form-grid-modern.grid-3col {
@@ -15693,8 +15702,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 /* Responsive adjustments */
 @media (max-width: 900px) {
-  .form-grid-modern {
-    grid-template-columns: 1fr;
+  /* minmax(0, 1fr), not 1fr: a bare 1fr track cannot shrink below its items'
+     min-content, so one long <select> option or nowrap label blows the whole
+     grid past the viewport. */
+  .form-grid-modern,
+  .form-grid-modern.grid-1col,
+  .form-grid-modern.grid-3col {
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
   }
   .settings-section-card {
@@ -17357,3 +17371,425 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 
 
+/* =============================================================================
+   MOBILE LAYOUT HARDENING
+   -----------------------------------------------------------------------------
+   Appended last on purpose: these rules fix real horizontal-overflow and
+   touch-target defects on phones and must win over the earlier, more specific
+   component blocks. Everything here is inside a max-width / pointer query, so
+   the desktop layout is untouched.
+
+   Two recurring root causes are addressed:
+     1. Flex/grid children default to min-width:auto, so one nowrap label, long
+        <select> option or fixed-min-width control pushes its whole row past the
+        viewport. Because .app-shell is overflow-x:hidden, the spill is not
+        scrollable — it is simply unreachable.
+     2. Layouts introduced with the Servarr-classic redesign (.settings-*-card,
+        .form-grid-modern) never got mobile overrides, so their desktop
+        horizontal composition survived down to 390px.
+   ============================================================================= */
+
+@media (max-width: 768px) {
+
+  /* ---------------------------------------------------------------------------
+     1. Settings section cards — stack the header, free the title
+     --------------------------------------------------------------------------- */
+  .settings-card-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding-right: 0 !important;
+  }
+  .settings-card-header-left {
+    align-items: flex-start !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+  }
+  .settings-card-title-wrap {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+  .settings-card-title-wrap h3 {
+    font-size: 15.5px !important;
+    line-height: 1.3 !important;
+    overflow-wrap: anywhere;
+  }
+  .settings-card-title-wrap .subtitle,
+  .settings-card-title-wrap .hint {
+    font-size: 12px !important;
+    overflow-wrap: anywhere;
+  }
+  /* Header action (e.g. "Справочник шаблонов") drops onto its own full-width row */
+  .settings-card-header > .btn,
+  .settings-card-header > .btn-small,
+  .settings-card-header > .settings-card-header-right,
+  .settings-card-header > .header-actions {
+    width: 100% !important;
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+  }
+  .settings-card-header > .settings-card-header-right > .btn,
+  .settings-card-header > .header-actions > .btn {
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+  }
+  .settings-section-card {
+    padding: 16px 14px !important;
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------------------------------------------------------------------------
+     2. Grid & flex children must be allowed to shrink
+     --------------------------------------------------------------------------- */
+  .form-grid-modern > *,
+  .settings-field-group,
+  .settings-field-group > *,
+  .settings-field-label,
+  .settings-field-label > * {
+    min-width: 0 !important;
+  }
+  .settings-field-group > select,
+  .settings-field-group > .input,
+  .settings-field-group select.input,
+  .form-grid-modern select,
+  .form-grid-modern input:not([type="checkbox"]):not([type="radio"]),
+  .form-grid-modern textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  /* A <select> takes its min-content from the widest option; without this the
+     track grows to fit the longest label and the panel overflows. */
+  .settings-panel select,
+  .settings-panel .input {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    text-overflow: ellipsis;
+  }
+  .settings-field-label {
+    flex-wrap: wrap !important;
+    gap: 2px 8px !important;
+  }
+  .settings-field-hint {
+    flex: 1 1 100% !important;
+  }
+  /* Switch rows (label + toggle) keep the toggle pinned and wrap the text */
+  .switch-title,
+  .switch-row-title {
+    min-width: 0 !important;
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------------------------------------------------------------------------
+     3. Truncate instead of spilling off-screen
+     --------------------------------------------------------------------------- */
+  .blocklist-card-show-badge,
+  .history-release-header,
+  .history-card-title,
+  .blocklist-card-title {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+  .blocklist-card-show-badge > span,
+  .history-release-header > span,
+  .history-release-header > div {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  /* text-overflow only renders on the element that clips, and here the title
+     text lives in a child <span> — so the child has to do the clipping. The
+     icon and the trailing year stay at their natural size; only the title
+     span grows and truncates. */
+  .history-release-show-title,
+  .blocklist-card-show-badge {
+    display: flex !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .history-release-show-title > span:not(.hint):not(.text-muted),
+  .blocklist-card-show-badge > span:not(.hint):not(.text-muted) {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  .history-release-show-title > i,
+  .history-release-show-title > svg,
+  .history-release-show-title > .hint,
+  .history-release-show-title > .text-muted,
+  .blocklist-card-show-badge > i,
+  .blocklist-card-show-badge > svg,
+  .blocklist-card-show-badge > .hint,
+  .blocklist-card-show-badge > .text-muted {
+    flex: 0 0 auto !important;
+  }
+
+  /* Three 38px action buttons leave ~150px for the title, which then truncates
+     after a few words. Drop the actions onto their own row. */
+  .calendar-card {
+    flex-wrap: wrap !important;
+  }
+  /* flex-basis 0, not auto: with auto the basis is the nowrap title's full
+     width, which wraps the body onto its own line and orphans the poster. */
+  .cal-card-body {
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+  }
+  .calendar-card > .cal-card-poster,
+  .calendar-card > .cal-poster,
+  .calendar-card > img {
+    flex: 0 0 auto !important;
+  }
+  .cal-card-actions {
+    flex: 1 1 100% !important;
+    justify-content: flex-end !important;
+    margin-top: 2px !important;
+  }
+
+  /* The show badge shares a row with the source/quality pills and gets squeezed
+     to a few pixels; let the row wrap and give the badge a line of its own. */
+  .blocklist-card-top {
+    flex-wrap: wrap !important;
+  }
+  .blocklist-card-select-wrap {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+  }
+  .blocklist-card-show-badge {
+    flex: 1 1 auto !important;
+  }
+
+  /* ---------------------------------------------------------------------------
+     4. Folders & renaming table -> stacked cards
+     The desktop table needs ~980px; horizontally scrolling five columns of
+     text inputs on a phone is unusable, so each row becomes a labelled card.
+     Column names come from the td's data-i18n-label (see applyLanguage).
+     --------------------------------------------------------------------------- */
+  .folders-table,
+  #folders-table {
+    min-width: 0 !important;
+    width: 100% !important;
+    display: block !important;
+  }
+  .folders-table thead {
+    display: none !important;
+  }
+  .folders-table tbody,
+  .folders-table tr,
+  .folders-table td {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .folders-table tr {
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    background: var(--panel-alt) !important;
+    padding: 12px !important;
+    margin: 0 0 12px 0 !important;
+  }
+  .folders-table tr:last-child {
+    margin-bottom: 0 !important;
+  }
+  .folders-table td {
+    border-bottom: none !important;
+    padding: 10px 0 0 0 !important;
+    white-space: normal !important;
+    text-align: left !important;
+  }
+  .folders-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 6px;
+    font-family: var(--font-display, inherit);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .folders-table td.folders-table-cat {
+    padding-top: 0 !important;
+    padding-bottom: 4px !important;
+    border-bottom: 1px solid var(--border) !important;
+    margin-bottom: 6px !important;
+  }
+  .folders-table td.folders-table-na {
+    display: none !important;
+  }
+  .folders-table .folder-picker-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    white-space: normal !important;
+    gap: 8px !important;
+  }
+  .folders-table .folder-picker-row input {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+  }
+  .folders-table .folder-picker-row .btn {
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+  }
+  .folders-table input.mono {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  /* The wrapper no longer needs to scroll, so drop the scroll chrome */
+  .table-responsive:has(> .folders-table) {
+    overflow-x: visible !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* ---------------------------------------------------------------------------
+     5. Scroll affordance for the tables that legitimately stay tables
+     --------------------------------------------------------------------------- */
+  .table-responsive:not(:has(> .folders-table)) {
+    position: relative;
+    overscroll-behavior-x: contain;
+  }
+  .table-responsive::-webkit-scrollbar {
+    height: 8px;
+    -webkit-appearance: none;
+  }
+
+  /* ---------------------------------------------------------------------------
+     5b. Grids with a fixed minimum track
+     minmax(320px, 1fr) resolves to a 320px track inside a ~306px column on a
+     360px-wide phone, pushing the cards past the edge.
+     --------------------------------------------------------------------------- */
+  .design-cards-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px !important;
+  }
+
+  /* ---------------------------------------------------------------------------
+     5c. Long button labels must wrap rather than widen their row
+     --------------------------------------------------------------------------- */
+  .settings-section-card .btn,
+  .settings-panel .btn {
+    white-space: normal !important;
+    text-align: center !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+  }
+
+  /* ---------------------------------------------------------------------------
+     6. API key row
+     --------------------------------------------------------------------------- */
+  .api-key-reveal-btn {
+    width: 38px !important;
+    height: 38px !important;
+    flex: 0 0 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  #setting-apikey {
+    min-width: 0 !important;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   7. Touch targets
+   Width-based so it also holds in DevTools device emulation and on touch
+   laptops, which do not always report pointer:coarse.
+   ----------------------------------------------------------------------------- */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) and (max-width: 1024px) {
+  .btn-icon-only,
+  .btn-icon-soft,
+  .btn-icon-xs,
+  .btn-icon-xxs,
+  .btn-icon-danger,
+  .cal-btn-action,
+  .terminal-copy-btn,
+  .md-lang-remove-btn,
+  .modal-close,
+  .mobile-drawer-close {
+    min-width: 38px !important;
+    min-height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  /* Icon glyphs keep their original size — only the hit area grows */
+  .btn-icon-xs svg, .btn-icon-xs i,
+  .btn-icon-xxs svg, .btn-icon-xxs i,
+  .md-lang-remove-btn svg, .md-lang-remove-btn i {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  /* Rows of small icon buttons need breathing room once they are 38px wide */
+  .history-card-action-btns,
+  .cal-card-actions,
+  .blocklist-card-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* Checkboxes: real 20px box plus an invisible padded hit area */
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    flex-shrink: 0 !important;
+  }
+  .blocklist-card-cb,
+  #backup-select-all,
+  .data-table input[type="checkbox"] {
+    position: relative;
+    z-index: 1;
+  }
+  .blocklist-card-cb::after,
+  #backup-select-all::after,
+  .data-table input[type="checkbox"]::after {
+    content: "";
+    position: absolute;
+    inset: -9px;
+  }
+
+  /* Text-link buttons are unhittable at 14px tall */
+  .btn-link,
+  .btn-chip-quick {
+    min-height: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 0 6px !important;
+  }
+
+  /* Interactive chips and small text buttons */
+  .alias-chip.interactive,
+  .blocklist-reason-chip,
+  .badge-collection,
+  .blocklist-card-show-badge,
+  .chip-toggle,
+  .chip-option {
+    min-height: 36px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+  .btn-small {
+    min-height: 36px !important;
+  }
+  /* Dashboard stat rows read as clickable (cursor:pointer) but are not;
+     give them enough height to be legible either way */
+  .dash-subitem {
+    min-height: 24px !important;
+  }
+
+  .mobile-brand {
+    min-height: 38px;
+  }
+}

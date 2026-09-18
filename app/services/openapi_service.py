@@ -149,7 +149,7 @@ TAGS_METADATA_EN = [
 ]
 
 DESCRIPTION_RU = """
-Добро пожаловать в официальную документацию REST API системы **Aliasarr** (версия 3.4.0).
+Добро пожаловать в официальную документацию REST API системы **Aliasarr** (версия 3.4.1).
 
 API предоставляет полный программный доступ ко всем функциям системы: управлению медиатекой, мониторингу торрент-клиентов, настройке индексаторов, планировщику автоматического поиска и проверке качества релизов.
 
@@ -177,7 +177,7 @@ API предоставляет полный программный доступ 
 """.strip()
 
 DESCRIPTION_EN = """
-Welcome to the official REST API documentation for **Aliasarr** (version 3.4.0).
+Welcome to the official REST API documentation for **Aliasarr** (version 3.4.1).
 
 The API grants complete programmatic control over every system capability: media library indexing, download client lifecycle, indexer proxies, scheduled WANTED auto-search, and release quality verification.
 
@@ -261,7 +261,7 @@ def get_localized_openapi(app: FastAPI, lang: str = "ru") -> dict[str, Any]:
     # Generate base schema via FastAPI get_openapi
     schema = get_openapi(
         title=title,
-        version="3.4.0",
+        version="3.4.1",
         description=description,
         routes=app.routes,
         tags=tags_metadata,
