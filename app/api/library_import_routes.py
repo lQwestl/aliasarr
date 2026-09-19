@@ -8,12 +8,15 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
+import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -35,6 +38,48 @@ router = APIRouter(prefix="/api/v1/library-import", tags=["library-import"])
 # Оценка, ниже которой совпадение считается сомнительным и не подставляется
 # автоматически: пользователь должен выбрать тайтл сам.
 AUTO_SELECT_THRESHOLD = 0.62
+
+# Сколько раз повторить короткую запись, если SQLite занят другим писателем.
+COMMIT_RETRIES = 5
+COMMIT_RETRY_DELAY = 0.4
+
+
+def _is_locked_error(exc: BaseException) -> bool:
+    return "database is locked" in str(exc).lower() or "database is busy" in str(exc).lower()
+
+
+def _commit_with_retry(db: Session, what: str) -> None:
+    """Фиксирует короткую транзакцию, переживая занятость SQLite.
+
+    busy_timeout здесь не спасает: если сессия уже держала читающую транзакцию,
+    SQLite отказывает в повышении до записи сразу, не дожидаясь таймаута. Помогает
+    только откатить свой снимок и попробовать заново.
+    """
+    for attempt in range(1, COMMIT_RETRIES + 1):
+        try:
+            db.commit()
+            return
+        except OperationalError as exc:
+            db.rollback()
+            if not _is_locked_error(exc) or attempt == COMMIT_RETRIES:
+                raise
+            logger.warning(
+                "База занята при операции «%s», попытка %s из %s", what, attempt, COMMIT_RETRIES
+            )
+            time.sleep(COMMIT_RETRY_DELAY * attempt)
+
+
+def _release_read_lock(db: Session) -> None:
+    """Закрывает открытую читающую транзакцию сессии.
+
+    Любой SELECT через SQLAlchemy открывает транзакцию и держит её до commit или
+    rollback. Если после этого уйти в сеть на десятки секунд, а затем попытаться
+    записать, SQLite ответит «database is locked» — снимок к тому моменту устарел.
+    """
+    try:
+        db.rollback()
+    except Exception:  # pragma: no cover - сессия и так пуста
+        pass
 
 
 class ImportFolderOut(BaseModel):
@@ -70,6 +115,8 @@ class LookupCandidateOut(BaseModel):
     already_added: bool = False
     existing_show_id: Optional[int] = None
     match_score: float = 0.0
+    # Кандидат другой категории, чем сканируемая папка (сериал против фильма).
+    type_mismatch: bool = False
 
 
 class LookupOut(BaseModel):
@@ -105,6 +152,23 @@ class ImportItemOut(BaseModel):
     episodes_imported: int = 0
     files_synced: int = 0
     error: Optional[str] = None
+    # Карточка создана, но доводка (путь, профиль, мониторинг) не довершилась.
+    # Отличать этот случай от «ничего не произошло» обязательно: папка уже занята
+    # тайтлом и повторное сканирование её не предложит.
+    partial: bool = False
+
+
+def _is_type_mismatch(requested: Optional[str], candidate: Optional[str]) -> bool:
+    """Противоречит ли категория кандидата той, с которой сканировали папку.
+
+    Аниме и сериал взаимозаменяемы: источники расходятся в том, чем считать тайтл.
+    А вот фильм и сериал — разные вещи, и подставлять одно вместо другого нельзя.
+    """
+    if not requested or not candidate:
+        return False
+    wanted_movie = requested == "movie"
+    candidate_movie = candidate == "movie"
+    return wanted_movie != candidate_movie
 
 
 def _normalize_root(raw: str) -> str:
@@ -271,6 +335,7 @@ async def lookup_folder(
             already_added=bool(getattr(item, "already_added", False)),
             existing_show_id=getattr(item, "existing_show_id", None),
             match_score=round(score, 3),
+            type_mismatch=_is_type_mismatch(content_type, item.content_type),
         )
         for item, score in ranked[: max(1, min(limit, 50))]
     ]
@@ -279,6 +344,13 @@ async def lookup_folder(
     existing: Optional[LookupCandidateOut] = None
     for cand in candidates:
         if cand.match_score < AUTO_SELECT_THRESHOLD:
+            continue
+        if cand.type_mismatch:
+            # Категория — жёсткое условие, а не просто штраф к оценке. Одноимённый
+            # сериал легко перебивает порог за счёт совпадения названия и года
+            # (0.8 + 0.2 − 0.25 = 0.75), и при недоступном источнике фильмов папка
+            # молча уезжала в медиатеку сериалом. Такой вариант остаётся в списке,
+            # но выбрать его может только человек.
             continue
         if cand.already_added:
             # Запоминаем, но перебор продолжаем: рядом может оказаться столь же
@@ -330,6 +402,10 @@ async def import_folder_item(
             error=f"Папка уже привязана к тайтлу «{existing.title}»",
         )
 
+    # Проверка выше открыла читающую транзакцию, а дальше — поход в источник
+    # метаданных на десятки секунд. Держать снимок всё это время нельзя.
+    _release_read_lock(db)
+
     try:
         result = await import_show(
             payload=ImportShowRequest(
@@ -353,6 +429,12 @@ async def import_folder_item(
     if not show:
         return ImportItemOut(path=folder, success=False, error="Тайтл не создан")
 
+    # С этого места карточка уже существует и занимает папку. Любой сбой ниже —
+    # это «импортировано частично», а не «не импортировано»: иначе пользователь
+    # считает папку потерянной, хотя повторно её предложить уже нельзя.
+    episodes_imported = int(result.get("episodes_imported") or 0)
+    show_title = show.title
+
     # Путь мог быть достроен подпапкой — при импорте из существующей папки
     # карточка обязана указывать ровно на неё.
     if _normalize_for_compare(show.path or "") != _normalize_for_compare(folder):
@@ -361,24 +443,60 @@ async def import_folder_item(
     if payload.quality_profile_id is not None:
         show.quality_profile_id = payload.quality_profile_id
     db.add(show)
-    db.commit()
+    try:
+        _commit_with_retry(db, f"доводка карточки «{show_title}»")
+    except OperationalError as exc:
+        logger.error("Не удалось дописать карточку «%s» после импорта: %s", show_title, exc)
+        return ImportItemOut(
+            path=folder,
+            success=False,
+            partial=True,
+            show_id=show_id,
+            title=show_title,
+            episodes_imported=episodes_imported,
+            error=(
+                "Карточка создана, но профиль, мониторинг и путь не сохранились: "
+                "база была занята. Проверьте тайтл в медиатеке и при необходимости "
+                "поправьте его вручную."
+            ),
+        )
     db.refresh(show)
 
     files_synced = 0
     if payload.sync_disk:
         try:
-            sync_result = sync_show_disk(show_id=show.id, db=db, current_user=current_user)
+            # sync_show_disk синхронная и долгая: обходит папку, читает MediaInfo
+            # и пишет в базу. На цикле событий она блокирует весь сервер, поэтому
+            # уводим её в поток.
+            sync_result = await asyncio.to_thread(
+                sync_show_disk, show_id=show.id, db=db, current_user=current_user
+            )
             files_synced = int((sync_result or {}).get("imported_count") or 0)
         except HTTPException as exc:
-            logger.info("Синхронизация с диском для «%s» пропущена: %s", show.title, exc.detail)
+            logger.info("Синхронизация с диском для «%s» пропущена: %s", show_title, exc.detail)
+        except OperationalError as exc:
+            _release_read_lock(db)
+            logger.warning("Синхронизация с диском для «%s» не удалась: %s", show_title, exc)
+            return ImportItemOut(
+                path=folder,
+                success=True,
+                partial=True,
+                show_id=show_id,
+                title=show_title,
+                episodes_imported=episodes_imported,
+                error=(
+                    "Тайтл добавлен, но файлы на диске не привязаны: база была занята. "
+                    "Запустите синхронизацию с диском в карточке тайтла."
+                ),
+            )
         except Exception as exc:  # pragma: no cover
-            logger.warning("Синхронизация с диском для «%s» не удалась: %s", show.title, exc)
+            logger.warning("Синхронизация с диском для «%s» не удалась: %s", show_title, exc)
 
     return ImportItemOut(
         path=folder,
         success=True,
         show_id=show.id,
         title=show.title,
-        episodes_imported=int(result.get("episodes_imported") or 0),
+        episodes_imported=episodes_imported,
         files_synced=files_synced,
     )

@@ -89,6 +89,10 @@ _TRAILING_GROUP_RE = re.compile(r"[\(\[\{][^\(\)\[\]\{\}]{1,40}[\)\]\}]\s*$")
 # («Мандалорец (The Mandalorian)» — распространённый формат на русских раздачах).
 _BRACKET_GROUP_RE = re.compile(r"[\(\[\{]([^\(\)\[\]\{\}]{2,80})[\)\]\}]")
 
+# Доля, которую более короткое название обязано занимать в более длинном, чтобы
+# вхождение считалось совпадением, а не случайным префиксом.
+PREFIX_MATCH_MIN_COVERAGE = 0.6
+
 _SEPARATOR_RE = re.compile(r"[._]+")
 _MULTISPACE_RE = re.compile(r"\s{2,}")
 
@@ -270,23 +274,33 @@ def score_candidate(parsed: ParsedFolder, candidate: Any, content_type: Optional
             if ratio > best:
                 best = ratio
             # Папка часто содержит уточнения, которых нет в базе
-            # («The Office US» против «The Office»), и наоборот.
+            # («The Office US» против «The Office»), и наоборот. Но вхождение
+            # засчитывается, только если строки сопоставимы по длине: иначе
+            # короткая папка «Decoded» цепляет любой тайтл, который с неё
+            # начинается, вплоть до «Decoded: Dan Brown's Lost Symbol».
             if norm_folder and norm_cand and (
                 norm_folder.startswith(norm_cand) or norm_cand.startswith(norm_folder)
             ):
-                best = max(best, 0.9)
+                shorter, longer = sorted((len(norm_folder), len(norm_cand)))
+                if longer and shorter / longer >= PREFIX_MATCH_MIN_COVERAGE:
+                    best = max(best, 0.9)
 
     score = best * 0.8
 
     cand_year = _get(candidate, "year")
     if parsed.year and cand_year:
-        if int(cand_year) == int(parsed.year):
+        year_gap = abs(int(cand_year) - int(parsed.year))
+        if year_gap == 0:
             score += 0.2
-        elif abs(int(cand_year) - int(parsed.year)) == 1:
+        elif year_gap == 1:
             # Даты релиза в разных базах расходятся на год чаще, чем хотелось бы.
             score += 0.1
-        else:
+        elif year_gap == 2:
             score -= 0.15
+        else:
+            # Разница в три года и больше — это уже другой тайтл, а не расхождение
+            # источников. Прежний мягкий штраф оставлял такие пары выше порога.
+            score -= 0.35
     elif not parsed.year:
         score += 0.05
 

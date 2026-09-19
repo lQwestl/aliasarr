@@ -145,6 +145,30 @@ class TestCandidateRanking(unittest.TestCase):
                                titles_by_lang={"ru": "Во все тяжкие", "en": "Breaking Bad"})
         self.assertGreaterEqual(score_candidate(parsed, candidate, "series"), lir.AUTO_SELECT_THRESHOLD)
 
+    def test_short_folder_name_does_not_capture_a_much_longer_title(self):
+        """Реальный промах 19.09: папка «Decoded (2024)» получила
+        «Decoded: Dan Brown's Lost Symbol» 2009 года. Вхождение давало 0.9
+        независимо от разницы длин, а штраф за год был слишком мягким —
+        вместе выходило ровно 0.62, впритык к порогу автовыбора."""
+        parsed = parse_folder_name("Decoded (2024)")
+        score = score_candidate(parsed, _Candidate("movie:1", "Decoded: Dan Brown's Lost Symbol", 2009, "movie"), "movie")
+        self.assertLess(score, lir.AUTO_SELECT_THRESHOLD)
+
+    def test_comparable_length_prefix_still_matches(self):
+        """Ради чего вхождение и вводилось: уточнение в имени папки,
+        которого нет в базе."""
+        parsed = parse_folder_name("The Office US (2005)")
+        score = score_candidate(parsed, _Candidate("tvdb:1", "The Office", 2005, "series"), "series")
+        self.assertGreaterEqual(score, lir.AUTO_SELECT_THRESHOLD)
+
+    def test_year_far_apart_is_penalised_harder_than_a_source_disagreement(self):
+        parsed = parse_folder_name("Some Title (2024)")
+        near = score_candidate(parsed, _Candidate("movie:1", "Some Title", 2023, "movie"), "movie")
+        far = score_candidate(parsed, _Candidate("movie:2", "Some Title", 2009, "movie"), "movie")
+        self.assertGreater(near, far)
+        self.assertGreaterEqual(near, lir.AUTO_SELECT_THRESHOLD)
+        self.assertLess(far, lir.AUTO_SELECT_THRESHOLD)
+
     def test_unrelated_title_stays_below_the_auto_select_threshold(self):
         parsed = parse_folder_name("Breaking Bad (2008)")
         score = score_candidate(parsed, _Candidate("tvdb:9", "Better Call Saul", 2015, "series"), "series")
@@ -305,6 +329,45 @@ class TestLookupEndpoint(unittest.TestCase):
         self.assertEqual(self.queries, ["Fargo"])
         self.assertEqual(out.auto_selected_id, "tvdb:3")
 
+    def test_same_named_series_is_never_auto_selected_for_a_movie_folder(self):
+        """Ключевой сбой 19.09: источник фильмов лежал, и одноимённый сериал
+        перебивал порог за счёт названия и года (0.8 + 0.2 − 0.25 = 0.75),
+        из-за чего папка фильма молча уезжала в медиатеку сериалом."""
+        self._patch_search({
+            "Inglourious Basterds": [
+                _Candidate("tvdb:7", "Inglourious Basterds", 2009, "series"),
+            ]
+        })
+        out = self._lookup("Inglourious Basterds (2009)", content_type="movie")
+        self.assertIsNone(out.auto_selected_id)
+        self.assertTrue(out.candidates[0].type_mismatch)
+        # Вариант остаётся доступным для ручного выбора.
+        self.assertGreaterEqual(out.candidates[0].match_score, lir.AUTO_SELECT_THRESHOLD)
+
+    def test_movie_is_not_auto_selected_for_a_series_folder(self):
+        self._patch_search({"Fargo": [_Candidate("movie:1", "Fargo", 1996, "movie")]})
+        out = self._lookup("Fargo (1996)", content_type="series")
+        self.assertIsNone(out.auto_selected_id)
+        self.assertTrue(out.candidates[0].type_mismatch)
+
+    def test_anime_and_series_are_interchangeable(self):
+        """Источники расходятся, считать ли тайтл аниме или сериалом,
+        поэтому такой вариант мешать автовыбору не должен."""
+        self._patch_search({"Cowboy Bebop": [_Candidate("tvdb:2", "Cowboy Bebop", 1998, "anime")]})
+        out = self._lookup("Cowboy Bebop (1998)", content_type="series")
+        self.assertEqual(out.auto_selected_id, "tvdb:2")
+        self.assertFalse(out.candidates[0].type_mismatch)
+
+    def test_right_type_candidate_wins_over_a_mismatching_one(self):
+        self._patch_search({
+            "Dune": [
+                _Candidate("tvdb:3", "Dune", 2021, "series"),
+                _Candidate("movie:9", "Dune", 2021, "movie"),
+            ]
+        })
+        out = self._lookup("Dune (2021)", content_type="movie")
+        self.assertEqual(out.auto_selected_id, "movie:9")
+
     def test_already_added_candidate_is_never_auto_selected(self):
         self._patch_search({"Breaking Bad": [_Candidate("tvdb:1", "Breaking Bad", 2008, already_added=True)]})
         out = self._lookup("Breaking Bad (2008)")
@@ -337,6 +400,78 @@ class TestLookupEndpoint(unittest.TestCase):
         out = self._lookup("Unknown Thing")
         self.assertIsNone(out.auto_selected_id)
         self.assertIsNone(out.existing_match_id)
+
+
+@unittest.skipUnless(HAS_DEPS, "FastAPI / SQLAlchemy dependencies not installed in host runner")
+class TestWriteResilience(unittest.TestCase):
+    """Поведение при занятой базе: 500 ронять нельзя, о созданной карточке
+    обязательно сообщить — иначе папка выглядит потерянной."""
+
+    def setUp(self):
+        self.engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(self.engine)
+        self.db = sessionmaker(bind=self.engine)()
+        self.db.add(AppSettings(id=1, api_key="test-key"))
+        self.user = User(username="admin", password_hash="hash", is_admin=True, is_owner=True)
+        self.db.add(self.user)
+        self.db.commit()
+
+    def tearDown(self):
+        self.db.close()
+        self.engine.dispose()
+
+    def test_commit_retry_survives_a_transient_lock(self):
+        from sqlalchemy.exc import OperationalError
+
+        calls = {"n": 0}
+        real_commit = self.db.commit
+
+        def flaky_commit():
+            calls["n"] += 1
+            if calls["n"] < 3:
+                raise OperationalError("UPDATE shows", {}, Exception("database is locked"))
+            return real_commit()
+
+        self.db.commit = flaky_commit
+        lir.COMMIT_RETRY_DELAY = 0
+        lir._commit_with_retry(self.db, "тест")
+        self.assertEqual(calls["n"], 3)
+
+    def test_commit_retry_gives_up_and_reraises(self):
+        from sqlalchemy.exc import OperationalError
+
+        def always_locked():
+            raise OperationalError("UPDATE shows", {}, Exception("database is locked"))
+
+        self.db.commit = always_locked
+        lir.COMMIT_RETRY_DELAY = 0
+        with self.assertRaises(OperationalError):
+            lir._commit_with_retry(self.db, "тест")
+
+    def test_other_operational_errors_are_not_retried(self):
+        from sqlalchemy.exc import OperationalError
+
+        calls = {"n": 0}
+
+        def broken():
+            calls["n"] += 1
+            raise OperationalError("UPDATE shows", {}, Exception("no such column: bogus"))
+
+        self.db.commit = broken
+        lir.COMMIT_RETRY_DELAY = 0
+        with self.assertRaises(OperationalError):
+            lir._commit_with_retry(self.db, "тест")
+        self.assertEqual(calls["n"], 1, "повторять бессмысленную ошибку не нужно")
+
+    def test_type_mismatch_helper(self):
+        self.assertTrue(lir._is_type_mismatch("movie", "series"))
+        self.assertTrue(lir._is_type_mismatch("series", "movie"))
+        self.assertTrue(lir._is_type_mismatch("anime", "movie"))
+        self.assertFalse(lir._is_type_mismatch("anime", "series"))
+        self.assertFalse(lir._is_type_mismatch("series", "anime"))
+        self.assertFalse(lir._is_type_mismatch("movie", "movie"))
+        self.assertFalse(lir._is_type_mismatch(None, "movie"))
+        self.assertFalse(lir._is_type_mismatch("movie", None))
 
 
 class TestLibraryImportFrontend(unittest.TestCase):
@@ -416,6 +551,32 @@ class TestLibraryImportFrontend(unittest.TestCase):
         self.assertIn("lib-import-match-btn is-exists", self.app_js)
         self.assertIn(".lib-import-row.is-exists", self.style_css)
 
+    def test_import_runs_one_folder_at_a_time(self):
+        """Два параллельных писателя в SQLite давали «database is locked»
+        и ничего не выигрывали по скорости."""
+        self.assertRegex(self.app_js, r"const LIB_IMPORT_EXECUTE_CONCURRENCY = 1;")
+
+    def test_partial_import_is_not_reported_as_a_failure(self):
+        run = self.app_js.split("async function startLibraryImport(", 1)[1]
+        self.assertIn("result.partial", run)
+        self.assertIn("partial += 1", run)
+
+    def test_bound_folders_can_be_revealed_and_lead_to_their_title(self):
+        self.assertIn("function setLibraryImportIncludeAdded(", self.app_js)
+        self.assertIn("include_added=", self.app_js)
+        self.assertIn('status: f.already_added ? "bound" : "pending"', self.app_js)
+        self.assertIn("function openLibraryImportBoundShow(", self.app_js)
+        self.assertIn('id="lib-import-include-added"', self.html)
+
+    def test_bound_rows_do_not_go_through_matching(self):
+        block = self.app_js.split("async function runLibraryImportLookups()", 1)[1]
+        block = block.split("\n}", 1)[0]
+        self.assertIn('row.status === "bound"', block)
+
+    def test_mismatching_candidates_are_marked_in_the_list(self):
+        self.assertIn("c.type_mismatch", self.app_js)
+        self.assertIn("lib_import.other_category", self.app_js)
+
     def test_import_posts_to_the_backend_and_requests_a_disk_sync(self):
         run = self.app_js.split("async function startLibraryImport(", 1)[1]
         self.assertIn('"/api/v1/library-import/item"', run)
@@ -423,7 +584,9 @@ class TestLibraryImportFrontend(unittest.TestCase):
 
     def test_translations_exist_for_both_languages(self):
         for key in ("lib_import.btn", "lib_import.title", "lib_import.no_match", "lib_import.duplicate",
-                    "lib_import.already_in_library", "lib_import.second_folder_hint"):
+                    "lib_import.already_in_library", "lib_import.second_folder_hint",
+                    "lib_import.include_added", "lib_import.bound_hint",
+                    "lib_import.open_title", "lib_import.other_category"):
             self.assertEqual(
                 len(re.findall(rf'"{re.escape(key)}":', self.app_js)), 2,
                 f"ключ {key} должен быть объявлен и в ru, и в en",

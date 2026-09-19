@@ -1604,6 +1604,10 @@ const TRANSLATIONS = {
     "lib_import.no_match": "Совпадение не найдено",
     "lib_import.duplicate": "Тайтл уже выбран для другой папки",
     "lib_import.already_in_library": "Уже в медиатеке",
+    "lib_import.include_added": "Показывать папки, уже привязанные к тайтлам",
+    "lib_import.bound_hint": "папка уже привязана к этой карточке",
+    "lib_import.open_title": "Открыть тайтл",
+    "lib_import.other_category": "другая категория",
     "lib_import.second_folder_hint": "вторая папка того же тайтла",
     "lib_import.pick_another": "Выбрать другой",
     "lib_import.clear": "Сбросить",
@@ -3142,6 +3146,10 @@ const TRANSLATIONS = {
     "lib_import.no_match": "No match found",
     "lib_import.duplicate": "Already picked for another folder",
     "lib_import.already_in_library": "Already in library",
+    "lib_import.include_added": "Show folders already bound to titles",
+    "lib_import.bound_hint": "this folder is already bound to that title",
+    "lib_import.open_title": "Open title",
+    "lib_import.other_category": "other category",
     "lib_import.second_folder_hint": "a second folder for the same title",
     "lib_import.pick_another": "Pick another",
     "lib_import.clear": "Clear",
@@ -14082,7 +14090,9 @@ async function finishWizard(button) {
 // свой поисковый запрос с автодополнением.
 
 const LIB_IMPORT_LOOKUP_CONCURRENCY = 3;
-const LIB_IMPORT_EXECUTE_CONCURRENCY = 2;
+// Строго по одной папке за раз: SQLite держит одного писателя, и два
+// параллельных импорта только конкурировали за блокировку.
+const LIB_IMPORT_EXECUTE_CONCURRENCY = 1;
 const LIB_IMPORT_QUERY_DEBOUNCE_MS = 450;
 
 let LIB_IMPORT_STATE = {
@@ -14123,7 +14133,10 @@ async function openLibraryImportModal() {
     openRow: -1,
     scanning: false,
     importing: false,
+    includeAdded: false,
   };
+  const includeAddedBox = document.getElementById("lib-import-include-added");
+  if (includeAddedBox) includeAddedBox.checked = false;
 
   openModal("library-import-modal");
   renderLibraryImportBody();
@@ -14147,6 +14160,15 @@ function closeLibraryImport() {
     return;
   }
   closeModal("library-import-modal");
+}
+
+// Показ уже привязанных папок: без него мис-импорт выглядит как исчезновение
+// папки — в медиатеке тайтл не на виду, а сканирование его больше не предлагает.
+function setLibraryImportIncludeAdded(checkbox) {
+  LIB_IMPORT_STATE.includeAdded = !!(checkbox && checkbox.checked);
+  if (LIB_IMPORT_STATE.rootPath) {
+    scanLibraryImportRoot(document.getElementById("lib-import-scan-btn"));
+  }
 }
 
 function setLibraryImportCategory(type) {
@@ -14212,7 +14234,8 @@ async function scanLibraryImportRoot(button) {
 
     try {
       const url = `/api/v1/library-import/scan?path=${encodeURIComponent(path)}`
-        + `&content_type=${encodeURIComponent(LIB_IMPORT_STATE.contentType)}`;
+        + `&content_type=${encodeURIComponent(LIB_IMPORT_STATE.contentType)}`
+        + `&include_added=${LIB_IMPORT_STATE.includeAdded ? "true" : "false"}`;
       const data = await api(url);
       LIB_IMPORT_STATE.rootPath = data.path;
       LIB_IMPORT_STATE.skippedExisting = data.skipped_existing || 0;
@@ -14222,12 +14245,14 @@ async function scanLibraryImportRoot(button) {
         parsedTitle: f.parsed_title,
         parsedYear: f.parsed_year,
         hasMedia: f.has_media,
+        boundShowId: f.already_added ? (f.existing_show_id || null) : null,
+        boundShowTitle: f.already_added ? (f.existing_show_title || "") : "",
         contentType: LIB_IMPORT_STATE.contentType,
         qualityProfileId: libImportDefaultProfileId(LIB_IMPORT_STATE.contentType),
         monitored: true,
         checked: false,
         duplicate: false,
-        status: "pending",
+        status: f.already_added ? "bound" : "pending",
         candidates: [],
         selectedCandidate: null,
         query: "",
@@ -14259,7 +14284,9 @@ function libImportDefaultProfileId(type) {
 // Подбор идёт пулом ограниченной ширины: строки заполняются одна за другой,
 // а источники метаданных не получают залп из сотни параллельных запросов.
 async function runLibraryImportLookups() {
-  const queue = LIB_IMPORT_STATE.rows.map((_, idx) => idx);
+  const queue = LIB_IMPORT_STATE.rows
+    .map((row, idx) => (row.status === "bound" ? -1 : idx))
+    .filter(idx => idx >= 0);
   const workers = new Array(Math.min(LIB_IMPORT_LOOKUP_CONCURRENCY, queue.length))
     .fill(null)
     .map(async () => {
@@ -14338,6 +14365,12 @@ async function lookupLibraryImportRow(index, query) {
   recalcLibraryImportDuplicates();
   renderLibraryImportAllRows();
   updateLibraryImportFooter();
+}
+
+function openLibraryImportBoundShow(showId) {
+  if (!showId) return;
+  closeModal("library-import-modal");
+  if (typeof openShowModal === "function") openShowModal(showId);
 }
 
 function toggleLibraryImportRowPanel(index) {
@@ -14606,6 +14639,7 @@ function renderLibraryImportFooterHtml() {
   const done = LIB_IMPORT_STATE.rows.filter(r => r.status === "done").length;
   const failed = LIB_IMPORT_STATE.rows.filter(r => r.status === "failed").length;
   const exists = LIB_IMPORT_STATE.rows.filter(r => r.status === "exists").length;
+  const bound = LIB_IMPORT_STATE.rows.filter(r => r.status === "bound").length;
 
   return `
     <div class="lib-import-footer-info">
@@ -14617,6 +14651,8 @@ function renderLibraryImportFooterHtml() {
         <span>${CURRENT_LANG === "en" ? `Duplicates: ${duplicates}` : `Дубликатов: ${duplicates}`}</span></span>` : ""}
       ${exists ? `<span class="lib-import-warn-badge"><i data-lucide="library-big" class="ico-xs"></i>
         <span>${CURRENT_LANG === "en" ? `Already in library: ${exists}` : `Уже в медиатеке: ${exists}`}</span></span>` : ""}
+      ${bound ? `<span class="lib-import-bound-badge"><i data-lucide="link" class="ico-xs"></i>
+        <span>${CURRENT_LANG === "en" ? `Bound folders: ${bound}` : `Привязанных папок: ${bound}`}</span></span>` : ""}
       ${done ? `<span class="lib-import-ok-badge"><i data-lucide="check" class="ico-xs"></i>
         <span>${CURRENT_LANG === "en" ? `Imported: ${done}` : `Импортировано: ${done}`}</span></span>` : ""}
       ${failed ? `<span class="lib-import-err-badge"><i data-lucide="alert-triangle" class="ico-xs"></i>
@@ -14666,7 +14702,7 @@ function renderLibraryImportRowHtml(index) {
   if (!row) return "";
 
   const isOpen = LIB_IMPORT_STATE.openRow === index;
-  const locked = row.status === "done" || row.status === "importing";
+  const locked = row.status === "done" || row.status === "importing" || row.status === "bound";
   const stateClass = [
     "lib-import-row",
     `is-${row.status}`,
@@ -14681,7 +14717,9 @@ function renderLibraryImportRowHtml(index) {
     <div class="${stateClass}" id="lib-import-row-${index}">
       <div class="lib-import-row-main">
         <span class="lib-import-col-check">
-          ${row.status === "done"
+          ${row.status === "bound"
+            ? `<i data-lucide="link" class="lib-import-bound-ico"></i>`
+            : row.status === "done"
             ? `<i data-lucide="check-circle-2" class="lib-import-done-ico"></i>`
             : row.status === "importing"
               ? `<span class="lib-import-spinner"></span>`
@@ -14731,14 +14769,28 @@ function renderLibraryImportRowHtml(index) {
 }
 
 function renderLibraryImportMatchCellHtml(index, row, locked) {
+  if (row.status === "bound") {
+    // Папка уже привязана к карточке. Раньше такие папки просто исчезали из
+    // списка, и выглядело это как потеря: тайтл в медиатеке не на виду
+    // (например, фильм показан внутри коллекции), а папку заново не предложить.
+    const title = row.boundShowTitle || (CURRENT_LANG === "en" ? "a title in the library" : "тайтл медиатеки");
+    return `<span class="lib-import-result bound">
+        <strong>${escapeHtml(title)}</strong>
+        <span class="hint">${t("lib_import.bound_hint")}</span>
+        ${row.boundShowId ? `<button class="btn btn-secondary btn-small" onclick="openLibraryImportBoundShow(${row.boundShowId})">
+            <i data-lucide="external-link" class="ico-xs"></i><span>${t("lib_import.open_title")}</span>
+          </button>` : ""}
+      </span>`;
+  }
+
   if (row.status === "done") {
     const result = row.result || {};
     const filesLabel = result.files_synced
       ? (CURRENT_LANG === "en" ? `${result.files_synced} file(s) linked` : `привязано файлов: ${result.files_synced}`)
       : (CURRENT_LANG === "en" ? "no files found on disk" : "файлы на диске не найдены");
-    return `<span class="lib-import-result ok">
+    return `<span class="lib-import-result ${result.partial ? "partial" : "ok"}">
         <strong>${escapeHtml(result.title || (row.selectedCandidate && row.selectedCandidate.title) || row.name)}</strong>
-        <span class="hint">${escapeHtml(filesLabel)}</span>
+        <span class="hint">${escapeHtml(result.partial ? (row.error || "") : filesLabel)}</span>
       </span>`;
   }
 
@@ -14864,7 +14916,8 @@ function renderLibraryImportSearchPanelHtml(index, row) {
         <span class="lib-import-option-text">
           <span class="lib-import-option-title">${renderShowTitleHtml(c.title, c.year)}</span>
           <span class="lib-import-option-sub">
-            <span class="meta-badge-glass"><i data-lucide="${libImportTypeIcon(c.content_type)}" class="ico-xs"></i>${escapeHtml(libImportTypeLabel(c.content_type))}</span>
+            <span class="meta-badge-glass ${c.type_mismatch ? "lib-import-type-warn" : ""}"><i data-lucide="${libImportTypeIcon(c.content_type)}" class="ico-xs"></i>${escapeHtml(libImportTypeLabel(c.content_type))}</span>
+            ${c.type_mismatch ? `<span class="lib-import-mismatch-tag"><i data-lucide="alert-triangle" class="ico-xs"></i>${t("lib_import.other_category")}</span>` : ""}
             ${c.original_title && c.original_title !== c.title
               ? `<span class="hint">${escapeHtml(c.original_title)}</span>` : ""}
             ${c.already_added ? `<span class="lib-import-added-tag">${t("wizard.already_in_library")}</span>` : ""}
@@ -14920,6 +14973,7 @@ async function startLibraryImport(button) {
   const queue = targets.map(row => LIB_IMPORT_STATE.rows.indexOf(row));
   let succeeded = 0;
   let failed = 0;
+  let partial = 0;
 
   const workers = new Array(Math.min(LIB_IMPORT_EXECUTE_CONCURRENCY, queue.length))
     .fill(null)
@@ -14949,8 +15003,16 @@ async function startLibraryImport(button) {
             row.status = "done";
             row.result = result;
             row.checked = false;
-            row.error = null;
+            row.error = result.partial ? result.error : null;
             succeeded += 1;
+          } else if (result && result.partial) {
+            // Карточка создана, доводка не прошла. Показывать это как провал
+            // нельзя: папка уже занята тайтлом и повторно предложена не будет.
+            row.status = "done";
+            row.result = result;
+            row.checked = false;
+            row.error = result.error || null;
+            partial += 1;
           } else {
             row.status = "failed";
             row.error = (result && result.error) || (CURRENT_LANG === "en" ? "Unknown error" : "Неизвестная ошибка");
@@ -14974,10 +15036,16 @@ async function startLibraryImport(button) {
   renderLibraryImportAllRows();
   updateLibraryImportFooter();
 
-  if (succeeded) {
+  if (succeeded || partial) {
+    const partialText = partial
+      ? (CURRENT_LANG === "en" ? `, partially: ${partial}` : `, частично: ${partial}`)
+      : "";
+    const failedText = failed
+      ? (CURRENT_LANG === "en" ? `, failed: ${failed}` : `, с ошибкой: ${failed}`)
+      : "";
     toast(CURRENT_LANG === "en"
-      ? `Imported into the library: ${succeeded}${failed ? `, failed: ${failed}` : ""}`
-      : `Добавлено в медиатеку: ${succeeded}${failed ? `, с ошибкой: ${failed}` : ""}`, false);
+      ? `Imported into the library: ${succeeded}${partialText}${failedText}`
+      : `Добавлено в медиатеку: ${succeeded}${partialText}${failedText}`, false);
     await loadShows();
   } else if (failed) {
     toast(CURRENT_LANG === "en"

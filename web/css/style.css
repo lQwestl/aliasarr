@@ -18202,3 +18202,38 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     min-height: 38px;
   }
 }
+
+/* Папка, уже привязанная к карточке, и частичный импорт */
+.lib-import-row.is-bound .lib-import-row-main { background: rgba(139, 148, 158, 0.10); }
+.lib-import-row.is-bound { opacity: 0.85; }
+.lib-import-bound-ico { width: 17px; height: 17px; color: var(--text-muted); }
+.lib-import-result.bound strong { color: var(--text-muted); }
+.lib-import-result.partial strong { color: var(--warning); }
+.lib-import-bound-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.lib-import-include-added {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.lib-import-include-added input { width: 15px; height: 15px; accent-color: var(--teal); cursor: pointer; }
+.lib-import-type-warn { color: var(--warning); border-color: rgba(245, 158, 11, 0.4); }
+.lib-import-mismatch-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--warning);
+  font-weight: 600;
+}

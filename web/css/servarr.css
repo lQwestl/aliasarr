@@ -4086,3 +4086,7 @@ html[data-design="servarr"] .content .panel-sticky-header .view-switcher-btn > s
 [data-design="servarr"] .lib-import-match-title.exists { color: var(--sv-primary); }
 [data-design="servarr"] .lib-import-exists-tag { color: var(--sv-primary); border-color: var(--sv-primary); }
 [data-design="servarr"] .lib-import-panel-hint.is-warning { color: var(--sv-warning); }
+[data-design="servarr"] .lib-import-row.is-bound .lib-import-row-main { background-color: var(--sv-offwhite); }
+[data-design="servarr"] .lib-import-result.partial strong { color: var(--sv-warning); }
+[data-design="servarr"] .lib-import-type-warn,
+[data-design="servarr"] .lib-import-mismatch-tag { color: var(--sv-warning); border-color: var(--sv-warning); }
