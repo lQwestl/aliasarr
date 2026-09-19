@@ -1587,6 +1587,31 @@ const TRANSLATIONS = {
     "video.delete_permanent_warning": "Файлы и директория медиафайлов будут безвозвратно удалены с диска.",
     "users.2fa_setting_notice": "2FA защищает вашу учётную запись с помощью временных 6-значных кодов. Запрос 2FA происходит только при входе с внешних (WAN) IP-адресов.",
 
+    // Library Import (массовый импорт из папок)
+    "lib_import.btn": "Импорт из папки",
+    "lib_import.btn_title": "Массовый импорт тайтлов из существующих папок на диске",
+    "lib_import.title": "Импорт из папки",
+    "lib_import.subtitle": "Сканирование корневой папки и массовое добавление тайтлов по именам подпапок. Файлы на диске не переносятся.",
+    "lib_import.category": "Категория медиатеки",
+    "lib_import.root_label": "Корневая папка медиатеки",
+    "lib_import.root_placeholder": "/media/series",
+    "lib_import.scan_btn": "Сканировать",
+    "lib_import.empty_title": "Укажите корневую папку",
+    "lib_import.empty_desc": "Выберите категорию и папку, в которой лежат подпапки тайтлов, и нажмите «Сканировать». Aliasarr подберёт каждой папке тайтл из источников метаданных.",
+    "lib_import.col_folder": "Папка на диске",
+    "lib_import.col_match": "Найденный тайтл",
+    "lib_import.col_type": "Тип",
+    "lib_import.no_match": "Совпадение не найдено",
+    "lib_import.duplicate": "Тайтл уже выбран для другой папки",
+    "lib_import.already_in_library": "Уже в медиатеке",
+    "lib_import.second_folder_hint": "вторая папка того же тайтла",
+    "lib_import.pick_another": "Выбрать другой",
+    "lib_import.clear": "Сбросить",
+    "lib_import.search_placeholder": "Введите название для поиска…",
+    "lib_import.panel_hint": "Выберите правильный вариант из списка или измените запрос — подбор обновится автоматически.",
+    "lib_import.monitor_all": "Мониторить всё",
+    "lib_import.profile_for_all": "— Профиль для всех —",
+
     // Library Bulk Operations
     "library.bulk_btn": "Выбрать тайтлы",
     "library.bulk_btn_title": "Выбрать тайтлы и массово редактировать",
@@ -3099,6 +3124,31 @@ const TRANSLATIONS = {
     "users.change_avatar_btn": "Change Avatar",
     "video.delete_permanent_warning": "Files and the media folder will be permanently deleted from disk.",
     "users.2fa_setting_notice": "2FA protects your account using temporary 6-digit TOTP codes. Verification is requested when logging in from external (WAN) IPs.",
+
+    // Library Import (bulk import from folders)
+    "lib_import.btn": "Library Import",
+    "lib_import.btn_title": "Bulk import titles from existing folders on disk",
+    "lib_import.title": "Library Import",
+    "lib_import.subtitle": "Scan a root folder and add titles in bulk based on subfolder names. Files on disk are not moved.",
+    "lib_import.category": "Library category",
+    "lib_import.root_label": "Library root folder",
+    "lib_import.root_placeholder": "/media/series",
+    "lib_import.scan_btn": "Scan",
+    "lib_import.empty_title": "Choose a root folder",
+    "lib_import.empty_desc": "Pick a category and the folder that holds your title subfolders, then hit Scan. Aliasarr will match every folder against the metadata sources.",
+    "lib_import.col_folder": "Folder on disk",
+    "lib_import.col_match": "Matched title",
+    "lib_import.col_type": "Type",
+    "lib_import.no_match": "No match found",
+    "lib_import.duplicate": "Already picked for another folder",
+    "lib_import.already_in_library": "Already in library",
+    "lib_import.second_folder_hint": "a second folder for the same title",
+    "lib_import.pick_another": "Pick another",
+    "lib_import.clear": "Clear",
+    "lib_import.search_placeholder": "Type a title to search…",
+    "lib_import.panel_hint": "Pick the right result from the list or edit the query — matching refreshes as you type.",
+    "lib_import.monitor_all": "Monitor all",
+    "lib_import.profile_for_all": "— Profile for all —",
 
     // Library Bulk Operations
     "library.bulk_btn": "Select Titles",
@@ -14020,6 +14070,922 @@ async function finishWizard(button) {
     }
   });
 }
+
+// =============================================================================
+// МАССОВЫЙ ИМПОРТ ТАЙТЛОВ ИЗ ПАПОК (Library Import, как в Sonarr / Radarr)
+// =============================================================================
+//
+// Сценарий: свежая установка или переезд с другого решения. Пользователь
+// указывает корневую папку, Aliasarr перечисляет подпапки и построчно, в режиме
+// реального времени, подбирает каждой тайтл из источников метаданных. Любую
+// строку можно поправить вручную: открыть список других совпадений или ввести
+// свой поисковый запрос с автодополнением.
+
+const LIB_IMPORT_LOOKUP_CONCURRENCY = 3;
+const LIB_IMPORT_EXECUTE_CONCURRENCY = 2;
+const LIB_IMPORT_QUERY_DEBOUNCE_MS = 450;
+
+let LIB_IMPORT_STATE = {
+  rootPath: "",
+  contentType: "series",
+  defaultRoots: {},
+  rows: [],
+  openRow: -1,
+  scanning: false,
+  importing: false,
+};
+
+let LIB_IMPORT_QUERY_TIMER = null;
+// Гонки автодополнения: ответ на устаревший запрос не должен затирать свежий.
+let LIB_IMPORT_LOOKUP_SEQ = 0;
+
+function libImportTypeLabel(type) {
+  if (type === "movie") return CURRENT_LANG === "en" ? "Movie" : "Фильм";
+  if (type === "anime") return CURRENT_LANG === "en" ? "Anime" : "Аниме";
+  return CURRENT_LANG === "en" ? "Series" : "Сериал";
+}
+
+function libImportTypeIcon(type) {
+  return type === "movie" ? "film" : (type === "anime" ? "clapperboard" : "tv");
+}
+
+async function openLibraryImportModal() {
+  if (!hasPermission("manage_library")) {
+    toast(CURRENT_LANG === "en" ? "Not enough permissions" : "Недостаточно прав", true);
+    return;
+  }
+
+  LIB_IMPORT_STATE = {
+    rootPath: "",
+    contentType: LIB_IMPORT_STATE.contentType || "series",
+    defaultRoots: {},
+    rows: [],
+    openRow: -1,
+    scanning: false,
+    importing: false,
+  };
+
+  openModal("library-import-modal");
+  renderLibraryImportBody();
+
+  try {
+    const [roots] = await Promise.all([
+      api("/api/v1/library-import/default-roots"),
+      CACHED_QUALITY_PROFILES.length ? Promise.resolve(null) : loadQualityProfilesForWizard(),
+    ]);
+    LIB_IMPORT_STATE.defaultRoots = roots || {};
+  } catch (e) {
+    LIB_IMPORT_STATE.defaultRoots = {};
+  }
+
+  applyLibraryImportCategory(LIB_IMPORT_STATE.contentType, true);
+}
+
+function closeLibraryImport() {
+  if (LIB_IMPORT_STATE.importing) {
+    toast(CURRENT_LANG === "en" ? "Import is still running" : "Импорт ещё выполняется", true);
+    return;
+  }
+  closeModal("library-import-modal");
+}
+
+function setLibraryImportCategory(type) {
+  applyLibraryImportCategory(type, false);
+}
+
+// Подставляет корневую папку выбранной категории, но не затирает путь,
+// который пользователь ввёл или выбрал сам.
+function applyLibraryImportCategory(type, initial) {
+  LIB_IMPORT_STATE.contentType = type;
+  document.querySelectorAll("#lib-import-category-chips .chip").forEach(el => {
+    el.classList.toggle("chip-selected", el.dataset.value === type);
+  });
+
+  const input = document.getElementById("lib-import-root-input");
+  if (!input) return;
+
+  const roots = LIB_IMPORT_STATE.defaultRoots || {};
+  const known = [roots.movie, roots.series, roots.anime, roots.legacy].filter(Boolean);
+  const current = (input.value || "").trim();
+  const isUntouched = !current || known.includes(current);
+  if (initial || isUntouched) {
+    input.value = roots[type] || roots.legacy || "";
+  }
+}
+
+function libImportSelectableRows() {
+  return LIB_IMPORT_STATE.rows.filter(r => r.selectedCandidate && !r.duplicate && r.status !== "done");
+}
+
+function libImportCheckedRows() {
+  return libImportSelectableRows().filter(r => r.checked);
+}
+
+// Один и тот же тайтл, выбранный для двух папок, — самая частая ошибка подбора,
+// поэтому такие строки помечаются и в импорт не уходят (так же делает Sonarr).
+function recalcLibraryImportDuplicates() {
+  const counts = {};
+  LIB_IMPORT_STATE.rows.forEach(r => {
+    if (r.selectedCandidate && r.status !== "done") {
+      const key = String(r.selectedCandidate.external_id);
+      counts[key] = (counts[key] || 0) + 1;
+    }
+  });
+  LIB_IMPORT_STATE.rows.forEach(r => {
+    r.duplicate = !!(r.selectedCandidate && r.status !== "done" && counts[String(r.selectedCandidate.external_id)] > 1);
+  });
+}
+
+async function scanLibraryImportRoot(button) {
+  const input = document.getElementById("lib-import-root-input");
+  const path = input ? input.value.trim() : "";
+  if (!path) {
+    toast(CURRENT_LANG === "en" ? "Specify a root folder" : "Укажите корневую папку", true);
+    return;
+  }
+
+  await withLoading(button, async () => {
+    LIB_IMPORT_STATE.scanning = true;
+    LIB_IMPORT_STATE.openRow = -1;
+    LIB_IMPORT_STATE.rows = [];
+    renderLibraryImportBody();
+
+    try {
+      const url = `/api/v1/library-import/scan?path=${encodeURIComponent(path)}`
+        + `&content_type=${encodeURIComponent(LIB_IMPORT_STATE.contentType)}`;
+      const data = await api(url);
+      LIB_IMPORT_STATE.rootPath = data.path;
+      LIB_IMPORT_STATE.skippedExisting = data.skipped_existing || 0;
+      LIB_IMPORT_STATE.rows = (data.folders || []).map(f => ({
+        name: f.name,
+        path: f.path,
+        parsedTitle: f.parsed_title,
+        parsedYear: f.parsed_year,
+        hasMedia: f.has_media,
+        contentType: LIB_IMPORT_STATE.contentType,
+        qualityProfileId: libImportDefaultProfileId(LIB_IMPORT_STATE.contentType),
+        monitored: true,
+        checked: false,
+        duplicate: false,
+        status: "pending",
+        candidates: [],
+        selectedCandidate: null,
+        query: "",
+        error: null,
+        result: null,
+      }));
+    } catch (e) {
+      LIB_IMPORT_STATE.rows = [];
+      LIB_IMPORT_STATE.scanError = formatToastMessage(e.message);
+      LIB_IMPORT_STATE.scanning = false;
+      renderLibraryImportBody();
+      return;
+    }
+
+    LIB_IMPORT_STATE.scanError = null;
+    LIB_IMPORT_STATE.scanning = false;
+    renderLibraryImportBody();
+    runLibraryImportLookups();
+  });
+}
+
+function libImportDefaultProfileId(type) {
+  if (!CACHED_APP_SETTINGS) return "";
+  if (type === "movie") return CACHED_APP_SETTINGS.default_quality_profile_movie_id || "";
+  if (type === "anime") return CACHED_APP_SETTINGS.default_quality_profile_anime_id || "";
+  return CACHED_APP_SETTINGS.default_quality_profile_series_id || "";
+}
+
+// Подбор идёт пулом ограниченной ширины: строки заполняются одна за другой,
+// а источники метаданных не получают залп из сотни параллельных запросов.
+async function runLibraryImportLookups() {
+  const queue = LIB_IMPORT_STATE.rows.map((_, idx) => idx);
+  const workers = new Array(Math.min(LIB_IMPORT_LOOKUP_CONCURRENCY, queue.length))
+    .fill(null)
+    .map(async () => {
+      while (queue.length) {
+        const idx = queue.shift();
+        await lookupLibraryImportRow(idx, null);
+      }
+    });
+  await Promise.all(workers);
+  updateLibraryImportFooter();
+}
+
+async function lookupLibraryImportRow(index, query) {
+  const row = LIB_IMPORT_STATE.rows[index];
+  if (!row) return;
+
+  const seq = ++LIB_IMPORT_LOOKUP_SEQ;
+  row.lookupSeq = seq;
+  row.status = "searching";
+  row.error = null;
+  renderLibraryImportRow(index);
+
+  try {
+    let url = `/api/v1/library-import/lookup?folder=${encodeURIComponent(row.name)}`
+      + `&content_type=${encodeURIComponent(row.contentType)}`;
+    if (query && query.trim()) {
+      url += `&query=${encodeURIComponent(query.trim())}`;
+    }
+    const data = await api(url);
+    if (row.lookupSeq !== seq) return;
+
+    row.candidates = data.candidates || [];
+    row.parsedTitle = data.parsed_title || row.parsedTitle;
+    row.parsedYear = data.parsed_year != null ? data.parsed_year : row.parsedYear;
+
+    const auto = data.auto_selected_id
+      ? row.candidates.find(c => String(c.external_id) === String(data.auto_selected_id))
+      : null;
+
+    if (auto) {
+      row.selectedCandidate = auto;
+      row.contentType = auto.content_type || row.contentType;
+      row.qualityProfileId = libImportDefaultProfileId(row.contentType);
+      row.checked = true;
+      row.status = "matched";
+      row.existingMatch = null;
+    } else if (data.existing_match_id) {
+      // Тайтл найден уверенно, но он уже заведён под другим путём — это вторая
+      // папка того же тайтла. Импортировать её нельзя: путь у карточки один.
+      row.selectedCandidate = null;
+      row.checked = false;
+      row.status = "exists";
+      row.existingMatch = {
+        external_id: data.existing_match_id,
+        show_id: data.existing_show_id || null,
+        title: data.existing_title || "",
+      };
+    } else {
+      row.selectedCandidate = null;
+      row.checked = false;
+      row.status = "unmatched";
+      row.existingMatch = null;
+    }
+  } catch (e) {
+    if (row.lookupSeq !== seq) return;
+    row.candidates = [];
+    row.selectedCandidate = null;
+    row.checked = false;
+    row.status = "unmatched";
+    row.existingMatch = null;
+    if (e.message !== "unauthorized") {
+      row.error = formatToastMessage(e.message);
+    }
+  }
+
+  recalcLibraryImportDuplicates();
+  renderLibraryImportAllRows();
+  updateLibraryImportFooter();
+}
+
+function toggleLibraryImportRowPanel(index) {
+  LIB_IMPORT_STATE.openRow = LIB_IMPORT_STATE.openRow === index ? -1 : index;
+  renderLibraryImportAllRows();
+  if (LIB_IMPORT_STATE.openRow === index) {
+    setTimeout(() => {
+      // Панель раскрывается внутри прокручиваемого списка, поэтому её нижнюю
+      // часть — собственно список совпадений — нужно подтянуть в видимую зону.
+      // scrollIntoView здесь ненадёжен: раскрытая строка выше своего
+      // контейнера, и браузер вправе не двигать прокрутку вовсе.
+      const row = document.getElementById(`lib-import-row-${index}`);
+      const body = document.getElementById("lib-import-body");
+      if (row && body) {
+        const delta = row.getBoundingClientRect().bottom - body.getBoundingClientRect().bottom;
+        if (delta > 0) {
+          // Присваивание scrollTop, а не scrollTo({behavior:"smooth"}):
+          // плавная прокрутка отключена в части окружений и тогда молча
+          // не срабатывает, а подтянуть список нужно всегда.
+          body.scrollTop = body.scrollTop + delta;
+        }
+      }
+      const input = document.getElementById(`lib-import-query-${index}`);
+      if (input) { input.focus(); input.select(); }
+    }, 40);
+  }
+}
+
+function onLibraryImportQueryInput(index, el) {
+  const row = LIB_IMPORT_STATE.rows[index];
+  if (!row) return;
+  row.query = el.value;
+  if (LIB_IMPORT_QUERY_TIMER) clearTimeout(LIB_IMPORT_QUERY_TIMER);
+  LIB_IMPORT_QUERY_TIMER = setTimeout(() => {
+    const value = (row.query || "").trim();
+    if (value.length < 2) return;
+    lookupLibraryImportRowKeepOpen(index, value);
+  }, LIB_IMPORT_QUERY_DEBOUNCE_MS);
+}
+
+function onLibraryImportQueryKeyDown(index, event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    if (LIB_IMPORT_QUERY_TIMER) clearTimeout(LIB_IMPORT_QUERY_TIMER);
+    const row = LIB_IMPORT_STATE.rows[index];
+    lookupLibraryImportRowKeepOpen(index, row ? (row.query || "").trim() : "");
+  } else if (event.key === "Escape") {
+    event.preventDefault();
+    LIB_IMPORT_STATE.openRow = -1;
+    renderLibraryImportAllRows();
+  }
+}
+
+// Поиск из открытой панели не должен её закрывать и не должен молча
+// подставлять первый результат: выбор в этот момент за пользователем.
+async function lookupLibraryImportRowKeepOpen(index, query) {
+  const row = LIB_IMPORT_STATE.rows[index];
+  if (!row) return;
+  const previous = row.selectedCandidate;
+  LIB_IMPORT_STATE.openRow = index;
+  await lookupLibraryImportRow(index, query);
+  if (previous && !row.selectedCandidate) {
+    const stillThere = row.candidates.find(c => String(c.external_id) === String(previous.external_id));
+    if (stillThere) {
+      row.selectedCandidate = stillThere;
+      row.checked = true;
+      row.status = "matched";
+      recalcLibraryImportDuplicates();
+    }
+  }
+  LIB_IMPORT_STATE.openRow = index;
+  renderLibraryImportAllRows();
+  updateLibraryImportFooter();
+  const input = document.getElementById(`lib-import-query-${index}`);
+  if (input) {
+    input.focus();
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+  }
+}
+
+function selectLibraryImportCandidate(index, candidateIndex) {
+  const row = LIB_IMPORT_STATE.rows[index];
+  if (!row) return;
+  const candidate = row.candidates[candidateIndex];
+  if (!candidate || candidate.already_added) return;
+
+  row.selectedCandidate = candidate;
+  row.contentType = candidate.content_type || row.contentType;
+  row.qualityProfileId = libImportDefaultProfileId(row.contentType);
+  row.checked = true;
+  row.status = "matched";
+  row.error = null;
+  row.existingMatch = null;
+  LIB_IMPORT_STATE.openRow = -1;
+  recalcLibraryImportDuplicates();
+  renderLibraryImportAllRows();
+  updateLibraryImportFooter();
+}
+
+function clearLibraryImportSelection(index) {
+  const row = LIB_IMPORT_STATE.rows[index];
+  if (!row) return;
+  row.selectedCandidate = null;
+  row.checked = false;
+  row.status = "unmatched";
+  recalcLibraryImportDuplicates();
+  renderLibraryImportAllRows();
+  updateLibraryImportFooter();
+}
+
+function toggleLibraryImportRowChecked(index) {
+  const row = LIB_IMPORT_STATE.rows[index];
+  if (!row || !row.selectedCandidate || row.duplicate || row.status === "done") return;
+  row.checked = !row.checked;
+  renderLibraryImportRow(index);
+  updateLibraryImportFooter();
+}
+
+function toggleLibraryImportSelectAll() {
+  const selectable = libImportSelectableRows();
+  const allChecked = selectable.length > 0 && selectable.every(r => r.checked);
+  selectable.forEach(r => { r.checked = !allChecked; });
+  renderLibraryImportAllRows();
+  updateLibraryImportFooter();
+}
+
+function setLibraryImportRowType(index, type) {
+  const row = LIB_IMPORT_STATE.rows[index];
+  if (!row) return;
+  row.contentType = type;
+  row.qualityProfileId = libImportDefaultProfileId(type);
+  renderLibraryImportRow(index);
+}
+
+function setLibraryImportRowProfile(index, value) {
+  const row = LIB_IMPORT_STATE.rows[index];
+  if (!row) return;
+  row.qualityProfileId = value;
+}
+
+function applyLibraryImportBulkProfile(select) {
+  const value = select ? select.value : "";
+  LIB_IMPORT_STATE.rows.forEach(r => { r.qualityProfileId = value; });
+  renderLibraryImportAllRows();
+  toast(CURRENT_LANG === "en" ? "Quality profile applied to all rows" : "Профиль качества применён ко всем строкам");
+}
+
+function applyLibraryImportBulkMonitor(checkbox) {
+  const value = checkbox ? checkbox.checked : true;
+  LIB_IMPORT_STATE.rows.forEach(r => { r.monitored = value; });
+}
+
+// ---------- РЕНДЕР ----------
+
+function renderLibraryImportBody() {
+  const body = document.getElementById("lib-import-body");
+  const footer = document.getElementById("lib-import-footer");
+  const bulkbar = document.getElementById("lib-import-bulkbar");
+  if (!body) return;
+
+  if (LIB_IMPORT_STATE.scanning) {
+    if (bulkbar) bulkbar.style.display = "none";
+    if (footer) footer.style.display = "none";
+    body.innerHTML = renderRaysLoaderHtml(
+      null,
+      CURRENT_LANG === "en" ? "Scanning folders…" : "Сканирование папок…",
+      "lib-import-scan"
+    );
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
+
+  if (LIB_IMPORT_STATE.scanError) {
+    if (bulkbar) bulkbar.style.display = "none";
+    if (footer) footer.style.display = "none";
+    body.innerHTML = `<div class="lib-import-empty"><i data-lucide="folder-x"></i>
+      <p style="color:var(--danger)">${escapeHtml(LIB_IMPORT_STATE.scanError)}</p></div>`;
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
+
+  if (!LIB_IMPORT_STATE.rows.length) {
+    if (bulkbar) bulkbar.style.display = "none";
+    if (footer) footer.style.display = "none";
+    const scanned = !!LIB_IMPORT_STATE.rootPath;
+    const skipped = LIB_IMPORT_STATE.skippedExisting || 0;
+    body.innerHTML = `
+      <div class="lib-import-empty">
+        <i data-lucide="${scanned ? "folder-check" : "folder-search"}"></i>
+        <h4>${scanned
+          ? (CURRENT_LANG === "en" ? "No folders to import" : "Нечего импортировать")
+          : t("lib_import.empty_title")}</h4>
+        <p>${scanned
+          ? (skipped
+              ? (CURRENT_LANG === "en"
+                  ? `All ${skipped} subfolder(s) are already linked to titles in the library.`
+                  : `Все подпапки (${skipped}) уже привязаны к тайтлам медиатеки.`)
+              : (CURRENT_LANG === "en"
+                  ? "This folder has no subfolders suitable for import."
+                  : "В этой папке нет подпапок, пригодных для импорта."))
+          : t("lib_import.empty_desc")}</p>
+      </div>`;
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
+
+  if (bulkbar) {
+    bulkbar.style.display = "";
+    bulkbar.innerHTML = renderLibraryImportBulkBarHtml();
+  }
+  body.innerHTML = `
+    <div class="lib-import-table-head">
+      <span class="lib-import-col-check"></span>
+      <span class="lib-import-col-folder">${t("lib_import.col_folder")}</span>
+      <span class="lib-import-col-match">${t("lib_import.col_match")}</span>
+      <span class="lib-import-col-type">${t("lib_import.col_type")}</span>
+      <span class="lib-import-col-profile">${t("library.col_profile")}</span>
+    </div>
+    <div class="lib-import-rows" id="lib-import-rows">
+      ${LIB_IMPORT_STATE.rows.map((_, idx) => renderLibraryImportRowHtml(idx)).join("")}
+    </div>`;
+  if (footer) {
+    footer.style.display = "";
+    footer.innerHTML = renderLibraryImportFooterHtml();
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderLibraryImportBulkBarHtml() {
+  const total = LIB_IMPORT_STATE.rows.length;
+  const skipped = LIB_IMPORT_STATE.skippedExisting || 0;
+  const profiles = CACHED_QUALITY_PROFILES || [];
+  return `
+    <div class="lib-import-bulk-left">
+      <span class="lib-import-count-badge">
+        <i data-lucide="folders" class="ico-xs"></i>
+        <span>${CURRENT_LANG === "en" ? `Folders found: ${total}` : `Найдено папок: ${total}`}</span>
+      </span>
+      ${skipped ? `<span class="hint">${CURRENT_LANG === "en"
+        ? `already in library: ${skipped}`
+        : `уже в медиатеке: ${skipped}`}</span>` : ""}
+      <button class="btn btn-secondary btn-small" onclick="toggleLibraryImportSelectAll()">
+        <i data-lucide="check-square" class="ico-xs"></i>
+        <span>${t("library.bulk_select_all")}</span>
+      </button>
+    </div>
+    <div class="lib-import-bulk-right">
+      <label class="switch-toggle lib-import-monitor-toggle">
+        <input type="checkbox" checked onchange="applyLibraryImportBulkMonitor(this)">
+        <span class="switch-slider"></span>
+        <span class="switch-label-wrap"><span class="switch-title">${t("lib_import.monitor_all")}</span></span>
+      </label>
+      <div class="select-wrapper">
+        <select class="input input-small" onchange="applyLibraryImportBulkProfile(this)" style="max-width:190px;">
+          <option value="">${t("lib_import.profile_for_all")}</option>
+          ${profiles.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("")}
+        </select>
+      </div>
+    </div>`;
+}
+
+function renderLibraryImportFooterHtml() {
+  const ready = libImportCheckedRows().length;
+  const duplicates = LIB_IMPORT_STATE.rows.filter(r => r.duplicate).length;
+  const done = LIB_IMPORT_STATE.rows.filter(r => r.status === "done").length;
+  const failed = LIB_IMPORT_STATE.rows.filter(r => r.status === "failed").length;
+  const exists = LIB_IMPORT_STATE.rows.filter(r => r.status === "exists").length;
+
+  return `
+    <div class="lib-import-footer-info">
+      <span class="lib-import-ready-badge ${ready ? "is-ready" : ""}">
+        <i data-lucide="list-checks" class="ico-xs"></i>
+        <span>${CURRENT_LANG === "en" ? `Selected: ${ready}` : `Выбрано: ${ready}`}</span>
+      </span>
+      ${duplicates ? `<span class="lib-import-warn-badge"><i data-lucide="copy-x" class="ico-xs"></i>
+        <span>${CURRENT_LANG === "en" ? `Duplicates: ${duplicates}` : `Дубликатов: ${duplicates}`}</span></span>` : ""}
+      ${exists ? `<span class="lib-import-warn-badge"><i data-lucide="library-big" class="ico-xs"></i>
+        <span>${CURRENT_LANG === "en" ? `Already in library: ${exists}` : `Уже в медиатеке: ${exists}`}</span></span>` : ""}
+      ${done ? `<span class="lib-import-ok-badge"><i data-lucide="check" class="ico-xs"></i>
+        <span>${CURRENT_LANG === "en" ? `Imported: ${done}` : `Импортировано: ${done}`}</span></span>` : ""}
+      ${failed ? `<span class="lib-import-err-badge"><i data-lucide="alert-triangle" class="ico-xs"></i>
+        <span>${CURRENT_LANG === "en" ? `Failed: ${failed}` : `С ошибкой: ${failed}`}</span></span>` : ""}
+    </div>
+    <div class="lib-import-footer-actions">
+      <button class="btn btn-secondary" onclick="closeLibraryImport()">${t("common.close")}</button>
+      <button class="btn btn-primary" id="lib-import-run-btn" ${ready ? "" : "disabled"}
+        onclick="startLibraryImport(this)">
+        <i data-lucide="download" class="ico-xs"></i>
+        <span>${CURRENT_LANG === "en" ? `Import (${ready})` : `Импортировать (${ready})`}</span>
+      </button>
+    </div>`;
+}
+
+function updateLibraryImportFooter() {
+  const footer = document.getElementById("lib-import-footer");
+  const bulkbar = document.getElementById("lib-import-bulkbar");
+  if (footer && footer.style.display !== "none") {
+    footer.innerHTML = renderLibraryImportFooterHtml();
+  }
+  if (bulkbar && bulkbar.style.display !== "none") {
+    bulkbar.innerHTML = renderLibraryImportBulkBarHtml();
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderLibraryImportAllRows() {
+  const container = document.getElementById("lib-import-rows");
+  if (!container) {
+    renderLibraryImportBody();
+    return;
+  }
+  container.innerHTML = LIB_IMPORT_STATE.rows.map((_, idx) => renderLibraryImportRowHtml(idx)).join("");
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderLibraryImportRow(index) {
+  const el = document.getElementById(`lib-import-row-${index}`);
+  if (!el) return;
+  el.outerHTML = renderLibraryImportRowHtml(index);
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderLibraryImportRowHtml(index) {
+  const row = LIB_IMPORT_STATE.rows[index];
+  if (!row) return "";
+
+  const isOpen = LIB_IMPORT_STATE.openRow === index;
+  const locked = row.status === "done" || row.status === "importing";
+  const stateClass = [
+    "lib-import-row",
+    `is-${row.status}`,
+    row.duplicate ? "is-duplicate" : "",
+    isOpen ? "is-open" : "",
+  ].filter(Boolean).join(" ");
+
+  const profiles = CACHED_QUALITY_PROFILES || [];
+  const checkDisabled = !row.selectedCandidate || row.duplicate || locked;
+
+  return `
+    <div class="${stateClass}" id="lib-import-row-${index}">
+      <div class="lib-import-row-main">
+        <span class="lib-import-col-check">
+          ${row.status === "done"
+            ? `<i data-lucide="check-circle-2" class="lib-import-done-ico"></i>`
+            : row.status === "importing"
+              ? `<span class="lib-import-spinner"></span>`
+              : `<input type="checkbox" class="lib-import-checkbox" ${row.checked ? "checked" : ""}
+                   ${checkDisabled ? "disabled" : ""} onchange="toggleLibraryImportRowChecked(${index})">`}
+        </span>
+
+        <span class="lib-import-col-folder">
+          <span class="lib-import-folder-name" title="${escapeHtml(row.path)}">${escapeHtml(row.name)}</span>
+          <span class="lib-import-folder-meta">
+            ${row.hasMedia
+              ? `<span class="lib-import-tag has-media"><i data-lucide="file-video" class="ico-xs"></i>${CURRENT_LANG === "en" ? "media" : "есть файлы"}</span>`
+              : `<span class="lib-import-tag no-media"><i data-lucide="file-x" class="ico-xs"></i>${CURRENT_LANG === "en" ? "empty" : "нет файлов"}</span>`}
+          </span>
+        </span>
+
+        <span class="lib-import-col-match">
+          ${renderLibraryImportMatchCellHtml(index, row, locked)}
+        </span>
+
+        <span class="lib-import-col-type">
+          ${locked ? `<span class="lib-import-type-static">
+              <i data-lucide="${libImportTypeIcon(row.contentType)}" class="ico-xs"></i>${escapeHtml(libImportTypeLabel(row.contentType))}
+            </span>`
+            : `<div class="chip-select lib-import-type-chips">
+              ${["movie", "series", "anime"].map(type => `
+                <button type="button" class="chip ${row.contentType === type ? "chip-selected" : ""}"
+                  data-value="${type}" title="${escapeHtml(libImportTypeLabel(type))}"
+                  onclick="setLibraryImportRowType(${index}, '${type}')">
+                  <i data-lucide="${libImportTypeIcon(type)}" class="ico-xs"></i>
+                </button>`).join("")}
+            </div>`}
+        </span>
+
+        <span class="lib-import-col-profile">
+          <div class="select-wrapper">
+            <select class="input input-small" ${locked ? "disabled" : ""}
+              onchange="setLibraryImportRowProfile(${index}, this.value)">
+              <option value="" ${!row.qualityProfileId ? "selected" : ""}>${t("common.any_quality")}</option>
+              ${profiles.map(p => `<option value="${p.id}" ${String(p.id) === String(row.qualityProfileId) ? "selected" : ""}>${escapeHtml(p.name)}</option>`).join("")}
+            </select>
+          </div>
+        </span>
+      </div>
+      ${isOpen ? renderLibraryImportSearchPanelHtml(index, row) : ""}
+    </div>`;
+}
+
+function renderLibraryImportMatchCellHtml(index, row, locked) {
+  if (row.status === "done") {
+    const result = row.result || {};
+    const filesLabel = result.files_synced
+      ? (CURRENT_LANG === "en" ? `${result.files_synced} file(s) linked` : `привязано файлов: ${result.files_synced}`)
+      : (CURRENT_LANG === "en" ? "no files found on disk" : "файлы на диске не найдены");
+    return `<span class="lib-import-result ok">
+        <strong>${escapeHtml(result.title || (row.selectedCandidate && row.selectedCandidate.title) || row.name)}</strong>
+        <span class="hint">${escapeHtml(filesLabel)}</span>
+      </span>`;
+  }
+
+  if (row.status === "failed") {
+    return `<span class="lib-import-result failed">
+        <strong>${CURRENT_LANG === "en" ? "Import failed" : "Импорт не выполнен"}</strong>
+        <span class="hint">${escapeHtml(row.error || "")}</span>
+        <button class="btn btn-secondary btn-small" onclick="toggleLibraryImportRowPanel(${index})">
+          <i data-lucide="rotate-ccw" class="ico-xs"></i><span>${t("lib_import.pick_another")}</span>
+        </button>
+      </span>`;
+  }
+
+  if (row.status === "importing") {
+    return `<span class="lib-import-result pending">
+        <strong>${escapeHtml((row.selectedCandidate && row.selectedCandidate.title) || row.parsedTitle || row.name)}</strong>
+        <span class="hint">${CURRENT_LANG === "en" ? "Importing…" : "Импортируется…"}</span>
+      </span>`;
+  }
+
+  if (row.status === "searching") {
+    return `<span class="lib-import-match-searching">
+        <span class="lib-import-spinner"></span>
+        <span>${CURRENT_LANG === "en" ? "Matching…" : "Подбираем совпадение…"}</span>
+      </span>`;
+  }
+
+  if (row.existingMatch) {
+    const m = row.existingMatch;
+    return `
+      <button type="button" class="lib-import-match-btn is-exists" onclick="toggleLibraryImportRowPanel(${index})">
+        <span class="lib-import-poster is-exists"><i data-lucide="library-big" class="ico-sm"></i></span>
+        <span class="lib-import-match-text">
+          <span class="lib-import-match-title exists">${escapeHtml(m.title || row.parsedTitle || row.name)}</span>
+          <span class="lib-import-match-sub">
+            <span class="lib-import-exists-tag"><i data-lucide="check" class="ico-xs"></i>${t("lib_import.already_in_library")}</span>
+            <span class="hint">${t("lib_import.second_folder_hint")}</span>
+          </span>
+        </span>
+        <i data-lucide="chevron-down" class="lib-import-caret"></i>
+      </button>`;
+  }
+
+  if (row.selectedCandidate) {
+    const c = row.selectedCandidate;
+    const score = Math.round((c.match_score || 0) * 100);
+    const scoreClass = score >= 85 ? "high" : (score >= 62 ? "mid" : "low");
+    return `
+      <button type="button" class="lib-import-match-btn" ${locked ? "disabled" : ""}
+        onclick="toggleLibraryImportRowPanel(${index})">
+        <span class="lib-import-poster" ${safeBackgroundImageStyle(c.poster_url)}>
+          ${c.poster_url ? "" : escapeHtml((c.title || "?").trim()[0] || "?")}
+        </span>
+        <span class="lib-import-match-text">
+          <span class="lib-import-match-title">${renderShowTitleHtml(c.title, c.year)}</span>
+          <span class="lib-import-match-sub">
+            <span class="lib-import-score ${scoreClass}">${score}%</span>
+            ${row.duplicate
+              ? `<span class="lib-import-dup-warn"><i data-lucide="copy-x" class="ico-xs"></i>${t("lib_import.duplicate")}</span>`
+              : `<span class="hint">${escapeHtml([c.genre, c.country].filter(Boolean).join(" • "))}</span>`}
+          </span>
+        </span>
+        <i data-lucide="chevron-down" class="lib-import-caret"></i>
+      </button>`;
+  }
+
+  return `
+    <button type="button" class="lib-import-match-btn is-empty" onclick="toggleLibraryImportRowPanel(${index})">
+      <span class="lib-import-poster is-empty"><i data-lucide="search" class="ico-sm"></i></span>
+      <span class="lib-import-match-text">
+        <span class="lib-import-match-title muted">${t("lib_import.no_match")}</span>
+        <span class="lib-import-match-sub">
+          <span class="hint">${escapeHtml(row.error || (CURRENT_LANG === "en"
+            ? `Searched for «${row.parsedTitle || row.name}» — pick manually`
+            : `Искали «${row.parsedTitle || row.name}» — выберите вручную`))}</span>
+        </span>
+      </span>
+      <i data-lucide="chevron-down" class="lib-import-caret"></i>
+    </button>`;
+}
+
+// Объясняет, почему строка заблокирована, и что с этим делать: без имени
+// конфликтующей папки подсказка «тайтл уже выбран» ничего не подсказывает.
+function renderLibraryImportPanelNoticeHtml(index, row) {
+  if (row.duplicate && row.selectedCandidate) {
+    const other = LIB_IMPORT_STATE.rows.find((r, i) =>
+      i !== index && r.selectedCandidate
+      && String(r.selectedCandidate.external_id) === String(row.selectedCandidate.external_id)
+      && r.status !== "done");
+    const where = other ? other.name : "";
+    return `<p class="hint lib-import-panel-hint is-warning">
+      <i data-lucide="copy-x" class="ico-xs"></i>
+      ${where
+        ? (CURRENT_LANG === "en"
+            ? `The same title is picked for «${escapeHtml(where)}». A title holds one folder, so clear the selection in one of the two rows — or merge the folders on disk first.`
+            : `Этот же тайтл выбран для папки «${escapeHtml(where)}». У тайтла одна папка, поэтому сбросьте выбор в одной из двух строк — либо сначала объедините папки на диске.`)
+        : t("lib_import.duplicate")}
+    </p>`;
+  }
+  if (row.existingMatch) {
+    return `<p class="hint lib-import-panel-hint is-warning">
+      <i data-lucide="library-big" class="ico-xs"></i>
+      ${CURRENT_LANG === "en"
+        ? `«${escapeHtml(row.existingMatch.title || "")}» is already in the library under a different path. A title holds one folder: merge this folder with the existing one on disk, or repoint the title with "Change Folder" on its card. Pick another title below if this folder is something else.`
+        : `«${escapeHtml(row.existingMatch.title || "")}» уже есть в медиатеке под другим путём. У тайтла одна папка: объедините эту папку с существующей на диске либо перепривяжите тайтл кнопкой «Сменить папку» в его карточке. Если это другой тайтл — выберите его в списке ниже.`}
+    </p>`;
+  }
+  return `<p class="hint lib-import-panel-hint">${t("lib_import.panel_hint")}</p>`;
+}
+
+function renderLibraryImportSearchPanelHtml(index, row) {
+  const queryValue = row.query || row.parsedTitle || row.name;
+  const list = (row.candidates || []).map((c, ci) => {
+    const score = Math.round((c.match_score || 0) * 100);
+    const scoreClass = score >= 85 ? "high" : (score >= 62 ? "mid" : "low");
+    const isSelected = row.selectedCandidate && String(row.selectedCandidate.external_id) === String(c.external_id);
+    return `
+      <button type="button" class="lib-import-option ${isSelected ? "is-selected" : ""} ${c.already_added ? "is-added" : ""}"
+        ${c.already_added ? "disabled" : ""} onclick="selectLibraryImportCandidate(${index}, ${ci})">
+        <span class="lib-import-poster sm" ${safeBackgroundImageStyle(c.poster_url)}>
+          ${c.poster_url ? "" : escapeHtml((c.title || "?").trim()[0] || "?")}
+        </span>
+        <span class="lib-import-option-text">
+          <span class="lib-import-option-title">${renderShowTitleHtml(c.title, c.year)}</span>
+          <span class="lib-import-option-sub">
+            <span class="meta-badge-glass"><i data-lucide="${libImportTypeIcon(c.content_type)}" class="ico-xs"></i>${escapeHtml(libImportTypeLabel(c.content_type))}</span>
+            ${c.original_title && c.original_title !== c.title
+              ? `<span class="hint">${escapeHtml(c.original_title)}</span>` : ""}
+            ${c.already_added ? `<span class="lib-import-added-tag">${t("wizard.already_in_library")}</span>` : ""}
+          </span>
+        </span>
+        <span class="lib-import-score ${scoreClass}">${score}%</span>
+      </button>`;
+  }).join("");
+
+  return `
+    <div class="lib-import-panel">
+      <div class="lib-import-panel-search">
+        <i data-lucide="search" class="lib-import-panel-icon"></i>
+        <input type="text" class="input lib-import-panel-input" id="lib-import-query-${index}"
+          value="${escapeHtml(queryValue)}" spellcheck="false" autocomplete="off"
+          placeholder="${escapeHtml(t("lib_import.search_placeholder"))}"
+          oninput="onLibraryImportQueryInput(${index}, this)"
+          onkeydown="onLibraryImportQueryKeyDown(${index}, event)">
+        ${row.selectedCandidate ? `<button class="btn btn-secondary btn-small" onclick="clearLibraryImportSelection(${index})">
+            <i data-lucide="x" class="ico-xs"></i><span>${t("lib_import.clear")}</span>
+          </button>` : ""}
+        <button class="btn btn-secondary btn-small" onclick="toggleLibraryImportRowPanel(${index})">
+          <i data-lucide="chevron-up" class="ico-xs"></i><span>${t("common.close")}</span>
+        </button>
+      </div>
+      ${renderLibraryImportPanelNoticeHtml(index, row)}
+      <div class="lib-import-options">
+        ${row.status === "searching"
+          ? `<div class="lib-import-option-loading"><span class="lib-import-spinner"></span>
+               <span>${CURRENT_LANG === "en" ? "Searching…" : "Ищем…"}</span></div>`
+          : (list || `<div class="lib-import-option-loading">${t("library.no_results")}</div>`)}
+      </div>
+    </div>`;
+}
+
+// ---------- ЗАПУСК ИМПОРТА ----------
+
+async function startLibraryImport(button) {
+  const targets = libImportCheckedRows();
+  if (!targets.length) return;
+
+  const confirmed = await confirmModal(
+    CURRENT_LANG === "en"
+      ? `Import ${targets.length} folder(s) into the library? Files on disk are not moved or renamed.`
+      : `Импортировать папок: ${targets.length}? Файлы на диске не переносятся и не переименовываются.`
+  );
+  if (!confirmed) return;
+
+  LIB_IMPORT_STATE.importing = true;
+  LIB_IMPORT_STATE.openRow = -1;
+  if (button) button.disabled = true;
+
+  const queue = targets.map(row => LIB_IMPORT_STATE.rows.indexOf(row));
+  let succeeded = 0;
+  let failed = 0;
+
+  const workers = new Array(Math.min(LIB_IMPORT_EXECUTE_CONCURRENCY, queue.length))
+    .fill(null)
+    .map(async () => {
+      while (queue.length) {
+        const idx = queue.shift();
+        const row = LIB_IMPORT_STATE.rows[idx];
+        if (!row || !row.selectedCandidate) continue;
+
+        row.status = "importing";
+        renderLibraryImportRow(idx);
+
+        try {
+          const result = await api("/api/v1/library-import/item", {
+            method: "POST",
+            body: JSON.stringify({
+              path: row.path,
+              external_id: String(row.selectedCandidate.external_id),
+              content_type: row.contentType,
+              title: row.selectedCandidate.title,
+              quality_profile_id: row.qualityProfileId ? Number(row.qualityProfileId) : null,
+              monitored: row.monitored !== false,
+              sync_disk: true,
+            }),
+          });
+          if (result && result.success) {
+            row.status = "done";
+            row.result = result;
+            row.checked = false;
+            row.error = null;
+            succeeded += 1;
+          } else {
+            row.status = "failed";
+            row.error = (result && result.error) || (CURRENT_LANG === "en" ? "Unknown error" : "Неизвестная ошибка");
+            failed += 1;
+          }
+        } catch (e) {
+          row.status = "failed";
+          row.error = formatToastMessage(e.message);
+          failed += 1;
+        }
+
+        recalcLibraryImportDuplicates();
+        renderLibraryImportRow(idx);
+        updateLibraryImportFooter();
+      }
+    });
+
+  await Promise.all(workers);
+
+  LIB_IMPORT_STATE.importing = false;
+  renderLibraryImportAllRows();
+  updateLibraryImportFooter();
+
+  if (succeeded) {
+    toast(CURRENT_LANG === "en"
+      ? `Imported into the library: ${succeeded}${failed ? `, failed: ${failed}` : ""}`
+      : `Добавлено в медиатеку: ${succeeded}${failed ? `, с ошибкой: ${failed}` : ""}`, false);
+    await loadShows();
+  } else if (failed) {
+    toast(CURRENT_LANG === "en"
+      ? `Import failed for all ${failed} folder(s)`
+      : `Импорт не выполнен ни для одной папки (${failed})`, true);
+  }
+}
+
 
 // =============================================================================
 // ACTIVITY / QUEUE

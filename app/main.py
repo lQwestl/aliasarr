@@ -30,6 +30,7 @@ from app.api import (
     dataset_routes,
     download_clients,
     indexers,
+    library_import_routes,
     metadata_routes,
     operations,
     release_logs_routes,
@@ -172,6 +173,7 @@ app.include_router(release_logs_routes.router)
 app.include_router(dataset_routes.router)
 app.include_router(blocklist_routes.router)
 app.include_router(collections_routes.router)
+app.include_router(library_import_routes.router)
 
 _WEB_DIR = os.path.join(os.path.dirname(__file__), "..", "web")
 if os.path.isdir(_WEB_DIR):

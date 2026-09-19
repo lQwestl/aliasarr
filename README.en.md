@@ -286,6 +286,21 @@ $$\text{Offset} = \text{Starting Episode Number in Card} - \text{Starting Episod
 
 ---
 
+### 9. Bulk Library Import From Folders
+
+Moving a collection over from another solution, or pointing Aliasarr at a library that is already laid out on disk — the "Library Import" flow from Sonarr and Radarr, reproduced one to one.
+
+- **Root folder scan**: the "Library Import" button in the Library header lists the subfolders of the chosen root. Service directories (`extras`, `Subs`, `@eaDir`, dotfolders and friends) are dropped, and folders already bound to a title are counted separately instead of being offered again.
+- **Matching in real time**: every row queries the metadata sources through a bounded pool and fills in as answers arrive. The folder name is parsed the way a release name is: `1080p`, `WEB-DL`, `S01-S09` and bracketed release groups are stripped, the year is extracted.
+- **Built for Russian libraries**: `Дюна (Dune) (2021)` yields two search terms — when the Cyrillic title returns nothing, the Latin one is tried automatically.
+- **Match confidence**: each option carries a percentage showing how close it is to the folder name. A confident match is filled in on its own; a doubtful one is flagged "No match found" and waits for a human decision.
+- **Manual picking with autocomplete**: a row expands into a panel with a search field and the list of alternatives (poster, year, type, score). Rewrite the query and matching refreshes as you type; titles already in the library cannot be picked.
+- **Duplicate protection**: the same title chosen for two folders is highlighted and held back from the import until the conflict is resolved.
+- **Bulk parameters**: category, quality profile and monitoring are set for the whole list and overridden per row.
+- **Import without moving files**: the title is created pointing at the existing folder, then synced with disk so episodes already sitting there are marked Downloaded straight away. Nothing is moved and nothing is renamed.
+
+---
+
 ---
 
 ## Feature Comparison Matrix: Aliasarr vs Sonarr vs Radarr

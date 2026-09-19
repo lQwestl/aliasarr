@@ -3995,3 +3995,94 @@ html[data-design="servarr"] .content .panel-sticky-header .view-switcher-btn > s
 [data-design="servarr"] .episode-badges-wrap,
 [data-design="servarr"] .episode-row-meta,
 [data-design="servarr"] .ep-actions { display: flex; align-items: center; gap: 6px; }
+
+/* =============================================================================
+   Импорт из папки (Library Import) в классическом оформлении Sonarr/Radarr
+   ========================================================================== */
+
+/* Окно остаётся колонкой с собственной прокруткой списка: общий для скина
+   overflow-y на .modal иначе дал бы вторую полосу прокрутки поверх таблицы. */
+[data-design="servarr"] .lib-import-modal {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  overflow: hidden;
+}
+[data-design="servarr"] .lib-import-header-icon {
+  border: 1px solid var(--sv-border);
+  border-radius: 4px;
+  background-color: var(--sv-offwhite);
+  color: var(--sv-primary);
+}
+[data-design="servarr"] .lib-import-header-text h3 { font-size: 18px; font-weight: normal; }
+[data-design="servarr"] .lib-import-header-text .subtitle { color: var(--sv-help); }
+
+[data-design="servarr"] .lib-import-scanbar,
+[data-design="servarr"] .lib-import-bulkbar {
+  border: 1px solid var(--sv-border);
+  border-radius: 4px;
+  background-color: var(--sv-offwhite);
+}
+[data-design="servarr"] .lib-import-body {
+  border: 1px solid var(--sv-border);
+  border-radius: 4px;
+  background-color: var(--sv-white);
+}
+[data-design="servarr"] .lib-import-table-head {
+  background-color: var(--sv-offwhite);
+  border-bottom: 1px solid var(--sv-border);
+  color: var(--sv-help);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+[data-design="servarr"] .lib-import-row { border-bottom: 1px solid var(--sv-border); }
+[data-design="servarr"] .lib-import-row.is-open { background-color: var(--sv-offwhite); }
+[data-design="servarr"] .lib-import-row.is-duplicate .lib-import-row-main { background-color: rgba(255, 165, 0, 0.12); }
+[data-design="servarr"] .lib-import-row.is-done .lib-import-row-main { background-color: rgba(39, 194, 76, 0.12); }
+[data-design="servarr"] .lib-import-row.is-failed .lib-import-row-main { background-color: rgba(240, 80, 80, 0.12); }
+[data-design="servarr"] .lib-import-folder-name { color: var(--sv-default); }
+[data-design="servarr"] .lib-import-match-btn,
+[data-design="servarr"] .lib-import-option {
+  border: 1px solid var(--sv-input-border);
+  border-radius: 4px;
+  background-color: var(--sv-white);
+  color: var(--sv-default);
+}
+[data-design="servarr"] .lib-import-match-btn:hover:not(:disabled),
+[data-design="servarr"] .lib-import-option:hover:not(:disabled) {
+  border-color: var(--sv-primary);
+  background-color: var(--sv-offwhite);
+}
+[data-design="servarr"] .lib-import-option.is-selected {
+  border-color: var(--sv-primary);
+  background-color: rgba(108, 62, 248, 0.08);
+}
+[data-design="servarr"] .lib-import-match-btn.is-empty { border-color: var(--sv-warning); }
+[data-design="servarr"] .lib-import-poster { border: 1px solid var(--sv-border); background-color: var(--sv-light-gray); }
+[data-design="servarr"] .lib-import-score.high { color: var(--sv-success); border-color: var(--sv-success); }
+[data-design="servarr"] .lib-import-score.mid { color: var(--sv-warning); border-color: var(--sv-warning); }
+[data-design="servarr"] .lib-import-score.low { color: var(--sv-danger); border-color: var(--sv-danger); }
+[data-design="servarr"] .lib-import-tag.has-media { color: var(--sv-success); border-color: var(--sv-success); }
+[data-design="servarr"] .lib-import-tag.no-media { color: var(--sv-warning); border-color: var(--sv-warning); }
+[data-design="servarr"] .lib-import-dup-warn { color: var(--sv-warning); }
+[data-design="servarr"] .lib-import-done-ico { color: var(--sv-success); }
+[data-design="servarr"] .lib-import-result.ok strong { color: var(--sv-success); }
+[data-design="servarr"] .lib-import-result.failed strong { color: var(--sv-danger); }
+[data-design="servarr"] .lib-import-spinner { border-color: var(--sv-light-gray); border-top-color: var(--sv-primary); }
+[data-design="servarr"] .lib-import-panel {
+  border-top: 1px solid var(--sv-border);
+  background-color: var(--sv-offwhite);
+}
+[data-design="servarr"] .lib-import-count-badge { color: var(--sv-primary); }
+[data-design="servarr"] .lib-import-ready-badge.is-ready { color: var(--sv-primary); border-color: var(--sv-primary); }
+[data-design="servarr"] .lib-import-warn-badge { color: var(--sv-warning); border-color: var(--sv-warning); }
+[data-design="servarr"] .lib-import-ok-badge { color: var(--sv-success); border-color: var(--sv-success); }
+[data-design="servarr"] .lib-import-err-badge { color: var(--sv-danger); border-color: var(--sv-danger); }
+[data-design="servarr"] .lib-import-added-tag { color: var(--sv-primary); }
+[data-design="servarr"] .lib-import-row.is-exists .lib-import-row-main { background-color: rgba(108, 62, 248, 0.10); }
+[data-design="servarr"] .lib-import-match-btn.is-exists { border-color: var(--sv-primary); }
+[data-design="servarr"] .lib-import-poster.is-exists,
+[data-design="servarr"] .lib-import-match-title.exists { color: var(--sv-primary); }
+[data-design="servarr"] .lib-import-exists-tag { color: var(--sv-primary); border-color: var(--sv-primary); }
+[data-design="servarr"] .lib-import-panel-hint.is-warning { color: var(--sv-warning); }

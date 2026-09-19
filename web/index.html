@@ -473,6 +473,7 @@
             </div>
             <div class="header-actions" style="display:flex;gap:8px;">
               <button id="btn-library-bulk-toggle" class="btn btn-secondary" onclick="toggleLibraryBulkMode()" title="Выбрать тайтлы и массово редактировать" data-i18n-title="library.bulk_btn_title"><i data-lucide="check-square" class="ico-sm"></i> <span data-i18n="library.bulk_btn">Выбрать тайтлы</span></button>
+              <button id="btn-library-import" class="btn btn-secondary" onclick="openLibraryImportModal()" title="Массовый импорт тайтлов из существующих папок на диске" data-i18n-title="lib_import.btn_title"><i data-lucide="folder-symlink" class="ico-sm"></i> <span data-i18n="lib_import.btn">Импорт из папки</span></button>
               <button class="btn btn-primary servarr-hide" onclick="openAddShowWizard()" data-i18n="nav.add_video">+ Добавить видео</button>
               <button class="btn btn-primary servarr-only" onclick="openAddShowWizard()"><i data-lucide="plus"></i><span data-i18n="dash.btn_add_video">Добавить видео</span></button>
             </div>
@@ -4514,6 +4515,56 @@
       </div>
     </div>
     <div id="wizard-content"></div>
+  </div>
+</div>
+
+<!-- Массовый импорт тайтлов из существующих папок (Library Import) -->
+<div id="library-import-modal" class="modal-overlay">
+  <div class="modal modal-xl lib-import-modal">
+    <button class="modal-close" onclick="closeLibraryImport()" aria-label="Закрыть"><i data-lucide="x"></i></button>
+
+    <div class="lib-import-header">
+      <div class="lib-import-header-icon"><i data-lucide="folder-symlink"></i></div>
+      <div class="lib-import-header-text">
+        <h3 data-i18n="lib_import.title">Импорт из папки</h3>
+        <p class="subtitle" data-i18n="lib_import.subtitle">Сканирование корневой папки и массовое добавление тайтлов по именам подпапок. Файлы на диске не переносятся.</p>
+      </div>
+    </div>
+
+    <div class="lib-import-scanbar">
+      <div class="lib-import-field">
+        <label class="settings-field-label" data-i18n="lib_import.category">Категория медиатеки</label>
+        <div class="chip-select" id="lib-import-category-chips">
+          <button type="button" class="chip" data-value="movie" onclick="setLibraryImportCategory('movie')">
+            <i data-lucide="film" class="ico-xs"></i> <span data-i18n="settings.cat_movies">Фильмы</span>
+          </button>
+          <button type="button" class="chip chip-selected" data-value="series" onclick="setLibraryImportCategory('series')">
+            <i data-lucide="tv" class="ico-xs"></i> <span data-i18n="settings.cat_series">Сериалы</span>
+          </button>
+          <button type="button" class="chip" data-value="anime" onclick="setLibraryImportCategory('anime')">
+            <i data-lucide="clapperboard" class="ico-xs"></i> <span data-i18n="settings.cat_anime">Аниме</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="lib-import-field lib-import-field-grow">
+        <label class="settings-field-label" for="lib-import-root-input" data-i18n="lib_import.root_label">Корневая папка медиатеки</label>
+        <div class="form-row">
+          <input id="lib-import-root-input" class="input input-grow mono" type="text" spellcheck="false"
+                 autocomplete="off" autocapitalize="off" autocorrect="off"
+                 placeholder="/media/series" data-i18n-placeholder="lib_import.root_placeholder"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault(); scanLibraryImportRoot(document.getElementById('lib-import-scan-btn'));}">
+          <button class="btn btn-secondary" onclick="openFolderPicker('lib-import-root-input')" data-i18n="common.browse">Обзор</button>
+          <button class="btn btn-primary" id="lib-import-scan-btn" onclick="scanLibraryImportRoot(this)">
+            <i data-lucide="scan-search" class="ico-xs"></i> <span data-i18n="lib_import.scan_btn">Сканировать</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="lib-import-bulkbar" id="lib-import-bulkbar" style="display:none;"></div>
+    <div class="lib-import-body" id="lib-import-body"></div>
+    <div class="lib-import-footer" id="lib-import-footer" style="display:none;"></div>
   </div>
 </div>
 

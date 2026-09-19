@@ -17371,6 +17371,415 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 
 
+
+
+/* =============================================================================
+   МАССОВЫЙ ИМПОРТ ТАЙТЛОВ ИЗ ПАПОК (Library Import)
+   ========================================================================== */
+
+.modal-xl { max-width: 1180px; }
+
+.lib-import-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 88vh;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.lib-import-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-right: 36px;
+}
+.lib-import-header-icon {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--border);
+  background: var(--panel-alt);
+  color: var(--teal);
+}
+.lib-import-header-icon i { width: 20px; height: 20px; }
+.lib-import-header-text h3 { margin: 0 0 4px; }
+.lib-import-header-text .subtitle { margin: 0; font-size: 12.5px; color: var(--text-muted); }
+
+.lib-import-scanbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 12px);
+  background: var(--panel-alt);
+}
+.lib-import-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.lib-import-field-grow { flex: 1 1 380px; }
+.lib-import-field .form-row { display: flex; gap: 8px; align-items: center; }
+.lib-import-field .form-row .input-grow { flex: 1 1 auto; min-width: 0; }
+
+.lib-import-bulkbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 12px);
+  background: var(--panel-alt);
+}
+.lib-import-bulk-left,
+.lib-import-bulk-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lib-import-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--teal);
+}
+.lib-import-monitor-toggle { margin: 0; }
+.lib-import-monitor-toggle .switch-title { font-size: 12.5px; }
+
+.lib-import-body {
+  flex: 1 1 auto;
+  min-height: 160px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 12px);
+  background: var(--panel);
+}
+
+.lib-import-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 54px 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.lib-import-empty i { width: 34px; height: 34px; color: var(--text-muted); opacity: 0.8; }
+.lib-import-empty h4 { margin: 0; color: var(--text); }
+.lib-import-empty p { margin: 0; max-width: 520px; font-size: 13px; line-height: 1.5; }
+
+/* --- Сетка строк --- */
+.lib-import-table-head,
+.lib-import-row-main {
+  display: grid;
+  grid-template-columns: 34px minmax(140px, 1.1fr) minmax(220px, 2fr) 116px 150px;
+  gap: 12px;
+  align-items: center;
+}
+.lib-import-table-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--panel-alt);
+  border-bottom: 1px solid var(--border);
+}
+
+.lib-import-row { border-bottom: 1px solid var(--border); }
+.lib-import-row:last-child { border-bottom: none; }
+.lib-import-row-main { padding: 10px 14px; }
+.lib-import-row.is-open { background: rgba(255, 255, 255, 0.03); }
+.lib-import-row.is-duplicate .lib-import-row-main { background: rgba(245, 158, 11, 0.08); }
+.lib-import-row.is-done .lib-import-row-main { background: rgba(16, 185, 129, 0.08); }
+.lib-import-row.is-failed .lib-import-row-main { background: rgba(255, 42, 77, 0.08); }
+
+.lib-import-col-check { display: flex; align-items: center; justify-content: center; }
+.lib-import-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--teal); }
+.lib-import-checkbox:disabled { cursor: not-allowed; opacity: 0.4; }
+.lib-import-done-ico { width: 18px; height: 18px; color: var(--success); }
+
+.lib-import-col-folder { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.lib-import-folder-name {
+  font-family: var(--font-mono, monospace);
+  font-size: 12.5px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lib-import-folder-meta { display: flex; gap: 5px; flex-wrap: wrap; }
+.lib-import-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.lib-import-tag.has-media { color: var(--success); border-color: rgba(16, 185, 129, 0.35); }
+.lib-import-tag.no-media { color: var(--warning); border-color: rgba(245, 158, 11, 0.35); }
+
+/* --- Ячейка совпадения --- */
+.lib-import-match-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.lib-import-match-btn:hover:not(:disabled) { border-color: var(--border-hover); background: rgba(255, 255, 255, 0.04); }
+.lib-import-match-btn:disabled { cursor: default; opacity: 0.75; }
+.lib-import-match-btn.is-empty { border-style: dashed; border-color: rgba(245, 158, 11, 0.4); }
+
+.lib-import-poster {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background-color: var(--panel-alt);
+  background-size: cover;
+  background-position: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.lib-import-poster.sm { width: 26px; height: 38px; }
+.lib-import-poster.is-empty { color: var(--warning); }
+
+.lib-import-match-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.lib-import-match-title {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lib-import-match-title.muted { color: var(--warning); font-weight: 500; }
+.lib-import-match-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11.5px;
+}
+.lib-import-match-sub .hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lib-import-caret { flex: 0 0 auto; width: 15px; height: 15px; color: var(--text-muted); }
+
+.lib-import-score {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  border: 1px solid var(--border);
+}
+.lib-import-score.high { color: var(--success); border-color: rgba(16, 185, 129, 0.4); }
+.lib-import-score.mid { color: var(--warning); border-color: rgba(245, 158, 11, 0.4); }
+.lib-import-score.low { color: var(--danger); border-color: rgba(255, 42, 77, 0.4); }
+
+.lib-import-dup-warn { display: inline-flex; align-items: center; gap: 4px; color: var(--warning); }
+.lib-import-match-searching { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-muted); }
+
+.lib-import-result { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 12.5px; }
+.lib-import-result strong { font-size: 13px; }
+.lib-import-result.ok strong { color: var(--success); }
+.lib-import-result.failed strong { color: var(--danger); }
+.lib-import-result .hint { overflow: hidden; text-overflow: ellipsis; }
+.lib-import-result .btn { align-self: flex-start; margin-top: 4px; }
+
+.lib-import-spinner {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+}
+
+.lib-import-type-chips { flex-wrap: nowrap; gap: 4px; }
+.lib-import-type-chips .chip { padding: 5px 7px; }
+.lib-import-type-chips .chip i { width: 13px; height: 13px; }
+.lib-import-type-static { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); }
+.lib-import-col-profile .select-wrapper { width: 100%; }
+.lib-import-col-profile select { width: 100%; }
+
+/* --- Панель ручного подбора --- */
+.lib-import-panel {
+  padding: 4px 14px 14px 60px;
+  border-top: 1px dashed var(--border);
+  background: rgba(0, 0, 0, 0.16);
+}
+.lib-import-panel-search { display: flex; align-items: center; gap: 8px; margin-top: 12px; position: relative; }
+.lib-import-panel-icon {
+  position: absolute;
+  left: 10px;
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.lib-import-panel-input { flex: 1 1 auto; min-width: 0; padding-left: 32px; }
+.lib-import-panel-hint { margin: 7px 0 10px; font-size: 11.5px; }
+
+.lib-import-options {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.lib-import-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 9px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.lib-import-option:hover:not(:disabled) { border-color: var(--teal); background: rgba(255, 255, 255, 0.05); }
+.lib-import-option.is-selected { border-color: var(--teal); background: rgba(0, 240, 255, 0.08); }
+.lib-import-option.is-added { opacity: 0.55; cursor: not-allowed; }
+.lib-import-option-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto; }
+.lib-import-option-title {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lib-import-option-sub { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 11px; }
+.lib-import-added-tag { color: var(--teal); font-weight: 600; }
+.lib-import-option-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 10px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* --- Подвал --- */
+.lib-import-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+.lib-import-footer-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; }
+.lib-import-footer-actions { display: flex; gap: 8px; align-items: center; }
+.lib-import-ready-badge,
+.lib-import-warn-badge,
+.lib-import-ok-badge,
+.lib-import-err-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.lib-import-ready-badge.is-ready { color: var(--teal); border-color: rgba(0, 240, 255, 0.35); }
+.lib-import-warn-badge { color: var(--warning); border-color: rgba(245, 158, 11, 0.35); }
+.lib-import-ok-badge { color: var(--success); border-color: rgba(16, 185, 129, 0.35); }
+.lib-import-err-badge { color: var(--danger); border-color: rgba(255, 42, 77, 0.35); }
+
+/* --- Адаптив --- */
+@media (max-width: 900px) {
+  .lib-import-table-head { display: none; }
+  /* Чипы категории и селект профиля получают свои строки во всю ширину:
+     в узкой колонке чекбокса они бы обрезались. */
+  .lib-import-row-main {
+    grid-template-columns: 26px minmax(0, 1fr);
+    grid-template-areas:
+      "check folder"
+      "match match"
+      "type type"
+      "profile profile";
+    gap: 8px;
+    row-gap: 10px;
+  }
+  .lib-import-type-chips { flex-wrap: wrap; }
+  .lib-import-type-chips .chip { flex: 1 1 auto; justify-content: center; }
+  .lib-import-col-check { grid-area: check; align-items: flex-start; }
+  .lib-import-col-folder { grid-area: folder; }
+  .lib-import-col-match { grid-area: match; }
+  .lib-import-col-type { grid-area: type; }
+  .lib-import-col-profile { grid-area: profile; }
+  .lib-import-panel { padding-left: 14px; }
+  .lib-import-modal { padding: 18px 14px; max-height: 94vh; }
+  .lib-import-footer,
+  .lib-import-bulkbar { justify-content: flex-start; }
+  .lib-import-footer-actions { width: 100%; }
+  .lib-import-footer-actions .btn { flex: 1 1 auto; justify-content: center; }
+}
+
+/* Строка, чей тайтл уже заведён в медиатеке под другим путём */
+.lib-import-row.is-exists .lib-import-row-main { background: rgba(99, 102, 241, 0.08); }
+.lib-import-match-btn.is-exists { border-style: dashed; border-color: rgba(99, 102, 241, 0.45); }
+.lib-import-poster.is-exists { color: var(--accent); }
+.lib-import-match-title.exists { color: var(--accent); }
+.lib-import-exists-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--accent);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+.lib-import-panel-hint.is-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--warning);
+  line-height: 1.45;
+}
+.lib-import-panel-hint.is-warning i { flex: 0 0 auto; margin-top: 2px; }
+
 /* =============================================================================
    MOBILE LAYOUT HARDENING
    -----------------------------------------------------------------------------
