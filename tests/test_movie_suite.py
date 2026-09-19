@@ -543,7 +543,7 @@ class TestMovieSuite(unittest.TestCase):
             season_number=2,
             episode_number=24,
             status=EpisodeStatus.UNAIRED,
-            air_date=dt.datetime(2026, 9, 19),
+            air_date=dt.datetime.now() + dt.timedelta(days=7),
             monitored=True,
             file_path=None,
         ))
@@ -553,7 +553,7 @@ class TestMovieSuite(unittest.TestCase):
             season_number=2,
             episode_number=25,
             status=EpisodeStatus.UNAIRED,
-            air_date=dt.datetime(2026, 9, 26),
+            air_date=dt.datetime.now() + dt.timedelta(days=14),
             monitored=True,
             file_path=None,
         ))
