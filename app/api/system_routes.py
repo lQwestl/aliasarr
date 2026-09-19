@@ -141,8 +141,8 @@ def get_system_about(
 
     return {
         "app_name": "Aliasarr",
-        "version": "3.4.1",
-        "package_version": f"3.4.1 ({short_commit})",
+        "version": "3.4.2",
+        "package_version": f"3.4.2 ({short_commit})",
         "branch": short_commit,
         "commit": short_commit,
         "python_version": py_ver,
@@ -346,7 +346,7 @@ class BackupOut(BaseModel):
     size_bytes: int
     created_at: dt.datetime
     backup_type: str = "full"
-    app_version: str = "3.4.1"
+    app_version: str = "3.4.2"
     stats: Optional[dict] = None
 
 

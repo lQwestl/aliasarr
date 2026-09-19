@@ -8,7 +8,7 @@
 
 ---
 
-[![Release: v3.4.1](https://img.shields.io/badge/Release-v3.4.1-6838f7?style=for-the-badge&logo=github&logoColor=white)](https://github.com/lQwestl/aliasarr/releases/tag/v3.4.1)
+[![Release: v3.4.2](https://img.shields.io/badge/Release-v3.4.2-6838f7?style=for-the-badge&logo=github&logoColor=white)](https://github.com/lQwestl/aliasarr/releases/tag/v3.4.2)
 [![Docker](https://img.shields.io/badge/Docker-ghcr.io%2Flqwestl%2Faliasarr-00F0FF?style=for-the-badge&logo=docker&logoColor=black)](https://github.com/lQwestl/aliasarr/pkgs/container/aliasarr)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-3b82f6?style=for-the-badge)](http://www.gnu.org/licenses/gpl.html)
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-10b981?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
