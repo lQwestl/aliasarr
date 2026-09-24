@@ -779,11 +779,14 @@ async def grab_release(
 
     parsed_rel_q = parse_quality(payload.release_title) if payload.release_title else None
     for ep in target_episodes:
+        has_existing_file = bool(ep.file_path)
         ep.status = EpisodeStatus.DOWNLOADING
         ep.torrent_hash = torrent_hash
         ep.download_client_id = download_client_row.id
         ep.download_progress = 0.0
-        if parsed_rel_q and parsed_rel_q.name not in ("SDTV", "SDTV-480p"):
+        # Качество существующего файла обновит импорт, а не захват: сорвавшийся
+        # апгрейд не должен оставить серии качество файла, которого нет на диске.
+        if not has_existing_file and parsed_rel_q and parsed_rel_q.name not in ("SDTV", "SDTV-480p"):
             ep.downloaded_quality = parsed_rel_q.name
         db.add(ep)
 

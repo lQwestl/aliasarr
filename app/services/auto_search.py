@@ -22,7 +22,7 @@ import re
 import uuid
 
 try:
-    from sqlalchemy import and_, or_
+    from sqlalchemy import and_, func, or_
     from sqlalchemy.orm import Session
     from app.models.db import (
         DownloadClient,
@@ -1052,6 +1052,51 @@ def _get_show_lock(show_id: int) -> asyncio.Lock:
     if show_id not in _SHOW_SEARCH_LOCKS:
         _SHOW_SEARCH_LOCKS[show_id] = asyncio.Lock()
     return _SHOW_SEARCH_LOCKS[show_id]
+
+
+async def _remove_superseded_torrent(db, dl_client, old_hash: str, covered_ids: set, show_id: int) -> bool:
+    """Удаляет старую раздачу, заменённую новым захватом, только когда это безопасно.
+
+    Завершённая раздача — источник сидирования и, возможно, хардлинков в медиатеке:
+    её жизненным циклом управляет проверка лимитов сидирования. Раздача, из которой
+    ещё качаются другие серии (например, остальная часть сезонного пака), тоже нужна.
+    Удаляется только недокачанный дубликат, который больше ни одной серии не нужен.
+    """
+    try:
+        still_needed = (
+            db.query(Episode)
+            .filter(
+                func.lower(Episode.torrent_hash) == old_hash.lower(),
+                Episode.status == EpisodeStatus.DOWNLOADING,
+                ~Episode.id.in_(covered_ids or {-1}),
+            )
+            .first()
+        )
+    except Exception as exc:
+        logger.debug("Не удалось проверить использование раздачи %s: %s", old_hash, exc)
+        return False
+    if still_needed is not None:
+        logger.info("Старая раздача %s сохранена: из неё ещё качаются другие серии тайтла %s", old_hash, show_id)
+        return False
+
+    try:
+        info = await dl_client.get_torrent(old_hash)
+    except Exception as exc:
+        logger.debug("Не удалось получить состояние старой раздачи %s: %s", old_hash, exc)
+        return False
+    if info is None:
+        return False
+    if (getattr(info, "progress", 0) or 0) >= 0.999:
+        logger.info("Старая раздача %s сохранена: она докачана и может сидироваться", old_hash)
+        return False
+
+    try:
+        await dl_client.remove_torrent(old_hash, delete_files=True)
+        logger.info("Удалена недокачанная дублирующая раздача %s для тайтла %s", old_hash, show_id)
+        return True
+    except Exception as exc:
+        logger.debug("Не удалось удалить старую раздачу %s: %s", old_hash, exc)
+        return False
 
 
 async def search_and_grab_show(
@@ -2436,20 +2481,20 @@ async def _do_search_and_grab(
                 db=db,
             )
 
-            # Удаляем старые дублирующие раздачи из торрент-клиента
+            # Удаляем старые раздачи, которые новый релиз действительно заменяет
+            covered_ids = {ep.id for ep in covered if getattr(ep, "id", None) is not None}
             for old_hash in old_hashes_to_cleanup:
                 if old_hash and str(old_hash).lower() != str(torrent_hash).lower():
-                    try:
-                        await dl_client.remove_torrent(old_hash, delete_files=True)
-                        logger.info("Удалена старая дублирующая раздача %s из загрузчика для тайтла %s", old_hash, show.id)
-                    except Exception as exc:
-                        logger.debug("Не удалось удалить старую раздачу %s: %s", old_hash, exc)
+                    await _remove_superseded_torrent(db, dl_client, str(old_hash), covered_ids, show.id)
 
             for ep in covered:
+                has_existing_file = bool(getattr(ep, "file_path", None))
                 ep.status = EpisodeStatus.DOWNLOADING
                 ep.download_client_id = download_client_row.id
                 ep.torrent_hash = torrent_hash
-                if getattr(rel, "quality", None) and getattr(rel.quality, "name", None):
+                # Качество имеющегося файла меняется только после импорта: если апгрейд
+                # не скачается, серия должна остаться с реальным качеством своего файла.
+                if not has_existing_file and getattr(rel, "quality", None) and getattr(rel.quality, "name", None):
                     ep.downloaded_quality = rel.quality.name
                 remaining.pop((ep.season_number, ep.episode_number), None)
                 grabbed_seasons.add(ep.season_number)
