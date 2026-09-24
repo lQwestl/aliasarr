@@ -194,6 +194,82 @@ class TestBackupService(unittest.TestCase):
         db.close()
         db2.close()
 
+    def _file_db(self, name):
+        engine = create_engine(f"sqlite:///{os.path.join(self.test_dir, name)}")
+        Base.metadata.create_all(engine)
+        return sessionmaker(bind=engine)
+
+    def _rewrite_export(self, archive_path, mutate):
+        with zipfile.ZipFile(archive_path) as src:
+            entries = {name: src.read(name) for name in src.namelist()}
+        payload = json.loads(entries["database_export.json"])
+        mutate(payload)
+        entries["database_export.json"] = json.dumps(payload).encode("utf-8")
+        patched = archive_path + ".patched.zip"
+        with zipfile.ZipFile(patched, "w") as dst:
+            for name, data in entries.items():
+                dst.writestr(name, data)
+        return patched
+
+    @unittest.skipUnless(HAS_DB, "SQLAlchemy required")
+    def test_restore_ignores_columns_unknown_to_this_version(self):
+        Session = self._file_db("unknown_columns.db")
+        db = Session()
+        show = Show(title="Dexter", content_type="series")
+        db.add(show)
+        db.flush()
+        db.add(Episode(show_id=show.id, season_number=1, episode_number=1))
+        db.commit()
+        info = create_backup(db, backup_type="full")
+
+        def add_legacy_fields(payload):
+            payload["tables"]["shows"][0]["legacy_removed_column"] = 1
+            payload["tables"]["episodes"][0]["column_from_newer_version"] = "x"
+
+        archive = self._rewrite_export(os.path.join(self.test_dir, info["name"]), add_legacy_fields)
+        res = restore_backup(db, archive, mode="full")
+        self.assertTrue(res["success"])
+        check = Session()
+        self.assertEqual([s.title for s in check.query(Show).all()], ["Dexter"])
+        self.assertEqual(check.query(Episode).count(), 1)
+        check.close()
+        db.close()
+
+    @unittest.skipUnless(HAS_DB, "SQLAlchemy required")
+    def test_failed_restore_leaves_library_untouched(self):
+        Session = self._file_db("failed_restore.db")
+        db = Session()
+        show = Show(title="Space Dandy", content_type="series")
+        db.add(show)
+        db.flush()
+        db.add(SeasonSplit(show_id=show.id, name="Season 1", season_number=1))
+        db.commit()
+        info = create_backup(db, backup_type="full")
+
+        db.add(Show(title="Added after backup", content_type="series"))
+        db.commit()
+
+        import app.services.backup_service as backup_service
+
+        class _BrokenSplit:
+            __table__ = SeasonSplit.__table__
+
+            def __init__(self, **kwargs):
+                raise RuntimeError("simulated failure in the middle of a restore")
+
+        with patch.object(backup_service, "SeasonSplit", _BrokenSplit):
+            with self.assertRaises(RuntimeError):
+                restore_backup(db, os.path.join(self.test_dir, info["name"]), mode="full")
+
+        check = Session()
+        self.assertEqual(
+            sorted(s.title for s in check.query(Show).all()),
+            ["Added after backup", "Space Dandy"],
+        )
+        self.assertEqual(check.query(SeasonSplit).count(), 1)
+        check.close()
+        db.close()
+
     @unittest.skipUnless(HAS_DB, "SQLAlchemy required")
     def test_backup_and_restore_movie_collections_and_foreign_keys(self):
         engine = create_engine("sqlite:///:memory:")
