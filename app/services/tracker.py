@@ -59,11 +59,11 @@ async def recheck_tracked_release(db: Session, tracked: TrackedRelease) -> dict:
         return {"updated": False, "reason": "topic_not_found"}
 
     parsed = parse_episode(match.title)
-    already_downloaded = {(e["season"], e["episode"]) for e in tracked.downloaded_episodes}
+    already_seen = {(e.get("season"), e.get("episode")) for e in (tracked.downloaded_episodes or [])}
 
     new_episode_numbers = [
         ep for ep in parsed.episodes
-        if (parsed.season, ep) not in already_downloaded
+        if (parsed.season, ep) not in already_seen
     ]
 
     tracked.last_checked_at = dt.datetime.utcnow()
@@ -75,18 +75,20 @@ async def recheck_tracked_release(db: Session, tracked: TrackedRelease) -> dict:
 
     tracked.last_updated_at = dt.datetime.utcnow()
 
-    # Помечаем новые серии как wanted, если они мониторятся
+    # Помечаем новые серии как wanted, только если их действительно нужно искать
     wanted_episodes = []
     for ep_num in new_episode_numbers:
-        episode = (
-            db.query(Episode)
-            .filter_by(show_id=tracked.show_id, season_number=parsed.season or 0, episode_number=ep_num)
-            .first()
-        )
-        if episode and episode.status != EpisodeStatus.DOWNLOADED:
+        episode = _find_topic_episode(db, tracked.show_id, parsed, ep_num)
+        if episode is not None and _can_become_wanted(episode):
             episode.status = EpisodeStatus.WANTED
             db.add(episode)
             wanted_episodes.append(ep_num)
+
+    # Запоминаем все увиденные в теме серии, иначе те же «новые» серии
+    # находились бы на каждой проверке и снова сбрасывали статусы.
+    seen = list(tracked.downloaded_episodes or [])
+    seen.extend({"season": parsed.season, "episode": ep_num} for ep_num in new_episode_numbers)
+    tracked.downloaded_episodes = seen
 
     db.add(tracked)
     db.commit()
@@ -99,11 +101,75 @@ async def recheck_tracked_release(db: Session, tracked: TrackedRelease) -> dict:
     }
 
 
+def _find_topic_episode(db: Session, show_id: int, parsed, ep_num: int) -> Optional[Episode]:
+    """Находит серию тайтла по номеру из обновлённой темы.
+
+    Номер без сезона — это абсолютная нумерация (типично для аниме), а не
+    сезон 0: сезон 0 содержит спецвыпуски, и серия 2 основной нумерации
+    не имеет отношения к спецвыпуску 2.
+    """
+    query = db.query(Episode).filter(Episode.show_id == show_id)
+    if parsed.season is not None:
+        return query.filter(
+            Episode.season_number == parsed.season,
+            Episode.episode_number == ep_num,
+        ).first()
+
+    by_absolute = query.filter(Episode.absolute_number == ep_num).first()
+    if by_absolute is not None:
+        return by_absolute
+
+    regular_seasons = {
+        row[0] for row in db.query(Episode.season_number).filter(
+            Episode.show_id == show_id, Episode.season_number > 0,
+        ).distinct().all()
+    }
+    if len(regular_seasons) == 1:
+        return query.filter(
+            Episode.season_number == next(iter(regular_seasons)),
+            Episode.episode_number == ep_num,
+        ).first()
+    return None
+
+
+def _can_become_wanted(episode: Episode) -> bool:
+    """Серию можно вернуть в поиск, только если у неё нет файла, она не качается
+    прямо сейчас и пользователь не исключил её из мониторинга."""
+    if getattr(episode, "file_path", None):
+        return False
+    if not getattr(episode, "monitored", True):
+        return False
+    return episode.status not in (
+        EpisodeStatus.DOWNLOADED,
+        EpisodeStatus.DOWNLOADING,
+        EpisodeStatus.IGNORED,
+        EpisodeStatus.WANTED,
+    )
+
+
+def _deactivate_duplicate_topics(db: Session, tracked_list: list) -> list:
+    """Каждый захват создаёт запись отслеживания. Для одной и той же темы
+    достаточно самой свежей записи: остальные лишь повторяют запросы к
+    индексатору и работают по устаревшему списку серий."""
+    newest: dict[tuple, TrackedRelease] = {}
+    for tracked in sorted(tracked_list, key=lambda t: t.id or 0, reverse=True):
+        if getattr(tracked, "favorite_season", None) is not None:
+            continue
+        key = (tracked.show_id, tracked.indexer_id, tracked.topic_guid)
+        if key in newest:
+            tracked.active = False
+            db.add(tracked)
+        else:
+            newest[key] = tracked
+    return [t for t in tracked_list if t.active]
+
+
 async def recheck_all_active(db: Session) -> list[dict]:
     """Перепроверяет все активные отслеживаемые раздачи (вызывается из APScheduler)."""
     tracked_list = db.query(TrackedRelease).filter(TrackedRelease.active == True).all()  # noqa: E712
     if not tracked_list:
         return []
+    tracked_list = _deactivate_duplicate_topics(db, tracked_list)
 
     active_tracked = []
     for tracked in tracked_list:
