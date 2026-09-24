@@ -199,6 +199,10 @@ def _ensure_performance_indexes() -> None:
                     conn.execute(text(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {table_name}({cols})"))
                 except Exception as e:
                     logger.debug("Индекс %s уже существует или таблица %s не готова: %s", idx_name, table_name, e)
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ux_tracked_favorite_show_season "
+                "ON tracked_releases(show_id, favorite_season)"
+            ))
     except Exception as exc:
         logger.debug("Ошибка в _ensure_performance_indexes: %s", exc)
 

@@ -26,6 +26,7 @@ from sqlalchemy import (
     Enum as SAEnum,
     Float,
     ForeignKey,
+    Index,
     Integer,
     JSON,
     String,
@@ -452,6 +453,7 @@ class TrackedRelease(Base):
     """
 
     __tablename__ = "tracked_releases"
+    __table_args__ = (Index("ux_tracked_favorite_show_season", "show_id", "favorite_season", unique=True),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     show_id: Mapped[int] = mapped_column(ForeignKey("shows.id"), nullable=False, index=True)
@@ -463,6 +465,11 @@ class TrackedRelease(Base):
     last_checked_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)
     last_updated_at: Mapped[Optional[dt.datetime]] = mapped_column(DateTime, nullable=True)  # когда топик обновился
     active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    favorite_season: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    favorite_title: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    favorite_query: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    last_seen_fingerprint: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    last_check_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     show: Mapped["Show"] = relationship(back_populates="tracked_releases")
 

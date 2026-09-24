@@ -23,7 +23,7 @@ from app.services.release_log_service import log_release_event
 try:
     from sqlalchemy import func, or_
     from sqlalchemy.orm import Session
-    from app.models.db import DownloadHistory, Episode, EpisodeStatus, Indexer, ReleaseLog, Show, TrackedRelease
+    from app.models.db import DownloadClient, DownloadHistory, Episode, EpisodeStatus, Indexer, ReleaseLog, Show, TrackedRelease
 except ImportError:
     class _MockFunc:
         def lower(self, col): return col
@@ -64,6 +64,7 @@ except ImportError:
         "IGNORED": "ignored",
     })
     Show = type("Show", (), {"id": _MockCol(), "title": _MockCol(), "content_type": _MockCol(), "path": _MockCol()})
+    DownloadClient = type("DownloadClient", (), {"id": _MockCol(), "seed_time_limit": _MockCol(), "seed_ratio_limit": _MockCol()})
     DownloadHistory = type("DownloadHistory", (), {"id": _MockCol(), "show_id": _MockCol(), "indexer_id": _MockCol(), "torrent_hash": _MockCol()})
     Indexer = type("Indexer", (), {"id": _MockCol(), "name": _MockCol(), "enable_seeding": _MockCol(), "seed_ratio_limit": _MockCol(), "seed_time_limit_hours": _MockCol()})
     TrackedRelease = type("TrackedRelease", (), {"id": _MockCol(), "show_id": _MockCol(), "indexer_id": _MockCol()})
@@ -376,6 +377,23 @@ def transfer_media_file(
     result = atomic_transfer(src, dst, mode=OperationMode.MOVE, replace=True)
     logger.info("Файл перемещен: %s -> %s", src, dst)
     return result
+
+
+def _download_client_requires_seeding(db: Session, show: Show, torrent_hash: str) -> bool:
+    """Сохраняем исходник и при лимитах сидирования самого загрузчика."""
+    episode = (
+        db.query(Episode)
+        .filter(
+            Episode.show_id == show.id,
+            func.lower(Episode.torrent_hash) == torrent_hash.lower(),
+            Episode.download_client_id.isnot(None),
+        )
+        .first()
+    )
+    if not episode or not episode.download_client_id:
+        return False
+    client = db.get(DownloadClient, episode.download_client_id)
+    return bool(client and (client.seed_time_limit or client.seed_ratio_limit))
 
 
 def _validate_media_operation_roots(
@@ -1146,6 +1164,8 @@ def process_download(
 
             if indexer_obj and getattr(indexer_obj, "enable_seeding", False):
                 keep_source = True
+            elif torrent_hash and show:
+                keep_source = _download_client_requires_seeding(db, show, torrent_hash)
         except Exception as exc:
             logger.debug("Ошибка при определении настроек сидирования: %s", exc)
 
@@ -1248,7 +1268,6 @@ def process_download(
     dl_eps: list[Episode] = []
     if torrent_hash and db:
         try:
-            from sqlalchemy import func, or_
             dl_eps = (
                 db.query(Episode)
                 .filter(
@@ -1936,7 +1955,6 @@ def process_download(
             Episode.status == EpisodeStatus.DOWNLOADING,
         )
         if torrent_hash:
-            from sqlalchemy import func, or_
             unimported_query = unimported_query.filter(
                 or_(
                     Episode.torrent_hash == torrent_hash,
@@ -2062,6 +2080,8 @@ def process_movie_download(
 
             if indexer_obj and getattr(indexer_obj, "enable_seeding", False):
                 keep_source = True
+            elif torrent_hash and show:
+                keep_source = _download_client_requires_seeding(db, show, torrent_hash)
         except Exception as exc:
             logger.debug("Ошибка при определении настроек сидирования фильма: %s", exc)
 

@@ -416,41 +416,53 @@ def atomic_transfer(
     source_was_moved = False
     total = src_stat.st_size
 
+    def copy_source_to_temp() -> None:
+        copied = 0
+        fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        try:
+            with open(src, "rb") as input_file, os.fdopen(fd, "wb") as output_file:
+                while True:
+                    chunk = input_file.read(chunk_size)
+                    if not chunk:
+                        break
+                    output_file.write(chunk)
+                    copied += len(chunk)
+                    if callback:
+                        callback(copied, total)
+                output_file.flush()
+                os.fsync(output_file.fileno())
+        except Exception:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+            raise
+        if temp.stat().st_size != total:
+            raise OSError(errno.EIO, "Размер временной копии не совпадает с источником")
+        try:
+            shutil.copystat(src, temp)
+        except OSError:
+            pass
+
     try:
         if callback:
             callback(0, total)
         if effective == OperationMode.HARDLINK:
             os.link(src, temp)
         elif effective in {OperationMode.COPY, OperationMode.REPLACE}:
-            copied = 0
-            fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            try:
-                with open(src, "rb") as input_file, os.fdopen(fd, "wb") as output_file:
-                    while True:
-                        chunk = input_file.read(chunk_size)
-                        if not chunk:
-                            break
-                        output_file.write(chunk)
-                        copied += len(chunk)
-                        if callback:
-                            callback(copied, total)
-                    output_file.flush()
-                    os.fsync(output_file.fileno())
-            except Exception:
-                try:
-                    os.close(fd)
-                except OSError:
-                    pass
-                raise
-            if temp.stat().st_size != total:
-                raise OSError(errno.EIO, "Размер временной копии не совпадает с источником")
-            try:
-                shutil.copystat(src, temp)
-            except OSError:
-                pass
+            copy_source_to_temp()
         else:  # same-filesystem move/rename
-            os.replace(src, temp)
-            source_was_moved = True
+            try:
+                os.replace(src, temp)
+                source_was_moved = True
+            except OSError as exc:
+                # Separate bind mounts can report the same st_dev but still reject
+                # a rename across mount boundaries. Keep the source intact until
+                # the copied destination has been published successfully.
+                if exc.errno != errno.EXDEV:
+                    raise
+                effective = OperationMode.COPY
+                copy_source_to_temp()
 
         if dst.exists():
             if quarantine_root is not None:
@@ -479,6 +491,8 @@ def atomic_transfer(
             backup.unlink()
         if callback:
             callback(total, total)
+        if requested in {OperationMode.MOVE, OperationMode.RENAME}:
+            return requested.value
         return "copy" if effective in {OperationMode.COPY, OperationMode.REPLACE} else effective.value
     except Exception:
         if temp.exists():

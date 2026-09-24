@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import errno
 import os
 import shutil
 import tempfile
@@ -92,6 +93,26 @@ class TestHardlinksAndSeeding(unittest.TestCase):
         with open(dst_file, "rb") as f:
             self.assertEqual(f.read(), b"video data episode 3")
 
+    def test_hardlink_and_rename_exdev_fall_back_to_move_without_seeding(self):
+        src_file = os.path.join(self.src_dir, "episode3_bind_mount.mkv")
+        dst_file = os.path.join(self.dst_dir, "Show - S01E03.mkv")
+        with open(src_file, "wb") as media:
+            media.write(b"video data across mounts")
+        real_replace = os.replace
+
+        def reject_cross_mount_rename(source, destination):
+            if os.fspath(source) == os.path.realpath(src_file) and ".aliasarr-part-" in os.fspath(destination):
+                raise OSError(errno.EXDEV, "Invalid cross-device link")
+            return real_replace(source, destination)
+
+        with patch("app.services.file_preflight.os.link", side_effect=OSError(errno.EXDEV, "Invalid cross-device link")), \
+             patch("app.services.file_preflight.os.replace", side_effect=reject_cross_mount_rename):
+            result = transfer_media_file(src_file, dst_file, keep_source=False, use_hardlinks=True)
+
+        self.assertEqual(result, "move")
+        self.assertFalse(os.path.exists(src_file))
+        self.assertTrue(os.path.exists(dst_file))
+
     def test_transfer_media_file_copy_when_hardlinks_disabled(self):
         """Если use_hardlinks=False и keep_source=True, выполняется обычное копирование."""
         src_file = os.path.join(self.src_dir, "episode4.mkv")
@@ -105,6 +126,119 @@ class TestHardlinksAndSeeding(unittest.TestCase):
 
         self.assertTrue(os.path.exists(src_file))
         self.assertTrue(os.path.exists(dst_file))
+
+    def test_series_import_preserves_source_for_seeding_indexer(self):
+        """История раздачи должна включать копирование даже при разном регистре хеша."""
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from app.models.db import (
+            AppSettings, Base, DownloadHistory, Episode, EpisodeStatus,
+            Indexer, IndexerType, Show,
+        )
+        from app.services.postprocess import process_download
+
+        engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(engine)
+        db = sessionmaker(bind=engine)()
+        try:
+            db.add(AppSettings(
+                api_key="test-key",
+                root_folder=self.dst_dir,
+                download_folder_series=self.src_dir,
+                use_hardlinks=True,
+            ))
+            indexer = Indexer(
+                name="Kinozal", type=IndexerType.TORZNAB,
+                base_url="http://example.invalid/torznab", enable_seeding=True,
+            )
+            show = Show(title="Олдскул", content_type="series", path=os.path.join(self.dst_dir, "Олдскул"))
+            db.add_all([indexer, show])
+            db.flush()
+            episodes = [
+                Episode(
+                    show_id=show.id, season_number=2, episode_number=number,
+                    status=EpisodeStatus.DOWNLOADING, torrent_hash="abcdef1234",
+                )
+                for number in (10, 11)
+            ]
+            db.add_all([
+                *episodes,
+                DownloadHistory(
+                    show_id=show.id, release_title="Oldskul.S02.2026.WEB-DL.2160p.SDR.ExKinoRay",
+                    indexer_id=indexer.id, torrent_hash="ABCDEF1234",
+                ),
+            ])
+            db.commit()
+
+            sources = [
+                os.path.join(self.src_dir, f"Oldskul.S02.E{number}.2026.WEB-DL.2160p.SDR.ExKinoRay.mkv")
+                for number in (10, 11)
+            ]
+            for source in sources:
+                with open(source, "wb") as media:
+                    media.write(b"video data")
+            with patch("app.services.file_preflight.os.link", side_effect=OSError(errno.EXDEV, "Invalid cross-device link")):
+                result = process_download(
+                    db, show, self.src_dir, "{title} - S{season:02d}E{episode:02d}",
+                    self.dst_dir, torrent_hash="abcdef1234",
+                )
+
+            self.assertEqual([item["status"] for item in result], ["imported", "imported"])
+            self.assertEqual([item["transfer_mode"] for item in result], ["copy", "copy"])
+            for source, episode in zip(sources, episodes):
+                self.assertTrue(os.path.exists(source), "сидируемый исходник нельзя перемещать")
+                self.assertTrue(os.path.exists(episode.file_path))
+                self.assertEqual(episode.status, EpisodeStatus.DOWNLOADED)
+        finally:
+            db.close()
+            engine.dispose()
+
+    def test_series_import_preserves_source_for_download_client_seed_limit(self):
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from app.models.db import AppSettings, Base, DownloadClient, Episode, EpisodeStatus, Show
+        from app.services.postprocess import process_download
+
+        engine = create_engine("sqlite:///:memory:")
+        Base.metadata.create_all(engine)
+        db = sessionmaker(bind=engine)()
+        try:
+            db.add(AppSettings(
+                api_key="test-key", root_folder=self.dst_dir,
+                download_folder_series=self.src_dir, use_hardlinks=True,
+            ))
+            client = DownloadClient(
+                name="qBittorrent", type="qbittorrent", host="localhost", port=8080,
+                seed_time_limit=10,
+            )
+            show = Show(title="Олдскул", content_type="series", path=os.path.join(self.dst_dir, "Олдскул"))
+            db.add_all([client, show])
+            db.flush()
+            episode = Episode(
+                show_id=show.id, season_number=2, episode_number=10,
+                status=EpisodeStatus.DOWNLOADING, torrent_hash="abcdef1234",
+                download_client_id=client.id,
+            )
+            db.add(episode)
+            db.commit()
+
+            source = os.path.join(self.src_dir, "Oldskul.S02.E10.2026.WEB-DL.2160p.SDR.ExKinoRay.mkv")
+            with open(source, "wb") as media:
+                media.write(b"video data")
+            with patch("app.services.file_preflight.os.link", side_effect=OSError(errno.EXDEV, "Invalid cross-device link")):
+                result = process_download(
+                    db, show, self.src_dir, "{title} - S{season:02d}E{episode:02d}",
+                    self.dst_dir, torrent_hash="abcdef1234",
+                )
+
+            self.assertEqual(result[0]["status"], "imported")
+            self.assertEqual(result[0]["transfer_mode"], "copy")
+            self.assertTrue(os.path.exists(source))
+            self.assertTrue(os.path.exists(episode.file_path))
+            self.assertEqual(episode.status, EpisodeStatus.DOWNLOADED)
+        finally:
+            db.close()
+            engine.dispose()
 
     def test_qbittorrent_set_seeding_limits(self):
         """Проверяет отправку запроса лимитов сидирования в qBittorrent."""

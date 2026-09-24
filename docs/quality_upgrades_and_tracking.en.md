@@ -77,3 +77,9 @@ Occasionally, a torrent release title on an indexer advertises high quality (suc
 - If a series is unmonitored or concluded (all episodes downloaded, status `ended` or `completed`), tracking is **automatically deactivated (`active = False`)**.
 - For movies, tracking is deactivated immediately following successful import.
 - This shortens background checking cycles from tens of minutes down to seconds while safeguarding against indexer rate limits.
+
+### Favorite release for a season
+- Open a season's interactive search and click the star beside a release. Aliasarr verifies its GUID with the original indexer and pins that topic to the season. Only one release can be pinned per season.
+- General auto-search skips that season while continuing to search other seasons. The tracker job checks **only the same topic on the same indexer**; an updated torrent is sent through the normal selective-download and import path for wanted episodes.
+- An unavailable topic or indexer does not trigger an automatic fallback to other releases. The check status appears in the season search dialog. Unpinning restores general auto-search.
+- Update detection prefers the `.torrent` infohash. If neither a torrent file nor a hash is available, it falls back to release size, publication date, and title; changes invisible to those fields may be missed.

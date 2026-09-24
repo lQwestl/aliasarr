@@ -63,6 +63,46 @@ class TestAtomicTransfer(unittest.TestCase):
         self.assertFalse(self.src.exists())
         self.assertEqual(self.dst.read_bytes(), b"new-video-data")
 
+    def test_bind_mount_move_falls_back_when_rename_raises_exdev(self):
+        """Bind mounts may reject rename even when source and target report the same st_dev."""
+        real_replace = os.replace
+
+        def reject_cross_mount_rename(source, destination):
+            if Path(source) == self.src.resolve() and ".aliasarr-part-" in os.fspath(destination):
+                raise OSError(errno.EXDEV, "Invalid cross-device link")
+            return real_replace(source, destination)
+
+        with patch("app.services.file_preflight.os.replace", side_effect=reject_cross_mount_rename):
+            result = atomic_transfer(self.src, self.dst, mode=OperationMode.MOVE)
+
+        self.assertEqual(result, "move")
+        self.assertFalse(self.src.exists())
+        self.assertEqual(self.dst.read_bytes(), b"new-video-data")
+        self.assertEqual(list(self.dst.parent.glob(".*.aliasarr-part-*")), [])
+
+    def test_bind_mount_move_failed_publish_keeps_source_and_old_destination(self):
+        self.dst.write_bytes(b"old-video")
+        real_replace = os.replace
+
+        def fail_after_cross_mount_rename(source, destination):
+            source_path = Path(source)
+            if source_path == self.src.resolve() and ".aliasarr-part-" in os.fspath(destination):
+                raise OSError(errno.EXDEV, "Invalid cross-device link")
+            if ".aliasarr-part-" in os.fspath(source) and Path(destination) == self.dst.resolve():
+                raise OSError(errno.EIO, "publish failed")
+            return real_replace(source, destination)
+
+        with (
+            patch("app.services.file_preflight.os.replace", side_effect=fail_after_cross_mount_rename),
+            self.assertRaises(OSError),
+        ):
+            atomic_transfer(self.src, self.dst, mode=OperationMode.MOVE)
+
+        self.assertEqual(self.src.read_bytes(), b"new-video-data")
+        self.assertEqual(self.dst.read_bytes(), b"old-video")
+        self.assertEqual(list(self.dst.parent.glob(".*.aliasarr-part-*")), [])
+        self.assertEqual(list(self.dst.parent.glob(".*.aliasarr-backup-*")), [])
+
     def test_hardlink_shares_inode(self):
         result = atomic_transfer(self.src, self.dst, mode=OperationMode.HARDLINK)
         self.assertEqual(result, "hardlink")

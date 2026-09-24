@@ -1059,6 +1059,7 @@ async def search_and_grab_show(
     show: Show,
     episode_ids: Optional[set[int]] = None,
     wanted_only: bool = False,
+    pinned_release: Optional[tuple[Indexer, Any]] = None,
 ) -> dict:
     """Ищет и захватывает лучший релиз для wanted-серий данного шоу.
 
@@ -1075,11 +1076,18 @@ async def search_and_grab_show(
         db.commit()
 
         try:
-            result = await _do_search_and_grab(db, show, episode_ids, wanted_only=wanted_only)
+            if pinned_release is None:
+                result = await _do_search_and_grab(db, show, episode_ids, wanted_only=wanted_only)
+            else:
+                result = await _do_search_and_grab(
+                    db, show, episode_ids, wanted_only=wanted_only, pinned_release=pinned_release,
+                )
             grabbed_count = len(result.get("grabbed", []))
             reason = result.get("reason")
             if reason == "no_enabled_indexers":
                 show.last_search_result = "Нет включённых индексаторов"
+            elif reason == "favorite_only":
+                show.last_search_result = "Сезон закреплён за любимой раздачей; ожидается её обновление"
             elif reason == "no_wanted_episodes":
                 today = dt.date.today()
                 if getattr(show, "content_type", "") == "movie":
@@ -1559,6 +1567,7 @@ async def _do_search_and_grab(
     show: Show,
     episode_ids: Optional[set[int]] = None,
     wanted_only: bool = False,
+    pinned_release: Optional[tuple[Indexer, Any]] = None,
 ) -> dict:
     quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
     upgrade_allowed = getattr(quality_profile, "upgrade_allowed", False) if quality_profile else False
@@ -1636,17 +1645,34 @@ async def _do_search_and_grab(
             filtered_wanted.append(ep)
         wanted_episodes = filtered_wanted
 
+    # A season pinned to one topic is handled only by the tracker job.  This
+    # filter also applies to explicit season/episode searches, so a manual
+    # auto-search cannot silently replace the user's chosen release.
+    favorite_only = False
+    if pinned_release is None and show.content_type != "movie" and TrackedRelease is not None and isinstance(db, Session):
+        favorite_seasons = {
+            row[0] for row in db.query(TrackedRelease.favorite_season).filter(
+                TrackedRelease.show_id == show.id,
+                TrackedRelease.active == True,  # noqa: E712
+                TrackedRelease.favorite_season.isnot(None),
+            ).all()
+        }
+        original_wanted = wanted_episodes
+        wanted_episodes = [ep for ep in wanted_episodes if ep.season_number not in favorite_seasons]
+        favorite_only = bool(original_wanted and not wanted_episodes)
+
     if not wanted_episodes:
         try:
             db.commit()
         except Exception:
             pass
-        return {"show_id": show.id, "grabbed": [], "reason": "no_wanted_episodes"}
+        return {"show_id": show.id, "grabbed": [], "reason": "favorite_only" if favorite_only else "no_wanted_episodes"}
 
-    indexers = db.query(Indexer).filter(Indexer.enabled == True).all()  # noqa: E712
+    indexers = [pinned_release[0]] if pinned_release else db.query(Indexer).filter(Indexer.enabled == True).all()  # noqa: E712
     from app.services.delay_profiles import filter_indexers_for_show
 
-    indexers = filter_indexers_for_show(db, show, indexers)
+    if pinned_release is None:
+        indexers = filter_indexers_for_show(db, show, indexers)
     if not indexers:
         return {"show_id": show.id, "grabbed": [], "reason": "no_enabled_indexers"}
 
@@ -1654,7 +1680,23 @@ async def _do_search_and_grab(
     alias_candidates = build_alias_candidates(show, db=db)
     search_terms = ", ".join(f"«{a.text}»" for a in alias_candidates)
 
-    candidates = await _collect_candidates(db, show, indexers, wanted_episodes=wanted_episodes)
+    if pinned_release:
+        indexer, rel = pinned_release
+        match = match_release(
+            rel.title, show.id, alias_candidates, content_type=show.content_type,
+            categories=getattr(rel, "categories", None), show_year=getattr(show, "year", None),
+        )
+        quality = parse_quality(rel.title)
+        allowed_qualities = quality_profile.allowed_qualities if quality_profile else []
+        if match.matched and is_allowed(quality, allowed_qualities):
+            candidates = CandidateList([{"rel": rel, "match": match, "quality": quality, "indexer": indexer}])
+        else:
+            candidates = CandidateList([], rejected_candidates=[{
+                "title": rel.title,
+                "reason": "Закреплённая раздача не совпала с тайтлом или профилем качества",
+            }])
+    else:
+        candidates = await _collect_candidates(db, show, indexers, wanted_episodes=wanted_episodes)
     query_terms = getattr(candidates, "query_terms", [])
     indexer_stats = getattr(candidates, "indexer_stats", {})
     rejected_cands = getattr(candidates, "rejected_candidates", [])
@@ -1972,7 +2014,7 @@ async def _do_search_and_grab(
 
     # Строим для каждого кандидата множество wanted-серий, которые он закрывает,
     # вычисляем Custom Formats score и скор соответствия.
-    from app.services.quality import parse_quality, is_upgrade, QUALITY_ALIASES
+    from app.services.quality import is_upgrade, QUALITY_ALIASES
     from app.services.custom_formats import calculate_custom_formats_for_release
     from app.services.language_parser import parse_languages
     from app.services.release_group_parser import parse_release_group
@@ -2490,15 +2532,30 @@ async def _do_search_and_grab(
 
             topic_guid = rel.guid or rel.download_url or rel.infohash or str(uuid.uuid4())
             topic_url = rel.page_url or rel.download_url or ""
-            tracked = TrackedRelease(
-                show_id=show.id,
-                indexer_id=indexer.id,
-                topic_guid=topic_guid,
-                topic_url=topic_url,
-                infohash=torrent_hash or rel.infohash,
-                downloaded_episodes=[{"season": ep.season_number, "episode": ep.episode_number} for ep in covered],
-                last_checked_at=dt.datetime.utcnow(),
+            tracked = None
+            if pinned_release and covered:
+                tracked = db.query(TrackedRelease).filter(
+                    TrackedRelease.show_id == show.id,
+                    TrackedRelease.favorite_season == covered[0].season_number,
+                    TrackedRelease.active == True,  # noqa: E712
+                ).first()
+            if tracked is None:
+                tracked = TrackedRelease(
+                    show_id=show.id,
+                    indexer_id=indexer.id,
+                    topic_guid=topic_guid,
+                    topic_url=topic_url,
+                    downloaded_episodes=[],
+                )
+            tracked.infohash = torrent_hash or rel.infohash
+            known_episodes = list(tracked.downloaded_episodes or [])
+            known_pairs = {(item["season"], item["episode"]) for item in known_episodes}
+            known_episodes.extend(
+                {"season": ep.season_number, "episode": ep.episode_number}
+                for ep in covered if (ep.season_number, ep.episode_number) not in known_pairs
             )
+            tracked.downloaded_episodes = known_episodes
+            tracked.last_checked_at = dt.datetime.utcnow()
             db.add(tracked)
 
             if covered:

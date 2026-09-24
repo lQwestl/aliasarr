@@ -934,6 +934,7 @@
 [data-design="servarr"] .content .panel-sticky-header .blocklist-search-wrap {
   position: relative !important;
   display: flex !important;
+  align-self: center;
   align-items: center !important;
   flex: 0 1 240px;
   min-width: 140px;

@@ -7,7 +7,7 @@ import os
 from typing import Any, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -38,6 +38,146 @@ logger = logging.getLogger("aliasarr.indexers")
 manual_logger = logging.getLogger("aliasarr.manual_search")
 
 router = APIRouter(prefix="/api/v1/indexers", tags=["indexers"])
+
+
+class FavoriteReleaseRequest(BaseModel):
+    season: int = Field(ge=0)
+    indexer_id: int
+    guid: str = Field(min_length=1, max_length=500)
+    title: str = Field(min_length=1, max_length=1000)
+    matched_alias: Optional[str] = Field(default=None, max_length=500)
+
+
+@router.get("/favorites/{show_id}")
+def list_favorite_releases(
+    show_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manual_search")),
+):
+    if not db.get(Show, show_id):
+        raise HTTPException(404, "Show not found")
+    rows = db.query(TrackedRelease).filter(
+        TrackedRelease.show_id == show_id,
+        TrackedRelease.active == True,  # noqa: E712
+        TrackedRelease.favorite_season.isnot(None),
+    ).all()
+    return [{
+        "season": row.favorite_season,
+        "title": row.favorite_title,
+        "query": row.favorite_query,
+        "indexer_id": row.indexer_id,
+        "guid": row.topic_guid,
+        "page_url": row.topic_url,
+        "last_checked_at": row.last_checked_at,
+        "last_updated_at": row.last_updated_at,
+        "last_check_status": row.last_check_status,
+    } for row in rows]
+
+
+@router.post("/favorites/{show_id}")
+async def pin_favorite_release(
+    show_id: int,
+    payload: FavoriteReleaseRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manual_search")),
+):
+    """Pin a verified indexer result; URLs supplied by clients are never trusted."""
+    show = db.get(Show, show_id)
+    if not show or show.content_type == "movie":
+        raise HTTPException(404, "Series not found")
+    if not db.query(Episode.id).filter(
+        Episode.show_id == show_id, Episode.season_number == payload.season,
+    ).first():
+        raise HTTPException(400, "Season not found")
+    indexer = db.get(Indexer, payload.indexer_id)
+    if not indexer or not indexer.enabled:
+        raise HTTPException(400, "Indexer is unavailable")
+
+    aliases = build_alias_candidates(show, db=db)
+    preferred_query = next((a.text for a in aliases if payload.matched_alias and a.text.casefold() == payload.matched_alias.casefold()), None)
+
+    try:
+        client = get_indexer_client(indexer)
+        releases = []
+        for query in dict.fromkeys(q for q in (preferred_query, show.title, payload.title) if q):
+            releases = await client.search(query)
+            if any(r.guid == payload.guid for r in releases):
+                break
+    except Exception as exc:
+        manual_logger.warning("Не удалось проверить закрепляемую раздачу: %s", redact_sensitive_data(exc))
+        raise HTTPException(502, "Indexer search failed") from exc
+    release = next((r for r in releases if r.guid == payload.guid), None)
+    if not release or not release.download_url:
+        raise HTTPException(404, "Release not found on the selected indexer")
+    match = match_release(
+        release.title, show.id, aliases,
+        content_type=show.content_type, categories=getattr(release, "categories", None),
+        show_year=show.year,
+    )
+    parsed = match.parsed
+    parsed_seasons = set(parsed.seasons or ([parsed.season] if parsed.season is not None else []))
+    if not match.matched or (parsed_seasons and payload.season not in parsed_seasons):
+        raise HTTPException(400, "Release does not match the selected show and season")
+
+    # One favorite per season. Reuse its row when possible, retaining the
+    # original torrent hash for update detection and import history.
+    rows = db.query(TrackedRelease).filter(
+        TrackedRelease.show_id == show_id,
+        TrackedRelease.favorite_season == payload.season,
+    ).all()
+    selected = next((row for row in rows if row.indexer_id == indexer.id and row.topic_guid == release.guid), None)
+    if selected is None:
+        selected = db.query(TrackedRelease).filter(
+            TrackedRelease.show_id == show_id,
+            TrackedRelease.indexer_id == indexer.id,
+            TrackedRelease.topic_url == (release.page_url or ""),
+            TrackedRelease.favorite_season.is_(None),
+        ).order_by(TrackedRelease.id.desc()).first()
+    if selected is None:
+        selected = TrackedRelease(
+            show_id=show_id, indexer_id=indexer.id,
+            topic_guid=release.guid, topic_url=release.page_url or "",
+            downloaded_episodes=[], active=True,
+        )
+        db.add(selected)
+    elif selected.infohash and not selected.last_seen_fingerprint:
+        selected.last_seen_fingerprint = f"btih:{selected.infohash.lower()}"
+    for row in rows:
+        if row is not selected:
+            row.favorite_season = None
+            row.active = False
+            db.add(row)
+    db.flush()  # release the unique (show, season) slot before replacing it
+    selected.favorite_season = payload.season
+    selected.favorite_title = release.title
+    selected.favorite_query = preferred_query or match.alias_text or show.title
+    selected.topic_guid = release.guid
+    selected.topic_url = release.page_url or selected.topic_url
+    selected.active = True
+    db.commit()
+    manual_logger.info("Закреплена раздача «%s» для сезона %s тайтла %s", release.title, payload.season, show.title)
+    return {"season": payload.season, "title": release.title, "indexer_id": indexer.id, "guid": release.guid}
+
+
+@router.delete("/favorites/{show_id}/{season}")
+def unpin_favorite_release(
+    show_id: int,
+    season: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manual_search")),
+):
+    if not db.get(Show, show_id):
+        raise HTTPException(404, "Show not found")
+    rows = db.query(TrackedRelease).filter(
+        TrackedRelease.show_id == show_id,
+        TrackedRelease.favorite_season == season,
+    ).all()
+    for row in rows:
+        row.favorite_season = None
+        row.active = False
+        db.add(row)
+    db.commit()
+    return {"removed": bool(rows)}
 
 
 def _indexer_out(indexer: Indexer) -> IndexerOut:

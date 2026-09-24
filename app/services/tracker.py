@@ -10,12 +10,119 @@ from __future__ import annotations
 from typing import Optional, List, Dict, Any
 
 import datetime as dt
+import hashlib
+import logging
 
 from sqlalchemy.orm import Session
 
 from app.models.db import Episode, EpisodeStatus, Indexer, Show, TrackedRelease
 from app.services.parser import parse_episode
 from app.services.torznab import TorznabClient
+from app.services.indexer_service import get_indexer_client
+from app.services.log_safety import redact_sensitive_data
+
+logger = logging.getLogger("aliasarr.tracker")
+
+
+async def _release_fingerprint(release) -> str:
+    """Prefer the torrent infohash: the topic URL and title can stay unchanged."""
+    from app.services.download_client import (
+        _fetch_torrent_content_if_url,
+        extract_info_hash_from_torrent_bytes,
+        extract_info_hash_from_url_or_magnet,
+    )
+
+    infohash = getattr(release, "infohash", None) or extract_info_hash_from_url_or_magnet(release.download_url or "")
+    if not infohash and release.download_url:
+        try:
+            content, resolved_url = await _fetch_torrent_content_if_url(release.download_url)
+            infohash = extract_info_hash_from_torrent_bytes(content) if content else extract_info_hash_from_url_or_magnet(resolved_url)
+        except Exception as exc:
+            logger.warning("Не удалось прочитать хэш обновляемой раздачи: %s", redact_sensitive_data(exc))
+    if infohash:
+        return f"btih:{str(infohash).lower()}"
+    fallback = f"{release.title}|{release.size_bytes}|{release.pub_date}"
+    return "metadata:" + hashlib.sha256(fallback.encode("utf-8")).hexdigest()
+
+
+async def _recheck_favorite(db: Session, tracked: TrackedRelease, indexer: Indexer, show: Show) -> dict:
+    """Follow exactly one pinned topic on its original indexer."""
+    now = dt.datetime.utcnow()
+    tracked.last_checked_at = now
+    if not getattr(indexer, "enabled", True):
+        tracked.last_check_status = "indexer_disabled"
+        db.commit()
+        return {"updated": False, "reason": "indexer_disabled"}
+
+    client = get_indexer_client(indexer)
+    queries = [tracked.favorite_query, show.title, tracked.favorite_title]
+    match = None
+    try:
+        for query in dict.fromkeys(q for q in queries if q):
+            releases = await client.search(query)
+            match = next((release for release in releases if (
+                release.guid == tracked.topic_guid
+                or (tracked.topic_url and release.page_url == tracked.topic_url)
+            )), None)
+            if match:
+                break
+    except Exception as exc:
+        tracked.last_check_status = "search_failed"
+        db.commit()
+        logger.warning("Проверка закреплённой раздачи %s: %s", tracked.id, redact_sensitive_data(exc))
+        return {"updated": False, "reason": "search_failed"}
+    if not match:
+        tracked.last_check_status = "topic_not_found"
+        db.commit()
+        return {"updated": False, "reason": "topic_not_found"}
+
+    fingerprint = await _release_fingerprint(match)
+    if fingerprint == tracked.last_seen_fingerprint:
+        tracked.last_check_status = "unchanged"
+        db.commit()
+        return {"updated": False, "reason": "unchanged"}
+
+    wanted = db.query(Episode).filter(
+        Episode.show_id == show.id,
+        Episode.season_number == tracked.favorite_season,
+        Episode.monitored == True,  # noqa: E712
+        Episode.status == EpisodeStatus.WANTED,
+    ).all()
+    if not wanted:
+        tracked.last_check_status = "no_wanted_episodes"
+        db.commit()
+        return {"updated": False, "reason": "no_wanted_episodes"}
+
+    from app.services.auto_search import search_and_grab_show
+    try:
+        result = await search_and_grab_show(
+            db, show, episode_ids={ep.id for ep in wanted},
+            wanted_only=True, pinned_release=(indexer, match),
+        )
+    except Exception as exc:
+        db.rollback()
+        tracked.last_check_status = "grab_failed"
+        db.commit()
+        logger.warning("Не удалось захватить обновление закреплённой раздачи %s: %s", tracked.id, redact_sensitive_data(exc))
+        return {"updated": False, "reason": "grab_failed"}
+    grabbed = result.get("grabbed") or []
+    if result.get("reason") in ("already_searching", "error", "no_wanted_episodes"):
+        status = {
+            "already_searching": "busy",
+            "error": "grab_failed",
+            "no_wanted_episodes": "no_wanted_episodes",
+        }[result["reason"]]
+        tracked.last_check_status = status
+        db.commit()
+        return {"updated": False, "reason": status}
+    if grabbed:
+        tracked.last_seen_fingerprint = fingerprint
+        tracked.last_updated_at = now
+    tracked.last_check_status = "grabbed" if grabbed else "release_rejected"
+    db.add(tracked)
+    db.commit()
+    return {"updated": bool(grabbed), "new_episodes": [ep.episode_number for ep in wanted] if grabbed else [],
+            "reason": "grabbed" if grabbed else "release_rejected"}
 
 
 async def recheck_tracked_release(db: Session, tracked: TrackedRelease) -> dict:
@@ -25,10 +132,17 @@ async def recheck_tracked_release(db: Session, tracked: TrackedRelease) -> dict:
     """
     indexer = db.get(Indexer, tracked.indexer_id)
     if not indexer:
+        if getattr(tracked, "favorite_season", None) is not None:
+            tracked.last_check_status = "indexer_missing"
+            db.commit()
         return {"updated": False, "reason": "indexer_missing"}
 
     show = getattr(tracked, "show", None) or (db.get(Show, tracked.show_id) if getattr(tracked, "show_id", None) else None)
     if show is not None and getattr(show, "monitored", True) is False:
+        if getattr(tracked, "favorite_season", None) is not None:
+            tracked.last_check_status = "show_unmonitored"
+            db.commit()
+            return {"updated": False, "reason": "show_unmonitored"}
         tracked.active = False
         db.add(tracked)
         try:
@@ -36,6 +150,9 @@ async def recheck_tracked_release(db: Session, tracked: TrackedRelease) -> dict:
         except Exception:
             pass
         return {"updated": False, "reason": "show_unmonitored"}
+
+    if getattr(tracked, "favorite_season", None) is not None:
+        return await _recheck_favorite(db, tracked, indexer, show)
 
     client = TorznabClient(indexer.base_url, indexer.api_key, indexer.timeout_seconds)
 
@@ -109,8 +226,12 @@ async def recheck_all_active(db: Session) -> list[dict]:
     for tracked in tracked_list:
         show = getattr(tracked, "show", None) or (db.get(Show, tracked.show_id) if getattr(tracked, "show_id", None) else None)
         if show is not None and getattr(show, "monitored", True) is False:
-            tracked.active = False
-            db.add(tracked)
+            if getattr(tracked, "favorite_season", None) is None:
+                tracked.active = False
+                db.add(tracked)
+            else:
+                tracked.last_check_status = "show_unmonitored"
+                db.add(tracked)
             continue
         if not show:
             tracked.active = False
@@ -137,7 +258,7 @@ async def recheck_all_active(db: Session) -> list[dict]:
             ).first() is not None
 
             show_status = (getattr(show, "status", None) or "").lower()
-            if not has_needed_episodes and show_status in ("ended", "canceled", "complete", "completed"):
+            if getattr(tracked, "favorite_season", None) is None and not has_needed_episodes and show_status in ("ended", "canceled", "complete", "completed"):
                 tracked.active = False
                 db.add(tracked)
                 continue

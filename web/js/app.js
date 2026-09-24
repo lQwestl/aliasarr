@@ -77,6 +77,7 @@ function applyDesign(design, isUserAction = false) {
   applyTheme(USER_THEME);
   updateDesignSettingsUI(d);
   servarrAdoptToolbars(d === "servarr");
+  applySearchLayoutStyle();
   if (d === "servarr") servarrSyncSubnav();
   // Карточки библиотеки у Servarr Classic строятся по-своему — перерисовываем при смене дизайна
   if (changed && typeof renderLibrary === "function" && CACHED_SHOWS && CACHED_SHOWS.length) {
@@ -6780,6 +6781,7 @@ function applySearchLayoutStyle() {
   const actionBtn = document.getElementById("btn-header-spotlight-action");
   const colActionBtn = document.getElementById("btn-collections-spotlight-action");
   const isMobile = window.innerWidth <= 768;
+  const isDirectSearch = isMobile || isServarrDesign();
 
   if (libWrap) {
     libWrap.setAttribute("data-search-mode", CURRENT_SEARCH_LAYOUT_STYLE);
@@ -6790,7 +6792,7 @@ function applySearchLayoutStyle() {
 
   if (CURRENT_SEARCH_LAYOUT_STYLE === "spotlight_bar") {
     if (libInput) {
-      if (isMobile) {
+      if (isDirectSearch) {
         libInput.removeAttribute("readonly");
         libInput.placeholder = CURRENT_LANG === "en" ? "Search by title..." : "Поиск по названию...";
       } else {
@@ -6799,7 +6801,7 @@ function applySearchLayoutStyle() {
       }
     }
     if (colInput) {
-      if (isMobile) {
+      if (isDirectSearch) {
         colInput.removeAttribute("readonly");
         colInput.placeholder = CURRENT_LANG === "en" ? "Search collection..." : "Поиск коллекции...";
       } else {
@@ -13735,6 +13737,7 @@ async function openInteractiveSearch(showId, seasonNumber = null, episodeNumber 
     episode: episodeNumber,
     customQuery: initialQuery,
     results: [],
+    favoriteReleases: [],
     indexerFilter: "all",
     statusFilter: "all",
     sortKey: "relevance",
@@ -13745,6 +13748,12 @@ async function openInteractiveSearch(showId, seasonNumber = null, episodeNumber 
 
   renderInteractiveSearchHeader();
   openModal("interactive-search-modal");
+  try {
+    INTERACTIVE_SEARCH_STATE.favoriteReleases = await api(`/api/v1/indexers/favorites/${showId}`);
+    renderInteractiveSearchHeader();
+  } catch (error) {
+    console.warn("Failed to load favorite releases:", error);
+  }
   await executeInteractiveSearch();
 }
 
@@ -13815,6 +13824,27 @@ function renderInteractiveSearchHeader() {
     epBadge = `<span class="badge badge-secondary">${t("show.season")} ${state.season}</span>`;
   }
 
+  const favorite = (state.favoriteReleases || []).find(item => item.season === state.season);
+  const favoriteStatuses = CURRENT_LANG === "en" ? {
+    unchanged: "Up to date", grabbed: "Update grabbed", no_wanted_episodes: "Waiting for missing episodes",
+    topic_not_found: "Topic not found", search_failed: "Indexer unavailable", indexer_disabled: "Indexer disabled",
+    indexer_missing: "Indexer removed", grab_failed: "Grab failed", release_rejected: "Release rejected", busy: "Search in progress",
+    show_unmonitored: "Series monitoring is off",
+  } : {
+    unchanged: "Без изменений", grabbed: "Обновление захвачено", no_wanted_episodes: "Ожидаются разыскиваемые серии",
+    topic_not_found: "Тема не найдена", search_failed: "Индексатор недоступен", indexer_disabled: "Индексатор выключен",
+    indexer_missing: "Индексатор удалён", grab_failed: "Ошибка захвата", release_rejected: "Раздача отклонена", busy: "Поиск уже выполняется",
+    show_unmonitored: "Мониторинг сериала выключен",
+  };
+  const favoriteStatus = favoriteStatuses[favorite?.last_check_status] || (CURRENT_LANG === "en" ? "Awaiting first check" : "Ожидает первой проверки");
+  const favoriteHtml = favorite ? `
+    <div class="hint" style="display:flex; align-items:center; gap:8px; min-width:0;">
+      <i data-lucide="star" class="ico-xs"></i>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(favorite.title)}">${CURRENT_LANG === "en" ? "Following" : "Отслеживается"}: ${escapeHtml(favorite.title)}</span>
+      <span class="badge badge-secondary" title="${favorite.last_checked_at ? escapeHtml(favorite.last_checked_at) : ''}">${favoriteStatus}</span>
+      <button type="button" class="btn btn-secondary btn-small" onclick="unpinInteractiveFavorite(${state.season})">${CURRENT_LANG === "en" ? "Unpin" : "Открепить"}</button>
+    </div>` : "";
+
   headerEl.innerHTML = `
     <div class="interactive-search-title-row">
       <div style="display:flex; align-items:center; gap:8px;">
@@ -13824,6 +13854,7 @@ function renderInteractiveSearchHeader() {
         <span class="hint" id="interactive-results-count"></span>
       </div>
     </div>
+    ${favoriteHtml}
 
     <!-- Поисковая строка для ручного ввода произвольного запроса -->
     <div class="interactive-search-query-bar">
@@ -14079,6 +14110,13 @@ function renderInteractiveReleaseRow(r) {
   const cfList = (r.custom_formats || []).map(cf => `<span class="badge-cf-item" title="+${cf.score}">${escapeHtml(cf.name)}</span>`).join(" ");
 
   const isMovie = INTERACTIVE_SEARCH_STATE.show?.content_type === "movie" || r.parsed_kind === "movie";
+  const favoriteSeason = INTERACTIVE_SEARCH_STATE.season ?? r.parsed_season;
+  const canPin = !isMovie && favoriteSeason !== null && favoriteSeason !== undefined
+    && (r.parsed_season == null || r.parsed_season === favoriteSeason)
+    && !!r.indexer_id && !!r.guid;
+  const isFavorite = canPin && (INTERACTIVE_SEARCH_STATE.favoriteReleases || []).some(
+    item => item.season === favoriteSeason && item.guid === r.guid && item.indexer_id === r.indexer_id
+  );
 
   // Серии релиза в компактном виде — только для сериалов и аниме
   let seasonBadge = "";
@@ -14123,11 +14161,45 @@ function renderInteractiveReleaseRow(r) {
         <div style="display:inline-flex; align-items:center; gap:4px; justify-content:flex-end;">
           <button class="btn btn-secondary btn-small" title="${CURRENT_LANG === 'en' ? 'Inspect release' : 'Проверить релиз'}" onclick="openReleaseInspectorFromSearch(${INTERACTIVE_SEARCH_STATE.results.indexOf(r)})" style="padding:4px 6px;"><i data-lucide="scan-search" class="ico-xs"></i></button>
           <button class="btn ${grabBtnClass} btn-small" onclick='grabRelease(this, ${showId}, ${JSON.stringify(r).replace(/'/g, "&apos;")})'>${grabBtnText}</button>
+          ${canPin ? `<button type="button" class="btn btn-secondary btn-small" title="${CURRENT_LANG === 'en' ? 'Follow only this release for season ' : 'Отслеживать только эту раздачу для сезона '}${favoriteSeason}" onclick="pinInteractiveFavorite(this, ${INTERACTIVE_SEARCH_STATE.results.indexOf(r)}, ${favoriteSeason})" ${isFavorite ? "disabled" : ""}><i data-lucide="star" class="ico-xs"></i>${isFavorite ? " ✓" : ""}</button>` : ""}
           <button class="btn btn-secondary btn-small" title="${CURRENT_LANG === 'en' ? 'Add to blocklist' : 'В черный список'}" onclick='blockReleaseFromSearch(this, ${showId}, ${JSON.stringify(r).replace(/'/g, "&apos;")})' style="padding:4px 6px; color:var(--text-muted);"><i data-lucide="shield-alert" class="ico-xs"></i></button>
         </div>
       </td>
     </tr>
   `;
+}
+
+async function pinInteractiveFavorite(button, resultIndex, season) {
+  const state = INTERACTIVE_SEARCH_STATE;
+  const release = state.results[resultIndex];
+  if (!release || !state.showId) return;
+  await withLoading(button, async () => {
+    try {
+      const favorite = await api(`/api/v1/indexers/favorites/${state.showId}`, {
+        method: "POST",
+        body: JSON.stringify({season, indexer_id: release.indexer_id, guid: release.guid, title: release.title, matched_alias: release.matched_alias}),
+      });
+      state.favoriteReleases = [...(state.favoriteReleases || []).filter(item => item.season !== season), favorite];
+      renderInteractiveSearchHeader();
+      renderInteractiveSearchTable();
+      showToast(CURRENT_LANG === "en" ? "Release pinned for this season" : "Раздача закреплена за сезоном", "success");
+    } catch (error) {
+      showToast(error.message || "Не удалось закрепить раздачу", "error");
+    }
+  });
+}
+
+async function unpinInteractiveFavorite(season) {
+  const state = INTERACTIVE_SEARCH_STATE;
+  try {
+    await api(`/api/v1/indexers/favorites/${state.showId}/${season}`, {method: "DELETE"});
+    state.favoriteReleases = (state.favoriteReleases || []).filter(item => item.season !== season);
+    renderInteractiveSearchHeader();
+    renderInteractiveSearchTable();
+    showToast(CURRENT_LANG === "en" ? "Release unpinned" : "Закрепление снято", "success");
+  } catch (error) {
+    showToast(error.message || "Не удалось снять закрепление", "error");
+  }
 }
 
 async function blockReleaseFromSearch(btn, showId, result) {

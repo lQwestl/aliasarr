@@ -1678,6 +1678,8 @@ async def search_selected_episodes(
                 message = "Фильм ещё не вышел"
             else:
                 message = "Подходящих релизов для фильма не найдено"
+        elif result.get("reason") == "favorite_only":
+            message = "Выбранные серии закреплены за любимой раздачей; ожидается её обновление"
         else:
             if grabbed_ids:
                 if len(grabbed_ids) == 1 and len(payload.episode_ids) == 1:
@@ -1770,6 +1772,8 @@ async def search_season_episodes(
         )
         if grabbed_ids:
             season_msg = f"Сезон {season_number}: захвачено серий {len(grabbed_ids)} из {len(season_episodes)}"
+        elif result.get("reason") == "favorite_only":
+            season_msg = f"Сезон {season_number} закреплён за любимой раздачей; ожидается её обновление"
         elif is_season_all_future:
             downloaded_in_season = [ep for ep in season_episodes if ep.status == EpisodeStatus.DOWNLOADED or bool(getattr(ep, "file_path", None))]
             if downloaded_in_season:
