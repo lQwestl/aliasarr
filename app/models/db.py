@@ -369,6 +369,9 @@ class Episode(Base):
     release_group: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     languages: Mapped[list] = mapped_column(JSON, default=list)
     custom_format_score: Mapped[int] = mapped_column(Integer, default=0)
+    # Счёт кастомных форматов релиза, из которого импортирован файл. NULL — неизвестно
+    # (файлы, импортированные до появления поля): по нему не принимаются апгрейды.
+    imported_cf_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     file_size_bytes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     show: Mapped["Show"] = relationship(back_populates="episodes")

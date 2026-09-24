@@ -28,7 +28,7 @@ from app.services.indexer_service import get_indexer_client
 from app.services.log_safety import redact_sensitive_data
 from app.services.matcher import AliasCandidate, build_alias_candidates, match_release
 from app.services.notifications import notify_all
-from app.services.quality import parse_quality, is_upgrade
+from app.services.quality import parse_quality, upgrade_rejection
 from app.services.rate_limiter import RateLimitExceededError, get_rate_limiter
 from app.services.settings_service import get_or_create_settings
 from app.services.torznab import TorznabClient
@@ -764,7 +764,7 @@ async def grab_release(
                     if ep.downloaded_quality
                     else (parse_quality(os.path.basename(ep.file_path)) if ep.file_path else parse_quality("SDTV"))
                 )
-                if is_upgrade(current_q, rel_quality, allowed_qualities):
+                if upgrade_rejection(current_q, rel_quality, allowed_qualities=allowed_qualities) is None:
                     target_episodes.append(ep)
 
         if not target_episodes:

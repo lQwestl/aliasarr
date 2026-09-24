@@ -590,11 +590,13 @@ def get_show(show_id: int, db: Session = Depends(get_db), current_user: User = D
                         q_parsed = parse_quality(os.path.basename(ep.file_path))
                         if q_parsed and q_parsed.name:
                             ep.downloaded_quality = q_parsed.name
+                            ep.imported_cf_score = None
                             needs_commit = True
                 else:
                     # Файл был удален с диска пользователем: сбрасываем путь, качество, MediaInfo и статус
                     ep.file_path = None
                     ep.downloaded_quality = None
+                    ep.imported_cf_score = None
                     ep.file_size_bytes = None
                     ep.video_codec = None
                     ep.audio_codec = None
@@ -611,6 +613,7 @@ def get_show(show_id: int, db: Session = Depends(get_db), current_user: User = D
                 if not is_active_download:
                     if getattr(ep, "downloaded_quality", None) is not None or getattr(ep, "file_size_bytes", None) is not None or getattr(ep, "video_codec", None) is not None:
                         ep.downloaded_quality = None
+                        ep.imported_cf_score = None
                         ep.file_size_bytes = None
                         ep.video_codec = None
                         ep.audio_codec = None
@@ -1348,6 +1351,7 @@ def list_episodes(show_id: int, db: Session = Depends(get_db), current_user: Use
         if getattr(ep, "file_path", None) and not has_real_file:
             ep.file_path = None
             ep.downloaded_quality = None
+            ep.imported_cf_score = None
             ep.file_size_bytes = None
             ep.video_codec = None
             ep.audio_codec = None
@@ -1364,10 +1368,12 @@ def list_episodes(show_id: int, db: Session = Depends(get_db), current_user: Use
                 q_parsed = parse_quality(os.path.basename(ep.file_path))
                 if q_parsed and q_parsed.name:
                     ep.downloaded_quality = q_parsed.name
+                    ep.imported_cf_score = None
                     needs_commit = True
         elif not getattr(ep, "file_path", None):
             if getattr(ep, "downloaded_quality", None) is not None or getattr(ep, "video_codec", None) is not None:
                 ep.downloaded_quality = None
+                ep.imported_cf_score = None
                 ep.file_size_bytes = None
                 ep.video_codec = None
                 ep.audio_codec = None
@@ -1855,6 +1861,7 @@ def sync_show_disk(
             )
             ep.file_path = None
             ep.downloaded_quality = None
+            ep.imported_cf_score = None
             ep.file_size_bytes = None
             ep.video_codec = None
             ep.audio_codec = None
@@ -1904,6 +1911,7 @@ def sync_show_disk(
                 episode.download_progress = 1.0
             episode.file_path = main_file
             episode.downloaded_quality = q_info.name
+            episode.imported_cf_score = None
             episode.video_codec = q_info.video_codec
             episode.audio_codec = q_info.audio_codec
             episode.audio_channels = q_info.audio_channels
@@ -1948,6 +1956,7 @@ def sync_show_disk(
                     matched_ep.download_progress = 1.0
                 matched_ep.file_path = file_path
                 matched_ep.downloaded_quality = q_info.name
+                matched_ep.imported_cf_score = None
                 matched_ep.video_codec = q_info.video_codec
                 matched_ep.audio_codec = q_info.audio_codec
                 matched_ep.audio_channels = q_info.audio_channels
@@ -1983,6 +1992,7 @@ def sync_show_disk(
                 )
                 ep.file_path = None
                 ep.downloaded_quality = None
+                ep.imported_cf_score = None
                 ep.file_size_bytes = None
                 ep.video_codec = None
                 ep.audio_codec = None
@@ -1997,6 +2007,7 @@ def sync_show_disk(
             elif not getattr(ep, "file_path", None):
                 if getattr(ep, "downloaded_quality", None) is not None or getattr(ep, "video_codec", None) is not None:
                     ep.downloaded_quality = None
+                    ep.imported_cf_score = None
                     ep.file_size_bytes = None
                     ep.video_codec = None
                     ep.audio_codec = None
@@ -2671,6 +2682,7 @@ def execute_manual_import(
                 episode.file_path = dest_video_path
                 episode.download_progress = 1.0
                 episode.downloaded_quality = quality
+                episode.imported_cf_score = None  # релиз неизвестен: апгрейд по форматам не оценивается
                 episode.video_codec = q_info.video_codec
                 episode.audio_codec = q_info.audio_codec
                 episode.audio_channels = q_info.audio_channels
@@ -3192,6 +3204,7 @@ def execute_global_manual_import(
                 episode.file_path = dest_video_path
                 episode.download_progress = 1.0
                 episode.downloaded_quality = quality
+                episode.imported_cf_score = None  # релиз неизвестен: апгрейд по форматам не оценивается
                 episode.video_codec = q_info.video_codec
                 episode.audio_codec = q_info.audio_codec
                 episode.audio_channels = q_info.audio_channels

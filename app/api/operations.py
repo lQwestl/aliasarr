@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 import os
+import re
 import shutil
 from typing import Optional, List, Dict, Any
 
@@ -305,6 +306,19 @@ def get_health_check(
 # Quality profiles
 # ---------------------------------------------------------------------------
 
+def _validated_title_regex(raw: str) -> Optional[str]:
+    """Фильтр названий профиля: ошибка в шаблоне должна проявиться при сохранении,
+    а не молча отклонять все релизы при поиске."""
+    pattern = (raw or "").strip()
+    if not pattern:
+        return None
+    try:
+        re.compile(pattern, re.IGNORECASE)
+    except re.error as exc:
+        raise HTTPException(400, f"Некорректное регулярное выражение фильтра названий: {exc}")
+    return pattern
+
+
 @router.get("/quality-profiles", response_model=list[QualityProfileOut])
 def list_quality_profiles(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(QualityProfile).all()
@@ -325,7 +339,7 @@ def create_quality_profile(
 ):
     data = payload.model_dump()
     if data.get("release_title_regex"):
-        data["release_title_regex"] = data["release_title_regex"].strip() or None
+        data["release_title_regex"] = _validated_title_regex(data["release_title_regex"])
     profile = QualityProfile(**data)
     db.add(profile)
     db.commit()
@@ -369,7 +383,7 @@ def update_quality_profile(
     dump = payload.model_dump(exclude_unset=True)
     if "release_title_regex" in dump:
         if dump["release_title_regex"]:
-            dump["release_title_regex"] = dump["release_title_regex"].strip() or None
+            dump["release_title_regex"] = _validated_title_regex(dump["release_title_regex"])
         else:
             dump["release_title_regex"] = None
     for field, value in dump.items():

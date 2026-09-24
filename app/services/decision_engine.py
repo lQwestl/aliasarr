@@ -33,7 +33,7 @@ except (ImportError, Exception):
     Show = Any  # type: ignore
 from app.services.custom_formats import MatchedCustomFormat, calculate_custom_formats_for_release
 from app.services.language_parser import Language, get_language_badges, parse_languages
-from app.services.quality import QualityInfo, is_allowed, parse_quality
+from app.services.quality import QualityInfo, is_allowed, parse_quality, size_limit_rejection, upgrade_rejection
 from app.services.release_group_parser import parse_release_group
 
 
@@ -183,6 +183,18 @@ class DecisionEngine:
                 if match.parsed.kind == ReleaseKind.UNKNOWN and s_lbl["type"] == "none":
                     rejections.append("Релиз не содержит информации о сезоне или сериях сериала")
 
+                daily_date = getattr(match.parsed, "air_date", None)
+                if daily_date and episodes:
+                    def _iso(value):
+                        if value is None:
+                            return None
+                        if hasattr(value, "date") and callable(value.date):
+                            value = value.date()
+                        return value.isoformat() if hasattr(value, "isoformat") else str(value)[:10]
+
+                    if not any(_iso(getattr(ep, "air_date", None)) == daily_date for ep in episodes):
+                        rejections.append(f"Выпуск от {daily_date} не относится к разыскиваемым сериям")
+
                 if episodes:
                     target_seasons = {ep.season_number for ep in episodes}
                     target_ep_keys = {(ep.season_number, ep.episode_number) for ep in episodes}
@@ -315,6 +327,8 @@ class DecisionEngine:
                                 rejections.append(f"Релиз покрывает диапазон серий {alias_start or 1}-{alias_end or '...'}, который не содержит разыскиваемых серий")
 
         # 5. Проверка качества в профиле (QualityAllowedSpecification)
+        from app.services.parser import parse_episode as _parse_episode
+        parsed_for_size = _parse_episode(title)
         if quality_profile:
             if not is_allowed(quality, quality_profile.allowed_qualities):
                 rejections.append(f"Качество «{quality.name}» не разрешено в профиле «{quality_profile.name}»")
@@ -330,13 +344,14 @@ class DecisionEngine:
                     logger.warning("Ошибка проверки Regex '%s' профиля '%s': %s", pat, quality_profile.name, ex)
                     rejections.append(f"Ошибка проверки Regex профиля качества: {ex}")
 
-            # 6. Проверка размера файла (AcceptableSizeSpecification)
-            size_mb = size_bytes / (1024 * 1024) if size_bytes > 0 else 0
-            if size_mb > 0:
-                if quality_profile.min_size_mb and size_mb < quality_profile.min_size_mb:
-                    rejections.append(f"Размер ({size_mb:.1f} MB) меньше минимального порога ({quality_profile.min_size_mb} MB)")
-                if quality_profile.max_size_mb and size_mb > quality_profile.max_size_mb:
-                    rejections.append(f"Размер ({size_mb:.1f} MB) превышает максимальный лимит ({quality_profile.max_size_mb} MB)")
+            # 6. Проверка размера файла (AcceptableSizeSpecification) — на серию, как в автопоиске
+            if show and show.content_type == "movie":
+                release_episode_count = 1
+            else:
+                release_episode_count = len(parsed_for_size.episodes) if parsed_for_size.episodes else (len(episodes) if episodes else 1)
+            size_reason = size_limit_rejection(size_bytes, quality_profile, release_episode_count)
+            if size_reason:
+                rejections.append(size_reason)
 
         # 7. Проверка сидов (SeedersSpecification)
         min_seeds = getattr(settings, "min_seeds", 0) if settings else 0
@@ -356,22 +371,16 @@ class DecisionEngine:
                     rejections.append("Эпизод уже скачан, автоматический апгрейд качества выключен")
                 else:
                     for ep in downloaded_episodes:
-                        existing_q_name = ep.downloaded_quality or "SDTV"
-                        existing_q = parse_quality(existing_q_name)
-                        existing_score = getattr(ep, "custom_format_score", 0) or 0
-
-                        cutoff_q = quality_profile.cutoff_quality if quality_profile else None
-                        cutoff_score = quality_profile.cutoff_score if quality_profile else 0
-
-                        is_quality_better = quality.rank > existing_q.rank
-                        is_score_better = cf_score > existing_score
-
-                        if cutoff_q and existing_q.rank >= parse_quality(cutoff_q).rank and existing_score >= cutoff_score:
-                            rejections.append(f"Уже достигнут порог качества Cutoff ({cutoff_q})")
-                            break
-
-                        if not is_quality_better and not is_score_better:
-                            rejections.append(f"Существующий файл имеет равное или лучшее качество ({existing_q.name}, счёт: {existing_score})")
+                        reason = upgrade_rejection(
+                            parse_quality(ep.downloaded_quality or "SDTV"),
+                            quality,
+                            current_score=getattr(ep, "imported_cf_score", None),
+                            candidate_score=cf_score,
+                            cutoff_quality=quality_profile.cutoff_quality if quality_profile else None,
+                            cutoff_score=(quality_profile.cutoff_score if quality_profile else 0) or 0,
+                        )
+                        if reason:
+                            rejections.append(reason)
                             break
 
         approved = len(rejections) == 0

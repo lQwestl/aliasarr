@@ -1088,6 +1088,45 @@ def match_companion_files_for_episode(
     return matched
 
 
+def _grabbed_release_cf_score(db, show, torrent_hash: Optional[str]) -> Optional[int]:
+    """Счёт кастомных форматов релиза, из которого импортируется файл.
+
+    Считается по названию захваченного релиза из истории: имя файла после
+    переименования уже не содержит ни группы, ни озвучки. Без этого значения
+    сравнение по кастомным форматам при апгрейде шло с нулём.
+    """
+    if not db or not torrent_hash:
+        return None
+    try:
+        grabbed = (
+            db.query(DownloadHistory)
+            .filter(func.lower(DownloadHistory.torrent_hash) == torrent_hash.lower())
+            .order_by(DownloadHistory.id.desc())
+            .first()
+        )
+        title = getattr(grabbed, "release_title", None)
+        if not title:
+            return None
+        from app.models.db import QualityProfile
+        from app.services.custom_formats import calculate_custom_formats_for_release
+        from app.services.language_parser import parse_languages
+        from app.services.release_group_parser import parse_release_group
+
+        profile = db.get(QualityProfile, show.quality_profile_id) if getattr(show, "quality_profile_id", None) else None
+        score, _matched = calculate_custom_formats_for_release(
+            db=db,
+            title=title,
+            quality=parse_quality(title),
+            languages=parse_languages(title),
+            release_group=parse_release_group(title),
+            quality_profile=profile,
+        )
+        return int(score)
+    except Exception as exc:
+        logger.debug("Не удалось посчитать кастомные форматы импортируемого релиза: %s", exc)
+        return None
+
+
 def process_download(
     db: Session,
     show: Show,
@@ -1246,6 +1285,7 @@ def process_download(
             all_show_eps = []
 
     dl_eps: list[Episode] = []
+    release_cf_score = _grabbed_release_cf_score(db, show, torrent_hash)
     if torrent_hash and db:
         try:
             from sqlalchemy import func, or_
@@ -1811,6 +1851,9 @@ def process_download(
                 episode.file_path = dest_video_path
                 episode.download_progress = 1.0
                 episode.downloaded_quality = quality
+                if release_cf_score is not None:
+                    episode.custom_format_score = release_cf_score
+                    episode.imported_cf_score = release_cf_score
                 if q_info.video_codec:
                     episode.video_codec = q_info.video_codec
                 if q_info.audio_codec:
@@ -2323,6 +2366,7 @@ def process_movie_download(
     # У фильма ровно одна "серия"-заглушка
     episode = db.query(Episode).filter_by(show_id=show.id, season_number=1, episode_number=1).first()
     is_upgrade = episode is not None and episode.status == EpisodeStatus.DOWNLOADED
+    release_cf_score = _grabbed_release_cf_score(db, show, torrent_hash)
     if not episode:
         episode = Episode(
             show_id=show.id,
@@ -2341,6 +2385,9 @@ def process_movie_download(
             dynamic_range=q_info.dynamic_range,
             file_size_bytes=os.path.getsize(dest_video_path) if os.path.exists(dest_video_path) else None,
         )
+        if release_cf_score is not None:
+            episode.custom_format_score = release_cf_score
+            episode.imported_cf_score = release_cf_score
         if movie_edition:
             show.edition = movie_edition
             db.add(show)
@@ -2351,6 +2398,9 @@ def process_movie_download(
         episode.file_path = dest_video_path
         episode.download_progress = 1.0
         episode.downloaded_quality = quality
+        if release_cf_score is not None:
+            episode.custom_format_score = release_cf_score
+            episode.imported_cf_score = release_cf_score
         if movie_edition:
             episode.edition = movie_edition
             show.edition = movie_edition

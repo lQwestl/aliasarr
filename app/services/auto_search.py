@@ -22,7 +22,7 @@ import re
 import uuid
 
 try:
-    from sqlalchemy import and_, or_
+    from sqlalchemy import and_, func, or_
     from sqlalchemy.orm import Session
     from app.models.db import (
         DownloadClient,
@@ -67,7 +67,7 @@ from app.services.download_client import get_client
 from app.services.matcher import build_alias_candidates, match_release, score_candidate
 from app.services.notifications import notify_all
 from app.services.parser import ReleaseKind, detect_season_label, parse_episode
-from app.services.quality import is_allowed, parse_quality
+from app.services.quality import is_allowed, parse_quality, size_limit_rejection, upgrade_rejection
 from app.services.indexer_service import get_indexer_client
 from app.services.log_safety import redact_sensitive_data
 from app.services.rate_limiter import RateLimitExceededError, get_rate_limiter
@@ -1245,6 +1245,47 @@ def _generate_season_queries(base: str, sn: int, is_anime: bool = False) -> list
     return terms
 
 
+def _indexer_priority(indexer) -> int:
+    """Приоритет индексатора: меньше — выше. «priority or 100» превращал
+    высший приоритет 0 в самый низкий."""
+    priority = getattr(indexer, "priority", None)
+    return 100 if priority is None else int(priority)
+
+
+def _episode_air_date_iso(ep) -> Optional[str]:
+    air = getattr(ep, "air_date", None)
+    if air is None:
+        return None
+    if isinstance(air, dt.datetime):
+        air = air.date()
+    return air.isoformat() if hasattr(air, "isoformat") else str(air)[:10]
+
+
+def _season_episode_counts(db: Session, show: Show) -> dict[int, int]:
+    """Число серий в каждом сезоне тайтла — чтобы оценивать размер пака на серию."""
+    try:
+        rows = db.query(Episode.season_number, func.count(Episode.id)).filter(
+            Episode.show_id == show.id,
+        ).group_by(Episode.season_number).all()
+        return {int(season): int(count) for season, count in rows if season is not None}
+    except Exception:
+        return {}
+
+
+def _release_episode_count(parsed, season_episode_counts: dict, show: Show) -> int:
+    """Сколько серий содержит релиз (для лимитов размера на серию)."""
+    if getattr(show, "content_type", None) == "movie":
+        return 1
+    episodes = list(getattr(parsed, "episodes", None) or [])
+    if episodes:
+        return len(episodes) + len(getattr(parsed, "special_episodes", None) or [])
+    seasons = list(getattr(parsed, "seasons", None) or [])
+    if not seasons and getattr(parsed, "season", None) is not None:
+        seasons = [parsed.season]
+    total = sum(season_episode_counts.get(season, 0) for season in seasons)
+    return total or 1
+
+
 async def _collect_candidates(
     db: Session,
     show: Show,
@@ -1255,6 +1296,7 @@ async def _collect_candidates(
     quality_profile = db.get(QualityProfile, show.quality_profile_id) if show.quality_profile_id else None
     allowed_qualities = quality_profile.allowed_qualities if quality_profile else []
     alias_candidates = build_alias_candidates(show, db=db)
+    season_episode_counts = _season_episode_counts(db, show)
 
     # Фильтруем алиасы по области действия (сезон/диапазон), если задан список разыскиваемых серий
     wanted_seasons = {
@@ -1545,7 +1587,30 @@ async def _collect_candidates(
                         })
                         continue
                 except Exception as ex:
+                    # Как и в ручном поиске: сломанный фильтр профиля не должен
+                    # молча выключаться и пропускать всё подряд.
                     logger.warning("Ошибка проверки regex '%s' в auto_search: %s", pat, ex)
+                    rejected_candidates.append({
+                        "title": rel.title,
+                        "indexer": idx_name,
+                        "quality": quality.name,
+                        "reason": f"Ошибка проверки Regex профиля качества: {ex}",
+                    })
+                    continue
+
+            size_reason = size_limit_rejection(
+                getattr(rel, "size_bytes", 0) or 0,
+                quality_profile,
+                _release_episode_count(match.parsed, season_episode_counts, show),
+            )
+            if size_reason:
+                rejected_candidates.append({
+                    "title": rel.title,
+                    "indexer": idx_name,
+                    "quality": quality.name,
+                    "reason": size_reason,
+                })
+                continue
 
             candidates.append({
                 "rel": rel, "match": match, "quality": quality, "indexer": indexer,
@@ -1787,6 +1852,10 @@ async def _do_search_and_grab(
                 return False
             return True
 
+        # Ежедневные выпуски (Show.2024.10.15): серия определяется датой выхода
+        if getattr(parsed, "air_date", None):
+            return _episode_air_date_iso(ep) == parsed.air_date
+
         # Комбинированные релизы TV + Special (покрывают TV сезон и спешлы Season 0)
         if parsed.has_specials:
             if ep.season_number == 0:
@@ -1989,7 +2058,22 @@ async def _do_search_and_grab(
     scored_candidates = []
     for c in candidates:
         covered = [ep for ep in wanted_episodes if covers(c, ep)]
-        
+        if not covered:
+            continue
+
+        # Вычисляем кастомные форматы (CF score) — нужны и для решения об апгрейде
+        rel_langs = parse_languages(c["rel"].title)
+        rel_group = parse_release_group(c["rel"].title)
+        cf_score, _ = calculate_custom_formats_for_release(
+            db=db,
+            title=c["rel"].title,
+            quality=c["quality"],
+            languages=rel_langs,
+            release_group=rel_group,
+            size_bytes=getattr(c["rel"], "size_bytes", 0) or 0,
+            quality_profile=quality_profile,
+        )
+
         final_covered = []
         for ep in covered:
             if ep.status == EpisodeStatus.DOWNLOADED:
@@ -2013,31 +2097,24 @@ async def _do_search_and_grab(
                     current_quality_name = "SDTV"
 
                 current_quality = parse_quality(current_quality_name)
-                
-                # Проверка достижения порога качества (cutoff_quality)
-                if getattr(quality_profile, "cutoff_quality", None):
-                    cutoff = parse_quality(quality_profile.cutoff_quality)
-                    if current_quality.rank >= cutoff.rank:
-                        continue
 
-                if not is_upgrade(current_quality, c["quality"], allowed_qualities):
+                # Cutoff учитывает и качество, и счёт кастомных форматов; замена
+                # допустима только на лучшее качество, PROPER/REPACK того же
+                # качества или тот же уровень с большим счётом форматов.
+                if upgrade_rejection(
+                    current_quality,
+                    c["quality"],
+                    allowed_qualities=allowed_qualities,
+                    current_score=getattr(ep, "imported_cf_score", None),
+                    candidate_score=cf_score,
+                    cutoff_quality=getattr(quality_profile, "cutoff_quality", None),
+                    cutoff_score=getattr(quality_profile, "cutoff_score", 0) or 0,
+                ):
                     continue
             final_covered.append(ep)
-            
+
         if not final_covered:
             continue
-
-        # Вычисляем кастомные форматы (CF score)
-        rel_langs = parse_languages(c["rel"].title)
-        rel_group = parse_release_group(c["rel"].title)
-        cf_score, _ = calculate_custom_formats_for_release(
-            db=db,
-            title=c["rel"].title,
-            quality=c["quality"],
-            languages=rel_langs,
-            release_group=rel_group,
-            quality_profile=quality_profile,
-        )
 
         score = score_candidate(c["match"], seeders=c["rel"].seeders, quality_rank=c["quality"].rank)
         scored_candidates.append({
@@ -2103,16 +2180,17 @@ async def _do_search_and_grab(
         )
         return {"show_id": show.id, "grabbed": [], "criteria": search_terms}
 
-    # Многоуровневая сортировка кандидатов:
-    # 1. Приоритет качества из профиля (Quality Preference: наивысшее качество побеждает всегда!)
-    # 2. Очки кастомных форматов (CF Score)
-    # 3. Флаг полноты сезона относительно карточки (is_full_season: полный пак сезона побеждает частичные паки 1-10)
-    # 4. Общее число серий сезона в релизе (season_episodes_count: 20 серий > 10 серий)
-    # 5. Флаг покрытия всех разыскиваемых серий (is_wanted_full)
-    # 6. Число закрываемых разыскиваемых серий (wanted_coverage_count)
-    # 7. Приоритет индексатора (0 — высший приоритет, 100 — низший)
-    # 8. Число сидеров (seeders)
-    # 9. Скор соответствия названия (match.score)
+    # Многоуровневая сортировка кандидатов (в порядке значимости, как в кортеже ниже):
+    # 1. Ранг качества (наивысшее качество побеждает всегда)
+    # 2. Флаг полноты сезона относительно карточки (is_full_season: полный пак сезона побеждает частичные паки 1-10)
+    # 3. Флаг покрытия всех разыскиваемых серий (is_wanted_full)
+    # 4. Число закрываемых разыскиваемых серий (wanted_coverage_count)
+    # 5. Общее число серий сезона в релизе (season_episodes_count: 20 серий > 10 серий)
+    # 6. Очки кастомных форматов (CF Score)
+    # 7. Предпочитаемый протокол из профиля задержки
+    # 8. Приоритет индексатора (0 — высший приоритет, 1000 — низший)
+    # 9. Число сидеров (seeders)
+    # 10. Скор соответствия названия (match.score)
     wanted_seasons_set = {ep.season_number for ep in wanted_episodes if ep.season_number is not None and ep.season_number > 0}
 
     def candidate_sort_key(c):
@@ -2149,7 +2227,7 @@ async def _do_search_and_grab(
 
         is_wanted_full = 1 if len(c.get("covered", [])) >= len(wanted_episodes) else 0
         wanted_coverage_count = len(c.get("covered", []))
-        indexer_priority = getattr(c.get("indexer"), "priority", 100) or 100
+        indexer_priority = _indexer_priority(c.get("indexer"))
         seeders = getattr(c.get("rel"), "seeders", 0) or 0
         match_score = c.get("score") or 0
 
@@ -2577,6 +2655,44 @@ async def _do_search_and_grab(
         return {"show_id": show.id, "grabbed": grabbed}
 
 
+# Фоновый поиск запускается каждые 15 минут. Серии, вышедшие недавно, ищутся
+# каждый раз: для них как раз и появляются новые релизы. Давно вышедшие серии,
+# которых на трекерах нет, ищутся реже — иначе каждые 15 минут шёл бы полный
+# поиск по всем алиасам во всех индексаторах, что грозит баном на трекерах.
+RECENT_EPISODE_DAYS = 14
+BACKLOG_SEARCH_INTERVAL_HOURS = 12
+
+
+def _backlog_search_due(db: Session, show: Show, now: dt.datetime) -> bool:
+    if getattr(show, "upgrade_requested", False):
+        return True
+    last = getattr(show, "last_search_at", None)
+    if last is None or (now - last) >= dt.timedelta(hours=BACKLOG_SEARCH_INTERVAL_HOURS):
+        return True
+    recent_cutoff = now - dt.timedelta(days=RECENT_EPISODE_DAYS)
+    try:
+        wanted_air_dates = [
+            row[0] for row in db.query(Episode.air_date).filter(
+                Episode.show_id == show.id,
+                Episode.monitored == True,  # noqa: E712
+                or_(
+                    Episode.status == EpisodeStatus.WANTED,
+                    and_(Episode.status == EpisodeStatus.DOWNLOADED, Episode.upgrade_requested == True),  # noqa: E712
+                ),
+            ).all()
+        ]
+    except Exception:
+        return True
+    for air_date in wanted_air_dates:
+        if air_date is None:
+            return True
+        if not isinstance(air_date, dt.datetime):
+            air_date = dt.datetime.combine(air_date, dt.time())
+        if air_date >= recent_cutoff:
+            return True
+    return False
+
+
 async def run_wanted_search(db: Session) -> list[dict]:
     """Запускает поиск/захват для всех мониторящихся шоу с wanted-сериями или запросом на улучшение качества."""
     from app.services.task_manager import task_manager
@@ -2601,6 +2717,15 @@ async def run_wanted_search(db: Session) -> list[dict]:
             return []
 
         shows = db.query(Show).filter(Show.id.in_(wanted_shows_ids)).all()
+        now = dt.datetime.utcnow()
+        due_shows = [show for show in shows if _backlog_search_due(db, show, now)]
+        skipped = len(shows) - len(due_shows)
+        if skipped:
+            logger.info(
+                "Автопоиск: %d тайтлов с давно вышедшими сериями пропущено до следующего окна (раз в %d ч)",
+                skipped, BACKLOG_SEARCH_INTERVAL_HOURS,
+            )
+        shows = due_shows
         w_task.update(message=f"Поиск для {len(shows)} тайтлов с разыскиваемыми сериями / обновлениями...")
         results = []
         total_grabbed = 0

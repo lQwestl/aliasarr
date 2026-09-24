@@ -280,7 +280,9 @@ def build_alias_candidates(show, db=None) -> list[AliasCandidate]:
                 sub_parts.append(no_yr)
 
         lang_str = alias.language.value if hasattr(getattr(alias, "language", None), "value") else (str(alias.language) if getattr(alias, "language", None) else "ru")
-        prio = getattr(alias, "priority", 100) or 100
+        prio = getattr(alias, "priority", None)
+        if prio is None:
+            prio = 100
 
         for part in sub_parts:
             norm = normalize_title(part)
@@ -504,6 +506,12 @@ def _is_part_1_alias(a: Any) -> bool:
     return offset_ok and target_ok and start_ok and end_ok
 
 
+_COUNTRY_TAGS = {"us", "uk", "au", "nz", "ca"}
+# Метка страны в сценовом имени пишется заглавными: «The.Office.US.S01E01».
+# Строчное «Us» в «It.Ends.With.Us» — часть названия.
+_RELEASE_COUNTRY_RE = re.compile(r"(?:^|[\s._\-])(US|UK|AU|NZ|CA)(?=[\s._\-]|$)")
+
+
 def best_alias_match(
     release_name: str,
     aliases: Iterable[AliasCandidate],
@@ -525,6 +533,8 @@ def best_alias_match(
     is_part_2 = (rel_s is not None and rel_s >= 2) or bool(re.search(r"\b(?:тв|tv)[\s\-_]?2\b|\b2nd\s*season\b|\bpart\s*2\b|\bчасть\s*2\b", release_name, re.IGNORECASE))
 
     alias_list = list(aliases)
+    m_country = _RELEASE_COUNTRY_RE.search(release_name or "")
+    release_country = m_country.group(1).lower() if m_country else None
     has_scoped_part_2 = any(_is_part_2_alias(a) for a in alias_list)
     has_scoped_part_1 = any(_is_part_1_alias(a) for a in alias_list)
 
@@ -557,7 +567,19 @@ def best_alias_match(
         alias_clean = _clean_stopwords(norm_alias)
         base_clean = _clean_stopwords(base_alias) if base_alias else ""
 
-        for seg in segments:
+        alias_segments = list(segments)
+        if release_country and not (alias_words & _COUNTRY_TAGS):
+            # «The.Office.US.S01E01» против алиаса «The Office»: метка страны —
+            # часть сценового имени, а не названия. Если же алиас сам содержит
+            # страну («The Office (US)»), метку не трогаем, чтобы UK не совпал с US.
+            for seg in segments:
+                words = seg.split()
+                if len(words) >= 2 and words[-1] == release_country:
+                    stripped = " ".join(words[:-1])
+                    if stripped not in alias_segments:
+                        alias_segments.append(stripped)
+
+        for seg in alias_segments:
             seg_words = set(seg.split())
             seg_clean = _clean_stopwords(seg)
 

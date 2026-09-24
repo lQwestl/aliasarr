@@ -42,6 +42,7 @@ class ParsedRelease:
     special_episodes: list[int] = field(default_factory=list)  # номера спецвыпусков (сезон 0)
     raw: str = ""
     matched_pattern: str = ""
+    air_date: Optional[str] = None                      # ISO-дата ежедневного выпуска (Show.2024.10.15)
 
     @property
     def episode(self) -> Optional[int]:
@@ -552,9 +553,42 @@ def extract_part_info(raw: str) -> tuple[Optional[int], Optional[int]]:
     return part_num, total_in_part
 
 
+# «S01 E01» / «S01.E01» — сезон и серия, разделённые пробелом или точкой.
+_RE_SPLIT_SXXEXX = re.compile(r"\bS(\d{1,2})\s+E(\d{1,3})\b", re.IGNORECASE)
+# Сезон, пронумерованный годом (S2024E01) — так нумеруют ежегодные шоу.
+_RE_YEAR_SEASON_EP = re.compile(r"\bS((?:19|20)\d{2})E(\d{1,3})\b", re.IGNORECASE)
+# Ежедневные выпуски: «Show.Name.2024.10.15» (не в скобках — там обычно дата релиза).
+_RE_DAILY_DATE = re.compile(
+    r"(?<![\[(\d])\b((?:19|20)\d{2})[ ._-](0[1-9]|1[0-2])[ ._-](0[1-9]|[12]\d|3[01])\b(?![\])])"
+)
+_RE_ANY_SXXEXX = re.compile(r"\bS\d{1,4}\s*E\d{1,4}\b|\b\d{1,2}x\d{1,4}\b", re.IGNORECASE)
+
+
 def _parse_episode_internal(release_name: str) -> ParsedRelease:
     raw = release_name
-    name = normalize(release_name)
+    name = _RE_SPLIT_SXXEXX.sub(lambda m: f"S{m.group(1)}E{m.group(2)}", normalize(release_name))
+
+    m_year_season = _RE_YEAR_SEASON_EP.search(name)
+    if m_year_season and not _NON_VIDEO_RELEASE_RE.search(raw):
+        return ParsedRelease(
+            kind=ReleaseKind.EPISODE,
+            season=int(m_year_season.group(1)),
+            episodes=[int(m_year_season.group(2))],
+            raw=raw,
+            matched_pattern="year_season_episode",
+        )
+
+    if not _RE_ANY_SXXEXX.search(name):
+        m_daily = _RE_DAILY_DATE.search(name)
+        if m_daily and not _NON_VIDEO_RELEASE_RE.search(raw):
+            # Без этой ветки «2024.10.15» разбиралось как абсолютная серия 10.
+            year, month, day = m_daily.groups()
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE,
+                raw=raw,
+                matched_pattern="daily_date",
+                air_date=f"{year}-{month}-{day}",
+            )
 
     # 0. Исключение не-видео релизов (аудиодорожки, саундтреки, сабы, манга и т.п.)
     if _NON_VIDEO_RELEASE_RE.search(raw):
