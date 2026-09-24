@@ -588,10 +588,20 @@ def fix_all_media_permissions(
         if r and os.path.isdir(r):
             roots.add(os.path.abspath(r))
 
+    from app.services.path_security import UnsafeMediaPathError, require_library_descendant
+
+    skipped_paths = []
     shows = db.query(Show).all()
     for s in shows:
         sp = s.path or get_show_default_path(s, settings)
         if sp and os.path.isdir(sp):
+            # Рекурсивный chmod 0777 допустим только внутри медиатеки: путь
+            # тайтла, указывающий на «/» или /config, открыл бы запись всем.
+            try:
+                require_library_descendant(sp, settings)
+            except UnsafeMediaPathError:
+                skipped_paths.append(sp)
+                continue
             roots.add(os.path.abspath(sp))
 
     total_dirs = 0
@@ -606,6 +616,7 @@ def fix_all_media_permissions(
         "roots_processed": len(roots),
         "dirs_fixed": total_dirs,
         "files_fixed": total_files,
+        "skipped_paths": skipped_paths,
         "message": f"Права доступа обновлены для {len(roots)} путей ({total_dirs} папок, {total_files} файлов)",
     }
 

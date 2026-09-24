@@ -17,6 +17,8 @@ from app.services.cover_service import (
     get_collection_poster_path,
     get_collection_backdrop_path,
     optimize_image,
+    NotAnImageError,
+    fetch_remote_image,
     save_show_poster,
     save_collection_poster,
     save_collection_backdrop,
@@ -29,6 +31,21 @@ from app.services.cover_service import (
     backfill_existing_covers,
     attach_version_to_cover_url,
 )
+
+from PIL import Image
+
+
+def _image_bytes(color=(200, 30, 30), size=(8, 12), fmt="PNG") -> bytes:
+    """Настоящее изображение: обложки, которые не разбираются как картинка, не сохраняются."""
+    buf = io.BytesIO()
+    Image.new("RGB", size, color).save(buf, format=fmt)
+    return buf.getvalue()
+
+
+def _is_jpeg(path: str) -> bool:
+    with Image.open(path) as img:
+        return img.format == "JPEG"
+
 
 try:
     from sqlalchemy import create_engine
@@ -68,20 +85,25 @@ class TestCoverServiceFilesystem(unittest.TestCase):
         coll_path = get_collection_poster_path(99)
         self.assertEqual(coll_path, os.path.join(self.temp_dir, "collections", "99", "poster.jpg"))
 
-    def test_optimize_image_fallback(self):
-        raw_bytes = b"fake_image_bytes_12345"
-        out = optimize_image(raw_bytes)
-        self.assertEqual(out, raw_bytes)
+    def test_optimize_image_rejects_non_images(self):
+        # Раньше байты, не являющиеся картинкой, сохранялись как есть — так ответ
+        # внутреннего сервиса становился доступен через эндпоинт постера.
+        with self.assertRaises(NotAnImageError):
+            optimize_image(b"<html>router admin page</html>")
+
+    def test_optimize_image_converts_to_jpeg(self):
+        out = optimize_image(_image_bytes(fmt="PNG"))
+        with Image.open(io.BytesIO(out)) as img:
+            self.assertEqual(img.format, "JPEG")
 
     def test_save_and_etag_show_poster(self):
-        sample_bytes = b"\xff\xd8\xff\xe0sample_jpeg_content"
+        sample_bytes = _image_bytes()
         url = asyncio.run(save_show_poster(10, sample_bytes))
         self.assertTrue(url.startswith("/api/v1/shows/10/poster?v="))
 
         target_file = get_show_poster_path(10)
         self.assertTrue(os.path.isfile(target_file))
-        with open(target_file, "rb") as f:
-            self.assertEqual(f.read(), sample_bytes)
+        self.assertTrue(_is_jpeg(target_file))
 
         etag = get_cover_etag(target_file)
         self.assertIsNotNone(etag)
@@ -91,7 +113,7 @@ class TestCoverServiceFilesystem(unittest.TestCase):
         self.assertIsNone(get_cover_etag(os.path.join(self.temp_dir, "non_existent.jpg")))
 
     def test_save_and_delete_collection_poster(self):
-        sample_bytes = b"collection_sample_bytes"
+        sample_bytes = _image_bytes()
         url = asyncio.run(save_collection_poster(20, sample_bytes))
         self.assertTrue(url.startswith("/api/v1/collections/20/poster?v="))
 
@@ -107,7 +129,7 @@ class TestCoverServiceFilesystem(unittest.TestCase):
         self.assertFalse(delete_collection_cover(20))
 
     def test_delete_show_cover(self):
-        asyncio.run(save_show_poster(77, b"sample_show_cover"))
+        asyncio.run(save_show_poster(77, _image_bytes()))
         self.assertTrue(os.path.exists(get_show_poster_dir(77)))
 
         self.assertTrue(delete_show_cover(77))
@@ -115,69 +137,35 @@ class TestCoverServiceFilesystem(unittest.TestCase):
         self.assertFalse(delete_show_cover(77))
 
     def test_download_and_store_show_cover_base64(self):
-        raw = b"hello_base64_image"
+        raw = _image_bytes()
         b64_str = f"data:image/jpeg;base64,{base64.b64encode(raw).decode('ascii')}"
 
         res = asyncio.run(download_and_store_show_cover(55, b64_str))
         self.assertTrue(res.startswith("/api/v1/shows/55/poster?v="))
         self.assertTrue(os.path.isfile(get_show_poster_path(55)))
-        with open(get_show_poster_path(55), "rb") as f:
-            self.assertEqual(f.read(), raw)
+        self.assertTrue(_is_jpeg(get_show_poster_path(55)))
 
     def test_download_and_store_show_cover_http(self):
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.content = b"downloaded_http_bytes"
-
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=mock_resp)
-        mock_client.__aenter__.return_value = mock_client
-        mock_client.__aexit__.return_value = None
-        mock_httpx = MagicMock()
-        mock_httpx.AsyncClient.return_value = mock_client
-
-        with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        with patch("app.services.cover_service.fetch_remote_image", AsyncMock(return_value=_image_bytes())):
             res = asyncio.run(download_and_store_show_cover(88, "https://cdn.example.com/poster.jpg"))
             self.assertTrue(res.startswith("/api/v1/shows/88/poster?v="))
             self.assertTrue(os.path.isfile(get_show_poster_path(88)))
 
     def test_download_and_store_collection_cover_http(self):
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.content = b"collection_downloaded_bytes"
-
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=mock_resp)
-        mock_client.__aenter__.return_value = mock_client
-        mock_client.__aexit__.return_value = None
-        mock_httpx = MagicMock()
-        mock_httpx.AsyncClient.return_value = mock_client
-
-        with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        with patch("app.services.cover_service.fetch_remote_image", AsyncMock(return_value=_image_bytes())):
             res = asyncio.run(download_and_store_collection_cover(99, "https://image.tmdb.org/t/p/original/coll.jpg"))
             self.assertTrue(res.startswith("/api/v1/collections/99/poster?v="))
             self.assertTrue(os.path.isfile(get_collection_poster_path(99)))
 
     def test_save_and_download_collection_backdrop(self):
-        backdrop_bytes = b"sample_collection_backdrop"
+        backdrop_bytes = _image_bytes()
         url = asyncio.run(save_collection_backdrop(30, backdrop_bytes))
         self.assertTrue(url.startswith("/api/v1/collections/30/backdrop?v="))
         target_file = get_collection_backdrop_path(30)
         self.assertTrue(os.path.isfile(target_file))
 
         # Test download
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.content = b"downloaded_backdrop_bytes"
-
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=mock_resp)
-        mock_client.__aenter__.return_value = mock_client
-        mock_client.__aexit__.return_value = None
-        mock_httpx = MagicMock()
-        mock_httpx.AsyncClient.return_value = mock_client
-
-        with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        with patch("app.services.cover_service.fetch_remote_image", AsyncMock(return_value=_image_bytes())):
             res = asyncio.run(download_and_store_collection_backdrop(31, "https://image.tmdb.org/t/p/original/bd.jpg"))
             self.assertTrue(res.startswith("/api/v1/collections/31/backdrop?v="))
             self.assertTrue(os.path.isfile(get_collection_backdrop_path(31)))
@@ -237,7 +225,7 @@ class TestCoverServiceEndpointsAndDb(unittest.TestCase):
             title="Show CDN",
             poster_url="https://image.tmdb.org/t/p/original/show1.jpg",
         )
-        raw_b64 = base64.b64encode(b"show2_bytes").decode("ascii")
+        raw_b64 = base64.b64encode(_image_bytes()).decode("ascii")
         s2 = Show(
             title="Show Base64",
             poster_url=f"data:image/jpeg;base64,{raw_b64}",
@@ -249,18 +237,7 @@ class TestCoverServiceEndpointsAndDb(unittest.TestCase):
         self.db.add_all([s1, s2, s3])
         self.db.commit()
 
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.content = b"show1_downloaded_bytes"
-
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=mock_resp)
-        mock_client.__aenter__.return_value = mock_client
-        mock_client.__aexit__.return_value = None
-        mock_httpx = MagicMock()
-        mock_httpx.AsyncClient.return_value = mock_client
-
-        with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        with patch("app.services.cover_service.fetch_remote_image", AsyncMock(return_value=_image_bytes())):
             res = asyncio.run(backfill_existing_covers(self.db))
             self.assertEqual(res["total"], 3)
             self.assertEqual(res["migrated"], 2)
@@ -290,7 +267,7 @@ class TestCoverServiceEndpointsAndDb(unittest.TestCase):
         self.assertEqual(ctx.exception.status_code, 404)
 
         # 2. Save file and get 200 FileResponse with ETag
-        sample_img = b"endpoint_test_jpeg"
+        sample_img = _image_bytes()
         asyncio.run(save_show_poster(s.id, sample_img))
 
         resp = asyncio.run(get_show_poster(s.id, req_mock))
@@ -316,7 +293,7 @@ class TestCoverServiceEndpointsAndDb(unittest.TestCase):
         self.db.add(s)
         self.db.commit()
 
-        file_bytes = b"manual_uploaded_poster_data"
+        file_bytes = _image_bytes()
         upload_obj = UploadFile(filename="poster.jpg", file=io.BytesIO(file_bytes))
 
         resp = asyncio.run(upload_show_cover(s.id, file=upload_obj, db=self.db, current_user=self.user))
@@ -326,8 +303,7 @@ class TestCoverServiceEndpointsAndDb(unittest.TestCase):
         self.db.refresh(s)
         self.assertTrue(s.poster_url.startswith(f"/api/v1/shows/{s.id}/poster?v="))
         self.assertTrue(os.path.isfile(get_show_poster_path(s.id)))
-        with open(get_show_poster_path(s.id), "rb") as f:
-            self.assertEqual(f.read(), file_bytes)
+        self.assertTrue(_is_jpeg(get_show_poster_path(s.id)))
 
     def test_get_collection_poster_endpoint(self):
         from app.api.collections_routes import get_collection_poster
@@ -343,7 +319,7 @@ class TestCoverServiceEndpointsAndDb(unittest.TestCase):
             asyncio.run(get_collection_poster(coll.id, req_mock))
         self.assertEqual(ctx.exception.status_code, 404)
 
-        asyncio.run(save_collection_poster(coll.id, b"coll_image_content"))
+        asyncio.run(save_collection_poster(coll.id, _image_bytes()))
         resp = asyncio.run(get_collection_poster(coll.id, req_mock))
         self.assertEqual(resp.media_type, "image/jpeg")
         self.assertEqual(resp.headers.get("Cache-Control"), "no-cache, must-revalidate")
@@ -372,7 +348,7 @@ class TestCoverServiceEndpointsAndDb(unittest.TestCase):
             asyncio.run(get_collection_backdrop(coll.id, req_mock))
         self.assertEqual(ctx.exception.status_code, 404)
 
-        asyncio.run(save_collection_backdrop(coll.id, b"coll_backdrop_content"))
+        asyncio.run(save_collection_backdrop(coll.id, _image_bytes()))
         resp = asyncio.run(get_collection_backdrop(coll.id, req_mock))
         self.assertEqual(resp.media_type, "image/jpeg")
         self.assertEqual(resp.headers.get("Cache-Control"), "no-cache, must-revalidate")
@@ -395,7 +371,7 @@ class TestCoverServiceEndpointsAndDb(unittest.TestCase):
         self.db.add(s)
         self.db.commit()
 
-        asyncio.run(save_show_poster(s.id, b"show_cover_data"))
+        asyncio.run(save_show_poster(s.id, _image_bytes()))
         self.assertTrue(os.path.isfile(get_show_poster_path(s.id)))
 
         payload = DeleteContentPayload(delete_mode="show", delete_files=False)
@@ -410,11 +386,94 @@ class TestCoverServiceEndpointsAndDb(unittest.TestCase):
         self.db.add(coll)
         self.db.commit()
 
-        asyncio.run(save_collection_poster(coll.id, b"coll_cover_data"))
-        asyncio.run(save_collection_backdrop(coll.id, b"coll_backdrop_data"))
+        asyncio.run(save_collection_poster(coll.id, _image_bytes()))
+        asyncio.run(save_collection_backdrop(coll.id, _image_bytes()))
         self.assertTrue(os.path.isfile(get_collection_poster_path(coll.id)))
         self.assertTrue(os.path.isfile(get_collection_backdrop_path(coll.id)))
 
         res = delete_collection(coll.id, db=self.db, current_user=self.user)
         self.assertIsNone(res)
         self.assertFalse(os.path.exists(get_collection_poster_dir(coll.id)))
+
+
+class TestCoverDownloadSsrf(unittest.TestCase):
+    """Скачивание обложек не должно ходить во внутреннюю сеть."""
+
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.env = patch.dict(os.environ, {"MEDIA_COVER_DIR": self.temp_dir})
+        self.env.start()
+
+    def tearDown(self):
+        self.env.stop()
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def _fetch(self, url, handler, resolved=None):
+        import httpx
+
+        real_client = httpx.AsyncClient
+        resolved = resolved or {}
+
+        async def fake_resolve(host, port):
+            return resolved.get(host, {host})
+
+        def client_factory(**kwargs):
+            return real_client(transport=httpx.MockTransport(handler), **kwargs)
+
+        with patch("app.services.cover_service._resolve_host", fake_resolve), \
+             patch("httpx.AsyncClient", client_factory):
+            return asyncio.run(fetch_remote_image(url))
+
+    def test_private_and_metadata_addresses_are_refused(self):
+        def handler(request):
+            raise AssertionError(f"no request expected, got {request.url}")
+
+        for url in (
+            "http://127.0.0.1/admin",
+            "http://192.168.1.1/",
+            "http://169.254.169.254/latest/meta-data/",
+            "http://[::1]/",
+            "http://10.0.0.5:8080/api/v2/torrents/info",
+        ):
+            with self.subTest(url=url):
+                with self.assertRaises(ValueError):
+                    self._fetch(url, handler)
+
+    def test_host_resolving_to_lan_is_refused(self):
+        def handler(request):
+            raise AssertionError("no request expected")
+
+        with self.assertRaises(ValueError):
+            self._fetch("https://poster.attacker.example/x.jpg", handler,
+                        resolved={"poster.attacker.example": {"192.168.1.10"}})
+
+    def test_redirect_into_private_network_is_refused(self):
+        import httpx
+
+        def handler(request):
+            if request.url.host == "cdn.example.org":
+                return httpx.Response(302, headers={"location": "http://127.0.0.1:9091/transmission/rpc"})
+            raise AssertionError("redirect target must not be requested")
+
+        with self.assertRaises(ValueError):
+            self._fetch("https://cdn.example.org/p.jpg", handler,
+                        resolved={"cdn.example.org": {"93.184.216.34"}})
+
+    def test_public_image_is_downloaded(self):
+        import httpx
+
+        payload = _image_bytes()
+
+        def handler(request):
+            return httpx.Response(200, content=payload, headers={"content-type": "image/png"})
+
+        data = self._fetch("https://image.tmdb.org/t/p/original/a.png", handler,
+                           resolved={"image.tmdb.org": {"93.184.216.34"}})
+        self.assertEqual(data, payload)
+
+    def test_non_image_response_is_not_stored(self):
+        with patch("app.services.cover_service.fetch_remote_image",
+                   AsyncMock(return_value=b"<html>internal service</html>")):
+            res = asyncio.run(download_and_store_show_cover(501, "https://cdn.example.org/p.jpg"))
+        self.assertIsNone(res)
+        self.assertFalse(os.path.exists(get_show_poster_path(501)))

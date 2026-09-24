@@ -292,7 +292,7 @@ async def create_show(
         metadata_id=payload.metadata_id,
         overview=payload.overview,
         poster_url=payload.poster_url,
-        path=payload.path,
+        path=_validated_show_path(db, payload.path) if payload.path else None,
         quality_profile_id=qp_id,
         content_type=payload.content_type,
         edition=payload.edition,
@@ -1028,6 +1028,8 @@ async def update_show(
                         db.delete(a)
         if "year" in dumped:
             dumped["year"] = new_year
+    if "path" in dumped:
+        dumped["path"] = _validated_show_path(db, dumped["path"], current=show.path)
     old_coll_id = getattr(show, "collection_id", None)
     for field, value in dumped.items():
         setattr(show, field, value)
@@ -3453,7 +3455,7 @@ async def upload_show_cover(
     сохраняет файл на диск в /config/MediaCover/shows/{show_id}/poster.jpg,
     выполняя оптимизацию размера, и обновляет poster_url с версионированием.
     """
-    from app.services.cover_service import save_show_poster
+    from app.services.cover_service import NotAnImageError, save_show_poster
 
     show = db.get(Show, show_id)
     if not show:
@@ -3463,7 +3465,10 @@ async def upload_show_cover(
     if not contents:
         raise HTTPException(400, "Файл пуст")
 
-    local_url = await save_show_poster(show.id, contents)
+    try:
+        local_url = await save_show_poster(show.id, contents)
+    except NotAnImageError:
+        raise HTTPException(400, "Загруженный файл не является изображением")
     show.last_metadata_refresh_at = dt.datetime.utcnow()
     show.poster_url = local_url
     db.commit()
@@ -3865,6 +3870,29 @@ def _rebase_path(path: str, old_root: str, new_root: str) -> Optional[str]:
     if rel == ".":
         return new_root
     return os.path.normpath(os.path.join(new_root, rel))
+
+
+def _validated_show_path(db: Session, raw_path: Optional[str], current: Optional[str] = None) -> Optional[str]:
+    """Папка тайтла должна лежать внутри корня медиатеки.
+
+    Путь тайтла потом используют удаление файлов, переименование и рекурсивная
+    установка прав. Без проверки его можно было задать как «/» или «/config»
+    через обычное редактирование карточки, в обход проверок смены папки.
+    Неизменённое значение не перепроверяется, чтобы правка других полей не
+    ломалась у тайтлов, чей корень медиатеки с тех пор поменялся.
+    """
+    if raw_path is None or not str(raw_path).strip():
+        return None
+    if current and os.path.abspath(str(raw_path).strip()) == os.path.abspath(current):
+        return current
+    if not str(raw_path).strip().startswith("/"):
+        raise HTTPException(400, "Путь должен быть абсолютным")
+    normalized = _normalize_media_path(raw_path)
+    try:
+        require_library_descendant(normalized, get_or_create_settings(db))
+    except UnsafeMediaPathError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return normalized
 
 
 def _resolve_change_folder_request(db: Session, show: Show, raw_path: str) -> tuple[str, str, Any]:
