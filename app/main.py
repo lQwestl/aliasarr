@@ -44,6 +44,7 @@ from app.api import (
     users_routes,
 )
 from app.auth import ApiKeyMiddleware
+from app.version import VERSION as APP_VERSION
 from app.database import SessionLocal, init_db
 from app.models.db import Indexer, MetadataSource, MetadataSourceType, User
 from app.services.auto_search import run_wanted_search
@@ -77,7 +78,7 @@ from app.services.openapi_service import get_localized_openapi
 app = FastAPI(
     title="Aliasarr API",
     description="Backend API для Aliasarr — системы управления медиатекой с мультиязычными алиасами, парсером сезонов и контролем торрент-клиентов.",
-    version="3.5.0",
+    version=APP_VERSION,
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
@@ -196,6 +197,27 @@ if os.path.isdir(_WEB_DIR):
 
 scheduler = AsyncIOScheduler()
 app.state.scheduler = scheduler
+# Фоновые задачи держим по ссылке: asyncio хранит на них только слабые ссылки,
+# и незавершённую задачу без ссылки может собрать сборщик мусора.
+_background_tasks: set[asyncio.Task] = set()
+
+
+def _spawn_background(coro) -> asyncio.Task:
+    task = asyncio.create_task(coro)
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+    return task
+
+
+def _fresh_scheduler() -> AsyncIOScheduler:
+    """Планировщик привязывается к event loop при первом запуске. run.py при смене
+    SSL/порта перезапускает сервер в том же процессе с новым loop, а старый
+    планировщик остаётся привязан к закрытому — старт падал с «Event loop is closed».
+    Поэтому на каждый запуск сервера создаётся новый планировщик."""
+    global scheduler
+    scheduler = AsyncIOScheduler()
+    app.state.scheduler = scheduler
+    return scheduler
 
 
 def _seed_default_metadata_sources(db: Session) -> None:
@@ -300,31 +322,26 @@ async def on_startup():
                 logger.warning("Ошибка при выполнении миграции unmonitor_downloaded: %s", e_mig)
                 db.rollback()
 
-        # 5. Автоматическое включение мониторинга для невышедших серий
+        # 5. Серии с датой выхода в будущем не могут быть «разыскиваемыми»: исправляем статус.
+        # Флаг мониторинга здесь не трогаем — раньше этот шаг при каждом старте снова
+        # включал мониторинг серий, с которых пользователь его снял.
         try:
-            from app.models.db import Episode, EpisodeStatus, Show
+            from app.models.db import Episode, EpisodeStatus
             now_dt = dt.datetime.utcnow()
-            monitored_shows = db.query(Show).filter(Show.monitored == True).all()
-            monitored_show_ids = [s.id for s in monitored_shows if getattr(s, "id", None) is not None]
-            unaired_updated = 0
-            if monitored_show_ids:
-                unaired_updated = (
-                    db.query(Episode)
-                    .filter(
-                        Episode.show_id.in_(monitored_show_ids),
-                        Episode.monitored == False,
-                        Episode.file_path.is_(None),
-                        Episode.status != EpisodeStatus.DOWNLOADED,
-                        Episode.status != EpisodeStatus.IGNORED,
-                        (Episode.status == EpisodeStatus.UNAIRED) | (Episode.air_date > now_dt),
-                    )
-                    .update({Episode.monitored: True, Episode.status: EpisodeStatus.UNAIRED}, synchronize_session=False)
+            unaired_updated = (
+                db.query(Episode)
+                .filter(
+                    Episode.file_path.is_(None),
+                    Episode.status.in_([EpisodeStatus.WANTED, EpisodeStatus.MISSING]),
+                    Episode.air_date > now_dt,
                 )
+                .update({Episode.status: EpisodeStatus.UNAIRED}, synchronize_session=False)
+            )
             if unaired_updated > 0:
                 db.commit()
-                logger.info("Синхронизация: включен мониторинг для %d невышедших серий", unaired_updated)
+                logger.info("Синхронизация: %d серий с будущей датой выхода переведены в «не вышло»", unaired_updated)
         except Exception as e_un:
-            logger.warning("Ошибка при синхронизации мониторинга невышедших серий: %s", e_un)
+            logger.warning("Ошибка при синхронизации статусов невышедших серий: %s", e_un)
             db.rollback()
 
         monitor_interval = settings.monitor_interval_minutes or 15
@@ -429,33 +446,35 @@ async def on_startup():
             finally:
                 db.close()
 
-        for idx_id, idx_name, idx_type, idx_base_url, idx_key, idx_cats, was_ok, cons_failures in indexers_data:
-            temp_idx = Indexer(id=idx_id, name=idx_name, type=idx_type, base_url=idx_base_url, api_key=idx_key, categories=idx_cats)
-            ok = False
-            for attempt in range(1, attempts + 1):
-                ok = await _probe_indexer_once(temp_idx)
-                if ok:
-                    break
-                if attempt < attempts and delay > 0:
-                    await asyncio.sleep(delay)
+            # Проверка идёт под той же блокировкой, что и чтение списка: иначе
+            # следующий запуск стартовал бы, пока предыдущий ещё опрашивает индексаторы.
+            for idx_id, idx_name, idx_type, idx_base_url, idx_key, idx_cats, was_ok, cons_failures in indexers_data:
+                temp_idx = Indexer(id=idx_id, name=idx_name, type=idx_type, base_url=idx_base_url, api_key=idx_key, categories=idx_cats)
+                ok = False
+                for attempt in range(1, attempts + 1):
+                    ok = await _probe_indexer_once(temp_idx)
+                    if ok:
+                        break
+                    if attempt < attempts and delay > 0:
+                        await asyncio.sleep(delay)
 
-            db_update = SessionLocal()
-            try:
-                idx_row = db_update.get(Indexer, idx_id)
-                if idx_row:
-                    idx_row.last_check_at = dt.datetime.utcnow()
-                    idx_row.last_check_ok = ok
-                    idx_row.consecutive_failures = 0 if ok else (cons_failures + 1)
-                    db_update.commit()
-            except Exception:
-                db_update.rollback()
-            finally:
-                db_update.close()
+                db_update = SessionLocal()
+                try:
+                    idx_row = db_update.get(Indexer, idx_id)
+                    if idx_row:
+                        idx_row.last_check_at = dt.datetime.utcnow()
+                        idx_row.last_check_ok = ok
+                        idx_row.consecutive_failures = 0 if ok else (cons_failures + 1)
+                        db_update.commit()
+                except Exception:
+                    db_update.rollback()
+                finally:
+                    db_update.close()
 
-            if not ok and was_ok is not False:
-                logger.warning("Индексатор «%s» недоступен после %d попыток (автопроверка)", idx_name, attempts)
-            elif ok and was_ok is False:
-                logger.info("Индексатор «%s» снова доступен", idx_name)
+                if not ok and was_ok is not False:
+                    logger.warning("Индексатор «%s» недоступен после %d попыток (автопроверка)", idx_name, attempts)
+                elif ok and was_ok is False:
+                    logger.info("Индексатор «%s» снова доступен", idx_name)
 
     async def _purge_logs_job():
         from app.database import optimize_and_checkpoint_db
@@ -659,6 +678,7 @@ async def on_startup():
         finally:
             db.close()
 
+    scheduler = _fresh_scheduler()
     scheduler.add_job(_tracker_job, "interval", minutes=tracker_interval, id="recheck_tracked_releases")
     # Периодический поиск разыскиваемого контента
     scheduler.add_job(_wanted_search_job, "interval", minutes=monitor_interval, id="wanted_search")
@@ -671,8 +691,8 @@ async def on_startup():
     scheduler.add_job(_auto_backup_job, "interval", hours=24, id="auto_backup_check")
     scheduler.add_job(_import_lists_job, "interval", minutes=15, id="import_lists")
     scheduler.add_job(_recycle_bin_cleanup_job, "interval", hours=24, id="recycle_bin_cleanup")
-    # Автоматическое обновление метаданных по алгоритму Sonarr/Radarr (каждые 6 часов)
-    scheduler.add_job(_refresh_metadata_job, "interval", hours=6, id="refresh_metadata")
+    # Автоматическое обновление метаданных по алгоритму Sonarr/Radarr (интервал из настроек)
+    scheduler.add_job(_refresh_metadata_job, "interval", hours=metadata_refresh_hours, id="refresh_metadata")
     scheduler.start()
 
     # Запускаем первичное фоновое обновление метаданных с задержкой (60 сек),
@@ -684,7 +704,7 @@ async def on_startup():
         except Exception:
             pass
 
-    asyncio.create_task(_delayed_initial_refresh())
+    _spawn_background(_delayed_initial_refresh())
 
     # Фоновая миграция существующих постеров в локальное хранилище /config/MediaCover
     async def _delayed_cover_backfill():
@@ -701,18 +721,20 @@ async def on_startup():
         except Exception as e:
             logger.debug("Ошибка фоновой миграции обложек: %s", e)
 
-    asyncio.create_task(_delayed_cover_backfill())
+    _spawn_background(_delayed_cover_backfill())
     logger.info(
         "Планировщик запущен: поиск wanted каждые %d мин, загрузки каждые %d сек, "
         "слежение за раздачами каждые %d мин, активация премьер каждые %d мин, проверка индексаторов каждые %d мин, "
-        "автоматическое обновление метаданных каждые 6 ч",
+        "автоматическое обновление метаданных каждые %d ч",
         monitor_interval, download_check_sec, tracker_interval, unaired_interval, indexer_check_interval,
+        metadata_refresh_hours,
     )
 
 
 @app.on_event("shutdown")
 async def on_shutdown():
-    scheduler.shutdown()
+    if getattr(scheduler, "running", False):
+        scheduler.shutdown()
     try:
         from app.services.task_manager import task_manager
 

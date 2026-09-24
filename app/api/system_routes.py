@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.version import VERSION as APP_VERSION
 from app.database import get_db
 from app.models.db import (
     AppSettings,
@@ -141,8 +142,8 @@ def get_system_about(
 
     return {
         "app_name": "Aliasarr",
-        "version": "3.5.0",
-        "package_version": f"3.5.0 ({short_commit})",
+        "version": APP_VERSION,
+        "package_version": f"{APP_VERSION} ({short_commit})",
         "branch": short_commit,
         "commit": short_commit,
         "python_version": py_ver,
@@ -346,7 +347,7 @@ class BackupOut(BaseModel):
     size_bytes: int
     created_at: dt.datetime
     backup_type: str = "full"
-    app_version: str = "3.5.0"
+    app_version: str = APP_VERSION
     stats: Optional[dict] = None
 
 
