@@ -225,10 +225,7 @@ class TestMovieSuite(unittest.TestCase):
         self.assertEqual(coll.title, "Avatar Collection")
         self.assertEqual(len(coll.shows), 2)
     def test_sync_movie_disk_preserves_downloading_and_upgrading_status(self):
-        try:
-            from app.api.shows import sync_show_disk
-        except ImportError:
-            return
+        from app.api.shows import sync_show_disk
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             f_path = os.path.join(tmp_dir, "Avatar.Fire.and.Ash.2025.HDTV.720p.mkv")
@@ -301,11 +298,7 @@ class TestMovieSuite(unittest.TestCase):
             self.assertEqual(mock_client_instance.get.call_count, first_calls)
 
     def test_get_collection_detail_fallback_on_shows(self):
-        try:
-            import fastapi
-            from app.api.collections_routes import get_collection_detail
-        except ImportError:
-            return
+        from app.api.collections_routes import get_collection_detail
 
         import asyncio
 
@@ -358,11 +351,7 @@ class TestMovieSuite(unittest.TestCase):
             self.assertTrue(res.franchise_parts[1].in_library)
 
     def test_get_collection_detail_uses_parts_cache(self):
-        try:
-            import fastapi
-            from app.api.collections_routes import get_collection_detail
-        except ImportError:
-            return
+        from app.api.collections_routes import get_collection_detail
 
         import asyncio
         import json
@@ -406,11 +395,7 @@ class TestMovieSuite(unittest.TestCase):
             self.assertFalse(res.franchise_parts[2].in_library)
 
     def test_refresh_collection_endpoint(self):
-        try:
-            import fastapi
-            from app.api.collections_routes import refresh_collection
-        except ImportError:
-            return
+        from app.api.collections_routes import refresh_collection
 
         import asyncio
 
@@ -462,7 +447,7 @@ class TestMovieSuite(unittest.TestCase):
         show_unaired = Show(
             id=101,
             title="Spider-Man: Beyond the Spider-Verse",
-            year=2027,
+            year=dt.date.today().year + 1,
             content_type="movie",
             monitored=False,
             quality_profile_id=1,
@@ -474,7 +459,7 @@ class TestMovieSuite(unittest.TestCase):
             season_number=1,
             episode_number=1,
             status=EpisodeStatus.UNAIRED,
-            air_date=dt.datetime(2027, 6, 17),
+            air_date=dt.datetime.now() + dt.timedelta(days=365),
             monitored=False,
             file_path=None,
         )
@@ -594,16 +579,13 @@ class TestMovieSuite(unittest.TestCase):
         self.assertEqual(show_anime.last_search_result, "Выбранные серии ещё не вышли")
 
     def test_search_season_episodes_api(self):
-        try:
-            from app.api.shows import search_season_episodes
-        except ImportError:
-            return
+        from app.api.shows import search_season_episodes
         import asyncio
 
         show = Show(id=10, title="Anime S2", content_type="anime")
         eps = [
             Episode(id=1, show_id=10, season_number=2, episode_number=1, status=EpisodeStatus.DOWNLOADED, file_path="/media/ep1.mkv", monitored=True),
-            Episode(id=2, show_id=10, season_number=2, episode_number=2, status=EpisodeStatus.UNAIRED, air_date=dt.datetime(2027, 1, 1), monitored=True),
+            Episode(id=2, show_id=10, season_number=2, episode_number=2, status=EpisodeStatus.UNAIRED, air_date=dt.datetime.now() + dt.timedelta(days=365), monitored=True),
         ]
         db_mock = MagicMock()
         db_mock.get.return_value = show

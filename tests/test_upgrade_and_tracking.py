@@ -5,6 +5,11 @@ import os
 
 class TestUpgradeAndTracking(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        # Мок базы данных не может ответить на запрос к черному списку, поэтому
+        # тест явно объявляет его пустым (раньше это угадывал продакшн-код).
+        _blocklist = patch("app.services.blocklist_service.is_release_blocked", return_value=(False, None))
+        _blocklist.start()
+        self.addCleanup(_blocklist.stop)
         try:
             import sqlalchemy  # noqa: F401
         except ImportError:

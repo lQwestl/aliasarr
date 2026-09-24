@@ -17,49 +17,10 @@ import datetime as dt
 import logging
 import os
 
-try:
-    from sqlalchemy import and_, or_, func
-    from sqlalchemy.orm import Session
-    from app.database import SessionLocal
-    from app.models.db import DownloadClient, Episode, EpisodeStatus, Show, DownloadHistory, Indexer, TrackedRelease
-except ImportError:
-    def and_(*args): return args
-    def or_(*args): return args
-    class _MockFunc:
-        def lower(self, col): return col
-    func = _MockFunc()
-    Session = object
-    SessionLocal = None
-    class _MockCol:
-        def __eq__(self, other): return self
-        def __ne__(self, other): return self
-        def isnot(self, other): return self
-        def is_(self, other): return self
-        def in_(self, other): return self
-        def desc(self): return self
-        def asc(self): return self
-        def __or__(self, other): return self
-        def __ror__(self, other): return self
-        def __and__(self, other): return self
-        def __rand__(self, other): return self
-        def ilike(self, other): return self
-        def like(self, other): return self
-
-    class _MockModelMeta(type):
-        def __getattr__(cls, name):
-            return _MockCol()
-
-    class _MockModel(metaclass=_MockModelMeta):
-        def __getattr__(self, name):
-            return _MockCol()
-
-    DownloadClient = type("DownloadClient", (_MockModel,), {"id": _MockCol(), "name": _MockCol(), "type": _MockCol(), "enabled": _MockCol()})
-    Episode = type("Episode", (_MockModel,), {"id": _MockCol(), "show_id": _MockCol(), "status": _MockCol(), "season_number": _MockCol(), "episode_number": _MockCol(), "file_path": _MockCol(), "torrent_hash": _MockCol(), "download_client_id": _MockCol(), "download_progress": _MockCol(), "air_date": _MockCol()})
-    EpisodeStatus = type("EpisodeStatus", (), {"DOWNLOADING": "downloading", "DOWNLOADED": "downloaded", "WANTED": "wanted", "MISSING": "missing", "UNAIRED": "unaired"})
-    Show = type("Show", (_MockModel,), {"id": _MockCol(), "title": _MockCol(), "content_type": _MockCol(), "path": _MockCol()})
-    DownloadHistory = type("DownloadHistory", (_MockModel,), {"id": _MockCol(), "show_id": _MockCol(), "indexer_id": _MockCol(), "torrent_hash": _MockCol()})
-    Indexer = type("Indexer", (_MockModel,), {"id": _MockCol(), "name": _MockCol(), "enable_seeding": _MockCol(), "seed_ratio_limit": _MockCol(), "seed_time_limit_hours": _MockCol()})
-    TrackedRelease = type("TrackedRelease", (_MockModel,), {"id": _MockCol(), "show_id": _MockCol(), "indexer_id": _MockCol()})
+from sqlalchemy import and_, or_, func
+from sqlalchemy.orm import Session
+from app.database import SessionLocal
+from app.models.db import DownloadClient, Episode, EpisodeStatus, Show, DownloadHistory, Indexer, TrackedRelease
 from app.services.download_client import get_client
 from app.services.postprocess import process_download, process_movie_download, VIDEO_EXTENSIONS
 from app.services.release_log_service import log_release_event

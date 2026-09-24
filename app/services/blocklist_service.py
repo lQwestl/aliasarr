@@ -425,13 +425,6 @@ def is_release_blocked(
 
     match = db.query(Blocklist).filter(or_(*filters)).first()
     if match:
-        try:
-            from unittest.mock import Mock
-            if isinstance(match, Mock):
-                if isinstance(getattr(match, "reason", None), Mock) and isinstance(getattr(match, "id", None), Mock):
-                    return False, None
-        except Exception:
-            pass
         return True, getattr(match, "reason", None) or "Заблокировано в черном списке"
 
     return False, None

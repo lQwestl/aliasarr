@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import os
 import unittest
+from unittest.mock import patch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.services.quality import parse_quality, is_allowed, is_upgrade, detect_file_quality
@@ -11,6 +12,13 @@ from app.services.parser import parse_episode, ReleaseKind
 
 
 class TestQualityAndMatcher(unittest.TestCase):
+    def setUp(self):
+        # Мок базы данных не может ответить на запрос к черному списку, поэтому
+        # тест явно объявляет его пустым (раньше это угадывал продакшн-код).
+        _blocklist = patch("app.services.blocklist_service.is_release_blocked", return_value=(False, None))
+        _blocklist.start()
+        self.addCleanup(_blocklist.stop)
+
     def test_quality_webdl_1080p(self):
         q = parse_quality("Show.S01E05.1080p.WEB-DL.x264")
         self.assertEqual(q.name, "WEBDL-1080p")
@@ -245,7 +253,7 @@ class TestQualityAndMatcher(unittest.TestCase):
 
         # Test DecisionEngine does not reject it as S04/E04
         from app.services.decision_engine import DecisionEngine
-        from unittest.mock import MagicMock
+        from unittest.mock import MagicMock, patch
         mock_show = MagicMock()
         mock_show.id = 1
         mock_show.title = "Star Wars: Episode IV - A New Hope"

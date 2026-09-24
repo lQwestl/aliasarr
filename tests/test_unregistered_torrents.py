@@ -26,6 +26,11 @@ except ImportError:
 
 class TestUnregisteredTorrentsAndHealing(unittest.TestCase):
     def setUp(self):
+        # Мок базы данных не может ответить на запрос к черному списку, поэтому
+        # тест явно объявляет его пустым (раньше это угадывал продакшн-код).
+        _blocklist = patch("app.services.blocklist_service.is_release_blocked", return_value=(False, None))
+        _blocklist.start()
+        self.addCleanup(_blocklist.stop)
         clear_unregistered_and_healed_torrents()
 
     def tearDown(self):
