@@ -407,7 +407,10 @@ For **Hardlinks** to operate with maximum speed and zero storage duplication, th
 | `DATABASE_URL` | `sqlite:////config/aliasarr.db` | Database URI (`sqlite://` and `postgresql+psycopg2://` supported) |
 | `ALIASARR_PORT` | `8989` | HTTP server port |
 | `ALIASARR_BACKUP_DIR` | `/config/backups` | Directory for storing automated backups |
-| `ALIASARR_TRUSTED_PROXIES` | empty | Comma-separated trusted reverse proxy IPs/CIDRs for `X-Forwarded-For` and `CF-Connecting-IP` |
+| `ALIASARR_TRUSTED_PROXIES` | empty | Comma-separated trusted reverse proxy IPs/CIDRs for `X-Forwarded-For`, `X-Real-IP` and `X-Forwarded-Proto` (the rightmost `X-Forwarded-For` address that is not one of these proxies is the client) |
+| `ALIASARR_TRUST_CF_CONNECTING_IP` | empty | `true` when Aliasarr sits behind Cloudflare: the client IP is then taken from `CF-Connecting-IP` (only from trusted proxies) |
+| `ALIASARR_ALLOWED_HOSTS` | empty | Extra comma-separated host names on which password-less LAN access works. IP addresses, single-label names and internal domains (`.local`, `.lan`, `.home.arpa`, …) are always allowed |
+| `ALIASARR_CORS_ORIGINS` | empty | Comma-separated origins of third-party dashboards allowed to call the API from a browser with `X-Api-Key` (cookies are not shared with them) |
 
 ---
 

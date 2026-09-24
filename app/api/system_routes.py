@@ -27,7 +27,7 @@ from app.models.db import (
 )
 from app.services.log_service import purge_old_logs
 from app.services.settings_service import get_or_create_settings
-from app.services.user_service import require_permission, require_any_permission, get_current_user
+from app.services.user_service import require_admin, require_permission, require_any_permission, get_current_user
 
 import platform
 import sqlite3
@@ -391,7 +391,7 @@ def create_backup(
 
 
 @router.get("/backups/{name}/download")
-def download_backup(name: str, current_user: User = Depends(require_permission("manage_backups"))):
+def download_backup(name: str, current_user: User = Depends(require_admin)):
     safe_name = os.path.basename(name)
     path = os.path.join(BACKUP_DIR, safe_name)
     if not os.path.isfile(path):
@@ -439,7 +439,7 @@ class RestoreExistingIn(BaseModel):
 def restore_existing_backup(
     payload: RestoreExistingIn,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("manage_backups")),
+    current_user: User = Depends(require_admin),
 ):
     from app.services.task_manager import task_manager
     safe_name = os.path.basename(payload.name)
@@ -457,7 +457,7 @@ async def restore_backup(
     file: UploadFile = File(...),
     mode: str = "auto",
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_permission("manage_backups")),
+    current_user: User = Depends(require_admin),
 ):
     from app.services.task_manager import task_manager
     try:

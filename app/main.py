@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
+import json
 import logging
 import os
 from typing import Any, Optional
@@ -137,6 +138,11 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
         exc_msg,
         exc_info=True,
     )
+    # Текст исключения может содержать пути, адреса и фрагменты конфигурации.
+    # Администратору он нужен для диагностики, остальным хватит типа ошибки.
+    viewer = getattr(getattr(request, "state", None), "user", None)
+    if not (viewer and getattr(viewer, "is_admin", False)):
+        exc_msg = "Внутренняя ошибка сервера"
     return JSONResponse(
         status_code=500,
         content={
@@ -151,13 +157,56 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def _configured_cors_origins() -> list[str]:
+    raw = os.getenv("ALIASARR_CORS_ORIGINS", "")
+    return [item.strip().rstrip("/") for item in raw.split(",") if item.strip() and item.strip() != "*"]
+
+
+# Интерфейс открывается с того же адреса, что и API, и CORS ему не нужен.
+# Разрешение «*» позволяло любому сайту в браузере пользователя читать ответы
+# API — включая API-ключ, когда доступ из локальной сети открыт без пароля.
+# Сторонние панели (Homepage, Organizr и т.п.) можно разрешить явно через
+# ALIASARR_CORS_ORIGINS; cookie им при этом не передаются.
+_cors_origins = _configured_cors_origins()
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PUT", "DELETE"],
+        allow_headers=["X-Api-Key", "Content-Type"],
+    )
 app.add_middleware(ApiKeyMiddleware)
+
+
+_CONTENT_SECURITY_POLICY = "; ".join((
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "img-src * data: blob:",
+    "connect-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self'",
+))
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("Referrer-Policy", "same-origin")
+    if response.headers.get("content-type", "").startswith("text/html"):
+        response.headers.setdefault("Content-Security-Policy", _CONTENT_SECURITY_POLICY)
+    return response
+
+
+def _script_json(value: Any) -> str:
+    """JSON для вставки внутрь <script>: «</script>» в значении не закроет тег."""
+    return json.dumps(value).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
 
 @app.middleware("http")
@@ -755,16 +804,15 @@ def wiki_page(request: Request):
         with open(wiki_path, encoding="utf-8") as f:
             html = f.read()
 
-        import json
         lang = getattr(settings, "language", "ru") or "ru"
         theme = getattr(settings, "theme", "dark") or "dark"
         inject_script = (
             f'<script>'
-            f'window.__ALIASARR_SETTINGS_LANG__ = {json.dumps(lang)};'
-            f'window.__ALIASARR_SETTINGS_THEME__ = {json.dumps(theme)};'
+            f'window.__ALIASARR_SETTINGS_LANG__ = {_script_json(lang)};'
+            f'window.__ALIASARR_SETTINGS_THEME__ = {_script_json(theme)};'
         )
         if not settings.login_enabled:
-            inject_script += f'window.__ALIASARR_BOOTSTRAP_KEY__ = {json.dumps(settings.api_key)};'
+            inject_script += f'window.__ALIASARR_BOOTSTRAP_KEY__ = {_script_json(settings.api_key)};'
         inject_script += '</script>'
         html = html.replace("</head>", inject_script + "</head>")
 
@@ -791,18 +839,17 @@ def api_docs_page(request: Request):
         with open(docs_path, encoding="utf-8") as f:
             html = f.read()
 
-        import json
         lang = getattr(settings, "language", "ru") or "ru"
         theme = getattr(settings, "theme", "dark") or "dark"
         inject_script = (
             f'<script>'
-            f'window.__ALIASARR_SETTINGS_LANG__ = {json.dumps(lang)};'
-            f'window.__ALIASARR_SETTINGS_THEME__ = {json.dumps(theme)};'
+            f'window.__ALIASARR_SETTINGS_LANG__ = {_script_json(lang)};'
+            f'window.__ALIASARR_SETTINGS_THEME__ = {_script_json(theme)};'
         )
         if not settings.login_enabled and getattr(settings, "api_key", None):
-            inject_script += f'window.__ALIASARR_BOOTSTRAP_KEY__ = {json.dumps(settings.api_key)};'
+            inject_script += f'window.__ALIASARR_BOOTSTRAP_KEY__ = {_script_json(settings.api_key)};'
         elif user and getattr(user, "api_key", None):
-            inject_script += f'window.__ALIASARR_BOOTSTRAP_KEY__ = {json.dumps(user.api_key)};'
+            inject_script += f'window.__ALIASARR_BOOTSTRAP_KEY__ = {_script_json(user.api_key)};'
         inject_script += '</script>'
         html = html.replace("</head>", inject_script + "</head>")
 
@@ -845,9 +892,8 @@ def root_redirect():
             # полный доступ к контейнеру — не заставляем вручную вводить ключ,
             # который сервер и так знает. Если включён логин, ключ НЕ встраиваем:
             # доступ к странице до входа не должен раскрывать секрет.
-            import json
             bootstrap_script = (
-                f'<script>window.__ALIASARR_BOOTSTRAP_KEY__ = {json.dumps(settings.api_key)};</script>'
+                f'<script>window.__ALIASARR_BOOTSTRAP_KEY__ = {_script_json(settings.api_key)};</script>'
             )
             html = html.replace("</head>", bootstrap_script + "</head>")
 

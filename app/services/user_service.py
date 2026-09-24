@@ -296,6 +296,23 @@ def create_user_session(db: Session, user: User, request: Optional[Request] = No
     return token
 
 
+def revoke_user_sessions(db: Session, user_id: int, keep_token: Optional[str] = None) -> int:
+    """Завершает сессии пользователя (кроме keep_token) и сбрасывает кэш сессий.
+
+    Вызывается при смене или сбросе пароля, отключении и удалении учётной записи:
+    иначе уже выданные cookie продолжали бы работать до истечения своего срока.
+    """
+    from app.auth import invalidate_session_cache
+
+    query = db.query(SessionModel).filter(SessionModel.user_id == user_id)
+    if keep_token:
+        query = query.filter(SessionModel.token != keep_token)
+    removed = query.delete(synchronize_session=False)
+    db.commit()
+    invalidate_session_cache()
+    return removed
+
+
 def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -> Optional[User]:
     """Возвращает текущего пользователя из сессии или по API-ключу, привязанного к сессии БД."""
     if hasattr(request.state, "user") and request.state.user:
@@ -316,15 +333,14 @@ def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -
     if is_valid and user:
         return user
 
-    provided_key = (
-        request.headers.get("X-Api-Key")
-        or request.query_params.get("apikey")
-        or request.query_params.get("api_key")
-        or request.query_params.get("token")
-    )
+    # Те же источники ключа, что и в ApiKeyMiddleware: иначе параметр, который
+    # middleware не признаёт, оказывался бы в URL и логах без всякой пользы.
+    provided_key = request.headers.get("X-Api-Key") or request.query_params.get("apikey")
     if provided_key:
+        from app.auth import keys_match
+
         settings = get_or_create_settings(db)
-        if provided_key == settings.api_key:
+        if keys_match(provided_key, settings.api_key):
             return ensure_master_admin(db)
         user_by_key = db.query(User).filter(User.api_key == provided_key, User.enabled == True).first()
         if user_by_key:
@@ -336,9 +352,9 @@ def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -
     if not settings.login_enabled:
         return ensure_master_admin(db)
     if getattr(settings, "auth_disabled_for_local_addresses", False):
-        from app.auth import get_client_ip, is_private_ip
+        from app.auth import get_client_ip, is_local_host_header, is_private_ip
 
-        if is_private_ip(get_client_ip(request)):
+        if is_private_ip(get_client_ip(request)) and is_local_host_header(request.headers.get("Host")):
             return ensure_master_admin(db)
 
     return None

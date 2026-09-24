@@ -409,7 +409,10 @@ docker run -d \
 | `DATABASE_URL` | `sqlite:////config/aliasarr.db` | URL БД (поддерживается `sqlite://` и `postgresql+psycopg2://`) |
 | `ALIASARR_PORT` | `8989` | Порт HTTP сервера |
 | `ALIASARR_BACKUP_DIR` | `/config/backups` | Директория для хранения автоматических резервных копий |
-| `ALIASARR_TRUSTED_PROXIES` | пусто | IP/CIDR доверенных reverse proxy через запятую; только от них принимаются `X-Forwarded-For`, `X-Real-IP` и `CF-Connecting-IP` |
+| `ALIASARR_TRUSTED_PROXIES` | пусто | IP/CIDR доверенных reverse proxy через запятую; только от них принимаются `X-Forwarded-For`, `X-Real-IP` `X-Forwarded-Proto` (из `X-Forwarded-For` берётся самый правый адрес, не принадлежащий этим прокси) |
+| `ALIASARR_TRUST_CF_CONNECTING_IP` | пусто | `true`, если перед Aliasarr стоит Cloudflare: тогда IP клиента берётся из `CF-Connecting-IP` (только от доверенных прокси) |
+| `ALIASARR_ALLOWED_HOSTS` | пусто | Дополнительные имена хостов через запятую, на которых работает вход без пароля из локальной сети. IP-адреса, однословные имена и внутренние домены (`.local`, `.lan`, `.home.arpa` и т.п.) разрешены всегда |
+| `ALIASARR_CORS_ORIGINS` | пусто | Origin сторонних панелей через запятую, которым разрешено обращаться к API из браузера по `X-Api-Key` (cookie им не передаются) |
 
 ---
 

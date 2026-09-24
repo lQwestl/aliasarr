@@ -11,7 +11,14 @@ from app.database import get_db
 from app.models.db import User
 from app.services.audit_service import log_audit
 from app.services.settings_service import get_or_create_settings, hash_password
-from app.services.user_service import ALL_PERMISSIONS, ROLE_PRESETS, detect_user_role, require_permission
+from app.api.auth_routes import MAX_SESSION_TIMEOUT_MINUTES, MIN_PASSWORD_LENGTH
+from app.services.user_service import (
+    ALL_PERMISSIONS,
+    ROLE_PRESETS,
+    detect_user_role,
+    require_permission,
+    revoke_user_sessions,
+)
 
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
@@ -76,6 +83,32 @@ def _format_user(u: User, viewer: Optional[User] = None) -> dict[str, Any]:
     }
 
 
+def _ensure_can_manage(current_user: User, target: User) -> None:
+    """Изменять администратора может только администратор (владельца — только он сам).
+
+    Право manage_users без прав администратора выдаётся, например, модератору в
+    роли «Custom». Без этой проверки он сбрасывал бы пароли администраторов,
+    перевыпускал их API-ключи и тем самым получал их полномочия.
+    """
+    if target.is_owner and not current_user.is_owner and target.id != current_user.id:
+        raise HTTPException(403, "Изменять главного администратора может только он сам")
+    if target.is_admin and not current_user.is_admin:
+        raise HTTPException(403, "Изменять учётные записи администраторов может только администратор")
+
+
+def _ensure_can_grant(current_user: User, is_admin: bool, permissions: Optional[dict]) -> None:
+    """Нельзя выдать другому больше прав, чем есть у себя."""
+    if current_user.is_admin:
+        return
+    if is_admin:
+        raise HTTPException(403, "Назначать администраторов может только администратор")
+    own = current_user.permissions or {}
+    extra = sorted(key for key, value in (permissions or {}).items() if value and not own.get(key))
+    if extra:
+        names = ", ".join(ALL_PERMISSIONS.get(key, key) for key in extra)
+        raise HTTPException(403, f"Нельзя выдать права, которых нет у вас: {names}")
+
+
 @router.get("/roles/presets")
 def get_role_presets(
     current_user: User = Depends(require_permission("manage_users")),
@@ -103,8 +136,8 @@ def create_user(
     uname = payload.username.strip()
     if not uname:
         raise HTTPException(400, "Имя пользователя обязательно")
-    if len(payload.password) < 4:
-        raise HTTPException(400, "Пароль должен содержать минимум 4 символа")
+    if len(payload.password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(400, f"Пароль должен содержать минимум {MIN_PASSWORD_LENGTH} символов")
 
     existing = db.query(User).filter(User.username == uname).first()
     if existing:
@@ -121,6 +154,7 @@ def create_user(
 
     if perms is None:
         perms = {}
+    _ensure_can_grant(current_user, is_admin, perms)
     if is_admin:
         perms = {perm: True for perm in ALL_PERMISSIONS}
 
@@ -132,7 +166,7 @@ def create_user(
         is_owner=False,
         permissions=perms,
         enabled=payload.enabled,
-        session_timeout_minutes=payload.session_timeout_minutes or 43200,
+        session_timeout_minutes=min(payload.session_timeout_minutes or 43200, MAX_SESSION_TIMEOUT_MINUTES),
     )
     db.add(new_user)
     db.commit()
@@ -172,6 +206,7 @@ def update_user(
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(404, "Пользователь не найден")
+    _ensure_can_manage(current_user, user)
 
     # Главного администратора (is_owner) может редактировать ТОЛЬКО он сам
     if user.is_owner and not current_user.is_owner:
@@ -195,6 +230,13 @@ def update_user(
     if payload.display_name is not None:
         user.display_name = payload.display_name.strip() or user.username
 
+    requested_admin = bool(payload.is_admin) or payload.role == "admin"
+    requested_perms = dict(payload.permissions or {})
+    if payload.role and payload.role in ROLE_PRESETS and payload.role != "admin":
+        requested_perms.update(ROLE_PRESETS[payload.role]["permissions"])
+    _ensure_can_grant(current_user, requested_admin, requested_perms)
+    was_enabled = bool(user.enabled)
+
     if payload.role and payload.role in ROLE_PRESETS and not user.is_owner and (current_user.id != user.id or current_user.is_owner):
         preset = ROLE_PRESETS[payload.role]
         if payload.role == "admin":
@@ -213,10 +255,12 @@ def update_user(
     if payload.enabled is not None and not user.is_owner and current_user.id != user.id:
         user.enabled = payload.enabled
     if payload.session_timeout_minutes is not None and payload.session_timeout_minutes > 0:
-        user.session_timeout_minutes = payload.session_timeout_minutes
+        user.session_timeout_minutes = min(payload.session_timeout_minutes, MAX_SESSION_TIMEOUT_MINUTES)
 
     db.commit()
     db.refresh(user)
+    if was_enabled and not user.enabled:
+        revoke_user_sessions(db, user.id)
 
     log_audit(
         db,
@@ -240,13 +284,14 @@ def reset_user_password(
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(404, "Пользователь не найден")
+    _ensure_can_manage(current_user, user)
 
     # Другие пользователи и администраторы НЕ могут сменить пароль главному администратору
     if user.is_owner and not current_user.is_owner:
         raise HTTPException(403, "Другие пользователи и администраторы не могут менять пароль главному администратору")
 
-    if len(payload.new_password) < 4:
-        raise HTTPException(400, "Пароль должен содержать не менее 4 символов")
+    if len(payload.new_password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(400, f"Пароль должен содержать не менее {MIN_PASSWORD_LENGTH} символов")
 
     new_hash = hash_password(payload.new_password)
     user.password_hash = new_hash
@@ -254,6 +299,7 @@ def reset_user_password(
         settings = get_or_create_settings(db)
         settings.password_hash = new_hash
     db.commit()
+    revoke_user_sessions(db, user.id)
 
     log_audit(
         db,
@@ -276,6 +322,7 @@ def delete_user(
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(404, "Пользователь не найден")
+    _ensure_can_manage(current_user, user)
 
     if user.is_owner:
         raise HTTPException(400, "Нельзя удалить главного администратора системы")
@@ -284,6 +331,7 @@ def delete_user(
         raise HTTPException(400, "Вы не можете удалить свою собственную учётную запись")
 
     uname = user.username
+    revoke_user_sessions(db, user.id)
     db.delete(user)
     db.commit()
 
@@ -308,6 +356,7 @@ def set_user_avatar(
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(404, "Пользователь не найден")
+    _ensure_can_manage(current_user, user)
 
     user.avatar = payload.avatar
     db.add(user)
@@ -339,6 +388,7 @@ def regenerate_user_api_key(
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(404, "Пользователь не найден")
+    _ensure_can_manage(current_user, user)
 
     new_key = secrets.token_hex(32)
     user.api_key = new_key
@@ -370,6 +420,7 @@ def revoke_user_api_key(
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(404, "Пользователь не найден")
+    _ensure_can_manage(current_user, user)
 
     user.api_key = None
     db.commit()
@@ -404,6 +455,7 @@ def admin_setup_user_2fa(
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(404, "Пользователь не найден")
+    _ensure_can_manage(current_user, user)
 
     # Администраторы не могут управлять 2FA главного администратора
     if user.is_owner and not current_user.is_owner:
@@ -437,6 +489,7 @@ def admin_confirm_user_2fa(
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(404, "Пользователь не найден")
+    _ensure_can_manage(current_user, user)
 
     if user.is_owner and not current_user.is_owner:
         raise HTTPException(403, "Администраторы не могут управлять 2FA главного администратора")
@@ -476,6 +529,7 @@ def admin_reset_user_2fa(
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(404, "Пользователь не найден")
+    _ensure_can_manage(current_user, user)
 
     if user.is_owner and not current_user.is_owner:
         raise HTTPException(403, "Администраторы не могут сбрасывать 2FA главного администратора")

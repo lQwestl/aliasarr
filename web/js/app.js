@@ -5,10 +5,15 @@
 const API_BASE = "";
 // Сервер сам встраивает актуальный API-ключ в страницу при отдаче "/", если
 // логин по паролю не включён — так браузеру не нужно спрашивать ключ вручную.
-let API_KEY = window.__ALIASARR_BOOTSTRAP_KEY__ || localStorage.getItem("aliasarr_api_key") || "";
-if (window.__ALIASARR_BOOTSTRAP_KEY__) {
-  localStorage.setItem("aliasarr_api_key", API_KEY);
-}
+// Ключ и токен сессии хранятся только в памяти страницы: запросы к API
+// авторизуются HttpOnly-cookie, которую скрипт на странице прочитать не может.
+// Раньше они копировались в localStorage, откуда их унёс бы любой XSS.
+let API_KEY = window.__ALIASARR_BOOTSTRAP_KEY__ || "";
+try {
+  localStorage.removeItem("aliasarr_api_key");
+  localStorage.removeItem("aliasarr_session_token");
+  sessionStorage.removeItem("aliasarr_session_token");
+} catch (_) {}
 let CACHED_SHOWS = [];
 let CACHED_QUALITY_PROFILES = [];
 let CACHED_METADATA_SOURCES = [];
@@ -3480,10 +3485,6 @@ async function api(path, options = {}) {
   if (!(opts.body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
-  const sessionToken = sessionStorage.getItem("aliasarr_session_token") || localStorage.getItem("aliasarr_session_token");
-  if (sessionToken && !headers["Authorization"]) {
-    headers["Authorization"] = `Bearer ${sessionToken}`;
-  }
   if (API_KEY) headers["X-Api-Key"] = API_KEY;
 
   const resp = await fetch(API_BASE + path, Object.assign({}, opts, { headers }));
@@ -4064,15 +4065,23 @@ async function submitConfirm2FASetup() {
 }
 
 async function disableMy2FA(btn) {
+  const isEn = CURRENT_LANG === "en";
+  const question = escapeHtml(isEn
+    ? "Disable Two-Factor Authentication (2FA) for your account? Enter your current password to confirm."
+    : "Отключить двухфакторную аутентификацию (2FA) для вашей учётной записи? Для подтверждения введите текущий пароль.");
+  const placeholder = escapeHtml(isEn ? "Current password" : "Текущий пароль");
   const confirmed = await confirmModal(
-    CURRENT_LANG === "en" ? "Disable Two-Factor Authentication (2FA) for your account?" : "Отключить двухфакторную аутентификацию (2FA) для вашей учётной записи?",
-    { danger: true }
+    `<p>${question}</p><input type="password" id="disable-2fa-password" class="input" autocomplete="current-password" placeholder="${placeholder}" style="margin-top:10px;width:100%;">`,
+    { danger: true, isHtml: true }
   );
+  const passwordInput = document.getElementById("disable-2fa-password");
+  const password = passwordInput ? passwordInput.value : "";
+  if (passwordInput) passwordInput.value = "";
   if (!confirmed) return;
 
   await withLoading(btn, async () => {
     try {
-      const res = await api("/api/v1/auth/2fa/disable", { method: "POST" });
+      const res = await api("/api/v1/auth/2fa/disable", { method: "POST", body: JSON.stringify({ password }) });
       if (res.user) CURRENT_USER = res.user;
       toast(t("totp.toast_disabled"));
       loadMy2FAStatus();
@@ -4308,9 +4317,6 @@ async function logoutUser() {
   } catch (e) {}
   CURRENT_USER = null;
   API_KEY = "";
-  localStorage.removeItem("aliasarr_api_key");
-  sessionStorage.removeItem("aliasarr_session_token");
-  localStorage.removeItem("aliasarr_session_token");
   updateUserProfileUI(null);
   location.reload();
 }
@@ -4326,8 +4332,6 @@ function hideLoginScreen() {
 async function checkAuthStatus() {
   try {
     const headers = {};
-    const sessionToken = sessionStorage.getItem("aliasarr_session_token") || localStorage.getItem("aliasarr_session_token");
-    if (sessionToken) headers["Authorization"] = `Bearer ${sessionToken}`;
     if (API_KEY) headers["X-Api-Key"] = API_KEY;
 
     const status = await fetch("/api/v1/auth/status", { headers }).then(r => r.json());
@@ -4335,10 +4339,8 @@ async function checkAuthStatus() {
       CURRENT_USER = status.user;
       if (status.api_key || (status.user && status.user.api_key)) {
         API_KEY = status.api_key || status.user.api_key;
-        localStorage.setItem("aliasarr_api_key", API_KEY);
-      } else {
+      } else if (!window.__ALIASARR_BOOTSTRAP_KEY__) {
         API_KEY = "";
-        localStorage.removeItem("aliasarr_api_key");
       }
       updateUserProfileUI(CURRENT_USER);
       hideLoginScreen();
@@ -4397,16 +4399,10 @@ async function submitLogin(triggerEl) {
       }
 
       CURRENT_USER = data.user;
-      if (data.token) {
-        sessionStorage.setItem("aliasarr_session_token", data.token);
-        localStorage.setItem("aliasarr_session_token", data.token);
-      }
       if (data.api_key || (data.user && data.user.api_key)) {
         API_KEY = data.api_key || data.user.api_key;
-        localStorage.setItem("aliasarr_api_key", API_KEY);
       } else {
         API_KEY = "";
-        localStorage.removeItem("aliasarr_api_key");
       }
       updateUserProfileUI(CURRENT_USER);
       hideLoginScreen();
@@ -4462,16 +4458,10 @@ async function submitLogin2FA(triggerEl) {
       }
       const data = await resp.json();
       CURRENT_USER = data.user;
-      if (data.token) {
-        sessionStorage.setItem("aliasarr_session_token", data.token);
-        localStorage.setItem("aliasarr_session_token", data.token);
-      }
       if (data.api_key || (data.user && data.user.api_key)) {
         API_KEY = data.api_key || data.user.api_key;
-        localStorage.setItem("aliasarr_api_key", API_KEY);
       } else {
         API_KEY = "";
-        localStorage.removeItem("aliasarr_api_key");
       }
       updateUserProfileUI(CURRENT_USER);
       hideLoginScreen();
@@ -17943,7 +17933,6 @@ async function regenerateApiKey(button) {
       const s = await api("/api/v1/settings/regenerate-api-key", { method: "POST" });
       document.getElementById("setting-apikey").value = s.api_key;
       API_KEY = s.api_key;
-      localStorage.setItem("aliasarr_api_key", API_KEY);
       toast(t("settings.toast_key_regenerated"));
     } catch (e) { toast("Ошибка: " + e.message, true); }
   });

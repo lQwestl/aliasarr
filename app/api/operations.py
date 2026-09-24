@@ -411,9 +411,34 @@ class NotificationOut(NotificationIn):
         from_attributes = True
 
 
+# Поля настроек уведомлений, дающие доступ к чужому боту, почте или вебхуку.
+NOTIFICATION_SECRET_FIELDS = frozenset({
+    "access_token", "api_key", "api_token", "app_token", "bot_token",
+    "password", "user_key", "webhook_url", "urls", "device_iden",
+})
+
+
+def _can_manage_settings(user: User) -> bool:
+    return bool(user and (user.is_admin or (user.permissions or {}).get("manage_settings")))
+
+
+def _masked_notification(config: NotificationConfig) -> NotificationOut:
+    out = NotificationOut.model_validate(config)
+    out.settings = {
+        key: ("" if key in NOTIFICATION_SECRET_FIELDS and value else value)
+        for key, value in (config.settings or {}).items()
+    }
+    return out
+
+
 @router.get("/notifications", response_model=list[NotificationOut])
 def list_notifications(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(NotificationConfig).all()
+    configs = db.query(NotificationConfig).all()
+    if _can_manage_settings(current_user):
+        return configs
+    # Список виден всем, но токены ботов, пароли почты и адреса вебхуков —
+    # только тем, кто может эти настройки менять.
+    return [_masked_notification(config) for config in configs]
 
 
 @router.post("/notifications", response_model=NotificationOut, status_code=201)
