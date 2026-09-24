@@ -12,8 +12,12 @@ services:
     environment:
       - DATABASE_URL=sqlite:////config/aliasarr.db
       - TZ=Europe/Moscow
+      # Процесс работает от этого пользователя/группы; им же должны принадлежать
+      # (или быть доступны на запись) /data, /downloads и папки медиатеки.
       - PUID=1000
       - PGID=1000
+      # Прежний режим запуска от root, если права на медиатеку перенастроить нельзя.
+      # - ALIASARR_RUN_AS_ROOT=true
       # Если Aliasarr работает за reverse proxy, укажите его IP или CIDR.
       # - ALIASARR_TRUSTED_PROXIES=172.18.0.5/32
       # Опционально: зафиксировать свой API-ключ (тогда кнопка "Новый ключ" в
@@ -26,8 +30,9 @@ services:
       # /mnt/pool/apps/aliasarr/config:/config
       - ./config:/config
       - ./data:/data
-      - ./app:/app/app
-      - ./web:/app/web
+      # Для разработки можно подключить исходники поверх образа:
+      # - ./app:/app/app
+      # - ./web:/app/web
       # Папка загрузок должна быть ОБЩЕЙ с qBittorrent/Transmission контейнером,
       # чтобы Aliasarr мог найти и разложить скачанные файлы
       - ./downloads:/downloads

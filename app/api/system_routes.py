@@ -38,7 +38,6 @@ import time
 router = APIRouter(prefix="/api/v1", tags=["system"])
 logger = logging.getLogger("aliasarr.system")
 
-BACKUP_DIR = os.getenv("ALIASARR_BACKUP_DIR", "/config/backups")
 APP_START_TIME = time.time()
 
 
