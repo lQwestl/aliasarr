@@ -63,6 +63,52 @@ class TestManualGrab(unittest.TestCase):
             self.assertEqual(ep2.status, EpisodeStatus.DOWNLOADING)
             self.assertEqual(ep2.torrent_hash, "dummyhash12345")
 
+    def test_upgrade_grab_keeps_quality_of_existing_file_until_import(self):
+        """Качество существующего файла меняет импорт: если апгрейд не скачается,
+        у серии не должно остаться качество файла, которого нет на диске."""
+        if not HAS_DEPS:
+            self.skipTest('FastAPI / dependencies not installed in host runner')
+
+        mock_db = MagicMock()
+        mock_show = Show(id=1, title="Test Show", content_type="series", quality_profile_id=10)
+        mock_qp = QualityProfile(id=10, name="HD", allowed_qualities=["Bluray-1080p", "WEBDL-1080p"], upgrade_allowed=True)
+        ep1 = Episode(id=101, show_id=1, season_number=5, episode_number=1, status=EpisodeStatus.DOWNLOADED,
+                      downloaded_quality="WEBDL-1080p", file_path="/media/ep1.mkv")
+
+        def mock_get(model, pk):
+            if model == Show:
+                return mock_show
+            if model == QualityProfile:
+                return mock_qp
+            return None
+
+        mock_db.get.side_effect = mock_get
+        mock_db.query.return_value.filter.return_value.all.return_value = [ep1]
+        mock_db.query.return_value.filter.return_value.order_by.return_value.first.return_value = DownloadClient(
+            id=1, name="Transmission", type="transmission", host="localhost", port=9091, enabled=True, is_default=True)
+
+        req = GrabRequest(
+            show_id=1,
+            download_url="magnet:?xt=urn:btih:upgrade",
+            release_title="Test.Show.S05.1080p.BluRay.x264",
+            season=5,
+        )
+
+        with patch("app.api.indexers.get_client") as mock_get_client, \
+             patch("app.api.indexers.get_or_create_settings") as mock_settings, \
+             patch("app.services.download_preflight.prepare_download_target", return_value="/downloads"), \
+             patch("app.api.indexers.notify_all", new_callable=AsyncMock):
+            mock_client = AsyncMock()
+            mock_client.add_torrent.return_value = "upgradehash"
+            mock_get_client.return_value = mock_client
+            mock_settings.return_value.download_folder_series = "/downloads"
+
+            import asyncio
+            res = asyncio.run(grab_release(req, MagicMock(), db=mock_db, current_user=MagicMock()))
+            self.assertTrue(res["grabbed"])
+            self.assertEqual(ep1.status, EpisodeStatus.DOWNLOADING)
+            self.assertEqual(ep1.downloaded_quality, "WEBDL-1080p")
+
     def test_grab_movie_release_binds_episode_and_no_bg_search(self):
         if not HAS_DEPS:
             self.skipTest('FastAPI / dependencies not installed in host runner')

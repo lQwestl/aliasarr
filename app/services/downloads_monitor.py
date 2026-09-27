@@ -16,6 +16,7 @@ import asyncio
 import datetime as dt
 import logging
 import os
+import time
 
 try:
     from sqlalchemy import and_, or_, func
@@ -83,6 +84,18 @@ _UNREGISTERED_TORRENTS_SEEN: dict[str, int] = {}
 _HEALED_TORRENTS_ATTEMPTS: dict[str, int] = {}
 
 
+def _is_tracked_infohash(db: Session, torrent_hash: str) -> bool:
+    """True, если хэш раздачи записан в отслеживаемых релизах Aliasarr."""
+    if not torrent_hash:
+        return False
+    try:
+        return db.query(TrackedRelease).filter(
+            func.lower(TrackedRelease.infohash) == torrent_hash.lower()
+        ).first() is not None
+    except Exception:
+        return False
+
+
 def is_unregistered_torrent_error(error_str: Optional[str]) -> bool:
     """Проверяет, сообщает ли ошибка клиента/трекера о закрытом или незарегистрированном торренте."""
     if not error_str:
@@ -131,6 +144,30 @@ def unmark_torrent_pending_manual_import(torrent_hash: str) -> None:
     """Снимает защиту от удаления после успешного ручного импорта всех файлов."""
     if torrent_hash:
         _PENDING_MANUAL_IMPORT_TORRENTS.discard(torrent_hash.lower())
+        _STALLED_IMPORTS.pop(torrent_hash.lower(), None)
+
+
+# Раздачи, чей автоимпорт завершился, но оставил серии несопоставленными:
+# hash -> (id серий, ожидающих импорта, время попытки). Такой импорт незачем
+# повторять каждые 30 секунд: результат не изменится, пока не изменится набор
+# серий (ручной импорт, сброс статуса) или пока не пройдёт интервал повтора.
+_STALLED_IMPORTS: dict[str, tuple[frozenset, float]] = {}
+_STALLED_IMPORT_RETRY_SECONDS = 30 * 60
+
+
+def _import_is_stalled(torrent_hash: str, pending_ids: frozenset) -> bool:
+    entry = _STALLED_IMPORTS.get((torrent_hash or "").lower())
+    if not entry:
+        return False
+    ids, attempted_at = entry
+    if ids != pending_ids:
+        return False
+    return (time.monotonic() - attempted_at) < _STALLED_IMPORT_RETRY_SECONDS
+
+
+def _remember_stalled_import(torrent_hash: str, pending_ids: frozenset) -> None:
+    if torrent_hash:
+        _STALLED_IMPORTS[torrent_hash.lower()] = (pending_ids, time.monotonic())
 
 
 def is_torrent_pending_manual_import(torrent_hash: str) -> bool:
@@ -141,6 +178,7 @@ def is_torrent_pending_manual_import(torrent_hash: str) -> bool:
 def clear_pending_manual_import_torrents() -> None:
     """Сбрасывает реестр (используется в тестах)."""
     _PENDING_MANUAL_IMPORT_TORRENTS.clear()
+    _STALLED_IMPORTS.clear()
 
 
 
@@ -259,25 +297,30 @@ def _resolve_torrent_files_and_path(
             return safe_content_path, [safe_content_path]
         return safe_content_path, []
 
-    # 4. Fallback: если список файлов не был получен, ищем в корне save_path файлы, матчащиеся с тайтлом шоу
+    # 4. Fallback: клиент не вернул список файлов, а путь из name/content_path не найден
+    #    (например, раздачу переименовали). Папка загрузок общая для всех раздач и
+    #    программ, поэтому берём только элемент, чьё имя почти совпадает с именем
+    #    самой раздачи, и только если такой элемент ровно один. Совпадение по
+    #    названию тайтла здесь не годится: оно захватывает соседние раздачи того же
+    #    сериала и чужие файлы с похожими именами, а импорт может их переместить.
     safe_save_path = _safe_base(t.save_path) if t.save_path else ""
-    if show and safe_save_path and os.path.isdir(safe_save_path):
-        from app.services.matcher import build_alias_candidates, best_alias_match
-        aliases = build_alias_candidates(show)
+    if safe_save_path and t.name and os.path.isdir(safe_save_path):
+        from rapidfuzz import fuzz
+        from app.services.matcher import normalize_title
+
+        target_name = normalize_title(os.path.splitext(t.name)[0])
         matched_items = []
         try:
             for item in os.listdir(safe_save_path):
-                item_path = safe_join_under(safe_save_path, item)
-                b_alias, b_score = best_alias_match(item, aliases, threshold=65)
-                if b_alias and b_score >= 65:
-                    if item_path.is_file():
-                        matched_items.append(str(item_path))
-                    elif item_path.is_dir():
-                        return str(item_path), []
-            if matched_items:
-                if len(matched_items) == 1:
-                    return matched_items[0], matched_items
-                return safe_save_path, matched_items
+                item_name = normalize_title(os.path.splitext(item)[0])
+                if target_name and item_name and fuzz.ratio(target_name, item_name) >= 90:
+                    matched_items.append(safe_join_under(safe_save_path, item))
+            if len(matched_items) == 1:
+                item_path = matched_items[0]
+                if item_path.is_file():
+                    return str(item_path), [str(item_path)]
+                if item_path.is_dir():
+                    return str(item_path), []
         except Exception:
             pass
 
@@ -406,6 +449,7 @@ async def _check_seeding_torrents(db: Session, active_clients: list[DownloadClie
                     .first()
                 )
                 show_id = dh.show_id if (dh and getattr(dh, "show_id", None)) else None
+                any_ep = None
                 if not show_id:
                     try:
                         any_ep = db.query(Episode).filter(
@@ -415,6 +459,12 @@ async def _check_seeding_torrents(db: Session, active_clients: list[DownloadClie
                             show_id = any_ep.show_id
                     except Exception:
                         pass
+
+                # Клиент общий с другими программами и личными раздачами пользователя:
+                # удалять, возобновлять или менять лимиты можно только у раздач,
+                # которые Aliasarr добавил сам и о которых помнит его история.
+                if not dh and not any_ep and not _is_tracked_infohash(db, th_lower):
+                    continue
 
                 if show_id:
                     # Проверяем наличие неимпортированных видеофайлов на диске в торренте (исключая samples/extras)
@@ -1141,6 +1191,10 @@ async def check_downloads(db: Session) -> list[dict]:
                 db.commit()
             continue
 
+        pending_ep_ids = frozenset(ep.id for ep in eps if getattr(ep, "id", None) is not None)
+        if _import_is_stalled(torrent_hash, pending_ep_ids):
+            continue
+
         # Запрашиваем полные метаданные и список файлов торрента из клиента
         full_torrent = None
         client = None
@@ -1291,6 +1345,16 @@ async def check_downloads(db: Session) -> list[dict]:
 
                 if has_unimported_content and torrent_hash:
                     mark_torrent_pending_manual_import(torrent_hash)
+                    try:
+                        still_pending_ids = frozenset(
+                            ep.id for ep in eps
+                            if getattr(ep, "id", None) is not None
+                            and ep.status == EpisodeStatus.DOWNLOADING
+                            and (getattr(ep, "torrent_hash", None) or "").lower() == torrent_hash.lower()
+                        )
+                    except Exception:
+                        still_pending_ids = pending_ep_ids
+                    _remember_stalled_import(torrent_hash, still_pending_ids)
                 elif torrent_hash:
                     unmark_torrent_pending_manual_import(torrent_hash)
 
