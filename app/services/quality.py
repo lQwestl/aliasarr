@@ -73,7 +73,9 @@ QUALITY_ALIASES = {
 
 # Регулярные выражения источников (Sources)
 _REMUX_RE = re.compile(r"\b(remux|bdremux|bd[-_. ]?remux|uhd[-_. ]?remux|4k[-_. ]?remux)\b", re.IGNORECASE)
-_BDRIP_RE = re.compile(r"\b(bdrip|bd[-_. ]?rip)\b", re.IGNORECASE)
+_BDRIP_RE = re.compile(r"\b(bdrip|bd[-_. ]?rip|uhd[-_. ]?rip)\b", re.IGNORECASE)
+# UHDRip — рип с UHD Blu-ray: разрешение подразумевается 2160p, даже если не указано.
+_UHDRIP_RE = re.compile(r"\buhd[-_. ]?rip\b", re.IGNORECASE)
 _BRRIP_RE = re.compile(r"\b(brrip|br[-_. ]?rip)\b", re.IGNORECASE)
 _BLURAY_RE = re.compile(r"\b(bluray|blu-ray|bdmux|bd(?!$)|hd-?dvd|bdmv|uhd[-_. ]?disc|uhd[-_. ]?blu[-_. ]?ray|uhd[-_. ]?bd|4k[-_. ]?bluray|4k[-_. ]?blu-ray|bdiso|blurayiso)\b", re.IGNORECASE)
 _WEBDL_RE = re.compile(r"\b(web[-_. ]?dl(?:mux|[-_. ]?rip)?|webdlrip|webdl|amazonhd|ituneshd|netflixu?hd|webhd|hbomaxhd|disneyhd|[. ]web[. ](?:[xh][ .]?26[456]|avc|hevc|ddp?[ .]?5[. ]1))\b", re.IGNORECASE)
@@ -86,6 +88,11 @@ _CAM_RE = re.compile(r"\b(camrip|cam|hdcam)\b", re.IGNORECASE)
 _TELESYNC_RE = re.compile(r"\b(telesync|hdts|hd-ts|tsrip|telesync-rip)\b", re.IGNORECASE)
 _TELECINE_RE = re.compile(r"\b(telecine|tc|hdtc)\b", re.IGNORECASE)
 _WORKPRINT_RE = re.compile(r"\b(workprint|wp)\b", re.IGNORECASE)
+# Скринеры (DVDSCR/BDSCR) — допремьерные копии; ставим их на уровень Workprint,
+# чтобы они не проходили как обычный SDTV.
+_SCREENER_RE = re.compile(r"\b(screener|dvd[-_. ]?scr|bd[-_. ]?scr|scr)\b", re.IGNORECASE)
+# Одиночное «TS» (Telesync): «Movie.2023.1080p.TS.x264». Не путать с расширением .ts.
+_TS_TOKEN_RE = re.compile(r"(?:^|[\s._\-\[(])ts(?=[\s._\-\])]|$)", re.IGNORECASE)
 _SDTV_RE = re.compile(r"\b(sdtv|sd)\b", re.IGNORECASE)
 
 # Разрешения
@@ -206,6 +213,9 @@ def parse_quality(release_name: str) -> QualityInfo:
     res_match = _RES_RE.search(release_name)
     has_explicit_res = res_match is not None
     raw_res = res_match.group("res").lower() if res_match else ""
+    if not raw_res and _UHDRIP_RE.search(release_name):
+        raw_res = "2160p"
+        has_explicit_res = True
     if raw_res in ("2160p", "4k", "uhd"):
         resolution = "2160p"
     elif raw_res in ("1080p", "1080i", "fhd"):
@@ -237,11 +247,11 @@ def parse_quality(release_name: str) -> QualityInfo:
         source = "DVD"
     elif _CAM_RE.search(release_name):
         source = "CAM"
-    elif _TELESYNC_RE.search(release_name):
+    elif _TELESYNC_RE.search(release_name) or _TS_TOKEN_RE.search(re.sub(r"\.ts$", "", release_name, flags=re.IGNORECASE)):
         source = "Telesync"
     elif _TELECINE_RE.search(release_name):
         source = "Telecine"
-    elif _WORKPRINT_RE.search(release_name):
+    elif _WORKPRINT_RE.search(release_name) or _SCREENER_RE.search(release_name):
         source = "Workprint"
     elif _SDTV_RE.search(release_name):
         source = "SDTV"
@@ -525,3 +535,72 @@ def detect_file_quality(
         has_explicit_res=base_q.has_explicit_res,
     )
 
+
+
+def size_limit_rejection(size_bytes: int, quality_profile, episode_count: int = 1) -> Optional[str]:
+    """Проверяет размер релиза против лимитов профиля качества.
+
+    Лимиты профиля задаются для одной серии (или одного фильма): сезонный пак
+    из 10 серий по 3 ГБ — это 30 ГБ, и сравнивать его целиком с лимитом серии
+    значило бы отклонять любые паки. Поэтому размер делится на число серий.
+    Возвращает текст причины отказа или None.
+    """
+    if not quality_profile or not size_bytes or size_bytes <= 0:
+        return None
+    count = max(1, int(episode_count or 1))
+    size_mb = size_bytes / (1024 * 1024) / count
+    per = f" на серию из {count}" if count > 1 else ""
+    min_mb = getattr(quality_profile, "min_size_mb", None)
+    max_mb = getattr(quality_profile, "max_size_mb", None)
+    if min_mb and size_mb < min_mb:
+        return f"Размер ({size_mb:.1f} MB{per}) меньше минимального порога ({min_mb} MB)"
+    if max_mb and size_mb > max_mb:
+        return f"Размер ({size_mb:.1f} MB{per}) превышает максимальный лимит ({max_mb} MB)"
+    return None
+
+
+_REVISION_MODIFIERS = {"proper", "repack", "real"}
+
+
+def _is_revision(quality: QualityInfo) -> bool:
+    return str(getattr(quality, "modifier", "") or "").lower() in _REVISION_MODIFIERS
+
+
+def upgrade_rejection(
+    current: QualityInfo,
+    candidate: QualityInfo,
+    *,
+    allowed_qualities: Optional[List[str]] = None,
+    current_score: Optional[int] = None,
+    candidate_score: int = 0,
+    cutoff_quality: Optional[str] = None,
+    cutoff_score: int = 0,
+) -> Optional[str]:
+    """Единое правило апгрейда для автоматического и ручного поиска.
+
+    Замена имеющегося файла допустима, пока не достигнут cutoff (качество и счёт
+    кастомных форматов), и только если кандидат лучше:
+    - выше качество; или
+    - то же качество, но исправленная версия (PROPER/REPACK) вместо исходной; или
+    - то же качество с большим счётом кастомных форматов (если счёт файла известен).
+    Более низкое качество не принимается никогда, какой бы ни был счёт форматов.
+    Возвращает текст причины отказа или None.
+    """
+    if allowed_qualities and not is_allowed(candidate, allowed_qualities):
+        return f"Качество «{candidate.name}» не разрешено профилем качества"
+
+    known_score = current_score if current_score is not None else 0
+    if cutoff_quality:
+        cutoff = parse_quality(cutoff_quality)
+        if current.rank >= cutoff.rank and known_score >= (cutoff_score or 0):
+            return f"Уже достигнут порог качества Cutoff ({cutoff_quality})"
+
+    if candidate.rank > current.rank:
+        return None
+    if candidate.rank < current.rank:
+        return f"Существующий файл имеет лучшее качество ({current.name})"
+    if _is_revision(candidate) and not _is_revision(current):
+        return None
+    if current_score is not None and candidate_score > current_score:
+        return None
+    return f"Существующий файл имеет равное или лучшее качество ({current.name}, счёт: {known_score})"

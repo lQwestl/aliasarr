@@ -45,7 +45,9 @@ class TestQualityAndMatcher(unittest.TestCase):
         path3 = "/downloads/Spider-Man.mkv"
         hints = ["Spider-Man: Brand New Day 2026 DVO, Sub TS 1080p - RUSSIAN"]
         q3 = detect_file_quality(path3, hints)
-        self.assertEqual(q3.name, "HDTV-1080p")
+        # «TS 1080p» — экранка (Telesync), а не HD-запись с ТВ: иначе она проходила
+        # бы HD-профили и считалась бы качественным файлом при апгрейдах.
+        self.assertEqual(q3.name, "Telesync-480p")
 
         # 4. BDRip folder detection (e.g. Vermeil in Gold [BDRip] [1080p])
         path4 = "/downloads/Vermeil in Gold [BDRip] [1080p]/01.mkv"
