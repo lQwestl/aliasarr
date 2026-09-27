@@ -51,7 +51,7 @@ except ImportError:
 
 from app.services.audit_service import log_audit
 from app.services.notifications import notify_all_sync
-from app.services.settings_service import get_or_create_settings
+from app.services.settings_service import get_or_create_settings, write_api_key_file
 
 logger = logging.getLogger("aliasarr.backup")
 
@@ -407,13 +407,6 @@ def restore_backup(
         db.add(settings)
         db.flush()
 
-        # Синхронизация /config/api_key.txt если доступен том
-        try:
-            if os.path.isdir("/config") and settings.api_key:
-                with open("/config/api_key.txt", "w") as f:
-                    f.write(settings.api_key)
-        except Exception:
-            pass
 
         # 3. Восстановление конфигурационных таблиц
         for key, model_cls in CONFIG_TABLES.items():
@@ -421,14 +414,11 @@ def restore_backup(
                 continue
             rows_data = payload.get("tables", {}).get(key, [])
             if rows_data or key in payload.get("tables", {}):
-                try:
-                    db.query(model_cls).delete()
-                except Exception as del_err:
-                    logger.warning("Ошибка очистки таблицы %s: %s", key, del_err)
+                db.query(model_cls).delete()
                 for row in rows_data:
                     row_dict = dict(row)
                     _deserialize_datetime_fields(row_dict)
-                    db.add(model_cls(**row_dict))
+                    db.add(model_cls(**_model_kwargs(model_cls, row_dict)))
                 db.flush()
 
         # 4. Восстановление библиотеки (если полный бэкап и режим не config_only)
@@ -451,10 +441,7 @@ def restore_backup(
             ):
                 model_cls = LIBRARY_TABLES.get(key)
                 if model_cls and hasattr(model_cls, "__table__"):
-                    try:
-                        db.query(model_cls).delete()
-                    except Exception as del_err:
-                        logger.warning("Ошибка очистки таблицы %s: %s", key, del_err)
+                    db.query(model_cls).delete()
             db.flush()
 
             # Восстановление MovieCollection
@@ -464,7 +451,7 @@ def restore_backup(
                 r = dict(row)
                 old_c_id = r.get("id")
                 _deserialize_datetime_fields(r)
-                new_col = MovieCollection(**r)
+                new_col = MovieCollection(**_model_kwargs(MovieCollection, r))
                 db.add(new_col)
                 db.flush()
                 if old_c_id is not None:
@@ -480,7 +467,7 @@ def restore_backup(
                 if old_c_id and old_c_id in collection_id_map:
                     r["collection_id"] = collection_id_map[old_c_id]
                 _deserialize_datetime_fields(r)
-                new_show = Show(**r)
+                new_show = Show(**_model_kwargs(Show, r))
                 db.add(new_show)
                 db.flush()
                 if old_id is not None:
@@ -494,7 +481,7 @@ def restore_backup(
                 if old_show_id in show_id_map:
                     r["show_id"] = show_id_map[old_show_id]
                 _deserialize_datetime_fields(r)
-                db.add(Alias(**r))
+                db.add(Alias(**_model_kwargs(Alias, r)))
 
             # Восстановление Episodes
             ep_id_map: dict[int, int] = {}
@@ -506,7 +493,7 @@ def restore_backup(
                 if old_show_id in show_id_map:
                     r["show_id"] = show_id_map[old_show_id]
                 _deserialize_datetime_fields(r)
-                new_ep = Episode(**r)
+                new_ep = Episode(**_model_kwargs(Episode, r))
                 db.add(new_ep)
                 db.flush()
                 if old_ep_id is not None:
@@ -522,7 +509,7 @@ def restore_backup(
                 if old_show_id in show_id_map:
                     r["show_id"] = show_id_map[old_show_id]
                 _deserialize_datetime_fields(r)
-                new_split = SeasonSplit(**r)
+                new_split = SeasonSplit(**_model_kwargs(SeasonSplit, r))
                 db.add(new_split)
                 db.flush()
                 if old_split_id is not None:
@@ -535,7 +522,7 @@ def restore_backup(
                 if old_split_id in split_id_map:
                     r["split_id"] = split_id_map[old_split_id]
                 _deserialize_datetime_fields(r)
-                db.add(SeasonSplitPart(**r))
+                db.add(SeasonSplitPart(**_model_kwargs(SeasonSplitPart, r)))
 
             # Восстановление TrackedRelease
             tracked_data = payload.get("tables", {}).get("tracked_releases", [])
@@ -545,7 +532,7 @@ def restore_backup(
                 if old_show_id and old_show_id in show_id_map:
                     r["show_id"] = show_id_map[old_show_id]
                 _deserialize_datetime_fields(r)
-                db.add(TrackedRelease(**r))
+                db.add(TrackedRelease(**_model_kwargs(TrackedRelease, r)))
 
             # Восстановление DownloadHistory
             history_data = payload.get("tables", {}).get("download_history", [])
@@ -558,7 +545,7 @@ def restore_backup(
                 if old_ep_id and old_ep_id in ep_id_map:
                     r["episode_id"] = ep_id_map[old_ep_id]
                 _deserialize_datetime_fields(r)
-                db.add(DownloadHistory(**r))
+                db.add(DownloadHistory(**_model_kwargs(DownloadHistory, r)))
 
             # Восстановление Blocklist
             blocklist_data = payload.get("tables", {}).get("blocklist", [])
@@ -568,27 +555,46 @@ def restore_backup(
                 if old_show_id and old_show_id in show_id_map:
                     r["show_id"] = show_id_map[old_show_id]
                 _deserialize_datetime_fields(r)
-                db.add(Blocklist(**r))
+                db.add(Blocklist(**_model_kwargs(Blocklist, r)))
 
+        has_sequence_table = is_sqlite and db.execute(text(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'sqlite_sequence'"
+        )).first() is not None
+        if has_sequence_table:
+            # Синхронизация sqlite_sequence для таблиц со счетчиками автоинкремента
+            all_tables = list(CONFIG_TABLES.keys()) + list(LIBRARY_TABLES.keys())
+            for t_name in all_tables:
+                model_cls = CONFIG_TABLES.get(t_name) or LIBRARY_TABLES.get(t_name)
+                table_name = getattr(getattr(model_cls, "__table__", None), "name", None)
+                if not table_name:
+                    continue
+                db.execute(text(
+                    f"UPDATE sqlite_sequence SET seq = (SELECT COALESCE(MAX(id), 0) FROM {table_name}) "
+                    f"WHERE name = '{table_name}';"
+                ))
+
+        # Восстановление либо применяется целиком, либо не применяется вовсе:
+        # частично очищенная библиотека хуже, чем неудавшееся восстановление.
         db.commit()
+    except Exception:
+        db.rollback()
+        logger.exception("Восстановление из бэкапа прервано, изменения откатены")
+        raise
     finally:
         # Включаем проверку внешних ключей обратно для SQLite
         if is_sqlite:
             try:
                 db.execute(text("PRAGMA foreign_keys = ON;"))
-            except Exception:
-                pass
-            try:
-                # Синхронизация sqlite_sequence для таблиц со счетчиками автоинкремента
-                all_tables = list(CONFIG_TABLES.keys()) + list(LIBRARY_TABLES.keys())
-                for t_name in all_tables:
-                    try:
-                        db.execute(text(f"UPDATE sqlite_sequence SET seq = (SELECT COALESCE(MAX(id), 0) FROM {t_name}) WHERE name = '{t_name}';"))
-                    except Exception:
-                        pass
                 db.commit()
             except Exception:
-                pass
+                db.rollback()
+
+    # Синхронизация /config/api_key.txt — только после успешного восстановления
+    try:
+        if os.path.isdir("/config") and settings.api_key:
+            write_api_key_file(settings.api_key)
+    except Exception:
+        pass
 
     log_audit(db, "backup", f"Успешно восстановлена конфигурация из бэкапа ({meta.get('backup_type', 'full')})")
     
@@ -601,6 +607,17 @@ def restore_backup(
         "created_at": meta.get("created_at"),
         "stats": meta.get("stats", {}),
     }
+
+
+def _model_kwargs(model_cls, data: dict) -> dict:
+    """Оставляет только колонки модели.
+
+    Бэкап от другой версии может содержать поля, которых в текущей модели нет
+    (удалённые или ещё не добавленные колонки). Без фильтра конструктор модели
+    падает с TypeError, и восстановление обрывается на середине.
+    """
+    columns = {column.key for column in model_cls.__table__.columns}
+    return {key: value for key, value in data.items() if key in columns}
 
 
 def _deserialize_datetime_fields(data: dict) -> None:
