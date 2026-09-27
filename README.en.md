@@ -36,6 +36,8 @@
    - [Hardlinks & Selective Seeding](#5-hardlinks--selective-seeding)
    - [3-Level Upgrade Hierarchy & Downgrade Protection](#6-3-level-upgrade-hierarchy--downgrade-protection)
    - [Companion Files (Subtitles, Audio) & Fonts](#7-companion-files-subtitles-audio--fonts)
+   - [Changing a Title's Folder Without Losing Links](#8-changing-a-titles-folder-without-losing-links)
+   - [Bulk Library Import From Folders](#9-bulk-library-import-from-folders)
 4. [Feature Comparison Matrix: Aliasarr vs Sonarr vs Radarr](#feature-comparison-matrix-aliasarr-vs-sonarr-vs-radarr)
 5. [Quickstart (Docker & Docker Compose)](#quickstart-docker--docker-compose)
 6. [Environment Variables and Volume Structure](#environment-variables-and-volume-structure)
@@ -104,6 +106,9 @@ Expanded hero cards featuring full synopses, genres, premiere dates, and next ep
   <img src="docs/screenshots/05_library_overview.jpg" alt="Media Library — Overview View" width="100%">
   <p><i>Detailed overview mode displaying expanded descriptions and metadata</i></p>
 </div>
+
+#### E. Spotlight Quick Search & Command Palette (`Ctrl+K` / `⌘K`)
+Instant search modal triggered by keyboard shortcut with automatic OS detection (`⌘K` on macOS, `Ctrl+K` on Windows/Linux) and three layout options: compact **Spotlight Bar**, **Action Button**, or standard **Classic Full** input.
 
 ---
 
@@ -242,6 +247,10 @@ $$\text{Offset} = \text{Starting Episode Number in Card} - \text{Starting Episod
   - Studio & Voiceover tagging: *LostFilm*, *HDRezka*, *Red Head Sound*, *Cube in Cube*, *AniLibria*, *AniMedia*, *Studio Band*, etc.
   - Multi-language identification: distinct badges for `RU`, `EN`, `JP`, `MULTI`, `DUAL`.
   - Ongoing thread monitoring on trackers by `topic_guid` and URL, downloading only newly added episodes.
+- **Favorite Release per Season**:
+  - Pin a preferred release topic or release group to a specific season. Background tracker monitoring sticks to the chosen release without oscillating between alternatives.
+- **Absolute Anime Episode Numbering**:
+  - Seamlessly handles continuous absolute episode numbers (e.g. `01–1000+`) mapped to the appropriate seasons on TheTVDB.
 - **Global Non-Video Content Filtering**:
   - Strict pruning of light novels, manga, comics, artbooks, scans, audiobooks, soundtracks, and e-books (`.epub`, `.fb2`, `.pdf`, `.cbr`, `[vols 1-11]`).
   - Protection against false positive matches on spin-offs and live-action adaptations.
@@ -252,7 +261,7 @@ $$\text{Offset} = \text{Starting Episode Number in Card} - \text{Starting Episod
 - **0 Bytes Used & 0 ms Import**: Instant file linking regardless of size (even an 80 GB 4K Remux) without duplicating disk storage.
 - **Per-Tracker Seeding Rules**: Custom Seed Ratio and Seed Time thresholds for each individual tracker.
 - **Safe Cleanup**: When seeding quotas are satisfied, the torrent is removed from the client while the library file remains intact (Inode reference count decrements).
-- **Automatic Fallback**: Transparently and safely copies files across separate filesystem pools when hardlinks are physically unsupported.
+- **Atomic EXDEV Fallback & Seeding Retention**: When media and downloads reside across different disks or mount points, Aliasarr performs an atomic copy fallback while **maintaining the active seeding state** in the torrent client without interruption.
 
 > [!NOTE]
 > Learn more in the [Hardlinks, Indexers, and Download Clients Guide](docs/hardlinks_indexers_and_clients.en.md).
@@ -264,6 +273,8 @@ $$\text{Offset} = \text{Starting Episode Number in Card} - \text{Starting Episod
   1. *Global Quality Profile* (`QualityProfile.upgrade_allowed` + Cutoff Quality & Score thresholds).
   2. *Title Card* («Upgrading» toggle with auto-reset once cutoff target is reached).
   3. *Granular Episode/Season* (manual upgrade request for a specific episode).
+- **Quality Score Pinning (`imported_cf_score`)**:
+  - Aliasarr persists the exact custom format score of imported files in the database, preventing infinite upgrade loops on identical or inferior releases.
 - **Downgrade Protection**:
   - Before replacing an existing file, Aliasarr inspects the downloaded video file using MediaProbe/ffprobe.
   - If the actual media quality is inferior to the existing file on disk (for instance, a torrent header claimed 1080p but contained 480p), the replacement is **blocked**, the current file is preserved, and the bogus torrent is removed from the client.
@@ -321,6 +332,8 @@ Moving a collection over from another solution, or pointing Aliasarr at a librar
 | **2FA TOTP & RBAC (Role-Based Access Control)** | **Native in Web UI** | No | No |
 | **Autonomous 100-Year Self-Signed SSL** | **Yes (Auto-Renewing)** | No | No |
 | **Zero-Build Vanilla SPA Interface** | **Yes (0 ms build, instant load)**| Heavy Webpack build | Heavy Webpack build |
+| **Spotlight Quick Search (`Ctrl+K` / `⌘K`)** | **Yes (3 layout modes)** | No | No |
+| **Torrent Isolation by Hash** | **Yes (never touches foreign torrents)** | Potential conflicts | Potential conflicts |
 
 ---
 
@@ -468,8 +481,13 @@ For **Hardlinks** to operate with maximum speed and zero storage duplication, th
 3. **Autonomous Self-Signed SSL**:
    - Automated generation of RSA 2048 X.509 certificates with maximum validity (~100 years).
    - Automatic renewal 30 days prior to expiration.
-4. **Safety Rollback Snapshot**:
-   - Creates an automated database snapshot immediately before restoring any backup for zero-risk rollbacks.
+4. **Transactional Safety Rollback Snapshot**:
+   - Creates an automated database snapshot immediately before restoring any backup; any restore error triggers a full transaction rollback preventing partial state corruption.
+5. **SSRF & Path Traversal Guards**:
+   - Poster fetching strictly blocks private networks (RFC1918), loopback (`127.0.0.1`, `::1`), and cloud metadata services (`169.254.169.254`).
+   - Title paths and filenames are sanitized to prevent directory traversal escapes.
+6. **Non-Root Docker Container (`PUID:PGID`)**:
+   - Runs as an unprivileged user with automatic volume permission mapping via the bundled entrypoint script.
 
 ---
 
