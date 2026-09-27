@@ -4143,7 +4143,7 @@ def preview_rename_show(
     Формирует diff предпросмотра упорядочивания и переименования файлов в стиле Sonarr/Radarr.
     """
     from app.services.organizer import FileNameBuilder
-    from app.models.db import DownloadHistory, TrackedRelease
+    from app.models.db import DownloadHistory
 
     show = db.get(Show, show_id)
     if not show:
@@ -4257,7 +4257,7 @@ def execute_rename_show(
     Переименовывает и перемещает файлы на диске, обновляя пути в базе данных.
     """
     from app.services.organizer import FileNameBuilder
-    from app.models.db import DownloadHistory, TrackedRelease
+    from app.models.db import DownloadHistory
 
     show = db.get(Show, show_id)
     if not show:

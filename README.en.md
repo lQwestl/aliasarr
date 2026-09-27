@@ -401,8 +401,9 @@ For **Hardlinks** to operate with maximum speed and zero storage duplication, th
 
 | Variable | Default Value | Description |
 | :--- | :---: | :--- |
-| `PUID` | `1000` | Linux User ID for file creation permissions |
-| `PGID` | `1000` | Linux Group ID for file creation permissions |
+| `PUID` | `1000` | User ID the Aliasarr process runs as (in Docker); it also owns created files and `/config` |
+| `PGID` | `1000` | Group ID of the process and created files |
+| `ALIASARR_RUN_AS_ROOT` | empty | `true` runs the process as root, as it used to (when the library cannot be made accessible to PUID/PGID) |
 | `TZ` | `UTC` | Server timezone for calendar and background scheduling |
 | `DATABASE_URL` | `sqlite:////config/aliasarr.db` | Database URI (`sqlite://` and `postgresql+psycopg2://` supported) |
 | `ALIASARR_PORT` | `8989` | HTTP server port |
