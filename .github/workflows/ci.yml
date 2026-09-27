@@ -18,9 +18,50 @@ on:
       - ".gitignore"
       - "LICENSE"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  static-checks:
+    name: Lint & Static Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate Frontend JavaScript Syntax
+        run: |
+          node --check web/js/app.js web/js/features/automation-settings.js
+
+      - name: Install dependencies & security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff==0.13.0 pip-audit==2.8.0
+
+      - name: Check critical Python errors
+        run: |
+          ruff check app tests scripts run.py --select E9,F63,F7,F82,F811
+
+      - name: Audit dependencies for known vulnerabilities
+        run: |
+          pip-audit -r requirements.txt
+
   test:
-    name: Run Unit Tests
+    name: Run Unit Tests (Python ${{ matrix.python-version }})
+    needs: static-checks
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -40,11 +81,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff==0.13.0
-
-      - name: Check critical Python errors
-        run: |
-          ruff check app tests scripts run.py --select E9,F63,F7,F82,F811
 
       - name: Run test suite
         run: |

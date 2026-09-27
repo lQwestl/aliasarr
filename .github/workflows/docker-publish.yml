@@ -12,6 +12,10 @@ on:
       - "LICENSE"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
 
@@ -79,7 +83,34 @@ jobs:
             type=ref,event=tag
             type=sha
 
-      - name: Build and push Docker image
+      - name: Build local image for smoke test
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: aliasarr-smoke:test
+          build-args: |
+            COMMIT_HASH=${{ github.sha }}
+          cache-from: type=gha
+
+      - name: Run container smoke test
+        run: |
+          docker run -d --name smoke-test -p 8989:8989 aliasarr-smoke:test
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8989/api/v1/health > /dev/null 2>&1; then
+              echo ">>> Container health check passed successfully!"
+              docker logs smoke-test
+              docker rm -f smoke-test
+              exit 0
+            fi
+            sleep 1
+          done
+          echo ">>> ERROR: Container health check failed to respond after 30s!"
+          docker logs smoke-test
+          docker rm -f smoke-test
+          exit 1
+
+      - name: Build and push Multi-Arch Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
