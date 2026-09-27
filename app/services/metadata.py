@@ -3345,9 +3345,16 @@ async def refresh_show_release_dates(db, show, override_source_type: Optional[st
             new_air_date = None if already_released else new_premiere
             if episode.air_date != new_air_date:
                 episode.air_date = new_air_date
-                episode.status = EpisodeStatus.UNAIRED if not already_released else EpisodeStatus.WANTED
+                # Скачанный или игнорируемый фильм остаётся таким, даже если у источника
+                # сдвинулась дата премьеры: иначе он снова уходил в поиск и перекачивался.
+                has_file = episode.status == EpisodeStatus.DOWNLOADED or bool(getattr(episode, "file_path", None))
+                if not has_file and episode.status != EpisodeStatus.IGNORED:
+                    episode.status = EpisodeStatus.UNAIRED if not already_released else EpisodeStatus.WANTED
                 db.add(episode)
                 changed = True
+    else:
+        # Сериалы и аниме. Раньше этот цикл по ошибке находился внутри ветки фильмов,
+        # и опрос календаря никогда не обновлял даты выхода серий.
         future_seasons = set()
         for me in details.episodes:
             mad = _parse_date(me.air_date)
@@ -3390,11 +3397,10 @@ async def refresh_show_release_dates(db, show, override_source_type: Optional[st
                     episode.air_date = air_date
                     changed = True
                 if is_unaired and episode.status not in (EpisodeStatus.IGNORED, EpisodeStatus.DOWNLOADED) and not getattr(episode, "file_path", None):
+                    # Мониторинг существующих серий не трогаем: пользователь мог снять
+                    # его намеренно, а обновление метаданных идёт каждые несколько часов.
                     if episode.status != EpisodeStatus.UNAIRED:
                         episode.status = EpisodeStatus.UNAIRED
-                        changed = True
-                    if not episode.monitored:
-                        episode.monitored = True
                         changed = True
                 elif air_date and episode.status in (EpisodeStatus.MISSING, EpisodeStatus.WANTED, EpisodeStatus.UNAIRED):
                     target_status = EpisodeStatus.UNAIRED if air_date > now else EpisodeStatus.WANTED
@@ -3928,11 +3934,9 @@ async def refresh_show_metadata(db, show) -> dict:
                         episode.air_date = air_date
                         ep_changed = True
                     if is_unaired and episode.status not in (EpisodeStatus.IGNORED, EpisodeStatus.DOWNLOADED) and not getattr(episode, "file_path", None):
+                        # Мониторинг существующих серий не трогаем (см. выше).
                         if episode.status != EpisodeStatus.UNAIRED:
                             episode.status = EpisodeStatus.UNAIRED
-                            ep_changed = True
-                        if not episode.monitored:
-                            episode.monitored = True
                             ep_changed = True
                     elif air_date and episode.status in (EpisodeStatus.MISSING, EpisodeStatus.WANTED, EpisodeStatus.UNAIRED):
                         target_status = EpisodeStatus.UNAIRED if air_date > now else EpisodeStatus.WANTED
