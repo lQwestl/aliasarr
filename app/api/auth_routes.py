@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import datetime as dt
 import secrets
+import time
 from typing import Optional, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.auth import SESSION_COOKIE_NAME, _get_valid_session_user
+from app.auth import SESSION_COOKIE_NAME, _get_valid_session_user, _session_token
 from app.database import get_db
 from app.models.db import Session as SessionModel, User
 from app.services.audit_service import log_audit
@@ -20,6 +21,7 @@ from app.services.user_service import (
     detect_user_role,
     ensure_master_admin,
     get_current_user,
+    revoke_user_sessions,
 )
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -51,6 +53,96 @@ def _get_pre_auth_user_id(token: str) -> Optional[int]:
     return user_id
 
 
+# ---------------------------------------------------------------------------
+# Защита входа
+# ---------------------------------------------------------------------------
+
+MIN_PASSWORD_LENGTH = 8
+# Год. Больше — фактически бессрочная сессия, а у timedelta есть предел.
+MAX_SESSION_TIMEOUT_MINUTES = 525600
+
+_LOGIN_WINDOW_SECONDS = 15 * 60
+_LOGIN_MAX_FAILURES_PER_IP = 10
+_LOGIN_MAX_FAILURES_PER_USERNAME = 5
+_LOGIN_FAILURES: dict[str, list[float]] = {}
+
+
+def _failure_keys(client_ip: str, username: str) -> list[tuple[str, int]]:
+    keys = [(f"ip:{client_ip or 'unknown'}", _LOGIN_MAX_FAILURES_PER_IP)]
+    if username:
+        keys.append((f"user:{username.strip().lower()}", _LOGIN_MAX_FAILURES_PER_USERNAME))
+    return keys
+
+
+def _recent_failures(key: str, now: float) -> list[float]:
+    attempts = [ts for ts in _LOGIN_FAILURES.get(key, []) if now - ts < _LOGIN_WINDOW_SECONDS]
+    if attempts:
+        _LOGIN_FAILURES[key] = attempts
+    else:
+        _LOGIN_FAILURES.pop(key, None)
+    return attempts
+
+
+def _enforce_login_throttle(client_ip: str, username: str) -> None:
+    """Перебор паролей и кодов 2FA ограничен по IP и по имени пользователя."""
+    now = time.monotonic()
+    for key, limit in _failure_keys(client_ip, username):
+        attempts = _recent_failures(key, now)
+        if len(attempts) >= limit:
+            retry_after = int(_LOGIN_WINDOW_SECONDS - (now - attempts[0])) + 1
+            raise HTTPException(
+                429,
+                f"Слишком много неудачных попыток входа. Повторите через {max(1, retry_after // 60)} мин.",
+                headers={"Retry-After": str(retry_after)},
+            )
+
+
+def _register_login_failure(client_ip: str, username: str) -> None:
+    now = time.monotonic()
+    if len(_LOGIN_FAILURES) > 10000:
+        for key in list(_LOGIN_FAILURES):
+            _recent_failures(key, now)
+    for key, _limit in _failure_keys(client_ip, username):
+        _LOGIN_FAILURES.setdefault(key, []).append(now)
+
+
+def _clear_login_failures(client_ip: str, username: str) -> None:
+    for key, _limit in _failure_keys(client_ip, username):
+        _LOGIN_FAILURES.pop(key, None)
+
+
+def reset_login_throttle() -> None:
+    """Сбрасывает счётчики неудачных входов (используется в тестах)."""
+    _LOGIN_FAILURES.clear()
+
+
+def _request_is_https(request: Request) -> bool:
+    from app.auth import _is_trusted_proxy
+
+    if request.url.scheme == "https":
+        return True
+    peer = request.client.host if request.client else ""
+    forwarded_proto = (request.headers.get("X-Forwarded-Proto") or "").split(",")[0].strip().lower()
+    return bool(peer and _is_trusted_proxy(peer) and forwarded_proto == "https")
+
+
+def _set_session_cookie(response: Response, request: Request, token: str, max_age: int) -> None:
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        samesite="lax",
+        secure=_request_is_https(request),
+        max_age=max_age,
+        path="/",
+    )
+
+
+def _validate_new_password(password: str) -> None:
+    if len(password or "") < MIN_PASSWORD_LENGTH:
+        raise HTTPException(400, f"Пароль должен содержать не менее {MIN_PASSWORD_LENGTH} символов")
+
+
 class LoginRequest(BaseModel):
     username: str
     password: str
@@ -59,6 +151,10 @@ class LoginRequest(BaseModel):
 class Login2FARequest(BaseModel):
     temp_token: str
     code: str
+
+
+class Disable2FARequest(BaseModel):
+    password: Optional[str] = None
 
 
 class Setup2FAConfirmRequest(BaseModel):
@@ -122,10 +218,11 @@ def _format_user_out(user: User, include_key: bool = False) -> dict[str, Any]:
 
 @router.get("/status")
 def auth_status(request: Request, db: Session = Depends(get_db)):
-    from app.auth import get_client_ip, is_private_ip
+    from app.auth import get_client_ip, is_local_host_header, is_private_ip
     settings = get_or_create_settings(db)
     client_ip = get_client_ip(request)
     is_private = is_private_ip(client_ip)
+    local_bypass_allowed = is_private and is_local_host_header(request.headers.get("Host"))
     auth_disabled_local = getattr(settings, "auth_disabled_for_local_addresses", True)
     totp_2fa_enabled = getattr(settings, "totp_2fa_enabled", False)
     totp_2fa_policy = getattr(settings, "totp_2fa_policy", "users_choice")
@@ -152,7 +249,7 @@ def auth_status(request: Request, db: Session = Depends(get_db)):
             "username": settings.username,
         }
 
-    if settings.login_enabled and auth_disabled_local and is_private:
+    if settings.login_enabled and auth_disabled_local and local_bypass_allowed:
         master = ensure_master_admin(db)
         return {
             "login_required": False,
@@ -197,7 +294,8 @@ def auth_status(request: Request, db: Session = Depends(get_db)):
         "totp_2fa_enabled": totp_2fa_enabled,
         "totp_2fa_policy": totp_2fa_policy,
         "user": None,
-        "username": settings.username,
+        # Имя владельца до входа не раскрываем: это половина пары логин/пароль.
+        "username": None,
     }
 
 
@@ -205,8 +303,11 @@ def auth_status(request: Request, db: Session = Depends(get_db)):
 def login(payload: LoginRequest, response: Response, request: Request, db: Session = Depends(get_db)):
     from app.auth import get_client_ip, is_private_ip
     settings = get_or_create_settings(db)
+    client_ip = get_client_ip(request)
+    _enforce_login_throttle(client_ip, payload.username)
     user = authenticate_user(db, payload.username.strip(), payload.password)
     if not user:
+        _register_login_failure(client_ip, payload.username)
         log_audit(
             db,
             action="auth.login_failed",
@@ -216,7 +317,7 @@ def login(payload: LoginRequest, response: Response, request: Request, db: Sessi
         )
         raise HTTPException(401, "Неверное имя пользователя или пароль")
 
-    client_ip = get_client_ip(request)
+    _clear_login_failures(client_ip, payload.username)
     is_private = is_private_ip(client_ip)
 
     # 2FA TOTP:
@@ -224,7 +325,23 @@ def login(payload: LoginRequest, response: Response, request: Request, db: Sessi
     # Если вход по приватному IP, 2FA не запрашивается.
     user_2fa_enabled = bool(getattr(user, "totp_enabled", False))
     global_2fa_enforced = bool(getattr(settings, "totp_2fa_enabled", False) and getattr(settings, "totp_2fa_policy", "users_choice") == "enforce_all")
-    requires_2fa = not is_private and (user_2fa_enabled or global_2fa_enforced) and bool(getattr(user, "totp_secret", None))
+    has_totp_secret = bool(getattr(user, "totp_secret", None))
+    if not is_private and global_2fa_enforced and not has_totp_secret:
+        # Политика «2FA для всех» не должна молча пропускать тех, кто её ещё не
+        # настроил: вход извне без второго фактора и есть то, что она запрещает.
+        log_audit(
+            db,
+            action="auth.login_2fa_required",
+            description=f"Вход '{user.username}' извне отклонён: политика требует 2FA, а она не настроена",
+            user=user,
+            request=request,
+        )
+        raise HTTPException(
+            403,
+            "Для входа из внешней сети требуется двухфакторная аутентификация. "
+            "Настройте 2FA в профиле, войдя из локальной сети, или попросите администратора.",
+        )
+    requires_2fa = not is_private and (user_2fa_enabled or global_2fa_enforced) and has_totp_secret
 
     if requires_2fa:
         temp_token = _create_pre_auth_token(user.id)
@@ -242,15 +359,7 @@ def login(payload: LoginRequest, response: Response, request: Request, db: Sessi
 
     token = create_user_session(db, user, request=request, is_local_permanent=False)
     max_age = (user.session_timeout_minutes or 43200) * 60
-
-    response.set_cookie(
-        key=SESSION_COOKIE_NAME,
-        value=token,
-        httponly=True,
-        samesite="lax",
-        max_age=max_age,
-        path="/",
-    )
+    _set_session_cookie(response, request, token, max_age)
 
     log_audit(
         db,
@@ -272,9 +381,9 @@ def login(payload: LoginRequest, response: Response, request: Request, db: Sessi
 def login_2fa(payload: Login2FARequest, response: Response, request: Request, db: Session = Depends(get_db)):
     import urllib.parse
     from app.services.totp_service import verify_totp_code
-    from app.auth import get_client_ip, is_private_ip
-    settings = get_or_create_settings(db)
+    from app.auth import get_client_ip
 
+    client_ip = get_client_ip(request)
     user_id = _get_pre_auth_user_id(payload.temp_token.strip())
     if not user_id:
         raise HTTPException(401, "Срок действия временного токена истёк или токен недействителен. Пожалуйста, выполните вход заново.")
@@ -286,6 +395,7 @@ def login_2fa(payload: Login2FARequest, response: Response, request: Request, db
     if not user.totp_secret:
         raise HTTPException(400, "Двухфакторная аутентификация не настроена для данной учётной записи")
 
+    _enforce_login_throttle(client_ip, user.username)
     code = payload.code.strip()
     # Если передан QR-код / otpauth URI со значением code
     if "code=" in code or "secret=" in code:
@@ -297,6 +407,7 @@ def login_2fa(payload: Login2FARequest, response: Response, request: Request, db
 
     is_valid = verify_totp_code(user.totp_secret, code)
     if not is_valid:
+        _register_login_failure(client_ip, user.username)
         log_audit(
             db,
             action="auth.login_2fa_failed",
@@ -307,21 +418,13 @@ def login_2fa(payload: Login2FARequest, response: Response, request: Request, db
         )
         raise HTTPException(401, "Неверный код двухфакторной аутентификации")
 
+    _clear_login_failures(client_ip, user.username)
     user.last_login_at = dt.datetime.utcnow()
     db.commit()
 
-    client_ip = get_client_ip(request)
     token = create_user_session(db, user, request=request, is_local_permanent=False)
     max_age = (user.session_timeout_minutes or 43200) * 60
-
-    response.set_cookie(
-        key=SESSION_COOKIE_NAME,
-        value=token,
-        httponly=True,
-        samesite="lax",
-        max_age=max_age,
-        path="/",
-    )
+    _set_session_cookie(response, request, token, max_age)
 
     log_audit(
         db,
@@ -383,8 +486,19 @@ def confirm_2fa(payload: Setup2FAConfirmRequest, request: Request, user: User = 
 
 
 @router.post("/2fa/disable")
-def disable_2fa(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def disable_2fa(
+    request: Request,
+    payload: Optional[Disable2FARequest] = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     db_user = db.get(User, user.id) or user
+    # Второй фактор снимается только тем, кто знает пароль: иначе украденная
+    # сессия первым делом отключала бы 2FA и закрепляла доступ.
+    if db_user.password_hash:
+        password = (payload.password if payload else None) or ""
+        if not verify_password(password, db_user.password_hash):
+            raise HTTPException(400, "Для отключения 2FA укажите текущий пароль")
     db_user.totp_enabled = False
     db_user.totp_secret = None
     db_user.totp_confirmed_at = None
@@ -448,7 +562,7 @@ def update_me(payload: ProfileUpdateRequest, request: Request, user: User = Depe
         db_user.avatar = payload.avatar
         updated_fields.append("аватар")
     if payload.session_timeout_minutes is not None and payload.session_timeout_minutes > 0:
-        db_user.session_timeout_minutes = payload.session_timeout_minutes
+        db_user.session_timeout_minutes = min(payload.session_timeout_minutes, MAX_SESSION_TIMEOUT_MINUTES)
         updated_fields.append(f"таймаут сессии: {db_user.session_timeout_minutes} мин")
 
     if updated_fields:
@@ -471,8 +585,7 @@ def change_password(payload: ChangePasswordRequest, request: Request, user: User
     if not verify_password(payload.current_password, db_user.password_hash):
         raise HTTPException(400, "Текущий пароль указан неверно")
 
-    if len(payload.new_password) < 4:
-        raise HTTPException(400, "Новый пароль должен содержать не менее 4 символов")
+    _validate_new_password(payload.new_password)
 
     new_hash = hash_password(payload.new_password)
     db_user.password_hash = new_hash
@@ -483,6 +596,8 @@ def change_password(payload: ChangePasswordRequest, request: Request, user: User
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+    current_token, _from_cookie = _session_token(request)
+    revoke_user_sessions(db, db_user.id, keep_token=current_token)
 
     log_audit(
         db,
@@ -528,10 +643,15 @@ def update_credentials(payload: CredentialsUpdate, request: Request, user: User 
     if payload.display_name is not None:
         owner.display_name = payload.display_name.strip() or owner.username
     settings.username = owner.username
+    if payload.totp_2fa_policy is not None and payload.totp_2fa_policy not in ("users_choice", "enforce_all"):
+        raise HTTPException(400, "Неизвестная политика 2FA")
+    password_changed = False
     if payload.password:
+        _validate_new_password(payload.password)
         p_hash = hash_password(payload.password)
         owner.password_hash = p_hash
         settings.password_hash = p_hash
+        password_changed = True
 
     settings.login_enabled = payload.login_enabled
     if payload.auth_disabled_for_local_addresses is not None:
@@ -541,6 +661,9 @@ def update_credentials(payload: CredentialsUpdate, request: Request, user: User 
     if payload.totp_2fa_policy is not None:
         settings.totp_2fa_policy = payload.totp_2fa_policy
     db.commit()
+    if password_changed:
+        current_token, _from_cookie = _session_token(request)
+        revoke_user_sessions(db, owner.id, keep_token=current_token if user.id == owner.id else None)
 
     log_audit(
         db,
