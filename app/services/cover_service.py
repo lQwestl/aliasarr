@@ -2,8 +2,12 @@ import os
 import io
 import shutil
 import base64
+import asyncio
+import ipaddress
 import logging
+import socket
 from typing import Optional, Any
+from urllib.parse import urljoin, urlsplit
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +53,76 @@ def get_collection_backdrop_path(collection_id: int) -> str:
     return os.path.join(get_collection_poster_dir(collection_id), "backdrop.jpg")
 
 
+class NotAnImageError(ValueError):
+    """Загруженные или скачанные байты не являются изображением."""
+
+
+COVER_DOWNLOAD_MAX_BYTES = 15 * 1024 * 1024
+COVER_DOWNLOAD_MAX_REDIRECTS = 3
+
+
+def _is_public_address(address: str) -> bool:
+    ip = ipaddress.ip_address(address)
+    return ip.is_global and not ip.is_multicast
+
+
+async def _resolve_host(host: str, port: int) -> set[str]:
+    infos = await asyncio.get_running_loop().getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    return {info[4][0] for info in infos}
+
+
+async def _require_public_host(url: str) -> None:
+    """Постеры берутся из публичных CDN. Адрес, который резолвится в локальную
+    сеть, loopback или метаданные облака, означает попытку SSRF: сервер пошёл бы
+    туда от своего имени, а тело ответа потом отдавалось бы через /poster."""
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        raise ValueError("Недопустимый адрес изображения")
+    if parts.username or parts.password:
+        raise ValueError("Адрес изображения не должен содержать учётные данные")
+    host = parts.hostname
+    port = parts.port or (443 if parts.scheme == "https" else 80)
+    addresses = await _resolve_host(host, port)
+    if not addresses or not all(_is_public_address(addr) for addr in addresses):
+        raise ValueError(f"Адрес изображения {host} указывает не в интернет")
+
+
+async def fetch_remote_image(url: str) -> Optional[bytes]:
+    """Скачивает изображение по публичному адресу с ограничением размера.
+
+    Каждый переход по редиректу проверяется заново: иначе публичный адрес мог бы
+    перенаправить запрос во внутреннюю сеть.
+    """
+    import httpx
+
+    current = url
+    async with httpx.AsyncClient(timeout=20, follow_redirects=False, headers={"User-Agent": "Aliasarr/1.0.0"}) as client:
+        for _ in range(COVER_DOWNLOAD_MAX_REDIRECTS + 1):
+            await _require_public_host(current)
+            async with client.stream("GET", current) as resp:
+                if resp.status_code in (301, 302, 303, 307, 308):
+                    location = resp.headers.get("location")
+                    if not location:
+                        return None
+                    current = urljoin(current, location)
+                    continue
+                if resp.status_code != 200:
+                    logger.debug("Failed to download image from %s: HTTP %s", current, resp.status_code)
+                    return None
+                declared = resp.headers.get("content-length")
+                if declared and declared.isdigit() and int(declared) > COVER_DOWNLOAD_MAX_BYTES:
+                    raise ValueError("Изображение слишком большое")
+                chunks = []
+                total = 0
+                async for chunk in resp.aiter_bytes():
+                    total += len(chunk)
+                    if total > COVER_DOWNLOAD_MAX_BYTES:
+                        raise ValueError("Изображение слишком большое")
+                    chunks.append(chunk)
+                return b"".join(chunks)
+    return None
+
+
 def optimize_image(
     image_bytes: bytes,
     max_width: int = 600,
@@ -59,10 +133,15 @@ def optimize_image(
     Оптимизирует изображение постера:
     - Масштабирует до стандартного размера (ширина до max_width, высота до max_height);
     - Приводит альфа-канал к нейтральному темному фону (для PNG/WebP с прозрачностью);
-    - Сжимает в формате JPEG с progressive=True, optimize=True и качеством quality;
-    - При отсутствии Pillow или ошибке декодирования сохраняет исходные байты без сбоя.
+    - Сжимает в формате JPEG с progressive=True, optimize=True и качеством quality.
+
+    Байты, которые не удаётся разобрать как изображение, отклоняются (NotAnImageError),
+    а не сохраняются как есть: иначе ответ произвольного адреса, указанного вместо
+    ссылки на постер, становился доступен для чтения через эндпоинт постера.
     """
-    if not image_bytes or not HAS_PIL:
+    if not image_bytes:
+        raise NotAnImageError("Пустое изображение")
+    if not HAS_PIL:
         return image_bytes
 
     try:
@@ -88,8 +167,7 @@ def optimize_image(
             img.save(out_buf, format="JPEG", quality=quality, optimize=True, progressive=True)
             return out_buf.getvalue()
     except Exception as e:
-        logger.debug("Image optimization fallback to raw bytes: %s", e)
-        return image_bytes
+        raise NotAnImageError(f"Файл не является изображением: {e}") from e
 
 
 def attach_version_to_cover_url(url: Optional[str], timestamp_obj: Optional[Any] = None) -> Optional[str]:
@@ -208,12 +286,9 @@ async def download_and_store_show_cover(show_id: int, remote_url_or_data: str) -
     # 3. Если это внешняя HTTP/HTTPS ссылка на CDN
     if raw_val.startswith(("http://", "https://")):
         try:
-            import httpx
-            async with httpx.AsyncClient(timeout=20, follow_redirects=True, headers={"User-Agent": "Aliasarr/1.0.0"}) as client:
-                resp = await client.get(raw_val)
-                if resp.status_code == 200 and resp.content:
-                    return await save_show_poster(show_id, resp.content)
-                logger.debug("Failed to download cover from %s: HTTP %s", raw_val, resp.status_code)
+            content = await fetch_remote_image(raw_val)
+            if content:
+                return await save_show_poster(show_id, content)
         except Exception as e:
             logger.debug("Error downloading cover for show %s from %s: %s", show_id, raw_val, e)
 
@@ -252,11 +327,9 @@ async def download_and_store_collection_cover(collection_id: int, remote_url_or_
 
     if raw_val.startswith(("http://", "https://")):
         try:
-            import httpx
-            async with httpx.AsyncClient(timeout=20, follow_redirects=True, headers={"User-Agent": "Aliasarr/1.0.0"}) as client:
-                resp = await client.get(raw_val)
-                if resp.status_code == 200 and resp.content:
-                    return await save_collection_poster(collection_id, resp.content)
+            content = await fetch_remote_image(raw_val)
+            if content:
+                return await save_collection_poster(collection_id, content)
         except Exception as e:
             logger.debug("Error downloading cover for collection %s from %s: %s", collection_id, raw_val, e)
 
@@ -314,12 +387,9 @@ async def download_and_store_collection_backdrop(collection_id: int, remote_url_
 
     if raw_val.startswith(("http://", "https://")):
         try:
-            import httpx
-            async with httpx.AsyncClient(timeout=20, follow_redirects=True, headers={"User-Agent": "Aliasarr/1.0.0"}) as client:
-                resp = await client.get(raw_val)
-                if resp.status_code == 200 and resp.content:
-                    return await save_collection_backdrop(collection_id, resp.content)
-                logger.debug("Failed to download backdrop from %s: HTTP %s", raw_val, resp.status_code)
+            content = await fetch_remote_image(raw_val)
+            if content:
+                return await save_collection_backdrop(collection_id, content)
         except Exception as e:
             logger.debug("Error downloading backdrop for collection %s from %s: %s", collection_id, raw_val, e)
 
