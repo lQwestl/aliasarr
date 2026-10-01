@@ -53,6 +53,8 @@ class SettingsOut(BaseModel):
     scrollbar_mode: str = "autohide"  # autohide | styled | hidden | native
     design_system: Optional[str] = None  # classic | vanguard | servarr
     glass_mode: Optional[str] = None  # off | on
+    custom_themes: Optional[list] = None
+    theme_studio_config: Optional[dict] = None
 
     min_seeds: int
     prefer_most_seeded: bool
@@ -126,6 +128,8 @@ class SettingsUpdate(BaseModel):
     scrollbar_mode: Optional[str] = None
     design_system: Optional[str] = None
     glass_mode: Optional[str] = None
+    custom_themes: Optional[list] = None
+    theme_studio_config: Optional[dict] = None
 
     min_seeds: Optional[int] = None
     prefer_most_seeded: Optional[bool] = None
@@ -199,6 +203,8 @@ def _to_settings_out(settings, is_owner: bool = False) -> SettingsOut:
         scrollbar_mode=getattr(settings, "scrollbar_mode", "autohide") or "autohide",
         design_system=getattr(settings, "design_system", None),
         glass_mode=getattr(settings, "glass_mode", None),
+        custom_themes=getattr(settings, "custom_themes", []) or [],
+        theme_studio_config=getattr(settings, "theme_studio_config", {}) or {},
         min_seeds=settings.min_seeds,
         prefer_most_seeded=settings.prefer_most_seeded,
         monitor_interval_minutes=settings.monitor_interval_minutes,
@@ -347,6 +353,10 @@ def update_settings(
         if payload.glass_mode not in ("off", "on"):
             raise HTTPException(400, "glass_mode должен быть 'off' или 'on'")
         settings.glass_mode = payload.glass_mode
+    if payload.custom_themes is not None:
+        settings.custom_themes = payload.custom_themes
+    if payload.theme_studio_config is not None:
+        settings.theme_studio_config = payload.theme_studio_config
 
     if payload.min_seeds is not None:
         if payload.min_seeds < 0:

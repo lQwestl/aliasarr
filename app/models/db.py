@@ -650,6 +650,8 @@ class AppSettings(Base):
     # hostname/protocol and cleared browser storage.
     design_system: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, default=None)
     glass_mode: Mapped[Optional[str]] = mapped_column(String(10), nullable=True, default=None)
+    custom_themes: Mapped[Optional[list]] = mapped_column(JSON, default=list, nullable=True)
+    theme_studio_config: Mapped[Optional[dict]] = mapped_column(JSON, default=dict, nullable=True)
 
     # Настройки выбора релиза при автопоиске
     min_seeds: Mapped[int] = mapped_column(Integer, default=0)              # 0 = без ограничения

@@ -210,6 +210,7 @@ const TRANSLATIONS = {
     "nav.activity": "Активность",
     "nav.calendar": "Календарь",
     "nav.history": "История",
+    "nav.design_studio": "Студия дизайна",
     "nav.audit": "Аудит",
     "nav.settings": "Настройки",
     "nav.logs": "Логи",
@@ -225,8 +226,70 @@ const TRANSLATIONS = {
     "tab.library": "Библиотека",
     "tab.collections": "Коллекции",
     "tab.blocklist": "Черный список",
+    "tab.design_studio": "Студия дизайна и каркаса",
+    "subtitle.design_studio": "Интерактивный конструктор тем, цветовых палитр, стекломорфизма и верстки Aliasarr",
     "subtitle.collections": "Франшизы, саги и киноциклы ваших фильмов",
     "subtitle.blocklist": "Заблокированные раздачи, исключенные из автопоиска и загрузки",
+    "design_studio.reset": "Сброс",
+    "design_studio.reset_tooltip": "Сбросить все настройки к стандартным",
+    "design_studio.export": "Экспорт",
+    "design_studio.export_tooltip": "Экспортировать тему в JSON",
+    "design_studio.import": "Импорт",
+    "design_studio.import_tooltip": "Импортировать тему из JSON",
+    "design_studio.save_as": "Сохранить тему",
+    "design_studio.save_tooltip": "Сохранить текущие настройки как новую тему",
+    "design_studio.apply": "Применить",
+    "design_studio.apply_tooltip": "Зафиксировать тему для всей системы",
+    "design_studio.presets_title": "Готовые пресеты и стили",
+    "design_studio.presets_subtitle": "Выберите дизайнерский стиль из библиотеки или сгенерируйте случайный",
+    "design_studio.shuffle": "Случайный стиль",
+    "design_studio.shuffle_tooltip": "Сгенерировать случайное сочетание",
+    "design_studio.my_themes": "Мои сохраненные темы",
+    "design_studio.layout_title": "Каркас и компоновка (App Shell)",
+    "design_studio.layout_subtitle": "Расположение навигации, ширина страниц и организация рабочих зон",
+    "design_studio.nav_layout": "Тип навигационного каркаса",
+    "design_studio.shell_sidebar": "Левый сайдбар",
+    "design_studio.shell_sidebar_desc": "Классический развернутый сайдбар",
+    "design_studio.shell_mini": "Мини-док (иконки)",
+    "design_studio.shell_mini_desc": "Компактная колонка 72px",
+    "design_studio.shell_top": "Верхняя шапка",
+    "design_studio.shell_top_desc": "Горизонтальное меню (100% ширина экрана)",
+    "design_studio.shell_island": "Плавающий остров",
+    "design_studio.shell_island_desc": "Стеклянная парящая панель",
+    "design_studio.content_width": "Ширина контентной зоны",
+    "design_studio.width_fluid": "100% (Fluid)",
+    "design_studio.width_boxed": "Центрированная (1500px)",
+    "design_studio.density": "Плотность верстки (Density)",
+    "design_studio.density_compact": "Компактная",
+    "design_studio.density_comfortable": "Комфортная",
+    "design_studio.density_spacious": "Просторная",
+    "design_studio.poster_size": "Масштаб постеров в библиотеке",
+    "design_studio.card_style": "Стиль карточки постера",
+    "design_studio.card_neo_glass": "Neo-Glass (Парящие)",
+    "design_studio.card_cinematic": "Cinematic",
+    "design_studio.card_minimal": "Минимал",
+    "design_studio.colors_title": "Цветовая палитра и акценты",
+    "design_studio.colors_subtitle": "Глубина темного фона, неоновые акценты и семантические маркеры",
+    "design_studio.base_neutral": "Базовый тон подложки",
+    "design_studio.accent_color": "Главный акцентный цвет",
+    "design_studio.materials_title": "Материалы, геометрия и стекломорфизм",
+    "design_studio.materials_subtitle": "Скругление углов, сила матового размытия и неоновое свечение",
+    "design_studio.radius": "Скругление углов (Border Radius)",
+    "design_studio.blur": "Размытие матового стекла (Blur)",
+    "design_studio.opacity": "Прозрачность панелей",
+    "design_studio.glow": "Интенсивность неонового свечения (Glow)",
+    "design_studio.live_preview": "Интерактивная сцена",
+    "design_studio.realtime": "В реальном времени",
+    "design_studio.preview_card": "Карточка",
+    "design_studio.preview_queue": "Очередь",
+    "design_studio.preview_form": "Элементы UI",
+    "design_studio.modal_save_title": "Сохранить тему оформления",
+    "design_studio.modal_save_subtitle": "Сохраните цветовую схему, материалы и верстку каркаса в ваш профиль",
+    "design_studio.theme_name_label": "Название темы",
+    "design_studio.theme_desc_label": "Описание (необязательно)",
+    "design_studio.applied_toast": "Тема оформления успешно сохранена и применена",
+    "design_studio.saved_toast": "Пользовательская тема сохранена",
+    "design_studio.deleted_toast": "Тема удалена",
     "collections.refresh_all": "Синхронизировать",
     "collections.search_placeholder": "Найти коллекцию…",
     "collections.empty_title": "Коллекции не найдены",
@@ -1776,6 +1839,7 @@ const TRANSLATIONS = {
     "nav.activity": "Activity",
     "nav.calendar": "Calendar",
     "nav.history": "History",
+    "nav.design_studio": "Design Studio",
     "nav.audit": "Audit",
     "nav.settings": "Settings",
     "nav.logs": "Logs",
@@ -1791,8 +1855,70 @@ const TRANSLATIONS = {
     "tab.library": "Library",
     "tab.collections": "Collections",
     "tab.blocklist": "Blocklist",
+    "tab.design_studio": "Design & Layout Studio",
+    "subtitle.design_studio": "Interactive builder for themes, color palettes, glassmorphism and app layouts",
     "subtitle.collections": "Franchises, sagas and movie universes",
     "subtitle.blocklist": "Blocked releases excluded from auto-search and downloads",
+    "design_studio.reset": "Reset",
+    "design_studio.reset_tooltip": "Reset all settings to default",
+    "design_studio.export": "Export",
+    "design_studio.export_tooltip": "Export theme as JSON",
+    "design_studio.import": "Import",
+    "design_studio.import_tooltip": "Import theme from JSON",
+    "design_studio.save_as": "Save Theme",
+    "design_studio.save_tooltip": "Save current settings as new theme",
+    "design_studio.apply": "Apply",
+    "design_studio.apply_tooltip": "Apply theme system-wide",
+    "design_studio.presets_title": "Presets and Styles",
+    "design_studio.presets_subtitle": "Choose a design style from library or generate a random one",
+    "design_studio.shuffle": "Random Style",
+    "design_studio.shuffle_tooltip": "Generate random theme combination",
+    "design_studio.my_themes": "My Saved Themes",
+    "design_studio.layout_title": "App Shell & Layout",
+    "design_studio.layout_subtitle": "Navigation placement, page width and workspace organization",
+    "design_studio.nav_layout": "Navigation Shell Type",
+    "design_studio.shell_sidebar": "Left Sidebar",
+    "design_studio.shell_sidebar_desc": "Classic full-width sidebar",
+    "design_studio.shell_mini": "Mini Dock (Icons)",
+    "design_studio.shell_mini_desc": "Compact 72px icon column",
+    "design_studio.shell_top": "Top Header",
+    "design_studio.shell_top_desc": "Horizontal top navbar (100% screen width)",
+    "design_studio.shell_island": "Floating Island",
+    "design_studio.shell_island_desc": "Floating glassmorphic island",
+    "design_studio.content_width": "Content Area Width",
+    "design_studio.width_fluid": "100% (Fluid)",
+    "design_studio.width_boxed": "Centered Boxed (1500px)",
+    "design_studio.density": "Interface Density",
+    "design_studio.density_compact": "Compact",
+    "design_studio.density_comfortable": "Comfortable",
+    "design_studio.density_spacious": "Spacious",
+    "design_studio.poster_size": "Library Poster Size",
+    "design_studio.card_style": "Poster Card Style",
+    "design_studio.card_neo_glass": "Neo-Glass (Floating)",
+    "design_studio.card_cinematic": "Cinematic",
+    "design_studio.card_minimal": "Minimal",
+    "design_studio.colors_title": "Color Palette and Accents",
+    "design_studio.colors_subtitle": "Dark background depth, neon accents and semantic tags",
+    "design_studio.base_neutral": "Base Neutral Tone",
+    "design_studio.accent_color": "Primary Accent Color",
+    "design_studio.materials_title": "Materials, Geometry & Glassmorphism",
+    "design_studio.materials_subtitle": "Corner rounding, frosted glass blur and neon aura",
+    "design_studio.radius": "Border Radius",
+    "design_studio.blur": "Backdrop Blur",
+    "design_studio.opacity": "Panel Opacity",
+    "design_studio.glow": "Neon Glow Intensity",
+    "design_studio.live_preview": "Live Interactive Scene",
+    "design_studio.realtime": "Real-time",
+    "design_studio.preview_card": "Card",
+    "design_studio.preview_queue": "Queue",
+    "design_studio.preview_form": "UI Elements",
+    "design_studio.modal_save_title": "Save Theme Preset",
+    "design_studio.modal_save_subtitle": "Save color scheme, materials and layout shell to your profile",
+    "design_studio.theme_name_label": "Theme Name",
+    "design_studio.theme_desc_label": "Description (optional)",
+    "design_studio.applied_toast": "Theme preset applied and saved successfully",
+    "design_studio.saved_toast": "Custom theme preset saved",
+    "design_studio.deleted_toast": "Custom theme deleted",
     "collections.refresh_all": "Sync Collections",
     "collections.search_placeholder": "Search collections…",
     "collections.empty_title": "No collections found",
@@ -5207,6 +5333,9 @@ function switchTab(tabId) {
   if (tabId === "blocklist") loadBlocklist();
   if (tabId === "settings") loadAllSettings();
   if (tabId === "backup") loadBackups();
+  if (tabId === "design-studio") {
+    if (typeof initDesignStudio === "function") initDesignStudio();
+  }
 
   if (tabId === "logs") {
     const activeSub = targetSubTab || localStorage.getItem("aliasarr_last_logs_tab") || "audit";
@@ -25512,6 +25641,868 @@ function servarrSyncSubnav() {
     });
   });
 }
+
+// ===========================================================================
+// ДИЗАЙН-СТУДИЯ И ТРАНСФОРМАЦИЯ КАРКАСА (DESIGN & LAYOUT STUDIO MODULE)
+// ===========================================================================
+
+const STUDIO_PRESETS = [
+  {
+    id: "cyber-neon",
+    name: "Cyber Neon",
+    desc: "Фирменный стиль Aliasarr: бирюзовый неон и сбалансированное стекло",
+    base: "slate",
+    accent: "#00F0FF",
+    shell: "sidebar-left",
+    density: "comfortable",
+    poster_size: "md",
+    card_style: "neo-glass",
+    container_width: "fluid",
+    radius: 12,
+    blur: 16,
+    opacity: 85,
+    glow: 2,
+    palette: ["#0b0f19", "#121824", "#00F0FF", "#6366f1"],
+  },
+  {
+    id: "vanguard-luxe",
+    name: "Vanguard Luxe",
+    desc: "Глубокий полуночный индиго, мягкие скругления 18px и фиолетовый неон",
+    base: "midnight",
+    accent: "#6838F7",
+    shell: "sidebar-left",
+    density: "comfortable",
+    poster_size: "md",
+    card_style: "neo-glass",
+    container_width: "fluid",
+    radius: 18,
+    blur: 20,
+    opacity: 80,
+    glow: 3,
+    palette: ["#0f1048", "#161853", "#6838F7", "#00F0FF"],
+  },
+  {
+    id: "oled-black",
+    name: "OLED True Black",
+    desc: "Абсолютно черный 0% фон для идеального контраста и экономии энергии",
+    base: "pitch-black",
+    accent: "#00F0FF",
+    shell: "mini-sidebar",
+    density: "compact",
+    poster_size: "sm",
+    card_style: "minimal",
+    container_width: "fluid",
+    radius: 8,
+    blur: 0,
+    opacity: 100,
+    glow: 1,
+    palette: ["#000000", "#0e0e11", "#00F0FF", "#ffffff"],
+  },
+  {
+    id: "obsidian-aurora",
+    name: "Obsidian Aurora",
+    desc: "Изумрудный неон на глубоком графитовом фоне с парящим островом меню",
+    base: "obsidian",
+    accent: "#00F5D4",
+    shell: "floating-dock",
+    density: "comfortable",
+    poster_size: "md",
+    card_style: "neo-glass",
+    container_width: "fluid",
+    radius: 16,
+    blur: 18,
+    opacity: 85,
+    glow: 2,
+    palette: ["#032015", "#064e3b", "#00F5D4", "#8B5CF6"],
+  },
+  {
+    id: "nord-frost",
+    name: "Nord Frost",
+    desc: "Ледяной синий акцент, верхняя шапка и кинематографичный вид карточек",
+    base: "slate",
+    accent: "#0EA5E9",
+    shell: "top-nav",
+    density: "comfortable",
+    poster_size: "lg",
+    card_style: "cinematic",
+    container_width: "boxed",
+    radius: 12,
+    blur: 14,
+    opacity: 90,
+    glow: 1,
+    palette: ["#0b1320", "#162236", "#0EA5E9", "#38BDF8"],
+  },
+  {
+    id: "dracula-vamp",
+    name: "Dracula Midnight",
+    desc: "Культовая палитра: глубокий фиолетовый, пастельный розовый и темный цинк",
+    base: "zinc",
+    accent: "#BD93F9",
+    shell: "sidebar-left",
+    density: "comfortable",
+    poster_size: "md",
+    card_style: "neo-glass",
+    container_width: "fluid",
+    radius: 14,
+    blur: 16,
+    opacity: 85,
+    glow: 2,
+    palette: ["#21222c", "#282a36", "#bd93f9", "#ff79c6"],
+  },
+  {
+    id: "sunset-amber",
+    name: "Sunset Amber",
+    desc: "Теплый янтарно-золотой акцент на матовой каменной подложке",
+    base: "stone",
+    accent: "#F59E0B",
+    shell: "top-nav",
+    density: "comfortable",
+    poster_size: "md",
+    card_style: "cinematic",
+    container_width: "boxed",
+    radius: 12,
+    blur: 12,
+    opacity: 90,
+    glow: 2,
+    palette: ["#1c1917", "#292524", "#F59E0B", "#EF4444"],
+  },
+  {
+    id: "polar-light",
+    name: "Polar Light",
+    desc: "Свежий светлый интерфейс с контрастными карточками и индиго-акцентом",
+    base: "clean-light",
+    accent: "#4F46E5",
+    shell: "top-nav",
+    density: "comfortable",
+    poster_size: "md",
+    card_style: "minimal",
+    container_width: "boxed",
+    radius: 10,
+    blur: 8,
+    opacity: 95,
+    glow: 0,
+    palette: ["#f8fafc", "#ffffff", "#4F46E5", "#0ea5e9"],
+  },
+];
+
+const STUDIO_BASE_TONES = [
+  { id: "pitch-black", name: "OLED Black", color: "#000000", panel: "#0a0a0d", border: "rgba(255,255,255,0.11)", text: "#f8fafc" },
+  { id: "zinc", name: "Zinc", color: "#09090b", panel: "#141417", border: "rgba(255,255,255,0.08)", text: "#f4f4f5" },
+  { id: "slate", name: "Slate", color: "#0b0f19", panel: "#121824", border: "rgba(255,255,255,0.08)", text: "#f0f6fc" },
+  { id: "stone", name: "Stone", color: "#0c0a09", panel: "#1c1917", border: "rgba(255,255,255,0.08)", text: "#fafaf9" },
+  { id: "obsidian", name: "Obsidian", color: "#032015", panel: "#071f18", border: "rgba(0,245,212,0.15)", text: "#f0f7f6" },
+  { id: "midnight", name: "Midnight", color: "#0f1048", panel: "#161853", border: "rgba(108,62,248,0.25)", text: "#f5f3ff" },
+  { id: "clean-light", name: "Light", color: "#f8fafc", panel: "#ffffff", border: "rgba(0,0,0,0.09)", text: "#0f172a" },
+];
+
+const STUDIO_ACCENTS = [
+  { id: "teal", color: "#00F0FF", name: "Teal Neon" },
+  { id: "purple", color: "#6838F7", name: "Electric Purple" },
+  { id: "rose", color: "#F43F5E", name: "Cyber Rose" },
+  { id: "emerald", color: "#10B981", name: "Emerald" },
+  { id: "amber", color: "#F59E0B", name: "Gold Amber" },
+  { id: "sky", color: "#0EA5E9", name: "Sky Blue" },
+  { id: "crimson", color: "#FF2A4D", name: "Crimson Red" },
+  { id: "lilac", color: "#BD93F9", name: "Lilac" },
+];
+
+let STUDIO_CURRENT_STATE = {
+  preset_id: "cyber-neon",
+  shell: "sidebar-left",
+  container_width: "fluid",
+  density: "comfortable",
+  poster_size: "md",
+  card_style: "neo-glass",
+  base_tone: "slate",
+  accent: "#00F0FF",
+  radius: 12,
+  blur: 16,
+  opacity: 85,
+  glow: 2,
+};
+
+let STUDIO_CUSTOM_THEMES = [];
+let STUDIO_PREVIEW_MODE = "card";
+let STUDIO_INITIALIZED = false;
+
+function loadStudioStateFromStorage() {
+  try {
+    const savedConfig = localStorage.getItem("aliasarr_studio_config");
+    if (savedConfig) {
+      const parsed = JSON.parse(savedConfig);
+      STUDIO_CURRENT_STATE = { ...STUDIO_CURRENT_STATE, ...parsed };
+    } else {
+      const s = localStorage.getItem("aliasarr_shell");
+      if (s) STUDIO_CURRENT_STATE.shell = s;
+      const cw = localStorage.getItem("aliasarr_container_width");
+      if (cw) STUDIO_CURRENT_STATE.container_width = cw;
+      const d = localStorage.getItem("aliasarr_density");
+      if (d) STUDIO_CURRENT_STATE.density = d;
+      const ps = localStorage.getItem("aliasarr_poster_size");
+      if (ps) STUDIO_CURRENT_STATE.poster_size = ps;
+      const cs = localStorage.getItem("aliasarr_card_style");
+      if (cs) STUDIO_CURRENT_STATE.card_style = cs;
+    }
+    const savedThemes = localStorage.getItem("aliasarr_custom_themes_list");
+    if (savedThemes) {
+      STUDIO_CUSTOM_THEMES = JSON.parse(savedThemes);
+    }
+  } catch (e) {
+    console.warn("Could not load studio state:", e);
+  }
+}
+
+function initDesignStudio() {
+  loadStudioStateFromStorage();
+  renderStudioPresets();
+  renderStudioSwatches();
+  renderStudioMyThemes();
+  syncStudioControlsUI();
+  renderStudioPreviewCanvas();
+  applyStudioLivePreview(false);
+  STUDIO_INITIALIZED = true;
+  if (window.lucide && lucide.createIcons) lucide.createIcons();
+}
+
+function syncStudioControlsUI() {
+  document.querySelectorAll('input[name="studio_shell"]').forEach(inp => {
+    inp.checked = inp.value === STUDIO_CURRENT_STATE.shell;
+  });
+  document.querySelectorAll("#studio-container-width-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.container_width);
+  });
+  document.querySelectorAll("#studio-density-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.density);
+  });
+  document.querySelectorAll("#studio-poster-size-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.poster_size);
+  });
+  document.querySelectorAll("#studio-card-style-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.card_style);
+  });
+
+  const rSlider = document.getElementById("studio-radius-slider");
+  if (rSlider) { rSlider.value = STUDIO_CURRENT_STATE.radius; document.getElementById("studio-radius-val").textContent = `${STUDIO_CURRENT_STATE.radius}px`; }
+  const bSlider = document.getElementById("studio-blur-slider");
+  if (bSlider) { bSlider.value = STUDIO_CURRENT_STATE.blur; document.getElementById("studio-blur-val").textContent = `${STUDIO_CURRENT_STATE.blur}px`; }
+  const oSlider = document.getElementById("studio-opacity-slider");
+  if (oSlider) { oSlider.value = STUDIO_CURRENT_STATE.opacity; document.getElementById("studio-opacity-val").textContent = `${STUDIO_CURRENT_STATE.opacity}%`; }
+  const gSlider = document.getElementById("studio-glow-slider");
+  if (gSlider) {
+    gSlider.value = STUDIO_CURRENT_STATE.glow;
+    const gLabels = ["Выкл", "Мягкое", "Яркое", "Ultra"];
+    document.getElementById("studio-glow-val").textContent = gLabels[STUDIO_CURRENT_STATE.glow] || "Medium";
+  }
+
+  const hexInput = document.getElementById("studio-accent-color-input");
+  if (hexInput) hexInput.value = STUDIO_CURRENT_STATE.accent;
+  const hexLabel = document.getElementById("studio-accent-hex-label");
+  if (hexLabel) hexLabel.textContent = STUDIO_CURRENT_STATE.accent.toUpperCase();
+}
+
+function renderStudioPresets() {
+  const container = document.getElementById("studio-presets-grid");
+  if (!container) return;
+  container.innerHTML = STUDIO_PRESETS.map(p => `
+    <div class="studio-preset-card ${STUDIO_CURRENT_STATE.preset_id === p.id ? 'active' : ''}" onclick="applyStudioPreset('${p.id}')">
+      <div class="studio-preset-header">
+        <span class="studio-preset-title">${escapeHtml(p.name)}</span>
+        <div class="studio-preset-palette">
+          ${p.palette.map(c => `<div class="studio-preset-dot" style="background:${c};"></div>`).join("")}
+        </div>
+      </div>
+      <span style="font-size:11.5px; color:var(--text-muted); line-height:1.3;">${escapeHtml(p.desc)}</span>
+    </div>
+  `).join("");
+}
+
+function renderStudioSwatches() {
+  const baseWrap = document.getElementById("studio-base-swatches");
+  if (baseWrap) {
+    baseWrap.innerHTML = STUDIO_BASE_TONES.map(b => `
+      <div class="studio-swatch ${STUDIO_CURRENT_STATE.base_tone === b.id ? 'active' : ''}" 
+           style="background:${b.color}; border-color:${b.color === '#f8fafc' ? '#cbd5e1' : 'rgba(255,255,255,0.15)'};"
+           onclick="onStudioBaseToneSelect('${b.id}')"
+           title="${escapeHtml(b.name)}">
+      </div>
+    `).join("");
+  }
+
+  const accentWrap = document.getElementById("studio-accent-swatches");
+  if (accentWrap) {
+    accentWrap.innerHTML = STUDIO_ACCENTS.map(a => `
+      <div class="studio-swatch ${STUDIO_CURRENT_STATE.accent.toLowerCase() === a.color.toLowerCase() ? 'active' : ''}" 
+           style="background:${a.color};"
+           onclick="onStudioAccentSelect('${a.color}')"
+           title="${escapeHtml(a.name)}">
+      </div>
+    `).join("");
+  }
+}
+
+function renderStudioMyThemes() {
+  const list = document.getElementById("studio-my-themes-list");
+  const countBadge = document.getElementById("studio-my-themes-count");
+  if (countBadge) countBadge.textContent = STUDIO_CUSTOM_THEMES.length;
+  if (!list) return;
+
+  if (!STUDIO_CUSTOM_THEMES.length) {
+    list.innerHTML = `
+      <div style="grid-column: 1 / -1; padding: 14px; text-align: center; color: var(--text-muted); font-size: 12.5px; border: 1px dashed var(--border); border-radius: var(--radius-sm, 8px);">
+        Пока нет сохраненных тем. Настройте стиль и нажмите кнопку «Сохранить тему» вверху.
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = STUDIO_CUSTOM_THEMES.map(theme => `
+    <div class="studio-my-theme-item ${STUDIO_CURRENT_STATE.custom_theme_id === theme.id ? 'active' : ''}">
+      <div class="studio-my-theme-info" onclick="activateCustomTheme('${theme.id}')" title="Применить тему">
+        <span class="studio-my-theme-name">${escapeHtml(theme.name)}</span>
+        <span class="studio-my-theme-desc">${escapeHtml(theme.desc || "Пользовательский пресет")}</span>
+      </div>
+      <div class="studio-my-theme-actions">
+        <button class="btn btn-icon-only btn-xs" onclick="activateCustomTheme('${theme.id}')" title="Применить тему">
+          <i data-lucide="check" class="ico-xs"></i>
+        </button>
+        <button class="btn btn-icon-only btn-xs" onclick="deleteCustomTheme('${theme.id}')" title="Удалить тему">
+          <i data-lucide="trash-2" class="ico-xs"></i>
+        </button>
+      </div>
+    </div>
+  `).join("");
+  if (window.lucide && lucide.createIcons) lucide.createIcons();
+}
+
+function applyStudioPreset(presetId) {
+  const preset = STUDIO_PRESETS.find(p => p.id === presetId);
+  if (!preset) return;
+
+  STUDIO_CURRENT_STATE = {
+    ...STUDIO_CURRENT_STATE,
+    preset_id: preset.id,
+    custom_theme_id: null,
+    base_tone: preset.base,
+    accent: preset.accent,
+    shell: preset.shell,
+    density: preset.density,
+    poster_size: preset.poster_size,
+    card_style: preset.card_style,
+    container_width: preset.container_width,
+    radius: preset.radius,
+    blur: preset.blur,
+    opacity: preset.opacity,
+    glow: preset.glow,
+  };
+
+  syncStudioControlsUI();
+  renderStudioPresets();
+  renderStudioSwatches();
+  renderStudioMyThemes();
+  applyStudioLivePreview(true);
+}
+
+function onStudioBaseToneSelect(toneId) {
+  STUDIO_CURRENT_STATE.base_tone = toneId;
+  STUDIO_CURRENT_STATE.preset_id = null;
+  STUDIO_CURRENT_STATE.custom_theme_id = null;
+  renderStudioPresets();
+  renderStudioSwatches();
+  applyStudioLivePreview(true);
+}
+
+function onStudioAccentSelect(colorHex) {
+  STUDIO_CURRENT_STATE.accent = colorHex;
+  STUDIO_CURRENT_STATE.preset_id = null;
+  STUDIO_CURRENT_STATE.custom_theme_id = null;
+  syncStudioControlsUI();
+  renderStudioPresets();
+  renderStudioSwatches();
+  applyStudioLivePreview(true);
+}
+
+function onStudioCustomAccentInput(val) {
+  STUDIO_CURRENT_STATE.accent = val;
+  STUDIO_CURRENT_STATE.preset_id = null;
+  STUDIO_CURRENT_STATE.custom_theme_id = null;
+  const hexLabel = document.getElementById("studio-accent-hex-label");
+  if (hexLabel) hexLabel.textContent = val.toUpperCase();
+  renderStudioPresets();
+  renderStudioSwatches();
+  applyStudioLivePreview(true);
+}
+
+function onStudioShellChange(val) {
+  STUDIO_CURRENT_STATE.shell = val;
+  applyStudioLivePreview(true);
+}
+
+function setStudioContainerWidth(val) {
+  STUDIO_CURRENT_STATE.container_width = val;
+  document.querySelectorAll("#studio-container-width-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === val);
+  });
+  applyStudioLivePreview(true);
+}
+
+function setStudioDensity(val) {
+  STUDIO_CURRENT_STATE.density = val;
+  document.querySelectorAll("#studio-density-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === val);
+  });
+  applyStudioLivePreview(true);
+}
+
+function setStudioPosterSize(val) {
+  STUDIO_CURRENT_STATE.poster_size = val;
+  document.querySelectorAll("#studio-poster-size-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === val);
+  });
+  applyStudioLivePreview(true);
+}
+
+function setStudioCardStyle(val) {
+  STUDIO_CURRENT_STATE.card_style = val;
+  document.querySelectorAll("#studio-card-style-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === val);
+  });
+  applyStudioLivePreview(true);
+}
+
+function onStudioRadiusChange(val) {
+  STUDIO_CURRENT_STATE.radius = parseInt(val, 10);
+  const el = document.getElementById("studio-radius-val");
+  if (el) el.textContent = `${val}px`;
+  applyStudioLivePreview(true);
+}
+
+function onStudioBlurChange(val) {
+  STUDIO_CURRENT_STATE.blur = parseInt(val, 10);
+  const el = document.getElementById("studio-blur-val");
+  if (el) el.textContent = `${val}px`;
+  applyStudioLivePreview(true);
+}
+
+function onStudioOpacityChange(val) {
+  STUDIO_CURRENT_STATE.opacity = parseInt(val, 10);
+  const el = document.getElementById("studio-opacity-val");
+  if (el) el.textContent = `${val}%`;
+  applyStudioLivePreview(true);
+}
+
+function onStudioGlowChange(val) {
+  const g = parseInt(val, 10);
+  STUDIO_CURRENT_STATE.glow = g;
+  const gLabels = ["Выкл", "Мягкое", "Яркое", "Ultra"];
+  const el = document.getElementById("studio-glow-val");
+  if (el) el.textContent = gLabels[g] || "Medium";
+  applyStudioLivePreview(true);
+}
+
+function setStudioPreviewMode(mode) {
+  STUDIO_PREVIEW_MODE = mode;
+  document.querySelectorAll(".studio-preview-tab-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.previewMode === mode);
+  });
+  renderStudioPreviewCanvas();
+}
+
+function applyStudioLivePreview(saveDraft = true) {
+  document.documentElement.setAttribute("data-shell", STUDIO_CURRENT_STATE.shell);
+  document.documentElement.setAttribute("data-container-width", STUDIO_CURRENT_STATE.container_width);
+  document.documentElement.setAttribute("data-density", STUDIO_CURRENT_STATE.density);
+  document.documentElement.setAttribute("data-poster-size", STUDIO_CURRENT_STATE.poster_size);
+  document.documentElement.setAttribute("data-card-style", STUDIO_CURRENT_STATE.card_style);
+
+  const tone = STUDIO_BASE_TONES.find(t => t.id === STUDIO_CURRENT_STATE.base_tone) || STUDIO_BASE_TONES[2];
+  const accent = STUDIO_CURRENT_STATE.accent;
+  const radius = `${STUDIO_CURRENT_STATE.radius}px`;
+  const radiusSm = `${Math.max(4, Math.round(STUDIO_CURRENT_STATE.radius * 0.65))}px`;
+  const radiusLg = `${Math.round(STUDIO_CURRENT_STATE.radius * 1.35)}px`;
+  const blurVal = STUDIO_CURRENT_STATE.blur > 0 ? `blur(${STUDIO_CURRENT_STATE.blur}px)` : "none";
+  
+  let glowAlpha = 0.25;
+  if (STUDIO_CURRENT_STATE.glow === 0) glowAlpha = 0;
+  else if (STUDIO_CURRENT_STATE.glow === 1) glowAlpha = 0.15;
+  else if (STUDIO_CURRENT_STATE.glow === 2) glowAlpha = 0.35;
+  else if (STUDIO_CURRENT_STATE.glow === 3) glowAlpha = 0.65;
+
+  let styleEl = document.getElementById("aliasarr-custom-theme-vars");
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = "aliasarr-custom-theme-vars";
+    document.head.appendChild(styleEl);
+  }
+
+  const cssRules = `
+    :root {
+      --bg: ${tone.color} !important;
+      --panel: ${tone.panel} !important;
+      --panel-alt: ${tone.color === '#000000' ? '#111116' : (tone.color === '#f8fafc' ? '#f1f5f9' : '#151c2a')} !important;
+      --border: ${tone.border} !important;
+      --text: ${tone.text} !important;
+      --teal: ${accent} !important;
+      --primary: ${accent} !important;
+      --radius: ${radius} !important;
+      --radius-sm: ${radiusSm} !important;
+      --radius-lg: ${radiusLg} !important;
+      --glass-blur: ${blurVal} !important;
+      --brand-name-glow: ${accent}${Math.round(glowAlpha * 255).toString(16).padStart(2, '0')} !important;
+    }
+  `;
+  styleEl.textContent = cssRules;
+
+  if (tone.id === "clean-light") {
+    document.documentElement.setAttribute("data-theme", "light");
+  } else if (tone.id === "obsidian") {
+    document.documentElement.setAttribute("data-theme", "obsidian");
+  } else {
+    document.documentElement.setAttribute("data-theme", "dark");
+  }
+
+  updateFavicon(tone.id === "clean-light" ? "light" : (tone.id === "obsidian" ? "obsidian" : "dark"));
+
+  const summaryEl = document.getElementById("studio-preview-code-summary");
+  if (summaryEl) {
+    summaryEl.innerHTML = `
+      <span>Shell: <b>${STUDIO_CURRENT_STATE.shell}</b></span> · 
+      <span>Base: <b>${tone.name}</b></span> · 
+      <span>Accent: <b style="color:${accent}">${accent}</b></span> · 
+      <span>Radius: <b>${radius}</b></span> · 
+      <span>Blur: <b>${STUDIO_CURRENT_STATE.blur}px</b></span>
+    `;
+  }
+
+  renderStudioPreviewCanvas();
+
+  if (saveDraft) {
+    try {
+      localStorage.setItem("aliasarr_studio_config", JSON.stringify(STUDIO_CURRENT_STATE));
+      localStorage.setItem("aliasarr_shell", STUDIO_CURRENT_STATE.shell);
+      localStorage.setItem("aliasarr_container_width", STUDIO_CURRENT_STATE.container_width);
+      localStorage.setItem("aliasarr_density", STUDIO_CURRENT_STATE.density);
+      localStorage.setItem("aliasarr_poster_size", STUDIO_CURRENT_STATE.poster_size);
+      localStorage.setItem("aliasarr_card_style", STUDIO_CURRENT_STATE.card_style);
+      localStorage.setItem("aliasarr_custom_css_vars", JSON.stringify({
+        "--bg": tone.color,
+        "--panel": tone.panel,
+        "--border": tone.border,
+        "--text": tone.text,
+        "--teal": accent,
+        "--primary": accent,
+        "--radius": radius,
+        "--radius-sm": radiusSm,
+        "--radius-lg": radiusLg,
+      }));
+    } catch (e) {}
+  }
+}
+
+function renderStudioPreviewCanvas() {
+  const canvas = document.getElementById("studio-preview-canvas");
+  if (!canvas) return;
+
+  const accent = STUDIO_CURRENT_STATE.accent;
+
+  if (STUDIO_PREVIEW_MODE === "card") {
+    canvas.innerHTML = `
+      <div style="width: 240px; display: flex; flex-direction: column;">
+        <div class="show-card" style="box-shadow: 0 12px 30px rgba(0,0,0,0.5);">
+          <div class="show-poster-wrap" style="position:relative; aspect-ratio: 2/3; background: #161b26; overflow:hidden; border-radius:var(--radius-sm, 10px);">
+            <div style="width:100%; height:100%; background: linear-gradient(135deg, rgba(0,240,255,0.15), rgba(104,56,247,0.3)), url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 150\\'%3E%3Crect width=\\'100\\' height=\\'150\\' fill=\\'%23121824\\'/%3E%3Cpath d=\\'M30 40 L70 40 L70 110 L30 110 Z\\' fill=\\'none\\' stroke=\\'rgba(255,255,255,0.1)\\' stroke-width=\\'2\\'/%3E%3Ctext x=\\'50\\' y=\\'80\\' fill=\\'rgba(255,255,255,0.3)\\' font-size=\\'12\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\'%3EPOSTER%3C/text%3E%3C/svg%3E') center/cover; display:flex; align-items:flex-end; justify-content:center; padding:16px;">
+            </div>
+            <div class="show-badge" style="position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.65); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.2); padding:3px 8px; border-radius:999px; font-size:11px; font-weight:700; color:#fff;">
+              12 / 12
+            </div>
+            <div style="position:absolute; bottom:10px; left:10px; background:${accent}; color:#000; font-weight:800; font-size:10px; padding:2px 6px; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+              1080p REMUX
+            </div>
+          </div>
+          <div class="show-info" style="padding: 12px 4px 6px 4px;">
+            <div class="show-title" style="font-weight:700; font-size:14px; margin-bottom:4px;">Киберпанк: Бегущие по краю</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px; color:var(--text-muted);">2024 · Аниме</span>
+              <span class="badge" style="font-size:10px; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3);">Скачано</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (STUDIO_PREVIEW_MODE === "queue") {
+    canvas.innerHTML = `
+      <div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 12px;">
+        <div class="card" style="padding: 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius, 12px);">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+            <div>
+              <div style="font-weight:700; font-size:13.5px; color:var(--text);">Dune.Part.Two.2024.UHD.Remux</div>
+              <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">qBittorrent · LostFilm · RuTracker</div>
+            </div>
+            <span class="badge badge-secondary" style="font-family:var(--font-mono); font-size:11px;">68.4 GB</span>
+          </div>
+          <div class="progress-wrap" style="height:6px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden; margin:10px 0 6px 0;">
+            <div style="width:68%; height:100%; background:linear-gradient(90deg, var(--teal), var(--violet)); border-radius:999px;"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:11.5px; font-family:var(--font-mono); color:var(--text-muted);">
+            <span>68% (46.5 GB)</span>
+            <span style="color:var(--teal); font-weight:700;">18.4 MB/s</span>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    canvas.innerHTML = `
+      <div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-primary" style="flex:1;">
+            <i data-lucide="play" class="ico-xs"></i> <span>Скачать</span>
+          </button>
+          <button class="btn btn-secondary" style="flex:1;">
+            <i data-lucide="search" class="ico-xs"></i> <span>Поиск</span>
+          </button>
+        </div>
+        <label class="switch-toggle" style="margin:0;">
+          <input type="checkbox" checked onclick="return false;">
+          <span class="switch-slider"></span>
+          <span class="switch-title">Жесткие ссылки (Hardlinks)</span>
+          <span class="switch-desc">Мгновенный импорт раздач без дублирования места</span>
+        </label>
+        <div style="position:relative;">
+          <i data-lucide="search" class="ico-xs text-muted" style="position:absolute; left:12px; top:50%; transform:translateY(-50%);"></i>
+          <input type="text" class="input" value="Атака титанов (Attack on Titan)" style="padding-left:36px; width:100%;">
+        </div>
+      </div>
+    `;
+  }
+
+  if (window.lucide && lucide.createIcons) lucide.createIcons();
+}
+
+async function applyStudioThemePermanently() {
+  applyStudioLivePreview(true);
+
+  try {
+    const payload = {
+      theme_studio_config: STUDIO_CURRENT_STATE,
+      custom_themes: STUDIO_CUSTOM_THEMES,
+    };
+    await fetch("/api/v1/settings", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(API_KEY ? { "X-Api-Key": API_KEY } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    showToast(i18n("design_studio.applied_toast") || "Тема успешно сохранена и применена", "success");
+  } catch (e) {
+    showToast(i18n("design_studio.applied_toast") || "Тема применена локально", "success");
+  }
+}
+
+function resetStudioTheme() {
+  applyStudioPreset("cyber-neon");
+  showToast(i18n("design_studio.reset_done") || "Настройки сброшены к стандартным", "info");
+}
+
+function shuffleStudioTheme() {
+  const tones = STUDIO_BASE_TONES.filter(t => t.id !== "clean-light");
+  const randomTone = tones[Math.floor(Math.random() * tones.length)];
+  const randomAccent = STUDIO_ACCENTS[Math.floor(Math.random() * STUDIO_ACCENTS.length)];
+  const shells = ["sidebar-left", "mini-sidebar", "top-nav", "floating-dock"];
+  const randomShell = shells[Math.floor(Math.random() * shells.length)];
+  const randomRadius = [0, 8, 12, 16, 20][Math.floor(Math.random() * 5)];
+  const randomBlur = [8, 14, 18, 24][Math.floor(Math.random() * 4)];
+
+  STUDIO_CURRENT_STATE = {
+    ...STUDIO_CURRENT_STATE,
+    preset_id: null,
+    custom_theme_id: null,
+    base_tone: randomTone.id,
+    accent: randomAccent.color,
+    shell: randomShell,
+    radius: randomRadius,
+    blur: randomBlur,
+    glow: Math.floor(Math.random() * 3) + 1,
+  };
+
+  syncStudioControlsUI();
+  renderStudioPresets();
+  renderStudioSwatches();
+  applyStudioLivePreview(true);
+  showToast("Сгенерирована новая комбинация стиля! 🎲", "info");
+}
+
+function openSaveCustomThemeModal() {
+  const modal = document.getElementById("save-custom-theme-modal");
+  if (!modal) return;
+  const nameInp = document.getElementById("save-custom-theme-name");
+  if (nameInp) nameInp.value = "";
+  const descInp = document.getElementById("save-custom-theme-desc");
+  if (descInp) descInp.value = "";
+  modal.style.display = "flex";
+  if (nameInp) nameInp.focus();
+}
+
+function closeSaveCustomThemeModal() {
+  const modal = document.getElementById("save-custom-theme-modal");
+  if (modal) modal.style.display = "none";
+}
+
+function confirmSaveCustomTheme() {
+  const nameInp = document.getElementById("save-custom-theme-name");
+  const name = nameInp ? nameInp.value.trim() : "";
+  if (!name) {
+    showToast("Введите название темы", "error");
+    return;
+  }
+  const descInp = document.getElementById("save-custom-theme-desc");
+  const desc = descInp ? descInp.value.trim() : "";
+
+  const newTheme = {
+    id: "custom_" + Date.now(),
+    name: name,
+    desc: desc,
+    config: { ...STUDIO_CURRENT_STATE },
+  };
+
+  STUDIO_CUSTOM_THEMES.push(newTheme);
+  STUDIO_CURRENT_STATE.custom_theme_id = newTheme.id;
+  STUDIO_CURRENT_STATE.preset_id = null;
+
+  try {
+    localStorage.setItem("aliasarr_custom_themes_list", JSON.stringify(STUDIO_CUSTOM_THEMES));
+  } catch (e) {}
+
+  closeSaveCustomThemeModal();
+  renderStudioMyThemes();
+  applyStudioThemePermanently();
+  showToast(i18n("design_studio.saved_toast") || "Тема сохранена в список", "success");
+}
+
+function deleteCustomTheme(id) {
+  STUDIO_CUSTOM_THEMES = STUDIO_CUSTOM_THEMES.filter(t => t.id !== id);
+  if (STUDIO_CURRENT_STATE.custom_theme_id === id) {
+    STUDIO_CURRENT_STATE.custom_theme_id = null;
+  }
+  try {
+    localStorage.setItem("aliasarr_custom_themes_list", JSON.stringify(STUDIO_CUSTOM_THEMES));
+  } catch (e) {}
+  renderStudioMyThemes();
+  applyStudioThemePermanently();
+  showToast(i18n("design_studio.deleted_toast") || "Тема удалена", "info");
+}
+
+function activateCustomTheme(id) {
+  const theme = STUDIO_CUSTOM_THEMES.find(t => t.id === id);
+  if (!theme || !theme.config) return;
+
+  STUDIO_CURRENT_STATE = {
+    ...STUDIO_CURRENT_STATE,
+    ...theme.config,
+    custom_theme_id: theme.id,
+    preset_id: null,
+  };
+
+  syncStudioControlsUI();
+  renderStudioPresets();
+  renderStudioSwatches();
+  renderStudioMyThemes();
+  applyStudioLivePreview(true);
+  showToast(`Тема «${theme.name}» активирована!`, "success");
+}
+
+function exportStudioTheme() {
+  const data = {
+    aliasarr_theme_version: 1,
+    exported_at: new Date().toISOString(),
+    theme_name: STUDIO_CURRENT_STATE.custom_theme_id ? 
+      (STUDIO_CUSTOM_THEMES.find(t => t.id === STUDIO_CURRENT_STATE.custom_theme_id)?.name || "Aliasarr Theme") : 
+      "Aliasarr Custom Theme",
+    config: STUDIO_CURRENT_STATE,
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `aliasarr-theme-${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("Тема экспортирована в файл", "success");
+}
+
+function importStudioThemeDialog() {
+  const fileInput = document.getElementById("studio-theme-file-input");
+  if (fileInput) fileInput.click();
+}
+
+function handleStudioThemeFile(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const data = JSON.parse(evt.target.result);
+      if (data && data.config) {
+        STUDIO_CURRENT_STATE = { ...STUDIO_CURRENT_STATE, ...data.config, custom_theme_id: null, preset_id: null };
+        const importedTheme = {
+          id: "custom_" + Date.now(),
+          name: data.theme_name || file.name.replace(/\.json$/i, ""),
+          desc: "Импортировано из файла",
+          config: { ...STUDIO_CURRENT_STATE },
+        };
+        STUDIO_CUSTOM_THEMES.push(importedTheme);
+        STUDIO_CURRENT_STATE.custom_theme_id = importedTheme.id;
+        try {
+          localStorage.setItem("aliasarr_custom_themes_list", JSON.stringify(STUDIO_CUSTOM_THEMES));
+        } catch (err) {}
+        syncStudioControlsUI();
+        renderStudioPresets();
+        renderStudioSwatches();
+        renderStudioMyThemes();
+        applyStudioLivePreview(true);
+        showToast(`Тема «${importedTheme.name}» успешно импортирована!`, "success");
+      } else {
+        showToast("Неверный формат файла темы", "error");
+      }
+    } catch (err) {
+      showToast("Ошибка чтения файла темы: " + err.message, "error");
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+}
+
+// Экспортируем глобально для HTML-атрибутов
+window.initDesignStudio = initDesignStudio;
+window.applyStudioPreset = applyStudioPreset;
+window.onStudioBaseToneSelect = onStudioBaseToneSelect;
+window.onStudioAccentSelect = onStudioAccentSelect;
+window.onStudioCustomAccentInput = onStudioCustomAccentInput;
+window.onStudioShellChange = onStudioShellChange;
+window.setStudioContainerWidth = setStudioContainerWidth;
+window.setStudioDensity = setStudioDensity;
+window.setStudioPosterSize = setStudioPosterSize;
+window.setStudioCardStyle = setStudioCardStyle;
+window.onStudioRadiusChange = onStudioRadiusChange;
+window.onStudioBlurChange = onStudioBlurChange;
+window.onStudioOpacityChange = onStudioOpacityChange;
+window.onStudioGlowChange = onStudioGlowChange;
+window.setStudioPreviewMode = setStudioPreviewMode;
+window.applyStudioThemePermanently = applyStudioThemePermanently;
+window.resetStudioTheme = resetStudioTheme;
+window.shuffleStudioTheme = shuffleStudioTheme;
+window.openSaveCustomThemeModal = openSaveCustomThemeModal;
+window.closeSaveCustomThemeModal = closeSaveCustomThemeModal;
+window.confirmSaveCustomTheme = confirmSaveCustomTheme;
+window.deleteCustomTheme = deleteCustomTheme;
+window.activateCustomTheme = activateCustomTheme;
+window.exportStudioTheme = exportStudioTheme;
+window.importStudioThemeDialog = importStudioThemeDialog;
+window.handleStudioThemeFile = handleStudioThemeFile;
 
 // Применяем язык/тему/дизайн/скроллбар из localStorage сразу, не дожидаясь ответа /api/v1/settings —
 // они всё равно будут перезаписаны актуальными значениями в loadGeneralSettings().
