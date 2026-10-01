@@ -12463,6 +12463,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
 }
 
+.design-card-badge.badge-studio {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);
+  color: #f472b6;
+  border: 1px solid rgba(236, 72, 153, 0.45);
+  box-shadow: 0 0 12px rgba(236, 72, 153, 0.25);
+}
+
 .design-card-check {
   width: 24px;
   height: 24px;
@@ -12644,6 +12651,79 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   flex-direction: column;
   gap: 4px;
   border: 1px solid rgba(0, 240, 255, 0.15);
+}
+
+/* 4. Preview Mockup: Studio Custom */
+.preview-studio {
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 85% 15%, rgba(236, 72, 153, 0.15), transparent 60%), #090a12;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
+  overflow: hidden;
+  height: 120px;
+}
+.preview-studio-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.preview-studio-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+}
+.preview-studio-badges {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+.preview-studio-chip {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 9999px;
+  background: rgba(0, 240, 255, 0.2);
+  color: #00f0ff;
+  border: 0.5px solid rgba(0, 240, 255, 0.4);
+}
+.preview-studio-body {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  padding-top: 6px;
+}
+.preview-studio-sidebar {
+  width: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.preview-studio-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.preview-studio-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+.preview-studio-cards {
+  display: flex;
+  gap: 5px;
+  flex: 1;
+}
+.preview-studio-box {
+  flex: 1;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(236, 72, 153, 0.3);
 }
 
 .design-card-title {
@@ -19578,44 +19658,46 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 /* ===========================================================================
    ДИЗАЙН-СТУДИЯ И ТРАНСФОРМАЦИЯ КАРКАСА (DESIGN & LAYOUT STUDIO)
+   Строгая изоляция: применяется ИСКЛЮЧИТЕЛЬНО при html[data-design="studio"]!
+   Классический Neo-Glass, Авангард Luxe и Servarr Classic на 100% защищены.
    =========================================================================== */
 
-/* --- ТРАНСФОРМАЦИЯ КАРКАСА: MINI-SIDEBAR --- */
-[data-shell="mini-sidebar"] .sidebar {
+/* --- 1. ТРАНСФОРМАЦИЯ КАРКАСА: MINI-SIDEBAR (ТОЛЬКО STUDIO) --- */
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar {
   width: 76px !important;
   padding: 16px 8px !important;
   align-items: center !important;
   transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
-[data-shell="mini-sidebar"] .sidebar .brand-name,
-[data-shell="mini-sidebar"] .sidebar .nav-item span,
-[data-shell="mini-sidebar"] .sidebar .nav-wiki-badge,
-[data-shell="mini-sidebar"] .sidebar .nav-wiki-ext-ico,
-[data-shell="mini-sidebar"] .sidebar .user-info,
-[data-shell="mini-sidebar"] .sidebar .tasks-status-info,
-[data-shell="mini-sidebar"] .sidebar .tasks-idle-icon {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .brand-name,
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav-item span,
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav-wiki-badge,
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav-wiki-ext-ico,
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .user-info,
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-status-info,
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-idle-icon {
   display: none !important;
 }
-[data-shell="mini-sidebar"] .sidebar .brand {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .brand {
   justify-content: center !important;
   margin-bottom: 20px !important;
 }
-[data-shell="mini-sidebar"] .sidebar .nav {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav {
   align-items: center !important;
   width: 100% !important;
 }
-[data-shell="mini-sidebar"] .sidebar .nav-item,
-[data-shell="mini-sidebar"] .sidebar .nav-item-wiki {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav-item,
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav-item-wiki {
   justify-content: center !important;
   padding: 12px 0 !important;
   width: 48px !important;
   border-radius: var(--radius-sm, 10px) !important;
   margin: 0 auto 4px auto !important;
 }
-[data-shell="mini-sidebar"] .sidebar .nav-ico {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav-ico {
   margin: 0 !important;
 }
-[data-shell="mini-sidebar"] .sidebar > .btn-primary {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar > .btn-primary {
   width: 48px !important;
   height: 48px !important;
   padding: 0 !important;
@@ -19626,32 +19708,32 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   border-radius: 50% !important;
   margin: 8px auto !important;
 }
-[data-shell="mini-sidebar"] .sidebar > .btn-primary i {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar > .btn-primary i {
   margin: 0 !important;
 }
-[data-shell="mini-sidebar"] .sidebar .user-profile-badge {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .user-profile-badge {
   justify-content: center !important;
   padding: 6px !important;
   width: 48px !important;
 }
-[data-shell="mini-sidebar"] .sidebar .btn-logout {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .btn-logout {
   display: none !important;
 }
-[data-shell="mini-sidebar"] .sidebar .tasks-status-widget {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-status-widget {
   padding: 6px 0 !important;
 }
-[data-shell="mini-sidebar"] .sidebar .tasks-status-pill {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-status-pill {
   justify-content: center !important;
   padding: 6px !important;
   width: 44px !important;
 }
 
-/* --- ТРАНСФОРМАЦИЯ КАРКАСА: TOP-NAV (ВЕРХНЯЯ ШАПКА) --- */
+/* --- 2. ТРАНСФОРМАЦИЯ КАРКАСА: TOP-NAV (ВЕРХНЯЯ ШАПКА - ТОЛЬКО STUDIO) --- */
 @media (min-width: 901px) {
-  [data-shell="top-nav"] .app-shell {
+  html[data-design="studio"][data-shell="top-nav"] .app-shell {
     flex-direction: column !important;
   }
-  [data-shell="top-nav"] .sidebar {
+  html[data-design="studio"][data-shell="top-nav"] .sidebar {
     width: 100% !important;
     height: auto !important;
     position: sticky !important;
@@ -19665,13 +19747,13 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     border-bottom: 1px solid var(--border) !important;
     overflow-y: visible !important;
   }
-  [data-shell="top-nav"] .sidebar .sidebar-header-row {
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .sidebar-header-row {
     margin-bottom: 0 !important;
   }
-  [data-shell="top-nav"] .sidebar .brand {
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .brand {
     margin-bottom: 0 !important;
   }
-  [data-shell="top-nav"] .sidebar .nav {
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .nav {
     flex-direction: row !important;
     align-items: center !important;
     gap: 4px !important;
@@ -19680,38 +19762,38 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     overflow-x: auto !important;
     scrollbar-width: none !important;
   }
-  [data-shell="top-nav"] .sidebar .nav::-webkit-scrollbar {
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .nav::-webkit-scrollbar {
     display: none !important;
   }
-  [data-shell="top-nav"] .sidebar .nav-item,
-  [data-shell="top-nav"] .sidebar .nav-item-wiki {
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .nav-item,
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .nav-item-wiki {
     padding: 8px 12px !important;
     white-space: nowrap !important;
     font-size: 13.5px !important;
   }
-  [data-shell="top-nav"] .sidebar > .btn-primary {
+  html[data-design="studio"][data-shell="top-nav"] .sidebar > .btn-primary {
     width: auto !important;
     margin: 0 12px 0 0 !important;
     white-space: nowrap !important;
     padding: 8px 14px !important;
   }
-  [data-shell="top-nav"] .sidebar .sidebar-footer {
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .sidebar-footer {
     margin-top: 0 !important;
     flex-direction: row !important;
     align-items: center !important;
     gap: 12px !important;
   }
-  [data-shell="top-nav"] .sidebar .tasks-status-widget {
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .tasks-status-widget {
     margin-top: 0 !important;
   }
-  [data-shell="top-nav"] .sidebar .user-info {
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .user-info {
     display: none !important;
   }
 }
 
-/* --- ТРАНСФОРМАЦИЯ КАРКАСА: FLOATING-DOCK --- */
+/* --- 3. ТРАНСФОРМАЦИЯ КАРКАСА: FLOATING-DOCK (ТОЛЬКО STUDIO) --- */
 @media (min-width: 901px) {
-  [data-shell="floating-dock"] .sidebar {
+  html[data-design="studio"][data-shell="floating-dock"] .sidebar {
     margin: 16px 0 16px 16px !important;
     height: calc(100vh - 32px) !important;
     border-radius: 20px !important;
@@ -19720,78 +19802,74 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 }
 
-/* --- ОГРАНИЧЕНИЕ ШИРИНЫ КОНТЕНТА: BOXED --- */
-[data-container-width="boxed"] .main-content {
+/* --- 4. ШИРИНА И ПЛОТНОСТЬ КОНТЕНТА (ТОЛЬКО STUDIO) --- */
+html[data-design="studio"][data-container-width="boxed"] .main-content {
   max-width: 1540px !important;
   margin: 0 auto !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
 
-/* --- ПЛОТНОСТЬ ИНТЕРФЕЙСА: COMPACT --- */
-[data-density="compact"] {
-  font-size: 13.5px !important;
+html[data-design="studio"][data-density="compact"] {
+  font-size: 13px !important;
 }
-[data-density="compact"] .card,
-[data-density="compact"] .settings-section-card {
+html[data-design="studio"][data-density="compact"] .card,
+html[data-design="studio"][data-density="compact"] .settings-section-card {
   padding: 14px 16px !important;
-  border-radius: calc(var(--radius) * 0.8) !important;
 }
-[data-density="compact"] .table th,
-[data-density="compact"] .table td {
+html[data-design="studio"][data-density="compact"] .table th,
+html[data-design="studio"][data-density="compact"] .table td {
   padding: 8px 10px !important;
 }
-[data-density="compact"] .btn {
-  padding: 7px 12px !important;
-  font-size: 12.5px !important;
+html[data-design="studio"][data-density="compact"] .btn {
+  padding: 6px 11px !important;
+  font-size: 12px !important;
 }
 
-/* --- ПЛОТНОСТЬ ИНТЕРФЕЙСА: SPACIOUS --- */
-[data-density="spacious"] .card,
-[data-density="spacious"] .settings-section-card {
+html[data-design="studio"][data-density="spacious"] .card,
+html[data-design="studio"][data-density="spacious"] .settings-section-card {
   padding: 28px 30px !important;
-  border-radius: calc(var(--radius) * 1.25) !important;
 }
-[data-density="spacious"] .shows-grid {
+html[data-design="studio"][data-density="spacious"] .shows-grid {
   gap: 24px !important;
 }
 
-/* --- МАСШТАБ СЕТКИ ПОСТЕРОВ --- */
-[data-poster-size="xs"] .shows-grid {
+/* --- 5. МАСШТАБ СЕТКИ ПОСТЕРОВ (ТОЛЬКО STUDIO) --- */
+html[data-design="studio"][data-poster-size="xs"] .shows-grid {
   grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)) !important;
   gap: 12px !important;
 }
-[data-poster-size="sm"] .shows-grid {
+html[data-design="studio"][data-poster-size="sm"] .shows-grid {
   grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)) !important;
   gap: 14px !important;
 }
-[data-poster-size="md"] .shows-grid {
+html[data-design="studio"][data-poster-size="md"] .shows-grid {
   grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)) !important;
   gap: 18px !important;
 }
-[data-poster-size="lg"] .shows-grid {
+html[data-design="studio"][data-poster-size="lg"] .shows-grid {
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
   gap: 22px !important;
 }
-[data-poster-size="xl"] .shows-grid {
+html[data-design="studio"][data-poster-size="xl"] .shows-grid {
   grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)) !important;
   gap: 26px !important;
 }
 
-/* --- СТИЛИ КАРТОЧЕК БИБЛИОТЕКИ --- */
-[data-card-style="cinematic"] .show-card {
+/* --- 6. СТИЛИ КАРТОЧЕК БИБЛИОТЕКИ (ТОЛЬКО STUDIO) --- */
+html[data-design="studio"][data-card-style="cinematic"] .show-card {
   overflow: hidden;
   border-radius: var(--radius, 14px);
   position: relative;
 }
-[data-card-style="cinematic"] .show-card .show-poster-wrap::after {
+html[data-design="studio"][data-card-style="cinematic"] .show-card .show-poster-wrap::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.4) 40%, transparent 80%);
   pointer-events: none;
 }
-[data-card-style="cinematic"] .show-card .show-info {
+html[data-design="studio"][data-card-style="cinematic"] .show-card .show-info {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -19800,28 +19878,197 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   padding: 14px 12px;
   background: transparent;
 }
-[data-card-style="cinematic"] .show-card .show-title {
+html[data-design="studio"][data-card-style="cinematic"] .show-card .show-title {
   color: #fff;
   font-weight: 700;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 
-[data-card-style="minimal"] .show-card .show-badge,
-[data-card-style="minimal"] .show-card .show-card-flags,
-[data-card-style="minimal"] .show-card .show-pill {
+html[data-design="studio"][data-card-style="minimal"] .show-card .show-badge,
+html[data-design="studio"][data-card-style="minimal"] .show-card .show-card-flags,
+html[data-design="studio"][data-card-style="minimal"] .show-card .show-pill {
   display: none !important;
 }
-[data-card-style="minimal"] .show-card {
+html[data-design="studio"][data-card-style="minimal"] .show-card {
   border: none !important;
   background: transparent !important;
   box-shadow: none !important;
 }
-[data-card-style="minimal"] .show-card .show-poster-wrap {
+html[data-design="studio"][data-card-style="minimal"] .show-card .show-poster-wrap {
   border-radius: var(--radius-sm, 10px) !important;
   overflow: hidden !important;
 }
 
-/* --- ВЕРСТКА ЭКРАНА СТУДИИ ДИЗАЙНА --- */
+html[data-design="studio"][data-card-style="cyber"] .show-card {
+  border: 1px solid rgba(0, 240, 255, 0.25) !important;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px)) !important;
+  background: rgba(10, 14, 24, 0.75) !important;
+}
+html[data-design="studio"][data-card-style="cyber"] .show-card:hover {
+  border-color: var(--teal) !important;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.3) !important;
+}
+
+/* --- 7. КОНСТРУКТОР БЕЙДЖЕЙ (BADGE STUDIO RULES) --- */
+/* Форма бейджей */
+html[data-design="studio"][data-badge-shape="pill"] .badge,
+.studio-preview-canvas[data-badge-shape="pill"] .badge {
+  border-radius: 9999px !important;
+  padding: 3px 9px !important;
+}
+html[data-design="studio"][data-badge-shape="rounded"] .badge,
+.studio-preview-canvas[data-badge-shape="rounded"] .badge {
+  border-radius: 6px !important;
+  padding: 2.5px 7px !important;
+}
+html[data-design="studio"][data-badge-shape="sharp"] .badge,
+.studio-preview-canvas[data-badge-shape="sharp"] .badge {
+  border-radius: 2px !important;
+  padding: 2.5px 7px !important;
+}
+html[data-design="studio"][data-badge-shape="chamfer"] .badge,
+.studio-preview-canvas[data-badge-shape="chamfer"] .badge {
+  border-radius: 0 !important;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px) !important;
+  padding: 3px 8px !important;
+}
+
+/* Стиль заливки бейджей */
+html[data-design="studio"][data-badge-style="frosted"] .badge,
+.studio-preview-canvas[data-badge-style="frosted"] .badge {
+  backdrop-filter: var(--glass-blur, blur(8px)) !important;
+  -webkit-backdrop-filter: var(--glass-blur, blur(8px)) !important;
+  border-width: 1px !important;
+}
+html[data-design="studio"][data-badge-style="outline"] .badge,
+.studio-preview-canvas[data-badge-style="outline"] .badge {
+  background: transparent !important;
+  border: 1.5px solid currentColor !important;
+  box-shadow: 0 0 6px rgba(var(--accent-rgb, 0, 240, 255), 0.25) !important;
+}
+html[data-design="studio"][data-badge-style="solid"] .badge,
+.studio-preview-canvas[data-badge-style="solid"] .badge {
+  font-weight: 700 !important;
+}
+html[data-design="studio"][data-badge-style="subtle"] .badge,
+.studio-preview-canvas[data-badge-style="subtle"] .badge {
+  border-color: transparent !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Шрифт и регистр бейджей */
+html[data-design="studio"][data-badge-font="mono"] .badge,
+.studio-preview-canvas[data-badge-font="mono"] .badge {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace) !important;
+}
+html[data-design="studio"][data-badge-font="sans"] .badge,
+.studio-preview-canvas[data-badge-font="sans"] .badge {
+  font-family: var(--font-body, 'Outfit', sans-serif) !important;
+}
+html[data-design="studio"][data-badge-case="uppercase"] .badge,
+.studio-preview-canvas[data-badge-case="uppercase"] .badge {
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+}
+html[data-design="studio"][data-badge-case="natural"] .badge,
+.studio-preview-canvas[data-badge-case="natural"] .badge {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+/* Цветовые палитры бейджей */
+html[data-design="studio"][data-badge-color="monochrome"] .badge,
+.studio-preview-canvas[data-badge-color="monochrome"] .badge {
+  color: var(--teal) !important;
+  border-color: rgba(var(--accent-rgb, 0, 240, 255), 0.35) !important;
+  background: rgba(var(--accent-rgb, 0, 240, 255), 0.12) !important;
+}
+html[data-design="studio"][data-badge-color="high-contrast"] .badge,
+.studio-preview-canvas[data-badge-color="high-contrast"] .badge {
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  background: rgba(0, 0, 0, 0.75) !important;
+}
+
+/* --- 8. СТУДИЯ ТИПОГРАФИКИ (TYPOGRAPHY STUDIO) --- */
+html[data-design="studio"][data-ui-font="outfit"], .studio-preview-canvas[data-ui-font="outfit"] { --font-body: 'Outfit', sans-serif !important; }
+html[data-design="studio"][data-ui-font="inter"], .studio-preview-canvas[data-ui-font="inter"] { --font-body: 'Inter', -apple-system, sans-serif !important; }
+html[data-design="studio"][data-ui-font="roboto"], .studio-preview-canvas[data-ui-font="roboto"] { --font-body: 'Roboto', sans-serif !important; }
+html[data-design="studio"][data-ui-font="syne"], .studio-preview-canvas[data-ui-font="syne"] { --font-body: 'Syne', sans-serif !important; }
+html[data-design="studio"][data-ui-font="system"], .studio-preview-canvas[data-ui-font="system"] { --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important; }
+
+html[data-design="studio"][data-mono-font="jetbrains"], .studio-preview-canvas[data-mono-font="jetbrains"] { --font-mono: 'JetBrains Mono', monospace !important; }
+html[data-design="studio"][data-mono-font="ubuntu"], .studio-preview-canvas[data-mono-font="ubuntu"] { --font-mono: 'Ubuntu Mono', monospace !important; }
+
+html[data-design="studio"][data-font-scale="compact"], .studio-preview-canvas[data-font-scale="compact"] { font-size: 13px !important; }
+html[data-design="studio"][data-font-scale="spacious"], .studio-preview-canvas[data-font-scale="spacious"] { font-size: 15.5px !important; }
+
+/* --- 9. КОНЦЕПТУАЛЬНЫЕ ДИЗАЙН-АРХЕТИПЫ (VISUAL SKINS) --- */
+/* Cyberpunk HUD */
+html[data-design="studio"][data-archetype="cyber-hud"] {
+  background-image: 
+    linear-gradient(rgba(0, 240, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+html[data-design="studio"][data-archetype="cyber-hud"] .card,
+html[data-design="studio"][data-archetype="cyber-hud"] .settings-section-card {
+  border: 1px solid rgba(0, 240, 255, 0.22);
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+html[data-design="studio"][data-archetype="cyber-hud"] .btn-primary {
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+/* OLED Void Minimal */
+html[data-design="studio"][data-archetype="oled-void"] {
+  --bg: #000000 !important;
+  --panel: #060608 !important;
+  --panel-alt: #0a0c10 !important;
+}
+html[data-design="studio"][data-archetype="oled-void"] .card,
+html[data-design="studio"][data-archetype="oled-void"] .settings-section-card,
+html[data-design="studio"][data-archetype="oled-void"] .sidebar {
+  border: 0.5px solid rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+/* Liquid Glassmorphism */
+html[data-design="studio"][data-archetype="liquid-glass"] .card,
+html[data-design="studio"][data-archetype="liquid-glass"] .settings-section-card {
+  backdrop-filter: var(--glass-blur, blur(28px)) !important;
+  -webkit-backdrop-filter: var(--glass-blur, blur(28px)) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+/* Retro Amber CRT */
+html[data-design="studio"][data-archetype="retro-crt"] {
+  --accent: #f59e0b !important;
+  --teal: #f59e0b !important;
+}
+
+/* Nordic Slate */
+html[data-design="studio"][data-archetype="nordic-slate"] {
+  --bg: #0f172a !important;
+  --panel: #1e293b !important;
+  --panel-alt: #273549 !important;
+  --border: rgba(148, 163, 184, 0.18) !important;
+}
+
+/* Titanium Luxury */
+html[data-design="studio"][data-archetype="titanium-luxe"] {
+  --bg: #0d0e12 !important;
+  --panel: #15171e !important;
+  --border: rgba(234, 179, 8, 0.22) !important;
+  --teal: #eab308 !important;
+}
+html[data-design="studio"][data-archetype="titanium-luxe"] .card,
+html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-card {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(234, 179, 8, 0.18);
+}
+
+/* --- 10. ЭЛЕМЕНТЫ УПРАВЛЕНИЯ СТУДИИ ДИЗАЙНА --- */
 .design-studio-container {
   display: grid;
   grid-template-columns: 1fr 440px;
@@ -19841,6 +20088,66 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 .studio-card {
   margin-bottom: 20px;
+}
+
+/* Сетка дизайн-архетипов (Skins) */
+.studio-archetypes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.studio-archetype-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 10px);
+  padding: 10px 12px;
+  background: var(--panel-alt);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.studio-archetype-card:hover {
+  border-color: var(--teal);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+.studio-archetype-card.active {
+  border-color: var(--teal);
+  background: rgba(var(--accent-rgb, 0, 240, 255), 0.1);
+  box-shadow: 0 0 12px rgba(var(--accent-rgb, 0, 240, 255), 0.25);
+}
+.studio-archetype-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal);
+  flex-shrink: 0;
+}
+.studio-archetype-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.studio-archetype-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.studio-archetype-desc {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Сетка пресетов */
@@ -19941,7 +20248,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   align-items: center;
 }
 
-/* Сетка полей каркаса */
+/* Сетки полей и селекторы */
 .studio-form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -19951,6 +20258,19 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+.studio-select {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  padding: 9px 12px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+.studio-select:focus {
+  border-color: var(--teal);
 }
 
 /* Чип-селекторы каркаса */
@@ -20004,19 +20324,22 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   border-radius: var(--radius-sm, 8px);
   padding: 3px;
   gap: 3px;
+  flex-wrap: wrap;
 }
 .studio-toggle-btn {
   flex: 1;
+  min-width: 60px;
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 500;
   padding: 6px 10px;
   border-radius: calc(var(--radius-sm, 8px) - 2px);
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  text-align: center;
 }
 .studio-toggle-btn:hover {
   color: var(--text);
@@ -20107,7 +20430,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   color: var(--text-muted);
 }
 
-/* ПРАВАЯ КОЛОНКА (LIVE PREVIEW) */
+/* ПРАВАЯ КОЛОНКА (LIVE PREVIEW CANVAS) */
 .design-studio-preview-wrap {
   position: sticky;
   top: 80px;
@@ -20163,4 +20486,30 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-muted);
+}
+
+/* Бейджи демонстрации в Canvas */
+.studio-badge-demo-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+.studio-badge-demo-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.studio-badge-demo-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.studio-badge-demo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }

@@ -71,7 +71,7 @@ function applyTheme(theme) {
 }
 
 // ---------- ДИЗАЙН-СИСТЕМА (classic / vanguard / servarr) ----------
-const DESIGN_SYSTEMS = ["classic", "vanguard", "servarr"];
+const DESIGN_SYSTEMS = ["classic", "vanguard", "servarr", "studio"];
 
 function applyDesign(design, isUserAction = false) {
   const d = DESIGN_SYSTEMS.includes(design) ? design : "classic";
@@ -79,6 +79,33 @@ function applyDesign(design, isUserAction = false) {
   try { localStorage.setItem("aliasarr_design", d); } catch (e) {}
   const changed = document.documentElement.dataset.appliedDesign && document.documentElement.dataset.appliedDesign !== d;
   document.documentElement.dataset.appliedDesign = d;
+
+  // Изоляция: при переключении на Классику, Авангард или Servarr полностью снимаем студийные атрибуты
+  if (d !== "studio") {
+    const root = document.documentElement;
+    root.removeAttribute("data-archetype");
+    root.removeAttribute("data-shell");
+    root.removeAttribute("data-container-width");
+    root.removeAttribute("data-density");
+    root.removeAttribute("data-poster-size");
+    root.removeAttribute("data-card-style");
+    root.removeAttribute("data-ui-font");
+    root.removeAttribute("data-mono-font");
+    root.removeAttribute("data-font-scale");
+    root.removeAttribute("data-badge-shape");
+    root.removeAttribute("data-badge-style");
+    root.removeAttribute("data-badge-font");
+    root.removeAttribute("data-badge-case");
+    root.removeAttribute("data-badge-color");
+    const styleEl = document.getElementById("aliasarr-custom-theme-vars");
+    if (styleEl) styleEl.textContent = "";
+  } else {
+    // В режиме Studio применяем активную конфигурацию Студии
+    if (typeof applyStudioLivePreview === "function") {
+      applyStudioLivePreview(false);
+    }
+  }
+
   applyTheme(USER_THEME);
   updateDesignSettingsUI(d);
   servarrAdoptToolbars(d === "servarr");
@@ -96,8 +123,9 @@ function applyDesign(design, isUserAction = false) {
       vanguard: CURRENT_LANG === "en" ? "Vanguard Luxe (Awwwards-Tier)" : "Авангард Luxe (Awwwards-Tier)",
       servarr: "Servarr Classic",
       classic: CURRENT_LANG === "en" ? "Classic Neo-Glass" : "Классический Neo-Glass",
+      studio: CURRENT_LANG === "en" ? "Custom Studio Edition" : "Студия дизайна (Custom Studio)",
     };
-    const name = names[d];
+    const name = names[d] || d;
     toast(CURRENT_LANG === "en" ? `Design applied: ${name}` : `Применен дизайн: ${name}`);
   }
 }
@@ -115,8 +143,10 @@ function updateDesignSettingsUI(currentDesign) {
   if (themeSelect) themeSelect.closest(".settings-field-group")?.classList.toggle("servarr-theme-locked", d === "servarr");
   const classicCard = document.getElementById("design-card-classic");
   const vanguardCard = document.getElementById("design-card-vanguard");
+  const studioCard = document.querySelector('.design-card[data-design-choice="studio"]');
   if (classicCard) classicCard.classList.toggle("active", d === "classic");
   if (vanguardCard) vanguardCard.classList.toggle("active", d === "vanguard");
+  if (studioCard) studioCard.classList.toggle("active", d === "studio");
   if (window.lucide && typeof lucide.createIcons === "function") lucide.createIcons();
 }
 
@@ -281,8 +311,54 @@ const TRANSLATIONS = {
     "design_studio.live_preview": "Интерактивная сцена",
     "design_studio.realtime": "В реальном времени",
     "design_studio.preview_card": "Карточка",
+    "design_studio.preview_badges": "Бейджи",
     "design_studio.preview_queue": "Очередь",
     "design_studio.preview_form": "Элементы UI",
+    "design_studio.card_cyber": "Cyber HUD",
+    "settings.design_badge_studio": "STUDIO",
+    "settings.design_studio_title": "Студия дизайна (Custom Studio)",
+    "settings.design_studio_desc": "Полная свобода кастомизации: персональный навигационный каркас, глубокий конструктор бейджей, выбор типографики, уникальные темы и материалы стекломорфизма.",
+    "design_studio.archetypes_title": "Концептуальный дизайн-архетип (Skin)",
+    "design_studio.arch_liquid": "Liquid Glass",
+    "design_studio.arch_liquid_desc": "Органичное матовое стекло, глубокий блюр",
+    "design_studio.arch_cyber": "Cyberpunk HUD",
+    "design_studio.arch_cyber_desc": "Скошенные углы, сетка фона, моно-шрифты",
+    "design_studio.arch_oled": "OLED Void Minimal",
+    "design_studio.arch_oled_desc": "Абсолютный черный #000, ультратонкие линии",
+    "design_studio.arch_retro": "Retro Amber CRT",
+    "design_studio.arch_retro_desc": "Винтажный терминал, янтарное свечение",
+    "design_studio.arch_nordic": "Nordic Slate",
+    "design_studio.arch_nordic_desc": "Скандинавский матовый сланец, чистый UI",
+    "design_studio.arch_titanium": "Titanium Luxury",
+    "design_studio.arch_titanium_desc": "Темный титан, золото и платина",
+    "design_studio.badges_title": "Конструктор бейджей (Badge Studio)",
+    "design_studio.badges_subtitle": "Форма, заливка, типографика и подсветка меток качества (4K, 1080p, HDR, очереди)",
+    "design_studio.badge_shape": "Форма бейджей",
+    "design_studio.shape_pill": "Капсула",
+    "design_studio.shape_rounded": "Скругленный",
+    "design_studio.shape_sharp": "Строгий",
+    "design_studio.shape_chamfer": "Кибер-скос",
+    "design_studio.badge_style": "Стиль заливки и рамки",
+    "design_studio.bstyle_frosted": "Стекло",
+    "design_studio.bstyle_outline": "Неон-контур",
+    "design_studio.bstyle_solid": "Плотный",
+    "design_studio.bstyle_subtle": "Минимал",
+    "design_studio.badge_font": "Гарнитура бейджей",
+    "design_studio.bfont_mono": "Моноширинный (Code)",
+    "design_studio.bfont_sans": "Основной гротеск",
+    "design_studio.badge_case": "Регистр текста",
+    "design_studio.badge_color_mode": "Цветовая палитра бейджей",
+    "design_studio.bcolor_semantic": "Семантическая (4K фиолетовый, 1080p циан, HDR оранжевый)",
+    "design_studio.bcolor_monochrome": "Монохромная (в тон темы)",
+    "design_studio.bcolor_contrast": "Высокий контраст",
+    "design_studio.typography_title": "Студия типографики и шрифтов",
+    "design_studio.typography_subtitle": "Шрифтовые пары для интерфейса, моноширинные шрифты данных и масштаб текста",
+    "design_studio.ui_font": "Основной шрифт интерфейса (UI)",
+    "design_studio.mono_font": "Шрифт метаданных и кодеков (Mono)",
+    "design_studio.font_scale": "Масштабирование текста",
+    "design_studio.scale_compact": "Компактный (90%)",
+    "design_studio.scale_normal": "Стандартный (100%)",
+    "design_studio.scale_spacious": "Крупный (110%)",
     "design_studio.modal_save_title": "Сохранить тему оформления",
     "design_studio.modal_save_subtitle": "Сохраните цветовую схему, материалы и верстку каркаса в ваш профиль",
     "design_studio.theme_name_label": "Название темы",
@@ -1910,8 +1986,54 @@ const TRANSLATIONS = {
     "design_studio.live_preview": "Live Interactive Scene",
     "design_studio.realtime": "Real-time",
     "design_studio.preview_card": "Card",
+    "design_studio.preview_badges": "Badges",
     "design_studio.preview_queue": "Queue",
     "design_studio.preview_form": "UI Elements",
+    "design_studio.card_cyber": "Cyber HUD",
+    "settings.design_badge_studio": "STUDIO",
+    "settings.design_studio_title": "Design Studio (Custom Studio)",
+    "settings.design_studio_desc": "Total customization freedom: personal navigation shell, deep badge designer, typography choices, unique themes and glassmorphism materials.",
+    "design_studio.archetypes_title": "Visual Design Archetype (Skin)",
+    "design_studio.arch_liquid": "Liquid Glass",
+    "design_studio.arch_liquid_desc": "Organic frosted glass, deep blur",
+    "design_studio.arch_cyber": "Cyberpunk HUD",
+    "design_studio.arch_cyber_desc": "Chamfered corners, grid background, mono fonts",
+    "design_studio.arch_oled": "OLED Void Minimal",
+    "design_studio.arch_oled_desc": "Absolute black #000, ultra-thin lines",
+    "design_studio.arch_retro": "Retro Amber CRT",
+    "design_studio.arch_retro_desc": "Vintage terminal, amber phosphor glow",
+    "design_studio.arch_nordic": "Nordic Slate",
+    "design_studio.arch_nordic_desc": "Scandinavian matte slate, clean UI",
+    "design_studio.arch_titanium": "Titanium Luxury",
+    "design_studio.arch_titanium_desc": "Dark titanium, gold and platinum",
+    "design_studio.badges_title": "Badge Studio",
+    "design_studio.badges_subtitle": "Shape, fill, typography and glow for quality badges (4K, 1080p, HDR, queue)",
+    "design_studio.badge_shape": "Badge Shape",
+    "design_studio.shape_pill": "Pill",
+    "design_studio.shape_rounded": "Rounded",
+    "design_studio.shape_sharp": "Sharp",
+    "design_studio.shape_chamfer": "Cyber Chamfer",
+    "design_studio.badge_style": "Fill & Border Style",
+    "design_studio.bstyle_frosted": "Frosted Glass",
+    "design_studio.bstyle_outline": "Neon Outline",
+    "design_studio.bstyle_solid": "Solid Vibrant",
+    "design_studio.bstyle_subtle": "Subtle Minimal",
+    "design_studio.badge_font": "Badge Font",
+    "design_studio.bfont_mono": "Monospace (Code)",
+    "design_studio.bfont_sans": "Primary Sans",
+    "design_studio.badge_case": "Text Case",
+    "design_studio.badge_color_mode": "Badge Color Palette",
+    "design_studio.bcolor_semantic": "Semantic (4K Purple, 1080p Cyan, HDR Orange)",
+    "design_studio.bcolor_monochrome": "Monochrome (Theme Accent)",
+    "design_studio.bcolor_contrast": "High Contrast",
+    "design_studio.typography_title": "Typography & Font Studio",
+    "design_studio.typography_subtitle": "UI font pairs, monospace data fonts and text scaling",
+    "design_studio.ui_font": "Primary UI Font",
+    "design_studio.mono_font": "Metadata & Codecs Font (Mono)",
+    "design_studio.font_scale": "Text Scaling",
+    "design_studio.scale_compact": "Compact (90%)",
+    "design_studio.scale_normal": "Normal (100%)",
+    "design_studio.scale_spacious": "Spacious (110%)",
     "design_studio.modal_save_title": "Save Theme Preset",
     "design_studio.modal_save_subtitle": "Save color scheme, materials and layout shell to your profile",
     "design_studio.theme_name_label": "Theme Name",
@@ -25808,6 +25930,8 @@ const STUDIO_ACCENTS = [
 
 let STUDIO_CURRENT_STATE = {
   preset_id: "cyber-neon",
+  custom_theme_id: null,
+  archetype: "liquid-glass",
   shell: "sidebar-left",
   container_width: "fluid",
   density: "comfortable",
@@ -25819,6 +25943,101 @@ let STUDIO_CURRENT_STATE = {
   blur: 16,
   opacity: 85,
   glow: 2,
+  badge_shape: "pill",
+  badge_style: "frosted",
+  badge_font: "mono",
+  badge_case: "uppercase",
+  badge_color_mode: "semantic",
+  ui_font: "outfit",
+  mono_font: "jetbrains",
+  font_scale: "normal",
+};
+
+const STUDIO_ARCHETYPES = {
+  "liquid-glass": {
+    base_tone: "slate",
+    accent: "#00F0FF",
+    card_style: "neo-glass",
+    radius: 16,
+    blur: 24,
+    opacity: 80,
+    glow: 2,
+    badge_shape: "pill",
+    badge_style: "frosted",
+    badge_font: "mono",
+    badge_case: "uppercase",
+    badge_color_mode: "semantic",
+  },
+  "cyber-hud": {
+    base_tone: "pitch-black",
+    accent: "#00F0FF",
+    card_style: "cyber",
+    radius: 0,
+    blur: 0,
+    opacity: 90,
+    glow: 3,
+    badge_shape: "chamfer",
+    badge_style: "outline",
+    badge_font: "mono",
+    badge_case: "uppercase",
+    badge_color_mode: "monochrome",
+  },
+  "oled-void": {
+    base_tone: "pitch-black",
+    accent: "#FFFFFF",
+    card_style: "minimal",
+    radius: 6,
+    blur: 0,
+    opacity: 100,
+    glow: 0,
+    badge_shape: "sharp",
+    badge_style: "subtle",
+    badge_font: "mono",
+    badge_case: "natural",
+    badge_color_mode: "high-contrast",
+  },
+  "retro-crt": {
+    base_tone: "pitch-black",
+    accent: "#F59E0B",
+    card_style: "minimal",
+    radius: 2,
+    blur: 0,
+    opacity: 95,
+    glow: 3,
+    badge_shape: "sharp",
+    badge_style: "outline",
+    badge_font: "mono",
+    badge_case: "uppercase",
+    badge_color_mode: "monochrome",
+  },
+  "nordic-slate": {
+    base_tone: "slate",
+    accent: "#0EA5E9",
+    card_style: "cinematic",
+    radius: 12,
+    blur: 14,
+    opacity: 88,
+    glow: 1,
+    badge_shape: "rounded",
+    badge_style: "frosted",
+    badge_font: "sans",
+    badge_case: "natural",
+    badge_color_mode: "semantic",
+  },
+  "titanium-luxe": {
+    base_tone: "stone",
+    accent: "#EAB308",
+    card_style: "neo-glass",
+    radius: 14,
+    blur: 18,
+    opacity: 85,
+    glow: 2,
+    badge_shape: "pill",
+    badge_style: "solid",
+    badge_font: "sans",
+    badge_case: "uppercase",
+    badge_color_mode: "semantic",
+  },
 };
 
 let STUDIO_CUSTOM_THEMES = [];
@@ -25842,6 +26061,24 @@ function loadStudioStateFromStorage() {
       if (ps) STUDIO_CURRENT_STATE.poster_size = ps;
       const cs = localStorage.getItem("aliasarr_card_style");
       if (cs) STUDIO_CURRENT_STATE.card_style = cs;
+      const arch = localStorage.getItem("aliasarr_archetype");
+      if (arch) STUDIO_CURRENT_STATE.archetype = arch;
+      const uif = localStorage.getItem("aliasarr_ui_font");
+      if (uif) STUDIO_CURRENT_STATE.ui_font = uif;
+      const mf = localStorage.getItem("aliasarr_mono_font");
+      if (mf) STUDIO_CURRENT_STATE.mono_font = mf;
+      const fs = localStorage.getItem("aliasarr_font_scale");
+      if (fs) STUDIO_CURRENT_STATE.font_scale = fs;
+      const bsh = localStorage.getItem("aliasarr_badge_shape");
+      if (bsh) STUDIO_CURRENT_STATE.badge_shape = bsh;
+      const bst = localStorage.getItem("aliasarr_badge_style");
+      if (bst) STUDIO_CURRENT_STATE.badge_style = bst;
+      const bfn = localStorage.getItem("aliasarr_badge_font");
+      if (bfn) STUDIO_CURRENT_STATE.badge_font = bfn;
+      const bcs = localStorage.getItem("aliasarr_badge_case");
+      if (bcs) STUDIO_CURRENT_STATE.badge_case = bcs;
+      const bcl = localStorage.getItem("aliasarr_badge_color");
+      if (bcl) STUDIO_CURRENT_STATE.badge_color_mode = bcl;
     }
     const savedThemes = localStorage.getItem("aliasarr_custom_themes_list");
     if (savedThemes) {
@@ -25865,6 +26102,38 @@ function initDesignStudio() {
 }
 
 function syncStudioControlsUI() {
+  // Дизайн-архетипы (Skins)
+  document.querySelectorAll("#studio-archetypes-grid .studio-archetype-card").forEach(card => {
+    card.classList.toggle("active", card.dataset.archetype === STUDIO_CURRENT_STATE.archetype);
+  });
+
+  // Бейджи: форма, стиль, шрифт, регистр, палитра
+  document.querySelectorAll("#studio-badge-shape-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.badge_shape);
+  });
+  document.querySelectorAll("#studio-badge-style-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.badge_style);
+  });
+  document.querySelectorAll("#studio-badge-font-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.badge_font);
+  });
+  document.querySelectorAll("#studio-badge-case-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.badge_case);
+  });
+  document.querySelectorAll("#studio-badge-color-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.badge_color_mode);
+  });
+
+  // Типографика: основной UI шрифт, моно-шрифт, масштаб
+  const uiSelect = document.getElementById("studio-ui-font-select");
+  if (uiSelect && STUDIO_CURRENT_STATE.ui_font) uiSelect.value = STUDIO_CURRENT_STATE.ui_font;
+  const monoSelect = document.getElementById("studio-mono-font-select");
+  if (monoSelect && STUDIO_CURRENT_STATE.mono_font) monoSelect.value = STUDIO_CURRENT_STATE.mono_font;
+  document.querySelectorAll("#studio-font-scale-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.font_scale);
+  });
+
+  // Каркас и навигация
   document.querySelectorAll('input[name="studio_shell"]').forEach(inp => {
     inp.checked = inp.value === STUDIO_CURRENT_STATE.shell;
   });
@@ -25974,6 +26243,18 @@ function renderStudioMyThemes() {
   if (window.lucide && lucide.createIcons) lucide.createIcons();
 }
 
+function setStudioArchetype(arch) {
+  STUDIO_CURRENT_STATE.archetype = arch;
+  const config = STUDIO_ARCHETYPES[arch];
+  if (config) {
+    Object.assign(STUDIO_CURRENT_STATE, config);
+  }
+  syncStudioControlsUI();
+  renderStudioPresets();
+  renderStudioSwatches();
+  applyStudioLivePreview(true);
+}
+
 function applyStudioPreset(presetId) {
   const preset = STUDIO_PRESETS.find(p => p.id === presetId);
   if (!preset) return;
@@ -26069,6 +26350,70 @@ function setStudioCardStyle(val) {
   applyStudioLivePreview(true);
 }
 
+// Управление конструктором бейджей (Badge Studio)
+function setStudioBadgeShape(shape) {
+  STUDIO_CURRENT_STATE.badge_shape = shape;
+  document.querySelectorAll("#studio-badge-shape-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === shape);
+  });
+  applyStudioLivePreview(true);
+}
+
+function setStudioBadgeStyle(style) {
+  STUDIO_CURRENT_STATE.badge_style = style;
+  document.querySelectorAll("#studio-badge-style-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === style);
+  });
+  applyStudioLivePreview(true);
+}
+
+function setStudioBadgeFont(font) {
+  STUDIO_CURRENT_STATE.badge_font = font;
+  document.querySelectorAll("#studio-badge-font-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === font);
+  });
+  applyStudioLivePreview(true);
+}
+
+function setStudioBadgeCase(caseMode) {
+  STUDIO_CURRENT_STATE.badge_case = caseMode;
+  document.querySelectorAll("#studio-badge-case-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === caseMode);
+  });
+  applyStudioLivePreview(true);
+}
+
+function setStudioBadgeColorMode(mode) {
+  STUDIO_CURRENT_STATE.badge_color_mode = mode;
+  document.querySelectorAll("#studio-badge-color-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === mode);
+  });
+  applyStudioLivePreview(true);
+}
+
+// Управление шрифтами (Typography Studio)
+function setStudioUiFont(font) {
+  STUDIO_CURRENT_STATE.ui_font = font;
+  const sel = document.getElementById("studio-ui-font-select");
+  if (sel) sel.value = font;
+  applyStudioLivePreview(true);
+}
+
+function setStudioMonoFont(font) {
+  STUDIO_CURRENT_STATE.mono_font = font;
+  const sel = document.getElementById("studio-mono-font-select");
+  if (sel) sel.value = font;
+  applyStudioLivePreview(true);
+}
+
+function setStudioFontScale(scale) {
+  STUDIO_CURRENT_STATE.font_scale = scale;
+  document.querySelectorAll("#studio-font-scale-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === scale);
+  });
+  applyStudioLivePreview(true);
+}
+
 function onStudioRadiusChange(val) {
   STUDIO_CURRENT_STATE.radius = parseInt(val, 10);
   const el = document.getElementById("studio-radius-val");
@@ -26108,11 +26453,43 @@ function setStudioPreviewMode(mode) {
 }
 
 function applyStudioLivePreview(saveDraft = true) {
-  document.documentElement.setAttribute("data-shell", STUDIO_CURRENT_STATE.shell);
-  document.documentElement.setAttribute("data-container-width", STUDIO_CURRENT_STATE.container_width);
-  document.documentElement.setAttribute("data-density", STUDIO_CURRENT_STATE.density);
-  document.documentElement.setAttribute("data-poster-size", STUDIO_CURRENT_STATE.poster_size);
-  document.documentElement.setAttribute("data-card-style", STUDIO_CURRENT_STATE.card_style);
+  const isStudioActive = document.documentElement.getAttribute("data-design") === "studio";
+
+  // ПРИМЕНЕНИЕ К HTML ТОЛЬКО ЕСЛИ АКТИВЕН ДИЗАЙН "STUDIO" (100% ИЗОЛЯЦИЯ ОТ CLASSIC, VANGUARD, SERVARR)
+  if (isStudioActive) {
+    document.documentElement.setAttribute("data-archetype", STUDIO_CURRENT_STATE.archetype || "liquid-glass");
+    document.documentElement.setAttribute("data-shell", STUDIO_CURRENT_STATE.shell);
+    document.documentElement.setAttribute("data-container-width", STUDIO_CURRENT_STATE.container_width);
+    document.documentElement.setAttribute("data-density", STUDIO_CURRENT_STATE.density);
+    document.documentElement.setAttribute("data-poster-size", STUDIO_CURRENT_STATE.poster_size);
+    document.documentElement.setAttribute("data-card-style", STUDIO_CURRENT_STATE.card_style);
+    document.documentElement.setAttribute("data-ui-font", STUDIO_CURRENT_STATE.ui_font || "outfit");
+    document.documentElement.setAttribute("data-mono-font", STUDIO_CURRENT_STATE.mono_font || "jetbrains");
+    document.documentElement.setAttribute("data-font-scale", STUDIO_CURRENT_STATE.font_scale || "normal");
+    document.documentElement.setAttribute("data-badge-shape", STUDIO_CURRENT_STATE.badge_shape || "pill");
+    document.documentElement.setAttribute("data-badge-style", STUDIO_CURRENT_STATE.badge_style || "frosted");
+    document.documentElement.setAttribute("data-badge-font", STUDIO_CURRENT_STATE.badge_font || "mono");
+    document.documentElement.setAttribute("data-badge-case", STUDIO_CURRENT_STATE.badge_case || "uppercase");
+    document.documentElement.setAttribute("data-badge-color", STUDIO_CURRENT_STATE.badge_color_mode || "semantic");
+  }
+
+  const canvas = document.getElementById("studio-preview-canvas");
+  if (canvas) {
+    canvas.setAttribute("data-archetype", STUDIO_CURRENT_STATE.archetype || "liquid-glass");
+    canvas.setAttribute("data-shell", STUDIO_CURRENT_STATE.shell);
+    canvas.setAttribute("data-container-width", STUDIO_CURRENT_STATE.container_width);
+    canvas.setAttribute("data-density", STUDIO_CURRENT_STATE.density);
+    canvas.setAttribute("data-poster-size", STUDIO_CURRENT_STATE.poster_size);
+    canvas.setAttribute("data-card-style", STUDIO_CURRENT_STATE.card_style);
+    canvas.setAttribute("data-ui-font", STUDIO_CURRENT_STATE.ui_font || "outfit");
+    canvas.setAttribute("data-mono-font", STUDIO_CURRENT_STATE.mono_font || "jetbrains");
+    canvas.setAttribute("data-font-scale", STUDIO_CURRENT_STATE.font_scale || "normal");
+    canvas.setAttribute("data-badge-shape", STUDIO_CURRENT_STATE.badge_shape || "pill");
+    canvas.setAttribute("data-badge-style", STUDIO_CURRENT_STATE.badge_style || "frosted");
+    canvas.setAttribute("data-badge-font", STUDIO_CURRENT_STATE.badge_font || "mono");
+    canvas.setAttribute("data-badge-case", STUDIO_CURRENT_STATE.badge_case || "uppercase");
+    canvas.setAttribute("data-badge-color", STUDIO_CURRENT_STATE.badge_color_mode || "semantic");
+  }
 
   const tone = STUDIO_BASE_TONES.find(t => t.id === STUDIO_CURRENT_STATE.base_tone) || STUDIO_BASE_TONES[2];
   const accent = STUDIO_CURRENT_STATE.accent;
@@ -26134,8 +26511,10 @@ function applyStudioLivePreview(saveDraft = true) {
     document.head.appendChild(styleEl);
   }
 
+  // Строго изолированные селекторы: html[data-design='studio'] и .studio-preview-canvas
   const cssRules = `
-    :root {
+    html[data-design="studio"],
+    .studio-preview-canvas {
       --bg: ${tone.color} !important;
       --panel: ${tone.panel} !important;
       --panel-alt: ${tone.color === '#000000' ? '#111116' : (tone.color === '#f8fafc' ? '#f1f5f9' : '#151c2a')} !important;
@@ -26150,26 +26529,27 @@ function applyStudioLivePreview(saveDraft = true) {
       --brand-name-glow: ${accent}${Math.round(glowAlpha * 255).toString(16).padStart(2, '0')} !important;
     }
   `;
-  styleEl.textContent = cssRules;
+  styleEl.textContent = isStudioActive || canvas ? cssRules : "";
 
-  if (tone.id === "clean-light") {
-    document.documentElement.setAttribute("data-theme", "light");
-  } else if (tone.id === "obsidian") {
-    document.documentElement.setAttribute("data-theme", "obsidian");
-  } else {
-    document.documentElement.setAttribute("data-theme", "dark");
+  if (isStudioActive) {
+    if (tone.id === "clean-light") {
+      document.documentElement.setAttribute("data-theme", "light");
+    } else if (tone.id === "obsidian") {
+      document.documentElement.setAttribute("data-theme", "obsidian");
+    } else {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+    updateFavicon(tone.id === "clean-light" ? "light" : (tone.id === "obsidian" ? "obsidian" : "dark"));
   }
-
-  updateFavicon(tone.id === "clean-light" ? "light" : (tone.id === "obsidian" ? "obsidian" : "dark"));
 
   const summaryEl = document.getElementById("studio-preview-code-summary");
   if (summaryEl) {
     summaryEl.innerHTML = `
+      <span>Skin: <b>${STUDIO_CURRENT_STATE.archetype || "Liquid"}</b></span> · 
       <span>Shell: <b>${STUDIO_CURRENT_STATE.shell}</b></span> · 
-      <span>Base: <b>${tone.name}</b></span> · 
+      <span>Badge: <b>${STUDIO_CURRENT_STATE.badge_shape}/${STUDIO_CURRENT_STATE.badge_style}</b></span> · 
       <span>Accent: <b style="color:${accent}">${accent}</b></span> · 
-      <span>Radius: <b>${radius}</b></span> · 
-      <span>Blur: <b>${STUDIO_CURRENT_STATE.blur}px</b></span>
+      <span>Font: <b>${STUDIO_CURRENT_STATE.ui_font}</b></span>
     `;
   }
 
@@ -26178,11 +26558,20 @@ function applyStudioLivePreview(saveDraft = true) {
   if (saveDraft) {
     try {
       localStorage.setItem("aliasarr_studio_config", JSON.stringify(STUDIO_CURRENT_STATE));
+      localStorage.setItem("aliasarr_archetype", STUDIO_CURRENT_STATE.archetype || "liquid-glass");
       localStorage.setItem("aliasarr_shell", STUDIO_CURRENT_STATE.shell);
       localStorage.setItem("aliasarr_container_width", STUDIO_CURRENT_STATE.container_width);
       localStorage.setItem("aliasarr_density", STUDIO_CURRENT_STATE.density);
       localStorage.setItem("aliasarr_poster_size", STUDIO_CURRENT_STATE.poster_size);
       localStorage.setItem("aliasarr_card_style", STUDIO_CURRENT_STATE.card_style);
+      localStorage.setItem("aliasarr_ui_font", STUDIO_CURRENT_STATE.ui_font || "outfit");
+      localStorage.setItem("aliasarr_mono_font", STUDIO_CURRENT_STATE.mono_font || "jetbrains");
+      localStorage.setItem("aliasarr_font_scale", STUDIO_CURRENT_STATE.font_scale || "normal");
+      localStorage.setItem("aliasarr_badge_shape", STUDIO_CURRENT_STATE.badge_shape || "pill");
+      localStorage.setItem("aliasarr_badge_style", STUDIO_CURRENT_STATE.badge_style || "frosted");
+      localStorage.setItem("aliasarr_badge_font", STUDIO_CURRENT_STATE.badge_font || "mono");
+      localStorage.setItem("aliasarr_badge_case", STUDIO_CURRENT_STATE.badge_case || "uppercase");
+      localStorage.setItem("aliasarr_badge_color", STUDIO_CURRENT_STATE.badge_color_mode || "semantic");
       localStorage.setItem("aliasarr_custom_css_vars", JSON.stringify({
         "--bg": tone.color,
         "--panel": tone.panel,
@@ -26211,19 +26600,65 @@ function renderStudioPreviewCanvas() {
           <div class="show-poster-wrap" style="position:relative; aspect-ratio: 2/3; background: #161b26; overflow:hidden; border-radius:var(--radius-sm, 10px);">
             <div style="width:100%; height:100%; background: linear-gradient(135deg, rgba(0,240,255,0.15), rgba(104,56,247,0.3)), url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 150\\'%3E%3Crect width=\\'100\\' height=\\'150\\' fill=\\'%23121824\\'/%3E%3Cpath d=\\'M30 40 L70 40 L70 110 L30 110 Z\\' fill=\\'none\\' stroke=\\'rgba(255,255,255,0.1)\\' stroke-width=\\'2\\'/%3E%3Ctext x=\\'50\\' y=\\'80\\' fill=\\'rgba(255,255,255,0.3)\\' font-size=\\'12\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\'%3EPOSTER%3C/text%3E%3C/svg%3E') center/cover; display:flex; align-items:flex-end; justify-content:center; padding:16px;">
             </div>
-            <div class="show-badge" style="position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.65); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.2); padding:3px 8px; border-radius:999px; font-size:11px; font-weight:700; color:#fff;">
+            <div class="show-badge badge badge-secondary" style="position:absolute; top:10px; right:10px;">
               12 / 12
             </div>
-            <div style="position:absolute; bottom:10px; left:10px; background:${accent}; color:#000; font-weight:800; font-size:10px; padding:2px 6px; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.4);">
-              1080p REMUX
+            <div style="position:absolute; bottom:10px; left:10px; display:flex; gap:6px; flex-wrap:wrap;">
+              <span class="badge badge-purple">4K UHD</span>
+              <span class="badge badge-primary">REMUX</span>
             </div>
           </div>
           <div class="show-info" style="padding: 12px 4px 6px 4px;">
-            <div class="show-title" style="font-weight:700; font-size:14px; margin-bottom:4px;">Киберпанк: Бегущие по краю</div>
+            <div class="show-title" style="font-weight:700; font-size:14px; margin-bottom:4px; font-family:var(--font-body);">Киберпанк: Бегущие по краю</div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <span style="font-size:12px; color:var(--text-muted);">2024 · Аниме</span>
-              <span class="badge" style="font-size:10px; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3);">Скачано</span>
+              <span class="badge badge-success">Скачано</span>
             </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (STUDIO_PREVIEW_MODE === "badges") {
+    canvas.innerHTML = `
+      <div class="studio-badge-demo-wrap" style="max-width: 400px; width: 100%;">
+        <div class="studio-badge-demo-group">
+          <div class="studio-badge-demo-label">Разрешение и источник</div>
+          <div class="studio-badge-demo-chips">
+            <span class="badge badge-purple">4K UHD</span>
+            <span class="badge badge-primary">1080p FHD</span>
+            <span class="badge badge-secondary">720p HD</span>
+            <span class="badge badge-info">REMUX</span>
+            <span class="badge badge-secondary">WEB-DL</span>
+            <span class="badge badge-secondary">BluRay</span>
+          </div>
+        </div>
+        <div class="studio-badge-demo-group">
+          <div class="studio-badge-demo-label">HDR и цветопередача</div>
+          <div class="studio-badge-demo-chips">
+            <span class="badge badge-warning">HDR10+</span>
+            <span class="badge badge-purple">Dolby Vision</span>
+            <span class="badge badge-warning">DV / HDR10</span>
+            <span class="badge badge-secondary">SDR 10-bit</span>
+          </div>
+        </div>
+        <div class="studio-badge-demo-group">
+          <div class="studio-badge-demo-label">Статусы закачек и здоровье</div>
+          <div class="studio-badge-demo-chips">
+            <span class="badge badge-success">В норме</span>
+            <span class="badge badge-info">Скачивание</span>
+            <span class="badge badge-warning">В очереди</span>
+            <span class="badge badge-danger">Ошибка</span>
+            <span class="badge badge-secondary">12 / 12 серий</span>
+          </div>
+        </div>
+        <div class="studio-badge-demo-group">
+          <div class="studio-badge-demo-label">Звуковые кодеки и дорожки</div>
+          <div class="studio-badge-demo-chips">
+            <span class="badge badge-secondary">TrueHD Atmos 7.1</span>
+            <span class="badge badge-secondary">DTS-HD MA 5.1</span>
+            <span class="badge badge-secondary">HEVC (H.265)</span>
+            <span class="badge badge-secondary">AV1 10bit</span>
+            <span class="badge badge-secondary">FLAC 2.0</span>
           </div>
         </div>
       </div>
@@ -26234,10 +26669,10 @@ function renderStudioPreviewCanvas() {
         <div class="card" style="padding: 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius, 12px);">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
             <div>
-              <div style="font-weight:700; font-size:13.5px; color:var(--text);">Dune.Part.Two.2024.UHD.Remux</div>
+              <div style="font-weight:700; font-size:13.5px; color:var(--text); font-family:var(--font-body);">Dune.Part.Two.2024.UHD.Remux</div>
               <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">qBittorrent · LostFilm · RuTracker</div>
             </div>
-            <span class="badge badge-secondary" style="font-family:var(--font-mono); font-size:11px;">68.4 GB</span>
+            <span class="badge badge-secondary">68.4 GB</span>
           </div>
           <div class="progress-wrap" style="height:6px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden; margin:10px 0 6px 0;">
             <div style="width:68%; height:100%; background:linear-gradient(90deg, var(--teal), var(--violet)); border-radius:999px;"></div>
@@ -26278,10 +26713,12 @@ function renderStudioPreviewCanvas() {
 }
 
 async function applyStudioThemePermanently() {
+  applyDesign("studio", false);
   applyStudioLivePreview(true);
 
   try {
     const payload = {
+      design_system: "studio",
       theme_studio_config: STUDIO_CURRENT_STATE,
       custom_themes: STUDIO_CUSTOM_THEMES,
     };
@@ -26300,26 +26737,35 @@ async function applyStudioThemePermanently() {
 }
 
 function resetStudioTheme() {
-  applyStudioPreset("cyber-neon");
+  setStudioArchetype("liquid-glass");
   showToast(i18n("design_studio.reset_done") || "Настройки сброшены к стандартным", "info");
 }
 
 function shuffleStudioTheme() {
+  const archetypes = Object.keys(STUDIO_ARCHETYPES);
+  const randomArchetype = archetypes[Math.floor(Math.random() * archetypes.length)];
   const tones = STUDIO_BASE_TONES.filter(t => t.id !== "clean-light");
   const randomTone = tones[Math.floor(Math.random() * tones.length)];
   const randomAccent = STUDIO_ACCENTS[Math.floor(Math.random() * STUDIO_ACCENTS.length)];
   const shells = ["sidebar-left", "mini-sidebar", "top-nav", "floating-dock"];
   const randomShell = shells[Math.floor(Math.random() * shells.length)];
-  const randomRadius = [0, 8, 12, 16, 20][Math.floor(Math.random() * 5)];
-  const randomBlur = [8, 14, 18, 24][Math.floor(Math.random() * 4)];
+  const badgeShapes = ["pill", "rounded", "sharp", "chamfer"];
+  const badgeStyles = ["frosted", "outline", "solid", "subtle"];
+  const randomShape = badgeShapes[Math.floor(Math.random() * badgeShapes.length)];
+  const randomStyle = badgeStyles[Math.floor(Math.random() * badgeStyles.length)];
+  const randomRadius = [0, 6, 12, 16, 20][Math.floor(Math.random() * 5)];
+  const randomBlur = [8, 14, 18, 26][Math.floor(Math.random() * 4)];
 
   STUDIO_CURRENT_STATE = {
     ...STUDIO_CURRENT_STATE,
+    archetype: randomArchetype,
     preset_id: null,
     custom_theme_id: null,
     base_tone: randomTone.id,
     accent: randomAccent.color,
     shell: randomShell,
+    badge_shape: randomShape,
+    badge_style: randomStyle,
     radius: randomRadius,
     blur: randomBlur,
     glow: Math.floor(Math.random() * 3) + 1,
@@ -26503,6 +26949,15 @@ window.activateCustomTheme = activateCustomTheme;
 window.exportStudioTheme = exportStudioTheme;
 window.importStudioThemeDialog = importStudioThemeDialog;
 window.handleStudioThemeFile = handleStudioThemeFile;
+window.setStudioArchetype = setStudioArchetype;
+window.setStudioBadgeShape = setStudioBadgeShape;
+window.setStudioBadgeStyle = setStudioBadgeStyle;
+window.setStudioBadgeFont = setStudioBadgeFont;
+window.setStudioBadgeCase = setStudioBadgeCase;
+window.setStudioBadgeColorMode = setStudioBadgeColorMode;
+window.setStudioUiFont = setStudioUiFont;
+window.setStudioMonoFont = setStudioMonoFont;
+window.setStudioFontScale = setStudioFontScale;
 
 // Применяем язык/тему/дизайн/скроллбар из localStorage сразу, не дожидаясь ответа /api/v1/settings —
 // они всё равно будут перезаписаны актуальными значениями в loadGeneralSettings().

@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='17' fill='%230f1048'/%3E%3Cpath d='M32 14L43 36' stroke='%232a197c' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M15 49L32 14' stroke='%236838f7' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 36H43L49 49' stroke='%236838f7' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Roboto:wght@300;400;500;700&family=Ubuntu+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Roboto:wght@300;400;500;700&family=Ubuntu+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/ui/static/css/style.css?v=20260918-1">
 <link rel="stylesheet" href="/ui/static/css/servarr.css?v=20260918-1">
 <script>
@@ -29,34 +29,56 @@
       var lang = localStorage.getItem("aliasarr_lang") || localStorage.getItem("vbeacon_lang") || "ru";
       document.documentElement.setAttribute("lang", lang);
 
-      // Применяем сохраненный каркас, плотность и верстку Студии дизайна без мерцания
-      var shell = localStorage.getItem("aliasarr_shell") || "sidebar-left";
-      document.documentElement.setAttribute("data-shell", shell);
-      var containerWidth = localStorage.getItem("aliasarr_container_width") || "fluid";
-      document.documentElement.setAttribute("data-container-width", containerWidth);
-      var density = localStorage.getItem("aliasarr_density") || "comfortable";
-      document.documentElement.setAttribute("data-density", density);
-      var posterSize = localStorage.getItem("aliasarr_poster_size") || "md";
-      document.documentElement.setAttribute("data-poster-size", posterSize);
-      var cardStyle = localStorage.getItem("aliasarr_card_style") || "neo-glass";
-      document.documentElement.setAttribute("data-card-style", cardStyle);
+      // Применяем сохраненный каркас, плотность, шрифты и бейджи Студии дизайна ТОЛЬКО если активен дизайн Studio
+      if (design === "studio") {
+        var archetype = localStorage.getItem("aliasarr_archetype") || "liquid-glass";
+        document.documentElement.setAttribute("data-archetype", archetype);
+        var shell = localStorage.getItem("aliasarr_shell") || "sidebar-left";
+        document.documentElement.setAttribute("data-shell", shell);
+        var containerWidth = localStorage.getItem("aliasarr_container_width") || "fluid";
+        document.documentElement.setAttribute("data-container-width", containerWidth);
+        var density = localStorage.getItem("aliasarr_density") || "comfortable";
+        document.documentElement.setAttribute("data-density", density);
+        var posterSize = localStorage.getItem("aliasarr_poster_size") || "md";
+        document.documentElement.setAttribute("data-poster-size", posterSize);
+        var cardStyle = localStorage.getItem("aliasarr_card_style") || "neo-glass";
+        document.documentElement.setAttribute("data-card-style", cardStyle);
 
-      // Применяем сохраненные пользовательские CSS переменные
-      try {
-        var customVars = localStorage.getItem("aliasarr_custom_css_vars");
-        if (customVars) {
-          var parsed = JSON.parse(customVars);
-          var styleEl = document.createElement("style");
-          styleEl.id = "aliasarr-custom-theme-vars";
-          var css = ":root {\n";
-          for (var k in parsed) {
-            css += "  " + k + ": " + parsed[k] + " !important;\n";
+        var uiFont = localStorage.getItem("aliasarr_ui_font") || "outfit";
+        document.documentElement.setAttribute("data-ui-font", uiFont);
+        var monoFont = localStorage.getItem("aliasarr_mono_font") || "jetbrains";
+        document.documentElement.setAttribute("data-mono-font", monoFont);
+        var fontScale = localStorage.getItem("aliasarr_font_scale") || "normal";
+        document.documentElement.setAttribute("data-font-scale", fontScale);
+
+        var badgeShape = localStorage.getItem("aliasarr_badge_shape") || "pill";
+        document.documentElement.setAttribute("data-badge-shape", badgeShape);
+        var badgeStyle = localStorage.getItem("aliasarr_badge_style") || "frosted";
+        document.documentElement.setAttribute("data-badge-style", badgeStyle);
+        var badgeFont = localStorage.getItem("aliasarr_badge_font") || "mono";
+        document.documentElement.setAttribute("data-badge-font", badgeFont);
+        var badgeCase = localStorage.getItem("aliasarr_badge_case") || "uppercase";
+        document.documentElement.setAttribute("data-badge-case", badgeCase);
+        var badgeColor = localStorage.getItem("aliasarr_badge_color") || "semantic";
+        document.documentElement.setAttribute("data-badge-color", badgeColor);
+
+        // Пользовательские CSS переменные Студии изолированы строго для html[data-design='studio']
+        try {
+          var customVars = localStorage.getItem("aliasarr_custom_css_vars");
+          if (customVars) {
+            var parsed = JSON.parse(customVars);
+            var styleEl = document.createElement("style");
+            styleEl.id = "aliasarr-custom-theme-vars";
+            var css = "html[data-design='studio'] {\n";
+            for (var k in parsed) {
+              css += "  " + k + ": " + parsed[k] + " !important;\n";
+            }
+            css += "}\n";
+            styleEl.textContent = css;
+            document.head.appendChild(styleEl);
           }
-          css += "}\n";
-          styleEl.textContent = css;
-          document.head.appendChild(styleEl);
-        }
-      } catch (err) {}
+        } catch (err) {}
+      }
 
       var themeColors = {
         dark: { bg: "%230f1048", shadow: "%232a197c", fg: "%236838f7" },
@@ -1336,8 +1358,59 @@
                 <span data-i18n="design_studio.shuffle">Случайный стиль</span>
               </button>
             </div>
+
+            <!-- Секция: Концептуальные дизайн-архетипы (Skins) -->
+            <div style="margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 14px;">
+              <label class="settings-field-label" style="margin-bottom: 8px;">
+                <span data-i18n="design_studio.archetypes_title">Концептуальный дизайн-архетип (Skin)</span>
+              </label>
+              <div class="studio-archetypes-grid" id="studio-archetypes-grid">
+                <div class="studio-archetype-card active" data-archetype="liquid-glass" onclick="setStudioArchetype('liquid-glass')">
+                  <div class="studio-archetype-icon"><i data-lucide="droplets"></i></div>
+                  <div class="studio-archetype-info">
+                    <span class="studio-archetype-name" data-i18n="design_studio.arch_liquid">Liquid Glass</span>
+                    <span class="studio-archetype-desc" data-i18n="design_studio.arch_liquid_desc">Органичное матовое стекло, глубокий блюр</span>
+                  </div>
+                </div>
+                <div class="studio-archetype-card" data-archetype="cyber-hud" onclick="setStudioArchetype('cyber-hud')">
+                  <div class="studio-archetype-icon"><i data-lucide="cpu"></i></div>
+                  <div class="studio-archetype-info">
+                    <span class="studio-archetype-name" data-i18n="design_studio.arch_cyber">Cyberpunk HUD</span>
+                    <span class="studio-archetype-desc" data-i18n="design_studio.arch_cyber_desc">Скошенные углы, сетка фона, моно-шрифты</span>
+                  </div>
+                </div>
+                <div class="studio-archetype-card" data-archetype="oled-void" onclick="setStudioArchetype('oled-void')">
+                  <div class="studio-archetype-icon"><i data-lucide="moon"></i></div>
+                  <div class="studio-archetype-info">
+                    <span class="studio-archetype-name" data-i18n="design_studio.arch_oled">OLED Void Minimal</span>
+                    <span class="studio-archetype-desc" data-i18n="design_studio.arch_oled_desc">Абсолютный черный #000, ультратонкие линии</span>
+                  </div>
+                </div>
+                <div class="studio-archetype-card" data-archetype="retro-crt" onclick="setStudioArchetype('retro-crt')">
+                  <div class="studio-archetype-icon"><i data-lucide="terminal"></i></div>
+                  <div class="studio-archetype-info">
+                    <span class="studio-archetype-name" data-i18n="design_studio.arch_retro">Retro Amber CRT</span>
+                    <span class="studio-archetype-desc" data-i18n="design_studio.arch_retro_desc">Винтажный терминал, янтарное свечение</span>
+                  </div>
+                </div>
+                <div class="studio-archetype-card" data-archetype="nordic-slate" onclick="setStudioArchetype('nordic-slate')">
+                  <div class="studio-archetype-icon"><i data-lucide="compass"></i></div>
+                  <div class="studio-archetype-info">
+                    <span class="studio-archetype-name" data-i18n="design_studio.arch_nordic">Nordic Slate</span>
+                    <span class="studio-archetype-desc" data-i18n="design_studio.arch_nordic_desc">Скандинавский матовый сланец, чистый UI</span>
+                  </div>
+                </div>
+                <div class="studio-archetype-card" data-archetype="titanium-luxe" onclick="setStudioArchetype('titanium-luxe')">
+                  <div class="studio-archetype-icon"><i data-lucide="gem"></i></div>
+                  <div class="studio-archetype-info">
+                    <span class="studio-archetype-name" data-i18n="design_studio.arch_titanium">Titanium Luxury</span>
+                    <span class="studio-archetype-desc" data-i18n="design_studio.arch_titanium_desc">Темный титан, золото и платина</span>
+                  </div>
+                </div>
+              </div>
+            </div>
             
-            <div class="studio-presets-grid" id="studio-presets-grid">
+            <div class="studio-presets-grid" id="studio-presets-grid" style="margin-top: 14px;">
               <!-- Заполняется динамически из JS -->
             </div>
 
@@ -1353,7 +1426,134 @@
             </div>
           </div>
 
-          <!-- БЛОК 2: АРХИТЕКТУРА КАРКАСА И ВЕРСТКА (APP SHELL) -->
+          <!-- БЛОК 2: КОНСТРУКТОР БЕЙДЖЕЙ (BADGE STUDIO) -->
+          <div class="settings-section-card studio-card">
+            <div class="settings-card-header">
+              <div class="settings-card-header-left">
+                <div class="settings-card-icon-badge"><i data-lucide="tag"></i></div>
+                <div class="settings-card-title-wrap">
+                  <h3 data-i18n="design_studio.badges_title">Конструктор бейджей (Badge Studio)</h3>
+                  <p class="subtitle" data-i18n="design_studio.badges_subtitle">Форма, заливка, типографика и подсветка меток качества (4K, 1080p, HDR, очереди)</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="studio-form-grid">
+              <!-- Форма бейджей -->
+              <div class="studio-field-group">
+                <label class="settings-field-label">
+                  <span data-i18n="design_studio.badge_shape">Форма бейджей</span>
+                </label>
+                <div class="studio-toggle-group" id="studio-badge-shape-toggle">
+                  <button type="button" class="studio-toggle-btn active" data-value="pill" onclick="setStudioBadgeShape('pill')" data-i18n="design_studio.shape_pill">Капсула</button>
+                  <button type="button" class="studio-toggle-btn" data-value="rounded" onclick="setStudioBadgeShape('rounded')" data-i18n="design_studio.shape_rounded">Скругленный</button>
+                  <button type="button" class="studio-toggle-btn" data-value="sharp" onclick="setStudioBadgeShape('sharp')" data-i18n="design_studio.shape_sharp">Строгий</button>
+                  <button type="button" class="studio-toggle-btn" data-value="chamfer" onclick="setStudioBadgeShape('chamfer')" data-i18n="design_studio.shape_chamfer">Кибер-скос</button>
+                </div>
+              </div>
+
+              <!-- Стиль заливки бейджей -->
+              <div class="studio-field-group">
+                <label class="settings-field-label">
+                  <span data-i18n="design_studio.badge_style">Стиль заливки и рамки</span>
+                </label>
+                <div class="studio-toggle-group" id="studio-badge-style-toggle">
+                  <button type="button" class="studio-toggle-btn active" data-value="frosted" onclick="setStudioBadgeStyle('frosted')" data-i18n="design_studio.bstyle_frosted">Стекло</button>
+                  <button type="button" class="studio-toggle-btn" data-value="outline" onclick="setStudioBadgeStyle('outline')" data-i18n="design_studio.bstyle_outline">Неон-контур</button>
+                  <button type="button" class="studio-toggle-btn" data-value="solid" onclick="setStudioBadgeStyle('solid')" data-i18n="design_studio.bstyle_solid">Плотный</button>
+                  <button type="button" class="studio-toggle-btn" data-value="subtle" onclick="setStudioBadgeStyle('subtle')" data-i18n="design_studio.bstyle_subtle">Минимал</button>
+                </div>
+              </div>
+
+              <!-- Шрифт бейджей -->
+              <div class="studio-field-group">
+                <label class="settings-field-label">
+                  <span data-i18n="design_studio.badge_font">Гарнитура бейджей</span>
+                </label>
+                <div class="studio-toggle-group" id="studio-badge-font-toggle">
+                  <button type="button" class="studio-toggle-btn active" data-value="mono" onclick="setStudioBadgeFont('mono')" data-i18n="design_studio.bfont_mono">Моноширинный (Code)</button>
+                  <button type="button" class="studio-toggle-btn" data-value="sans" onclick="setStudioBadgeFont('sans')" data-i18n="design_studio.bfont_sans">Основной гротеск</button>
+                </div>
+              </div>
+
+              <!-- Регистр текста бейджей -->
+              <div class="studio-field-group">
+                <label class="settings-field-label">
+                  <span data-i18n="design_studio.badge_case">Регистр текста</span>
+                </label>
+                <div class="studio-toggle-group" id="studio-badge-case-toggle">
+                  <button type="button" class="studio-toggle-btn active" data-value="uppercase" onclick="setStudioBadgeCase('uppercase')">UPPERCASE</button>
+                  <button type="button" class="studio-toggle-btn" data-value="natural" onclick="setStudioBadgeCase('natural')">Natural (1080p)</button>
+                </div>
+              </div>
+
+              <!-- Цветовая схема бейджей -->
+              <div class="studio-field-group" style="grid-column: 1 / -1;">
+                <label class="settings-field-label">
+                  <span data-i18n="design_studio.badge_color_mode">Цветовая палитра бейджей</span>
+                </label>
+                <div class="studio-toggle-group" id="studio-badge-color-toggle">
+                  <button type="button" class="studio-toggle-btn active" data-value="semantic" onclick="setStudioBadgeColorMode('semantic')" data-i18n="design_studio.bcolor_semantic">Семантическая (4K фиолетовый, 1080p циан, HDR оранжевый)</button>
+                  <button type="button" class="studio-toggle-btn" data-value="monochrome" onclick="setStudioBadgeColorMode('monochrome')" data-i18n="design_studio.bcolor_monochrome">Монохромная (в тон темы)</button>
+                  <button type="button" class="studio-toggle-btn" data-value="high-contrast" onclick="setStudioBadgeColorMode('high-contrast')" data-i18n="design_studio.bcolor_contrast">Высокий контраст</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- БЛОК 3: СТУДИЯ ТИПОГРАФИКИ И ШРИФТОВ (TYPOGRAPHY STUDIO) -->
+          <div class="settings-section-card studio-card">
+            <div class="settings-card-header">
+              <div class="settings-card-header-left">
+                <div class="settings-card-icon-badge"><i data-lucide="type"></i></div>
+                <div class="settings-card-title-wrap">
+                  <h3 data-i18n="design_studio.typography_title">Студия типографики и шрифтов</h3>
+                  <p class="subtitle" data-i18n="design_studio.typography_subtitle">Шрифтовые пары для интерфейса, моноширинные шрифты данных и масштаб текста</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="studio-form-grid">
+              <!-- Основной шрифт интерфейса -->
+              <div class="studio-field-group">
+                <label class="settings-field-label">
+                  <span data-i18n="design_studio.ui_font">Основной шрифт интерфейса (UI)</span>
+                </label>
+                <select class="input studio-select" id="studio-ui-font-select" onchange="setStudioUiFont(this.value)">
+                  <option value="outfit" selected>Outfit (Современный геометричный)</option>
+                  <option value="inter">Inter (Швейцарский нейтральный)</option>
+                  <option value="roboto">Roboto (Классический Android/Google)</option>
+                  <option value="syne">Syne (Акцидентный премиум-гротеск)</option>
+                  <option value="system">System Native (SF Pro / Segoe UI / Apple)</option>
+                </select>
+              </div>
+
+              <!-- Шрифт технических данных и логов -->
+              <div class="studio-field-group">
+                <label class="settings-field-label">
+                  <span data-i18n="design_studio.mono_font">Шрифт метаданных и кодеков (Mono)</span>
+                </label>
+                <select class="input studio-select" id="studio-mono-font-select" onchange="setStudioMonoFont(this.value)">
+                  <option value="jetbrains" selected>JetBrains Mono (Специализированный)</option>
+                  <option value="ubuntu">Ubuntu Mono (Компактный)</option>
+                </select>
+              </div>
+
+              <!-- Масштаб интерфейса -->
+              <div class="studio-field-group" style="grid-column: 1 / -1;">
+                <label class="settings-field-label">
+                  <span data-i18n="design_studio.font_scale">Масштабирование текста</span>
+                </label>
+                <div class="studio-toggle-group" id="studio-font-scale-toggle">
+                  <button type="button" class="studio-toggle-btn" data-value="compact" onclick="setStudioFontScale('compact')" data-i18n="design_studio.scale_compact">Компактный (90%)</button>
+                  <button type="button" class="studio-toggle-btn active" data-value="normal" onclick="setStudioFontScale('normal')" data-i18n="design_studio.scale_normal">Стандартный (100%)</button>
+                  <button type="button" class="studio-toggle-btn" data-value="spacious" onclick="setStudioFontScale('spacious')" data-i18n="design_studio.scale_spacious">Крупный (110%)</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- БЛОК 4: АРХИТЕКТУРА КАРКАСА И ВЕРСТКА (APP SHELL) -->
           <div class="settings-section-card studio-card">
             <div class="settings-card-header">
               <div class="settings-card-header-left">
@@ -1460,6 +1660,7 @@
                 <div class="studio-toggle-group" id="studio-card-style-toggle">
                   <button type="button" class="studio-toggle-btn active" data-value="neo-glass" onclick="setStudioCardStyle('neo-glass')" data-i18n="design_studio.card_neo_glass">Neo-Glass (Парящие)</button>
                   <button type="button" class="studio-toggle-btn" data-value="cinematic" onclick="setStudioCardStyle('cinematic')" data-i18n="design_studio.card_cinematic">Cinematic</button>
+                  <button type="button" class="studio-toggle-btn" data-value="cyber" onclick="setStudioCardStyle('cyber')" data-i18n="design_studio.card_cyber">Cyber HUD</button>
                   <button type="button" class="studio-toggle-btn" data-value="minimal" onclick="setStudioCardStyle('minimal')" data-i18n="design_studio.card_minimal">Минимал</button>
                 </div>
               </div>
@@ -1596,6 +1797,7 @@
               </div>
               <div class="studio-preview-mode-tabs">
                 <button class="studio-preview-tab-btn active" data-preview-mode="card" onclick="setStudioPreviewMode('card')" data-i18n="design_studio.preview_card">Карточка</button>
+                <button class="studio-preview-tab-btn" data-preview-mode="badges" onclick="setStudioPreviewMode('badges')" data-i18n="design_studio.preview_badges">Бейджи</button>
                 <button class="studio-preview-tab-btn" data-preview-mode="queue" onclick="setStudioPreviewMode('queue')" data-i18n="design_studio.preview_queue">Очередь</button>
                 <button class="studio-preview-tab-btn" data-preview-mode="form" onclick="setStudioPreviewMode('form')" data-i18n="design_studio.preview_form">Элементы UI</button>
               </div>
@@ -2395,7 +2597,43 @@
                 </div>
               </div>
               <div class="design-card-footer">
+            </div>
+
+            <!-- 4. Студия дизайна (Custom Studio) -->
+            <div class="design-card" data-design-choice="studio" onclick="selectDesignSystem('studio')">
+              <div class="design-card-header">
+                <span class="design-card-badge badge-studio" data-i18n="settings.design_badge_studio">STUDIO</span>
+                <div class="design-card-check"><i data-lucide="check" class="ico-xs"></i></div>
+              </div>
+              <div class="design-card-preview preview-studio">
+                <div class="preview-studio-header">
+                  <div class="preview-studio-dot"></div>
+                  <div class="preview-studio-dot"></div>
+                  <div class="preview-studio-badges">
+                    <span class="preview-studio-chip">4K</span>
+                    <span class="preview-studio-chip">HDR</span>
+                  </div>
+                </div>
+                <div class="preview-studio-body">
+                  <div class="preview-studio-sidebar"></div>
+                  <div class="preview-studio-main">
+                    <div class="preview-studio-bar"></div>
+                    <div class="preview-studio-cards">
+                      <div class="preview-studio-box"></div>
+                      <div class="preview-studio-box"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="design-card-info">
+                <div class="design-card-title" data-i18n="settings.design_studio_title">Студия дизайна (Custom Studio)</div>
+                <div class="design-card-desc" data-i18n="settings.design_studio_desc">
+                  Полная свобода кастомизации: персональный навигационный каркас, глубокий конструктор бейджей, выбор типографики, уникальные темы и материалы стекломорфизма.
+                </div>
+              </div>
+              <div class="design-card-footer" style="display:flex; gap:8px;">
                 <button class="btn btn-secondary btn-small w-full" data-i18n="settings.btn_select_design">Выбрать стиль</button>
+                <button class="btn btn-primary btn-small" type="button" onclick="event.stopPropagation(); switchTab('design-studio');" title="Открыть редактор студии"><i data-lucide="palette" class="ico-xs"></i></button>
               </div>
             </div>
           </div>

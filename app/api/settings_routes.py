@@ -51,7 +51,7 @@ class SettingsOut(BaseModel):
     language: str   # ru | en
     theme: str      # dark | light
     scrollbar_mode: str = "autohide"  # autohide | styled | hidden | native
-    design_system: Optional[str] = None  # classic | vanguard | servarr
+    design_system: Optional[str] = None  # classic | vanguard | servarr | studio
     glass_mode: Optional[str] = None  # off | on
     custom_themes: Optional[list] = None
     theme_studio_config: Optional[dict] = None
@@ -346,8 +346,8 @@ def update_settings(
             raise HTTPException(400, "scrollbar_mode должен быть 'autohide', 'styled', 'hidden' или 'native'")
         settings.scrollbar_mode = payload.scrollbar_mode
     if payload.design_system is not None:
-        if payload.design_system not in ("classic", "vanguard", "servarr"):
-            raise HTTPException(400, "design_system должен быть 'classic', 'vanguard' или 'servarr'")
+        if payload.design_system not in ("classic", "vanguard", "servarr", "studio"):
+            raise HTTPException(400, "design_system должен быть 'classic', 'vanguard', 'servarr' или 'studio'")
         settings.design_system = payload.design_system
     if payload.glass_mode is not None:
         if payload.glass_mode not in ("off", "on"):
