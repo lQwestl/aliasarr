@@ -2653,11 +2653,17 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   overflow-y: auto;
   overflow-x: hidden;
   padding: 10px 8px 18px 8px;
+  /* Ряды по высоте содержимого: Safari в прокручиваемом гриде с max-height
+     иначе ужимает неявные ряды, и карточки наезжают друг на друга. */
+  grid-auto-rows: max-content;
+  align-content: start;
 }
 
+/* Пропорция 2:3 задаётся распоркой с padding-top, а не aspect-ratio:
+   WebKit (iOS Safari) считает высоту ряда грида без учёта aspect-ratio
+   у элементов auto-fill-колонок, из-за чего следующий ряд ложился поверх. */
 .metadata-poster-card {
   position: relative;
-  aspect-ratio: 2 / 3;
   min-height: 255px;
   border-radius: 12px;
   overflow: hidden;
@@ -2672,6 +2678,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s, border-color 0.22s;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
   user-select: none;
+}
+
+.metadata-poster-card::before {
+  content: "";
+  display: block;
+  padding-top: 150%;
 }
 
 .metadata-poster-card:hover {
@@ -2768,7 +2780,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .metadata-poster-bottom {
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 3;
   padding: 40px 10px 10px;
   background: linear-gradient(0deg, rgba(8, 12, 20, 0.96) 0%, rgba(8, 12, 20, 0.82) 60%, transparent 100%);
@@ -9265,8 +9280,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     background: var(--panel);
     z-index: 1000;
     transform: translateX(-100%);
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 12px 0 32px rgba(0, 0, 0, 0.7);
+    /* Тень только у открытой панели: у закрытой она вылезала из-за края экрана
+       тёмной полосой. visibility с задержкой убирает закрытую панель из
+       отрисовки, не обрывая анимацию закрытия. */
+    visibility: hidden;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease, visibility 0s linear 0.28s;
+    box-shadow: none;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
@@ -9275,6 +9294,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
   .sidebar.mobile-open {
     transform: translateX(0);
+    visibility: visible;
+    box-shadow: 12px 0 32px rgba(0, 0, 0, 0.7);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease, visibility 0s linear 0s;
   }
 
   .mobile-drawer-close {
@@ -11006,6 +11028,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   :root:not([data-design="servarr"]) .library-search-wrap[data-search-mode] {
     order: 2 !important;
     display: flex !important;
+    /* В колонке flex-basis задаёт высоту: десктопные 290px/360px из режимов
+       поиска растягивали строку поиска на треть экрана. */
+    flex: 0 0 auto !important;
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
