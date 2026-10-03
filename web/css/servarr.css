@@ -2874,9 +2874,15 @@ html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child >
     background: var(--sv-sidebar-bg);
     box-shadow: none;
     transform: translateX(-100%);
-    transition: transform 300ms ease-in-out;
+    visibility: hidden;
+    transition: transform 300ms ease-in-out, visibility 0s linear 300ms;
   }
-  [data-design="servarr"] .sidebar.mobile-open { transform: translateX(0); }
+  [data-design="servarr"] .sidebar.mobile-open {
+    transform: translateX(0);
+    visibility: visible;
+    box-shadow: none;
+    transition: transform 300ms ease-in-out, visibility 0s linear 0s;
+  }
   [data-design="servarr"] .sidebar .sidebar-header-row {
     display: flex !important;
     align-items: center;
