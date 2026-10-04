@@ -617,6 +617,14 @@ body::before {
   color: var(--teal);
   line-height: 1;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tasks-idle-icon i,
+.tasks-idle-icon svg {
+  width: 14px;
+  height: 14px;
 }
 .tasks-status-info {
   display: flex;
@@ -19892,12 +19900,11 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar {
   transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .brand-name,
-html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav-item span,
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar :is(.nav-item, .nav-item-wiki) span,
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav-wiki-badge,
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav-wiki-ext-ico,
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .user-info,
-html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-status-info,
-html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-idle-icon {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-status-info {
   display: none !important;
 }
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .brand {
@@ -19911,43 +19918,147 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav {
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav-item,
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav-item-wiki {
   justify-content: center !important;
-  padding: 12px 0 !important;
+  align-items: center !important;
+  padding: 0 !important;
   width: 48px !important;
+  height: 48px !important;
   border-radius: var(--radius-sm, 10px) !important;
   margin: 0 auto 4px auto !important;
+  display: flex !important;
+  box-sizing: border-box !important;
 }
-html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .nav-ico {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar :is(.nav-item, .nav-item-wiki) .nav-ico {
   margin: 0 !important;
+  width: 20px !important;
+  height: 20px !important;
+  flex-shrink: 0 !important;
 }
+
+/* Кнопка добавления тайтла в компактном режиме: аккуратный сквиркл с четкой иконкой плюса */
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar > .btn-primary {
   width: 48px !important;
   height: 48px !important;
   padding: 0 !important;
-  font-size: 0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border-radius: 50% !important;
+  border-radius: var(--radius-sm, 10px) !important;
   margin: 8px auto !important;
+  box-sizing: border-box !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
-html[data-design="studio"][data-shell="mini-sidebar"] .sidebar > .btn-primary i {
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar > .btn-primary span {
+  display: none !important;
+}
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar > .btn-primary :is(i, svg) {
   margin: 0 !important;
+  width: 22px !important;
+  height: 22px !important;
+  stroke: currentColor !important;
+  stroke-width: 2.2px !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+}
+
+/* Компактный центрированный аватар профиля в подвале */
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .sidebar-footer {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 0 !important;
 }
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .user-profile-badge {
   justify-content: center !important;
-  padding: 6px !important;
+  align-items: center !important;
+  padding: 0 !important;
   width: 48px !important;
+  height: 48px !important;
+  border-radius: var(--radius-sm, 10px) !important;
+  margin: 0 auto !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  box-sizing: border-box !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+}
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .user-profile-badge:hover {
+  background: var(--panel-alt, rgba(255, 255, 255, 0.06)) !important;
+  border-color: var(--border-hover) !important;
+}
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .user-avatar-wrap {
+  width: 36px !important;
+  height: 36px !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
 }
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .btn-logout {
   display: none !important;
 }
+
+/* Интерактивная кнопка-виджет фоновых операций */
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-status-widget {
-  padding: 6px 0 !important;
+  width: 48px !important;
+  height: 48px !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--radius-sm, 10px) !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  background: var(--panel-alt) !important;
+  border: 1px solid var(--border) !important;
+  transition: all 0.2s ease !important;
+}
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-status-widget:hover {
+  background: var(--panel) !important;
+  border-color: var(--border-hover) !important;
+}
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-status-widget.has-running {
+  border-color: var(--teal) !important;
+  background: rgba(56, 189, 248, 0.12) !important;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2) !important;
 }
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-status-pill {
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
   justify-content: center !important;
-  padding: 6px !important;
-  width: 44px !important;
+  position: relative !important;
+  gap: 0 !important;
+}
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-idle-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--teal, currentColor) !important;
+  line-height: 1 !important;
+}
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-idle-icon :is(i, svg) {
+  width: 20px !important;
+  height: 20px !important;
+  stroke-width: 2px !important;
+}
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-spinner {
+  width: 20px !important;
+  height: 20px !important;
+  margin: 0 !important;
+}
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-count-badge {
+  position: absolute !important;
+  top: 2px !important;
+  right: 2px !important;
+  font-size: 9px !important;
+  padding: 1px 4px !important;
+  min-width: 14px !important;
+  text-align: center !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* --- 2. ТРАНСФОРМАЦИЯ КАРКАСА: TOP-NAV (ВЕРХНЯЯ ШАПКА - ТОЛЬКО STUDIO) --- */
