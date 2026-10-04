@@ -22,7 +22,9 @@ from app.services.metadata import (
     get_allowed_metadata_languages,
     is_alias_allowed,
     detect_alias_language,
+    extract_imdb_id,
     normalize_metadata_lang_code,
+    search_by_imdb_id,
 )
 from app.services.user_service import require_permission, get_current_user
 import logging
@@ -412,6 +414,29 @@ def delete_source(
     db.commit()
 
 
+async def _imdb_search_results(db: Session, imdb_id: str, overview_lang: str, title_lang: str) -> list[MetadataSearchResultOut]:
+    found = await search_by_imdb_id(imdb_id, overview_language=overview_lang, title_language=title_lang)
+    results: list[MetadataSearchResultOut] = []
+    for r in found:
+        ext = str(r.external_id)
+        source_type = "radarr" if ext.startswith("movie:") else ("skyhook" if ext.startswith("tvdb:") else "tmdb")
+        existing = _find_existing_show(
+            db,
+            metadata_source=source_type,
+            metadata_id=r.external_id,
+            title=r.title,
+            year=r.year,
+            content_type=r.content_type,
+            imdb_id=imdb_id,
+        )
+        results.append(MetadataSearchResultOut(
+            **r.__dict__,
+            already_added=existing is not None,
+            existing_show_id=existing.id if existing else None,
+        ))
+    return results
+
+
 @router.get("/search", response_model=list[MetadataSearchResultOut])
 async def search_all_metadata_sources(
     query: str,
@@ -437,6 +462,12 @@ async def search_all_metadata_sources(
     app_settings = db.query(AppSettings).filter(AppSettings.id == 1).first()
     overview_lang = getattr(app_settings, "metadata_overview_language", "ru") or "ru"
     title_lang = getattr(app_settings, "metadata_title_language", "ru") or "ru"
+
+    # IMDb ID или ссылка на IMDb: текстовый поиск по такой строке бесполезен,
+    # тайтл находится напрямую по внешнему ID.
+    imdb_id = extract_imdb_id(clean_query)
+    if imdb_id:
+        return await _imdb_search_results(db, imdb_id, overview_lang, title_lang)
 
     # 1. ПЕРВАЯ ОЧЕРЕДЬ: Radarr Cloud Hook (фильмы) + Sonarr SkyHook (сериалы/аниме)
     primary_tasks = [
@@ -596,6 +627,10 @@ async def search_metadata(
     app_settings = db.query(AppSettings).filter(AppSettings.id == 1).first()
     overview_lang = getattr(app_settings, "metadata_overview_language", "ru") or "ru"
     title_lang = getattr(app_settings, "metadata_title_language", "ru") or "ru"
+    imdb_id = extract_imdb_id(query)
+    if imdb_id:
+        # Источник в выпадающем списке не важен: по IMDb ID тайтл находится однозначно.
+        return await _imdb_search_results(db, imdb_id, overview_lang, title_lang)
     client = get_metadata_client(source, overview_language=overview_lang, title_language=title_lang)
     results: list[MetadataResult] = await client.search(query)
 

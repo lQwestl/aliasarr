@@ -4471,3 +4471,153 @@ def seed_default_metadata_sources(db) -> None:
         except Exception:
             pass
         logger.warning("Ошибка инициализации источников метаданных: %s", exc)
+
+
+# ---------------------------------------------------------------------------
+# Поиск по IMDb ID / ссылке на IMDb
+# ---------------------------------------------------------------------------
+
+_IMDB_ID_ONLY_RE = re.compile(r"(?:imdb(?:id)?\s*:\s*)?(tt\d{7,10})", re.IGNORECASE)
+_IMDB_URL_ID_RE = re.compile(r"imdb\.com/(?:[a-z]{2}(?:-[a-z]{2})?/)?title/(tt\d{7,10})", re.IGNORECASE)
+
+
+def extract_imdb_id(query: Optional[str]) -> Optional[str]:
+    """Возвращает IMDb ID, если запрос — это ID или ссылка на страницу IMDb.
+
+    Принимает «tt0903747», «imdb:tt0903747», «https://www.imdb.com/title/tt0903747/»,
+    мобильные и локализованные ссылки (m.imdb.com, imdb.com/ru/title/…), ссылки с
+    параметрами. Обычный текстовый запрос, в котором встречается «tt…», ID не считается.
+    """
+    q = (query or "").strip()
+    if not q:
+        return None
+    m = _IMDB_ID_ONLY_RE.fullmatch(q)
+    if m:
+        return m.group(1).lower()
+    m = _IMDB_URL_ID_RE.search(q)
+    if m:
+        return m.group(1).lower()
+    return None
+
+
+def _year_from_date(value: Optional[str]) -> Optional[int]:
+    if value and len(value) >= 4 and value[:4].isdigit():
+        return int(value[:4])
+    return None
+
+
+def _tmdb_item_to_result(item: dict, media_type: str) -> MetadataResult:
+    title = item.get("title") or item.get("name") or ""
+    original = item.get("original_title") or item.get("original_name") or ""
+    titles_by_lang: dict[str, str] = {}
+    if title and any("Ѐ" <= c <= "ӿ" for c in title):
+        titles_by_lang["ru"] = title
+    elif title and is_latin_text(title):
+        titles_by_lang["en"] = title
+    if original:
+        titles_by_lang["original"] = original
+        if "en" not in titles_by_lang and is_latin_text(original):
+            titles_by_lang["en"] = original
+    poster = item.get("poster_path")
+    return MetadataResult(
+        external_id=f"{media_type}:{item['id']}",
+        title=title or original,
+        year=_year_from_date(item.get("release_date") or item.get("first_air_date")),
+        overview=item.get("overview"),
+        poster_url=f"{TMDBClient.IMAGE_BASE}{poster}" if poster else None,
+        rating=item.get("vote_average"),
+        content_type="movie" if media_type == "movie" else "series",
+        original_title=original or None,
+        titles_by_lang=titles_by_lang,
+    )
+
+
+def _details_to_result(details: MetadataShowDetails, content_type: str) -> MetadataResult:
+    return MetadataResult(
+        external_id=details.external_id,
+        title=details.title,
+        year=details.year or _year_from_date(details.premiere_date),
+        overview=details.overview,
+        poster_url=details.poster_url,
+        rating=details.rating,
+        country=details.country,
+        genre=details.genre,
+        content_type=details.content_type or content_type,
+        original_title=details.original_title,
+        titles_by_lang=dict(details.titles_by_lang or {}),
+    )
+
+
+async def search_by_imdb_id(
+    imdb_id: str,
+    overview_language: str = "ru",
+    title_language: str = "ru",
+) -> list[MetadataResult]:
+    """Находит фильм или сериал по IMDb ID.
+
+    TMDB /find определяет, что это за тайтл. Результаты возвращаются в тех же
+    форматах, что и обычный поиск, чтобы импорт шёл через привычные источники:
+    фильмы — через Radarr Cloud («movie:<tmdb>»), сериалы — через Sonarr SkyHook
+    по TVDB ID («tvdb:<id>»), а если у сериала нет TVDB ID — через TMDB («tv:<id>»).
+    """
+    if httpx is None or not imdb_id:
+        return []
+
+    radarr = RadarrClient(overview_language=overview_language, title_language=title_language)
+    tmdb_headers = {"Authorization": f"Bearer {RadarrClient.RADARR_TMDB_TOKEN}", "accept": "application/json"}
+    lang = "ru-RU" if (normalize_metadata_lang_code(title_language) or title_language) in ("ru", "rus") else "en-US"
+
+    movie_items: list[dict] = []
+    tv_items: list[dict] = []
+    async with httpx.AsyncClient(timeout=20) as client:
+        try:
+            resp = await client.get(
+                f"{TMDBClient.BASE_URL}/find/{imdb_id}",
+                params={"external_source": "imdb_id", "language": lang},
+                headers=tmdb_headers,
+            )
+            if resp.status_code == 200:
+                data = resp.json() or {}
+                movie_items = [i for i in data.get("movie_results") or [] if i.get("id")]
+                tv_items = [i for i in data.get("tv_results") or [] if i.get("id")]
+        except Exception as exc:
+            logger.debug("TMDB find by IMDb %s failed: %s", imdb_id, exc)
+
+        tvdb_ids: dict[int, Optional[int]] = {}
+        for item in tv_items:
+            try:
+                resp = await client.get(f"{TMDBClient.BASE_URL}/tv/{item['id']}/external_ids", headers=tmdb_headers)
+                tvdb_ids[item["id"]] = (resp.json() or {}).get("tvdb_id") if resp.status_code == 200 else None
+            except Exception as exc:
+                logger.debug("TMDB external_ids for tv %s failed: %s", item["id"], exc)
+                tvdb_ids[item["id"]] = None
+
+    results: list[MetadataResult] = []
+
+    if movie_items or not tv_items:
+        # Radarr Cloud ищет фильм по IMDb напрямую; это и основной путь для фильмов,
+        # и запасной, если TMDB недоступен.
+        try:
+            movie = await radarr._get_movie_by_imdb(imdb_id)
+        except Exception as exc:
+            logger.debug("Radarr lookup by IMDb %s failed: %s", imdb_id, exc)
+            movie = None
+        if movie:
+            results.append(movie)
+        else:
+            results.extend(_tmdb_item_to_result(item, "movie") for item in movie_items)
+
+    skyhook = SkyHookClient(overview_language=overview_language, title_language=title_language)
+    for item in tv_items:
+        tvdb_id = tvdb_ids.get(item["id"])
+        if tvdb_id:
+            try:
+                details = await skyhook.get_details(f"tvdb:{tvdb_id}")
+                if details and details.title:
+                    results.append(_details_to_result(details, "series"))
+                    continue
+            except Exception as exc:
+                logger.debug("SkyHook details for tvdb:%s failed: %s", tvdb_id, exc)
+        results.append(_tmdb_item_to_result(item, "tv"))
+
+    return results

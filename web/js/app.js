@@ -132,6 +132,56 @@ function applyDesign(design, isUserAction = false) {
 
 function selectDesignSystem(design) {
   applyDesign(design, true);
+  persistAppearance({ design_system: document.documentElement.getAttribute("data-design") || "classic" });
+}
+
+// ---------- СОХРАНЕНИЕ ВНЕШНЕГО ВИДА ----------
+// Тема, дизайн, полосы прокрутки и стекло применяются сразу при выборе, поэтому
+// и на сервер уходят сразу, а не только по кнопке «Сохранить»: иначе при следующем
+// запуске настройки с сервера перетирали выбор, и тема «не сохранялась».
+// Пока сервер не подтвердил запись (нет сети, нет прав manage_settings), выбор
+// хранится в localStorage и при запуске имеет приоритет над значением с сервера.
+const APPEARANCE_LOCAL_KEY = "aliasarr_appearance_local";
+let _APPEARANCE_SAVE_CHAIN = Promise.resolve();
+
+function readLocalAppearance() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(APPEARANCE_LOCAL_KEY) || "{}");
+    return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  } catch (e) { return {}; }
+}
+
+function writeLocalAppearance(value) {
+  try {
+    if (Object.keys(value).length) localStorage.setItem(APPEARANCE_LOCAL_KEY, JSON.stringify(value));
+    else localStorage.removeItem(APPEARANCE_LOCAL_KEY);
+  } catch (e) {}
+}
+
+// Настройки с сервера с учётом локального выбора, который сервер ещё не принял.
+function mergeLocalAppearance(s) {
+  return Object.assign({}, s || {}, readLocalAppearance());
+}
+
+function persistAppearance(patch) {
+  writeLocalAppearance(Object.assign(readLocalAppearance(), patch));
+  _APPEARANCE_SAVE_CHAIN = _APPEARANCE_SAVE_CHAIN
+    .then(() => api("/api/v1/settings", { method: "PUT", body: JSON.stringify(patch) }))
+    .then(() => {
+      const local = readLocalAppearance();
+      for (const [key, value] of Object.entries(patch)) {
+        if (local[key] === value) delete local[key];
+      }
+      writeLocalAppearance(local);
+      if (CACHED_APP_SETTINGS) Object.assign(CACHED_APP_SETTINGS, patch);
+    })
+    .catch(() => {});
+  return _APPEARANCE_SAVE_CHAIN;
+}
+
+function selectTheme(theme) {
+  applyTheme(theme);
+  persistAppearance({ theme: USER_THEME });
 }
 
 function updateDesignSettingsUI(currentDesign) {
@@ -205,6 +255,12 @@ function applyScrollbarMode(mode, isUserAction = false) {
 
 function selectScrollbarMode(mode) {
   applyScrollbarMode(mode, true);
+  persistAppearance({ scrollbar_mode: document.documentElement.getAttribute("data-scrollbar") || "autohide" });
+}
+
+function selectGlassMode(mode) {
+  applyGlassMode(mode, true);
+  persistAppearance({ glass_mode: document.documentElement.getAttribute("data-glass") || "off" });
 }
 
 // ---------- ЭФФЕКТЫ СТЕКЛА (backdrop-filter) ----------
@@ -1586,9 +1642,9 @@ const TRANSLATIONS = {
     "wizard.step_search_sub": "Выбор тайтла",
     "wizard.step_setup": "2. Настройка",
     "wizard.step_setup_sub": "Параметры и профиль",
-    "wizard.search_placeholder": "Название фильма, сериала или аниме…",
+    "wizard.search_placeholder": "Название, IMDb ID (tt0903747) или ссылка на IMDb…",
     "wizard.search_empty_title": "Найдите фильм, сериал или аниме",
-    "wizard.search_empty_desc": "Введите название на русском, английском или языке оригинала для поиска через подключенные базы метаданных.",
+    "wizard.search_empty_desc": "Введите название на русском, английском или языке оригинала — или вставьте IMDb ID (tt0903747) либо ссылку на страницу IMDb.",
     "wizard.back": "Назад",
     "wizard.select": "Выбрать",
     "wizard.already_in_library": "В медиатеке",
@@ -3261,9 +3317,9 @@ const TRANSLATIONS = {
     "wizard.step_search_sub": "Select title",
     "wizard.step_setup": "2. Setup",
     "wizard.step_setup_sub": "Parameters and profile",
-    "wizard.search_placeholder": "Movie, series, or anime title…",
+    "wizard.search_placeholder": "Title, IMDb ID (tt0903747) or IMDb link…",
     "wizard.search_empty_title": "Find movies, series, or anime",
-    "wizard.search_empty_desc": "Enter a title in English, Russian, or native language to search via configured metadata sources.",
+    "wizard.search_empty_desc": "Enter a title in English, Russian, or the original language — or paste an IMDb ID (tt0903747) or an IMDb page link.",
     "wizard.back": "Back",
     "wizard.select": "Select",
     "wizard.already_in_library": "In Library",
@@ -12528,7 +12584,7 @@ async function executeShowRemapSearch() {
     }
 
     resultsContainer.innerHTML = `
-      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(135px, 1fr)); gap:10px;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(135px, 1fr)); grid-auto-rows:max-content; align-content:start; gap:10px;">
         ${results.map((r, idx) => `
           <div class="metadata-poster-card" id="remap-card-${idx}" style="${r.poster_url ? `background-image: url('${escapeHtml(r.poster_url)}');` : ''} min-height:190px;" onclick="chooseShowRemapResultByIndex(${idx})" title="${escapeHtml(r.title || '')}">
             ${!r.poster_url ? `<div class="metadata-poster-fallback" style="font-size:32px;">${escapeHtml((r.title || '?')[0].toUpperCase())}</div>` : ""}
@@ -18025,7 +18081,7 @@ function updateMinSeedsAvailability() {
 
 async function loadGeneralSettings() {
   try {
-    const s = await api("/api/v1/settings");
+    const s = mergeLocalAppearance(await api("/api/v1/settings"));
     CACHED_APP_SETTINGS = s;
     const keyInp = document.getElementById("setting-apikey");
     if (keyInp) keyInp.value = s.api_key || "";
@@ -18128,6 +18184,7 @@ async function saveInterfaceSettings(btn) {
           glass_mode,
         }),
       });
+      writeLocalAppearance({});
       applyTheme(theme);
       applyLanguage(language);
       applyScrollbarMode(scrollbar_mode);
@@ -24503,7 +24560,7 @@ async function startApp() {
   restartTasksPolling(3500);
 
   try {
-    const s = await api("/api/v1/settings");
+    const s = mergeLocalAppearance(await api("/api/v1/settings"));
     if (s && s.language) {
       applyLanguage(s.language);
     }

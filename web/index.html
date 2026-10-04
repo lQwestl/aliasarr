@@ -1907,7 +1907,7 @@
             </div>
             <div class="settings-field-group">
               <label class="settings-field-label" data-i18n="settings.theme">Тема</label>
-              <select id="setting-theme" class="input" onchange="applyTheme(this.value)">
+              <select id="setting-theme" class="input" onchange="selectTheme(this.value)">
                 <option value="dark" data-i18n="settings.theme_dark">Неоновая полночь</option>
                 <option value="obsidian" data-i18n="settings.theme_obsidian">Обсидиан (Obsidian Aurora)</option>
                 <option value="dracula" data-i18n="settings.theme_dracula">Дракула</option>
@@ -1926,7 +1926,7 @@
             </div>
             <div class="settings-field-group">
               <label class="settings-field-label"><span data-i18n="settings.glass">Эффекты стекла</span> <span class="settings-field-hint" data-i18n="settings.glass_hint">(размытие подложки, нагружает видеокарту)</span></label>
-              <select id="setting-glass" class="input" onchange="applyGlassMode(this.value, true)">
+              <select id="setting-glass" class="input" onchange="selectGlassMode(this.value)">
                 <option value="off" data-i18n="settings.glass_off">Выключено (рекомендуется)</option>
                 <option value="on" data-i18n="settings.glass_on">Включено (размытие подложки)</option>
               </select>
