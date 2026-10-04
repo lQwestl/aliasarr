@@ -1394,7 +1394,7 @@
           <span data-i18n="design_studio.sec_search">Поиск и HUD</span>
         </button>
         <button type="button" class="studio-subnav-btn" data-section="badges" onclick="switchStudioSection('badges')">
-          <i data-lucide="sparkles" class="ico-xs"></i>
+          <i data-lucide="tag" class="ico-xs"></i>
           <span data-i18n="design_studio.sec_badges">Бейджи и Стекло</span>
         </button>
         <button type="button" class="studio-subnav-btn" data-section="presets" onclick="switchStudioSection('presets')">
@@ -1879,7 +1879,7 @@
               </label>
               <div class="studio-cards-grid">
                 <div class="studio-card-option studio-card-poster-option active" data-card-style="neoglass" onclick="setCardStyle('neoglass')">
-                  <div class="studio-card-option-icon"><i data-lucide="sparkles" class="ico-xs"></i></div>
+                  <div class="studio-card-option-icon"><i data-lucide="layers" class="ico-xs"></i></div>
                   <span class="studio-card-option-title" data-i18n="card_style.neoglass_title">Neo-Glass</span>
                   <span class="studio-card-option-desc" data-i18n="card_style.neoglass_desc">Парящая карточка со стеклянной панелью метаданных и неоновой полосой прогресса.</span>
                 </div>
@@ -1908,7 +1908,7 @@
                   <span class="studio-card-option-desc" data-i18n="collections_card_style.classic_desc">Оригинальный вид коллекций со встроенным неоновым баром прогресса фильмов на постере, счетчиком частей и процентом.</span>
                 </div>
                 <div class="studio-card-option studio-card-coll-option" data-coll-card-style="neoglass" onclick="setCollectionsCardStyle('neoglass')">
-                  <div class="studio-card-option-icon"><i data-lucide="sparkles" class="ico-xs"></i></div>
+                  <div class="studio-card-option-icon"><i data-lucide="layers" class="ico-xs"></i></div>
                   <span class="studio-card-option-title" data-i18n="card_style.neoglass_title">Neo-Glass</span>
                   <span class="studio-card-option-desc" data-i18n="card_style.neoglass_desc">Чистый монолитный постер с парящим стеклянным статусом в углу, ультратонким 3px микро-прогрессом и компактной строкой качества.</span>
                 </div>
@@ -1945,7 +1945,7 @@
                   <span class="studio-card-option-desc" data-i18n="search_layout.spotlight_bar_desc">Гармоничная стеклянная капсула по центру шапки со свободным размещением шортката и открытием парящего поиска.</span>
                 </div>
                 <div class="studio-card-option studio-search-layout-option" data-search-layout="action_btn" onclick="setSearchLayoutStyle('action_btn')">
-                  <div class="studio-card-option-icon"><i data-lucide="sparkles" class="ico-xs"></i></div>
+                  <div class="studio-card-option-icon"><i data-lucide="sliders" class="ico-xs"></i></div>
                   <span class="studio-card-option-title" data-i18n="search_layout.action_btn_title">Кнопка поиска</span>
                   <span class="studio-card-option-desc" data-i18n="search_layout.action_btn_desc">Компактная кнопка с вызовом диалога быстрого поиска.</span>
                 </div>
@@ -1969,7 +1969,7 @@
                   <span class="studio-card-option-desc" data-i18n="search_style.vanguard_desc">Hi-Tech капсула со статусной плашкой и счетчиком этапов опроса.</span>
                 </div>
                 <div class="studio-card-option studio-search-progress-option" data-search-progress="laserstrip" onclick="setSearchProgressStyle('laserstrip')">
-                  <div class="studio-card-option-icon"><i data-lucide="sparkles" class="ico-xs"></i></div>
+                  <div class="studio-card-option-icon"><i data-lucide="activity" class="ico-xs"></i></div>
                   <span class="studio-card-option-title" data-i18n="search_style.laserstrip_title">Laser Strip</span>
                   <span class="studio-card-option-desc" data-i18n="search_style.laserstrip_desc">Неоновый лазерный луч с градиентным переливом по краю.</span>
                 </div>
@@ -2068,12 +2068,14 @@
         <div class="design-studio-preview-wrap">
           <div class="studio-preview-card">
             <div class="studio-preview-header">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <div style="width:10px; height:10px; border-radius:50%; background:var(--teal); box-shadow:0 0 8px var(--teal);"></div>
-                <span style="font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:0.5px;" data-i18n="design_studio.live_preview">Интерактивная сцена</span>
-                <span class="badge badge-secondary" style="font-size:11px;" data-i18n="design_studio.realtime">Real-time</span>
+              <div class="studio-preview-header-top">
+                <div class="studio-preview-title-wrap">
+                  <div class="studio-preview-dot"></div>
+                  <span class="studio-preview-title" data-i18n="design_studio.live_preview">Интерактивная сцена</span>
+                </div>
+                <span class="badge badge-secondary studio-preview-badge" data-i18n="design_studio.realtime">Real-time</span>
               </div>
-              <div class="studio-preview-mode-tabs">
+              <div class="studio-preview-mode-tabs" role="tablist">
                 <button class="studio-preview-tab-btn active" data-preview-mode="card" onclick="setStudioPreviewMode('card')" data-i18n="design_studio.preview_card">Карточка</button>
                 <button class="studio-preview-tab-btn" data-preview-mode="collections" onclick="setStudioPreviewMode('collections')" data-i18n="design_studio.preview_collections">Саги</button>
                 <button class="studio-preview-tab-btn" data-preview-mode="search" onclick="setStudioPreviewMode('search')" data-i18n="design_studio.preview_search">Поиск</button>

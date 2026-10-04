@@ -108,5 +108,35 @@ class TestAppearancePersistence(unittest.TestCase):
                 )
 
 
+class TestDesignStudioLayout(unittest.TestCase):
+    def test_container_uses_flexible_grid_tracks(self):
+        style = read(STYLE_PATH)
+        container = css_rule(style, ".design-studio-container")
+        self.assertIn("minmax(0, 1fr)", container)
+        self.assertIn("box-sizing: border-box", container)
+
+    def test_controls_and_preview_wrappers_have_min_width_zero(self):
+        style = read(STYLE_PATH)
+        controls = css_rule(style, ".design-studio-controls")
+        self.assertIn("min-width: 0", controls)
+        preview_wrap = css_rule(style, ".design-studio-preview-wrap")
+        self.assertIn("min-width: 0", preview_wrap)
+
+    def test_preview_header_stacks_and_tabs_scroll_horizontally(self):
+        style = read(STYLE_PATH)
+        header = css_rule(style, ".studio-preview-header")
+        self.assertIn("flex-direction: column", header)
+        self.assertIn("min-width: 0", header)
+
+        tabs = css_rule(style, ".studio-preview-mode-tabs")
+        self.assertIn("overflow-x: auto", tabs)
+        self.assertIn("scrollbar-width: none", tabs)
+
+    def test_preview_card_uses_safe_glass_blur_fallback(self):
+        style = read(STYLE_PATH)
+        card = css_rule(style, ".studio-preview-card")
+        self.assertIn("backdrop-filter: var(--glass-blur, none)", card)
+
+
 if __name__ == "__main__":
     unittest.main()
