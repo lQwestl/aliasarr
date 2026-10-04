@@ -340,19 +340,19 @@
             <div class="dash-stat-main-val" id="stat-shows">—</div>
           </div>
           <div class="dash-stat-subitems">
-            <div class="dash-subitem">
+            <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryCategory('series');" style="cursor:pointer;" title="Сериалы в библиотеке">
               <span class="dash-subitem-label"><i data-lucide="tv" class="ico-xxs" style="color:var(--teal)"></i> <span data-i18n="dash.series">Сериалы</span></span>
               <span class="dash-subitem-val" id="stat-series">0</span>
             </div>
-            <div class="dash-subitem">
+            <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryCategory('movies');" style="cursor:pointer;" title="Фильмы в библиотеке">
               <span class="dash-subitem-label"><i data-lucide="film" class="ico-xxs" style="color:#fbbf24"></i> <span data-i18n="dash.movies">Фильмы</span></span>
               <span class="dash-subitem-val" id="stat-movies">0</span>
             </div>
-            <div class="dash-subitem">
+            <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryCategory('anime');" style="cursor:pointer;" title="Аниме в библиотеке">
               <span class="dash-subitem-label"><i data-lucide="clapperboard" class="ico-xxs" style="color:#ff2a4d"></i> <span data-i18n="dash.anime">Аниме</span></span>
               <span class="dash-subitem-val" id="stat-anime">0</span>
             </div>
-            <div class="dash-subitem">
+            <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryCategory('all');" style="cursor:pointer;" title="Вся библиотека">
               <span class="dash-subitem-label"><i data-lucide="layers" class="ico-xxs text-muted"></i> <span data-i18n="dash.total">Всего</span></span>
               <span class="dash-subitem-val" id="stat-shows-sub">0</span>
             </div>
@@ -374,19 +374,19 @@
             </div>
           </div>
           <div class="dash-stat-subitems">
-            <div class="dash-subitem">
+            <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryMonitor('monitored');" style="cursor:pointer;" title="Отслеживаемые тайтлы">
               <span class="dash-subitem-label"><i data-lucide="bookmark-check" class="ico-xxs" style="color:#10b981"></i> <span data-i18n="dash.monitored">Отслеживается</span></span>
               <span class="dash-subitem-val" style="color:#10b981" id="stat-monitored">0</span>
             </div>
-            <div class="dash-subitem">
+            <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryMonitor('unmonitored');" style="cursor:pointer;" title="Не отслеживаемые тайтлы">
               <span class="dash-subitem-label"><i data-lucide="bookmark-minus" class="ico-xxs text-muted"></i> <span data-i18n="dash.unmonitored">Не отслеж.</span></span>
               <span class="dash-subitem-val" style="color:var(--text-muted)" id="stat-unmonitored">0</span>
             </div>
-            <div class="dash-subitem">
+            <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryMonitor('ended');" style="cursor:pointer;" title="Завершённые тайтлы">
               <span class="dash-subitem-label"><i data-lucide="check-circle-2" class="ico-xxs text-muted"></i> <span data-i18n="dash.ended">Завершён</span></span>
               <span class="dash-subitem-val" id="stat-ended">0</span>
             </div>
-            <div class="dash-subitem">
+            <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryMonitor('continuing');" style="cursor:pointer;" title="Тайтлы в эфире">
               <span class="dash-subitem-label"><i data-lucide="play-circle" class="ico-xxs text-info"></i> <span data-i18n="dash.continuing">В эфире</span></span>
               <span class="dash-subitem-val" id="stat-continuing">0</span>
             </div>
@@ -410,19 +410,19 @@
             </div>
           </div>
           <div class="dash-stat-subitems">
-            <div class="dash-subitem">
+            <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryMonitor('wanted');" style="cursor:pointer;" title="Разыскиваемые релизы">
               <span class="dash-subitem-label"><i data-lucide="search" class="ico-xxs" style="color:#fbbf24"></i> <span data-i18n="dash.wanted">В поиске</span></span>
               <span class="dash-subitem-val" style="color:#fbbf24" id="stat-wanted">0</span>
             </div>
-            <div class="dash-subitem">
+            <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('activity');" style="cursor:pointer;" title="Перейти в очередь загрузок">
               <span class="dash-subitem-label"><i data-lucide="arrow-down-circle" class="ico-xxs" style="color:var(--violet)"></i> <span data-i18n="dash.downloading">Качается</span></span>
               <span class="dash-subitem-val" style="color:var(--violet)" id="stat-downloading">0</span>
             </div>
-            <div class="dash-subitem">
+            <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library');" style="cursor:pointer;" title="Скачанные медиафайлы">
               <span class="dash-subitem-label"><i data-lucide="check" class="ico-xxs" style="color:var(--teal)"></i> <span data-i18n="dash.downloaded">Скачано</span></span>
               <span class="dash-subitem-val" style="color:var(--teal)" id="stat-downloaded">0</span>
             </div>
-            <div class="dash-subitem">
+            <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('calendar');" style="cursor:pointer;" title="Перейти в календарь премьер">
               <span class="dash-subitem-label"><i data-lucide="clock" class="ico-xxs text-muted"></i> <span data-i18n="dash.unaired">Не вышло</span></span>
               <span class="dash-subitem-val" style="color:var(--text-muted)" id="stat-unaired">0</span>
             </div>
@@ -1846,6 +1846,20 @@
 
       <!-- ПАНЕЛЬ 1: ОБЩИЕ -->
       <div id="settings-general" class="settings-panel active">
+        <!-- Навигационные чипы разделов общих настроек -->
+        <div class="settings-subnav-bar" id="settings-general-subnav">
+          <div class="settings-subnav-scroll">
+            <a href="#card-system-apikey" class="settings-subnav-chip active" onclick="scrollToSettingsCard('card-system-apikey', event)"><i data-lucide="key" class="ico-xxs"></i><span data-i18n="settings.chip_apikey">API & Доступ</span></a>
+            <a href="#card-interface" class="settings-subnav-chip" onclick="scrollToSettingsCard('card-interface', event)"><i data-lucide="palette" class="ico-xxs"></i><span data-i18n="settings.chip_interface">Интерфейс</span></a>
+            <a href="#card-design" class="settings-subnav-chip" onclick="scrollToSettingsCard('card-design', event)"><i data-lucide="layout-template" class="ico-xxs"></i><span data-i18n="settings.chip_design">Дизайн</span></a>
+            <a href="#card-folders" class="settings-subnav-chip" onclick="scrollToSettingsCard('card-folders', event)"><i data-lucide="folder-tree" class="ico-xxs"></i><span data-i18n="settings.chip_folders">Папки и Имена</span></a>
+            <a href="#card-extra-files" class="settings-subnav-chip" onclick="scrollToSettingsCard('card-extra-files', event)"><i data-lucide="file-symlink" class="ico-xxs"></i><span data-i18n="settings.chip_extra">Экстра-файлы</span></a>
+            <a href="#card-hardlinks" class="settings-subnav-chip" onclick="scrollToSettingsCard('card-hardlinks', event)"><i data-lucide="link-2" class="ico-xxs"></i><span data-i18n="settings.chip_hardlinks">Hardlinks</span></a>
+            <a href="#card-autosearch" class="settings-subnav-chip" onclick="scrollToSettingsCard('card-autosearch', event)"><i data-lucide="search" class="ico-xxs"></i><span data-i18n="settings.chip_autosearch">Автопоиск</span></a>
+            <a href="#card-experimental-settings" class="settings-subnav-chip" onclick="scrollToSettingsCard('card-experimental-settings', event)"><i data-lucide="flask-conical" class="ico-xxs"></i><span data-i18n="settings.chip_experimental">Эксперименты</span></a>
+          </div>
+        </div>
+
         <!-- API Ключ -->
         <div class="settings-section-card" id="card-system-apikey">
           <div class="settings-card-header">
@@ -1885,7 +1899,7 @@
         </div>
 
         <!-- Интерфейс -->
-        <div class="settings-section-card">
+        <div class="settings-section-card" id="card-interface">
           <div class="settings-card-header">
             <div class="settings-card-header-left">
               <div class="settings-card-icon-badge">
@@ -2462,7 +2476,7 @@
         </div>
 
         <!-- Дизайн интерфейса -->
-        <div class="settings-section-card" style="margin-bottom: 24px;">
+        <div class="settings-section-card" id="card-design" style="margin-bottom: 24px;">
           <div class="settings-card-header">
             <div class="settings-card-header-left">
               <div class="settings-card-icon-badge">
@@ -2597,7 +2611,8 @@
                 </div>
               </div>
               <div class="design-card-footer">
-            </div>
+                <button class="btn btn-secondary btn-small w-full" data-i18n="settings.btn_select_design">Выбрать стиль</button>
+              </div>
 
             <!-- 4. Студия дизайна (Custom Studio) -->
             <div class="design-card" data-design-choice="studio" onclick="selectDesignSystem('studio')">
@@ -2640,7 +2655,7 @@
         </div>
 
         <!-- Папки и переименование по категориям -->
-        <div class="settings-section-card">
+        <div class="settings-section-card" id="card-folders">
           <div class="settings-card-header">
             <div class="settings-card-header-left">
               <div class="settings-card-icon-badge">
@@ -2721,6 +2736,50 @@
             </table>
           </div>
 
+          <!-- Интерактивная песочница переименования -->
+          <div class="naming-simulator-panel" id="naming-simulator-panel">
+            <div class="naming-simulator-header">
+              <div class="naming-simulator-title">
+                <i data-lucide="sparkles" class="ico-xs text-teal"></i>
+                <span data-i18n="settings.naming_sim_title">Живая песочница переименования</span>
+              </div>
+              <div class="naming-simulator-modes">
+                <button type="button" class="btn-sim-cat active" data-sim-cat="series" onclick="switchNamingSimCat('series')">
+                  <i data-lucide="tv" class="ico-xxs"></i> <span data-i18n="settings.cat_series">Сериалы</span>
+                </button>
+                <button type="button" class="btn-sim-cat" data-sim-cat="movie" onclick="switchNamingSimCat('movie')">
+                  <i data-lucide="film" class="ico-xxs"></i> <span data-i18n="settings.cat_movies">Фильмы</span>
+                </button>
+                <button type="button" class="btn-sim-cat" data-sim-cat="anime" onclick="switchNamingSimCat('anime')">
+                  <i data-lucide="clapperboard" class="ico-xxs"></i> <span data-i18n="settings.cat_anime">Аниме</span>
+                </button>
+              </div>
+            </div>
+            <div class="naming-simulator-body">
+              <div class="naming-sim-result-box">
+                <div class="naming-sim-result-meta">
+                  <span class="naming-sim-tag" data-i18n="settings.naming_sim_disk_preview">Файл на диске:</span>
+                  <span class="naming-sim-badge-ok"><i data-lucide="check-circle" class="ico-xxs"></i> <span data-i18n="settings.naming_sim_syntax_valid">Синтаксис корректен</span></span>
+                </div>
+                <div class="naming-sim-path-display">
+                  <span class="sim-path-root" id="naming-sim-root">/data/series/</span><span class="sim-path-folder" id="naming-sim-folder">Breaking Bad/Season 01/</span><span class="sim-path-file" id="naming-sim-filename">Breaking Bad - S01E01 - Pilot [WEBDL-1080p Proper].mkv</span>
+                </div>
+              </div>
+              <div class="naming-sim-quick-tokens">
+                <span class="naming-sim-tokens-title" data-i18n="settings.naming_sim_add_token">Быстрая вставка токена:</span>
+                <div class="naming-sim-tokens-list" id="naming-sim-tokens-list">
+                  <button type="button" class="token-chip" onclick="insertSimToken('{Series Title}')">{Series Title}</button>
+                  <button type="button" class="token-chip" onclick="insertSimToken('{Movie Title}')">{Movie Title}</button>
+                  <button type="button" class="token-chip" onclick="insertSimToken('({Release Year})')">({Release Year})</button>
+                  <button type="button" class="token-chip" onclick="insertSimToken('S{season:00}E{episode:00}')">S{season:00}E{episode:00}</button>
+                  <button type="button" class="token-chip" onclick="insertSimToken('{Episode Title}')">{Episode Title}</button>
+                  <button type="button" class="token-chip" onclick="insertSimToken('{Quality Full}')">{Quality Full}</button>
+                  <button type="button" class="token-chip" onclick="insertSimToken('{MediaInfo AudioCodec}')">{MediaInfo AudioCodec}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div style="margin-top:16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <button class="btn btn-primary" onclick="saveFolderSettings(this)" data-i18n="common.save">Сохранить</button>
             <button type="button" class="btn btn-secondary" onclick="fixAllMediaPermissions(this)" title="Рекурсивно применить права доступа (chmod 0777/0666) ко всем папкам медиатеки для Jellyfin / Plex">
@@ -2730,7 +2789,7 @@
         </div>
 
         <!-- Дополнительные файлы (Extra Files) -->
-        <div class="settings-section-card">
+        <div class="settings-section-card" id="card-extra-files">
           <div class="settings-card-header">
             <div class="settings-card-header-left">
               <div class="settings-card-icon-badge">
@@ -2767,7 +2826,7 @@
         </div>
 
         <!-- Жесткие ссылки (Hardlinks) -->
-        <div class="settings-section-card">
+        <div class="settings-section-card" id="card-hardlinks">
           <div class="settings-card-header">
             <div class="settings-card-header-left">
               <div class="settings-card-icon-badge">
@@ -2790,6 +2849,45 @@
               </label>
             </div>
 
+            <!-- Карточки-эксплейнеры Hardlinks -->
+            <div class="settings-explainer-card" style="grid-column: 1 / -1;">
+              <div class="explainer-box explainer-box-why">
+                <div class="explainer-tag"><i data-lucide="target" class="ico-xxs"></i> <span data-i18n="settings.explainer_why_title">Зачем это нужно</span></div>
+                <div class="explainer-text" data-i18n="settings.hardlink_why_desc">Позволяет воспроизводить фильмы в Jellyfin/Plex и одновременно раздавать торренты без удвоения дискового пространства (0 байт).</div>
+              </div>
+              <div class="explainer-box explainer-box-rec">
+                <div class="explainer-tag"><i data-lucide="zap" class="ico-xxs"></i> <span data-i18n="settings.explainer_rec_title">Рекомендуемое значение</span></div>
+                <div class="explainer-text" data-i18n="settings.hardlink_rec_desc">Включите, если загрузки и медиатека находятся на одном томе/диске (единый том в Docker).</div>
+              </div>
+              <div class="explainer-box explainer-box-warn">
+                <div class="explainer-tag"><i data-lucide="alert-triangle" class="ico-xxs"></i> <span data-i18n="settings.explainer_warn_title">Предостережение</span></div>
+                <div class="explainer-text" data-i18n="settings.hardlink_warn_desc">Жесткие ссылки не могут быть созданы между разными дисками или томами (ошибка EXDEV: cross-device link). В этом случае Aliasarr выполнит безопасное копирование.</div>
+              </div>
+            </div>
+
+            <!-- Визуализатор иерархии папок -->
+            <div class="folder-hierarchy-visualizer" style="grid-column: 1 / -1;">
+              <div class="f-hierarchy-node node-download">
+                <div class="f-node-icon"><i data-lucide="download-cloud"></i></div>
+                <div class="f-node-info">
+                  <div class="f-node-title" data-i18n="settings.hierarchy_downloads_title">Папка загрузок</div>
+                  <div class="f-node-path">/downloads/complete</div>
+                  <div class="f-node-desc" data-i18n="settings.hierarchy_downloads_desc">Сидирование в клиенте</div>
+                </div>
+              </div>
+              <div class="f-hierarchy-link">
+                <div class="f-link-badge"><i data-lucide="link" class="ico-xxs"></i> <span>Hardlink (0 B)</span></div>
+              </div>
+              <div class="f-hierarchy-node node-media">
+                <div class="f-node-icon"><i data-lucide="play-square"></i></div>
+                <div class="f-node-info">
+                  <div class="f-node-title" data-i18n="settings.hierarchy_media_title">Папка медиатеки</div>
+                  <div class="f-node-path">/data/series | /data/movies</div>
+                  <div class="f-node-desc" data-i18n="settings.hierarchy_media_desc">Воспроизведение Jellyfin / Plex</div>
+                </div>
+              </div>
+            </div>
+
             <div style="grid-column: 1 / -1; margin-top: 4px;">
               <button class="btn btn-primary" onclick="saveHardlinksSettings(this)" data-i18n="common.save">Сохранить</button>
             </div>
@@ -2797,7 +2895,7 @@
         </div>
 
         <!-- Автопоиск и скачивание -->
-        <div class="settings-section-card">
+        <div class="settings-section-card" id="card-autosearch">
           <div class="settings-card-header">
             <div class="settings-card-header-left">
               <div class="settings-card-icon-badge">

@@ -974,6 +974,28 @@ const TRANSLATIONS = {
     "servarr.search_add_new": "Искать «{q}» для добавления",
     "servarr.menu": "Меню",
     "settings.btn_select_design": "Выбрать стиль",
+    "settings.chip_apikey": "API & Доступ",
+    "settings.chip_interface": "Интерфейс",
+    "settings.chip_design": "Дизайн",
+    "settings.chip_folders": "Папки и Имена",
+    "settings.chip_extra": "Экстра-файлы",
+    "settings.chip_hardlinks": "Hardlinks",
+    "settings.chip_autosearch": "Автопоиск",
+    "settings.chip_experimental": "Эксперименты",
+    "settings.naming_sim_title": "Живая песочница переименования",
+    "settings.naming_sim_disk_preview": "Файл на диске:",
+    "settings.naming_sim_syntax_valid": "Синтаксис корректен",
+    "settings.naming_sim_add_token": "Быстрая вставка токена:",
+    "settings.hierarchy_downloads_title": "Папка загрузок",
+    "settings.hierarchy_downloads_desc": "Сидирование в клиенте",
+    "settings.hierarchy_media_title": "Папка медиатеки",
+    "settings.hierarchy_media_desc": "Воспроизведение Jellyfin / Plex",
+    "settings.explainer_why_title": "Зачем это нужно",
+    "settings.explainer_rec_title": "Рекомендуемое значение",
+    "settings.explainer_warn_title": "Предостережение",
+    "settings.hardlink_why_desc": "Позволяет воспроизводить фильмы в Jellyfin/Plex и одновременно раздавать торренты без удвоения дискового пространства (0 байт).",
+    "settings.hardlink_rec_desc": "Включите, если загрузки и медиатека находятся на одном томе/диске (единый том в Docker).",
+    "settings.hardlink_warn_desc": "Жесткие ссылки не могут быть созданы между разными дисками или томами (ошибка EXDEV: cross-device link). В этом случае Aliasarr выполнит безопасное копирование.",
     "settings.apikey_title": "API-ключ",
     "settings.apikey_label": "API-ключ",
     "settings.apikey_hint": "используется этим интерфейсом и внешними клиентами для запросов к серверу",
@@ -2649,6 +2671,28 @@ const TRANSLATIONS = {
     "servarr.search_add_new": "Search for “{q}” to add",
     "servarr.menu": "Menu",
     "settings.btn_select_design": "Select Style",
+    "settings.chip_apikey": "API & Access",
+    "settings.chip_interface": "Interface",
+    "settings.chip_design": "Design",
+    "settings.chip_folders": "Folders & Names",
+    "settings.chip_extra": "Extra Files",
+    "settings.chip_hardlinks": "Hardlinks",
+    "settings.chip_autosearch": "Autosearch",
+    "settings.chip_experimental": "Experiments",
+    "settings.naming_sim_title": "Live Renaming Sandbox",
+    "settings.naming_sim_disk_preview": "File on Disk:",
+    "settings.naming_sim_syntax_valid": "Syntax Valid",
+    "settings.naming_sim_add_token": "Quick Token Insert:",
+    "settings.hierarchy_downloads_title": "Downloads Directory",
+    "settings.hierarchy_downloads_desc": "Seeding in Torrent Client",
+    "settings.hierarchy_media_title": "Media Library Directory",
+    "settings.hierarchy_media_desc": "Direct Playback in Jellyfin / Plex",
+    "settings.explainer_why_title": "Why It Matters",
+    "settings.explainer_rec_title": "Recommended Setting",
+    "settings.explainer_warn_title": "Important Warning",
+    "settings.hardlink_why_desc": "Allows playback in Jellyfin/Plex while actively seeding torrents without duplicating disk space (0 bytes).",
+    "settings.hardlink_rec_desc": "Enable if both downloads and media library reside on the same volume/filesystem (single Docker mount).",
+    "settings.hardlink_warn_desc": "Hardlinks cannot span across different drives or datasets (EXDEV cross-device link error). Aliasarr will fall back to safe copy.",
     "settings.apikey_title": "API Key",
     "settings.apikey_label": "API Key",
     "settings.apikey_hint": "used by this web UI and external clients to query the server",
@@ -18153,8 +18197,10 @@ async function loadGeneralSettings() {
       if (regenBtn) regenBtn.disabled = false;
     }
     updateDesignSettingsUI();
+    updateLiveNamingSimulator();
   } catch (e) {
     updateDesignSettingsUI();
+    updateLiveNamingSimulator();
   }
 
   try {
@@ -18935,11 +18981,101 @@ function renderTemplatesHelpPreview() {
   }
 }
 
+// =============================================================================
+// SETTINGS HUB 2.0: LIVE NAMING SIMULATOR & SECTION SCROLLING
+// =============================================================================
+
+let currentSimCat = "series";
+
+function switchNamingSimCat(cat) {
+  currentSimCat = cat;
+  document.querySelectorAll(".btn-sim-cat").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("data-sim-cat") === cat);
+  });
+  updateLiveNamingSimulator();
+}
+
+function insertSimToken(token) {
+  const inputId = currentSimCat === "movie" ? "setting-template-movie" : (currentSimCat === "anime" ? "setting-template-anime" : "setting-template-series");
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  const start = el.selectionStart ?? el.value.length;
+  const end = el.selectionEnd ?? el.value.length;
+  const val = el.value;
+  el.value = val.substring(0, start) + token + val.substring(end);
+  el.focus();
+  el.selectionStart = el.selectionEnd = start + token.length;
+  updateLiveNamingSimulator();
+}
+
+function updateLiveNamingSimulator() {
+  const inputId = currentSimCat === "movie" ? "setting-template-movie" : (currentSimCat === "anime" ? "setting-template-anime" : "setting-template-series");
+  const rootId = currentSimCat === "movie" ? "setting-root-movies" : (currentSimCat === "anime" ? "setting-root-anime" : "setting-root-series");
+  const seasonId = currentSimCat === "series" ? "setting-season-folder-series" : "setting-season-folder-anime";
+
+  const templateInput = document.getElementById(inputId);
+  const rootInput = document.getElementById(rootId);
+  const seasonInput = document.getElementById(seasonId);
+
+  const rootEl = document.getElementById("naming-sim-root");
+  const folderEl = document.getElementById("naming-sim-folder");
+  const fileEl = document.getElementById("naming-sim-filename");
+
+  const template = templateInput?.value?.trim() || (currentSimCat === "movie" ? "{Movie Title} ({Release Year}) {Quality Full}" : "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}");
+  const root = rootInput?.value?.trim() || (currentSimCat === "movie" ? "/data/movies/" : (currentSimCat === "anime" ? "/data/anime/" : "/data/series/"));
+  const normalizedRoot = root.endsWith("/") ? root : root + "/";
+
+  if (rootEl) rootEl.textContent = normalizedRoot;
+
+  if (folderEl) {
+    if (currentSimCat === "movie") {
+      folderEl.textContent = "Inception (2010)/";
+    } else if (currentSimCat === "anime") {
+      const seasonPattern = seasonInput?.value?.trim() || "Сезон {season}";
+      const seasonFolder = seasonPattern.replace(/\{season(?::\d+)?\}/gi, "01");
+      folderEl.textContent = `Attack on Titan/${seasonFolder}/`;
+    } else {
+      const seasonPattern = seasonInput?.value?.trim() || "Сезон {season}";
+      const seasonFolder = seasonPattern.replace(/\{season(?::\d+)?\}/gi, "01");
+      folderEl.textContent = `Breaking Bad/${seasonFolder}/`;
+    }
+  }
+
+  if (fileEl && typeof formatSonarrTemplatePreview === "function") {
+    try {
+      const rendered = formatSonarrTemplatePreview(template, currentSimCat);
+      fileEl.textContent = rendered ? `${rendered}.mkv` : "Breaking Bad - S01E01 - Pilot [WEBDL-1080p Proper].mkv";
+    } catch (e) {
+      fileEl.textContent = template + ".mkv";
+    }
+  }
+}
+
+function scrollToSettingsCard(cardId, event) {
+  if (event) event.preventDefault();
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+  document.querySelectorAll(".settings-subnav-chip").forEach(chip => {
+    chip.classList.toggle("active", chip.getAttribute("href") === `#${cardId}`);
+  });
+}
+
 // Пересчитываем превью при вводе в поля шаблонов и при смене активного поля справочника
 document.addEventListener("DOMContentLoaded", () => {
-  ["setting-template-series", "setting-template-anime", "setting-template-movie"].forEach(id => {
+  const templateFieldIds = [
+    "setting-template-series", "setting-template-anime", "setting-template-movie",
+    "setting-root-series", "setting-root-anime", "setting-root-movies",
+    "setting-season-folder-series", "setting-season-folder-anime"
+  ];
+  templateFieldIds.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener("input", renderTemplatesHelpPreview);
+    if (el) {
+      el.addEventListener("input", () => {
+        renderTemplatesHelpPreview();
+        updateLiveNamingSimulator();
+      });
+    }
   });
   const targetSelect = document.getElementById("templates-help-target");
   if (targetSelect) targetSelect.addEventListener("change", renderTemplatesHelpPreview);
