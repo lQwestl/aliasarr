@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='17' fill='%230f1048'/%3E%3Cpath d='M32 14L43 36' stroke='%232a197c' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M15 49L32 14' stroke='%236838f7' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 36H43L49 49' stroke='%236838f7' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Roboto:wght@300;400;500;700&family=Ubuntu+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Roboto:wght@300;400;500;700&family=Ubuntu+Mono:wght@400;700&family=Outfit:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/ui/static/css/style.css?v=20260918-1">
 <link rel="stylesheet" href="/ui/static/css/servarr.css?v=20260918-1">
 <script>
@@ -1364,12 +1364,48 @@
         </header>
       </div>
 
+      <!-- Навигационная панель секций Студии дизайна -->
+      <div class="studio-subnav-bar" id="studio-subnav-bar">
+        <button type="button" class="studio-subnav-btn active" data-section="all" onclick="switchStudioSection('all')">
+          <i data-lucide="layers" class="ico-xs"></i>
+          <span data-i18n="design_studio.sec_all">Все настройки</span>
+        </button>
+        <button type="button" class="studio-subnav-btn" data-section="design" onclick="switchStudioSection('design')">
+          <i data-lucide="layout-template" class="ico-xs"></i>
+          <span data-i18n="design_studio.sec_design">Дизайн и Каркас</span>
+        </button>
+        <button type="button" class="studio-subnav-btn" data-section="themes" onclick="switchStudioSection('themes')">
+          <i data-lucide="palette" class="ico-xs"></i>
+          <span data-i18n="design_studio.sec_themes">Темы и Цвета</span>
+        </button>
+        <button type="button" class="studio-subnav-btn" data-section="typography" onclick="switchStudioSection('typography')">
+          <i data-lucide="type" class="ico-xs"></i>
+          <span data-i18n="design_studio.sec_typography">Типографика</span>
+        </button>
+        <button type="button" class="studio-subnav-btn" data-section="cards" onclick="switchStudioSection('cards')">
+          <i data-lucide="layout-grid" class="ico-xs"></i>
+          <span data-i18n="design_studio.sec_cards">Стили карточек</span>
+        </button>
+        <button type="button" class="studio-subnav-btn" data-section="search" onclick="switchStudioSection('search')">
+          <i data-lucide="search" class="ico-xs"></i>
+          <span data-i18n="design_studio.sec_search">Поиск и HUD</span>
+        </button>
+        <button type="button" class="studio-subnav-btn" data-section="badges" onclick="switchStudioSection('badges')">
+          <i data-lucide="sparkles" class="ico-xs"></i>
+          <span data-i18n="design_studio.sec_badges">Бейджи и Стекло</span>
+        </button>
+        <button type="button" class="studio-subnav-btn" data-section="presets" onclick="switchStudioSection('presets')">
+          <i data-lucide="wand-2" class="ico-xs"></i>
+          <span data-i18n="design_studio.sec_presets">Пресеты</span>
+        </button>
+      </div>
+
       <div class="design-studio-container">
         <!-- ЛЕВАЯ КОЛОНКА: ИНСТРУМЕНТЫ НАСТРОЙКИ -->
         <div class="design-studio-controls">
           
           <!-- БЛОК 1: ПРЕСЕТЫ И СТИЛИ -->
-          <div class="settings-section-card studio-card">
+          <div class="settings-section-card studio-card" data-studio-card="presets">
             <div class="settings-card-header">
               <div class="settings-card-header-left">
                 <div class="settings-card-icon-badge"><i data-lucide="layers"></i></div>
@@ -1452,7 +1488,7 @@
           </div>
 
           <!-- БЛОК 2: КОНСТРУКТОР БЕЙДЖЕЙ (BADGE STUDIO) -->
-          <div class="settings-section-card studio-card">
+          <div class="settings-section-card studio-card" data-studio-card="badges">
             <div class="settings-card-header">
               <div class="settings-card-header-left">
                 <div class="settings-card-icon-badge"><i data-lucide="tag"></i></div>
@@ -1527,7 +1563,7 @@
           </div>
 
           <!-- БЛОК 3: СТУДИЯ ТИПОГРАФИКИ И ШРИФТОВ (TYPOGRAPHY STUDIO) -->
-          <div class="settings-section-card studio-card">
+          <div class="settings-section-card studio-card" data-studio-card="typography">
             <div class="settings-card-header">
               <div class="settings-card-header-left">
                 <div class="settings-card-icon-badge"><i data-lucide="type"></i></div>
@@ -1545,6 +1581,7 @@
                   <span data-i18n="design_studio.ui_font">Основной шрифт интерфейса (UI)</span>
                 </label>
                 <select class="input studio-select" id="studio-ui-font-select" onchange="setStudioUiFont(this.value)">
+                  <option value="geist">Geist (Linear / Vercel Modern)</option>
                   <option value="outfit" selected>Outfit (Современный геометричный)</option>
                   <option value="inter">Inter (Швейцарский нейтральный)</option>
                   <option value="roboto">Roboto (Классический Android/Google)</option>
@@ -1559,6 +1596,7 @@
                   <span data-i18n="design_studio.mono_font">Шрифт метаданных и кодеков (Mono)</span>
                 </label>
                 <select class="input studio-select" id="studio-mono-font-select" onchange="setStudioMonoFont(this.value)">
+                  <option value="geist-mono">Geist Mono (Hi-Tech Terminal)</option>
                   <option value="jetbrains" selected>JetBrains Mono (Специализированный)</option>
                   <option value="ubuntu">Ubuntu Mono (Компактный)</option>
                 </select>
@@ -1579,13 +1617,43 @@
           </div>
 
           <!-- БЛОК 4: АРХИТЕКТУРА КАРКАСА И ВЕРСТКА (APP SHELL) -->
-          <div class="settings-section-card studio-card">
+          <div class="settings-section-card studio-card" data-studio-card="design">
             <div class="settings-card-header">
               <div class="settings-card-header-left">
                 <div class="settings-card-icon-badge"><i data-lucide="layout"></i></div>
                 <div class="settings-card-title-wrap">
                   <h3 data-i18n="design_studio.layout_title">Каркас и компоновка (App Shell)</h3>
                   <p class="subtitle" data-i18n="design_studio.layout_subtitle">Расположение навигации, ширина страниц и организация рабочих зон</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Выбор дизайн-системы -->
+            <div style="margin-top: 18px; margin-bottom: 20px; border-bottom: 1px dashed var(--border); padding-bottom: 18px;">
+              <label class="settings-field-label" style="margin-bottom: 8px;">
+                <span data-i18n="settings.design_title">Дизайн интерфейса</span>
+              </label>
+              <div class="studio-design-grid">
+                <div class="studio-design-choice-card active" data-design-choice="modern" onclick="selectDesignSystem('modern')">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="layout" class="ico-xs" style="color:var(--teal);"></i>
+                    <span style="font-weight:700; font-size:13px;" data-i18n="settings.design_modern_title">Aliasarr Modern</span>
+                  </div>
+                  <span style="font-size:11px; color:var(--text-muted); line-height:1.35;" data-i18n="settings.design_modern_desc">Современный технологичный интерфейс в стиле Linear / Raycast с адаптивной сеткой и микро-тенями.</span>
+                </div>
+                <div class="studio-design-choice-card" data-design-choice="servarr" onclick="selectDesignSystem('servarr')">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="layout-grid" class="ico-xs" style="color:var(--yellow, #eab308);"></i>
+                    <span style="font-weight:700; font-size:13px;" data-i18n="settings.design_servarr_title">Servarr Classic</span>
+                  </div>
+                  <span style="font-size:11px; color:var(--text-muted); line-height:1.35;" data-i18n="settings.design_servarr_desc">Классический стиль Sonarr v4. Контрастные плоские карточки и фирменная цветовая гамма.</span>
+                </div>
+                <div class="studio-design-choice-card" data-design-choice="studio" onclick="selectDesignSystem('studio')">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="palette" class="ico-xs" style="color:var(--violet, #a855f7);"></i>
+                    <span style="font-weight:700; font-size:13px;" data-i18n="settings.design_studio_title">Custom Studio</span>
+                  </div>
+                  <span style="font-size:11px; color:var(--text-muted); line-height:1.35;" data-i18n="settings.design_studio_desc">Интерактивный конструктор. Полный контроль над палитрой, шрифтами, бейджами и геометрией.</span>
                 </div>
               </div>
             </div>
@@ -1694,13 +1762,68 @@
           </div>
 
           <!-- БЛОК 3: ЦВЕТОВАЯ ПАЛИТРА И АКЦЕНТЫ -->
-          <div class="settings-section-card studio-card">
+          <div class="settings-section-card studio-card" data-studio-card="themes">
             <div class="settings-card-header">
               <div class="settings-card-header-left">
                 <div class="settings-card-icon-badge"><i data-lucide="paint-bucket"></i></div>
                 <div class="settings-card-title-wrap">
                   <h3 data-i18n="design_studio.colors_title">Цветовая палитра и акценты</h3>
                   <p class="subtitle" data-i18n="design_studio.colors_subtitle">Глубина темного фона, неоновые акценты и семантические маркеры</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5 калиброванных палитр защиты зрения -->
+            <div style="margin-top: 18px; margin-bottom: 22px; border-bottom: 1px dashed var(--border); padding-bottom: 18px;">
+              <label class="settings-field-label" style="margin-bottom: 8px;">
+                <span data-i18n="design_studio.system_themes">Эргономичные темы защиты зрения</span>
+                <span class="settings-field-hint" data-i18n="design_studio.system_themes_sub">(калиброванные палитры без утомления глаз)</span>
+              </label>
+              <div class="studio-themes-grid">
+                <div class="studio-theme-choice-card active" data-theme-choice="slate" onclick="selectTheme('slate')">
+                  <div class="studio-theme-palette-preview">
+                    <span class="studio-theme-palette-color" style="background:#0b0f19;"></span>
+                    <span class="studio-theme-palette-color" style="background:#131c2e;"></span>
+                    <span class="studio-theme-palette-color" style="background:#00F0FF;"></span>
+                  </div>
+                  <div style="font-size:12.5px; font-weight:700;">Nordic Slate</div>
+                  <div style="font-size:11px; color:var(--text-muted);" data-i18n="design_studio.theme_slate_desc">Холодный графит и морозная сталь для повседневной работы</div>
+                </div>
+                <div class="studio-theme-choice-card" data-theme-choice="oled" onclick="selectTheme('oled')">
+                  <div class="studio-theme-palette-preview">
+                    <span class="studio-theme-palette-color" style="background:#000000;"></span>
+                    <span class="studio-theme-palette-color" style="background:#0a0a0a;"></span>
+                    <span class="studio-theme-palette-color" style="background:#00F0FF;"></span>
+                  </div>
+                  <div style="font-size:12.5px; font-weight:700;">OLED Void</div>
+                  <div style="font-size:11px; color:var(--text-muted);" data-i18n="design_studio.theme_oled_desc">Абсолютный черный 0 nit и хирургический титан</div>
+                </div>
+                <div class="studio-theme-choice-card" data-theme-choice="indigo" onclick="selectTheme('indigo')">
+                  <div class="studio-theme-palette-preview">
+                    <span class="studio-theme-palette-color" style="background:#0a0b14;"></span>
+                    <span class="studio-theme-palette-color" style="background:#111425;"></span>
+                    <span class="studio-theme-palette-color" style="background:#818cf8;"></span>
+                  </div>
+                  <div style="font-size:12.5px; font-weight:700;">Deep Midnight</div>
+                  <div style="font-size:11px; color:var(--text-muted);" data-i18n="design_studio.theme_indigo_desc">Глубокий ночной индиго и барвинковый акцент</div>
+                </div>
+                <div class="studio-theme-choice-card" data-theme-choice="pine" onclick="selectTheme('pine')">
+                  <div class="studio-theme-palette-preview">
+                    <span class="studio-theme-palette-color" style="background:#070f0b;"></span>
+                    <span class="studio-theme-palette-color" style="background:#0e1c15;"></span>
+                    <span class="studio-theme-palette-color" style="background:#34d399;"></span>
+                  </div>
+                  <div style="font-size:12.5px; font-weight:700;">Emerald Spruce</div>
+                  <div style="font-size:11px; color:var(--text-muted);" data-i18n="design_studio.theme_pine_desc">Хвойный сланец и мягкий шалфей (минимальное утомление)</div>
+                </div>
+                <div class="studio-theme-choice-card" data-theme-choice="paper" onclick="selectTheme('paper')">
+                  <div class="studio-theme-palette-preview">
+                    <span class="studio-theme-palette-color" style="background:#f4f5f7;"></span>
+                    <span class="studio-theme-palette-color" style="background:#ffffff;"></span>
+                    <span class="studio-theme-palette-color" style="background:#2563eb;"></span>
+                  </div>
+                  <div style="font-size:12.5px; font-weight:700; color:#111;">Daylight Paper</div>
+                  <div style="font-size:11px; color:#555;" data-i18n="design_studio.theme_paper_desc">Матовая типографская бумага для светлых комнат</div>
                 </div>
               </div>
             </div>
@@ -1734,8 +1857,135 @@
             </div>
           </div>
 
+          <!-- БЛОК: СТИЛИ КАРТОЧЕК МЕДИАТЕКИ И КОЛЛЕКЦИЙ -->
+          <div class="settings-section-card studio-card" data-studio-card="cards">
+            <div class="settings-card-header">
+              <div class="settings-card-header-left">
+                <div class="settings-card-icon-badge"><i data-lucide="layout-grid"></i></div>
+                <div class="settings-card-title-wrap">
+                  <h3 data-i18n="design_studio.cards_hub_title">Стили карточек медиатеки и коллекций</h3>
+                  <p class="subtitle" data-i18n="design_studio.cards_hub_subtitle">Единый центр настройки отображения постеров, саг и франшиз</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Стили постеров в библиотеке -->
+            <div style="margin-top: 18px; margin-bottom: 20px;">
+              <label class="settings-field-label" style="margin-bottom: 8px;">
+                <span data-i18n="design_studio.library_cards_title">Стиль постеров в библиотеке</span>
+              </label>
+              <div class="studio-cards-grid">
+                <div class="studio-card-option studio-card-poster-option active" data-card-style="neoglass" onclick="setCardStyle('neoglass')">
+                  <div class="studio-card-option-icon"><i data-lucide="sparkles" class="ico-xs"></i></div>
+                  <span class="studio-card-option-title" data-i18n="card_style.neoglass_title">Neo-Glass</span>
+                  <span class="studio-card-option-desc" data-i18n="card_style.neoglass_desc">Парящая карточка со стеклянной панелью метаданных и неоновой полосой прогресса.</span>
+                </div>
+                <div class="studio-card-option studio-card-poster-option" data-card-style="cinematic" onclick="setCardStyle('cinematic')">
+                  <div class="studio-card-option-icon"><i data-lucide="film" class="ico-xs"></i></div>
+                  <span class="studio-card-option-title" data-i18n="card_style.cinematic_title">Cinematic</span>
+                  <span class="studio-card-option-desc" data-i18n="card_style.cinematic_desc">Постер на весь фон с градиентным затемнением снизу и микро-бейджем серий.</span>
+                </div>
+                <div class="studio-card-option studio-card-poster-option" data-card-style="classic" onclick="setCardStyle('classic')">
+                  <div class="studio-card-option-icon"><i data-lucide="layout-template" class="ico-xs"></i></div>
+                  <span class="studio-card-option-title" data-i18n="card_style.classic_title">Classic</span>
+                  <span class="studio-card-option-desc" data-i18n="card_style.classic_desc">Традиционный вид со сплошной полосой прогресса под постером.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Стили карточек коллекций и саг -->
+            <div style="margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px;">
+              <label class="settings-field-label" style="margin-bottom: 8px;">
+                <span data-i18n="design_studio.collections_cards_title">Стиль карточек коллекций и саг</span>
+              </label>
+              <div class="studio-cards-grid">
+                <div class="studio-card-option studio-card-coll-option active" data-coll-card-style="classic" onclick="setCollectionsCardStyle('classic')">
+                  <div class="studio-card-option-icon"><i data-lucide="layout-template" class="ico-xs"></i></div>
+                  <span class="studio-card-option-title" data-i18n="card_style.classic_title">Классический</span>
+                  <span class="studio-card-option-desc" data-i18n="collections_card_style.classic_desc">Оригинальный вид коллекций со встроенным неоновым баром прогресса фильмов на постере, счетчиком частей и процентом.</span>
+                </div>
+                <div class="studio-card-option studio-card-coll-option" data-coll-card-style="neoglass" onclick="setCollectionsCardStyle('neoglass')">
+                  <div class="studio-card-option-icon"><i data-lucide="sparkles" class="ico-xs"></i></div>
+                  <span class="studio-card-option-title" data-i18n="card_style.neoglass_title">Neo-Glass</span>
+                  <span class="studio-card-option-desc" data-i18n="card_style.neoglass_desc">Чистый монолитный постер с парящим стеклянным статусом в углу, ультратонким 3px микро-прогрессом и компактной строкой качества.</span>
+                </div>
+                <div class="studio-card-option studio-card-coll-option" data-coll-card-style="cinematic" onclick="setCollectionsCardStyle('cinematic')">
+                  <div class="studio-card-option-icon"><i data-lucide="film" class="ico-xs"></i></div>
+                  <span class="studio-card-option-title" data-i18n="card_style.cinematic_title">Cinematic</span>
+                  <span class="studio-card-option-desc" data-i18n="card_style.cinematic_desc">Постер с мягким кинематографичным затемнением снизу, интегрированным статусом и минималистичной строкой метаданных.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- БЛОК: ПОИСК И HUD-ДИНАМИКА -->
+          <div class="settings-section-card studio-card" data-studio-card="search">
+            <div class="settings-card-header">
+              <div class="settings-card-header-left">
+                <div class="settings-card-icon-badge"><i data-lucide="search"></i></div>
+                <div class="settings-card-title-wrap">
+                  <h3 data-i18n="design_studio.search_hub_title">Поиск и HUD-динамика</h3>
+                  <p class="subtitle" data-i18n="design_studio.search_hub_subtitle">Расположение строки поиска и индикация этапов опроса трекеров</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Расположение строки поиска -->
+            <div style="margin-top: 18px; margin-bottom: 20px;">
+              <label class="settings-field-label" style="margin-bottom: 8px;">
+                <span data-i18n="search_layout.section_title">Расположение строки поиска</span>
+              </label>
+              <div class="studio-cards-grid">
+                <div class="studio-card-option studio-search-layout-option active" data-search-layout="spotlight_bar" onclick="setSearchLayoutStyle('spotlight_bar')">
+                  <div class="studio-card-option-icon"><i data-lucide="search" class="ico-xs"></i></div>
+                  <span class="studio-card-option-title" data-i18n="search_layout.spotlight_bar_title">Центральный Spotlight Bar</span>
+                  <span class="studio-card-option-desc" data-i18n="search_layout.spotlight_bar_desc">Гармоничная стеклянная капсула по центру шапки со свободным размещением шортката и открытием парящего поиска.</span>
+                </div>
+                <div class="studio-card-option studio-search-layout-option" data-search-layout="action_btn" onclick="setSearchLayoutStyle('action_btn')">
+                  <div class="studio-card-option-icon"><i data-lucide="sparkles" class="ico-xs"></i></div>
+                  <span class="studio-card-option-title" data-i18n="search_layout.action_btn_title">Кнопка поиска</span>
+                  <span class="studio-card-option-desc" data-i18n="search_layout.action_btn_desc">Компактная кнопка с вызовом диалога быстрого поиска.</span>
+                </div>
+                <div class="studio-card-option studio-search-layout-option" data-search-layout="classic_full" onclick="setSearchLayoutStyle('classic_full')">
+                  <div class="studio-card-option-icon"><i data-lucide="layout-template" class="ico-xs"></i></div>
+                  <span class="studio-card-option-title" data-i18n="search_layout.classic_full_title">Классическая строка</span>
+                  <span class="studio-card-option-desc" data-i18n="search_layout.classic_full_desc">Полноразмерная стандартная строка в шапке библиотеки.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Стиль прогресса сканирования трекеров -->
+            <div style="margin-top: 18px; border-top: 1px dashed var(--border); padding-top: 16px;">
+              <label class="settings-field-label" style="margin-bottom: 8px;">
+                <span data-i18n="search_style.section_title">Дизайн прогресса поиска</span>
+              </label>
+              <div class="studio-cards-grid">
+                <div class="studio-card-option studio-search-progress-option active" data-search-progress="vanguard" onclick="setSearchProgressStyle('vanguard')">
+                  <div class="studio-card-option-icon"><i data-lucide="cpu" class="ico-xs"></i></div>
+                  <span class="studio-card-option-title" data-i18n="search_style.vanguard_title">Vanguard HUD</span>
+                  <span class="studio-card-option-desc" data-i18n="search_style.vanguard_desc">Hi-Tech капсула со статусной плашкой и счетчиком этапов опроса.</span>
+                </div>
+                <div class="studio-card-option studio-search-progress-option" data-search-progress="laserstrip" onclick="setSearchProgressStyle('laserstrip')">
+                  <div class="studio-card-option-icon"><i data-lucide="sparkles" class="ico-xs"></i></div>
+                  <span class="studio-card-option-title" data-i18n="search_style.laserstrip_title">Laser Strip</span>
+                  <span class="studio-card-option-desc" data-i18n="search_style.laserstrip_desc">Неоновый лазерный луч с градиентным переливом по краю.</span>
+                </div>
+                <div class="studio-card-option studio-search-progress-option" data-search-progress="micropill" onclick="setSearchProgressStyle('micropill')">
+                  <div class="studio-card-option-icon"><i data-lucide="tag" class="ico-xs"></i></div>
+                  <span class="studio-card-option-title" data-i18n="search_style.micropill_title">Micro-Pill</span>
+                  <span class="studio-card-option-desc" data-i18n="search_style.micropill_desc">Компактная плашка со светящимся пульсирующим индикатором.</span>
+                </div>
+                <div class="studio-card-option studio-search-progress-option" data-search-progress="smartbutton" onclick="setSearchProgressStyle('smartbutton')">
+                  <div class="studio-card-option-icon"><i data-lucide="play" class="ico-xs"></i></div>
+                  <span class="studio-card-option-title" data-i18n="search_style.smartbutton_title">Smart Button</span>
+                  <span class="studio-card-option-desc" data-i18n="search_style.smartbutton_desc">Интеграция прогресса прямо в кнопку запуска поиска.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- БЛОК 4: МАТЕРИАЛЫ, СТЕКЛО И ГЕОМЕТРИЯ -->
-          <div class="settings-section-card studio-card">
+          <div class="settings-section-card studio-card" data-studio-card="badges">
             <div class="settings-card-header">
               <div class="settings-card-header-left">
                 <div class="settings-card-icon-badge"><i data-lucide="sliders-horizontal"></i></div>
@@ -1822,6 +2072,9 @@
               </div>
               <div class="studio-preview-mode-tabs">
                 <button class="studio-preview-tab-btn active" data-preview-mode="card" onclick="setStudioPreviewMode('card')" data-i18n="design_studio.preview_card">Карточка</button>
+                <button class="studio-preview-tab-btn" data-preview-mode="collections" onclick="setStudioPreviewMode('collections')" data-i18n="design_studio.preview_collections">Саги</button>
+                <button class="studio-preview-tab-btn" data-preview-mode="search" onclick="setStudioPreviewMode('search')" data-i18n="design_studio.preview_search">Поиск</button>
+                <button class="studio-preview-tab-btn" data-preview-mode="typography" onclick="setStudioPreviewMode('typography')" data-i18n="design_studio.preview_typography">Шрифты</button>
                 <button class="studio-preview-tab-btn" data-preview-mode="badges" onclick="setStudioPreviewMode('badges')" data-i18n="design_studio.preview_badges">Бейджи</button>
                 <button class="studio-preview-tab-btn" data-preview-mode="queue" onclick="setStudioPreviewMode('queue')" data-i18n="design_studio.preview_queue">Очередь</button>
                 <button class="studio-preview-tab-btn" data-preview-mode="form" onclick="setStudioPreviewMode('form')" data-i18n="design_studio.preview_form">Элементы UI</button>
@@ -1925,7 +2178,7 @@
 
         <!-- Интерфейс -->
         <div class="settings-section-card" id="card-interface">
-          <div class="settings-card-header">
+          <div class="settings-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div class="settings-card-header-left">
               <div class="settings-card-icon-badge">
                 <i data-lucide="palette"></i>
@@ -1935,6 +2188,10 @@
                 <p class="subtitle" data-i18n="settings.interface_subtitle">Язык, цветовая тема оформления, режим прокрутки и часовой пояс</p>
               </div>
             </div>
+            <button type="button" class="btn btn-secondary btn-small" onclick="switchTab('design-studio'); switchStudioSection('themes');" title="Открыть расширенную Студию дизайна">
+              <i data-lucide="palette" class="ico-xs"></i>
+              <span data-i18n="design_studio.open_studio">Студия дизайна</span>
+            </button>
           </div>
           <div class="form-grid-modern">
             <div class="settings-field-group">
@@ -2503,7 +2760,7 @@
 
         <!-- Дизайн интерфейса -->
         <div class="settings-section-card" id="card-design" style="margin-bottom: 24px;">
-          <div class="settings-card-header">
+          <div class="settings-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div class="settings-card-header-left">
               <div class="settings-card-icon-badge">
                 <i data-lucide="layout-template"></i>
@@ -2515,6 +2772,10 @@
                 </p>
               </div>
             </div>
+            <button type="button" class="btn btn-secondary btn-small" onclick="switchTab('design-studio'); switchStudioSection('design');" title="Открыть расширенную Студию дизайна">
+              <i data-lucide="layout-template" class="ico-xs"></i>
+              <span data-i18n="design_studio.open_studio">Студия дизайна</span>
+            </button>
           </div>
 
           <div class="design-cards-grid">
@@ -5552,7 +5813,7 @@
     <button class="modal-close" onclick="closeModal('card-style-modal')"><i data-lucide="x"></i></button>
     
     <!-- Секция 1: Стиль оформления карточек -->
-    <div class="settings-card-header" style="margin-bottom: 14px;">
+    <div class="settings-card-header" style="margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
       <div class="settings-card-header-left">
         <div class="settings-card-icon-badge">
           <i data-lucide="layout-template"></i>
@@ -5562,6 +5823,10 @@
           <p class="subtitle" data-i18n="card_style.modal_subtitle">Выберите визуальный режим отображения постеров и статусов в библиотеке</p>
         </div>
       </div>
+      <button type="button" class="btn btn-secondary btn-small" onclick="closeModal('card-style-modal'); switchTab('design-studio'); switchStudioSection('cards');" title="Открыть расширенную Студию дизайна">
+        <i data-lucide="palette" class="ico-xs"></i>
+        <span data-i18n="design_studio.open_studio">Студия дизайна</span>
+      </button>
     </div>
 
     <div class="card-styles-grid card-poster-styles-grid">
@@ -5910,7 +6175,7 @@
 <div id="collections-card-style-modal" class="modal-overlay">
   <div class="modal modal-medium" style="max-width: 720px;">
     <button class="modal-close" onclick="closeModal('collections-card-style-modal')"><i data-lucide="x"></i></button>
-    <div class="settings-card-header" style="margin-bottom: 20px;">
+    <div class="settings-card-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
       <div class="settings-card-header-left">
         <div class="settings-card-icon-badge">
           <i data-lucide="layout-template"></i>
@@ -5920,6 +6185,10 @@
           <p class="subtitle" data-i18n="collections_card_style.modal_subtitle">Выберите визуальный режим оформления франшиз и саг</p>
         </div>
       </div>
+      <button type="button" class="btn btn-secondary btn-small" onclick="closeModal('collections-card-style-modal'); switchTab('design-studio'); switchStudioSection('cards');" title="Открыть расширенную Студию дизайна">
+        <i data-lucide="palette" class="ico-xs"></i>
+        <span data-i18n="design_studio.open_studio">Студия дизайна</span>
+      </button>
     </div>
 
     <div class="card-styles-grid">

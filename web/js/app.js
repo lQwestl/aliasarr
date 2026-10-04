@@ -90,6 +90,9 @@ function applyTheme(theme) {
   if (themeSelect && themeSelect.value !== t) {
     themeSelect.value = t;
   }
+  document.querySelectorAll(".studio-theme-choice-card").forEach(card => {
+    card.classList.toggle("active", card.dataset.themeChoice === t);
+  });
 }
 
 // ---------- ДИЗАЙН-СИСТЕМА (modern / servarr / studio) ----------
@@ -210,7 +213,7 @@ function selectTheme(theme) {
 function updateDesignSettingsUI(currentDesign) {
   let d = currentDesign || document.documentElement.getAttribute("data-design") || localStorage.getItem("aliasarr_design") || "modern";
   if (d === "classic" || d === "vanguard") d = "modern";
-  document.querySelectorAll(".design-card[data-design-choice]").forEach(card => {
+  document.querySelectorAll(".design-card[data-design-choice], .studio-design-choice-card[data-design-choice]").forEach(card => {
     card.classList.toggle("active", card.dataset.designChoice === d);
   });
   const themeSelect = document.getElementById("setting-theme");
@@ -340,6 +343,31 @@ const TRANSLATIONS = {
     "subtitle.design_studio": "Интерактивный конструктор тем, цветовых палитр, стекломорфизма и верстки Aliasarr",
     "subtitle.collections": "Франшизы, саги и киноциклы ваших фильмов",
     "subtitle.blocklist": "Заблокированные раздачи, исключенные из автопоиска и загрузки",
+    "design_studio.sec_all": "Все настройки",
+    "design_studio.sec_design": "Дизайн и Каркас",
+    "design_studio.sec_themes": "Темы и Цвета",
+    "design_studio.sec_typography": "Типографика",
+    "design_studio.sec_cards": "Стили карточек",
+    "design_studio.sec_search": "Поиск и HUD",
+    "design_studio.sec_badges": "Бейджи и Стекло",
+    "design_studio.sec_presets": "Пресеты",
+    "design_studio.system_themes": "Эргономичные темы защиты зрения",
+    "design_studio.system_themes_sub": "5 выверенных палитр без паразитного утомления глаз",
+    "design_studio.theme_slate_desc": "Холодный графит и морозная сталь для повседневной работы",
+    "design_studio.theme_oled_desc": "Абсолютный черный 0 nit и хирургический титан",
+    "design_studio.theme_indigo_desc": "Глубокий ночной индиго и барвинковый акцент",
+    "design_studio.theme_pine_desc": "Хвойный сланец и мягкий шалфей (минимальное утомление)",
+    "design_studio.theme_paper_desc": "Матовая типографская бумага для светлых комнат",
+    "design_studio.cards_hub_title": "Стили карточек медиатеки и коллекций",
+    "design_studio.cards_hub_subtitle": "Единый центр настройки отображения постеров, саг и франшиз",
+    "design_studio.library_cards_title": "Стиль постеров в библиотеке",
+    "design_studio.collections_cards_title": "Стиль карточек коллекций и саг",
+    "design_studio.search_hub_title": "Поиск и HUD-динамика",
+    "design_studio.search_hub_subtitle": "Расположение строки поиска и индикация этапов опроса трекеров",
+    "design_studio.preview_collections": "Саги",
+    "design_studio.preview_search": "Поиск",
+    "design_studio.preview_typography": "Шрифты",
+    "design_studio.open_studio": "Студия дизайна",
     "design_studio.reset": "Сброс",
     "design_studio.reset_tooltip": "Сбросить все настройки к стандартным",
     "design_studio.export": "Экспорт",
@@ -2045,6 +2073,31 @@ const TRANSLATIONS = {
     "subtitle.design_studio": "Interactive builder for themes, color palettes, glassmorphism and app layouts",
     "subtitle.collections": "Franchises, sagas and movie universes",
     "subtitle.blocklist": "Blocked releases excluded from auto-search and downloads",
+    "design_studio.sec_all": "All Settings",
+    "design_studio.sec_design": "Design & Shell",
+    "design_studio.sec_themes": "Themes & Colors",
+    "design_studio.sec_typography": "Typography",
+    "design_studio.sec_cards": "Card Styles",
+    "design_studio.sec_search": "Search & HUD",
+    "design_studio.sec_badges": "Badges & Glass",
+    "design_studio.sec_presets": "Presets",
+    "design_studio.system_themes": "Eye-Friendly Color Themes",
+    "design_studio.system_themes_sub": "5 calibrated palettes with zero retinal fatigue",
+    "design_studio.theme_slate_desc": "Cool graphite and steel for daily focus",
+    "design_studio.theme_oled_desc": "True 0-nit black and surgical titanium",
+    "design_studio.theme_indigo_desc": "Deep night indigo with periwinkle accents",
+    "design_studio.theme_pine_desc": "Spruce obsidian and soft sage (lowest eye strain)",
+    "design_studio.theme_paper_desc": "Matte print paper for well-lit rooms",
+    "design_studio.cards_hub_title": "Library & Collections Card Styles",
+    "design_studio.cards_hub_subtitle": "Unified control center for show posters, sagas, and franchises",
+    "design_studio.library_cards_title": "Library Show Posters Style",
+    "design_studio.collections_cards_title": "Collections & Sagas Style",
+    "design_studio.search_hub_title": "Search & HUD Dynamics",
+    "design_studio.search_hub_subtitle": "Search bar layout and real-time tracker scan progress",
+    "design_studio.preview_collections": "Sagas",
+    "design_studio.preview_search": "Search",
+    "design_studio.preview_typography": "Typography",
+    "design_studio.open_studio": "Design Studio",
     "design_studio.reset": "Reset",
     "design_studio.reset_tooltip": "Reset all settings to default",
     "design_studio.export": "Export",
@@ -7109,9 +7162,9 @@ function setCardStyle(style) {
   CURRENT_CARD_STYLE = style;
   localStorage.setItem("aliasarr_card_style", style);
   
-  const options = document.querySelectorAll("#card-style-modal .card-poster-styles-grid .card-style-option");
+  const options = document.querySelectorAll("#card-style-modal .card-poster-styles-grid .card-style-option, .studio-card-poster-option");
   options.forEach(opt => {
-    const isThis = opt.id === `card-style-opt-${CURRENT_CARD_STYLE}`;
+    const isThis = opt.id === `card-style-opt-${CURRENT_CARD_STYLE}` || opt.dataset.cardStyle === CURRENT_CARD_STYLE;
     opt.classList.toggle("active", isThis);
   });
 
@@ -7131,9 +7184,9 @@ function setSearchProgressStyle(style) {
   CURRENT_SEARCH_PROGRESS_STYLE = style;
   try { localStorage.setItem("aliasarr_search_progress_style", style); } catch (e) {}
 
-  const searchOptions = document.querySelectorAll("#card-style-modal .search-progress-styles-grid .card-style-option, #card-style-modal .search-styles-grid .card-style-option");
+  const searchOptions = document.querySelectorAll("#card-style-modal .search-progress-styles-grid .card-style-option, #card-style-modal .search-styles-grid .card-style-option, .studio-search-progress-option");
   searchOptions.forEach(opt => {
-    const isThis = opt.id === `search-style-opt-${CURRENT_SEARCH_PROGRESS_STYLE}`;
+    const isThis = opt.id === `search-style-opt-${CURRENT_SEARCH_PROGRESS_STYLE}` || opt.dataset.searchProgress === CURRENT_SEARCH_PROGRESS_STYLE;
     opt.classList.toggle("active", isThis);
   });
 
@@ -7145,9 +7198,9 @@ function setSearchLayoutStyle(style) {
   CURRENT_SEARCH_LAYOUT_STYLE = style;
   try { localStorage.setItem("aliasarr_search_layout_style", style); } catch (e) {}
 
-  const layoutOptions = document.querySelectorAll("#card-style-modal .search-layout-styles-grid .card-style-option");
+  const layoutOptions = document.querySelectorAll("#card-style-modal .search-layout-styles-grid .card-style-option, .studio-search-layout-option");
   layoutOptions.forEach(opt => {
-    const isThis = opt.id === `search-layout-opt-${CURRENT_SEARCH_LAYOUT_STYLE}`;
+    const isThis = opt.id === `search-layout-opt-${CURRENT_SEARCH_LAYOUT_STYLE}` || opt.dataset.searchLayout === CURRENT_SEARCH_LAYOUT_STYLE;
     opt.classList.toggle("active", isThis);
   });
 
@@ -7557,9 +7610,9 @@ function applyPosterOptions() {
 let CURRENT_COLLECTIONS_CARD_STYLE = localStorage.getItem("aliasarr_collections_card_style") || "classic";
 
 function openCollectionsCardStyleModal() {
-  const options = document.querySelectorAll("#collections-card-style-modal .card-style-option");
+  const options = document.querySelectorAll("#collections-card-style-modal .card-style-option, .studio-card-coll-option");
   options.forEach(opt => {
-    const isThis = opt.id === `coll-card-style-opt-${CURRENT_COLLECTIONS_CARD_STYLE}`;
+    const isThis = opt.id === `coll-card-style-opt-${CURRENT_COLLECTIONS_CARD_STYLE}` || opt.dataset.collCardStyle === CURRENT_COLLECTIONS_CARD_STYLE;
     opt.classList.toggle("active", isThis);
   });
   openModal("collections-card-style-modal");
@@ -7571,9 +7624,9 @@ function setCollectionsCardStyle(style) {
   CURRENT_COLLECTIONS_CARD_STYLE = style;
   localStorage.setItem("aliasarr_collections_card_style", style);
   
-  const options = document.querySelectorAll("#collections-card-style-modal .card-style-option");
+  const options = document.querySelectorAll("#collections-card-style-modal .card-style-option, .studio-card-coll-option");
   options.forEach(opt => {
-    const isThis = opt.id === `coll-card-style-opt-${CURRENT_COLLECTIONS_CARD_STYLE}`;
+    const isThis = opt.id === `coll-card-style-opt-${CURRENT_COLLECTIONS_CARD_STYLE}` || opt.dataset.collCardStyle === CURRENT_COLLECTIONS_CARD_STYLE;
     opt.classList.toggle("active", isThis);
   });
 
@@ -26334,6 +26387,28 @@ function initDesignStudio() {
   if (window.lucide && lucide.createIcons) lucide.createIcons();
 }
 
+function switchStudioSection(section) {
+  const currentSection = section || "all";
+  document.querySelectorAll(".studio-subnav-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.section === currentSection);
+  });
+  const cards = document.querySelectorAll(".design-studio-controls .studio-card[data-studio-card]");
+  cards.forEach(card => {
+    if (currentSection === "all" || card.dataset.studioCard === currentSection) {
+      card.style.display = "";
+    } else {
+      card.style.display = "none";
+    }
+  });
+  if (currentSection !== "all") {
+    const target = document.querySelector(`.design-studio-controls .studio-card[data-studio-card="${currentSection}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+}
+window.switchStudioSection = switchStudioSection;
+
 function syncStudioControlsUI() {
   // Дизайн-архетипы (Skins)
   document.querySelectorAll("#studio-archetypes-grid .studio-archetype-card").forEach(card => {
@@ -26400,6 +26475,28 @@ function syncStudioControlsUI() {
   if (hexInput) hexInput.value = STUDIO_CURRENT_STATE.accent;
   const hexLabel = document.getElementById("studio-accent-hex-label");
   if (hexLabel) hexLabel.textContent = STUDIO_CURRENT_STATE.accent.toUpperCase();
+
+  // Синхронизация разделов дизайна, тем, карточек и поиска
+  const activeDesign = document.documentElement.getAttribute("data-design") || "modern";
+  document.querySelectorAll(".studio-design-choice-card").forEach(card => {
+    card.classList.toggle("active", card.dataset.designChoice === activeDesign);
+  });
+  const activeTheme = USER_THEME || "slate";
+  document.querySelectorAll(".studio-theme-choice-card").forEach(card => {
+    card.classList.toggle("active", card.dataset.themeChoice === activeTheme);
+  });
+  document.querySelectorAll(".studio-card-poster-option").forEach(card => {
+    card.classList.toggle("active", card.dataset.cardStyle === CURRENT_CARD_STYLE);
+  });
+  document.querySelectorAll(".studio-card-coll-option").forEach(card => {
+    card.classList.toggle("active", card.dataset.collCardStyle === CURRENT_COLLECTIONS_CARD_STYLE);
+  });
+  document.querySelectorAll(".studio-search-layout-option").forEach(card => {
+    card.classList.toggle("active", card.dataset.searchLayout === CURRENT_SEARCH_LAYOUT_STYLE);
+  });
+  document.querySelectorAll(".studio-search-progress-option").forEach(card => {
+    card.classList.toggle("active", card.dataset.searchProgress === CURRENT_SEARCH_PROGRESS_STYLE);
+  });
 }
 
 function renderStudioPresets() {
@@ -26914,6 +27011,63 @@ function renderStudioPreviewCanvas() {
             <span>68% (46.5 GB)</span>
             <span style="color:var(--teal); font-weight:700;">18.4 MB/s</span>
           </div>
+        </div>
+      </div>
+    `;
+  } else if (STUDIO_PREVIEW_MODE === "collections") {
+    canvas.innerHTML = `
+      <div style="width: 260px; display: flex; flex-direction: column;">
+        <div class="show-card collection-card card-style-${CURRENT_COLLECTIONS_CARD_STYLE || 'neoglass'}" style="box-shadow: 0 12px 30px rgba(0,0,0,0.5);">
+          <div class="show-poster-wrap" style="position:relative; aspect-ratio: 2/3; background: #161b26; overflow:hidden; border-radius:var(--radius-sm, 10px);">
+            <div style="width:100%; height:100%; background: linear-gradient(135deg, rgba(234,179,8,0.2), rgba(104,56,247,0.3)), url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 150\'%3E%3Crect width=\'100\' height=\'150\' fill=\'%23121824\'/%3E%3Cpath d=\'M30 40 L70 40 L70 110 L30 110 Z\' fill=\'none\' stroke=\'rgba(234,179,8,0.2)\' stroke-width=\'2\'/%3E%3Ctext x=\'50\' y=\'80\' fill=\'rgba(234,179,8,0.5)\' font-size=\'11\' text-anchor=\'middle\' font-family=\'sans-serif\'%3ESAGA%3C/text%3E%3C/svg%3E') center/cover; display:flex; align-items:flex-end; justify-content:center; padding:16px;">
+            </div>
+            <div class="collection-badge-count" style="position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.15); border-radius:999px; padding:2px 8px; font-size:11px; font-weight:700; color:#fff;">
+              <i data-lucide="layers" class="ico-xxs" style="margin-right:3px;"></i> 3 части
+            </div>
+            <div class="collection-progress-bar-wrap" style="position:absolute; bottom:0; left:0; right:0; height:4px; background:rgba(0,0,0,0.5);">
+              <div style="width:100%; height:100%; background:var(--teal, #00F0FF);"></div>
+            </div>
+          </div>
+          <div class="show-info" style="padding: 12px 4px 6px 4px;">
+            <div class="show-title" style="font-weight:700; font-size:14px; margin-bottom:4px; font-family:var(--font-body);">Властелин колец (Трилогия)</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px; color:var(--text-muted);">3 / 3 фильма</span>
+              <span class="badge badge-success">Собрана</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (STUDIO_PREVIEW_MODE === "search") {
+    canvas.innerHTML = `
+      <div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Строка быстрого поиска</div>
+        <div style="position:relative; width:100%;">
+          <i data-lucide="search" class="ico-xs text-muted" style="position:absolute; left:12px; top:50%; transform:translateY(-50%);"></i>
+          <input type="text" class="input" value="Дюна: Часть вторая (2024)" style="padding-left:36px; padding-right:70px; width:100%; border-color:var(--teal); box-shadow:0 0 10px rgba(var(--accent-rgb, 0, 240, 255), 0.2);">
+          <span class="badge badge-secondary" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:10px; font-family:var(--font-mono);">⌘K</span>
+        </div>
+        <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:6px;">Индикатор сканирования трекеров (HUD)</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm, 10px);">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="mini-dot green" style="box-shadow:0 0 6px #10b981;"></span>
+            <span style="font-size:12.5px; font-weight:600; font-family:var(--font-body);">RuTracker, NNM-Club, Kinozal</span>
+          </div>
+          <span class="badge badge-primary" style="font-family:var(--font-mono); font-size:11px;">24 релиза</span>
+        </div>
+      </div>
+    `;
+  } else if (STUDIO_PREVIEW_MODE === "typography") {
+    canvas.innerHTML = `
+      <div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="font-family:var(--font-body); font-size:20px; font-weight:700; color:var(--text); line-height:1.2;">
+          Интеллектуальная медиатека Aliasarr
+        </div>
+        <div style="font-family:var(--font-body); font-size:13px; color:var(--text-muted); line-height:1.5;">
+          Четкая типографика без размытия субпикселей. Автоматический пересчет контраста, калиброванные межбуквенные интервалы и поддержка всех языков.
+        </div>
+        <div style="padding:10px 12px; background:rgba(255,255,255,0.03); border:1px dashed var(--border); border-radius:var(--radius-sm, 8px); font-family:var(--font-mono); font-size:11.5px; color:var(--teal);">
+          RELEASE: Dune.Part.Two.2024.UHD.Remux.2160p.TrueHD.Atmos.7.1-FraMeSToR
         </div>
       </div>
     `;

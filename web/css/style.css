@@ -20213,12 +20213,14 @@ html[data-design="studio"][data-badge-color="high-contrast"] .badge,
 }
 
 /* --- 8. СТУДИЯ ТИПОГРАФИКИ (TYPOGRAPHY STUDIO) --- */
+html[data-design="studio"][data-ui-font="geist"], .studio-preview-canvas[data-ui-font="geist"] { --font-body: 'Geist', -apple-system, sans-serif !important; }
 html[data-design="studio"][data-ui-font="outfit"], .studio-preview-canvas[data-ui-font="outfit"] { --font-body: 'Outfit', sans-serif !important; }
 html[data-design="studio"][data-ui-font="inter"], .studio-preview-canvas[data-ui-font="inter"] { --font-body: 'Inter', -apple-system, sans-serif !important; }
 html[data-design="studio"][data-ui-font="roboto"], .studio-preview-canvas[data-ui-font="roboto"] { --font-body: 'Roboto', sans-serif !important; }
 html[data-design="studio"][data-ui-font="syne"], .studio-preview-canvas[data-ui-font="syne"] { --font-body: 'Syne', sans-serif !important; }
 html[data-design="studio"][data-ui-font="system"], .studio-preview-canvas[data-ui-font="system"] { --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important; }
 
+html[data-design="studio"][data-mono-font="geist-mono"], .studio-preview-canvas[data-mono-font="geist-mono"] { --font-mono: 'Geist Mono', monospace !important; }
 html[data-design="studio"][data-mono-font="jetbrains"], .studio-preview-canvas[data-mono-font="jetbrains"] { --font-mono: 'JetBrains Mono', monospace !important; }
 html[data-design="studio"][data-mono-font="ubuntu"], .studio-preview-canvas[data-mono-font="ubuntu"] { --font-mono: 'Ubuntu Mono', monospace !important; }
 
@@ -20306,6 +20308,137 @@ html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-car
     position: static !important;
     top: auto !important;
   }
+}
+
+/* Навигационная панель секций Студии дизайна */
+.studio-subnav-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--panel, #121824);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 10px);
+  margin-bottom: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.studio-subnav-bar::-webkit-scrollbar {
+  display: none;
+}
+.studio-subnav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.studio-subnav-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+.studio-subnav-btn.active {
+  color: var(--teal, #00F0FF);
+  background: rgba(var(--accent-rgb, 0, 240, 255), 0.1);
+  border-color: rgba(var(--accent-rgb, 0, 240, 255), 0.3);
+  font-weight: 600;
+}
+
+.studio-design-grid, .studio-themes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.studio-design-choice-card, .studio-theme-choice-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 10px);
+  padding: 12px 14px;
+  background: var(--panel-alt);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+.studio-design-choice-card:hover, .studio-theme-choice-card:hover {
+  border-color: var(--teal);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+.studio-design-choice-card.active, .studio-theme-choice-card.active {
+  border-color: var(--teal);
+  background: rgba(var(--accent-rgb, 0, 240, 255), 0.08);
+  box-shadow: 0 0 14px rgba(var(--accent-rgb, 0, 240, 255), 0.2);
+}
+.studio-theme-palette-preview {
+  display: flex;
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 2px;
+}
+.studio-theme-palette-color {
+  flex: 1;
+  height: 100%;
+}
+
+.studio-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.studio-card-option {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 10px);
+  padding: 12px;
+  background: var(--panel-alt);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.studio-card-option:hover {
+  border-color: var(--teal);
+  transform: translateY(-2px);
+}
+.studio-card-option.active {
+  border-color: var(--teal);
+  background: rgba(var(--accent-rgb, 0, 240, 255), 0.08);
+  box-shadow: 0 0 12px rgba(var(--accent-rgb, 0, 240, 255), 0.2);
+}
+.studio-card-option-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal);
+  margin-bottom: 2px;
+}
+.studio-card-option-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.studio-card-option-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.35;
 }
 
 .studio-card {
