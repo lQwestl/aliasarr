@@ -86,5 +86,39 @@ class TestExperimentalLogicStandalone(unittest.TestCase):
         self.assertTrue(should_show_remap_button(None, {"aliasarr_enable_remap_button": "true"}))
 
 
+class TestThemeAndDesignSettingsValidation(unittest.TestCase):
+    """Unit tests for theme and design system validation in settings."""
+
+    def test_settings_routes_theme_and_design_validation(self):
+        with open("app/api/settings_routes.py", "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Verify all 5 themes plus legacy aliases are accepted in validation
+        expected_themes = ("slate", "oled", "indigo", "pine", "paper", "dark", "light", "dracula", "obsidian")
+        for t in expected_themes:
+            self.assertIn(f'"{t}"', content)
+
+        # Verify design systems
+        expected_designs = ("modern", "servarr", "studio", "classic", "vanguard")
+        for d in expected_designs:
+            self.assertIn(f'"{d}"', content)
+
+    def test_daylight_paper_css_adaptation(self):
+        with open("web/css/style.css", "r", encoding="utf-8") as f:
+            css = f.read()
+
+        # Verify settings-section-card uses CSS variables
+        self.assertIn(".settings-section-card {", css)
+        self.assertIn("background: var(--panel);", css)
+
+        # Verify :is([data-theme="paper"], [data-theme="light"]) is widespread
+        self.assertIn(':is([data-theme="paper"], [data-theme="light"])', css)
+
+        # Verify button contrast and hover in paper mode
+        self.assertIn(':is([data-theme="paper"], [data-theme="light"]) .btn-primary', css)
+        self.assertIn(':is([data-theme="paper"], [data-theme="light"]) .btn:disabled', css)
+
+
 if __name__ == "__main__":
     unittest.main()
+

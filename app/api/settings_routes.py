@@ -49,9 +49,9 @@ class SettingsOut(BaseModel):
     username: str
 
     language: str   # ru | en
-    theme: str      # dark | light
+    theme: str      # slate | oled | indigo | pine | paper | dark | light
     scrollbar_mode: str = "autohide"  # autohide | styled | hidden | native
-    design_system: Optional[str] = None  # classic | vanguard | servarr | studio
+    design_system: Optional[str] = None  # modern | servarr | studio | classic
     glass_mode: Optional[str] = None  # off | on
     custom_themes: Optional[list] = None
     theme_studio_config: Optional[dict] = None
@@ -338,16 +338,18 @@ def update_settings(
             raise HTTPException(400, "language должен быть 'ru' или 'en'")
         settings.language = payload.language
     if payload.theme is not None:
-        if payload.theme not in ("dark", "light", "dracula", "obsidian"):
-            raise HTTPException(400, "theme должна быть 'dark', 'obsidian', 'dracula' или 'light'")
+        valid_themes = ("slate", "oled", "indigo", "pine", "paper", "dark", "light", "dracula", "obsidian")
+        if payload.theme not in valid_themes:
+            raise HTTPException(400, "theme должна быть одной из: 'slate', 'oled', 'indigo', 'pine', 'paper', 'dark', 'obsidian', 'dracula' или 'light'")
         settings.theme = payload.theme
     if payload.scrollbar_mode is not None:
         if payload.scrollbar_mode not in ("autohide", "styled", "hidden", "native"):
             raise HTTPException(400, "scrollbar_mode должен быть 'autohide', 'styled', 'hidden' или 'native'")
         settings.scrollbar_mode = payload.scrollbar_mode
     if payload.design_system is not None:
-        if payload.design_system not in ("classic", "vanguard", "servarr", "studio"):
-            raise HTTPException(400, "design_system должен быть 'classic', 'vanguard', 'servarr' или 'studio'")
+        valid_designs = ("modern", "servarr", "studio", "classic", "vanguard")
+        if payload.design_system not in valid_designs:
+            raise HTTPException(400, "design_system должен быть одним из: 'modern', 'servarr', 'studio', 'classic' или 'vanguard'")
         settings.design_system = payload.design_system
     if payload.glass_mode is not None:
         if payload.glass_mode not in ("off", "on"):

@@ -54,6 +54,7 @@
       --header-h: 68px;
     }
 
+    [data-theme="paper"],
     [data-theme="light"] {
       --bg: #f8fafc;
       --panel: #ffffff;
@@ -108,7 +109,7 @@
       transition: background 0.25s ease, border-color 0.25s ease;
     }
 
-    [data-theme="light"] .api-header {
+    :is([data-theme="paper"], [data-theme="light"]) .api-header {
       background: rgba(255, 255, 255, 0.88);
     }
 
@@ -218,7 +219,7 @@
       box-sizing: border-box;
     }
 
-    [data-theme="light"] .api-search-box input {
+    :is([data-theme="paper"], [data-theme="light"]) .api-search-box input {
       background: #f1f5f9;
     }
 
@@ -253,7 +254,7 @@
       user-select: none;
     }
 
-    [data-theme="light"] .api-action-btn {
+    :is([data-theme="paper"], [data-theme="light"]) .api-action-btn {
       background: #ffffff;
       border-color: #cbd5e1;
     }
@@ -265,7 +266,7 @@
       transform: translateY(-1px);
     }
 
-    [data-theme="light"] .api-action-btn:hover {
+    :is([data-theme="paper"], [data-theme="light"]) .api-action-btn:hover {
       background: #f8fafc;
       border-color: #94a3b8;
       color: var(--teal);

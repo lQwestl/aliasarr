@@ -827,7 +827,7 @@ def wiki_page(request: Request):
             html = f.read()
 
         lang = getattr(settings, "language", "ru") or "ru"
-        theme = getattr(settings, "theme", "dark") or "dark"
+        theme = getattr(settings, "theme", "slate") or "slate"
         inject_script = (
             f'<script>'
             f'window.__ALIASARR_SETTINGS_LANG__ = {_script_json(lang)};'
@@ -862,7 +862,7 @@ def api_docs_page(request: Request):
             html = f.read()
 
         lang = getattr(settings, "language", "ru") or "ru"
-        theme = getattr(settings, "theme", "dark") or "dark"
+        theme = getattr(settings, "theme", "slate") or "slate"
         inject_script = (
             f'<script>'
             f'window.__ALIASARR_SETTINGS_LANG__ = {_script_json(lang)};'

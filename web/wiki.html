@@ -73,6 +73,7 @@
     --brand-name-color: #bd93f9;
     --brand-name-glow: rgba(189, 147, 249, 0.25);
   }
+  [data-theme="paper"],
   [data-theme="light"] {
     --brand-icon-bg: #e0e7ff;
     --brand-icon-bg-border: rgba(79, 70, 229, 0.25);
@@ -338,7 +339,7 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
-  [data-theme="light"] .wiki-hero h1 {
+  :is([data-theme="paper"], [data-theme="light"]) .wiki-hero h1 {
     background: linear-gradient(135deg, #0f172a 40%, #4338ca 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -617,7 +618,7 @@
     border: 1px solid var(--border);
     background: rgba(0, 0, 0, 0.35);
   }
-  [data-theme="light"] .code-block-wrapper {
+  :is([data-theme="paper"], [data-theme="light"]) .code-block-wrapper {
     background: #f8fafc;
   }
   .code-block-header {
