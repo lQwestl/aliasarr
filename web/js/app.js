@@ -207,6 +207,19 @@ function persistAppearance(patch) {
 
 function selectTheme(theme) {
   applyTheme(theme);
+  const themeToTone = {
+    paper: "clean-light",
+    oled: "pitch-black",
+    pine: "obsidian",
+    indigo: "midnight",
+    slate: "slate"
+  };
+  if (typeof STUDIO_CURRENT_STATE !== "undefined" && themeToTone[USER_THEME]) {
+    STUDIO_CURRENT_STATE.base_tone = themeToTone[USER_THEME];
+    try {
+      localStorage.setItem("aliasarr_studio_config", JSON.stringify(STUDIO_CURRENT_STATE));
+    } catch (e) {}
+  }
   persistAppearance({ theme: USER_THEME });
 }
 
@@ -18224,7 +18237,7 @@ async function loadGeneralSettings() {
     if (keyInp) keyInp.value = s.api_key || "";
 
     document.getElementById("setting-language").value = s.language || "ru";
-    document.getElementById("setting-theme").value = s.theme || "dark";
+    document.getElementById("setting-theme").value = normalizeTheme(s.theme || "slate");
     document.getElementById("setting-timezone").value = s.timezone || "UTC";
     APP_TIMEZONE = s.timezone || "UTC";
     localStorage.setItem("vbeacon_timezone", APP_TIMEZONE);
@@ -26862,14 +26875,18 @@ function applyStudioLivePreview(saveDraft = true) {
   styleEl.textContent = isStudioActive || canvas ? cssRules : "";
 
   if (isStudioActive) {
-    if (tone.id === "clean-light") {
-      document.documentElement.setAttribute("data-theme", "light");
-    } else if (tone.id === "obsidian") {
-      document.documentElement.setAttribute("data-theme", "obsidian");
-    } else {
-      document.documentElement.setAttribute("data-theme", "dark");
-    }
-    updateFavicon(tone.id === "clean-light" ? "light" : (tone.id === "obsidian" ? "obsidian" : "dark"));
+    const toneToTheme = {
+      "clean-light": "paper",
+      "pitch-black": "oled",
+      "obsidian": "pine",
+      "midnight": "indigo",
+      "slate": "slate",
+      "zinc": "slate",
+      "stone": "slate"
+    };
+    const effectiveTheme = USER_THEME || toneToTheme[tone.id] || "slate";
+    document.documentElement.setAttribute("data-theme", effectiveTheme);
+    updateFavicon(effectiveTheme);
   }
 
   const summaryEl = document.getElementById("studio-preview-code-summary");

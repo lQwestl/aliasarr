@@ -16,10 +16,12 @@
     try {
       var designMigration = localStorage.getItem("aliasarr_v2_migrated");
       if (!designMigration) {
-        if (localStorage.getItem("aliasarr_design") !== "servarr") {
+        if (!localStorage.getItem("aliasarr_design") && localStorage.getItem("aliasarr_design") !== "servarr") {
           localStorage.setItem("aliasarr_design", "modern");
         }
-        localStorage.setItem("vbeacon_theme", "slate");
+        if (!localStorage.getItem("vbeacon_theme")) {
+          localStorage.setItem("vbeacon_theme", "slate");
+        }
         localStorage.setItem("aliasarr_v2_migrated", "true");
       }
       var rawTheme = localStorage.getItem("vbeacon_theme") || "slate";
@@ -100,16 +102,17 @@
             document.head.appendChild(styleEl);
           }
         } catch (err) {}
-      }
 
       var themeColors = {
-        dark: { bg: "%230f1048", shadow: "%232a197c", fg: "%236838f7" },
-        obsidian: { bg: "%23032015", shadow: "%23064e3b", fg: "%2300F5D4" },
-        dracula: { bg: "%2321222c", shadow: "%2344475a", fg: "%23bd93f9" },
-        light: { bg: "%23e0e7ff", shadow: "%23a5b4fc", fg: "%234f46e5" },
+        slate: { bg: "%230b0f17", shadow: "%23161b22", fg: "%2358a6ff" },
+        oled: { bg: "%23000000", shadow: "%23161616", fg: "%23e2e8f0" },
+        indigo: { bg: "%23070913", shadow: "%2313172e", fg: "%23818cf8" },
+        pine: { bg: "%23070e0a", shadow: "%23102318", fg: "%2334d399" },
+        paper: { bg: "%23ffffff", shadow: "%23e2e8f0", fg: "%232563eb" },
+        light: { bg: "%23ffffff", shadow: "%23e2e8f0", fg: "%232563eb" },
         servarr: { bg: "%233a3f51", shadow: "%23252833", fg: "%237b4dfc" }
       };
-      var c = themeColors[design === "servarr" ? "servarr" : theme] || themeColors.dark;
+      var c = themeColors[design === "servarr" ? "servarr" : theme] || themeColors.slate;
       var iconEl = document.querySelector("link[rel~='icon']");
       if (iconEl) {
         iconEl.href = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='17' fill='" + c.bg + "'/%3E%3Cpath d='M32 14L43 36' stroke='" + c.shadow + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M15 49L32 14' stroke='" + c.fg + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 36H43L49 49' stroke='" + c.fg + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E";
