@@ -18221,8 +18221,8 @@ async function loadGeneralSettings() {
       overviewLangEl.value = s.metadata_overview_language;
     }
 
-    applyTheme(s.theme || "dark");
-    applyDesign(s.design_system || localStorage.getItem("aliasarr_design") || "classic");
+    applyTheme(s.theme || "slate");
+    applyDesign(s.design_system || localStorage.getItem("aliasarr_design") || "modern");
     applyLanguage(s.language || "ru");
     applyScrollbarMode(s.scrollbar_mode || localStorage.getItem("aliasarr_scrollbar") || "autohide");
     applyGlassMode(s.glass_mode || localStorage.getItem("aliasarr_glass") || "off");
@@ -27195,8 +27195,16 @@ window.setStudioFontScale = setStudioFontScale;
 // Применяем язык/тему/дизайн/скроллбар из localStorage сразу, не дожидаясь ответа /api/v1/settings —
 // они всё равно будут перезаписаны актуальными значениями в loadGeneralSettings().
 try {
-  applyTheme(localStorage.getItem("vbeacon_theme") || "dark");
-  applyDesign(localStorage.getItem("aliasarr_design") || "classic");
+  const designMigration = localStorage.getItem("aliasarr_v2_migrated");
+  if (!designMigration) {
+    if (localStorage.getItem("aliasarr_design") !== "servarr") {
+      localStorage.setItem("aliasarr_design", "modern");
+    }
+    localStorage.setItem("vbeacon_theme", "slate");
+    localStorage.setItem("aliasarr_v2_migrated", "true");
+  }
+  applyTheme(localStorage.getItem("vbeacon_theme") || "slate");
+  applyDesign(localStorage.getItem("aliasarr_design") || "modern");
   applyScrollbarMode(localStorage.getItem("aliasarr_scrollbar") || "autohide");
   applyGlassMode(localStorage.getItem("aliasarr_glass") || "off");
   applyLanguage(localStorage.getItem("vbeacon_lang") || "ru");

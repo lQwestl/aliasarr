@@ -14,11 +14,25 @@
   // Применяем тему, язык и целевую вкладку сразу, до отрисовки основного контента, чтобы исключить мерцание Дашбордом при перезагрузке
   (function () {
     try {
-      var theme = localStorage.getItem("vbeacon_theme") || "dark";
-      var design = localStorage.getItem("aliasarr_design") || "classic";
+      var designMigration = localStorage.getItem("aliasarr_v2_migrated");
+      if (!designMigration) {
+        if (localStorage.getItem("aliasarr_design") !== "servarr") {
+          localStorage.setItem("aliasarr_design", "modern");
+        }
+        localStorage.setItem("vbeacon_theme", "slate");
+        localStorage.setItem("aliasarr_v2_migrated", "true");
+      }
+      var rawTheme = localStorage.getItem("vbeacon_theme") || "slate";
+      var themeMap = { dark: "slate", obsidian: "oled", dracula: "indigo", light: "paper" };
+      var theme = themeMap[rawTheme] || rawTheme || "slate";
+      var rawDesign = localStorage.getItem("aliasarr_design") || "modern";
+      if (rawDesign === "classic" || rawDesign === "vanguard" || (rawDesign !== "modern" && rawDesign !== "servarr" && rawDesign !== "studio")) {
+        rawDesign = "modern";
+      }
+      var design = rawDesign;
       // Дизайн Servarr Classic несёт собственную нейтральную палитру (как у Sonarr):
       // светлая рабочая область + графитовая навигация, поэтому цветовая тема пользователя не применяется.
-      if (design === "servarr") theme = "light";
+      if (design === "servarr") theme = "paper";
       document.documentElement.setAttribute("data-theme", theme);
       document.documentElement.setAttribute("data-design", design);
       var scrollbar = localStorage.getItem("aliasarr_scrollbar") || "autohide";
@@ -43,6 +57,14 @@
         document.documentElement.setAttribute("data-poster-size", posterSize);
         var cardStyle = localStorage.getItem("aliasarr_card_style") || "neo-glass";
         document.documentElement.setAttribute("data-card-style", cardStyle);
+      } else {
+        document.documentElement.removeAttribute("data-archetype");
+        document.documentElement.removeAttribute("data-shell");
+        document.documentElement.removeAttribute("data-container-width");
+        document.documentElement.removeAttribute("data-density");
+        document.documentElement.removeAttribute("data-poster-size");
+        document.documentElement.removeAttribute("data-card-style");
+      }
 
         var uiFont = localStorage.getItem("aliasarr_ui_font") || "outfit";
         document.documentElement.setAttribute("data-ui-font", uiFont);
@@ -328,7 +350,7 @@
       <!-- Hero Метрики Дашборда -->
       <div class="stats-grid-dashboard">
         <!-- Карточка 1: Медиатека -->
-        <div class="dash-stat-card card-media" onclick="switchTab('library')" style="cursor:pointer;" title="Перейти в библиотеку">
+        <div class="dash-stat-card" onclick="switchTab('library')" style="cursor:pointer;" title="Перейти в библиотеку">
           <div>
             <div class="dash-stat-header">
               <span class="dash-stat-title">
@@ -341,15 +363,15 @@
           </div>
           <div class="dash-stat-subitems">
             <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryCategory('series');" style="cursor:pointer;" title="Сериалы в библиотеке">
-              <span class="dash-subitem-label"><i data-lucide="tv" class="ico-xxs" style="color:var(--teal)"></i> <span data-i18n="dash.series">Сериалы</span></span>
+              <span class="dash-subitem-label"><i data-lucide="tv" class="ico-xxs text-muted"></i> <span data-i18n="dash.series">Сериалы</span></span>
               <span class="dash-subitem-val" id="stat-series">0</span>
             </div>
             <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryCategory('movies');" style="cursor:pointer;" title="Фильмы в библиотеке">
-              <span class="dash-subitem-label"><i data-lucide="film" class="ico-xxs" style="color:#fbbf24"></i> <span data-i18n="dash.movies">Фильмы</span></span>
+              <span class="dash-subitem-label"><i data-lucide="film" class="ico-xxs text-muted"></i> <span data-i18n="dash.movies">Фильмы</span></span>
               <span class="dash-subitem-val" id="stat-movies">0</span>
             </div>
             <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryCategory('anime');" style="cursor:pointer;" title="Аниме в библиотеке">
-              <span class="dash-subitem-label"><i data-lucide="clapperboard" class="ico-xxs" style="color:#ff2a4d"></i> <span data-i18n="dash.anime">Аниме</span></span>
+              <span class="dash-subitem-label"><i data-lucide="clapperboard" class="ico-xxs text-muted"></i> <span data-i18n="dash.anime">Аниме</span></span>
               <span class="dash-subitem-val" id="stat-anime">0</span>
             </div>
             <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryCategory('all');" style="cursor:pointer;" title="Вся библиотека">
@@ -360,13 +382,14 @@
         </div>
 
         <!-- Карточка 2: Статус тайтлов и мониторинг -->
-        <div class="dash-stat-card card-monitoring">
+        <div class="dash-stat-card" onclick="switchTab('library')" style="cursor:pointer;" title="Перейти в библиотеку">
           <div>
             <div class="dash-stat-header">
               <span class="dash-stat-title">
                 <div class="dash-stat-icon-badge"><i data-lucide="eye"></i></div>
                 <span data-i18n="dash.card_title_status">Статус тайтлов</span>
               </span>
+              <span class="dash-stat-arrow"><i data-lucide="arrow-up-right" class="ico-xs"></i></span>
             </div>
             <div class="dash-stat-main-val" id="stat-monitored-main">—</div>
             <div class="dash-stat-progress-wrap" id="stat-monitored-progress-wrap">
@@ -375,32 +398,33 @@
           </div>
           <div class="dash-stat-subitems">
             <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryMonitor('monitored');" style="cursor:pointer;" title="Отслеживаемые тайтлы">
-              <span class="dash-subitem-label"><i data-lucide="bookmark-check" class="ico-xxs" style="color:#10b981"></i> <span data-i18n="dash.monitored">Отслеживается</span></span>
-              <span class="dash-subitem-val" style="color:#10b981" id="stat-monitored">0</span>
+              <span class="dash-subitem-label"><i data-lucide="bookmark-check" class="ico-xxs text-muted"></i> <span data-i18n="dash.monitored">Отслеживается</span></span>
+              <span class="dash-subitem-val" id="stat-monitored">0</span>
             </div>
             <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryMonitor('unmonitored');" style="cursor:pointer;" title="Не отслеживаемые тайтлы">
               <span class="dash-subitem-label"><i data-lucide="bookmark-minus" class="ico-xxs text-muted"></i> <span data-i18n="dash.unmonitored">Не отслеж.</span></span>
-              <span class="dash-subitem-val" style="color:var(--text-muted)" id="stat-unmonitored">0</span>
+              <span class="dash-subitem-val" id="stat-unmonitored">0</span>
             </div>
             <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryMonitor('ended');" style="cursor:pointer;" title="Завершённые тайтлы">
               <span class="dash-subitem-label"><i data-lucide="check-circle-2" class="ico-xxs text-muted"></i> <span data-i18n="dash.ended">Завершён</span></span>
               <span class="dash-subitem-val" id="stat-ended">0</span>
             </div>
             <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryMonitor('continuing');" style="cursor:pointer;" title="Тайтлы в эфире">
-              <span class="dash-subitem-label"><i data-lucide="play-circle" class="ico-xxs text-info"></i> <span data-i18n="dash.continuing">В эфире</span></span>
+              <span class="dash-subitem-label"><i data-lucide="play-circle" class="ico-xxs text-muted"></i> <span data-i18n="dash.continuing">В эфире</span></span>
               <span class="dash-subitem-val" id="stat-continuing">0</span>
             </div>
           </div>
         </div>
 
         <!-- Карточка 3: Эпизоды и загрузки -->
-        <div class="dash-stat-card card-episodes">
+        <div class="dash-stat-card" onclick="switchTab('activity')" style="cursor:pointer;" title="Перейти в активность">
           <div>
             <div class="dash-stat-header">
               <span class="dash-stat-title">
                 <div class="dash-stat-icon-badge"><i data-lucide="layers"></i></div>
                 <span data-i18n="dash.card_episodes_status">Эпизоды и статус</span>
               </span>
+              <span class="dash-stat-arrow"><i data-lucide="arrow-up-right" class="ico-xs"></i></span>
             </div>
             <div class="dash-stat-main-val" id="stat-episodes">—</div>
             <div class="dash-stat-multi-progress" id="stat-episodes-progress-wrap">
@@ -411,32 +435,33 @@
           </div>
           <div class="dash-stat-subitems">
             <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library'); setLibraryMonitor('wanted');" style="cursor:pointer;" title="Разыскиваемые релизы">
-              <span class="dash-subitem-label"><i data-lucide="search" class="ico-xxs" style="color:#fbbf24"></i> <span data-i18n="dash.wanted">В поиске</span></span>
-              <span class="dash-subitem-val" style="color:#fbbf24" id="stat-wanted">0</span>
+              <span class="dash-subitem-label"><i data-lucide="search" class="ico-xxs text-muted"></i> <span data-i18n="dash.wanted">В поиске</span></span>
+              <span class="dash-subitem-val" id="stat-wanted">0</span>
             </div>
             <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('activity');" style="cursor:pointer;" title="Перейти в очередь загрузок">
-              <span class="dash-subitem-label"><i data-lucide="arrow-down-circle" class="ico-xxs" style="color:var(--violet)"></i> <span data-i18n="dash.downloading">Качается</span></span>
-              <span class="dash-subitem-val" style="color:var(--violet)" id="stat-downloading">0</span>
+              <span class="dash-subitem-label"><i data-lucide="arrow-down-circle" class="ico-xxs text-muted"></i> <span data-i18n="dash.downloading">Качается</span></span>
+              <span class="dash-subitem-val" id="stat-downloading">0</span>
             </div>
             <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('library');" style="cursor:pointer;" title="Скачанные медиафайлы">
-              <span class="dash-subitem-label"><i data-lucide="check" class="ico-xxs" style="color:var(--teal)"></i> <span data-i18n="dash.downloaded">Скачано</span></span>
-              <span class="dash-subitem-val" style="color:var(--teal)" id="stat-downloaded">0</span>
+              <span class="dash-subitem-label"><i data-lucide="check" class="ico-xxs text-muted"></i> <span data-i18n="dash.downloaded">Скачано</span></span>
+              <span class="dash-subitem-val" id="stat-downloaded">0</span>
             </div>
             <div class="dash-subitem" onclick="event.stopPropagation(); switchTab('calendar');" style="cursor:pointer;" title="Перейти в календарь премьер">
               <span class="dash-subitem-label"><i data-lucide="clock" class="ico-xxs text-muted"></i> <span data-i18n="dash.unaired">Не вышло</span></span>
-              <span class="dash-subitem-val" style="color:var(--text-muted)" id="stat-unaired">0</span>
+              <span class="dash-subitem-val" id="stat-unaired">0</span>
             </div>
           </div>
         </div>
 
         <!-- Карточка 4: Хранилище и интеграции -->
-        <div class="dash-stat-card card-storage">
+        <div class="dash-stat-card" onclick="switchTab('settings')" style="cursor:pointer;" title="Перейти в настройки">
           <div>
             <div class="dash-stat-header">
               <span class="dash-stat-title">
                 <div class="dash-stat-icon-badge"><i data-lucide="hard-drive"></i></div>
                 <span data-i18n="dash.card_files_disk">Файлы и Диск</span>
               </span>
+              <span class="dash-stat-arrow"><i data-lucide="arrow-up-right" class="ico-xs"></i></span>
             </div>
             <div class="dash-stat-main-val" id="stat-size">0 B</div>
           </div>
@@ -450,11 +475,11 @@
               <span class="dash-subitem-val" id="stat-size-sub">0 B</span>
             </div>
             <div class="dash-subitem" onclick="switchTab('settings'); setTimeout(() => switchSettingsSubTab('indexers'), 50);" style="cursor:pointer;" title="Настройки индексаторов">
-              <span class="dash-subitem-label"><i data-lucide="search" class="ico-xxs text-info"></i> <span data-i18n="dash.indexers">Индексаторы</span></span>
+              <span class="dash-subitem-label"><i data-lucide="search" class="ico-xxs text-muted"></i> <span data-i18n="dash.indexers">Индексаторы</span></span>
               <span class="dash-subitem-val" id="stat-indexers">0</span>
             </div>
             <div class="dash-subitem" onclick="switchTab('settings'); setTimeout(() => switchSettingsSubTab('clients'), 50);" style="cursor:pointer;" title="Настройки загрузчиков">
-              <span class="dash-subitem-label"><i data-lucide="download-cloud" class="ico-xxs text-teal"></i> <span data-i18n="dash.download_clients">Загрузчики</span></span>
+              <span class="dash-subitem-label"><i data-lucide="download-cloud" class="ico-xxs text-muted"></i> <span data-i18n="dash.download_clients">Загрузчики</span></span>
               <span class="dash-subitem-val" id="stat-clients">0</span>
             </div>
           </div>
