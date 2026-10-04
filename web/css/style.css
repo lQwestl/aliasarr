@@ -1,35 +1,35 @@
 :root {
-  --bg: #0b0f19;
-  --panel: #121824;
-  --panel-alt: #171e2e;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.16);
-  --text: #f0f6fc;
-  --text-muted: #8b949e;
-  --teal: #00F0FF;
-  --violet: #6366f1;
-  --primary: #00F0FF;
-  --accent: #6366f1;
-  --danger: #FF2A4D;
-  --success: #10b981;
-  --warning: #f59e0b;
+  --bg: #0b0f17;
+  --panel: #111827;
+  --panel-alt: #1a2234;
+  --border: rgba(148, 163, 184, 0.12);
+  --border-hover: rgba(148, 163, 184, 0.28);
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --teal: #38bdf8;
+  --violet: #60a5fa;
+  --primary: #38bdf8;
+  --accent: #60a5fa;
+  --danger: #f87171;
+  --success: #34d399;
+  --warning: #fbbf24;
   --gradient: linear-gradient(135deg, var(--teal), var(--violet));
-  --radius: 12px;
-  --radius-sm: 8px;
-  --radius-lg: 16px;
-  --font-display: 'Outfit', sans-serif;
-  --font-body: 'Outfit', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --scrollbar-thumb: rgba(255, 255, 255, 0.22);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --scrollbar-thumb: rgba(148, 163, 184, 0.22);
   --scrollbar-thumb-hover: var(--teal);
   --scrollbar-track: transparent;
   --scrollbar-width: 8px;
-  --brand-icon-bg: #0f1048;
-  --brand-icon-bg-border: rgba(108, 62, 248, 0.35);
-  --brand-icon-fg: #6c3ef8;
-  --brand-icon-shadow: #2a197c;
-  --brand-name-color: #7b4dfc;
-  --brand-name-glow: rgba(108, 62, 248, 0.28);
+  --brand-icon-bg: #0b1528;
+  --brand-icon-bg-border: rgba(56, 189, 248, 0.28);
+  --brand-icon-fg: #38bdf8;
+  --brand-icon-shadow: #1e3a8a;
+  --brand-name-color: #f1f5f9;
+  --brand-name-glow: rgba(56, 189, 248, 0.15);
 
   /* Mathematical spacing tokens */
   --space-1: 4px;
@@ -47,101 +47,133 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
   --shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.6);
-  --bevel-light: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  --bevel-dark: inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  --bevel-light: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --bevel-dark: inset 0 -1px 0 rgba(0, 0, 0, 0.35);
   --spring-bounce: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ---------------------------------------------------------------------------
    Эффекты стекла (backdrop-filter) - глобальный выключатель.
-
-   backdrop-filter заставляет Chromium каждый кадр заново снимать и размывать
-   подложку элемента, как только под ним что-нибудь меняется. На постоянных
-   крупных поверхностях (сайдбар, липкая шапка, обёртки таблиц, дровер релизов)
-   этого достаточно, чтобы даже мелкая анимация - например спиннер фоновых
-   задач в футере сайдбара - держала GPU на 100% без какой-либо активности
-   пользователя.
-
-   Поэтому размытие по умолчанию выключено и включается явно:
-   Настройки -> Общие -> Интерфейс -> "Эффекты стекла" (data-glass на <html>).
-
-   Механика: когда стекло выключено, --glass-blur равен `none` и наследуется
-   всем элементам. Когда включено, свойство сбрасывается в guaranteed-invalid
-   (`initial`), и каждое объявление вида
-       backdrop-filter: var(--glass-blur, blur(28px));
-   подставляет свой собственный радиус из fallback-значения.
+   По умолчанию выключено для максимальной производительности GPU.
    --------------------------------------------------------------------------- */
 :root { --glass-blur: none; }
 :root[data-glass="on"] { --glass-blur: initial; }
 
-/* Obsidian Aurora Theme (Awwwards-Tier OLED Obsidian & Ethereal Mint/Violet) */
+/* 1. Nordic Slate Theme (Default calm dark graphite & muted steel/ice blue) */
+[data-theme="slate"],
+[data-theme="dark"] {
+  --bg: #0b0f17;
+  --panel: #111827;
+  --panel-alt: #1a2234;
+  --border: rgba(148, 163, 184, 0.12);
+  --border-hover: rgba(148, 163, 184, 0.28);
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --teal: #38bdf8;
+  --violet: #60a5fa;
+  --primary: #38bdf8;
+  --accent: #60a5fa;
+  --danger: #f87171;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --gradient: linear-gradient(135deg, #38bdf8, #60a5fa);
+  --brand-icon-bg: #0f172a;
+  --brand-icon-bg-border: rgba(56, 189, 248, 0.25);
+  --brand-icon-fg: #38bdf8;
+  --brand-icon-shadow: #1e293b;
+  --brand-name-color: #f8fafc;
+  --brand-name-glow: rgba(56, 189, 248, 0.15);
+}
+
+/* 2. OLED Void Theme (Pure Black, Infinite Contrast, Crisp Titanium Accents) */
+[data-theme="oled"],
 [data-theme="obsidian"] {
-  --bg: #05070e;
-  --panel: #0a0e1a;
-  --panel-alt: #101626;
-  --border: rgba(0, 245, 212, 0.14);
-  --border-hover: rgba(0, 245, 212, 0.38);
-  --text: #f0f7f6;
-  --text-muted: #7b8fa3;
-  --teal: #00F5D4;
-  --violet: #8B5CF6;
-  --primary: #00F5D4;
-  --accent: #8B5CF6;
-  --danger: #FF3366;
-  --success: #00F5D4;
-  --warning: #FFB800;
-  --gradient: linear-gradient(135deg, #00F5D4 0%, #8B5CF6 100%);
-  --radius: 14px;
-  --radius-sm: 9px;
-  --radius-lg: 20px;
-  --scrollbar-thumb: rgba(0, 245, 212, 0.28);
-  --scrollbar-thumb-hover: #00F5D4;
-  --brand-icon-bg: #032015;
-  --brand-icon-bg-border: rgba(0, 245, 212, 0.35);
-  --brand-icon-fg: #00F5D4;
-  --brand-icon-shadow: #064e3b;
-  --brand-name-color: #00F5D4;
-  --brand-name-glow: rgba(0, 245, 212, 0.3);
+  --bg: #000000;
+  --panel: #0c0d0e;
+  --panel-alt: #141619;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.2);
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --teal: #e2e8f0;
+  --violet: #cbd5e1;
+  --primary: #f8fafc;
+  --accent: #e2e8f0;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --gradient: linear-gradient(135deg, #f8fafc, #94a3b8);
+  --bevel-light: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --bevel-dark: inset 0 -1px 0 rgba(0, 0, 0, 0.8);
+  --brand-icon-bg: #0a0a0a;
+  --brand-icon-bg-border: rgba(255, 255, 255, 0.18);
+  --brand-icon-fg: #f8fafc;
+  --brand-icon-shadow: #1c1c1c;
+  --brand-name-color: #ffffff;
+  --brand-name-glow: rgba(255, 255, 255, 0.1);
 }
 
-[data-theme="obsidian"] body::before {
-  background-image: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 245, 212, 0.14), transparent),
-    radial-gradient(ellipse 60% 40% at 90% 80%, rgba(139, 92, 246, 0.1), transparent);
-  opacity: 1;
-}
-
+[data-theme="oled"] .tasks-popup,
+[data-theme="oled"] .modal,
 [data-theme="obsidian"] .tasks-popup,
 [data-theme="obsidian"] .modal {
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(0, 245, 212, 0.16), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* 3. Deep Midnight Theme (Deep Navy Indigo & Soft Periwinkle/Lavender) */
+[data-theme="indigo"],
 [data-theme="dracula"] {
-  --bg: #1e1f29;
-  --panel: #282a36;
-  --panel-alt: #343746;
-  --border: #44475a;
-  --border-hover: #6272a4;
-  --text: #f8f8f2;
-  --text-muted: #6272a4;
-  --teal: #8be9fd;
-  --violet: #bd93f9;
-  --primary: #8be9fd;
-  --accent: #bd93f9;
-  --danger: #ff5555;
-  --gradient: linear-gradient(135deg, var(--teal), var(--violet));
-  --scrollbar-thumb: rgba(189, 147, 249, 0.28);
-  --scrollbar-thumb-hover: #ff79c6;
-  --brand-icon-bg: #21222c;
-  --brand-icon-bg-border: rgba(189, 147, 249, 0.35);
-  --brand-icon-fg: #bd93f9;
-  --brand-icon-shadow: #44475a;
-  --brand-name-color: #bd93f9;
-  --brand-name-glow: rgba(189, 147, 249, 0.25);
+  --bg: #070913;
+  --panel: #0e1222;
+  --panel-alt: #161c33;
+  --border: rgba(99, 102, 241, 0.14);
+  --border-hover: rgba(99, 102, 241, 0.32);
+  --text: #f1f5f9;
+  --text-muted: #a5b4fc;
+  --teal: #818cf8;
+  --violet: #a78bfa;
+  --primary: #818cf8;
+  --accent: #a78bfa;
+  --danger: #f87171;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --gradient: linear-gradient(135deg, #818cf8, #a78bfa);
+  --brand-icon-bg: #0b0f24;
+  --brand-icon-bg-border: rgba(129, 140, 248, 0.28);
+  --brand-icon-fg: #818cf8;
+  --brand-icon-shadow: #1e1b4b;
+  --brand-name-color: #c7d2fe;
+  --brand-name-glow: rgba(129, 140, 248, 0.15);
 }
 
-/* Light Theme (Daylight Clean) */
+/* 4. Emerald Spruce Theme (Conifer Obsidian & Soothing Organic Sage) */
+[data-theme="pine"] {
+  --bg: #070e0a;
+  --panel: #0d1712;
+  --panel-alt: #15241d;
+  --border: rgba(52, 211, 153, 0.12);
+  --border-hover: rgba(52, 211, 153, 0.28);
+  --text: #ecfdf5;
+  --text-muted: #86efac;
+  --teal: #34d399;
+  --violet: #2dd4bf;
+  --primary: #34d399;
+  --accent: #2dd4bf;
+  --danger: #f87171;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --gradient: linear-gradient(135deg, #34d399, #2dd4bf);
+  --brand-icon-bg: #091a10;
+  --brand-icon-bg-border: rgba(52, 211, 153, 0.25);
+  --brand-icon-fg: #34d399;
+  --brand-icon-shadow: #064e3b;
+  --brand-name-color: #d1fae5;
+  --brand-name-glow: rgba(52, 211, 153, 0.15);
+}
+
+/* 5. Daylight Paper Theme (Clean Alabaster White & Slate Charcoal Typography) */
+[data-theme="paper"],
 [data-theme="light"] {
   --bg: #f8fafc;
   --panel: #ffffff;
@@ -150,41 +182,50 @@
   --border-hover: #cbd5e1;
   --text: #0f172a;
   --text-muted: #64748b;
-  --teal: #0284c7;
-  --violet: #6366f1;
-  --primary: #0284c7;
-  --accent: #6366f1;
+  --teal: #2563eb;
+  --violet: #4f46e5;
+  --primary: #2563eb;
+  --accent: #4f46e5;
   --danger: #dc2626;
-  --gradient: linear-gradient(135deg, #0284c7, #6366f1);
-  --scrollbar-thumb: rgba(0, 0, 0, 0.22);
-  --scrollbar-thumb-hover: var(--teal);
-  --brand-icon-bg: #e0e7ff;
-  --brand-icon-bg-border: rgba(79, 70, 229, 0.25);
-  --brand-icon-fg: #4f46e5;
-  --brand-icon-shadow: #a5b4fc;
-  --brand-name-color: #4338ca;
-  --brand-name-glow: rgba(79, 70, 229, 0.15);
+  --success: #16a34a;
+  --warning: #d97706;
+  --gradient: linear-gradient(135deg, #2563eb, #4f46e5);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.18);
+  --scrollbar-thumb-hover: #2563eb;
+  --bevel-light: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --bevel-dark: inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  --brand-icon-bg: #eff6ff;
+  --brand-icon-bg-border: rgba(37, 99, 235, 0.22);
+  --brand-icon-fg: #2563eb;
+  --brand-icon-shadow: #bfdbfe;
+  --brand-name-color: #1e293b;
+  --brand-name-glow: rgba(37, 99, 235, 0.08);
 }
 
+[data-theme="paper"] body::before,
 [data-theme="light"] body::before {
   opacity: 0.01;
 }
 
+[data-theme="paper"] .tasks-item-progress-track,
 [data-theme="light"] .tasks-item-progress-track {
   background: rgba(0, 0, 0, 0.08);
 }
 
+[data-theme="paper"] .tasks-spinner,
 [data-theme="light"] .tasks-spinner {
   border-color: rgba(0, 0, 0, 0.15);
   border-top-color: var(--teal);
 }
 
+[data-theme="paper"] .tasks-popup,
 [data-theme="light"] .tasks-popup {
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
+[data-theme="paper"] .modal,
 [data-theme="light"] .modal {
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
 * { box-sizing: border-box; }
@@ -422,13 +463,25 @@ body::before {
   border-color: transparent;
 }
 .nav-item.active {
-  background: var(--panel-alt, rgba(255, 255, 255, 0.07));
-  color: var(--teal, #00F0FF);
-  border-color: rgba(0, 240, 255, 0.25);
+  background: var(--panel-alt);
+  color: var(--text);
+  border-color: var(--border);
   font-weight: 600;
-  box-shadow: 0 0 12px rgba(0, 240, 255, 0.08);
+  box-shadow: var(--shadow-xs);
+  position: relative;
+}
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--teal);
 }
 .nav-item.active .nav-ico {
+  color: var(--teal);
   opacity: 1;
 }
 
@@ -4145,10 +4198,15 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 .settings-tab-btn.active, .logs-tab-btn.active, .template-cat-btn.active { 
   background: var(--panel-alt); 
-  color: var(--teal, #00F0FF); 
-  border-color: rgba(0, 240, 255, 0.4); 
+  color: var(--text); 
+  border-color: var(--border-hover); 
   font-weight: 600;
-  box-shadow: 0 0 12px rgba(0, 240, 255, 0.12); 
+  box-shadow: var(--shadow-xs);
+}
+.settings-tab-btn.active i, .settings-tab-btn.active svg,
+.logs-tab-btn.active i, .logs-tab-btn.active svg,
+.template-cat-btn.active i, .template-cat-btn.active svg {
+  color: var(--teal);
 }
 .settings-panel, .logs-panel { display: none; }
 .settings-panel.active, .logs-panel.active { display: block; animation: fadeIn 0.2s ease; }
@@ -12523,6 +12581,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   letter-spacing: 0.06em;
 }
 
+.design-card-badge.badge-modern {
+  background: rgba(56, 189, 248, 0.16);
+  color: var(--teal, #38bdf8);
+  border: 1px solid rgba(56, 189, 248, 0.32);
+}
+
 .design-card-badge.badge-classic {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text);
@@ -12640,6 +12704,73 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Aliasarr Modern Mini Mockup */
+.preview-modern {
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.preview-modern-topbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.preview-modern-topbar .preview-search-pill {
+  width: 48px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+}
+.preview-modern-body {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+.preview-modern-sidebar {
+  width: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-right: 1px solid var(--border);
+  padding-right: 4px;
+}
+.preview-modern-item {
+  height: 5px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.preview-modern-item.active {
+  background: var(--teal, #38bdf8);
+}
+.preview-modern-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.preview-modern-stat-row {
+  display: flex;
+  gap: 4px;
+}
+.preview-modern-stat {
+  flex: 1;
+  height: 14px;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+.preview-modern-card {
+  flex: 1;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px;
   display: flex;
   flex-direction: column;
   gap: 4px;

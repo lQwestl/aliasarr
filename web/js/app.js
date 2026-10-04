@@ -29,16 +29,28 @@ const QUALITY_OPTIONS = [
   "HDTV-2160p", "WEBRip-2160p", "WEBDL-2160p", "Bluray-2160p", "Remux-2160p",
 ];
 
-// ---------- ТЕМА (dark/obsidian/dracula/light) ----------
+// ---------- ТЕМА (slate/oled/indigo/pine/paper) ----------
+function normalizeTheme(theme) {
+  const legacyMap = {
+    dark: "slate",
+    obsidian: "oled",
+    dracula: "indigo",
+    light: "paper"
+  };
+  return legacyMap[theme] || theme || "slate";
+}
+
 function updateFavicon(theme) {
   const themeColors = {
-    dark: { bg: "%230f1048", shadow: "%232a197c", fg: "%236838f7" },
-    obsidian: { bg: "%23032015", shadow: "%23064e3b", fg: "%2300F5D4" },
-    dracula: { bg: "%2321222c", shadow: "%2344475a", fg: "%23bd93f9" },
-    light: { bg: "%23e0e7ff", shadow: "%23a5b4fc", fg: "%234f46e5" },
+    slate: { bg: "%230b0f17", shadow: "%23161b22", fg: "%2358a6ff" },
+    oled: { bg: "%23000000", shadow: "%23161616", fg: "%23e2e8f0" },
+    indigo: { bg: "%23070913", shadow: "%2313172e", fg: "%23818cf8" },
+    pine: { bg: "%23070e0a", shadow: "%23102318", fg: "%2334d399" },
+    paper: { bg: "%23ffffff", shadow: "%23e2e8f0", fg: "%232563eb" },
+    light: { bg: "%23ffffff", shadow: "%23e2e8f0", fg: "%232563eb" },
     servarr: { bg: "%233a3f51", shadow: "%23252833", fg: "%237b4dfc" }
   };
-  const c = themeColors[theme] || themeColors.dark;
+  const c = themeColors[theme] || themeColors.slate;
   const href = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='17' fill='" + c.bg + "'/%3E%3Cpath d='M32 14L43 36' stroke='" + c.shadow + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M15 49L32 14' stroke='" + c.fg + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M21 36H43L49 49' stroke='" + c.fg + "' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E";
   const oldLink = document.querySelector("link[rel~='icon']");
   const newLink = document.createElement("link");
@@ -51,36 +63,48 @@ function updateFavicon(theme) {
   document.head.appendChild(newLink);
 }
 
-// Выбранная пользователем цветовая тема (dark / obsidian / dracula / light).
-// В дизайне Servarr Classic на <html> фактически выставляется "light": у дизайна своя нейтральная
-// палитра (светлая рабочая область + графитовая навигация, как у Sonarr), а светлая база темы
-// переиспользует все адаптации компонентов под светлый фон.
-let USER_THEME = (function () { try { return localStorage.getItem("vbeacon_theme") || "dark"; } catch (e) { return "dark"; } })();
+// Выбранная пользователем цветовая тема (slate / oled / indigo / pine / paper).
+// В дизайне Servarr Classic на <html> фактически выставляется "paper": у дизайна своя нейтральная
+// палитра (светлая рабочая область + графитовая навигация, как у Sonarr).
+let USER_THEME = (function () {
+  try {
+    const raw = localStorage.getItem("vbeacon_theme") || "slate";
+    return normalizeTheme(raw);
+  } catch (e) {
+    return "slate";
+  }
+})();
 
 function isServarrDesign() {
   return document.documentElement.getAttribute("data-design") === "servarr";
 }
 
 function applyTheme(theme) {
-  const t = theme || "dark";
+  const t = normalizeTheme(theme);
   USER_THEME = t;
   try { localStorage.setItem("vbeacon_theme", t); } catch (e) {}
-  const effective = isServarrDesign() ? "light" : t;
+  const effective = isServarrDesign() ? "paper" : t;
   document.documentElement.setAttribute("data-theme", effective);
   updateFavicon(isServarrDesign() ? "servarr" : t);
+  const themeSelect = document.getElementById("setting-theme");
+  if (themeSelect && themeSelect.value !== t) {
+    themeSelect.value = t;
+  }
 }
 
-// ---------- ДИЗАЙН-СИСТЕМА (classic / vanguard / servarr) ----------
-const DESIGN_SYSTEMS = ["classic", "vanguard", "servarr", "studio"];
+// ---------- ДИЗАЙН-СИСТЕМА (modern / servarr / studio) ----------
+const DESIGN_SYSTEMS = ["modern", "servarr", "studio"];
 
 function applyDesign(design, isUserAction = false) {
-  const d = DESIGN_SYSTEMS.includes(design) ? design : "classic";
+  let d = design;
+  if (d === "classic" || d === "vanguard") d = "modern";
+  if (!DESIGN_SYSTEMS.includes(d)) d = "modern";
   document.documentElement.setAttribute("data-design", d);
   try { localStorage.setItem("aliasarr_design", d); } catch (e) {}
   const changed = document.documentElement.dataset.appliedDesign && document.documentElement.dataset.appliedDesign !== d;
   document.documentElement.dataset.appliedDesign = d;
 
-  // Изоляция: при переключении на Классику, Авангард или Servarr полностью снимаем студийные атрибуты
+  // Изоляция: при переключении на Modern или Servarr полностью снимаем студийные атрибуты
   if (d !== "studio") {
     const root = document.documentElement;
     root.removeAttribute("data-archetype");
@@ -120,9 +144,8 @@ function applyDesign(design, isUserAction = false) {
   }
   if (isUserAction) {
     const names = {
-      vanguard: CURRENT_LANG === "en" ? "Vanguard Luxe (Awwwards-Tier)" : "Авангард Luxe (Awwwards-Tier)",
+      modern: CURRENT_LANG === "en" ? "Aliasarr Modern (Default)" : "Aliasarr Modern (По умолчанию)",
       servarr: "Servarr Classic",
-      classic: CURRENT_LANG === "en" ? "Classic Neo-Glass" : "Классический Neo-Glass",
       studio: CURRENT_LANG === "en" ? "Custom Studio Edition" : "Студия дизайна (Custom Studio)",
     };
     const name = names[d] || d;
@@ -132,7 +155,7 @@ function applyDesign(design, isUserAction = false) {
 
 function selectDesignSystem(design) {
   applyDesign(design, true);
-  persistAppearance({ design_system: document.documentElement.getAttribute("data-design") || "classic" });
+  persistAppearance({ design_system: document.documentElement.getAttribute("data-design") || "modern" });
 }
 
 // ---------- СОХРАНЕНИЕ ВНЕШНЕГО ВИДА ----------
@@ -185,17 +208,18 @@ function selectTheme(theme) {
 }
 
 function updateDesignSettingsUI(currentDesign) {
-  const d = currentDesign || document.documentElement.getAttribute("data-design") || localStorage.getItem("aliasarr_design") || "classic";
+  let d = currentDesign || document.documentElement.getAttribute("data-design") || localStorage.getItem("aliasarr_design") || "modern";
+  if (d === "classic" || d === "vanguard") d = "modern";
   document.querySelectorAll(".design-card[data-design-choice]").forEach(card => {
     card.classList.toggle("active", card.dataset.designChoice === d);
   });
   const themeSelect = document.getElementById("setting-theme");
   if (themeSelect) themeSelect.closest(".settings-field-group")?.classList.toggle("servarr-theme-locked", d === "servarr");
-  const classicCard = document.getElementById("design-card-classic");
-  const vanguardCard = document.getElementById("design-card-vanguard");
+  const modernCard = document.querySelector('.design-card[data-design-choice="modern"]');
+  const servarrCard = document.querySelector('.design-card[data-design-choice="servarr"]');
   const studioCard = document.querySelector('.design-card[data-design-choice="studio"]');
-  if (classicCard) classicCard.classList.toggle("active", d === "classic");
-  if (vanguardCard) vanguardCard.classList.toggle("active", d === "vanguard");
+  if (modernCard) modernCard.classList.toggle("active", d === "modern");
+  if (servarrCard) servarrCard.classList.toggle("active", d === "servarr");
   if (studioCard) studioCard.classList.toggle("active", d === "studio");
   if (window.lucide && typeof lucide.createIcons === "function") lucide.createIcons();
 }
@@ -958,6 +982,9 @@ const TRANSLATIONS = {
     "settingsnav.design": "Дизайн",
     "settings.design_title": "Дизайн интерфейса",
     "settings.design_subtitle": "Выберите визуальный стиль и архитектуру компонентов для веб-приложения, Wiki и мобильной версии. Стили можно переключать в любой момент без потери настроек.",
+    "settings.design_badge_modern": "MODERN",
+    "settings.design_modern_title": "Aliasarr Modern (По умолчанию)",
+    "settings.design_modern_desc": "Инженерный эргономичный интерфейс: строгие контуры, высокая информационная плотность, отсутствие паразитного неонового шума и быстрая навигация.",
     "settings.design_classic_title": "Классический Neo-Glass",
     "settings.design_classic_desc": "Фирменный минималистичный стиль Aliasarr: полупрозрачные стеклянные панели, компактные карточки и традиционная компоновка интерфейса.",
     "settings.design_vanguard_title": "Авангард Luxe",
@@ -1006,6 +1033,11 @@ const TRANSLATIONS = {
     "settings.interface_title": "Интерфейс",
     "settings.language": "Язык",
     "settings.theme": "Тема",
+    "settings.theme_slate": "Nordic Slate (Графит и сталь)",
+    "settings.theme_oled": "OLED Void (Абсолютный черный)",
+    "settings.theme_indigo": "Deep Midnight (Ночной индиго)",
+    "settings.theme_pine": "Emerald Spruce (Хвойный сланец)",
+    "settings.theme_paper": "Daylight Paper (Светлая бумага)",
     "settings.theme_dark": "Неоновая полночь",
     "settings.theme_obsidian": "Обсидиан (Obsidian Aurora)",
     "settings.theme_dracula": "Дракула",
@@ -2655,6 +2687,9 @@ const TRANSLATIONS = {
     "settingsnav.design": "Design",
     "settings.design_title": "Interface Design",
     "settings.design_subtitle": "Select the visual style and component architecture for the web app, Wiki, and mobile view. You can switch styles at any time.",
+    "settings.design_badge_modern": "MODERN",
+    "settings.design_modern_title": "Aliasarr Modern (Default)",
+    "settings.design_modern_desc": "Engineered ergonomic interface: crisp contours, high information density, zero parasitic neon glare, and fast navigation.",
     "settings.design_classic_title": "Classic Neo-Glass",
     "settings.design_classic_desc": "Aliasarr's signature minimalist style: translucent glass panels, compact cards, and traditional layout structure.",
     "settings.design_vanguard_title": "Vanguard Luxe",
@@ -2703,6 +2738,11 @@ const TRANSLATIONS = {
     "settings.interface_title": "Interface",
     "settings.language": "Language",
     "settings.theme": "Theme",
+    "settings.theme_slate": "Nordic Slate (Graphite & Steel)",
+    "settings.theme_oled": "OLED Void (Pure Black)",
+    "settings.theme_indigo": "Deep Midnight (Night Indigo)",
+    "settings.theme_pine": "Emerald Spruce (Conifer Slate)",
+    "settings.theme_paper": "Daylight Paper (Crisp Alabaster)",
     "settings.theme_dark": "Neon Midnight",
     "settings.theme_obsidian": "Obsidian Aurora",
     "settings.theme_dracula": "Dracula",
@@ -7370,7 +7410,7 @@ function renderSpotlightInitialOrFiltered(query = "") {
 
       let matchedTag = "";
       if (item.matchedAlias) {
-        matchedTag = `<span class="spotlight-alias-match"><i data-lucide="sparkles" class="ico-xxs"></i> ${escapeHtml(item.matchedAlias)}</span>`;
+        matchedTag = `<span class="spotlight-alias-match"><i data-lucide="tag" class="ico-xxs"></i> ${escapeHtml(item.matchedAlias)}</span>`;
       }
 
       html += `
@@ -8461,7 +8501,7 @@ async function openCollectionModal(collectionId) {
                   <span class="mono" style="font-weight:700; color:var(--teal); font-size:13px;">#${idx + 1}</span>
                   <span class="franchise-part-title">${escapeHtml(p.title)}</span>
                   ${p.year ? `<span class="meta-pill mono" style="font-size:11px; padding:2px 6px;"><i data-lucide="calendar" class="ico-xxs"></i> ${p.year}</span>` : ""}
-                  ${p.rating ? `<span class="meta-pill meta-pill-rating" style="font-size:11px; padding:2px 6px;"><i data-lucide="star" class="ico-xxs"></i> ${Number(p.rating).toFixed(1)}</span>` : ""}
+                  ${p.rating ? `<span class="meta-pill meta-pill-rating" style="font-size:11px; padding:2px 6px;"><i data-lucide="award" class="ico-xxs"></i> ${Number(p.rating).toFixed(1)}</span>` : ""}
                   ${statusBadge}
                 </div>
                 ${p.overview ? `<p style="font-size:12px; color:var(--text-muted); margin:0; line-height:1.4; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;">${escapeHtml(p.overview)}</p>` : ""}
@@ -9108,7 +9148,7 @@ function renderShowTableRow(show) {
               ${categoryChip}
               ${editionChip}
               ${collectionChip}
-              ${show.rating ? `<span class="meta-pill meta-pill-rating" style="padding:1px 5px;font-size:9.5px;height:18px;"><i data-lucide="star" class="ico-xxs"></i> ${Number(show.rating).toFixed(1)}</span>` : ""}
+              ${show.rating ? `<span class="meta-pill meta-pill-rating" style="padding:1px 5px;font-size:9.5px;height:18px;"><i data-lucide="award" class="ico-xxs"></i> ${Number(show.rating).toFixed(1)}</span>` : ""}
             </div>
           </div>
         </div>
@@ -9198,7 +9238,7 @@ function renderShowOverviewRow(show) {
   const qualityBadge = POSTER_OPTIONS.quality ? `<span class="meta-badge meta-badge-quality"><i data-lucide="sliders" class="ico-xxs"></i> ${escapeHtml(qualityProfileName(show.quality_profile_id))}</span>` : "";
   const seasonsBadge = (show.content_type !== "movie" && show.seasons_count) ? `<span class="meta-badge"><i data-lucide="layers" class="ico-xxs"></i> ${t("show.seasons_count")}: ${show.seasons_count}</span>` : "";
   const episodesBadge = (show.content_type !== "movie" && show.episodes_count) ? `<span class="meta-badge"><i data-lucide="film" class="ico-xxs"></i> ${t("show.episodes_count") || 'Серий'}: ${show.episodes_count}</span>` : "";
-  const ratingBadge = show.rating ? `<span class="meta-badge meta-badge-rating"><i data-lucide="star" class="ico-xs" style="color:var(--warning); vertical-align:middle; margin-right:3px;"></i>${Number(show.rating).toFixed(1)}</span>` : "";
+  const ratingBadge = show.rating ? `<span class="meta-badge meta-badge-rating"><i data-lucide="award" class="ico-xs" style="color:var(--warning); vertical-align:middle; margin-right:3px;"></i>${Number(show.rating).toFixed(1)}</span>` : "";
   const genreBadge = show.genre ? `<span class="meta-badge"><i data-lucide="tag" class="ico-xxs"></i> ${escapeHtml(show.genre)}</span>` : "";
   const countryBadge = show.country ? `<span class="meta-badge"><i data-lucide="globe" class="ico-xxs"></i> ${escapeHtml(show.country)}</span>` : "";
   const networkBadge = show.network ? `<span class="meta-badge"><i data-lucide="tv" class="ico-xxs"></i> ${escapeHtml(show.network)}</span>` : "";
@@ -10206,7 +10246,7 @@ async function refreshShowModal() {
 
             <div class="show-hero-meta-bar">
               ${show.edition ? `<span class="badge-edition"><i data-lucide="clapperboard" class="ico-xxs"></i> ${escapeHtml(show.edition)}</span>` : ""}
-              ${show.rating ? `<span class="meta-pill meta-pill-rating"><i data-lucide="star" class="ico-xs"></i> ${Number(show.rating).toFixed(1)}</span>` : ""}
+              ${show.rating ? `<span class="meta-pill meta-pill-rating"><i data-lucide="award" class="ico-xs"></i> ${Number(show.rating).toFixed(1)}</span>` : ""}
               ${show.year ? `<span class="meta-pill mono"><i data-lucide="calendar" class="ico-xs"></i> ${show.year}</span>` : ""}
               ${show.status ? `<span class="meta-pill meta-pill-status ${show.status === 'ended' ? 'status-ended' : 'status-continuing'}"><i data-lucide="${statusIco}" class="ico-xs"></i> ${statusLabel}</span>` : ""}
               ${show.genre ? `<span class="meta-pill"><i data-lucide="tag" class="ico-xs"></i> ${escapeHtml(show.genre)}</span>` : ""}
@@ -12634,7 +12674,7 @@ async function executeShowRemapSearch() {
             ${!r.poster_url ? `<div class="metadata-poster-fallback" style="font-size:32px;">${escapeHtml((r.title || '?')[0].toUpperCase())}</div>` : ""}
             <div class="metadata-poster-top">
               ${r.year ? `<span class="meta-badge-glass"><i data-lucide="calendar" style="width:11px; height:11px;"></i>${escapeHtml(String(r.year))}</span>` : ""}
-              ${r.rating ? `<span class="meta-badge-glass meta-rating"><i data-lucide="star" style="width:11px; height:11px;"></i>${Number(r.rating).toFixed(1)}</span>` : ""}
+              ${r.rating ? `<span class="meta-badge-glass meta-rating"><i data-lucide="award" style="width:11px; height:11px;"></i>${Number(r.rating).toFixed(1)}</span>` : ""}
             </div>
             <div class="metadata-poster-bottom">
               <div class="metadata-poster-title" style="font-size:12px;">${escapeHtml(r.title)}</div>
@@ -14180,7 +14220,7 @@ function renderInteractiveSearchHeader() {
   const favoriteStatus = favoriteStatuses[favorite?.last_check_status] || (CURRENT_LANG === "en" ? "Awaiting first check" : "Ожидает первой проверки");
   const favoriteHtml = favorite ? `
     <div class="hint" style="display:flex; align-items:center; gap:8px; min-width:0;">
-      <i data-lucide="star" class="ico-xs"></i>
+      <i data-lucide="pin" class="ico-xs"></i>
       <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(favorite.title)}">${CURRENT_LANG === "en" ? "Following" : "Отслеживается"}: ${escapeHtml(favorite.title)}</span>
       <span class="badge badge-secondary" title="${favorite.last_checked_at ? escapeHtml(favorite.last_checked_at) : ''}">${favoriteStatus}</span>
       <button type="button" class="btn btn-secondary btn-small" onclick="unpinInteractiveFavorite(${state.season})">${CURRENT_LANG === "en" ? "Unpin" : "Открепить"}</button>
@@ -14502,7 +14542,7 @@ function renderInteractiveReleaseRow(r) {
         <div style="display:inline-flex; align-items:center; gap:4px; justify-content:flex-end;">
           <button class="btn btn-secondary btn-small" title="${CURRENT_LANG === 'en' ? 'Inspect release' : 'Проверить релиз'}" onclick="openReleaseInspectorFromSearch(${INTERACTIVE_SEARCH_STATE.results.indexOf(r)})" style="padding:4px 6px;"><i data-lucide="scan-search" class="ico-xs"></i></button>
           <button class="btn ${grabBtnClass} btn-small" onclick='grabRelease(this, ${showId}, ${JSON.stringify(r).replace(/'/g, "&apos;")})'>${grabBtnText}</button>
-          ${canPin ? `<button type="button" class="btn btn-secondary btn-small" title="${CURRENT_LANG === 'en' ? 'Follow only this release for season ' : 'Отслеживать только эту раздачу для сезона '}${favoriteSeason}" onclick="pinInteractiveFavorite(this, ${INTERACTIVE_SEARCH_STATE.results.indexOf(r)}, ${favoriteSeason})" ${isFavorite ? "disabled" : ""}><i data-lucide="star" class="ico-xs"></i>${isFavorite ? " ✓" : ""}</button>` : ""}
+          ${canPin ? `<button type="button" class="btn btn-secondary btn-small" title="${CURRENT_LANG === 'en' ? 'Follow only this release for season ' : 'Отслеживать только эту раздачу для сезона '}${favoriteSeason}" onclick="pinInteractiveFavorite(this, ${INTERACTIVE_SEARCH_STATE.results.indexOf(r)}, ${favoriteSeason})" ${isFavorite ? "disabled" : ""}><i data-lucide="pin" class="ico-xs"></i>${isFavorite ? " ✓" : ""}</button>` : ""}
           <button class="btn btn-secondary btn-small" title="${CURRENT_LANG === 'en' ? 'Add to blocklist' : 'В черный список'}" onclick='blockReleaseFromSearch(this, ${showId}, ${JSON.stringify(r).replace(/'/g, "&apos;")})' style="padding:4px 6px; color:var(--text-muted);"><i data-lucide="shield-alert" class="ico-xs"></i></button>
         </div>
       </td>
@@ -14820,11 +14860,11 @@ function renderMetadataResultCard(r, index) {
     : (isAnime 
         ? (CURRENT_LANG === 'en' ? 'Anime' : 'Аниме') 
         : (CURRENT_LANG === 'en' ? 'Series' : 'Сериал'));
-  const typeIco = isMovie ? "film" : (isAnime ? "sparkles" : "tv");
+  const typeIco = isMovie ? "film" : (isAnime ? "clapperboard" : "tv");
   const typeClass = isMovie ? "meta-type-movie" : (isAnime ? "meta-type-anime" : "meta-type-series");
 
   const yearStr = r.year ? String(r.year) : "";
-  const ratingStr = r.rating ? `<span class="meta-badge-glass meta-rating"><i data-lucide="star" style="width:11px; height:11px;"></i>${Number(r.rating).toFixed(1)}</span>` : "";
+  const ratingStr = r.rating ? `<span class="meta-badge-glass meta-rating"><i data-lucide="award" style="width:11px; height:11px;"></i>${Number(r.rating).toFixed(1)}</span>` : "";
   const initialLetter = (r.title || "?").trim()[0]?.toUpperCase() || "?";
 
   const bgStyle = r.poster_url ? `style="background-image: url('${r.poster_url}');"` : "";
@@ -16626,7 +16666,7 @@ function openCalendarEventModal(eKey) {
 
   let badgesHtml = `<span class="badge ${catClass}">${catName}</span>`;
   badgesHtml += `<span class="status-pill status-${e.status}">${escapeHtml(calStatusLabel(e.status))}</span>`;
-  if (e.rating) badgesHtml += `<span class="meta-badge meta-badge-rating"><i data-lucide="star" class="ico-xs"></i> ${Number(e.rating).toFixed(1)}</span>`;
+  if (e.rating) badgesHtml += `<span class="meta-badge meta-badge-rating"><i data-lucide="award" class="ico-xs"></i> ${Number(e.rating).toFixed(1)}</span>`;
 
   let releaseBadgesHtml = "";
   if (isMovie && e.release_types && e.release_types.length) {
@@ -17555,7 +17595,7 @@ async function loadGroupedReleaseHistory(page) {
 
     const triggerConfig = {
       add_show: { label: isRu ? "Добавление в библиотеку" : "Added to Library", icon: "plus-circle", cls: "trigger-add" },
-      auto_search: { label: isRu ? "Автопоиск" : "Auto Search", icon: "zap", cls: "trigger-auto" },
+      auto_search: { label: isRu ? "Автопоиск" : "Auto Search", icon: "activity", cls: "trigger-auto" },
       forced_search: { label: isRu ? "Принудительный поиск" : "Forced Search", icon: "refresh-cw", cls: "trigger-auto" },
       manual_search: { label: isRu ? "Ручной поиск" : "Manual Search", icon: "search", cls: "trigger-manual" },
       import: { label: isRu ? "Импорт релиза" : "Release Import", icon: "check-circle", cls: "trigger-import" },
@@ -17606,7 +17646,7 @@ async function loadGroupedReleaseHistory(page) {
         : `${cyclesCount} ${cyclesCount === 1 ? "run" : "runs"}`;
 
       const latestCycle = grp.cycles[0];
-      const trigConf = latestCycle ? (triggerConfig[latestCycle.trigger] || { label: latestCycle.trigger, icon: "zap", cls: "trigger-auto" }) : null;
+      const trigConf = latestCycle ? (triggerConfig[latestCycle.trigger] || { label: latestCycle.trigger, icon: "activity", cls: "trigger-auto" }) : null;
       const trigPill = trigConf
         ? `<span class="badge-tag" style="font-size:11px; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="${trigConf.icon}" style="width:11px; height:11px;"></i> ${trigConf.label}</span>`
         : "";
@@ -17779,7 +17819,7 @@ function openReleaseHistoryDrawer(globalIdx) {
 
   const triggerConfig = {
     add_show: { label: isRu ? "Добавление в библиотеку" : "Added to Library", icon: "plus-circle", cls: "trigger-add" },
-    auto_search: { label: isRu ? "Автопоиск" : "Auto Search", icon: "zap", cls: "trigger-auto" },
+    auto_search: { label: isRu ? "Автопоиск" : "Auto Search", icon: "activity", cls: "trigger-auto" },
     forced_search: { label: isRu ? "Принудительный поиск" : "Forced Search", icon: "refresh-cw", cls: "trigger-auto" },
     manual_search: { label: isRu ? "Ручной поиск" : "Manual Search", icon: "search", cls: "trigger-manual" },
     import: { label: isRu ? "Импорт релиза" : "Release Import", icon: "check-circle", cls: "trigger-import" },
@@ -17788,7 +17828,7 @@ function openReleaseHistoryDrawer(globalIdx) {
 
   const cyclesHtml = grp.cycles.map((cycle, cycleIdx) => {
     const isFirst = cycleIdx === 0;
-    const trigConf = triggerConfig[cycle.trigger] || { label: cycle.trigger || (isRu ? "Запуск" : "Run"), icon: "zap", cls: "trigger-auto" };
+    const trigConf = triggerConfig[cycle.trigger] || { label: cycle.trigger || (isRu ? "Запуск" : "Run"), icon: "activity", cls: "trigger-auto" };
 
     let cycleStatusBadge = "";
     if (cycle.status === "imported") {
@@ -26968,7 +27008,7 @@ function shuffleStudioTheme() {
   renderStudioPresets();
   renderStudioSwatches();
   applyStudioLivePreview(true);
-  showToast("Сгенерирована новая комбинация стиля! 🎲", "info");
+  showToast("Сгенерирована новая комбинация стиля!", "info");
 }
 
 function openSaveCustomThemeModal() {

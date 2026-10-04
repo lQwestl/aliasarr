@@ -1347,7 +1347,7 @@
           <div class="settings-section-card studio-card">
             <div class="settings-card-header">
               <div class="settings-card-header-left">
-                <div class="settings-card-icon-badge"><i data-lucide="sparkles"></i></div>
+                <div class="settings-card-icon-badge"><i data-lucide="layers"></i></div>
                 <div class="settings-card-title-wrap">
                   <h3 data-i18n="design_studio.presets_title">Готовые пресеты и стили</h3>
                   <p class="subtitle" data-i18n="design_studio.presets_subtitle">Выберите дизайнерский стиль из библиотеки или сгенерируйте случайный</p>
@@ -1922,10 +1922,11 @@
             <div class="settings-field-group">
               <label class="settings-field-label" data-i18n="settings.theme">Тема</label>
               <select id="setting-theme" class="input" onchange="selectTheme(this.value)">
-                <option value="dark" data-i18n="settings.theme_dark">Неоновая полночь</option>
-                <option value="obsidian" data-i18n="settings.theme_obsidian">Обсидиан (Obsidian Aurora)</option>
-                <option value="dracula" data-i18n="settings.theme_dracula">Дракула</option>
-                <option value="light" data-i18n="settings.theme_light">Полярный день</option>
+                <option value="slate" data-i18n="settings.theme_slate">Nordic Slate (Графит и сталь)</option>
+                <option value="oled" data-i18n="settings.theme_oled">OLED Void (Абсолютный черный)</option>
+                <option value="indigo" data-i18n="settings.theme_indigo">Deep Midnight (Ночной индиго)</option>
+                <option value="pine" data-i18n="settings.theme_pine">Emerald Spruce (Хвойный сланец)</option>
+                <option value="paper" data-i18n="settings.theme_paper">Daylight Paper (Светлая бумага)</option>
               </select>
               <div class="settings-field-hint servarr-theme-note" data-i18n="settings.theme_servarr_note">В дизайне Servarr Classic используется собственная нейтральная палитра — выбранная тема применится к другим дизайнам.</div>
             </div>
@@ -2492,88 +2493,47 @@
           </div>
 
           <div class="design-cards-grid">
-            <!-- 1. Классический дизайн -->
-            <div class="design-card" data-design-choice="classic" onclick="selectDesignSystem('classic')">
+            <!-- 1. Aliasarr Modern (По умолчанию) -->
+            <div class="design-card" data-design-choice="modern" onclick="selectDesignSystem('modern')">
               <div class="design-card-header">
-                <span class="design-card-badge badge-classic" data-i18n="settings.design_badge_classic">Классика</span>
+                <span class="design-card-badge badge-modern" data-i18n="settings.design_badge_modern">MODERN</span>
                 <div class="design-card-check"><i data-lucide="check" class="ico-xs"></i></div>
               </div>
-              <div class="design-card-preview preview-classic">
-                <div class="preview-classic-header">
+              <div class="design-card-preview preview-modern">
+                <div class="preview-modern-topbar">
                   <div class="preview-dot"></div>
-                  <div class="preview-line w-30"></div>
+                  <div class="preview-search-pill"></div>
                 </div>
-                <div class="preview-classic-body">
-                  <div class="preview-classic-sidebar">
-                    <div class="preview-item active"></div>
-                    <div class="preview-item"></div>
-                    <div class="preview-item"></div>
+                <div class="preview-modern-body">
+                  <div class="preview-modern-sidebar">
+                    <div class="preview-modern-item active"></div>
+                    <div class="preview-modern-item"></div>
+                    <div class="preview-modern-item"></div>
                   </div>
-                  <div class="preview-classic-content">
-                    <div class="preview-classic-card">
+                  <div class="preview-modern-content">
+                    <div class="preview-modern-stat-row">
+                      <div class="preview-modern-stat"></div>
+                      <div class="preview-modern-stat"></div>
+                    </div>
+                    <div class="preview-modern-card">
                       <div class="preview-line w-60"></div>
                       <div class="preview-line w-40 muted"></div>
                     </div>
-                    <div class="preview-classic-card">
-                      <div class="preview-line w-50"></div>
-                    </div>
                   </div>
                 </div>
               </div>
               <div class="design-card-info">
-                <div class="design-card-title" data-i18n="settings.design_classic_title">Классический Neo-Glass</div>
-                <div class="design-card-desc" data-i18n="settings.design_classic_desc">
-                  Фирменный минималистичный стиль Aliasarr: полупрозрачные стеклянные панели, компактные карточки и традиционная компоновка интерфейса.
-                </div>
-              </div>
-              <div class="design-card-footer">
-                <button class="btn btn-secondary btn-small w-full" data-i18n="settings.btn_select_design">Выбрать стиль</button>
-              </div>
-            </div>
-
-            <!-- 2. Авангард Luxe -->
-            <div class="design-card" data-design-choice="vanguard" onclick="selectDesignSystem('vanguard')">
-              <div class="design-card-header">
-                <span class="design-card-badge badge-vanguard" data-i18n="settings.design_badge_vanguard">AVANGARD LUXE</span>
-                <div class="design-card-check"><i data-lucide="check" class="ico-xs"></i></div>
-              </div>
-              <div class="design-card-preview preview-vanguard">
-                <div class="preview-vanguard-island">
-                  <div class="preview-vanguard-pill"></div>
-                  <div class="preview-vanguard-pill mini"></div>
-                </div>
-                <div class="preview-vanguard-body">
-                  <div class="preview-vanguard-sidebar">
-                    <div class="preview-vanguard-nav active"></div>
-                    <div class="preview-vanguard-nav"></div>
-                    <div class="preview-vanguard-nav"></div>
-                  </div>
-                  <div class="preview-vanguard-content">
-                    <div class="preview-vanguard-doublebezel">
-                      <div class="preview-vanguard-inner">
-                        <div class="preview-line w-50 accent"></div>
-                        <div class="preview-line w-70 muted"></div>
-                      </div>
-                    </div>
-                    <div class="preview-vanguard-doublebezel">
-                      <div class="preview-vanguard-inner">
-                        <div class="preview-line w-40"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="design-card-info">
-                <div class="design-card-title" data-i18n="settings.design_vanguard_title">Авангард Luxe</div>
-                <div class="design-card-desc" data-i18n="settings.design_vanguard_desc">
-                  Современный футуристичный стиль: парящие островные панели, мягкие закругления, плавные микро-анимации и глубокое матовое стекло.
+                <div class="design-card-title" data-i18n="settings.design_modern_title">Aliasarr Modern (По умолчанию)</div>
+                <div class="design-card-desc" data-i18n="settings.design_modern_desc">
+                  Инженерный эргономичный интерфейс: строгие контуры, высокая информационная плотность, отсутствие паразитного неонового шума и быстрая навигация.
                 </div>
               </div>
               <div class="design-card-footer">
                 <button class="btn btn-primary btn-small w-full" data-i18n="settings.btn_select_design">Выбрать стиль</button>
               </div>
             </div>
-            <!-- 3. Servarr Classic -->
+
+            <!-- 2. Servarr Classic -->
             <div class="design-card" data-design-choice="servarr" onclick="selectDesignSystem('servarr')">
               <div class="design-card-header">
                 <span class="design-card-badge badge-servarr" data-i18n="settings.design_badge_servarr">SERVARR</span>
@@ -2613,8 +2573,9 @@
               <div class="design-card-footer">
                 <button class="btn btn-secondary btn-small w-full" data-i18n="settings.btn_select_design">Выбрать стиль</button>
               </div>
+            </div>
 
-            <!-- 4. Студия дизайна (Custom Studio) -->
+            <!-- 3. Студия дизайна (Custom Studio) -->
             <div class="design-card" data-design-choice="studio" onclick="selectDesignSystem('studio')">
               <div class="design-card-header">
                 <span class="design-card-badge badge-studio" data-i18n="settings.design_badge_studio">STUDIO</span>
@@ -2740,7 +2701,7 @@
           <div class="naming-simulator-panel" id="naming-simulator-panel">
             <div class="naming-simulator-header">
               <div class="naming-simulator-title">
-                <i data-lucide="sparkles" class="ico-xs text-teal"></i>
+                <i data-lucide="sliders-horizontal" class="ico-xs text-teal"></i>
                 <span data-i18n="settings.naming_sim_title">Живая песочница переименования</span>
               </div>
               <div class="naming-simulator-modes">
@@ -2856,7 +2817,7 @@
                 <div class="explainer-text" data-i18n="settings.hardlink_why_desc">Позволяет воспроизводить фильмы в Jellyfin/Plex и одновременно раздавать торренты без удвоения дискового пространства (0 байт).</div>
               </div>
               <div class="explainer-box explainer-box-rec">
-                <div class="explainer-tag"><i data-lucide="zap" class="ico-xxs"></i> <span data-i18n="settings.explainer_rec_title">Рекомендуемое значение</span></div>
+                <div class="explainer-tag"><i data-lucide="check-circle" class="ico-xxs"></i> <span data-i18n="settings.explainer_rec_title">Рекомендуемое значение</span></div>
                 <div class="explainer-text" data-i18n="settings.hardlink_rec_desc">Включите, если загрузки и медиатека находятся на одном томе/диске (единый том в Docker).</div>
               </div>
               <div class="explainer-box explainer-box-warn">
