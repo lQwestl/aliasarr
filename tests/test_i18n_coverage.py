@@ -81,5 +81,18 @@ class TestTranslationsCoverage(unittest.TestCase):
             self.assertIn(k, qg_ru, f"Quality guide key '{k}' missing from GUIDE_TRANSLATIONS.ru")
             self.assertIn(k, qg_en, f"Quality guide key '{k}' missing from GUIDE_TRANSLATIONS.en")
 
+    def test_nav_add_video_clean_label(self):
+        with open(self.app_js_path, "r", encoding="utf-8") as f:
+            text = f.read()
+
+        ru_start = text.find("ru: {")
+        en_start = text.find("en: {")
+        en_end = text.find("let CURRENT_LANG", en_start)
+        ru_dict = dict(re.findall(r'"([^"]+)":\s*"((?:[^"\\]|\\.)*)"', text[ru_start:en_start], re.DOTALL))
+        en_dict = dict(re.findall(r'"([^"]+)":\s*"((?:[^"\\]|\\.)*)"', text[en_start:en_end], re.DOTALL))
+
+        self.assertFalse(ru_dict.get("nav.add_video", "").startswith("+"), "RU nav.add_video should not start with '+'")
+        self.assertFalse(en_dict.get("nav.add_video", "").startswith("+"), "EN nav.add_video should not start with '+'")
+
 if __name__ == "__main__":
     unittest.main()
