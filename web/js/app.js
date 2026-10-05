@@ -27148,45 +27148,66 @@ function renderStudioPreviewCanvas() {
     `;
   } else if (STUDIO_PREVIEW_MODE === "badges") {
     canvas.innerHTML = `
-      <div class="studio-badge-demo-wrap" style="max-width: 400px; width: 100%;">
+      <div class="studio-badge-demo-wrap" style="max-width: 440px; width: 100%; display: flex; flex-direction: column; gap: 14px;">
         <div class="studio-badge-demo-group">
-          <div class="studio-badge-demo-label">Разрешение и источник</div>
-          <div class="studio-badge-demo-chips">
-            <span class="badge badge-purple">4K UHD</span>
-            <span class="badge badge-primary">1080p FHD</span>
-            <span class="badge badge-secondary">720p HD</span>
-            <span class="badge badge-info">REMUX</span>
-            <span class="badge badge-secondary">WEB-DL</span>
-            <span class="badge badge-secondary">BluRay</span>
+          <div class="studio-badge-demo-label">${CURRENT_LANG === 'en' ? 'Resolution & Source' : 'Разрешение и источник'}</div>
+          <div class="studio-badge-demo-chips" style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <span class="badge-quality">4K UHD</span>
+            <span class="badge-quality">1080p FHD</span>
+            <span class="badge-quality">720p HD</span>
+            <span class="badge-quality">REMUX</span>
+            <span class="badge-quality">WEB-DL</span>
+            <span class="badge-quality">BluRay</span>
           </div>
         </div>
         <div class="studio-badge-demo-group">
-          <div class="studio-badge-demo-label">HDR и цветопередача</div>
-          <div class="studio-badge-demo-chips">
-            <span class="badge badge-warning">HDR10+</span>
-            <span class="badge badge-purple">Dolby Vision</span>
-            <span class="badge badge-warning">DV / HDR10</span>
-            <span class="badge badge-secondary">SDR 10-bit</span>
+          <div class="studio-badge-demo-label">${CURRENT_LANG === 'en' ? 'HDR & Color Space' : 'HDR и цветопередача'}</div>
+          <div class="studio-badge-demo-chips" style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <span class="badge-hdr">HDR10+</span>
+            <span class="badge-hdr">Dolby Vision</span>
+            <span class="badge-hdr">DV / HDR10</span>
+            <span class="badge-hdr">SDR 10-bit</span>
           </div>
         </div>
         <div class="studio-badge-demo-group">
-          <div class="studio-badge-demo-label">Статусы закачек и здоровье</div>
-          <div class="studio-badge-demo-chips">
-            <span class="badge badge-success">В норме</span>
-            <span class="badge badge-info">Скачивание</span>
-            <span class="badge badge-warning">В очереди</span>
-            <span class="badge badge-danger">Ошибка</span>
-            <span class="badge badge-secondary">12 / 12 серий</span>
+          <div class="studio-badge-demo-label">${CURRENT_LANG === 'en' ? 'Audio & Codecs' : 'Звук, кодеки и релизы'}</div>
+          <div class="studio-badge-demo-chips" style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <span class="badge-audio">TrueHD Atmos 7.1</span>
+            <span class="badge-audio">DTS-HD MA 5.1</span>
+            <span class="badge-quality">HEVC (H.265)</span>
+            <span class="badge-lang">RUS</span>
+            <span class="badge-group">LostFilm</span>
           </div>
         </div>
         <div class="studio-badge-demo-group">
-          <div class="studio-badge-demo-label">Звуковые кодеки и дорожки</div>
-          <div class="studio-badge-demo-chips">
-            <span class="badge badge-secondary">TrueHD Atmos 7.1</span>
-            <span class="badge badge-secondary">DTS-HD MA 5.1</span>
-            <span class="badge badge-secondary">HEVC (H.265)</span>
-            <span class="badge badge-secondary">AV1 10bit</span>
-            <span class="badge badge-secondary">FLAC 2.0</span>
+          <div class="studio-badge-demo-label">${CURRENT_LANG === 'en' ? 'Library Cards & Posters' : 'Карточки медиатеки'}</div>
+          <div class="studio-badge-demo-chips" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+            <span class="show-quality-badge">Ultra-HD</span>
+            <span class="category-badge-chip category-badge-movies"><i data-lucide="film" class="ico-xxs"></i> ${CURRENT_LANG === 'en' ? 'Movie' : 'Фильм'}</span>
+            <span class="category-badge-chip category-badge-series"><i data-lucide="tv" class="ico-xxs"></i> ${CURRENT_LANG === 'en' ? 'Series' : 'Сериал'}</span>
+            <span class="badge-edition"><i data-lucide="clapperboard" class="ico-xxs"></i> Extended Cut</span>
+            <span class="badge-collection"><i data-lucide="boxes" class="ico-xxs"></i> ${CURRENT_LANG === 'en' ? 'Trilogy' : 'Трилогия'}</span>
+            <span class="show-monitored-pill monitored"><i data-lucide="bookmark-check" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Monitored' : 'Отслеживается'}</span></span>
+            <span class="alias-chip lang-ru">Интерстеллар</span>
+          </div>
+        </div>
+        <div class="studio-badge-demo-group">
+          <div class="studio-badge-demo-label">${CURRENT_LANG === 'en' ? 'Search & Custom Formats' : 'Поиск и Custom Formats'}</div>
+          <div class="studio-badge-demo-chips" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+            <span class="badge-cf-score">+150</span>
+            <span class="badge-cf-item">Atmos Tier 1</span>
+            <span class="badge-file-present"><i data-lucide="hard-drive" class="ico-xxs"></i> 4K HDR</span>
+            <span class="badge-upgrade-pending"><i data-lucide="arrow-up-circle" class="ico-xxs"></i> <span>${CURRENT_LANG === 'en' ? 'Upgrade' : 'Апгрейд'}</span></span>
+          </div>
+        </div>
+        <div class="studio-badge-demo-group">
+          <div class="studio-badge-demo-label">${CURRENT_LANG === 'en' ? 'Status & Health' : 'Статусы и здоровье'}</div>
+          <div class="studio-badge-demo-chips" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+            <span class="badge badge-success">${CURRENT_LANG === 'en' ? 'Healthy' : 'В норме'}</span>
+            <span class="badge badge-info">${CURRENT_LANG === 'en' ? 'Downloading' : 'Скачивание'}</span>
+            <span class="badge badge-warning">${CURRENT_LANG === 'en' ? 'Queued' : 'В очереди'}</span>
+            <span class="badge badge-danger">${CURRENT_LANG === 'en' ? 'Error' : 'Ошибка'}</span>
+            <span class="badge badge-secondary">12 / 12</span>
           </div>
         </div>
       </div>

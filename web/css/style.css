@@ -20240,84 +20240,138 @@ html[data-design="studio"][data-card-style="cyber"] .show-card:hover {
 }
 
 /* --- 7. КОНСТРУКТОР БЕЙДЖЕЙ (BADGE STUDIO RULES) --- */
-/* Форма бейджей */
-html[data-design="studio"][data-badge-shape="pill"] .badge,
-.studio-preview-canvas[data-badge-shape="pill"] .badge {
+/* Форма бейджей: Капсула (pill) */
+html[data-design="studio"][data-badge-shape="pill"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-shape="pill"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
   border-radius: 9999px !important;
-  padding: 3px 9px !important;
-}
-html[data-design="studio"][data-badge-shape="rounded"] .badge,
-.studio-preview-canvas[data-badge-shape="rounded"] .badge {
-  border-radius: 6px !important;
-  padding: 2.5px 7px !important;
-}
-html[data-design="studio"][data-badge-shape="sharp"] .badge,
-.studio-preview-canvas[data-badge-shape="sharp"] .badge {
-  border-radius: 2px !important;
-  padding: 2.5px 7px !important;
-}
-html[data-design="studio"][data-badge-shape="chamfer"] .badge,
-.studio-preview-canvas[data-badge-shape="chamfer"] .badge {
-  border-radius: 0 !important;
-  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px) !important;
-  padding: 3px 8px !important;
+  clip-path: none !important;
+  padding-left: 9px !important;
+  padding-right: 9px !important;
 }
 
-/* Стиль заливки бейджей */
-html[data-design="studio"][data-badge-style="frosted"] .badge,
-.studio-preview-canvas[data-badge-style="frosted"] .badge {
+/* Форма бейджей: Скругленный (rounded) */
+html[data-design="studio"][data-badge-shape="rounded"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-shape="rounded"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
+  border-radius: 6px !important;
+  clip-path: none !important;
+  padding-left: 7px !important;
+  padding-right: 7px !important;
+}
+
+/* Форма бейджей: Строгий (sharp) */
+html[data-design="studio"][data-badge-shape="sharp"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-shape="sharp"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
+  border-radius: 2px !important;
+  clip-path: none !important;
+  padding-left: 7px !important;
+  padding-right: 7px !important;
+}
+
+/* Форма бейджей: Кибер-скос (chamfer) */
+html[data-design="studio"][data-badge-shape="chamfer"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-shape="chamfer"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
+  border-radius: 0 !important;
+  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px) !important;
+  padding-left: 9px !important;
+  padding-right: 9px !important;
+}
+
+/* Стиль заливки бейджей: Стекло (frosted) */
+html[data-design="studio"][data-badge-style="frosted"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-style="frosted"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
   backdrop-filter: var(--glass-blur, blur(8px)) !important;
   -webkit-backdrop-filter: var(--glass-blur, blur(8px)) !important;
   border-width: 1px !important;
-}
-html[data-design="studio"][data-badge-style="outline"] .badge,
-.studio-preview-canvas[data-badge-style="outline"] .badge {
-  background: transparent !important;
-  border: 1.5px solid currentColor !important;
-  box-shadow: 0 0 6px rgba(var(--accent-rgb, 0, 240, 255), 0.25) !important;
-}
-html[data-design="studio"][data-badge-style="solid"] .badge,
-.studio-preview-canvas[data-badge-style="solid"] .badge {
-  font-weight: 700 !important;
-}
-html[data-design="studio"][data-badge-style="subtle"] .badge,
-.studio-preview-canvas[data-badge-style="subtle"] .badge {
-  border-color: transparent !important;
-  background: rgba(255, 255, 255, 0.05) !important;
+  border-style: solid !important;
 }
 
-/* Шрифт и регистр бейджей */
-html[data-design="studio"][data-badge-font="mono"] .badge,
-.studio-preview-canvas[data-badge-font="mono"] .badge {
+/* Стиль заливки бейджей: Контур (outline) */
+html[data-design="studio"][data-badge-style="outline"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-style="outline"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
+  background: transparent !important;
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  border-color: currentColor !important;
+  box-shadow: 0 0 6px rgba(var(--accent-rgb, 0, 240, 255), 0.22) !important;
+}
+
+/* Стиль заливки бейджей: Сплошной (solid) */
+html[data-design="studio"][data-badge-style="solid"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-style="solid"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
+  font-weight: 700 !important;
+  opacity: 1 !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+}
+
+/* Стиль заливки бейджей: Минимал (subtle) */
+html[data-design="studio"][data-badge-style="subtle"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-style="subtle"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
+  border-color: transparent !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: none !important;
+}
+:is([data-theme="paper"], [data-theme="light"]) html[data-design="studio"][data-badge-style="subtle"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Шрифт бейджей: Mono */
+html[data-design="studio"][data-badge-font="mono"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-font="mono"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
   font-family: var(--font-mono, 'JetBrains Mono', monospace) !important;
 }
-html[data-design="studio"][data-badge-font="sans"] .badge,
-.studio-preview-canvas[data-badge-font="sans"] .badge {
+
+/* Шрифт бейджей: Sans (UI) */
+html[data-design="studio"][data-badge-font="sans"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-font="sans"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
   font-family: var(--font-body, 'Outfit', sans-serif) !important;
 }
-html[data-design="studio"][data-badge-case="uppercase"] .badge,
-.studio-preview-canvas[data-badge-case="uppercase"] .badge {
+
+/* Регистр текста: UPPERCASE */
+html[data-design="studio"][data-badge-case="uppercase"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-case="uppercase"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
   text-transform: uppercase !important;
-  letter-spacing: 0.06em !important;
+  letter-spacing: 0.05em !important;
 }
-html[data-design="studio"][data-badge-case="natural"] .badge,
-.studio-preview-canvas[data-badge-case="natural"] .badge {
+
+/* Регистр текста: Natural */
+html[data-design="studio"][data-badge-case="natural"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-case="natural"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
   text-transform: none !important;
   letter-spacing: normal !important;
 }
 
-/* Цветовые палитры бейджей */
-html[data-design="studio"][data-badge-color="monochrome"] .badge,
-.studio-preview-canvas[data-badge-color="monochrome"] .badge {
+/* Цветовые палитры бейджей: Монохромная */
+html[data-design="studio"][data-badge-color="monochrome"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-color="monochrome"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
   color: var(--teal) !important;
   border-color: rgba(var(--accent-rgb, 0, 240, 255), 0.35) !important;
   background: rgba(var(--accent-rgb, 0, 240, 255), 0.12) !important;
 }
-html[data-design="studio"][data-badge-color="high-contrast"] .badge,
-.studio-preview-canvas[data-badge-color="high-contrast"] .badge {
+html[data-design="studio"][data-badge-color="monochrome"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) :is(i, svg) {
+  color: var(--teal) !important;
+  stroke: var(--teal) !important;
+}
+
+/* Цветовые палитры бейджей: Высококонтрастная */
+html[data-design="studio"][data-badge-color="high-contrast"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge),
+.studio-preview-canvas[data-badge-color="high-contrast"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
   color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.5) !important;
-  background: rgba(0, 0, 0, 0.75) !important;
+  border-color: rgba(255, 255, 255, 0.55) !important;
+  background: rgba(0, 0, 0, 0.85) !important;
+}
+html[data-design="studio"][data-badge-color="high-contrast"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) :is(i, svg) {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+:is([data-theme="paper"], [data-theme="light"]) html[data-design="studio"][data-badge-color="high-contrast"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) {
+  color: #050505 !important;
+  border-color: rgba(0, 0, 0, 0.55) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+:is([data-theme="paper"], [data-theme="light"]) html[data-design="studio"][data-badge-color="high-contrast"] :is(.badge, .badge-quality, .badge-hdr, .badge-audio, .badge-lang, .badge-group, .badge-edition, .badge-collection, .badge-cf-score, .badge-cf-item, .badge-file-present, .badge-upgrade-pending, .badge-season-progress, .show-quality-badge, .show-quality-text, .table-qp-badge, .show-monitored-pill, .poster-status-pill, .category-badge-chip, .show-collection-chip, .alias-chip, .meta-badge, .meta-badge-glass, .title-lang-chip, .title-lang-tag, .user-role-badge, .nav-wiki-badge, .design-card-badge) :is(i, svg) {
+  color: #050505 !important;
+  stroke: #050505 !important;
 }
 
 /* --- 8. СТУДИЯ ТИПОГРАФИКИ (TYPOGRAPHY STUDIO) --- */
