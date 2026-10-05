@@ -404,19 +404,19 @@ const TRANSLATIONS = {
     "design_studio.shell_mini": "Мини-док (иконки)",
     "design_studio.shell_mini_desc": "Компактная колонка 72px",
     "design_studio.shell_top": "Верхняя шапка",
-    "design_studio.shell_top_desc": "Горизонтальное меню (100% ширина экрана)",
+    "design_studio.shell_top_desc": "Горизонтальное меню на всю ширину",
     "design_studio.shell_island": "Плавающий остров",
     "design_studio.shell_island_desc": "Стеклянная парящая панель",
     "design_studio.content_width": "Ширина контентной зоны",
-    "design_studio.width_fluid": "100% (Fluid)",
-    "design_studio.width_boxed": "Центрированная (1500px)",
+    "design_studio.width_fluid": "Fluid (100%)",
+    "design_studio.width_boxed": "Boxed (1500px)",
     "design_studio.density": "Плотность верстки (Density)",
     "design_studio.density_compact": "Компактная",
     "design_studio.density_comfortable": "Комфортная",
     "design_studio.density_spacious": "Просторная",
     "design_studio.poster_size": "Масштаб постеров в библиотеке",
     "design_studio.card_style": "Стиль карточки постера",
-    "design_studio.card_neo_glass": "Neo-Glass (Парящие)",
+    "design_studio.card_neo_glass": "Neo-Glass",
     "design_studio.card_cinematic": "Cinematic",
     "design_studio.card_minimal": "Минимал",
     "design_studio.colors_title": "Цветовая палитра и акценты",
@@ -461,17 +461,18 @@ const TRANSLATIONS = {
     "design_studio.shape_chamfer": "Кибер-скос",
     "design_studio.badge_style": "Стиль заливки и рамки",
     "design_studio.bstyle_frosted": "Стекло",
-    "design_studio.bstyle_outline": "Неон-контур",
-    "design_studio.bstyle_solid": "Плотный",
+    "design_studio.bstyle_outline": "Контур",
+    "design_studio.bstyle_solid": "Сплошной",
     "design_studio.bstyle_subtle": "Минимал",
     "design_studio.badge_font": "Гарнитура бейджей",
-    "design_studio.bfont_mono": "Моноширинный (Code)",
-    "design_studio.bfont_sans": "Основной гротеск",
+    "design_studio.bfont_mono": "Моноширинный",
+    "design_studio.bfont_sans": "Гротеск (UI)",
     "design_studio.badge_case": "Регистр текста",
     "design_studio.badge_color_mode": "Цветовая палитра бейджей",
-    "design_studio.bcolor_semantic": "Семантическая (4K фиолетовый, 1080p циан, HDR оранжевый)",
-    "design_studio.bcolor_monochrome": "Монохромная (в тон темы)",
-    "design_studio.bcolor_contrast": "Высокий контраст",
+    "design_studio.bcolor_semantic": "Семантическая",
+    "design_studio.bcolor_monochrome": "Монохромная",
+    "design_studio.bcolor_contrast": "Контрастная",
+    "design_studio.bcolor_hint": "(4K фиолетовый, 1080p циан, HDR оранжевый)",
     "design_studio.typography_title": "Студия типографики и шрифтов",
     "design_studio.typography_subtitle": "Шрифтовые пары для интерфейса, моноширинные шрифты данных и масштаб текста",
     "design_studio.ui_font": "Основной шрифт интерфейса (UI)",
@@ -2134,19 +2135,19 @@ const TRANSLATIONS = {
     "design_studio.shell_mini": "Mini Dock (Icons)",
     "design_studio.shell_mini_desc": "Compact 72px icon column",
     "design_studio.shell_top": "Top Header",
-    "design_studio.shell_top_desc": "Horizontal top navbar (100% screen width)",
+    "design_studio.shell_top_desc": "Full-width top navbar",
     "design_studio.shell_island": "Floating Island",
     "design_studio.shell_island_desc": "Floating glassmorphic island",
     "design_studio.content_width": "Content Area Width",
-    "design_studio.width_fluid": "100% (Fluid)",
-    "design_studio.width_boxed": "Centered Boxed (1500px)",
+    "design_studio.width_fluid": "Fluid (100%)",
+    "design_studio.width_boxed": "Boxed (1500px)",
     "design_studio.density": "Interface Density",
     "design_studio.density_compact": "Compact",
     "design_studio.density_comfortable": "Comfortable",
     "design_studio.density_spacious": "Spacious",
     "design_studio.poster_size": "Library Poster Size",
     "design_studio.card_style": "Poster Card Style",
-    "design_studio.card_neo_glass": "Neo-Glass (Floating)",
+    "design_studio.card_neo_glass": "Neo-Glass",
     "design_studio.card_cinematic": "Cinematic",
     "design_studio.card_minimal": "Minimal",
     "design_studio.colors_title": "Color Palette and Accents",
@@ -2191,17 +2192,18 @@ const TRANSLATIONS = {
     "design_studio.shape_chamfer": "Cyber Chamfer",
     "design_studio.badge_style": "Fill & Border Style",
     "design_studio.bstyle_frosted": "Frosted Glass",
-    "design_studio.bstyle_outline": "Neon Outline",
-    "design_studio.bstyle_solid": "Solid Vibrant",
+    "design_studio.bstyle_outline": "Outline",
+    "design_studio.bstyle_solid": "Solid",
     "design_studio.bstyle_subtle": "Subtle Minimal",
     "design_studio.badge_font": "Badge Font",
-    "design_studio.bfont_mono": "Monospace (Code)",
-    "design_studio.bfont_sans": "Primary Sans",
+    "design_studio.bfont_mono": "Monospace",
+    "design_studio.bfont_sans": "Sans (UI)",
     "design_studio.badge_case": "Text Case",
     "design_studio.badge_color_mode": "Badge Color Palette",
-    "design_studio.bcolor_semantic": "Semantic (4K Purple, 1080p Cyan, HDR Orange)",
-    "design_studio.bcolor_monochrome": "Monochrome (Theme Accent)",
+    "design_studio.bcolor_semantic": "Semantic",
+    "design_studio.bcolor_monochrome": "Monochrome",
     "design_studio.bcolor_contrast": "High Contrast",
+    "design_studio.bcolor_hint": "(4K Purple, 1080p Cyan, HDR Orange)",
     "design_studio.typography_title": "Typography & Font Studio",
     "design_studio.typography_subtitle": "UI font pairs, monospace data fonts and text scaling",
     "design_studio.ui_font": "Primary UI Font",
@@ -7174,6 +7176,9 @@ function setCardStyle(style) {
   if (!["neoglass", "cinematic", "classic"].includes(style)) return;
   CURRENT_CARD_STYLE = style;
   localStorage.setItem("aliasarr_card_style", style);
+  if (typeof STUDIO_CURRENT_STATE !== "undefined") {
+    STUDIO_CURRENT_STATE.card_style = style;
+  }
   
   const options = document.querySelectorAll("#card-style-modal .card-poster-styles-grid .card-style-option, .studio-card-poster-option");
   options.forEach(opt => {
@@ -7190,6 +7195,13 @@ function setCardStyle(style) {
   if (typeof renderLibrary === "function") {
     renderLibrary();
   }
+
+  const isStudioOpen = document.getElementById("tab-design-studio") && document.getElementById("tab-design-studio").classList.contains("active");
+  if (isStudioOpen && typeof setStudioPreviewMode === "function") {
+    setStudioPreviewMode("card");
+  } else if (typeof renderStudioPreviewCanvas === "function") {
+    renderStudioPreviewCanvas();
+  }
 }
 
 function setSearchProgressStyle(style) {
@@ -7204,6 +7216,13 @@ function setSearchProgressStyle(style) {
   });
 
   refreshCurrentModalSearchStatus();
+
+  const isStudioOpen = document.getElementById("tab-design-studio") && document.getElementById("tab-design-studio").classList.contains("active");
+  if (isStudioOpen && typeof setStudioPreviewMode === "function") {
+    setStudioPreviewMode("search");
+  } else if (typeof renderStudioPreviewCanvas === "function") {
+    renderStudioPreviewCanvas();
+  }
 }
 
 function setSearchLayoutStyle(style) {
@@ -7218,6 +7237,13 @@ function setSearchLayoutStyle(style) {
   });
 
   applySearchLayoutStyle();
+
+  const isStudioOpen = document.getElementById("tab-design-studio") && document.getElementById("tab-design-studio").classList.contains("active");
+  if (isStudioOpen && typeof setStudioPreviewMode === "function") {
+    setStudioPreviewMode("search");
+  } else if (typeof renderStudioPreviewCanvas === "function") {
+    renderStudioPreviewCanvas();
+  }
 }
 
 function applySearchLayoutStyle() {
@@ -7650,6 +7676,13 @@ function setCollectionsCardStyle(style) {
   }
 
   renderCollectionsView();
+
+  const isStudioOpen = document.getElementById("tab-design-studio") && document.getElementById("tab-design-studio").classList.contains("active");
+  if (isStudioOpen && typeof setStudioPreviewMode === "function") {
+    setStudioPreviewMode("collections");
+  } else if (typeof renderStudioPreviewCanvas === "function") {
+    renderStudioPreviewCanvas();
+  }
 }
 
 let COLLECTIONS_POSTER_OPTIONS = {
@@ -26941,28 +26974,83 @@ function renderStudioPreviewCanvas() {
   const accent = STUDIO_CURRENT_STATE.accent;
 
   if (STUDIO_PREVIEW_MODE === "card") {
-    canvas.innerHTML = `
-      <div style="width: 240px; display: flex; flex-direction: column;">
-        <div class="show-card" style="box-shadow: 0 12px 30px rgba(0,0,0,0.5);">
+    const cardStyle = CURRENT_CARD_STYLE || "neoglass";
+    let cardInner = "";
+
+    if (cardStyle === "cinematic") {
+      cardInner = `
+        <div class="show-card card-style-cinematic" style="box-shadow: 0 12px 30px rgba(0,0,0,0.5);">
+          <div class="show-poster-wrap" style="position:relative; aspect-ratio: 2/3; background: #161b26; overflow:hidden; border-radius:var(--radius-sm, 10px);">
+            <div style="width:100%; height:100%; background: linear-gradient(135deg, rgba(0,240,255,0.15), rgba(104,56,247,0.3)), url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 150\\'%3E%3Crect width=\\'100\\' height=\\'150\\' fill=\\'%23121824\\'/%3E%3Cpath d=\\'M30 40 L70 40 L70 110 L30 110 Z\\' fill=\\'none\\' stroke=\\'rgba(255,255,255,0.1)\\' stroke-width=\\'2\\'/%3E%3Ctext x=\\'50\\' y=\\'80\\' fill=\\'rgba(255,255,255,0.3)\\' font-size=\\'12\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\'%3EPOSTER%3C/text%3E%3C/svg%3E') center/cover;">
+            </div>
+            <div class="poster-cinematic-overlay" style="position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, transparent 100%); display:flex; flex-direction:column; justify-content:flex-end; padding:12px 10px;">
+              <div class="poster-cinematic-title" style="font-weight:700; font-size:13.5px; color:#fff; margin-bottom:4px; font-family:var(--font-body); text-shadow:0 1px 3px rgba(0,0,0,0.8);">Киберпанк: Бегущие по краю</div>
+              <div class="poster-cinematic-status" style="font-size:11px; color:rgba(255,255,255,0.8); display:flex; align-items:center; gap:5px; margin-bottom:6px;">
+                <span class="status-dot is-complete" style="width:6px; height:6px; border-radius:50%; background:#10b981; display:inline-block;"></span>
+                <span>12 / 12 • 100% • ${CURRENT_LANG === 'en' ? 'Downloaded' : 'Скачано'}</span>
+              </div>
+              <div class="poster-micro-bar" style="height:3px; background:rgba(255,255,255,0.2); border-radius:999px; overflow:hidden;">
+                <div class="poster-micro-bar-fill is-complete" style="width:100%; height:100%; background:var(--teal, #00f0ff); border-radius:999px;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="show-info cinematic-info" style="padding: 8px 4px 4px 4px;">
+            <div class="cinematic-meta-line" style="font-size:11.5px; color:var(--text-muted); display:flex; justify-content:space-between; align-items:center;">
+              <span>2024 • ${CURRENT_LANG === 'en' ? 'Anime' : 'Аниме'}</span>
+              <span class="badge badge-purple" style="font-size:9.5px; padding:1px 5px;">4K UHD</span>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (cardStyle === "classic") {
+      cardInner = `
+        <div class="show-card servarr-poster-card card-style-classic" style="box-shadow: 0 12px 30px rgba(0,0,0,0.5); background:var(--panel, #151a24); border:1px solid var(--border); border-radius:var(--radius-sm, 8px); overflow:hidden;">
+          <div class="show-poster" style="position:relative; aspect-ratio: 2/3; background: #161b26; overflow:hidden;">
+            <div style="width:100%; height:100%; background: linear-gradient(135deg, rgba(0,240,255,0.15), rgba(104,56,247,0.3)), url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 150\\'%3E%3Crect width=\\'100\\' height=\\'150\\' fill=\\'%23121824\\'/%3E%3Cpath d=\\'M30 40 L70 40 L70 110 L30 110 Z\\' fill=\\'none\\' stroke=\\'rgba(255,255,255,0.1)\\' stroke-width=\\'2\\'/%3E%3Ctext x=\\'50\\' y=\\'80\\' fill=\\'rgba(255,255,255,0.3)\\' font-size=\\'12\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\'%3EPOSTER%3C/text%3E%3C/svg%3E') center/cover;"></div>
+          </div>
+          <div class="servarr-progress" style="height:14px; background:rgba(0,0,0,0.4); position:relative; overflow:hidden; border-top:1px solid var(--border);">
+            <div class="servarr-progress-fill is-complete" style="width:100%; height:100%; background:var(--teal, #00f0ff); display:flex; align-items:center; justify-content:center;">
+              <span style="font-size:9.5px; font-weight:700; color:#0b0f19; font-family:var(--font-mono);">12 / 12</span>
+            </div>
+          </div>
+          <div class="show-info servarr-poster-info" style="padding: 10px 8px 8px 8px;">
+            <div class="servarr-poster-title" style="font-weight:700; font-size:13px; margin-bottom:2px; font-family:var(--font-body); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Киберпанк: Бегущие по краю (2024)</div>
+            <div class="servarr-poster-line" style="font-size:11px; color:var(--text-muted);">${CURRENT_LANG === 'en' ? 'Monitored • 4K UHD' : 'Мониторится • 4K UHD'}</div>
+          </div>
+        </div>
+      `;
+    } else {
+      cardInner = `
+        <div class="show-card card-style-neoglass" style="box-shadow: 0 12px 30px rgba(0,0,0,0.5);">
           <div class="show-poster-wrap" style="position:relative; aspect-ratio: 2/3; background: #161b26; overflow:hidden; border-radius:var(--radius-sm, 10px);">
             <div style="width:100%; height:100%; background: linear-gradient(135deg, rgba(0,240,255,0.15), rgba(104,56,247,0.3)), url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 150\\'%3E%3Crect width=\\'100\\' height=\\'150\\' fill=\\'%23121824\\'/%3E%3Cpath d=\\'M30 40 L70 40 L70 110 L30 110 Z\\' fill=\\'none\\' stroke=\\'rgba(255,255,255,0.1)\\' stroke-width=\\'2\\'/%3E%3Ctext x=\\'50\\' y=\\'80\\' fill=\\'rgba(255,255,255,0.3)\\' font-size=\\'12\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\'%3EPOSTER%3C/text%3E%3C/svg%3E') center/cover; display:flex; align-items:flex-end; justify-content:center; padding:16px;">
             </div>
-            <div class="show-badge badge badge-secondary" style="position:absolute; top:10px; right:10px;">
-              12 / 12
+            <div class="poster-status-pill is-complete" style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.65); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.12); border-radius:999px; padding:2px 8px; font-size:11px; font-weight:600; display:flex; align-items:center; gap:5px; color:#fff;">
+              <span class="status-dot" style="width:6px; height:6px; border-radius:50%; background:#10b981;"></span>
+              <span>12 / 12</span>
             </div>
-            <div style="position:absolute; bottom:10px; left:10px; display:flex; gap:6px; flex-wrap:wrap;">
-              <span class="badge badge-purple">4K UHD</span>
-              <span class="badge badge-primary">REMUX</span>
+            <div class="poster-micro-bar" style="position:absolute; bottom:0; left:0; right:0; height:3px; background:rgba(0,0,0,0.4);">
+              <div class="poster-micro-bar-fill" style="width:100%; height:100%; background:var(--teal, #00f0ff);"></div>
+            </div>
+            <div style="position:absolute; bottom:8px; left:8px; display:flex; gap:5px; flex-wrap:wrap;">
+              <span class="badge badge-purple" style="font-size:9.5px; padding:1px 5px;">4K UHD</span>
+              <span class="badge badge-primary" style="font-size:9.5px; padding:1px 5px;">REMUX</span>
             </div>
           </div>
           <div class="show-info" style="padding: 12px 4px 6px 4px;">
             <div class="show-title" style="font-weight:700; font-size:14px; margin-bottom:4px; font-family:var(--font-body);">Киберпанк: Бегущие по краю</div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:12px; color:var(--text-muted);">2024 · Аниме</span>
-              <span class="badge badge-success">Скачано</span>
+              <span style="font-size:12px; color:var(--text-muted);">2024 · ${CURRENT_LANG === 'en' ? 'Anime' : 'Аниме'}</span>
+              <span class="badge badge-success" style="font-size:10px;">${CURRENT_LANG === 'en' ? 'Downloaded' : 'Скачано'}</span>
             </div>
           </div>
         </div>
+      `;
+    }
+
+    canvas.innerHTML = `
+      <div style="width: 240px; display: flex; flex-direction: column;">
+        ${cardInner}
       </div>
     `;
   } else if (STUDIO_PREVIEW_MODE === "badges") {
@@ -27032,46 +27120,177 @@ function renderStudioPreviewCanvas() {
       </div>
     `;
   } else if (STUDIO_PREVIEW_MODE === "collections") {
-    canvas.innerHTML = `
-      <div style="width: 260px; display: flex; flex-direction: column;">
-        <div class="show-card collection-card card-style-${CURRENT_COLLECTIONS_CARD_STYLE || 'neoglass'}" style="box-shadow: 0 12px 30px rgba(0,0,0,0.5);">
+    const collStyle = CURRENT_COLLECTIONS_CARD_STYLE || "neoglass";
+    let collInner = "";
+
+    if (collStyle === "cinematic") {
+      collInner = `
+        <div class="show-card collection-card card-style-cinematic" style="box-shadow: 0 12px 30px rgba(0,0,0,0.5);">
           <div class="show-poster-wrap" style="position:relative; aspect-ratio: 2/3; background: #161b26; overflow:hidden; border-radius:var(--radius-sm, 10px);">
-            <div style="width:100%; height:100%; background: linear-gradient(135deg, rgba(234,179,8,0.2), rgba(104,56,247,0.3)), url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 150\'%3E%3Crect width=\'100\' height=\'150\' fill=\'%23121824\'/%3E%3Cpath d=\'M30 40 L70 40 L70 110 L30 110 Z\' fill=\'none\' stroke=\'rgba(234,179,8,0.2)\' stroke-width=\'2\'/%3E%3Ctext x=\'50\' y=\'80\' fill=\'rgba(234,179,8,0.5)\' font-size=\'11\' text-anchor=\'middle\' font-family=\'sans-serif\'%3ESAGA%3C/text%3E%3C/svg%3E') center/cover; display:flex; align-items:flex-end; justify-content:center; padding:16px;">
-            </div>
-            <div class="collection-badge-count" style="position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.15); border-radius:999px; padding:2px 8px; font-size:11px; font-weight:700; color:#fff;">
-              <i data-lucide="layers" class="ico-xxs" style="margin-right:3px;"></i> 3 части
-            </div>
-            <div class="collection-progress-bar-wrap" style="position:absolute; bottom:0; left:0; right:0; height:4px; background:rgba(0,0,0,0.5);">
-              <div style="width:100%; height:100%; background:var(--teal, #00F0FF);"></div>
+            <div style="width:100%; height:100%; background: linear-gradient(135deg, rgba(234,179,8,0.2), rgba(104,56,247,0.3)), url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 150\\'%3E%3Crect width=\\'100\\' height=\\'150\\' fill=\\'%23121824\\'/%3E%3Cpath d=\\'M30 40 L70 40 L70 110 L30 110 Z\\' fill=\\'none\\' stroke=\\'rgba(234,179,8,0.2)\\' stroke-width=\\'2\\'/%3E%3Ctext x=\\'50\\' y=\\'80\\' fill=\\'rgba(234,179,8,0.5)\\' font-size=\\'11\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\'%3ESAGA%3C/text%3E%3C/svg%3E') center/cover;"></div>
+            <div class="poster-cinematic-overlay" style="position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, transparent 100%); display:flex; flex-direction:column; justify-content:flex-end; padding:12px 10px;">
+              <div class="poster-cinematic-title" style="font-weight:700; font-size:13.5px; color:#fff; margin-bottom:4px; font-family:var(--font-body); text-shadow:0 1px 3px rgba(0,0,0,0.8);">Властелин колец (Трилогия)</div>
+              <div class="poster-cinematic-status" style="font-size:11px; color:rgba(255,255,255,0.8); display:flex; align-items:center; gap:5px; margin-bottom:6px;">
+                <span class="status-dot is-complete" style="width:6px; height:6px; border-radius:50%; background:#10b981; display:inline-block;"></span>
+                <span>3/3 • 100% • ${CURRENT_LANG === 'en' ? 'Complete' : 'Собрана'}</span>
+              </div>
+              <div class="poster-micro-bar" style="height:3px; background:rgba(255,255,255,0.2); border-radius:999px; overflow:hidden;">
+                <div class="poster-micro-bar-fill is-complete" style="width:100%; height:100%; background:var(--teal, #00f0ff); border-radius:999px;"></div>
+              </div>
             </div>
           </div>
-          <div class="show-info" style="padding: 12px 4px 6px 4px;">
-            <div class="show-title" style="font-weight:700; font-size:14px; margin-bottom:4px; font-family:var(--font-body);">Властелин колец (Трилогия)</div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:12px; color:var(--text-muted);">3 / 3 фильма</span>
-              <span class="badge badge-success">Собрана</span>
+          <div class="collection-info-wrap show-info cinematic-info" style="padding: 8px 4px 4px 4px;">
+            <div class="cinematic-meta-line" style="font-size:11.5px; color:var(--text-muted); display:flex; justify-content:space-between; align-items:center;">
+              <span>3 ${CURRENT_LANG === 'en' ? 'movies in saga' : 'фильма в саге'}</span>
+              <span class="badge badge-success" style="font-size:9.5px; padding:1px 5px;">${CURRENT_LANG === 'en' ? 'Monitored' : 'Мониторится'}</span>
             </div>
           </div>
         </div>
+      `;
+    } else if (collStyle === "classic") {
+      collInner = `
+        <div class="show-card collection-card servarr-poster-card card-style-classic" style="box-shadow: 0 12px 30px rgba(0,0,0,0.5); background:var(--panel, #151a24); border:1px solid var(--border); border-radius:var(--radius-sm, 8px); overflow:hidden;">
+          <div class="collection-poster-wrap show-poster" style="position:relative; aspect-ratio: 2/3; background: #161b26; overflow:hidden;">
+            <div style="width:100%; height:100%; background: linear-gradient(135deg, rgba(234,179,8,0.2), rgba(104,56,247,0.3)), url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 150\\'%3E%3Crect width=\\'100\\' height=\\'150\\' fill=\\'%23121824\\'/%3E%3Cpath d=\\'M30 40 L70 40 L70 110 L30 110 Z\\' fill=\\'none\\' stroke=\\'rgba(234,179,8,0.2)\\' stroke-width=\\'2\\'/%3E%3Ctext x=\\'50\\' y=\\'80\\' fill=\\'rgba(234,179,8,0.5)\\' font-size=\\'11\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\'%3ESAGA%3C/text%3E%3C/svg%3E') center/cover;"></div>
+          </div>
+          <div class="servarr-progress" style="height:14px; background:rgba(0,0,0,0.4); position:relative; overflow:hidden; border-top:1px solid var(--border);">
+            <div class="servarr-progress-fill is-complete" style="width:100%; height:100%; background:var(--teal, #00f0ff); display:flex; align-items:center; justify-content:center;">
+              <span style="font-size:9.5px; font-weight:700; color:#0b0f19; font-family:var(--font-mono);">3 / 3</span>
+            </div>
+          </div>
+          <div class="show-info servarr-poster-info" style="padding: 10px 8px 8px 8px;">
+            <div class="servarr-poster-title" style="font-weight:700; font-size:13px; margin-bottom:2px; font-family:var(--font-body); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Властелин колец (Трилогия)</div>
+            <div class="servarr-poster-line" style="font-size:11px; color:var(--text-muted);">${CURRENT_LANG === 'en' ? 'Monitored • 3 movies' : 'Мониторится • 3 фильма'}</div>
+          </div>
+        </div>
+      `;
+    } else {
+      collInner = `
+        <div class="show-card collection-card card-style-neoglass" style="box-shadow: 0 12px 30px rgba(0,0,0,0.5);">
+          <div class="collection-poster-wrap show-poster" style="position:relative; aspect-ratio: 2/3; background: #161b26; overflow:hidden; border-radius:var(--radius-sm, 10px);">
+            <div style="width:100%; height:100%; background: linear-gradient(135deg, rgba(234,179,8,0.2), rgba(104,56,247,0.3)), url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 150\\'%3E%3Crect width=\\'100\\' height=\\'150\\' fill=\\'%23121824\\'/%3E%3Cpath d=\\'M30 40 L70 40 L70 110 L30 110 Z\\' fill=\\'none\\' stroke=\\'rgba(234,179,8,0.2)\\' stroke-width=\\'2\\'/%3E%3Ctext x=\\'50\\' y=\\'80\\' fill=\\'rgba(234,179,8,0.5)\\' font-size=\\'11\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\'%3ESAGA%3C/text%3E%3C/svg%3E') center/cover; display:flex; align-items:flex-end; justify-content:center; padding:16px;"></div>
+            <div class="poster-status-pill is-complete" style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.65); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.12); border-radius:999px; padding:2px 8px; font-size:11px; font-weight:600; display:flex; align-items:center; gap:5px; color:#fff;">
+              <span class="status-dot" style="width:6px; height:6px; border-radius:50%; background:#10b981;"></span>
+              <span>3 / 3</span>
+            </div>
+            <div class="poster-micro-bar" style="position:absolute; bottom:0; left:0; right:0; height:3px; background:rgba(0,0,0,0.4);">
+              <div class="poster-micro-bar-fill" style="width:100%; height:100%; background:var(--teal, #00f0ff);"></div>
+            </div>
+            <div class="collection-badge-count" style="position:absolute; bottom:8px; left:8px; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.15); border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; color:#fff; display:flex; align-items:center; gap:3px;">
+              <i data-lucide="layers" class="ico-xxs"></i> 3 ${CURRENT_LANG === 'en' ? 'parts' : 'части'}
+            </div>
+          </div>
+          <div class="collection-info-wrap show-info" style="padding: 12px 4px 6px 4px;">
+            <div class="collection-card-title show-title" style="font-weight:700; font-size:14px; margin-bottom:4px; font-family:var(--font-body);">Властелин колец (Трилогия)</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px; color:var(--text-muted);">3 / 3 ${CURRENT_LANG === 'en' ? 'movies' : 'фильма'}</span>
+              <span class="badge badge-success" style="font-size:10px;">${CURRENT_LANG === 'en' ? 'Complete' : 'Собрана'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    canvas.innerHTML = `
+      <div style="width: 260px; display: flex; flex-direction: column;">
+        ${collInner}
       </div>
     `;
   } else if (STUDIO_PREVIEW_MODE === "search") {
-    canvas.innerHTML = `
-      <div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px;">
-        <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Строка быстрого поиска</div>
+    const searchLayout = CURRENT_SEARCH_LAYOUT_STYLE || "spotlight_bar";
+    const searchProgress = CURRENT_SEARCH_PROGRESS_STYLE || "vanguard";
+
+    let layoutHtml = "";
+    if (searchLayout === "action_btn") {
+      layoutHtml = `
+        <div style="display:flex; gap:8px; width:100%;">
+          <div style="position:relative; flex:1;">
+            <i data-lucide="search" class="ico-xs text-muted" style="position:absolute; left:12px; top:50%; transform:translateY(-50%);"></i>
+            <input type="text" class="input" value="${CURRENT_LANG === 'en' ? 'Dune: Part Two (2024)' : 'Дюна: Часть вторая (2024)'}" style="padding-left:36px; width:100%;">
+          </div>
+          <button class="btn btn-primary" style="display:inline-flex; align-items:center; gap:6px; flex-shrink:0;">
+            <i data-lucide="search" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Search' : 'Поиск'}</span>
+          </button>
+        </div>
+      `;
+    } else if (searchLayout === "classic_full") {
+      layoutHtml = `
         <div style="position:relative; width:100%;">
           <i data-lucide="search" class="ico-xs text-muted" style="position:absolute; left:12px; top:50%; transform:translateY(-50%);"></i>
-          <input type="text" class="input" value="Дюна: Часть вторая (2024)" style="padding-left:36px; padding-right:70px; width:100%; border-color:var(--teal); box-shadow:0 0 10px rgba(var(--accent-rgb, 0, 240, 255), 0.2);">
+          <input type="text" class="input" value="${CURRENT_LANG === 'en' ? 'Dune: Part Two (2024)' : 'Дюна: Часть вторая (2024)'}" style="padding-left:36px; padding-right:32px; width:100%;">
+          <span style="position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); cursor:pointer;">✕</span>
+        </div>
+      `;
+    } else {
+      // spotlight_bar
+      layoutHtml = `
+        <div style="position:relative; width:100%;">
+          <i data-lucide="search" class="ico-xs text-muted" style="position:absolute; left:12px; top:50%; transform:translateY(-50%);"></i>
+          <input type="text" class="input" value="${CURRENT_LANG === 'en' ? 'Dune: Part Two (2024)' : 'Дюна: Часть вторая (2024)'}" style="padding-left:36px; padding-right:70px; width:100%; border-color:var(--teal); box-shadow:0 0 10px rgba(var(--accent-rgb, 0, 240, 255), 0.2);" readonly>
           <span class="badge badge-secondary" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:10px; font-family:var(--font-mono);">⌘K</span>
         </div>
-        <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:6px;">Индикатор сканирования трекеров (HUD)</div>
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm, 10px);">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span class="mini-dot green" style="box-shadow:0 0 6px #10b981;"></span>
-            <span style="font-size:12.5px; font-weight:600; font-family:var(--font-body);">RuTracker, NNM-Club, Kinozal</span>
+      `;
+    }
+
+    let progressHtml = "";
+    if (searchProgress === "laserstrip") {
+      progressHtml = `
+        <div class="search-laser-container is-searching" style="width:100%; padding:10px 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm, 10px);">
+          <div class="search-laser-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <span style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; font-family:var(--font-body);">
+              <i data-lucide="search" class="ico-xs text-primary"></i>
+              <span>${CURRENT_LANG === 'en' ? 'Scanning torrent providers...' : 'Сканирование провайдеров...'}</span>
+            </span>
+            <span class="badge badge-primary" style="font-size:11px; font-family:var(--font-mono);">24 ${CURRENT_LANG === 'en' ? 'releases' : 'релиза'}</span>
           </div>
-          <span class="badge badge-primary" style="font-family:var(--font-mono); font-size:11px;">24 релиза</span>
+          <div class="search-laser-track" style="height:3px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden; position:relative;">
+            <div class="search-laser-beam" style="width:65%; height:100%; background:linear-gradient(90deg, transparent, var(--teal, #00f0ff), transparent); border-radius:999px;"></div>
+          </div>
         </div>
+      `;
+    } else if (searchProgress === "smartbutton") {
+      progressHtml = `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm, 10px);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <button class="btn btn-primary btn-searching-active" style="display:inline-flex; align-items:center; gap:8px; padding:6px 14px; font-size:12.5px;">
+              <span class="btn-spinner-ring" style="width:12px; height:12px; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; display:inline-block;"></span>
+              <span>${CURRENT_LANG === 'en' ? 'Searching...' : 'Поиск...'}</span>
+            </button>
+            <span style="font-size:11.5px; color:var(--text-muted);">${CURRENT_LANG === 'en' ? 'RuTracker, NNM-Club' : 'RuTracker, NNM-Club'}</span>
+          </div>
+          <span class="badge badge-primary" style="font-family:var(--font-mono); font-size:11px;">24 ${CURRENT_LANG === 'en' ? 'releases' : 'релиза'}</span>
+        </div>
+      `;
+    } else if (searchProgress === "micropill") {
+      progressHtml = `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm, 10px);">
+          <span class="search-status-badge search-style-micropill is-searching" style="display:inline-flex; align-items:center; gap:8px;">
+            <span class="search-beacon-dot" style="width:8px; height:8px; border-radius:50%; background:#10b981; box-shadow:0 0 8px #10b981; display:inline-block;"></span>
+            <span class="search-stage-text" style="font-size:12.5px; font-weight:600; font-family:var(--font-body);">${CURRENT_LANG === 'en' ? 'RuTracker, NNM-Club, Kinozal' : 'RuTracker, NNM-Club, Kinozal'}</span>
+          </span>
+          <span class="badge badge-primary" style="font-family:var(--font-mono); font-size:11px;">24 ${CURRENT_LANG === 'en' ? 'releases' : 'релиза'}</span>
+        </div>
+      `;
+    } else {
+      // vanguard
+      progressHtml = `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm, 10px);">
+          <span class="search-status-badge search-style-vanguard is-searching" style="display:inline-flex; align-items:center; gap:8px;">
+            <span class="vanguard-tag vanguard-tag-live" style="background:#10b981; color:#0b0f19; font-size:9.5px; font-weight:800; padding:1px 6px; border-radius:4px; letter-spacing:0.5px;">LIVE</span>
+            <span class="search-stage-text" style="font-size:12.5px; font-weight:600; font-family:var(--font-body);">${CURRENT_LANG === 'en' ? 'Scanning indexers...' : 'Опрос трекеров: RuTracker, NNM...'}</span>
+            <span class="vanguard-step-counter" style="font-size:11px; font-family:var(--font-mono); color:var(--text-muted); margin-left:4px;">2/4</span>
+          </span>
+          <span class="badge badge-primary" style="font-family:var(--font-mono); font-size:11px;">24 ${CURRENT_LANG === 'en' ? 'releases' : 'релиза'}</span>
+        </div>
+      `;
+    }
+
+    canvas.innerHTML = `
+      <div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">${CURRENT_LANG === 'en' ? 'Quick Search Bar' : 'Строка быстрого поиска'}</div>
+        ${layoutHtml}
+        <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-top:6px;">${CURRENT_LANG === 'en' ? 'Indexers Scan Indicator (HUD)' : 'Индикатор сканирования трекеров (HUD)'}</div>
+        ${progressHtml}
       </div>
     `;
   } else if (STUDIO_PREVIEW_MODE === "typography") {

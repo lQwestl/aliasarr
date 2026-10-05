@@ -20425,6 +20425,7 @@ html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-car
   box-sizing: border-box;
   position: sticky;
   top: 76px;
+  max-height: calc(100vh - 96px);
   z-index: 10;
 }
 @media (max-width: 1080px) {
@@ -20758,13 +20759,14 @@ html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-car
 /* Чип-селекторы каркаса */
 .studio-chip-selector {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 10px;
 }
 .studio-chip-option {
   position: relative;
   cursor: pointer;
   margin: 0;
+  min-width: 0;
 }
 .studio-chip-option input {
   position: absolute;
@@ -20780,6 +20782,12 @@ html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-car
   align-items: center;
   gap: 10px;
   transition: all 0.2s ease;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.studio-chip-text {
+  min-width: 0;
+  flex: 1;
 }
 .studio-chip-option input:checked + .studio-chip-box {
   border-color: var(--teal);
@@ -20791,37 +20799,46 @@ html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-car
   font-weight: 600;
   color: var(--text);
   display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .studio-chip-desc {
   font-size: 11px;
   color: var(--text-muted);
   display: block;
+  word-break: break-word;
+  line-height: 1.35;
+  margin-top: 2px;
 }
 
 /* Кнопки переключения (Toggle Groups) */
 .studio-toggle-group {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
   background: var(--panel-alt);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm, 8px);
   padding: 3px;
   gap: 3px;
-  flex-wrap: wrap;
+  box-sizing: border-box;
+  min-width: 0;
 }
 .studio-toggle-btn {
-  flex: 1;
-  min-width: 60px;
+  min-width: 0;
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
-  padding: 6px 10px;
+  padding: 6px 4px;
   border-radius: calc(var(--radius-sm, 8px) - 2px);
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
   text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .studio-toggle-btn:hover {
   color: var(--text);
@@ -20923,6 +20940,7 @@ html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-car
   display: flex;
   flex-direction: column;
   width: 100%;
+  max-height: calc(100vh - 96px);
   box-sizing: border-box;
 }
 .studio-preview-header {
@@ -20933,6 +20951,7 @@ html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-car
   gap: 10px;
   background: var(--panel-alt);
   min-width: 0;
+  flex-shrink: 0;
 }
 .studio-preview-header-top {
   display: flex;
@@ -21003,8 +21022,8 @@ html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-car
 }
 .studio-preview-canvas {
   padding: 20px 16px;
-  min-height: 380px;
-  max-height: calc(100vh - 240px);
+  flex: 1;
+  min-height: 240px;
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;
@@ -21024,6 +21043,7 @@ html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-car
   overflow-x: auto;
   scrollbar-width: none;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .studio-preview-footer::-webkit-scrollbar {
   display: none;

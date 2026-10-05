@@ -137,6 +137,46 @@ class TestDesignStudioLayout(unittest.TestCase):
         card = css_rule(style, ".studio-preview-card")
         self.assertIn("backdrop-filter: var(--glass-blur, none)", card)
 
+    def test_preview_card_has_viewport_max_height_and_scrollable_canvas(self):
+        style = read(STYLE_PATH)
+        wrap = css_rule(style, ".design-studio-preview-wrap")
+        self.assertIn("max-height: calc(100vh - 96px)", wrap)
+
+        card = css_rule(style, ".studio-preview-card")
+        self.assertIn("max-height: calc(100vh - 96px)", card)
+
+        canvas = css_rule(style, ".studio-preview-canvas")
+        self.assertIn("overflow-y: auto", canvas)
+
+    def test_badge_and_shell_controls_have_wrapping_rules(self):
+        style = read(STYLE_PATH)
+        toggle_group = css_rule(style, ".studio-toggle-group")
+        self.assertIn("display: grid", toggle_group)
+        self.assertIn("grid-template-columns: repeat(auto-fit, minmax(65px, 1fr))", toggle_group)
+
+        btn = css_rule(style, ".studio-toggle-btn")
+        self.assertIn("overflow: hidden", btn)
+        self.assertIn("text-overflow: ellipsis", btn)
+
+        chip_desc = css_rule(style, ".studio-chip-desc")
+        self.assertIn("word-break: break-word", chip_desc)
+
+    def test_daylight_paper_does_not_have_hardcoded_dark_color(self):
+        index = read(INDEX_PATH)
+        # Verify daylight paper theme card does not have inline dark text colors
+        daylight_match = re.search(r'data-theme-choice="paper".*?<\/div>\s*<\/div>', index, re.S)
+        self.assertIsNotNone(daylight_match)
+        daylight_html = daylight_match.group(0)
+        self.assertNotIn("color:#111", daylight_html)
+        self.assertNotIn("color:#555", daylight_html)
+
+    def test_preview_reactivity_functions_call_render_studio_preview(self):
+        app = read(APP_JS_PATH)
+        for fn_name in ("setCardStyle", "setSearchLayoutStyle", "setSearchProgressStyle", "setCollectionsCardStyle"):
+            with self.subTest(fn=fn_name):
+                fn_code = js_function(app, fn_name)
+                self.assertIn("renderStudioPreviewCanvas()", fn_code)
+
 
 if __name__ == "__main__":
     unittest.main()

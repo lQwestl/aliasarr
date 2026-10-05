@@ -1523,8 +1523,8 @@
                 </label>
                 <div class="studio-toggle-group" id="studio-badge-style-toggle">
                   <button type="button" class="studio-toggle-btn active" data-value="frosted" onclick="setStudioBadgeStyle('frosted')" data-i18n="design_studio.bstyle_frosted">Стекло</button>
-                  <button type="button" class="studio-toggle-btn" data-value="outline" onclick="setStudioBadgeStyle('outline')" data-i18n="design_studio.bstyle_outline">Неон-контур</button>
-                  <button type="button" class="studio-toggle-btn" data-value="solid" onclick="setStudioBadgeStyle('solid')" data-i18n="design_studio.bstyle_solid">Плотный</button>
+                  <button type="button" class="studio-toggle-btn" data-value="outline" onclick="setStudioBadgeStyle('outline')" data-i18n="design_studio.bstyle_outline">Контур</button>
+                  <button type="button" class="studio-toggle-btn" data-value="solid" onclick="setStudioBadgeStyle('solid')" data-i18n="design_studio.bstyle_solid">Сплошной</button>
                   <button type="button" class="studio-toggle-btn" data-value="subtle" onclick="setStudioBadgeStyle('subtle')" data-i18n="design_studio.bstyle_subtle">Минимал</button>
                 </div>
               </div>
@@ -1535,8 +1535,8 @@
                   <span data-i18n="design_studio.badge_font">Гарнитура бейджей</span>
                 </label>
                 <div class="studio-toggle-group" id="studio-badge-font-toggle">
-                  <button type="button" class="studio-toggle-btn active" data-value="mono" onclick="setStudioBadgeFont('mono')" data-i18n="design_studio.bfont_mono">Моноширинный (Code)</button>
-                  <button type="button" class="studio-toggle-btn" data-value="sans" onclick="setStudioBadgeFont('sans')" data-i18n="design_studio.bfont_sans">Основной гротеск</button>
+                  <button type="button" class="studio-toggle-btn active" data-value="mono" onclick="setStudioBadgeFont('mono')" data-i18n="design_studio.bfont_mono">Моноширинный</button>
+                  <button type="button" class="studio-toggle-btn" data-value="sans" onclick="setStudioBadgeFont('sans')" data-i18n="design_studio.bfont_sans">Гротеск (UI)</button>
                 </div>
               </div>
 
@@ -1555,11 +1555,12 @@
               <div class="studio-field-group" style="grid-column: 1 / -1;">
                 <label class="settings-field-label">
                   <span data-i18n="design_studio.badge_color_mode">Цветовая палитра бейджей</span>
+                  <span class="settings-field-hint" data-i18n="design_studio.bcolor_hint">(4K фиолетовый, 1080p циан, HDR оранжевый)</span>
                 </label>
                 <div class="studio-toggle-group" id="studio-badge-color-toggle">
-                  <button type="button" class="studio-toggle-btn active" data-value="semantic" onclick="setStudioBadgeColorMode('semantic')" data-i18n="design_studio.bcolor_semantic">Семантическая (4K фиолетовый, 1080p циан, HDR оранжевый)</button>
-                  <button type="button" class="studio-toggle-btn" data-value="monochrome" onclick="setStudioBadgeColorMode('monochrome')" data-i18n="design_studio.bcolor_monochrome">Монохромная (в тон темы)</button>
-                  <button type="button" class="studio-toggle-btn" data-value="high-contrast" onclick="setStudioBadgeColorMode('high-contrast')" data-i18n="design_studio.bcolor_contrast">Высокий контраст</button>
+                  <button type="button" class="studio-toggle-btn active" data-value="semantic" onclick="setStudioBadgeColorMode('semantic')" data-i18n="design_studio.bcolor_semantic">Семантическая</button>
+                  <button type="button" class="studio-toggle-btn" data-value="monochrome" onclick="setStudioBadgeColorMode('monochrome')" data-i18n="design_studio.bcolor_monochrome">Монохромная</button>
+                  <button type="button" class="studio-toggle-btn" data-value="high-contrast" onclick="setStudioBadgeColorMode('high-contrast')" data-i18n="design_studio.bcolor_contrast">Контрастная</button>
                 </div>
               </div>
             </div>
@@ -1694,7 +1695,7 @@
                       <i data-lucide="panel-top" class="ico-sm"></i>
                       <div class="studio-chip-text">
                         <span class="studio-chip-title" data-i18n="design_studio.shell_top">Верхняя шапка</span>
-                        <span class="studio-chip-desc" data-i18n="design_studio.shell_top_desc">Горизонтальное меню (100% ширина экрана)</span>
+                        <span class="studio-chip-desc" data-i18n="design_studio.shell_top_desc">Горизонтальное меню на всю ширину</span>
                       </div>
                     </div>
                   </label>
@@ -1717,8 +1718,8 @@
                   <span data-i18n="design_studio.content_width">Ширина контентной зоны</span>
                 </label>
                 <div class="studio-toggle-group" id="studio-container-width-toggle">
-                  <button type="button" class="studio-toggle-btn active" data-value="fluid" onclick="setStudioContainerWidth('fluid')" data-i18n="design_studio.width_fluid">100% (Fluid)</button>
-                  <button type="button" class="studio-toggle-btn" data-value="boxed" onclick="setStudioContainerWidth('boxed')" data-i18n="design_studio.width_boxed">Центрированная (1500px)</button>
+                  <button type="button" class="studio-toggle-btn active" data-value="fluid" onclick="setStudioContainerWidth('fluid')" data-i18n="design_studio.width_fluid">Fluid (100%)</button>
+                  <button type="button" class="studio-toggle-btn" data-value="boxed" onclick="setStudioContainerWidth('boxed')" data-i18n="design_studio.width_boxed">Boxed (1500px)</button>
                 </div>
               </div>
 
@@ -1754,7 +1755,7 @@
                   <span data-i18n="design_studio.card_style">Стиль карточки постера</span>
                 </label>
                 <div class="studio-toggle-group" id="studio-card-style-toggle">
-                  <button type="button" class="studio-toggle-btn active" data-value="neo-glass" onclick="setStudioCardStyle('neo-glass')" data-i18n="design_studio.card_neo_glass">Neo-Glass (Парящие)</button>
+                  <button type="button" class="studio-toggle-btn active" data-value="neo-glass" onclick="setStudioCardStyle('neo-glass')" data-i18n="design_studio.card_neo_glass">Neo-Glass</button>
                   <button type="button" class="studio-toggle-btn" data-value="cinematic" onclick="setStudioCardStyle('cinematic')" data-i18n="design_studio.card_cinematic">Cinematic</button>
                   <button type="button" class="studio-toggle-btn" data-value="cyber" onclick="setStudioCardStyle('cyber')" data-i18n="design_studio.card_cyber">Cyber HUD</button>
                   <button type="button" class="studio-toggle-btn" data-value="minimal" onclick="setStudioCardStyle('minimal')" data-i18n="design_studio.card_minimal">Минимал</button>
@@ -1825,8 +1826,8 @@
                     <span class="studio-theme-palette-color" style="background:#ffffff;"></span>
                     <span class="studio-theme-palette-color" style="background:#2563eb;"></span>
                   </div>
-                  <div style="font-size:12.5px; font-weight:700; color:#111;">Daylight Paper</div>
-                  <div style="font-size:11px; color:#555;" data-i18n="design_studio.theme_paper_desc">Матовая типографская бумага для светлых комнат</div>
+                  <div style="font-size:12.5px; font-weight:700;">Daylight Paper</div>
+                  <div style="font-size:11px; color:var(--text-muted);" data-i18n="design_studio.theme_paper_desc">Матовая типографская бумага для светлых комнат</div>
                 </div>
               </div>
             </div>
