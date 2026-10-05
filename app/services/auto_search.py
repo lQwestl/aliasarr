@@ -1200,9 +1200,19 @@ async def search_and_grab_show(
             else:
                 criteria = result.get("criteria")
                 if criteria:
-                    show.last_search_result = (
-                        "Подходящих релизов не найдено. Искали по: " + criteria
-                    )
+                    criteria_clean = str(criteria).strip()
+                    if len(criteria_clean) > 280:
+                        parts = [p.strip() for p in criteria_clean.split(",") if p.strip()]
+                        if len(parts) > 2:
+                            first_parts = ", ".join(parts[:2])
+                            rest_count = len(parts) - 2
+                            criteria_clean = f"{first_parts} (+{rest_count} ещё)"
+                        else:
+                            criteria_clean = criteria_clean[:270] + "…"
+                    msg = "Подходящих релизов не найдено. Искали по: " + criteria_clean
+                    if len(msg) > 480:
+                        msg = msg[:477] + "…"
+                    show.last_search_result = msg
                 else:
                     show.last_search_result = "Подходящих релизов не найдено"
             return result

@@ -8966,7 +8966,7 @@ function renderShowCard(show) {
   const posterStyle = safeBackgroundImageStyle(show.poster_url);
   const canManageLib = (typeof hasPermission === "function") ? hasPermission("manage_library") : true;
   const aliases = (show.aliases || []).slice(0, 4).map(
-    a => `<span class="alias-chip lang-${a.language} ${canManageLib ? 'interactive' : ''}" ${canManageLib ? `data-title="${escapeHtml(a.text)}" onclick="onAliasCardChipClick(event, ${show.id}, this)" title="${CURRENT_LANG === 'en' ? 'Click to set as main title: ' + escapeHtml(a.text) : 'Нажмите, чтобы сделать основным названием: ' + escapeHtml(a.text)}"` : ''}>${escapeHtml(a.text)}</span>`
+    a => `<span class="alias-chip lang-${a.language}" title="${escapeHtml(a.text)}">${escapeHtml(a.text)}</span>`
   ).join("");
   
   // Active Task overlay check
@@ -10641,11 +10641,63 @@ const SEARCH_STATUS_STAGES = [
 let _SEARCH_STATUS_TIMER = null;
 let _SEARCH_STATUS_STAGE_INDEX = 0;
 
+function formatSearchStatusDisplay(rawText) {
+  if (!rawText) {
+    const fallback = CURRENT_LANG === "en" ? "No releases found" : "Релизы не найдены";
+    return {
+      main: fallback,
+      criteriaSummary: "",
+      fullText: fallback
+    };
+  }
+  const clean = String(rawText).trim();
+  const searchPattern = /^(.*?)(?:\.\s*Искали по:\s*(.+))?$/is;
+  const match = clean.match(searchPattern);
+  if (match && match[2]) {
+    const mainStatus = match[1].trim() || (CURRENT_LANG === "en" ? "No releases found" : "Подходящих релизов не найдено");
+    const rawCriteria = match[2].trim();
+    
+    // Parse individual terms inside quotes «...»
+    const terms = [];
+    const termRegex = /«([^»]+)»/g;
+    let m;
+    while ((m = termRegex.exec(rawCriteria)) !== null) {
+      terms.push(m[1]);
+    }
+    
+    let criteriaSummary = "";
+    if (terms.length > 2) {
+      const first = terms[0].length > 28 ? terms[0].slice(0, 26) + "…" : terms[0];
+      const countRest = terms.length - 1;
+      const countLabel = CURRENT_LANG === "en" ? `+${countRest} more` : `+${countRest} ещё`;
+      criteriaSummary = `(«${first}» ${countLabel})`;
+    } else if (terms.length > 0) {
+      const summaryList = terms.map(t => t.length > 24 ? t.slice(0, 22) + "…" : t).join(", ");
+      criteriaSummary = `(«${summaryList}»)`;
+    } else {
+      criteriaSummary = rawCriteria.length > 36 ? `(${rawCriteria.slice(0, 34)}…)` : `(${rawCriteria})`;
+    }
+    
+    return {
+      main: mainStatus,
+      criteriaSummary,
+      fullText: clean
+    };
+  }
+  
+  return {
+    main: clean,
+    criteriaSummary: "",
+    fullText: clean
+  };
+}
+
 function renderShowHeaderSearchBadge(show) {
   if (CURRENT_SEARCH_PROGRESS_STYLE !== "smartbutton") return "";
   if (!show || !show.last_search_at) return "";
   const when = formatDateTZ(show.last_search_at);
-  const resultText = show.last_search_result || (CURRENT_LANG === "en" ? "No releases found" : "Релизы не найдены");
+  const statusInfo = formatSearchStatusDisplay(show.last_search_result);
+  const resultText = statusInfo.fullText;
   const isGrabbed = /захвачен|grabbed|скачан/i.test(resultText);
   const isError = /ошибк|error|fail/i.test(resultText);
   const statusCls = isGrabbed ? "status-grabbed" : (isError ? "status-error" : "status-none");
@@ -10655,8 +10707,12 @@ function renderShowHeaderSearchBadge(show) {
        ? `<svg class="ico-xs text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
        : `<svg class="ico-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`);
 
-  return `<span id="show-header-search-badge" class="meta-badge-glass search-header-status-badge ${statusCls}" title="${escapeHtml(resultText)} (${when})">
-    ${iconSvg} <span>${escapeHtml(resultText)}</span>
+  const displayLabel = statusInfo.criteriaSummary
+    ? `${escapeHtml(statusInfo.main)} ${escapeHtml(statusInfo.criteriaSummary)}`
+    : escapeHtml(statusInfo.main);
+
+  return `<span id="show-header-search-badge" class="meta-badge-glass search-header-status-badge ${statusCls}" title="${escapeHtml(statusInfo.fullText)} (${when})">
+    ${iconSvg} <span>${displayLabel}</span>
   </span>`;
 }
 
@@ -10884,7 +10940,8 @@ function renderSearchStatus(show) {
   }
 
   const when = formatDateTZ(show.last_search_at);
-  const resultText = show.last_search_result || (CURRENT_LANG === "en" ? "No releases found" : "Релизы не найдены");
+  const statusInfo = formatSearchStatusDisplay(show.last_search_result);
+  const resultText = statusInfo.fullText;
   const isGrabbed = /захвачен|grabbed|скачан/i.test(resultText);
   const isError = /ошибк|error|fail/i.test(resultText);
 
@@ -10899,13 +10956,18 @@ function renderSearchStatus(show) {
     iconSvg = `<svg class="ico-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
   }
 
+  const statusDisplayHtml = statusInfo.criteriaSummary
+    ? `${escapeHtml(statusInfo.main)} <span class="search-status-criteria-tag">${escapeHtml(statusInfo.criteriaSummary)}</span>`
+    : escapeHtml(statusInfo.main);
+  const tooltipText = `${statusInfo.fullText} (${when})`;
+
   if (style === "laserstrip") {
     return `
-      <div class="search-laser-container ${statusCls}" title="${escapeHtml(resultText)} (${when})">
+      <div class="search-laser-container ${statusCls}" title="${escapeHtml(tooltipText)}">
         <div class="search-laser-header">
           ${iconSvg}
           <span class="search-status-body">
-            <span class="search-status-text">${escapeHtml(resultText)}</span>
+            <span class="search-status-text">${statusDisplayHtml}</span>
             <span class="search-status-date">(${when})</span>
           </span>
         </div>
@@ -10916,10 +10978,10 @@ function renderSearchStatus(show) {
     const tagLabel = isGrabbed ? "GRABBED" : (isError ? "ERROR" : "DONE");
     const tagCls = isGrabbed ? "vanguard-tag-grabbed" : (isError ? "vanguard-tag-error" : "vanguard-tag-done");
     return `
-      <span class="search-status-badge search-style-vanguard ${statusCls}" title="${escapeHtml(resultText)} (${when})">
+      <span class="search-status-badge search-style-vanguard ${statusCls}" title="${escapeHtml(tooltipText)}">
         <span class="vanguard-tag ${tagCls}">${tagLabel}</span>
         <span class="search-status-body">
-          <span class="search-status-text">${escapeHtml(resultText)}</span>
+          <span class="search-status-text">${statusDisplayHtml}</span>
           <span class="search-status-date">(${when})</span>
         </span>
       </span>`;
@@ -10927,10 +10989,10 @@ function renderSearchStatus(show) {
 
   // Default: micropill
   return `
-    <span class="search-status-badge search-style-micropill ${statusCls}" title="${escapeHtml(resultText)} (${when})">
+    <span class="search-status-badge search-style-micropill ${statusCls}" title="${escapeHtml(tooltipText)}">
       ${iconSvg}
       <span class="search-status-body">
-        <span class="search-status-text">${escapeHtml(resultText)}</span>
+        <span class="search-status-text">${statusDisplayHtml}</span>
         <span class="search-status-date">(${when})</span>
       </span>
     </span>`;

@@ -3646,6 +3646,12 @@ html[data-design="servarr"] .settings-field-group > .switch-toggle > .switch-des
 [data-design="servarr"] .show-hero-container .alias-chip * { font-family: var(--sv-font) !important; letter-spacing: 0; }
 [data-design="servarr"] .show-hero-container .alias-chip-text { color: #fff; font-size: 14px; }
 [data-design="servarr"] .show-hero-container .alias-chip-priority {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  font-variant-numeric: tabular-nums !important;
   padding: 0 5px;
   border: 0;
   border-radius: 2px !important;
