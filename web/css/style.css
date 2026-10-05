@@ -18560,7 +18560,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
 .collections-grid.size-large {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 20px;
 }
 .collections-grid.size-medium {
@@ -18570,9 +18570,6 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .collections-grid.size-small {
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 12px;
-}
-@media (max-width: 1200px) {
-  .collections-grid.size-large { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 860px) {
   .collections-grid.size-large { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -20136,9 +20133,32 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-count-badg
 }
 
 /* --- 4. ШИРИНА И ПЛОТНОСТЬ КОНТЕНТА (ТОЛЬКО STUDIO) --- */
-html[data-design="studio"][data-container-width="boxed"] .main-content {
+html[data-design="studio"] .content {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+html[data-design="studio"][data-shell="top-nav"] .content,
+html[data-design="studio"][data-container-width="boxed"] .content {
   max-width: 1540px !important;
   margin: 0 auto !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+html[data-design="studio"][data-container-width="fluid"] .content {
+  max-width: 100% !important;
+  margin: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+html[data-design="studio"] .tab-panel.active {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+html[data-design="studio"] #collections-layout,
+html[data-design="studio"] #collections-content,
+html[data-design="studio"] .collections-grid {
   width: 100% !important;
   box-sizing: border-box !important;
 }

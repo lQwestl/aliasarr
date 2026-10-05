@@ -57,7 +57,8 @@
         document.documentElement.setAttribute("data-density", density);
         var posterSize = localStorage.getItem("aliasarr_poster_size") || "md";
         document.documentElement.setAttribute("data-poster-size", posterSize);
-        var cardStyle = localStorage.getItem("aliasarr_card_style") || "neo-glass";
+        var rawCardStyle = localStorage.getItem("aliasarr_card_style") || "neoglass";
+        var cardStyle = (rawCardStyle === "neo-glass" || rawCardStyle === "neoglass") ? "neoglass" : rawCardStyle;
         document.documentElement.setAttribute("data-card-style", cardStyle);
       } else {
         document.documentElement.removeAttribute("data-archetype");
@@ -1755,7 +1756,7 @@
                   <span data-i18n="design_studio.card_style">Стиль карточки постера</span>
                 </label>
                 <div class="studio-toggle-group" id="studio-card-style-toggle">
-                  <button type="button" class="studio-toggle-btn active" data-value="neo-glass" onclick="setStudioCardStyle('neo-glass')" data-i18n="design_studio.card_neo_glass">Neo-Glass</button>
+                  <button type="button" class="studio-toggle-btn active" data-value="neoglass" onclick="setStudioCardStyle('neoglass')" data-i18n="design_studio.card_neo_glass">Neo-Glass</button>
                   <button type="button" class="studio-toggle-btn" data-value="cinematic" onclick="setStudioCardStyle('cinematic')" data-i18n="design_studio.card_cinematic">Cinematic</button>
                   <button type="button" class="studio-toggle-btn" data-value="cyber" onclick="setStudioCardStyle('cyber')" data-i18n="design_studio.card_cyber">Cyber HUD</button>
                   <button type="button" class="studio-toggle-btn" data-value="minimal" onclick="setStudioCardStyle('minimal')" data-i18n="design_studio.card_minimal">Минимал</button>

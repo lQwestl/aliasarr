@@ -126,6 +126,7 @@ function applyDesign(design, isUserAction = false) {
     root.removeAttribute("data-badge-color");
     const styleEl = document.getElementById("aliasarr-custom-theme-vars");
     if (styleEl) styleEl.textContent = "";
+    applyTheme(USER_THEME);
   } else {
     // В режиме Studio применяем активную конфигурацию Студии
     if (typeof applyStudioLivePreview === "function") {
@@ -133,7 +134,6 @@ function applyDesign(design, isUserAction = false) {
     }
   }
 
-  applyTheme(USER_THEME);
   updateDesignSettingsUI(d);
   servarrAdoptToolbars(d === "servarr");
   applySearchLayoutStyle();
@@ -7141,7 +7141,18 @@ function updateLibraryFilterButtons() {
   if (totalBadge) totalBadge.textContent = allShows.length;
 }
 
-let CURRENT_CARD_STYLE = localStorage.getItem("aliasarr_card_style") || "neoglass";
+function normalizeCardStyle(style) {
+  if (!style) return "neoglass";
+  const s = String(style).toLowerCase().trim();
+  if (s === "neo-glass" || s === "neoglass") return "neoglass";
+  if (s === "cinematic") return "cinematic";
+  if (s === "cyber" || s === "hud") return "cyber";
+  if (s === "minimal" || s === "flat") return "minimal";
+  if (s === "classic" || s === "legacy" || s === "standard") return "classic";
+  return "neoglass";
+}
+
+let CURRENT_CARD_STYLE = normalizeCardStyle(localStorage.getItem("aliasarr_card_style")) || "neoglass";
 let CURRENT_SEARCH_PROGRESS_STYLE = localStorage.getItem("aliasarr_search_progress_style") || "micropill";
 let savedSearchStyle = localStorage.getItem("aliasarr_search_layout_style") || "spotlight_bar";
 if (savedSearchStyle === "spotlight" || savedSearchStyle === "omni") savedSearchStyle = "spotlight_bar";
@@ -7151,7 +7162,8 @@ let CURRENT_SEARCH_LAYOUT_STYLE = savedSearchStyle;
 function openCardStyleModal() {
   const cardOptions = document.querySelectorAll("#card-style-modal .card-poster-styles-grid .card-style-option");
   cardOptions.forEach(opt => {
-    const isThis = opt.id === `card-style-opt-${CURRENT_CARD_STYLE}`;
+    const rawVal = opt.dataset.cardStyle || opt.id.replace("card-style-opt-", "");
+    const isThis = normalizeCardStyle(rawVal) === CURRENT_CARD_STYLE;
     opt.classList.toggle("active", isThis);
   });
 
@@ -7173,22 +7185,29 @@ function openCardStyleModal() {
 }
 
 function setCardStyle(style) {
-  if (!["neoglass", "cinematic", "classic"].includes(style)) return;
-  CURRENT_CARD_STYLE = style;
-  localStorage.setItem("aliasarr_card_style", style);
+  const norm = normalizeCardStyle(style);
+  CURRENT_CARD_STYLE = norm;
+  localStorage.setItem("aliasarr_card_style", norm);
   if (typeof STUDIO_CURRENT_STATE !== "undefined") {
-    STUDIO_CURRENT_STATE.card_style = style;
+    STUDIO_CURRENT_STATE.card_style = norm;
   }
   
   const options = document.querySelectorAll("#card-style-modal .card-poster-styles-grid .card-style-option, .studio-card-poster-option");
   options.forEach(opt => {
-    const isThis = opt.id === `card-style-opt-${CURRENT_CARD_STYLE}` || opt.dataset.cardStyle === CURRENT_CARD_STYLE;
+    const rawVal = opt.dataset.cardStyle || opt.id.replace("card-style-opt-", "");
+    const isThis = normalizeCardStyle(rawVal) === CURRENT_CARD_STYLE;
     opt.classList.toggle("active", isThis);
+  });
+
+  const studioToggleBtns = document.querySelectorAll("#studio-card-style-toggle .studio-toggle-btn");
+  studioToggleBtns.forEach(btn => {
+    const btnVal = normalizeCardStyle(btn.dataset.value);
+    btn.classList.toggle("active", btnVal === CURRENT_CARD_STYLE);
   });
 
   const grid = document.getElementById("shows-grid");
   if (grid) {
-    grid.classList.remove("card-style-neoglass", "card-style-cinematic", "card-style-classic");
+    grid.classList.remove("card-style-neoglass", "card-style-cinematic", "card-style-classic", "card-style-cyber", "card-style-minimal");
     grid.classList.add(`card-style-${CURRENT_CARD_STYLE}`);
   }
 
@@ -9070,8 +9089,8 @@ function renderShowCard(show) {
       </div>`;
   }
 
-  // 1. Neo-Glass Style (Flagship)
-  if (CURRENT_CARD_STYLE === "neoglass") {
+  // 1. Neo-Glass Style (Flagship) & Cyber / Minimal variants
+  if (CURRENT_CARD_STYLE === "neoglass" || CURRENT_CARD_STYLE === "cyber" || CURRENT_CARD_STYLE === "minimal") {
     const showText = POSTER_OPTIONS.progressText !== false;
     const pillText = showText ? `<span>${escapeHtml(statusInfo.progressText)}</span>` : "";
     const statusPillHtml = `
@@ -9097,7 +9116,7 @@ function renderShowCard(show) {
     if (tagsHtml) infoHtml += tagsHtml;
 
     return `
-      <div class="show-card ${selectedClass}" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}" title="${escapeHtml(formatShowTitleWithYear(show.title, show.year))} • ${escapeHtml(statusInfo.tooltip)}">
+      <div class="show-card card-style-${CURRENT_CARD_STYLE} ${selectedClass}" id="show-card-${show.id}" data-alpha="${getShowAlpha(show)}" title="${escapeHtml(formatShowTitleWithYear(show.title, show.year))} • ${escapeHtml(statusInfo.tooltip)}">
         <div class="show-poster" ${posterStyle} title="${escapeHtml(statusInfo.tooltip)}">
           ${checkboxHtml}
           ${statusPillHtml}
@@ -9345,8 +9364,8 @@ function renderShowOverviewRow(show) {
 
   const tagsHtml = (POSTER_OPTIONS.tags && aliases) ? `<div class="alias-cluster" style="margin-top:6px;">${aliases}</div>` : "";
 
-  // 1. Neo-Glass Style
-  if (CURRENT_CARD_STYLE === "neoglass") {
+  // 1. Neo-Glass Style & Cyber / Minimal
+  if (CURRENT_CARD_STYLE === "neoglass" || CURRENT_CARD_STYLE === "cyber" || CURRENT_CARD_STYLE === "minimal") {
     const showText = POSTER_OPTIONS.progressText !== false;
     const pillText = showText ? `<span>${escapeHtml(statusInfo.progressText)}</span>` : "";
     const statusPillHtml = `
@@ -24839,7 +24858,10 @@ async function startApp() {
     if (s && s.language) {
       applyLanguage(s.language);
     }
-    if (s && s.theme) {
+    if (typeof loadStudioStateFromStorage === "function") {
+      loadStudioStateFromStorage(s?.theme_studio_config, s?.custom_themes);
+    }
+    if (s && s.theme && s.design_system !== "studio") {
       applyTheme(s.theme);
     }
     if (s && s.design_system) {
@@ -26110,7 +26132,7 @@ const STUDIO_PRESETS = [
     shell: "sidebar-left",
     density: "comfortable",
     poster_size: "md",
-    card_style: "neo-glass",
+    card_style: "neoglass",
     container_width: "fluid",
     radius: 12,
     blur: 16,
@@ -26127,7 +26149,7 @@ const STUDIO_PRESETS = [
     shell: "sidebar-left",
     density: "comfortable",
     poster_size: "md",
-    card_style: "neo-glass",
+    card_style: "neoglass",
     container_width: "fluid",
     radius: 18,
     blur: 20,
@@ -26161,7 +26183,7 @@ const STUDIO_PRESETS = [
     shell: "floating-dock",
     density: "comfortable",
     poster_size: "md",
-    card_style: "neo-glass",
+    card_style: "neoglass",
     container_width: "fluid",
     radius: 16,
     blur: 18,
@@ -26195,7 +26217,7 @@ const STUDIO_PRESETS = [
     shell: "sidebar-left",
     density: "comfortable",
     poster_size: "md",
-    card_style: "neo-glass",
+    card_style: "neoglass",
     container_width: "fluid",
     radius: 14,
     blur: 16,
@@ -26268,7 +26290,7 @@ let STUDIO_CURRENT_STATE = {
   container_width: "fluid",
   density: "comfortable",
   poster_size: "md",
-  card_style: "neo-glass",
+  card_style: "neoglass",
   base_tone: "slate",
   accent: "#00F0FF",
   radius: 12,
@@ -26289,7 +26311,7 @@ const STUDIO_ARCHETYPES = {
   "liquid-glass": {
     base_tone: "slate",
     accent: "#00F0FF",
-    card_style: "neo-glass",
+    card_style: "neoglass",
     radius: 16,
     blur: 24,
     opacity: 80,
@@ -26359,7 +26381,7 @@ const STUDIO_ARCHETYPES = {
   "titanium-luxe": {
     base_tone: "stone",
     accent: "#EAB308",
-    card_style: "neo-glass",
+    card_style: "neoglass",
     radius: 14,
     blur: 18,
     opacity: 85,
@@ -26376,12 +26398,20 @@ let STUDIO_CUSTOM_THEMES = [];
 let STUDIO_PREVIEW_MODE = "card";
 let STUDIO_INITIALIZED = false;
 
-function loadStudioStateFromStorage() {
+function loadStudioStateFromStorage(serverConfig = null, serverThemes = null) {
   try {
+    if (serverConfig && typeof serverConfig === "object" && Object.keys(serverConfig).length > 0) {
+      STUDIO_CURRENT_STATE = { ...STUDIO_CURRENT_STATE, ...serverConfig };
+    }
+    if (serverThemes && Array.isArray(serverThemes) && serverThemes.length > 0) {
+      STUDIO_CUSTOM_THEMES = serverThemes;
+    }
     const savedConfig = localStorage.getItem("aliasarr_studio_config");
     if (savedConfig) {
       const parsed = JSON.parse(savedConfig);
-      STUDIO_CURRENT_STATE = { ...STUDIO_CURRENT_STATE, ...parsed };
+      if (parsed && typeof parsed === "object") {
+        STUDIO_CURRENT_STATE = { ...STUDIO_CURRENT_STATE, ...parsed };
+      }
     } else {
       const s = localStorage.getItem("aliasarr_shell");
       if (s) STUDIO_CURRENT_STATE.shell = s;
@@ -26392,7 +26422,7 @@ function loadStudioStateFromStorage() {
       const ps = localStorage.getItem("aliasarr_poster_size");
       if (ps) STUDIO_CURRENT_STATE.poster_size = ps;
       const cs = localStorage.getItem("aliasarr_card_style");
-      if (cs) STUDIO_CURRENT_STATE.card_style = cs;
+      if (cs) STUDIO_CURRENT_STATE.card_style = normalizeCardStyle(cs);
       const arch = localStorage.getItem("aliasarr_archetype");
       if (arch) STUDIO_CURRENT_STATE.archetype = arch;
       const uif = localStorage.getItem("aliasarr_ui_font");
@@ -26414,7 +26444,14 @@ function loadStudioStateFromStorage() {
     }
     const savedThemes = localStorage.getItem("aliasarr_custom_themes_list");
     if (savedThemes) {
-      STUDIO_CUSTOM_THEMES = JSON.parse(savedThemes);
+      const parsedThemes = JSON.parse(savedThemes);
+      if (Array.isArray(parsedThemes) && parsedThemes.length > 0) {
+        STUDIO_CUSTOM_THEMES = parsedThemes;
+      }
+    }
+    if (STUDIO_CURRENT_STATE.card_style) {
+      STUDIO_CURRENT_STATE.card_style = normalizeCardStyle(STUDIO_CURRENT_STATE.card_style);
+      CURRENT_CARD_STYLE = STUDIO_CURRENT_STATE.card_style;
     }
   } catch (e) {
     console.warn("Could not load studio state:", e);
@@ -26501,7 +26538,7 @@ function syncStudioControlsUI() {
     btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.poster_size);
   });
   document.querySelectorAll("#studio-card-style-toggle .studio-toggle-btn").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.card_style);
+    btn.classList.toggle("active", normalizeCardStyle(btn.dataset.value) === normalizeCardStyle(STUDIO_CURRENT_STATE.card_style));
   });
 
   const rSlider = document.getElementById("studio-radius-slider");
@@ -26532,7 +26569,7 @@ function syncStudioControlsUI() {
     card.classList.toggle("active", card.dataset.themeChoice === activeTheme);
   });
   document.querySelectorAll(".studio-card-poster-option").forEach(card => {
-    card.classList.toggle("active", card.dataset.cardStyle === CURRENT_CARD_STYLE);
+    card.classList.toggle("active", normalizeCardStyle(card.dataset.cardStyle) === normalizeCardStyle(CURRENT_CARD_STYLE));
   });
   document.querySelectorAll(".studio-card-coll-option").forEach(card => {
     card.classList.toggle("active", card.dataset.collCardStyle === CURRENT_COLLECTIONS_CARD_STYLE);
@@ -26624,6 +26661,11 @@ function setStudioArchetype(arch) {
   const config = STUDIO_ARCHETYPES[arch];
   if (config) {
     Object.assign(STUDIO_CURRENT_STATE, config);
+    if (config.card_style) {
+      const normCard = normalizeCardStyle(config.card_style);
+      STUDIO_CURRENT_STATE.card_style = normCard;
+      setCardStyle(normCard);
+    }
   }
   syncStudioControlsUI();
   renderStudioPresets();
@@ -26635,6 +26677,7 @@ function applyStudioPreset(presetId) {
   const preset = STUDIO_PRESETS.find(p => p.id === presetId);
   if (!preset) return;
 
+  const normCard = normalizeCardStyle(preset.card_style);
   STUDIO_CURRENT_STATE = {
     ...STUDIO_CURRENT_STATE,
     preset_id: preset.id,
@@ -26644,7 +26687,7 @@ function applyStudioPreset(presetId) {
     shell: preset.shell,
     density: preset.density,
     poster_size: preset.poster_size,
-    card_style: preset.card_style,
+    card_style: normCard,
     container_width: preset.container_width,
     radius: preset.radius,
     blur: preset.blur,
@@ -26652,6 +26695,7 @@ function applyStudioPreset(presetId) {
     glow: preset.glow,
   };
 
+  setCardStyle(normCard);
   syncStudioControlsUI();
   renderStudioPresets();
   renderStudioSwatches();
@@ -26719,9 +26763,11 @@ function setStudioPosterSize(val) {
 }
 
 function setStudioCardStyle(val) {
-  STUDIO_CURRENT_STATE.card_style = val;
+  const norm = normalizeCardStyle(val);
+  STUDIO_CURRENT_STATE.card_style = norm;
+  setCardStyle(norm);
   document.querySelectorAll("#studio-card-style-toggle .studio-toggle-btn").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.value === val);
+    btn.classList.toggle("active", normalizeCardStyle(btn.dataset.value) === norm);
   });
   applyStudioLivePreview(true);
 }
@@ -26830,6 +26876,9 @@ function setStudioPreviewMode(mode) {
 
 function applyStudioLivePreview(saveDraft = true) {
   const isStudioActive = document.documentElement.getAttribute("data-design") === "studio";
+  const normCard = normalizeCardStyle(STUDIO_CURRENT_STATE.card_style);
+  STUDIO_CURRENT_STATE.card_style = normCard;
+  CURRENT_CARD_STYLE = normCard;
 
   // ПРИМЕНЕНИЕ К HTML ТОЛЬКО ЕСЛИ АКТИВЕН ДИЗАЙН "STUDIO" (100% ИЗОЛЯЦИЯ ОТ CLASSIC, VANGUARD, SERVARR)
   if (isStudioActive) {
@@ -26838,7 +26887,7 @@ function applyStudioLivePreview(saveDraft = true) {
     document.documentElement.setAttribute("data-container-width", STUDIO_CURRENT_STATE.container_width);
     document.documentElement.setAttribute("data-density", STUDIO_CURRENT_STATE.density);
     document.documentElement.setAttribute("data-poster-size", STUDIO_CURRENT_STATE.poster_size);
-    document.documentElement.setAttribute("data-card-style", STUDIO_CURRENT_STATE.card_style);
+    document.documentElement.setAttribute("data-card-style", normCard);
     document.documentElement.setAttribute("data-ui-font", STUDIO_CURRENT_STATE.ui_font || "outfit");
     document.documentElement.setAttribute("data-mono-font", STUDIO_CURRENT_STATE.mono_font || "jetbrains");
     document.documentElement.setAttribute("data-font-scale", STUDIO_CURRENT_STATE.font_scale || "normal");
@@ -26847,6 +26896,12 @@ function applyStudioLivePreview(saveDraft = true) {
     document.documentElement.setAttribute("data-badge-font", STUDIO_CURRENT_STATE.badge_font || "mono");
     document.documentElement.setAttribute("data-badge-case", STUDIO_CURRENT_STATE.badge_case || "uppercase");
     document.documentElement.setAttribute("data-badge-color", STUDIO_CURRENT_STATE.badge_color_mode || "semantic");
+
+    const grid = document.getElementById("shows-grid");
+    if (grid) {
+      grid.classList.remove("card-style-neoglass", "card-style-cinematic", "card-style-classic", "card-style-cyber", "card-style-minimal");
+      grid.classList.add(`card-style-${normCard}`);
+    }
   }
 
   const canvas = document.getElementById("studio-preview-canvas");
@@ -26856,7 +26911,7 @@ function applyStudioLivePreview(saveDraft = true) {
     canvas.setAttribute("data-container-width", STUDIO_CURRENT_STATE.container_width);
     canvas.setAttribute("data-density", STUDIO_CURRENT_STATE.density);
     canvas.setAttribute("data-poster-size", STUDIO_CURRENT_STATE.poster_size);
-    canvas.setAttribute("data-card-style", STUDIO_CURRENT_STATE.card_style);
+    canvas.setAttribute("data-card-style", normCard);
     canvas.setAttribute("data-ui-font", STUDIO_CURRENT_STATE.ui_font || "outfit");
     canvas.setAttribute("data-mono-font", STUDIO_CURRENT_STATE.mono_font || "jetbrains");
     canvas.setAttribute("data-font-scale", STUDIO_CURRENT_STATE.font_scale || "normal");
@@ -26917,7 +26972,8 @@ function applyStudioLivePreview(saveDraft = true) {
       "zinc": "slate",
       "stone": "slate"
     };
-    const effectiveTheme = USER_THEME || toneToTheme[tone.id] || "slate";
+    const effectiveTheme = (tone && toneToTheme[tone.id]) ? toneToTheme[tone.id] : (USER_THEME || "slate");
+    USER_THEME = effectiveTheme;
     document.documentElement.setAttribute("data-theme", effectiveTheme);
     updateFavicon(effectiveTheme);
   }
@@ -26999,6 +27055,43 @@ function renderStudioPreviewCanvas() {
               <span>2024 • ${CURRENT_LANG === 'en' ? 'Anime' : 'Аниме'}</span>
               <span class="badge badge-purple" style="font-size:9.5px; padding:1px 5px;">4K UHD</span>
             </div>
+          </div>
+        </div>
+      `;
+    } else if (cardStyle === "cyber") {
+      cardInner = `
+        <div class="show-card card-style-cyber" style="box-shadow: 0 12px 30px rgba(0,0,0,0.5); border: 1px solid var(--teal, #00f0ff); background: rgba(10, 14, 24, 0.85); clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));">
+          <div class="show-poster-wrap" style="position:relative; aspect-ratio: 2/3; background: #0b0f19; overflow:hidden;">
+            <div style="width:100%; height:100%; background: linear-gradient(135deg, rgba(0,240,255,0.25), rgba(16,185,129,0.2)), url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 150\\'%3E%3Crect width=\\'100\\' height=\\'150\\' fill=\\'%230b0f19\\'/%3E%3Cpath d=\\'M30 40 L70 40 L70 110 L30 110 Z\\' fill=\\'none\\' stroke=\\'rgba(0,240,255,0.2)\\' stroke-width=\\'2\\'/%3E%3Ctext x=\\'50\\' y=\\'80\\' fill=\\'rgba(0,240,255,0.4)\\' font-size=\\'12\\' text-anchor=\\'middle\\' font-family=\\'monospace\\'%3EHUD%3C/text%3E%3C/svg%3E') center/cover;"></div>
+            <div class="poster-status-pill is-complete" style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.85); border:1px solid var(--teal, #00f0ff); border-radius:4px; padding:2px 8px; font-size:10px; font-family:var(--font-mono, monospace); display:flex; align-items:center; gap:5px; color:var(--teal, #00f0ff);">
+              <span class="status-dot" style="width:5px; height:5px; border-radius:50%; background:#10b981;"></span>
+              <span>12/12 100%</span>
+            </div>
+            <div class="poster-micro-bar" style="position:absolute; bottom:0; left:0; right:0; height:3px; background:rgba(0,0,0,0.6);">
+              <div class="poster-micro-bar-fill" style="width:100%; height:100%; background:var(--teal, #00f0ff); box-shadow:0 0 8px var(--teal, #00f0ff);"></div>
+            </div>
+          </div>
+          <div class="show-info" style="padding: 10px 6px 6px 6px;">
+            <div class="show-title" style="font-weight:700; font-size:13.5px; margin-bottom:4px; font-family:var(--font-mono, monospace); color:#fff;">КИБЕРПАНК // 2024</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-family:var(--font-mono, monospace); font-size:10px; color:var(--teal, #00f0ff);">
+              <span>ANIME // 4K</span>
+              <span class="badge badge-success" style="font-size:9.5px; border-radius:2px;">SYNCED</span>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (cardStyle === "minimal") {
+      cardInner = `
+        <div class="show-card card-style-minimal" style="box-shadow: 0 10px 24px rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: var(--radius-sm, 8px); overflow:hidden; background: var(--panel);">
+          <div class="show-poster-wrap" style="position:relative; aspect-ratio: 2/3; background: #161b26; overflow:hidden;">
+            <div style="width:100%; height:100%; background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(0,0,0,0.3)), url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 100 150\\'%3E%3Crect width=\\'100\\' height=\\'150\\' fill=\\'%23121824\\'/%3E%3Ctext x=\\'50\\' y=\\'80\\' fill=\\'rgba(255,255,255,0.2)\\' font-size=\\'12\\' text-anchor=\\'middle\\' font-family=\\'sans-serif\\'%3EMINIMAL%3C/text%3E%3C/svg%3E') center/cover;"></div>
+            <div class="poster-micro-bar" style="position:absolute; bottom:0; left:0; right:0; height:2px; background:rgba(255,255,255,0.15);">
+              <div class="poster-micro-bar-fill" style="width:100%; height:100%; background:var(--teal, #0ea5e9);"></div>
+            </div>
+          </div>
+          <div class="show-info" style="padding: 8px 6px;">
+            <div class="show-title" style="font-weight:600; font-size:13px; margin-bottom:2px; font-family:var(--font-body); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Киберпанк: Бегущие по краю</div>
+            <div style="font-size:11px; color:var(--text-muted);">2024 · Аниме</div>
           </div>
         </div>
       `;
@@ -27472,11 +27565,18 @@ function activateCustomTheme(id) {
     preset_id: null,
   };
 
+  if (STUDIO_CURRENT_STATE.card_style) {
+    const norm = normalizeCardStyle(STUDIO_CURRENT_STATE.card_style);
+    STUDIO_CURRENT_STATE.card_style = norm;
+    setCardStyle(norm);
+  }
+
   syncStudioControlsUI();
   renderStudioPresets();
   renderStudioSwatches();
   renderStudioMyThemes();
   applyStudioLivePreview(true);
+  applyStudioThemePermanently();
   showToast(`Тема «${theme.name}» активирована!`, "success");
 }
 
