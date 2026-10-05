@@ -177,6 +177,11 @@ class TestDesignStudioLayout(unittest.TestCase):
                 fn_code = js_function(app, fn_name)
                 self.assertIn("renderStudioPreviewCanvas()", fn_code)
 
+    def test_show_info_is_not_absolutely_positioned_over_poster(self):
+        style = read(STYLE_PATH)
+        # Ensure .show-info is not positioned absolutely over the poster artwork
+        self.assertNotIn('html[data-design="studio"][data-card-style="cinematic"] .show-card .show-info', style)
+
 
 if __name__ == "__main__":
     unittest.main()

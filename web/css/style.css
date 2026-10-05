@@ -20191,30 +20191,7 @@ html[data-design="studio"][data-poster-size="xl"] .shows-grid {
 
 /* --- 6. СТИЛИ КАРТОЧЕК БИБЛИОТЕКИ (ТОЛЬКО STUDIO) --- */
 html[data-design="studio"][data-card-style="cinematic"] .show-card {
-  overflow: hidden;
   border-radius: var(--radius, 14px);
-  position: relative;
-}
-html[data-design="studio"][data-card-style="cinematic"] .show-card .show-poster-wrap::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.4) 40%, transparent 80%);
-  pointer-events: none;
-}
-html[data-design="studio"][data-card-style="cinematic"] .show-card .show-info {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 2;
-  padding: 14px 12px;
-  background: transparent;
-}
-html[data-design="studio"][data-card-style="cinematic"] .show-card .show-title {
-  color: #fff;
-  font-weight: 700;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 
 html[data-design="studio"][data-card-style="minimal"] .show-card .show-badge,
