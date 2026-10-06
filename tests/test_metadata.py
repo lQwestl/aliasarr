@@ -1029,6 +1029,35 @@ class TestCoverResolutionAndPascalCaseParsing(unittest.TestCase):
 
         asyncio.run(run_test())
 
+    @unittest.skipUnless(HAS_FASTAPI, "Requires fastapi")
+    def test_refresh_show_cover_without_category_attribute(self):
+        """Проверяет, что refresh_show_cover корректно работает с объектом Show без атрибута category."""
+        from app.api.shows import refresh_show_cover
+
+        mock_show = MagicMock(spec=["id", "title", "content_type", "poster_source_url", "poster_url", "last_metadata_refresh_at"])
+        mock_show.id = 176
+        mock_show.title = "Рик и Морти"
+        mock_show.content_type = "series"
+        mock_show.poster_source_url = None
+        mock_show.poster_url = None
+        mock_show.last_metadata_refresh_at = None
+
+        mock_db = MagicMock()
+        mock_db.get.return_value = mock_show
+
+        mock_user = MagicMock()
+        mock_user.username = "admin"
+
+        async def run_test():
+            with patch("app.services.metadata.resolve_show_cover", new_callable=AsyncMock, return_value=("https://artworks.thetvdb.com/poster.jpg", "Sonarr SkyHook")), \
+                 patch("app.services.cover_service.download_and_store_show_cover", new_callable=AsyncMock, return_value="/api/v1/shows/176/poster"):
+                result = await refresh_show_cover(176, db=mock_db, current_user=mock_user)
+                self.assertTrue(result["success"])
+                self.assertIn("/api/v1/shows/176/poster", result["poster_url"])
+                self.assertEqual(result["source_name"], "Sonarr SkyHook")
+
+        asyncio.run(run_test())
+
 
 if __name__ == "__main__":
     unittest.main()

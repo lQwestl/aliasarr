@@ -174,7 +174,8 @@ def attach_version_to_cover_url(url: Optional[str], timestamp_obj: Optional[Any]
     """
     Добавляет параметр ?v={timestamp} к локальному URL обложки или фона.
     Если параметр версии уже присутствует или URL внешний, возвращает исходный URL.
-    При отсутствии переданного timestamp_obj пытается взять время модификации mtime файла с диска.
+    Приоритетно берет время модификации mtime файла с диска (если файл существует),
+    иначе использует переданный timestamp_obj.
     """
     if not url or not isinstance(url, str):
         return url
@@ -182,31 +183,30 @@ def attach_version_to_cover_url(url: Optional[str], timestamp_obj: Optional[Any]
     if "?" in trimmed:
         return trimmed
 
-    # Проверяем, локальный ли это URL постера или бэкдропа
+    # Проверяем, локальный ли это URL постера или бэкдропа и существует ли файл на диске
     mtime = None
-    if timestamp_obj:
+    try:
+        if trimmed.startswith("/api/v1/shows/") and trimmed.endswith("/poster"):
+            sid = int(trimmed.split("/")[4])
+            p_path = get_show_poster_path(sid)
+            if os.path.isfile(p_path):
+                mtime = int(os.path.getmtime(p_path))
+        elif trimmed.startswith("/api/v1/collections/") and trimmed.endswith("/poster"):
+            cid = int(trimmed.split("/")[4])
+            p_path = get_collection_poster_path(cid)
+            if os.path.isfile(p_path):
+                mtime = int(os.path.getmtime(p_path))
+        elif trimmed.startswith("/api/v1/collections/") and trimmed.endswith("/backdrop"):
+            cid = int(trimmed.split("/")[4])
+            b_path = get_collection_backdrop_path(cid)
+            if os.path.isfile(b_path):
+                mtime = int(os.path.getmtime(b_path))
+    except Exception:
+        mtime = None
+
+    if mtime is None and timestamp_obj:
         try:
             mtime = int(timestamp_obj.timestamp())
-        except Exception:
-            mtime = None
-
-    if mtime is None:
-        try:
-            if trimmed.startswith("/api/v1/shows/") and trimmed.endswith("/poster"):
-                sid = int(trimmed.split("/")[4])
-                p_path = get_show_poster_path(sid)
-                if os.path.isfile(p_path):
-                    mtime = int(os.path.getmtime(p_path))
-            elif trimmed.startswith("/api/v1/collections/") and trimmed.endswith("/poster"):
-                cid = int(trimmed.split("/")[4])
-                p_path = get_collection_poster_path(cid)
-                if os.path.isfile(p_path):
-                    mtime = int(os.path.getmtime(p_path))
-            elif trimmed.startswith("/api/v1/collections/") and trimmed.endswith("/backdrop"):
-                cid = int(trimmed.split("/")[4])
-                b_path = get_collection_backdrop_path(cid)
-                if os.path.isfile(b_path):
-                    mtime = int(os.path.getmtime(b_path))
         except Exception:
             mtime = None
 

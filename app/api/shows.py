@@ -3398,7 +3398,7 @@ async def refresh_show_cover(
     if not show:
         raise HTTPException(404, "Карточка не найдена")
 
-    is_movie = show.content_type == "movie" or show.category == "movies"
+    is_movie = getattr(show, "content_type", None) == "movie" or getattr(show, "category", None) == "movies"
     poster_url, source_name = await resolve_show_cover(show, db=db)
 
     if not poster_url:
@@ -3406,9 +3406,10 @@ async def refresh_show_cover(
         raise HTTPException(404, f"Постер не найден в источниках метаданных ({target_service})")
 
     show.poster_source_url = poster_url
-    from app.services.cover_service import download_and_store_show_cover
+    from app.services.cover_service import download_and_store_show_cover, attach_version_to_cover_url
     local_url = await download_and_store_show_cover(show.id, poster_url)
     show.poster_url = local_url or poster_url
+    show.last_metadata_refresh_at = dt.datetime.utcnow()
     db.commit()
     db.refresh(show)
 
@@ -3422,7 +3423,7 @@ async def refresh_show_cover(
 
     return {
         "success": True,
-        "poster_url": show.poster_url,
+        "poster_url": attach_version_to_cover_url(show.poster_url, show.last_metadata_refresh_at),
         "source_name": source_name or ("Radarr SkyHook" if is_movie else "Sonarr SkyHook"),
     }
 
@@ -3465,7 +3466,11 @@ async def get_show_poster(
             logger.debug("Автоматическая подгрузка постера для тайтла %s: %s", show_id, exc)
 
     if not os.path.isfile(poster_path):
-        raise HTTPException(404, "Обложка не найдена")
+        raise HTTPException(
+            status_code=404,
+            detail="Обложка не найдена",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
 
     etag = get_cover_etag(poster_path)
     if_none_match = request.headers.get("if-none-match")
