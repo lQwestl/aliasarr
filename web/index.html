@@ -257,6 +257,132 @@
         <span class="nav-wiki-badge">DOCS</span>
         <i data-lucide="external-link" class="nav-wiki-ext-ico"></i>
       </a>
+
+      <!-- ВЫПАДАЮЩЕЕ МЕНЮ «ЕЩЁ» ДЛЯ РЕЖИМА TOP-NAV -->
+      <div class="nav-more-dropdown" id="nav-more-dropdown">
+        <button class="nav-item nav-more-trigger" id="nav-more-trigger" onclick="toggleNavMoreMenu(event)" title="Дополнительные разделы" data-i18n-title="nav.more">
+          <i data-lucide="more-horizontal" class="nav-ico"></i>
+          <span data-i18n="nav.more">Ещё</span>
+          <i data-lucide="chevron-down" class="ico-xxs nav-more-chevron"></i>
+        </button>
+        <div class="nav-more-menu" id="nav-more-menu">
+          <button class="nav-more-item" data-tab="blocklist" onclick="switchTab('blocklist'); closeNavMoreMenu();">
+            <i data-lucide="shield-alert" class="nav-ico"></i>
+            <span data-i18n="nav.blocklist">Черный список</span>
+          </button>
+          <button class="nav-more-item" data-tab="history" onclick="switchTab('history'); closeNavMoreMenu();">
+            <i data-lucide="history" class="nav-ico"></i>
+            <span data-i18n="nav.history">История</span>
+          </button>
+          <button class="nav-more-item" data-tab="logs" onclick="switchTab('logs'); closeNavMoreMenu();">
+            <i data-lucide="file-text" class="nav-ico"></i>
+            <span data-i18n="nav.logs">Логи</span>
+          </button>
+          <button class="nav-more-item" data-tab="backup" onclick="switchTab('backup'); closeNavMoreMenu();">
+            <i data-lucide="archive" class="nav-ico"></i>
+            <span data-i18n="nav.backup">Бэкап</span>
+          </button>
+          <div class="nav-more-divider"></div>
+          <a href="/wiki" target="_blank" rel="noopener noreferrer" class="nav-more-item" onclick="openWiki(event)">
+            <i data-lucide="book-open" class="nav-ico"></i>
+            <span data-i18n="nav.wiki">Wiki</span>
+            <span class="nav-wiki-badge">DOCS</span>
+            <i data-lucide="external-link" class="nav-wiki-ext-ico"></i>
+          </a>
+          <div class="nav-more-divider"></div>
+          <button class="nav-more-item" data-tab="design-studio" onclick="switchTab('design-studio'); closeNavMoreMenu();">
+            <i data-lucide="palette" class="nav-ico"></i>
+            <span data-i18n="nav.design_studio">Студия дизайна</span>
+          </button>
+          <button class="nav-more-item" data-tab="settings" onclick="switchTab('settings'); closeNavMoreMenu();">
+            <i data-lucide="settings" class="nav-ico"></i>
+            <span data-i18n="nav.settings">Настройки</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- КЛАСТЕРЫ ГРУППИРОВКИ ДЛЯ РЕЖИМА TOP-NAV (GROUPED) -->
+      <div class="nav-group-dropdown" id="nav-group-media">
+        <button class="nav-item nav-group-trigger" onclick="toggleNavGroupMenu('nav-group-media-menu', event)">
+          <i data-lucide="film" class="nav-ico"></i>
+          <span data-i18n="nav.media">Медиатека</span>
+          <i data-lucide="chevron-down" class="ico-xxs nav-more-chevron"></i>
+        </button>
+        <div class="nav-more-menu" id="nav-group-media-menu">
+          <button class="nav-more-item" data-tab="library" onclick="switchTab('library'); closeAllTopNavMenus();">
+            <i data-lucide="library" class="nav-ico"></i>
+            <span data-i18n="nav.library">Библиотека</span>
+          </button>
+          <button class="nav-more-item" data-tab="collections" onclick="switchTab('collections'); closeAllTopNavMenus();">
+            <i data-lucide="boxes" class="nav-ico"></i>
+            <span data-i18n="nav.collections">Коллекции</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="nav-group-dropdown" id="nav-group-monitoring">
+        <button class="nav-item nav-group-trigger" onclick="toggleNavGroupMenu('nav-group-monitoring-menu', event)">
+          <i data-lucide="activity" class="nav-ico"></i>
+          <span data-i18n="nav.monitoring">Мониторинг</span>
+          <i data-lucide="chevron-down" class="ico-xxs nav-more-chevron"></i>
+        </button>
+        <div class="nav-more-menu" id="nav-group-monitoring-menu">
+          <button class="nav-more-item" data-tab="dashboard" onclick="switchTab('dashboard'); closeAllTopNavMenus();">
+            <i data-lucide="layout-dashboard" class="nav-ico"></i>
+            <span data-i18n="nav.dashboard">Дашборд</span>
+          </button>
+          <button class="nav-more-item" data-tab="calendar" onclick="switchTab('calendar'); closeAllTopNavMenus();">
+            <i data-lucide="calendar" class="nav-ico"></i>
+            <span data-i18n="nav.calendar">Календарь</span>
+          </button>
+          <button class="nav-more-item" data-tab="activity" onclick="switchTab('activity'); closeAllTopNavMenus();">
+            <i data-lucide="activity" class="nav-ico"></i>
+            <span data-i18n="nav.activity">Активность</span>
+          </button>
+          <button class="nav-more-item" data-tab="history" onclick="switchTab('history'); closeAllTopNavMenus();">
+            <i data-lucide="history" class="nav-ico"></i>
+            <span data-i18n="nav.history">История</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="nav-group-dropdown" id="nav-group-tools">
+        <button class="nav-item nav-group-trigger" onclick="toggleNavGroupMenu('nav-group-tools-menu', event)">
+          <i data-lucide="sliders-horizontal" class="nav-ico"></i>
+          <span data-i18n="nav.tools">Инструменты</span>
+          <i data-lucide="chevron-down" class="ico-xxs nav-more-chevron"></i>
+        </button>
+        <div class="nav-more-menu" id="nav-group-tools-menu">
+          <button class="nav-more-item" data-tab="blocklist" onclick="switchTab('blocklist'); closeAllTopNavMenus();">
+            <i data-lucide="shield-alert" class="nav-ico"></i>
+            <span data-i18n="nav.blocklist">Черный список</span>
+          </button>
+          <button class="nav-more-item" data-tab="logs" onclick="switchTab('logs'); closeAllTopNavMenus();">
+            <i data-lucide="file-text" class="nav-ico"></i>
+            <span data-i18n="nav.logs">Логи</span>
+          </button>
+          <button class="nav-more-item" data-tab="backup" onclick="switchTab('backup'); closeAllTopNavMenus();">
+            <i data-lucide="archive" class="nav-ico"></i>
+            <span data-i18n="nav.backup">Бэкап</span>
+          </button>
+          <div class="nav-more-divider"></div>
+          <a href="/wiki" target="_blank" rel="noopener noreferrer" class="nav-more-item" onclick="openWiki(event)">
+            <i data-lucide="book-open" class="nav-ico"></i>
+            <span data-i18n="nav.wiki">Wiki</span>
+            <span class="nav-wiki-badge">DOCS</span>
+            <i data-lucide="external-link" class="nav-wiki-ext-ico"></i>
+          </a>
+          <div class="nav-more-divider"></div>
+          <button class="nav-more-item" data-tab="design-studio" onclick="switchTab('design-studio'); closeAllTopNavMenus();">
+            <i data-lucide="palette" class="nav-ico"></i>
+            <span data-i18n="nav.design_studio">Студия дизайна</span>
+          </button>
+          <button class="nav-more-item" data-tab="settings" onclick="switchTab('settings'); closeAllTopNavMenus();">
+            <i data-lucide="settings" class="nav-ico"></i>
+            <span data-i18n="nav.settings">Настройки</span>
+          </button>
+        </div>
+      </div>
     </nav>
     <button class="btn btn-primary btn-block" onclick="openAddShowWizard()" title="Добавить видео" data-i18n-title="nav.add_video"><i data-lucide="plus"></i><span class="btn-text" data-i18n="nav.add_video">Добавить видео</span></button>
     <div class="sidebar-footer">
@@ -278,6 +404,7 @@
         <div class="tasks-status-pill" id="tasks-status-pill">
           <div class="tasks-spinner" id="tasks-spinner" style="display:none;"></div>
           <span class="tasks-idle-icon" id="tasks-idle-icon"><i data-lucide="activity" class="ico-xs"></i></span>
+          <span class="tasks-hud-pct" id="tasks-hud-pct" style="display:none;"></span>
           <div class="tasks-status-info">
             <span class="tasks-status-text" id="tasks-status-text" data-i18n="tasks.idle">Все задачи завершены</span>
             <span class="tasks-status-sub" id="tasks-status-sub" style="display:none;"></span>
@@ -1710,6 +1837,29 @@
                       </div>
                     </div>
                   </label>
+                </div>
+              </div>
+
+              <!-- Опции для шапки (Top-Nav) - показываются только если выбран режим top-nav -->
+              <div class="studio-sub-panel" id="studio-top-nav-options" style="display: none;">
+                <div class="studio-field-group">
+                  <label class="settings-field-label">
+                    <span data-i18n="design_studio.top_nav_layout">Раскладка верхней шапки</span>
+                  </label>
+                  <div class="studio-toggle-group" id="studio-top-nav-layout-toggle">
+                    <button type="button" class="studio-toggle-btn active" data-value="compact-more" onclick="setStudioTopNavLayout('compact-more')" data-i18n="design_studio.top_nav_compact_more">Основные + Ещё ▾</button>
+                    <button type="button" class="studio-toggle-btn" data-value="grouped" onclick="setStudioTopNavLayout('grouped')" data-i18n="design_studio.top_nav_grouped">Группировка ▾</button>
+                    <button type="button" class="studio-toggle-btn" data-value="icons-pill" onclick="setStudioTopNavLayout('icons-pill')" data-i18n="design_studio.top_nav_icons_pill">Иконочный док</button>
+                  </div>
+                </div>
+                <div class="studio-field-group">
+                  <label class="settings-field-label">
+                    <span data-i18n="design_studio.top_nav_tasks_mode">Виджет фоновых задач</span>
+                  </label>
+                  <div class="studio-toggle-group" id="studio-top-nav-tasks-toggle">
+                    <button type="button" class="studio-toggle-btn active" data-value="hud" onclick="setStudioTopNavTasksMode('hud')" data-i18n="design_studio.top_nav_tasks_hud">HUD-пилюля (88px)</button>
+                    <button type="button" class="studio-toggle-btn" data-value="fixed-bar" onclick="setStudioTopNavTasksMode('fixed-bar')" data-i18n="design_studio.top_nav_tasks_bar">Инфо-панель (220px)</button>
+                  </div>
                 </div>
               </div>
 

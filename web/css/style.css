@@ -20094,66 +20094,360 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-count-badg
 }
 
 /* --- 2. ТРАНСФОРМАЦИЯ КАРКАСА: TOP-NAV (ВЕРХНЯЯ ШАПКА - ТОЛЬКО STUDIO) --- */
+/* По умолчанию скрыты в обычных боковых панелях и на мобильных устройствах */
+.nav-more-dropdown,
+.nav-group-dropdown {
+  display: none !important;
+  position: relative;
+}
+.nav-more-menu {
+  display: none;
+}
+
 @media (min-width: 901px) {
   html[data-design="studio"][data-shell="top-nav"] .app-shell {
     flex-direction: column !important;
   }
   html[data-design="studio"][data-shell="top-nav"] .sidebar {
     width: 100% !important;
-    height: auto !important;
+    height: 56px !important;
     position: sticky !important;
     top: 0 !important;
     z-index: 999 !important;
+    display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
     justify-content: space-between !important;
-    padding: 8px 24px !important;
+    padding: 0 20px !important;
     border-right: none !important;
     border-bottom: 1px solid var(--border) !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
     overflow-y: visible !important;
+    background: var(--sidebar-bg, var(--panel)) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12) !important;
   }
   html[data-design="studio"][data-shell="top-nav"] .sidebar .sidebar-header-row {
     margin-bottom: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
   }
   html[data-design="studio"][data-shell="top-nav"] .sidebar .brand {
     margin-bottom: 0 !important;
   }
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .mobile-drawer-close {
+    display: none !important;
+  }
+
+  /* Навигационная цепочка в шапке */
   html[data-design="studio"][data-shell="top-nav"] .sidebar .nav {
+    display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    gap: 4px !important;
+    justify-content: center !important;
+    gap: 3px !important;
     margin: 0 16px !important;
-    flex: 1 !important;
-    overflow-x: auto !important;
-    scrollbar-width: none !important;
-  }
-  html[data-design="studio"][data-shell="top-nav"] .sidebar .nav::-webkit-scrollbar {
-    display: none !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
   }
   html[data-design="studio"][data-shell="top-nav"] .sidebar .nav-item,
   html[data-design="studio"][data-shell="top-nav"] .sidebar .nav-item-wiki {
-    padding: 8px 12px !important;
+    padding: 6px 11px !important;
     white-space: nowrap !important;
-    font-size: 13.5px !important;
+    font-size: 13px !important;
+    border-radius: var(--radius-sm, 8px) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    transition: background 0.15s ease, color 0.15s ease !important;
   }
   html[data-design="studio"][data-shell="top-nav"] .sidebar > .btn-primary {
     width: auto !important;
-    margin: 0 12px 0 0 !important;
+    margin: 0 10px 0 0 !important;
     white-space: nowrap !important;
-    padding: 8px 14px !important;
+    padding: 6px 13px !important;
+    font-size: 13px !important;
+    border-radius: var(--radius-sm, 8px) !important;
+    flex-shrink: 0 !important;
   }
   html[data-design="studio"][data-shell="top-nav"] .sidebar .sidebar-footer {
     margin-top: 0 !important;
+    display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    gap: 12px !important;
-  }
-  html[data-design="studio"][data-shell="top-nav"] .sidebar .tasks-status-widget {
-    margin-top: 0 !important;
+    gap: 10px !important;
+    flex-shrink: 0 !important;
   }
   html[data-design="studio"][data-shell="top-nav"] .sidebar .user-info {
     display: none !important;
   }
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .user-profile-badge {
+    margin: 0 !important;
+    padding: 4px 6px !important;
+    border-radius: var(--radius-sm, 8px) !important;
+  }
+
+  /* Режим 1: compact-more (Основные + Ещё ▾) - активен по умолчанию или при явном data-top-nav-layout="compact-more" */
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-layout="grouped"]):not([data-top-nav-layout="icons-pill"]) .sidebar .nav > .nav-item[data-tab="blocklist"],
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-layout="grouped"]):not([data-top-nav-layout="icons-pill"]) .sidebar .nav > .nav-item[data-tab="history"],
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-layout="grouped"]):not([data-top-nav-layout="icons-pill"]) .sidebar .nav > .nav-item[data-tab="design-studio"],
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-layout="grouped"]):not([data-top-nav-layout="icons-pill"]) .sidebar .nav > .nav-item[data-tab="settings"],
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-layout="grouped"]):not([data-top-nav-layout="icons-pill"]) .sidebar .nav > .nav-item[data-tab="logs"],
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-layout="grouped"]):not([data-top-nav-layout="icons-pill"]) .sidebar .nav > .nav-item[data-tab="backup"],
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-layout="grouped"]):not([data-top-nav-layout="icons-pill"]) .sidebar .nav > #nav-wiki,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="compact-more"] .sidebar .nav > .nav-item[data-tab="blocklist"],
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="compact-more"] .sidebar .nav > .nav-item[data-tab="history"],
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="compact-more"] .sidebar .nav > .nav-item[data-tab="design-studio"],
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="compact-more"] .sidebar .nav > .nav-item[data-tab="settings"],
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="compact-more"] .sidebar .nav > .nav-item[data-tab="logs"],
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="compact-more"] .sidebar .nav > .nav-item[data-tab="backup"],
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="compact-more"] .sidebar .nav > #nav-wiki {
+    display: none !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-layout="grouped"]):not([data-top-nav-layout="icons-pill"]) .sidebar .nav > #nav-more-dropdown,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="compact-more"] .sidebar .nav > #nav-more-dropdown {
+    display: inline-flex !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-layout="grouped"]):not([data-top-nav-layout="icons-pill"]) .sidebar .nav > .nav-group-dropdown,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="compact-more"] .sidebar .nav > .nav-group-dropdown {
+    display: none !important;
+  }
+
+  /* Режим 2: grouped (Группировка по разделам) */
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="grouped"] .sidebar .nav > .nav-item,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="grouped"] .sidebar .nav > .nav-item-wiki,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="grouped"] .sidebar .nav > #nav-more-dropdown {
+    display: none !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="grouped"] .sidebar .nav > .nav-group-dropdown {
+    display: inline-flex !important;
+  }
+
+  /* Режим 3: icons-pill (Иконочный док) */
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > #nav-more-dropdown,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-group-dropdown {
+    display: none !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki {
+    display: inline-flex !important;
+    padding: 6px 8px !important;
+    min-width: 34px !important;
+    justify-content: center !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item:not(.active) span,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki:not(.active) span {
+    display: none !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item.active span,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki.active span {
+    display: inline !important;
+    margin-left: 6px !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item.active {
+    padding: 6px 12px !important;
+  }
+
+  /* Стили выпадающих меню (Dropdowns) в Top-Nav */
+  .nav-more-trigger,
+  .nav-group-trigger {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+  }
+  .nav-more-chevron {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    pointer-events: none !important;
+    width: 12px !important;
+    height: 12px !important;
+  }
+  .nav-more-dropdown.open .nav-more-chevron,
+  .nav-group-dropdown.open .nav-more-chevron {
+    transform: rotate(180deg) !important;
+  }
+  .nav-more-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    min-width: 210px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md, 10px);
+    padding: 6px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.2);
+    z-index: 1050;
+    backdrop-filter: var(--glass-blur, blur(16px));
+    -webkit-backdrop-filter: var(--glass-blur, blur(16px));
+  }
+  .nav-more-dropdown .nav-more-menu {
+    left: auto;
+    right: 0;
+  }
+  .nav-more-dropdown.open .nav-more-menu,
+  .nav-group-dropdown.open .nav-more-menu {
+    display: flex !important;
+    flex-direction: column !important;
+    animation: navDropdownFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes navDropdownFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .nav-more-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: var(--radius-sm, 6px);
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: left;
+    transition: background 0.12s ease, color 0.12s ease;
+    box-sizing: border-box;
+  }
+  .nav-more-item:hover {
+    background: var(--hover-bg, rgba(255, 255, 255, 0.06));
+    color: var(--text);
+  }
+  .nav-more-item.active {
+    background: var(--teal-muted, rgba(13, 148, 136, 0.15));
+    color: var(--teal);
+    font-weight: 600;
+  }
+  .nav-more-item .nav-ico {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+  .nav-more-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 6px;
+  }
+  .nav-more-item .nav-wiki-badge {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: var(--teal-muted, rgba(13, 148, 136, 0.2));
+    color: var(--teal);
+    letter-spacing: 0.5px;
+  }
+  .nav-more-item .nav-wiki-ext-ico {
+    width: 12px;
+    height: 12px;
+    opacity: 0.6;
+    margin-left: 2px;
+  }
+
+  /* Виджет фоновых задач: HUD-пилюля (по умолчанию или data-top-nav-tasks="hud") */
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-tasks="fixed-bar"]) .sidebar .tasks-status-widget,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="hud"] .sidebar .tasks-status-widget {
+    width: 88px !important;
+    min-width: 88px !important;
+    max-width: 88px !important;
+    flex: 0 0 88px !important;
+    padding: 5px 8px !important;
+    margin-top: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-tasks="fixed-bar"]) .sidebar .tasks-status-pill,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="hud"] .sidebar .tasks-status-pill {
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 6px !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-tasks="fixed-bar"]) .sidebar .tasks-status-info,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="hud"] .sidebar .tasks-status-info {
+    display: none !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-tasks="fixed-bar"]) .sidebar .tasks-hud-pct,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="hud"] .sidebar .tasks-hud-pct {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: var(--teal) !important;
+    font-variant-numeric: tabular-nums !important;
+    white-space: nowrap !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-tasks="fixed-bar"]) .sidebar .tasks-count-badge,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="hud"] .sidebar .tasks-count-badge {
+    margin-left: 0 !important;
+    font-size: 10.5px !important;
+    padding: 1px 5px !important;
+  }
+
+  /* Виджет фоновых задач: Фиксированная инфо-панель (data-top-nav-tasks="fixed-bar") */
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="fixed-bar"] .sidebar .tasks-status-widget {
+    width: 220px !important;
+    min-width: 220px !important;
+    max-width: 220px !important;
+    flex: 0 0 220px !important;
+    padding: 5px 10px !important;
+    margin-top: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="fixed-bar"] .sidebar .tasks-status-pill {
+    width: 100% !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="fixed-bar"] .sidebar .tasks-status-info {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+    overflow: hidden !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="fixed-bar"] .sidebar .tasks-status-text,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="fixed-bar"] .sidebar .tasks-status-sub {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block !important;
+    max-width: 100% !important;
+    font-size: 11.5px !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="fixed-bar"] .sidebar .tasks-hud-pct {
+    display: none !important;
+  }
+}
+
+/* Вложенная панель настроек студии дизайна */
+.studio-sub-panel {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+  padding: 14px 16px;
+  margin: 12px 0 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: studioSubFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes studioSubFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* --- 3. ТРАНСФОРМАЦИЯ КАРКАСА: FLOATING-DOCK (ТОЛЬКО STUDIO) --- */

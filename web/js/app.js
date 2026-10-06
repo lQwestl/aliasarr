@@ -348,6 +348,17 @@ const TRANSLATIONS = {
     "nav.wiki": "Wiki",
     "nav.wiki_tooltip": "База знаний и руководство пользователя",
     "nav.add_video": "Добавить видео",
+    "nav.more": "Ещё",
+    "nav.media": "Медиатека",
+    "nav.monitoring": "Мониторинг",
+    "nav.tools": "Инструменты",
+    "design_studio.top_nav_layout": "Раскладка верхней шапки",
+    "design_studio.top_nav_compact_more": "Основные + Ещё ▾",
+    "design_studio.top_nav_grouped": "Группировка ▾",
+    "design_studio.top_nav_icons_pill": "Иконочный док",
+    "design_studio.top_nav_tasks_mode": "Виджет фоновых задач",
+    "design_studio.top_nav_tasks_hud": "HUD-пилюля (88px)",
+    "design_studio.top_nav_tasks_bar": "Инфо-панель (220px)",
     "tab.dashboard": "Дашборд",
     "tab.library": "Библиотека",
     "tab.collections": "Коллекции",
@@ -2079,6 +2090,17 @@ const TRANSLATIONS = {
     "nav.wiki": "Wiki",
     "nav.wiki_tooltip": "Knowledge Base & User Documentation",
     "nav.add_video": "Add Video",
+    "nav.more": "More",
+    "nav.media": "Media",
+    "nav.monitoring": "Monitoring",
+    "nav.tools": "Tools",
+    "design_studio.top_nav_layout": "Top Header Layout",
+    "design_studio.top_nav_compact_more": "Primary + More ▾",
+    "design_studio.top_nav_grouped": "Grouped Clusters ▾",
+    "design_studio.top_nav_icons_pill": "Icon Dock",
+    "design_studio.top_nav_tasks_mode": "Background Tasks Widget",
+    "design_studio.top_nav_tasks_hud": "HUD Pill (88px)",
+    "design_studio.top_nav_tasks_bar": "Info Bar (220px)",
     "tab.dashboard": "Dashboard",
     "tab.library": "Library",
     "tab.collections": "Collections",
@@ -5624,8 +5646,10 @@ function switchTab(tabId) {
   } catch (e) {}
 
   document.querySelectorAll(".nav-item[data-tab]").forEach(el => el.classList.toggle("active", el.dataset.tab === tabId));
+  document.querySelectorAll(".nav-more-item[data-tab]").forEach(el => el.classList.toggle("active", el.dataset.tab === tabId));
   document.querySelectorAll(".mobile-bottom-item[data-tab]").forEach(el => el.classList.toggle("active", el.dataset.tab === tabId));
   document.querySelectorAll(".tab-panel").forEach(el => el.classList.toggle("active", el.id === "tab-" + tabId));
+  syncTopNavActiveState(tabId);
   servarrSyncSubnav();
   
   closeMobileMenu();
@@ -24470,6 +24494,7 @@ function renderTasksStatusWidget(data) {
   const textEl = document.getElementById("tasks-status-text");
   const subEl = document.getElementById("tasks-status-sub");
   const badge = document.getElementById("tasks-count-badge");
+  const hudPct = document.getElementById("tasks-hud-pct");
 
   if (!widget || !textEl) return;
 
@@ -24508,6 +24533,16 @@ function renderTasksStatusWidget(data) {
     const pct = (latest.progress !== null && latest.progress !== undefined) ? Math.min(100, Math.max(0, Math.round(latest.progress * 100))) : null;
     const pctBadge = pct !== null ? `<span class="tasks-status-progress-badge">${pct}%</span>` : "";
 
+    if (hudPct) {
+      if (pct !== null) {
+        hudPct.textContent = `${pct}%`;
+        hudPct.style.display = "inline-block";
+      } else {
+        hudPct.textContent = "";
+        hudPct.style.display = "none";
+      }
+    }
+
     textEl.innerHTML = `${escapeHtml(translateLogMessage(latest.title) || t("tasks.status_running"))}${pctBadge}`;
     if (subEl) {
       subEl.style.display = "block";
@@ -24518,6 +24553,10 @@ function renderTasksStatusWidget(data) {
     if (spinner) spinner.style.display = "none";
     if (idleIcon) idleIcon.style.display = "inline-block";
     if (badge) badge.style.display = "none";
+    if (hudPct) {
+      hudPct.textContent = "";
+      hudPct.style.display = "none";
+    }
 
     // Если недавно (менее 15 сек назад) завершилась задача — кратко показываем статус
     const latestRecent = recent.length > 0 ? recent[0] : null;
@@ -26106,9 +26145,71 @@ function closeServarrActionsMenu() {
   if (menu) menu.style.display = "none";
 }
 
+function toggleNavMoreMenu(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const dropdown = document.getElementById("nav-more-dropdown");
+  if (!dropdown) return;
+  const isOpen = dropdown.classList.contains("open");
+  closeAllTopNavMenus();
+  if (!isOpen) {
+    dropdown.classList.add("open");
+  }
+}
+
+function closeNavMoreMenu() {
+  const dropdown = document.getElementById("nav-more-dropdown");
+  if (dropdown) dropdown.classList.remove("open");
+}
+
+function toggleNavGroupMenu(menuId, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const menu = document.getElementById(menuId);
+  const parent = menu ? menu.closest(".nav-group-dropdown") : null;
+  if (!parent) return;
+  const isOpen = parent.classList.contains("open");
+  closeAllTopNavMenus();
+  if (!isOpen) {
+    parent.classList.add("open");
+  }
+}
+
+function closeAllTopNavMenus() {
+  document.querySelectorAll(".nav-more-dropdown.open, .nav-group-dropdown.open").forEach(el => {
+    el.classList.remove("open");
+  });
+}
+
+function syncTopNavActiveState(tabId) {
+  const moreTabs = ["blocklist", "history", "logs", "backup", "design-studio", "settings"];
+  const moreTrigger = document.getElementById("nav-more-trigger");
+  if (moreTrigger) moreTrigger.classList.toggle("active", moreTabs.includes(tabId));
+
+  const mediaTabs = ["library", "collections"];
+  const monitoringTabs = ["dashboard", "calendar", "activity", "history"];
+  const toolsTabs = ["blocklist", "logs", "backup", "design-studio", "settings"];
+
+  const mediaTrigger = document.querySelector("#nav-group-media .nav-group-trigger");
+  if (mediaTrigger) mediaTrigger.classList.toggle("active", mediaTabs.includes(tabId));
+
+  const monitoringTrigger = document.querySelector("#nav-group-monitoring .nav-group-trigger");
+  if (monitoringTrigger) monitoringTrigger.classList.toggle("active", monitoringTabs.includes(tabId));
+
+  const toolsTrigger = document.querySelector("#nav-group-tools .nav-group-trigger");
+  if (toolsTrigger) toolsTrigger.classList.toggle("active", toolsTabs.includes(tabId));
+}
+
 document.addEventListener("click", (e) => {
   const wrap = document.getElementById("servarr-actions-menu");
   if (wrap && !wrap.contains(e.target)) closeServarrActionsMenu();
+  if (!e.target.closest(".nav-more-dropdown") && !e.target.closest(".nav-group-dropdown")) {
+    closeAllTopNavMenus();
+  }
 });
 
 // Вложенные пункты сайдбара (как у Sonarr: Settings → Media Management, Profiles, ...).
@@ -26401,6 +26502,8 @@ let STUDIO_CURRENT_STATE = {
   custom_theme_id: null,
   archetype: "liquid-glass",
   shell: "sidebar-left",
+  top_nav_layout: "compact-more",
+  top_nav_tasks_mode: "hud",
   container_width: "fluid",
   density: "comfortable",
   poster_size: "md",
@@ -26555,6 +26658,10 @@ function loadStudioStateFromStorage(serverConfig = null, serverThemes = null) {
       if (bcs) STUDIO_CURRENT_STATE.badge_case = bcs;
       const bcl = localStorage.getItem("aliasarr_badge_color");
       if (bcl) STUDIO_CURRENT_STATE.badge_color_mode = bcl;
+      const tnl = localStorage.getItem("aliasarr_top_nav_layout");
+      if (tnl) STUDIO_CURRENT_STATE.top_nav_layout = tnl;
+      const tnt = localStorage.getItem("aliasarr_top_nav_tasks_mode");
+      if (tnt) STUDIO_CURRENT_STATE.top_nav_tasks_mode = tnt;
     }
     const savedThemes = localStorage.getItem("aliasarr_custom_themes_list");
     if (savedThemes) {
@@ -26641,6 +26748,16 @@ function syncStudioControlsUI() {
   // Каркас и навигация
   document.querySelectorAll('input[name="studio_shell"]').forEach(inp => {
     inp.checked = inp.value === STUDIO_CURRENT_STATE.shell;
+  });
+  const topNavPanel = document.getElementById("studio-top-nav-options");
+  if (topNavPanel) {
+    topNavPanel.style.display = STUDIO_CURRENT_STATE.shell === "top-nav" ? "flex" : "none";
+  }
+  document.querySelectorAll("#studio-top-nav-layout-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === (STUDIO_CURRENT_STATE.top_nav_layout || "compact-more"));
+  });
+  document.querySelectorAll("#studio-top-nav-tasks-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === (STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud"));
   });
   document.querySelectorAll("#studio-container-width-toggle .studio-toggle-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.container_width);
@@ -26849,6 +26966,26 @@ function onStudioCustomAccentInput(val) {
 
 function onStudioShellChange(val) {
   STUDIO_CURRENT_STATE.shell = val;
+  const topNavPanel = document.getElementById("studio-top-nav-options");
+  if (topNavPanel) {
+    topNavPanel.style.display = val === "top-nav" ? "flex" : "none";
+  }
+  applyStudioLivePreview(true);
+}
+
+function setStudioTopNavLayout(val) {
+  STUDIO_CURRENT_STATE.top_nav_layout = val;
+  document.querySelectorAll("#studio-top-nav-layout-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === val);
+  });
+  applyStudioLivePreview(true);
+}
+
+function setStudioTopNavTasksMode(val) {
+  STUDIO_CURRENT_STATE.top_nav_tasks_mode = val;
+  document.querySelectorAll("#studio-top-nav-tasks-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === val);
+  });
   applyStudioLivePreview(true);
 }
 
@@ -27010,12 +27147,19 @@ function applyStudioLivePreview(saveDraft = true) {
     document.documentElement.setAttribute("data-badge-font", STUDIO_CURRENT_STATE.badge_font || "mono");
     document.documentElement.setAttribute("data-badge-case", STUDIO_CURRENT_STATE.badge_case || "uppercase");
     document.documentElement.setAttribute("data-badge-color", STUDIO_CURRENT_STATE.badge_color_mode || "semantic");
+    document.documentElement.setAttribute("data-top-nav-layout", STUDIO_CURRENT_STATE.top_nav_layout || "compact-more");
+    document.documentElement.setAttribute("data-top-nav-tasks", STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud");
 
     const grid = document.getElementById("shows-grid");
     if (grid) {
       grid.classList.remove("card-style-neoglass", "card-style-cinematic", "card-style-classic", "card-style-cyber", "card-style-minimal");
       grid.classList.add(`card-style-${normCard}`);
     }
+  }
+
+  const topNavPanel = document.getElementById("studio-top-nav-options");
+  if (topNavPanel) {
+    topNavPanel.style.display = STUDIO_CURRENT_STATE.shell === "top-nav" ? "flex" : "none";
   }
 
   const canvas = document.getElementById("studio-preview-canvas");
@@ -27034,6 +27178,8 @@ function applyStudioLivePreview(saveDraft = true) {
     canvas.setAttribute("data-badge-font", STUDIO_CURRENT_STATE.badge_font || "mono");
     canvas.setAttribute("data-badge-case", STUDIO_CURRENT_STATE.badge_case || "uppercase");
     canvas.setAttribute("data-badge-color", STUDIO_CURRENT_STATE.badge_color_mode || "semantic");
+    canvas.setAttribute("data-top-nav-layout", STUDIO_CURRENT_STATE.top_nav_layout || "compact-more");
+    canvas.setAttribute("data-top-nav-tasks", STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud");
   }
 
   const tone = STUDIO_BASE_TONES.find(t => t.id === STUDIO_CURRENT_STATE.base_tone) || STUDIO_BASE_TONES[2];
@@ -27122,6 +27268,8 @@ function applyStudioLivePreview(saveDraft = true) {
       localStorage.setItem("aliasarr_badge_font", STUDIO_CURRENT_STATE.badge_font || "mono");
       localStorage.setItem("aliasarr_badge_case", STUDIO_CURRENT_STATE.badge_case || "uppercase");
       localStorage.setItem("aliasarr_badge_color", STUDIO_CURRENT_STATE.badge_color_mode || "semantic");
+      localStorage.setItem("aliasarr_top_nav_layout", STUDIO_CURRENT_STATE.top_nav_layout || "compact-more");
+      localStorage.setItem("aliasarr_top_nav_tasks_mode", STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud");
       localStorage.setItem("aliasarr_custom_css_vars", JSON.stringify({
         "--bg": tone.color,
         "--panel": tone.panel,
