@@ -415,6 +415,9 @@
     </div>
   </aside>
 
+  <!-- Затемняющий оверлей для режима выдвижного Drawer фоновых задач -->
+  <div id="tasks-drawer-overlay" class="tasks-drawer-overlay" onclick="toggleTasksPopup(event)"></div>
+
   <!-- Всплывающее окно фоновых задач -->
   <div id="tasks-popup" class="tasks-popup" style="display:none;" onclick="event.stopPropagation()">
     <div class="tasks-popup-header">
@@ -1859,6 +1862,15 @@
                   <div class="studio-toggle-group" id="studio-top-nav-tasks-toggle">
                     <button type="button" class="studio-toggle-btn active" data-value="hud" onclick="setStudioTopNavTasksMode('hud')" data-i18n="design_studio.top_nav_tasks_hud">HUD-пилюля (88px)</button>
                     <button type="button" class="studio-toggle-btn" data-value="fixed-bar" onclick="setStudioTopNavTasksMode('fixed-bar')" data-i18n="design_studio.top_nav_tasks_bar">Инфо-панель (220px)</button>
+                  </div>
+                </div>
+                <div class="studio-field-group">
+                  <label class="settings-field-label">
+                    <span data-i18n="design_studio.tasks_view_mode">Отображение подробностей</span>
+                  </label>
+                  <div class="studio-toggle-group" id="studio-tasks-view-toggle">
+                    <button type="button" class="studio-toggle-btn active" data-value="popup" onclick="setStudioTasksViewMode('popup')" data-i18n="design_studio.tasks_view_popup">Выпадающее окно</button>
+                    <button type="button" class="studio-toggle-btn" data-value="drawer" onclick="setStudioTasksViewMode('drawer')" data-i18n="design_studio.tasks_view_drawer">Боковая панель (Drawer)</button>
                   </div>
                 </div>
               </div>

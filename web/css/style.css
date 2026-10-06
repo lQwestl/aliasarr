@@ -20156,39 +20156,75 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-count-badg
   }
   html[data-design="studio"][data-shell="top-nav"] .sidebar .nav-item,
   html[data-design="studio"][data-shell="top-nav"] .sidebar .nav-item-wiki {
-    padding: 6px 11px !important;
+    height: 34px !important;
+    padding: 0 11px !important;
+    margin: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
     white-space: nowrap !important;
     font-size: 13px !important;
     border-radius: var(--radius-sm, 8px) !important;
     display: inline-flex !important;
     align-items: center !important;
+    justify-content: center !important;
     gap: 6px !important;
+    box-sizing: border-box !important;
     transition: background 0.15s ease, color 0.15s ease !important;
   }
   html[data-design="studio"][data-shell="top-nav"] .sidebar > .btn-primary {
+    height: 34px !important;
     width: auto !important;
     margin: 0 10px 0 0 !important;
     white-space: nowrap !important;
-    padding: 6px 13px !important;
+    padding: 0 13px !important;
     font-size: 13px !important;
     border-radius: var(--radius-sm, 8px) !important;
     flex-shrink: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
   }
   html[data-design="studio"][data-shell="top-nav"] .sidebar .sidebar-footer {
     margin-top: 0 !important;
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    gap: 10px !important;
+    gap: 8px !important;
     flex-shrink: 0 !important;
+    height: 34px !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .tasks-status-widget {
+    order: 1 !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .user-profile-badge {
+    order: 2 !important;
+    margin: 0 !important;
+    height: 34px !important;
+    padding: 0 6px !important;
+    border-radius: var(--radius-sm, 8px) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+    gap: 6px !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .user-avatar-wrap {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 11px !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .btn-logout {
+    padding: 4px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"] .sidebar .btn-logout svg {
+    width: 14px !important;
+    height: 14px !important;
   }
   html[data-design="studio"][data-shell="top-nav"] .sidebar .user-info {
     display: none !important;
-  }
-  html[data-design="studio"][data-shell="top-nav"] .sidebar .user-profile-badge {
-    margin: 0 !important;
-    padding: 4px 6px !important;
-    border-radius: var(--radius-sm, 8px) !important;
   }
 
   /* Режим 1: compact-more (Основные + Ещё ▾) - активен по умолчанию или при явном data-top-nav-layout="compact-more" */
@@ -20235,21 +20271,31 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-count-badg
   html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item,
   html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki {
     display: inline-flex !important;
-    padding: 6px 8px !important;
+    height: 34px !important;
     min-width: 34px !important;
+    padding: 0 8px !important;
     justify-content: center !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
   }
   html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item:not(.active) span,
-  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki:not(.active) span {
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki:not(.active) span,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki:not(.active) .nav-wiki-ext-ico {
     display: none !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item:not(.active),
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki:not(.active) {
+    width: 34px !important;
+    padding: 0 !important;
   }
   html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item.active span,
   html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki.active span {
     display: inline !important;
     margin-left: 6px !important;
   }
-  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item.active {
-    padding: 6px 12px !important;
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item.active,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki.active {
+    padding: 0 12px !important;
   }
 
   /* Стили выпадающих меню (Dropdowns) в Top-Nav */
@@ -20290,6 +20336,9 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-count-badg
     right: 0;
   }
   .nav-more-dropdown.open .nav-more-menu,
+  .nav-group-dropdown.open .nav-group-menu,
+  .nav-more-menu.open,
+  .nav-group-menu.open,
   .nav-group-dropdown.open .nav-more-menu {
     display: flex !important;
     flex-direction: column !important;
@@ -20366,14 +20415,19 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-count-badg
     min-width: 88px !important;
     max-width: 88px !important;
     flex: 0 0 88px !important;
-    padding: 5px 8px !important;
+    height: 34px !important;
+    padding: 0 8px !important;
     margin-top: 0 !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
+    display: inline-flex !important;
+    align-items: center !important;
   }
   html[data-design="studio"][data-shell="top-nav"]:not([data-top-nav-tasks="fixed-bar"]) .sidebar .tasks-status-pill,
   html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="hud"] .sidebar .tasks-status-pill {
     width: 100% !important;
+    height: 100% !important;
+    align-items: center !important;
     justify-content: center !important;
     gap: 6px !important;
   }
@@ -20402,13 +20456,18 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-count-badg
     min-width: 220px !important;
     max-width: 220px !important;
     flex: 0 0 220px !important;
-    padding: 5px 10px !important;
+    height: 34px !important;
+    padding: 0 10px !important;
     margin-top: 0 !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
+    display: inline-flex !important;
+    align-items: center !important;
   }
   html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="fixed-bar"] .sidebar .tasks-status-pill {
     width: 100% !important;
+    height: 100% !important;
+    align-items: center !important;
     gap: 8px !important;
     overflow: hidden !important;
   }
@@ -20431,6 +20490,85 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-count-badg
   html[data-design="studio"][data-shell="top-nav"][data-top-nav-tasks="fixed-bar"] .sidebar .tasks-hud-pct {
     display: none !important;
   }
+
+  /* Позиционирование всплывающего окна фоновых задач в режиме шапки (Top-Nav) */
+  html[data-design="studio"][data-shell="top-nav"] .tasks-popup:not([data-view="drawer"]):not(.as-drawer) {
+    top: 56px !important;
+    right: 20px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform-origin: top right !important;
+    animation: tasksPopupTopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  @keyframes tasksPopupTopIn {
+    from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}
+
+/* Затемняющий оверлей для выдвижного Drawer фоновых задач */
+.tasks-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: var(--glass-blur, blur(4px));
+  -webkit-backdrop-filter: var(--glass-blur, blur(4px));
+  z-index: 1490;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+}
+.tasks-drawer-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+  transition: opacity 0.25s ease, visibility 0s linear 0s;
+}
+
+/* Режим выдвижного Drawer справа (Slide-over) для .tasks-popup */
+html[data-tasks-view="drawer"] .tasks-popup,
+.tasks-popup[data-view="drawer"],
+.tasks-popup.as-drawer {
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  width: 440px !important;
+  max-width: 92vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 1px solid var(--border) !important;
+  box-shadow: -8px 0 36px rgba(0, 0, 0, 0.5) !important;
+  z-index: 1500 !important;
+  transform: translateX(100%) !important;
+  visibility: hidden;
+  display: flex !important;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.28s;
+}
+html[data-tasks-view="drawer"] .tasks-popup.drawer-open,
+.tasks-popup[data-view="drawer"].drawer-open,
+.tasks-popup.as-drawer.drawer-open {
+  transform: translateX(0) !important;
+  visibility: visible;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0s;
+}
+html[data-tasks-view="drawer"] .tasks-popup .tasks-popup-header,
+.tasks-popup[data-view="drawer"] .tasks-popup-header,
+.tasks-popup.as-drawer .tasks-popup-header {
+  padding: 16px 18px !important;
+}
+html[data-tasks-view="drawer"] .tasks-popup .tasks-popup-body,
+.tasks-popup[data-view="drawer"] .tasks-popup-body,
+.tasks-popup.as-drawer .tasks-popup-body {
+  max-height: none !important;
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  padding: 16px 18px !important;
 }
 
 /* Вложенная панель настроек студии дизайна */

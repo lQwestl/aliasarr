@@ -359,6 +359,9 @@ const TRANSLATIONS = {
     "design_studio.top_nav_tasks_mode": "Виджет фоновых задач",
     "design_studio.top_nav_tasks_hud": "HUD-пилюля (88px)",
     "design_studio.top_nav_tasks_bar": "Инфо-панель (220px)",
+    "design_studio.tasks_view_mode": "Отображение подробностей",
+    "design_studio.tasks_view_popup": "Выпадающее окно",
+    "design_studio.tasks_view_drawer": "Боковая панель (Drawer)",
     "tab.dashboard": "Дашборд",
     "tab.library": "Библиотека",
     "tab.collections": "Коллекции",
@@ -2101,6 +2104,9 @@ const TRANSLATIONS = {
     "design_studio.top_nav_tasks_mode": "Background Tasks Widget",
     "design_studio.top_nav_tasks_hud": "HUD Pill (88px)",
     "design_studio.top_nav_tasks_bar": "Info Bar (220px)",
+    "design_studio.tasks_view_mode": "Task Details View",
+    "design_studio.tasks_view_popup": "Popup Menu",
+    "design_studio.tasks_view_drawer": "Side Drawer",
     "tab.dashboard": "Dashboard",
     "tab.library": "Library",
     "tab.collections": "Collections",
@@ -24872,14 +24878,37 @@ function updateLibraryTasksProgress(data) {
 function toggleTasksPopup(event) {
   if (event) event.stopPropagation();
   const popup = document.getElementById("tasks-popup");
+  const overlay = document.getElementById("tasks-drawer-overlay");
   if (!popup) return;
-  const isShown = popup.style.display !== "none";
-  if (isShown) {
-    popup.style.display = "none";
+
+  const isDrawerMode = (document.documentElement.getAttribute("data-tasks-view") === "drawer") ||
+                       (popup.getAttribute("data-view") === "drawer") ||
+                       (popup.classList.contains("as-drawer"));
+
+  if (isDrawerMode) {
+    const isDrawerOpen = popup.classList.contains("drawer-open");
+    if (isDrawerOpen) {
+      popup.classList.remove("drawer-open");
+      if (overlay) overlay.classList.remove("open");
+    } else {
+      popup.style.display = "flex";
+      void popup.offsetWidth;
+      popup.classList.add("drawer-open");
+      if (overlay) overlay.classList.add("open");
+      loadTasksStatus(true);
+      if (window.lucide) lucide.createIcons();
+    }
   } else {
-    popup.style.display = "flex";
-    loadTasksStatus(true);
-    if (window.lucide) lucide.createIcons();
+    if (overlay) overlay.classList.remove("open");
+    popup.classList.remove("drawer-open");
+    const isShown = popup.style.display !== "none";
+    if (isShown) {
+      popup.style.display = "none";
+    } else {
+      popup.style.display = "flex";
+      loadTasksStatus(true);
+      if (window.lucide) lucide.createIcons();
+    }
   }
 }
 
@@ -24916,15 +24945,28 @@ function restartTasksPolling(intervalMs) {
   TASKS_POLL_INTERVAL = setInterval(() => loadTasksStatus(false), intervalMs);
 }
 
-// Закрываем всплывающее окно задач и вкладыши ссылок при клике вне их
+// Закрываем всплывающее окно / Drawer задач и вкладыши ссылок при клике вне их
 document.addEventListener("click", (e) => {
   const popup = document.getElementById("tasks-popup");
   const widget = document.getElementById("tasks-status-widget");
-  if (popup && popup.style.display !== "none") {
-    if (!popup.contains(e.target) && (!widget || !widget.contains(e.target))) {
-      popup.style.display = "none";
+  const overlay = document.getElementById("tasks-drawer-overlay");
+
+  if (popup) {
+    const isDrawerMode = popup.classList.contains("as-drawer") || popup.getAttribute("data-view") === "drawer";
+    if (isDrawerMode) {
+      if (popup.classList.contains("drawer-open")) {
+        if (!popup.contains(e.target) && (!widget || !widget.contains(e.target))) {
+          popup.classList.remove("drawer-open");
+          if (overlay) overlay.classList.remove("open");
+        }
+      }
+    } else if (popup.style.display !== "none") {
+      if (!popup.contains(e.target) && (!widget || !widget.contains(e.target))) {
+        popup.style.display = "none";
+      }
     }
   }
+
   if (!e.target.closest(".show-links-dropdown-wrapper")) {
     document.querySelectorAll(".show-links-popover.is-open").forEach(pop => pop.classList.remove("is-open"));
   }
@@ -24971,6 +25013,13 @@ document.addEventListener("keydown", (e) => {
     const drawer = document.getElementById("release-history-drawer");
     if (drawer && drawer.classList.contains("open")) {
       closeReleaseHistoryDrawer();
+    }
+    const tasksPopup = document.getElementById("tasks-popup");
+    const tasksOverlay = document.getElementById("tasks-drawer-overlay");
+    if (tasksPopup && (tasksPopup.classList.contains("drawer-open") || tasksPopup.style.display !== "none")) {
+      tasksPopup.classList.remove("drawer-open");
+      tasksPopup.style.display = "none";
+      if (tasksOverlay) tasksOverlay.classList.remove("open");
     }
   }
 });
@@ -26504,6 +26553,7 @@ let STUDIO_CURRENT_STATE = {
   shell: "sidebar-left",
   top_nav_layout: "compact-more",
   top_nav_tasks_mode: "hud",
+  tasks_view_mode: "popup",
   container_width: "fluid",
   density: "comfortable",
   poster_size: "md",
@@ -26662,6 +26712,8 @@ function loadStudioStateFromStorage(serverConfig = null, serverThemes = null) {
       if (tnl) STUDIO_CURRENT_STATE.top_nav_layout = tnl;
       const tnt = localStorage.getItem("aliasarr_top_nav_tasks_mode");
       if (tnt) STUDIO_CURRENT_STATE.top_nav_tasks_mode = tnt;
+      const tvm = localStorage.getItem("aliasarr_tasks_view_mode");
+      if (tvm) STUDIO_CURRENT_STATE.tasks_view_mode = tvm;
     }
     const savedThemes = localStorage.getItem("aliasarr_custom_themes_list");
     if (savedThemes) {
@@ -26758,6 +26810,9 @@ function syncStudioControlsUI() {
   });
   document.querySelectorAll("#studio-top-nav-tasks-toggle .studio-toggle-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.value === (STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud"));
+  });
+  document.querySelectorAll("#studio-tasks-view-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === (STUDIO_CURRENT_STATE.tasks_view_mode || "popup"));
   });
   document.querySelectorAll("#studio-container-width-toggle .studio-toggle-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.value === STUDIO_CURRENT_STATE.container_width);
@@ -26989,6 +27044,14 @@ function setStudioTopNavTasksMode(val) {
   applyStudioLivePreview(true);
 }
 
+function setStudioTasksViewMode(val) {
+  STUDIO_CURRENT_STATE.tasks_view_mode = val;
+  document.querySelectorAll("#studio-tasks-view-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === val);
+  });
+  applyStudioLivePreview(true);
+}
+
 function setStudioContainerWidth(val) {
   STUDIO_CURRENT_STATE.container_width = val;
   document.querySelectorAll("#studio-container-width-toggle .studio-toggle-btn").forEach(btn => {
@@ -27149,6 +27212,17 @@ function applyStudioLivePreview(saveDraft = true) {
     document.documentElement.setAttribute("data-badge-color", STUDIO_CURRENT_STATE.badge_color_mode || "semantic");
     document.documentElement.setAttribute("data-top-nav-layout", STUDIO_CURRENT_STATE.top_nav_layout || "compact-more");
     document.documentElement.setAttribute("data-top-nav-tasks", STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud");
+    document.documentElement.setAttribute("data-tasks-view", STUDIO_CURRENT_STATE.tasks_view_mode || "popup");
+
+    const tasksPopup = document.getElementById("tasks-popup");
+    if (tasksPopup) {
+      tasksPopup.setAttribute("data-view", STUDIO_CURRENT_STATE.tasks_view_mode || "popup");
+      if (STUDIO_CURRENT_STATE.tasks_view_mode === "drawer") {
+        tasksPopup.classList.add("as-drawer");
+      } else {
+        tasksPopup.classList.remove("as-drawer");
+      }
+    }
 
     const grid = document.getElementById("shows-grid");
     if (grid) {
@@ -27180,6 +27254,7 @@ function applyStudioLivePreview(saveDraft = true) {
     canvas.setAttribute("data-badge-color", STUDIO_CURRENT_STATE.badge_color_mode || "semantic");
     canvas.setAttribute("data-top-nav-layout", STUDIO_CURRENT_STATE.top_nav_layout || "compact-more");
     canvas.setAttribute("data-top-nav-tasks", STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud");
+    canvas.setAttribute("data-tasks-view", STUDIO_CURRENT_STATE.tasks_view_mode || "popup");
   }
 
   const tone = STUDIO_BASE_TONES.find(t => t.id === STUDIO_CURRENT_STATE.base_tone) || STUDIO_BASE_TONES[2];
@@ -27270,6 +27345,7 @@ function applyStudioLivePreview(saveDraft = true) {
       localStorage.setItem("aliasarr_badge_color", STUDIO_CURRENT_STATE.badge_color_mode || "semantic");
       localStorage.setItem("aliasarr_top_nav_layout", STUDIO_CURRENT_STATE.top_nav_layout || "compact-more");
       localStorage.setItem("aliasarr_top_nav_tasks_mode", STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud");
+      localStorage.setItem("aliasarr_tasks_view_mode", STUDIO_CURRENT_STATE.tasks_view_mode || "popup");
       localStorage.setItem("aliasarr_custom_css_vars", JSON.stringify({
         "--bg": tone.color,
         "--panel": tone.panel,
