@@ -230,9 +230,15 @@ def _attach_computed_fields(db: Session, shows: list[Show]) -> list[ShowOut]:
         item.collection_title = show.collection.title if getattr(show, "collection", None) else None
         item.collection_backdrop_url = show.collection.backdrop_url if (getattr(show, "collection", None) and show.collection.backdrop_url) else None
 
-        from app.services.cover_service import attach_version_to_cover_url
+        from app.services.cover_service import attach_version_to_cover_url, get_show_poster_path
         ts_obj = getattr(show, "last_metadata_refresh_at", None) or getattr(show, "created_at", None)
-        item.poster_url = attach_version_to_cover_url(item.poster_url, ts_obj)
+        has_local = os.path.isfile(get_show_poster_path(show.id))
+        if has_local:
+            item.poster_url = attach_version_to_cover_url(f"/api/v1/shows/{show.id}/poster", ts_obj)
+        elif (item.poster_url and str(item.poster_url).strip().startswith(("http://", "https://"))) or getattr(show, "poster_source_url", None):
+            item.poster_url = attach_version_to_cover_url(f"/api/v1/shows/{show.id}/poster", ts_obj)
+        else:
+            item.poster_url = attach_version_to_cover_url(item.poster_url, ts_obj)
         if item.collection_backdrop_url:
             c_obj = getattr(show, "collection", None)
             c_ts = getattr(c_obj, "last_metadata_refresh_at", None) or getattr(c_obj, "created_at", None) if c_obj else None
@@ -3440,10 +3446,22 @@ async def get_show_poster(
                 show = db.get(Show, show_id)
                 if show:
                     src_url = getattr(show, "poster_source_url", None) or show.poster_url
+                    saved_loc = None
                     if src_url and not str(src_url).startswith(f"/api/v1/shows/{show_id}/poster"):
-                        await download_and_store_show_cover(show_id, str(src_url))
-        except Exception:
-            pass
+                        saved_loc = await download_and_store_show_cover(show_id, str(src_url))
+                    if not saved_loc and not os.path.isfile(poster_path):
+                        from app.services.metadata import resolve_show_cover
+                        res_url, _ = await resolve_show_cover(show, db=db)
+                        if res_url:
+                            saved_loc = await download_and_store_show_cover(show_id, res_url)
+                            src_url = res_url
+                    if saved_loc:
+                        show.poster_url = saved_loc
+                        if src_url and str(src_url).startswith(("http://", "https://")):
+                            show.poster_source_url = str(src_url)
+                        db.commit()
+        except Exception as exc:
+            logger.debug("Автоматическая подгрузка постера для тайтла %s: %s", show_id, exc)
 
     if not os.path.isfile(poster_path):
         raise HTTPException(404, "Обложка не найдена")
@@ -3488,6 +3506,7 @@ async def upload_show_cover(
         raise HTTPException(400, "Загруженный файл не является изображением")
     show.last_metadata_refresh_at = dt.datetime.utcnow()
     show.poster_url = local_url
+    show.poster_source_url = "custom"
     db.commit()
     db.refresh(show)
 

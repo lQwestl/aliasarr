@@ -2124,6 +2124,9 @@ class SkyHookClient(BaseMetadataClient):
             except Exception as e:
                 logger.debug("TMDb TV enrichment failed for tvdb %s (tmdb %s): %s", tvdb_id, tmdb_id_val, e)
 
+        if not poster_url and tmdb_details and tmdb_details.poster_url:
+            poster_url = tmdb_details.poster_url
+
         orig_title = orig_title or data.get("originalTitle") or ""
         titles_by_lang: dict[str, str] = {}
         if raw_title:
@@ -3720,17 +3723,18 @@ async def refresh_show_metadata(db, show) -> dict:
     if getattr(details, "poster_url", None):
         det_poster = str(details.poster_url).strip()
         from app.services.cover_service import download_and_store_show_cover, get_show_poster_path
-        if getattr(show, "poster_source_url", None) != det_poster or not os.path.isfile(get_show_poster_path(show.id)):
-            if det_poster.startswith(("http://", "https://")):
-                show.poster_source_url = det_poster
-            local_url = await download_and_store_show_cover(show.id, det_poster)
-            target_url = local_url or f"/api/v1/shows/{show.id}/poster"
-            if show.poster_url != target_url:
-                show.poster_url = target_url
+        if getattr(show, "poster_source_url", None) != "custom":
+            if getattr(show, "poster_source_url", None) != det_poster or not os.path.isfile(get_show_poster_path(show.id)):
+                if det_poster.startswith(("http://", "https://")):
+                    show.poster_source_url = det_poster
+                local_url = await download_and_store_show_cover(show.id, det_poster)
+                target_url = local_url or f"/api/v1/shows/{show.id}/poster"
+                if show.poster_url != target_url:
+                    show.poster_url = target_url
+                    changed = True
+            elif not show.poster_url or str(show.poster_url).startswith(("http://", "https://")):
+                show.poster_url = f"/api/v1/shows/{show.id}/poster"
                 changed = True
-        elif not show.poster_url or str(show.poster_url).startswith(("http://", "https://")):
-            show.poster_url = f"/api/v1/shows/{show.id}/poster"
-            changed = True
     if getattr(details, "rating", None) and show.rating != details.rating:
         show.rating = details.rating
         changed = True

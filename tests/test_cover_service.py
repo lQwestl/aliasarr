@@ -302,8 +302,81 @@ class TestCoverServiceEndpointsAndDb(unittest.TestCase):
 
         self.db.refresh(s)
         self.assertTrue(s.poster_url.startswith(f"/api/v1/shows/{s.id}/poster?v="))
+        self.assertEqual(s.poster_source_url, "custom")
         self.assertTrue(os.path.isfile(get_show_poster_path(s.id)))
         self.assertTrue(_is_jpeg(get_show_poster_path(s.id)))
+
+    def test_get_show_poster_on_demand_download_and_self_healing(self):
+        from app.api.shows import get_show_poster
+
+        s = Show(
+            title="Self Healing Show",
+            poster_url="https://image.tmdb.org/t/p/original/self_healing.jpg",
+        )
+        self.db.add(s)
+        self.db.commit()
+
+        # Файла на диске изначально нет
+        self.assertFalse(os.path.isfile(get_show_poster_path(s.id)))
+
+        req_mock = MagicMock()
+        req_mock.headers = {}
+
+        with patch("app.services.cover_service.fetch_remote_image", AsyncMock(return_value=_image_bytes())):
+            resp = asyncio.run(get_show_poster(s.id, req_mock))
+            self.assertEqual(resp.media_type, "image/jpeg")
+
+            # Файл на диске появился
+            self.assertTrue(os.path.isfile(get_show_poster_path(s.id)))
+
+            # База данных обновилась
+            self.db.refresh(s)
+            self.assertTrue(s.poster_url.startswith(f"/api/v1/shows/{s.id}/poster?v="))
+            self.assertEqual(s.poster_source_url, "https://image.tmdb.org/t/p/original/self_healing.jpg")
+
+    def test_attach_computed_fields_routes_external_posters_to_local_proxy(self):
+        from app.api.shows import _attach_computed_fields
+
+        s = Show(
+            title="External CDN Show",
+            poster_url="https://artworks.thetvdb.com/banners/v4/series/123/posters.jpg",
+        )
+        self.db.add(s)
+        self.db.commit()
+
+        items = _attach_computed_fields(self.db, [s])
+        self.assertEqual(len(items), 1)
+        self.assertTrue(items[0].poster_url.startswith(f"/api/v1/shows/{s.id}/poster"))
+
+    def test_import_show_auto_downloads_cover(self):
+        from app.api.metadata_routes import import_show, ImportShowRequest
+        from app.services.metadata import MetadataDetails
+
+        mock_details = MetadataDetails(
+            title="New Show With Poster",
+            external_id="tvdb:9999",
+            poster_url="https://image.tmdb.org/t/p/original/new_poster.jpg",
+            aliases=[],
+            episodes=[],
+        )
+
+        with patch("app.api.metadata_routes.get_metadata_client") as mock_client_factory, \
+             patch("app.services.cover_service.fetch_remote_image", AsyncMock(return_value=_image_bytes())), \
+             patch("app.services.notifications.notify_all", AsyncMock()):
+
+            mock_client = AsyncMock()
+            mock_client.get_details.return_value = mock_details
+            mock_client_factory.return_value = mock_client
+
+            req = ImportShowRequest(external_id="tvdb:9999", content_type="series")
+            res = asyncio.run(import_show(req, db=self.db, current_user=self.user))
+
+            new_id = res["show_id"]
+            new_show = self.db.get(Show, new_id)
+            self.assertIsNotNone(new_show)
+            self.assertTrue(new_show.poster_url.startswith(f"/api/v1/shows/{new_id}/poster?v="))
+            self.assertEqual(new_show.poster_source_url, "https://image.tmdb.org/t/p/original/new_poster.jpg")
+            self.assertTrue(os.path.isfile(get_show_poster_path(new_id)))
 
     def test_get_collection_poster_endpoint(self):
         from app.api.collections_routes import get_collection_poster

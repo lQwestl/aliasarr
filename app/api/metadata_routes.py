@@ -892,6 +892,20 @@ async def import_show(
         db.add(show)
         db.flush()
 
+        # Автоматическое скачивание и сохранение обложки тайтла в /config/MediaCover
+        if details.poster_url:
+            p_raw = str(details.poster_url).strip()
+            if p_raw.startswith(("http://", "https://", "data:image/")):
+                if p_raw.startswith(("http://", "https://")):
+                    show.poster_source_url = p_raw
+                from app.services.cover_service import download_and_store_show_cover
+                try:
+                    local_cover = await download_and_store_show_cover(show.id, p_raw)
+                    if local_cover:
+                        show.poster_url = local_cover
+                except Exception as exc:
+                    logger.warning("Не удалось скачать обложку для нового тайтла %s (%s): %s", show.id, show.title, exc)
+
         added_aliases = set()
         clean_title = (details.title or "").strip()
         chosen_clean = (chosen_title or "").strip()
