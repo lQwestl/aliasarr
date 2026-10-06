@@ -85,6 +85,16 @@ class TestCoverServiceFilesystem(unittest.TestCase):
         coll_path = get_collection_poster_path(99)
         self.assertEqual(coll_path, os.path.join(self.temp_dir, "collections", "99", "poster.jpg"))
 
+    def test_is_public_address_allows_fake_ip(self):
+        from app.services.cover_service import _is_public_address
+        self.assertTrue(_is_public_address("198.18.1.57"))
+        self.assertTrue(_is_public_address("198.19.255.254"))
+        self.assertTrue(_is_public_address("93.184.216.34"))
+        self.assertFalse(_is_public_address("127.0.0.1"))
+        self.assertFalse(_is_public_address("192.168.1.1"))
+        self.assertFalse(_is_public_address("10.0.0.1"))
+        self.assertFalse(_is_public_address("169.254.169.254"))
+
     def test_optimize_image_rejects_non_images(self):
         # Раньше байты, не являющиеся картинкой, сохранялись как есть — так ответ
         # внутреннего сервиса становился доступен через эндпоинт постера.

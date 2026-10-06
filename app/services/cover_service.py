@@ -61,8 +61,15 @@ COVER_DOWNLOAD_MAX_BYTES = 15 * 1024 * 1024
 COVER_DOWNLOAD_MAX_REDIRECTS = 3
 
 
+_FAKE_IP_NET = ipaddress.ip_network("198.18.0.0/15")
+
+
 def _is_public_address(address: str) -> bool:
     ip = ipaddress.ip_address(address)
+    # Диапазон 198.18.0.0/15 используется в режиме Fake-IP прозрачных прокси и
+    # роутеров (Clash, Sing-box, Xray, Keenetic, SmartDNS) для туннелирования внешних доменов.
+    if isinstance(ip, ipaddress.IPv4Address) and ip in _FAKE_IP_NET:
+        return True
     return ip.is_global and not ip.is_multicast
 
 
@@ -96,7 +103,11 @@ async def fetch_remote_image(url: str) -> Optional[bytes]:
     import httpx
 
     current = url
-    async with httpx.AsyncClient(timeout=20, follow_redirects=False, headers={"User-Agent": "Aliasarr/1.0.0"}) as client:
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Aliasarr/2.0",
+        "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    }
+    async with httpx.AsyncClient(timeout=20, follow_redirects=False, headers=headers) as client:
         for _ in range(COVER_DOWNLOAD_MAX_REDIRECTS + 1):
             await _require_public_host(current)
             async with client.stream("GET", current) as resp:
