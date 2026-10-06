@@ -79,6 +79,7 @@ node_modules/
 
 # Agent & Assistant configs
 .agents/
+.agents/skills/custom-design/
 
 # External references & source repositories
 Sonarr/
