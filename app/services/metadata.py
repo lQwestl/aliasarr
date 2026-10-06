@@ -1584,7 +1584,11 @@ class TVMazeClient(BaseMetadataClient):
 
 
 def extract_skyhook_poster(images: list) -> Optional[str]:
-    if not images or not isinstance(images, list):
+    if not images:
+        return None
+    if isinstance(images, dict):
+        images = [images]
+    if not isinstance(images, list):
         return None
 
     def _resolve_url(raw_url: str) -> Optional[str]:
@@ -1599,13 +1603,22 @@ def extract_skyhook_poster(images: list) -> Optional[str]:
             return f"https://artworks.thetvdb.com{raw_url}"
         return f"https://artworks.thetvdb.com/{raw_url}"
 
+    def _get_val(d: dict, *keys: str) -> Optional[str]:
+        for k in keys:
+            v = d.get(k)
+            if v:
+                return v
+        return None
+
     # 1. Поиск постера (case-insensitive)
     for img in images:
         if not isinstance(img, dict):
             continue
-        c_type = (img.get("coverType") or img.get("cover_type") or img.get("type") or "").lower()
+        c_type = (
+            _get_val(img, "coverType", "CoverType", "cover_type", "type", "Type") or ""
+        ).lower()
         if c_type in ("poster", "cover", "default"):
-            raw_url = img.get("remoteUrl") or img.get("url")
+            raw_url = _get_val(img, "remoteUrl", "RemoteUrl", "url", "Url")
             resolved = _resolve_url(raw_url)
             if resolved:
                 return resolved
@@ -1614,7 +1627,7 @@ def extract_skyhook_poster(images: list) -> Optional[str]:
     for img in images:
         if not isinstance(img, dict):
             continue
-        raw_url = img.get("remoteUrl") or img.get("url")
+        raw_url = _get_val(img, "remoteUrl", "RemoteUrl", "url", "Url")
         resolved = _resolve_url(raw_url)
         if resolved:
             return resolved
@@ -2342,20 +2355,26 @@ class RadarrClient(BaseMetadataClient):
         return results
 
     def _map_movie_to_result(self, m_item: dict) -> Optional[MetadataResult]:
-        tmdb_id = m_item.get("tmdbId")
+        tmdb_id = m_item.get("tmdbId") or m_item.get("TmdbId")
         if not tmdb_id:
             return None
         ext_id = f"movie:{tmdb_id}"
-        poster_url = extract_skyhook_poster(m_item.get("images", []))
-        ratings = m_item.get("ratings") or m_item.get("movieRatings") or {}
+        poster_url = extract_skyhook_poster(m_item.get("images") or m_item.get("Images") or [])
+        ratings = (
+            m_item.get("ratings")
+            or m_item.get("Ratings")
+            or m_item.get("movieRatings")
+            or m_item.get("MovieRatings")
+            or {}
+        )
         rating_val = None
         if isinstance(ratings, dict):
             rating_val = ratings.get("value") or (ratings.get("tmdb") or {}).get("value")
         elif isinstance(ratings, list) and ratings:
             rating_val = ratings[0].get("value")
 
-        m_title = m_item.get("title") or ""
-        m_orig = m_item.get("originalTitle") or ""
+        m_title = m_item.get("title") or m_item.get("Title") or ""
+        m_orig = m_item.get("originalTitle") or m_item.get("OriginalTitle") or ""
         titles_by_lang: dict[str, str] = {}
         if m_title:
             if any('\u0400' <= c <= '\u04ff' for c in m_title):
@@ -2367,10 +2386,10 @@ class RadarrClient(BaseMetadataClient):
             if "en" not in titles_by_lang and is_latin_text(m_orig):
                 titles_by_lang["en"] = m_orig
 
-        for tr in (m_item.get("translations") or []):
+        for tr in (m_item.get("translations") or m_item.get("Translations") or []):
             if isinstance(tr, dict):
-                tr_l = (tr.get("language") or tr.get("iso_639_1") or "").lower()
-                tr_t = tr.get("title") or tr.get("name")
+                tr_l = (tr.get("language") or tr.get("Language") or tr.get("iso_639_1") or "").lower()
+                tr_t = tr.get("title") or tr.get("Title") or tr.get("name") or tr.get("Name")
                 if tr_t and tr_l in ("ru", "rus") and "ru" not in titles_by_lang:
                     titles_by_lang["ru"] = tr_t.strip()
                 elif tr_t and tr_l in ("en", "eng") and "en" not in titles_by_lang:
@@ -2385,16 +2404,16 @@ class RadarrClient(BaseMetadataClient):
         elif norm_title_pref in ("en", "eng") and titles_by_lang.get("en"):
             display_title = titles_by_lang["en"]
 
-        genres = m_item.get("genres", [])
+        genres = m_item.get("genres") or m_item.get("Genres") or []
         return MetadataResult(
             external_id=ext_id,
             title=display_title,
-            year=m_item.get("year"),
-            overview=m_item.get("overview"),
+            year=m_item.get("year") or m_item.get("Year"),
+            overview=m_item.get("overview") or m_item.get("Overview"),
             poster_url=poster_url,
             rating=float(rating_val) if rating_val is not None else None,
-            country=m_item.get("originalLanguage"),
-            genre=", ".join(genres) if genres else None,
+            country=m_item.get("originalLanguage") or m_item.get("OriginalLanguage"),
+            genre=", ".join(genres) if isinstance(genres, list) else str(genres or ""),
             content_type="movie",
             original_title=m_orig or None,
             titles_by_lang=titles_by_lang,
@@ -2458,12 +2477,12 @@ class RadarrClient(BaseMetadataClient):
                     pass
 
             if data and isinstance(data, dict):
-                title = data.get("title") or data.get("originalTitle") or ""
-                original_title = data.get("originalTitle")
-                overview = data.get("overview")
+                title = data.get("title") or data.get("Title") or data.get("originalTitle") or data.get("OriginalTitle") or ""
+                original_title = data.get("originalTitle") or data.get("OriginalTitle")
+                overview = data.get("overview") or data.get("Overview")
 
                 aliases: list[str] = []
-                orig_lang = data.get("originalLanguage")
+                orig_lang = data.get("originalLanguage") or data.get("OriginalLanguage")
                 if isinstance(orig_lang, dict):
                     orig_lang = orig_lang.get("name") or orig_lang.get("code") or ""
                 orig_lang = str(orig_lang or "")
@@ -2472,10 +2491,16 @@ class RadarrClient(BaseMetadataClient):
                     aliases.append(original_title)
 
                 # Собираем alternativeTitles строго на разрешенных языках
-                for alt in (data.get("alternativeTitles", []) or data.get("alternateTitles", [])):
+                for alt in (
+                    data.get("alternativeTitles")
+                    or data.get("AlternativeTitles")
+                    or data.get("alternateTitles")
+                    or data.get("AlternateTitles")
+                    or []
+                ):
                     if isinstance(alt, dict):
-                        t_name = alt.get("title") or alt.get("cleanTitle")
-                        raw_lang = alt.get("language") or alt.get("country") or ""
+                        t_name = alt.get("title") or alt.get("Title") or alt.get("cleanTitle") or alt.get("CleanTitle")
+                        raw_lang = alt.get("language") or alt.get("Language") or alt.get("country") or alt.get("Country") or ""
                         if not t_name or not t_name.strip():
                             continue
                         t_clean = t_name.strip()
@@ -2503,10 +2528,10 @@ class RadarrClient(BaseMetadataClient):
                     if "en" not in titles_by_lang and is_latin_text(original_title):
                         titles_by_lang["en"] = original_title
 
-                for tr in (data.get("translations", []) or []):
+                for tr in (data.get("translations") or data.get("Translations") or []):
                     if isinstance(tr, dict):
-                        tr_title = tr.get("title") or tr.get("name")
-                        raw_lang = tr.get("language") or tr.get("iso_639_1") or ""
+                        tr_title = tr.get("title") or tr.get("Title") or tr.get("name") or tr.get("Name")
+                        raw_lang = tr.get("language") or tr.get("Language") or tr.get("iso_639_1") or ""
                         norm_tr_lang = normalize_metadata_lang_code(raw_lang)
                         if norm_tr_lang in allowed_langs and tr_title and tr_title.strip():
                             tr_clean = tr_title.strip()
@@ -2516,7 +2541,7 @@ class RadarrClient(BaseMetadataClient):
                                 titles_by_lang["ru"] = tr_clean
                             elif norm_tr_lang in ("en", "eng") and "en" not in titles_by_lang:
                                 titles_by_lang["en"] = tr_clean
-                        tr_ov = tr.get("overview")
+                        tr_ov = tr.get("overview") or tr.get("Overview")
                         if norm_tr_lang and tr_ov and str(tr_ov).strip():
                             overviews_by_lang[norm_tr_lang] = str(tr_ov).strip()
 
@@ -2527,10 +2552,16 @@ class RadarrClient(BaseMetadataClient):
                 elif norm_pref == "original" and titles_by_lang.get("original"):
                     chosen_title = titles_by_lang["original"]
 
-                overview = select_overview(overviews_by_lang, data.get("overview"), self.overview_language)
+                overview = select_overview(overviews_by_lang, data.get("overview") or data.get("Overview"), self.overview_language)
 
-                poster_url = extract_skyhook_poster(data.get("images", []))
-                ratings = data.get("ratings") or data.get("movieRatings") or {}
+                poster_url = extract_skyhook_poster(data.get("images") or data.get("Images") or [])
+                ratings = (
+                    data.get("ratings")
+                    or data.get("Ratings")
+                    or data.get("movieRatings")
+                    or data.get("MovieRatings")
+                    or {}
+                )
                 rating_val = None
                 if isinstance(ratings, dict):
                     rating_val = ratings.get("value") or (ratings.get("tmdb") or {}).get("value")
@@ -2539,27 +2570,35 @@ class RadarrClient(BaseMetadataClient):
 
                 premiere = (
                     data.get("digitalRelease")
+                    or data.get("DigitalRelease")
                     or data.get("physicalRelease")
+                    or data.get("PhysicalRelease")
                     or data.get("inCinema")
                     or data.get("inCinemas")
+                    or data.get("InCinemas")
                     or data.get("premier")
                 )
 
-                genres = data.get("genres", [])
+                genres = data.get("genres") or data.get("Genres") or []
                 genres_str = ", ".join(genres) if isinstance(genres, list) else str(genres or "")
 
-                tmdb_id_val = int(clean_id) if str(clean_id).isdigit() else (int(data.get("tmdbId")) if str(data.get("tmdbId") or "").isdigit() else None)
-                imdb_id_val = data.get("imdbId")
-                yt_id = data.get("youTubeTrailerId")
+                raw_tmdb_id = data.get("tmdbId") or data.get("TmdbId")
+                tmdb_id_val = int(clean_id) if str(clean_id).isdigit() else (int(raw_tmdb_id) if str(raw_tmdb_id or "").isdigit() else None)
+                imdb_id_val = data.get("imdbId") or data.get("ImdbId")
+                yt_id = data.get("youTubeTrailerId") or data.get("YouTubeTrailerId")
                 trailer_url_val = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else None
 
-                in_cinemas_val = str(data.get("inCinemas") or data.get("inCinema") or "")[:10] or None
-                digital_rel_val = str(data.get("digitalRelease") or "")[:10] or None
-                physical_rel_val = str(data.get("physicalRelease") or "")[:10] or None
+                in_cinemas_val = str(data.get("inCinemas") or data.get("InCinemas") or data.get("inCinema") or "")[:10] or None
+                digital_rel_val = str(data.get("digitalRelease") or data.get("DigitalRelease") or "")[:10] or None
+                physical_rel_val = str(data.get("physicalRelease") or data.get("PhysicalRelease") or "")[:10] or None
 
-                coll_data = data.get("collection")
-                coll_tmdb_id_val = data.get("collectionTmdbId") or (coll_data.get("tmdbId") if isinstance(coll_data, dict) else None)
-                coll_title_val = data.get("collectionTitle") or (coll_data.get("title") or coll_data.get("name") if isinstance(coll_data, dict) else None)
+                coll_data = data.get("collection") or data.get("Collection")
+                coll_tmdb_id_val = data.get("collectionTmdbId") or data.get("CollectionTmdbId") or (
+                    (coll_data.get("tmdbId") or coll_data.get("TmdbId")) if isinstance(coll_data, dict) else None
+                )
+                coll_title_val = data.get("collectionTitle") or data.get("CollectionTitle") or (
+                    (coll_data.get("title") or coll_data.get("Title") or coll_data.get("name") or coll_data.get("Name")) if isinstance(coll_data, dict) else None
+                )
 
                 if title and title.strip():
                     return MetadataShowDetails(
@@ -2570,9 +2609,9 @@ class RadarrClient(BaseMetadataClient):
                         poster_url=poster_url,
                         episodes=[],
                         rating=float(rating_val) if rating_val is not None else None,
-                        country=data.get("originalLanguage"),
+                        country=data.get("originalLanguage") or data.get("OriginalLanguage"),
                         genre=genres_str or None,
-                        network=data.get("studio"),
+                        network=data.get("studio") or data.get("Studio"),
                         content_type="movie",
                         premiere_date=str(premiere)[:10] if premiere else None,
                         in_cinemas_date=in_cinemas_val,
@@ -3443,29 +3482,71 @@ async def resolve_show_cover(show, db=None) -> tuple[Optional[str], Optional[str
     - Сериалы и аниме -> SkyHookClient (Sonarr) / TheTVDB / TVMaze
     Возвращает кортеж (poster_url, source_name).
     """
-    is_movie = getattr(show, "content_type", None) == "movie" or getattr(show, "category", None) == "movies"
-    query = (getattr(show, "title", None) or "").strip()
-    metadata_id = getattr(show, "metadata_id", None)
-    if not query and metadata_id:
-        query = str(metadata_id).strip()
+    import re
 
-    if not query:
+    is_movie = getattr(show, "content_type", None) == "movie" or getattr(show, "category", None) == "movies"
+    raw_title = (getattr(show, "title", None) or "").strip()
+    metadata_id = getattr(show, "metadata_id", None)
+    tvdb_id = getattr(show, "tvdb_id", None)
+    tmdb_id = getattr(show, "tmdb_id", None)
+    imdb_id = getattr(show, "imdb_id", None)
+
+    queries_to_try: list[str] = []
+
+    def _add_query(text: Optional[str]):
+        if not text:
+            return
+        t = str(text).strip()
+        if not t:
+            return
+        cleaned = re.sub(r"\s*\(\d{4}\)$", "", t).strip()
+        if cleaned and cleaned not in queries_to_try:
+            queries_to_try.append(cleaned)
+        if t != cleaned and t not in queries_to_try:
+            queries_to_try.append(t)
+
+    _add_query(raw_title)
+
+    # Добавляем альтернативные названия карточки (включая оригинальные английские)
+    aliases_rel = getattr(show, "aliases", None) or []
+    for alias_item in aliases_rel:
+        a_val = getattr(alias_item, "text", None) or (alias_item if isinstance(alias_item, str) else None)
+        _add_query(a_val)
+
+    if not queries_to_try and metadata_id:
+        _add_query(str(metadata_id))
+
+    if not queries_to_try and not tvdb_id and not tmdb_id and not imdb_id and not metadata_id:
         return None, None
 
     if is_movie:
         # 1. Поиск для фильма: сначала официальный Radarr SkyHook
         radarr = RadarrClient()
-        if metadata_id and (str(metadata_id).startswith(("movie:", "radarr:", "tmdb:")) or str(metadata_id).isdigit()):
+
+        # Прямой поиск по известным идентификаторам фильма
+        candidate_ids: list[str] = []
+        if tmdb_id:
+            candidate_ids.append(f"movie:{tmdb_id}")
+            candidate_ids.append(str(tmdb_id))
+        if metadata_id:
+            cand = str(metadata_id).strip()
+            if cand not in candidate_ids:
+                candidate_ids.append(cand)
+        if imdb_id and str(imdb_id).startswith("tt"):
+            candidate_ids.append(str(imdb_id).strip())
+
+        for cid in candidate_ids:
             try:
-                det = await radarr.get_details(str(metadata_id))
+                det = await radarr.get_details(cid)
                 if det and det.poster_url:
                     return det.poster_url, "Radarr SkyHook (Movie Cloud)"
             except Exception:
                 pass
 
-        if query:
+        # Текстовый поиск по очищенному названию и алиасам
+        for q in queries_to_try:
             try:
-                results = await radarr.search(query)
+                results = await radarr.search(q)
                 found = next((r for r in results if r.poster_url and (not r.content_type or r.content_type == "movie")), None)
                 if found and found.poster_url:
                     return found.poster_url, "Radarr SkyHook (Movie Cloud)"
@@ -3483,10 +3564,11 @@ async def resolve_show_cover(show, db=None) -> tuple[Optional[str], Optional[str
                 for s in tmdb_sources:
                     try:
                         client = get_metadata_client(s)
-                        results = await client.search(query)
-                        found = next((r for r in results if r.poster_url and (not r.content_type or r.content_type == "movie")), None)
-                        if found and found.poster_url:
-                            return found.poster_url, s.name
+                        for q in queries_to_try:
+                            results = await client.search(q)
+                            found = next((r for r in results if r.poster_url and (not r.content_type or r.content_type == "movie")), None)
+                            if found and found.poster_url:
+                                return found.poster_url, s.name
                     except Exception:
                         pass
             except Exception:
@@ -3495,17 +3577,37 @@ async def resolve_show_cover(show, db=None) -> tuple[Optional[str], Optional[str
     else:
         # 1. Поиск для сериала/аниме: сначала официальный Sonarr SkyHook
         skyhook = SkyHookClient()
-        if metadata_id and (str(metadata_id).startswith(("tvdb:", "sonarr:", "skyhook:")) or str(metadata_id).isdigit()):
+
+        # Прямой поиск по известным сериальным ID (TVDB, TMDB, IMDb)
+        candidate_ids: list[str] = []
+        if tvdb_id:
+            candidate_ids.append(f"tvdb:{tvdb_id}")
+            candidate_ids.append(str(tvdb_id))
+        if metadata_id:
+            cand = str(metadata_id).strip()
+            if cand.lower().startswith("thetvdb:"):
+                cand_sub = "tvdb:" + cand.split(":", 1)[1]
+                if cand_sub not in candidate_ids:
+                    candidate_ids.append(cand_sub)
+            if cand not in candidate_ids:
+                candidate_ids.append(cand)
+        if tmdb_id:
+            candidate_ids.append(f"tmdb:{tmdb_id}")
+        if imdb_id and str(imdb_id).startswith("tt"):
+            candidate_ids.append(f"imdb:{imdb_id}")
+
+        for cid in candidate_ids:
             try:
-                det = await skyhook.get_details(str(metadata_id))
+                det = await skyhook.get_details(cid)
                 if det and det.poster_url:
                     return det.poster_url, "Sonarr SkyHook"
             except Exception:
                 pass
 
-        if query:
+        # Текстовый поиск по очищенному названию и алиасам
+        for q in queries_to_try:
             try:
-                results = await skyhook.search(query)
+                results = await skyhook.search(q)
                 found = next((r for r in results if r.poster_url and (not r.content_type or r.content_type != "movie")), None)
                 if found and found.poster_url:
                     return found.poster_url, "Sonarr SkyHook"
@@ -3523,10 +3625,11 @@ async def resolve_show_cover(show, db=None) -> tuple[Optional[str], Optional[str
                 for s in tv_sources:
                     try:
                         client = get_metadata_client(s)
-                        results = await client.search(query)
-                        found = next((r for r in results if r.poster_url and (not r.content_type or r.content_type != "movie")), None)
-                        if found and found.poster_url:
-                            return found.poster_url, s.name
+                        for q in queries_to_try:
+                            results = await client.search(q)
+                            found = next((r for r in results if r.poster_url and (not r.content_type or r.content_type != "movie")), None)
+                            if found and found.poster_url:
+                                return found.poster_url, s.name
                     except Exception:
                         pass
             except Exception:

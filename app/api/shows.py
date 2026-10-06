@@ -233,12 +233,13 @@ def _attach_computed_fields(db: Session, shows: list[Show]) -> list[ShowOut]:
         from app.services.cover_service import attach_version_to_cover_url, get_show_poster_path
         ts_obj = getattr(show, "last_metadata_refresh_at", None) or getattr(show, "created_at", None)
         has_local = os.path.isfile(get_show_poster_path(show.id))
+        poster_src = getattr(show, "poster_source_url", None)
         if has_local:
             item.poster_url = attach_version_to_cover_url(f"/api/v1/shows/{show.id}/poster", ts_obj)
-        elif (item.poster_url and str(item.poster_url).strip().startswith(("http://", "https://"))) or getattr(show, "poster_source_url", None):
+        elif (item.poster_url and str(item.poster_url).strip().startswith(("http://", "https://"))) or (poster_src and str(poster_src).strip().startswith(("http://", "https://"))):
             item.poster_url = attach_version_to_cover_url(f"/api/v1/shows/{show.id}/poster", ts_obj)
         else:
-            item.poster_url = attach_version_to_cover_url(item.poster_url, ts_obj)
+            item.poster_url = None
         if item.collection_backdrop_url:
             c_obj = getattr(show, "collection", None)
             c_ts = getattr(c_obj, "last_metadata_refresh_at", None) or getattr(c_obj, "created_at", None) if c_obj else None

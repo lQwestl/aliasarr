@@ -897,6 +897,139 @@ class TestMetadataLanguageFiltering(unittest.TestCase):
         asyncio.run(run_test())
 
 
+class TestCoverResolutionAndPascalCaseParsing(unittest.TestCase):
+    def test_extract_skyhook_poster_pascal_case(self):
+        from app.services.metadata import extract_skyhook_poster
+
+        pascal_images = [
+            {"CoverType": "Fanart", "Url": "https://image.tmdb.org/fanart.jpg"},
+            {"CoverType": "Poster", "Url": "https://image.tmdb.org/poster.jpg"},
+        ]
+        poster = extract_skyhook_poster(pascal_images)
+        self.assertEqual(poster, "https://image.tmdb.org/poster.jpg")
+
+        remote_pascal = [
+            {"CoverType": "Poster", "RemoteUrl": "https://artworks.thetvdb.com/banners/posters/123.jpg"}
+        ]
+        poster_tvdb = extract_skyhook_poster(remote_pascal)
+        self.assertEqual(poster_tvdb, "https://artworks.thetvdb.com/banners/posters/123.jpg")
+
+    def test_radarr_map_movie_to_result_pascal_case(self):
+        from app.services.metadata import RadarrClient
+
+        client = RadarrClient()
+        pascal_item = {
+            "TmdbId": 1159508,
+            "Title": "Моя геройская академия: Ты следующий",
+            "OriginalTitle": "僕のヒーローアカデミア THE MOVIE ユアネクスト",
+            "Year": 2024,
+            "Images": [
+                {"CoverType": "Poster", "Url": "https://image.tmdb.org/t/p/original/kpWsIkfXrnQ1pmR79qAHHq7DPxc.jpg"},
+                {"CoverType": "Fanart", "Url": "https://image.tmdb.org/t/p/original/9guoVF7zayiiUq5ulKQpt375VIy.jpg"},
+            ],
+            "Overview": "Краткое описание фильма...",
+            "OriginalLanguage": "ja",
+            "Genres": ["Анимация", "Боевик"],
+        }
+        res = client._map_movie_to_result(pascal_item)
+        self.assertIsNotNone(res)
+        self.assertEqual(res.external_id, "movie:1159508")
+        self.assertEqual(res.poster_url, "https://image.tmdb.org/t/p/original/kpWsIkfXrnQ1pmR79qAHHq7DPxc.jpg")
+        self.assertEqual(res.year, 2024)
+        self.assertEqual(res.content_type, "movie")
+
+    def test_resolve_show_cover_tvdb_id_direct(self):
+        from app.services.metadata import resolve_show_cover, MetadataShowDetails
+
+        mock_show = MagicMock()
+        mock_show.content_type = "series"
+        mock_show.category = "series"
+        mock_show.title = "Рик и Морти (2013)"
+        mock_show.tvdb_id = 275274
+        mock_show.metadata_id = None
+        mock_show.aliases = []
+
+        fake_det = MetadataShowDetails(
+            external_id="tvdb:275274",
+            title="Рик и Морти",
+            poster_url="https://artworks.thetvdb.com/banners/posters/275274.jpg",
+        )
+
+        async def run_test():
+            with patch("app.services.metadata.SkyHookClient.get_details", new_callable=AsyncMock, return_value=fake_det):
+                url, src = await resolve_show_cover(mock_show)
+                self.assertEqual(url, "https://artworks.thetvdb.com/banners/posters/275274.jpg")
+                self.assertEqual(src, "Sonarr SkyHook")
+
+        asyncio.run(run_test())
+
+    def test_resolve_show_cover_tmdb_id_direct_movie(self):
+        from app.services.metadata import resolve_show_cover, MetadataShowDetails
+
+        mock_show = MagicMock()
+        mock_show.content_type = "movie"
+        mock_show.category = "movies"
+        mock_show.title = "Моя геройская академия: Ты следующий (2024)"
+        mock_show.tmdb_id = 1159508
+        mock_show.metadata_id = None
+        mock_show.aliases = []
+
+        fake_det = MetadataShowDetails(
+            external_id="movie:1159508",
+            title="Моя геройская академия: Ты следующий",
+            poster_url="https://image.tmdb.org/t/p/original/kpWsIkfXrnQ1pmR79qAHHq7DPxc.jpg",
+        )
+
+        async def run_test():
+            with patch("app.services.metadata.RadarrClient.get_details", new_callable=AsyncMock, return_value=fake_det):
+                url, src = await resolve_show_cover(mock_show)
+                self.assertEqual(url, "https://image.tmdb.org/t/p/original/kpWsIkfXrnQ1pmR79qAHHq7DPxc.jpg")
+                self.assertEqual(src, "Radarr SkyHook (Movie Cloud)")
+
+        asyncio.run(run_test())
+
+    def test_resolve_show_cover_cleans_year_and_searches_aliases(self):
+        from app.services.metadata import resolve_show_cover, MetadataResult
+
+        mock_alias = MagicMock()
+        mock_alias.text = "Superman & Lois"
+
+        mock_show = MagicMock()
+        mock_show.content_type = "series"
+        mock_show.category = "series"
+        mock_show.title = "Супермен и Лоис (2021)"
+        mock_show.tvdb_id = None
+        mock_show.metadata_id = None
+        mock_show.aliases = [mock_alias]
+
+        fake_res = MetadataResult(
+            external_id="tvdb:385376",
+            title="Superman & Lois",
+            year=2021,
+            poster_url="https://artworks.thetvdb.com/banners/posters/385376.jpg",
+            content_type="series",
+        )
+
+        async def run_test():
+            searched_queries = []
+
+            async def fake_search(q):
+                searched_queries.append(q)
+                if q == "Superman & Lois":
+                    return [fake_res]
+                return []
+
+            with patch("app.services.metadata.SkyHookClient.get_details", side_effect=Exception("not found")), \
+                 patch("app.services.metadata.SkyHookClient.search", side_effect=fake_search):
+                url, src = await resolve_show_cover(mock_show)
+                self.assertEqual(url, "https://artworks.thetvdb.com/banners/posters/385376.jpg")
+                self.assertEqual(src, "Sonarr SkyHook")
+                self.assertIn("Супермен и Лоис", searched_queries)
+                self.assertIn("Superman & Lois", searched_queries)
+
+        asyncio.run(run_test())
+
+
 if __name__ == "__main__":
     unittest.main()
 
