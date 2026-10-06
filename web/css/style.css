@@ -20186,7 +20186,13 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-count-badg
     box-sizing: border-box !important;
   }
   html[data-design="studio"][data-shell="top-nav"] .sidebar .sidebar-footer {
+    margin: 0 !important;
     margin-top: 0 !important;
+    padding: 0 !important;
+    padding-top: 0 !important;
+    border: none !important;
+    border-top: none !important;
+    box-sizing: border-box !important;
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
@@ -20268,34 +20274,42 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-count-badg
   html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-group-dropdown {
     display: none !important;
   }
-  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item,
-  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki {
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > :is(.nav-item, .nav-item-wiki) {
     display: inline-flex !important;
     height: 34px !important;
     min-width: 34px !important;
-    padding: 0 8px !important;
     justify-content: center !important;
     align-items: center !important;
     box-sizing: border-box !important;
+    transition: all 0.15s ease !important;
   }
-  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item:not(.active) span,
-  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki:not(.active) span,
-  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki:not(.active) .nav-wiki-ext-ico {
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > :is(.nav-item, .nav-item-wiki):not(.active) {
+    width: 34px !important;
+    max-width: 34px !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    font-size: 0 !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > :is(.nav-item, .nav-item-wiki):not(.active) span,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > :is(.nav-item, .nav-item-wiki):not(.active) .nav-wiki-badge,
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > :is(.nav-item, .nav-item-wiki):not(.active) .nav-wiki-ext-ico {
     display: none !important;
   }
-  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item:not(.active),
-  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki:not(.active) {
-    width: 34px !important;
-    padding: 0 !important;
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > :is(.nav-item, .nav-item-wiki) .nav-ico {
+    margin: 0 !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    flex-shrink: 0 !important;
   }
-  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item.active span,
-  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki.active span {
-    display: inline !important;
-    margin-left: 6px !important;
-  }
-  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item.active,
-  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > .nav-item-wiki.active {
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > :is(.nav-item, .nav-item-wiki).active {
     padding: 0 12px !important;
+    gap: 6px !important;
+    width: auto !important;
+  }
+  html[data-design="studio"][data-shell="top-nav"][data-top-nav-layout="icons-pill"] .sidebar .nav > :is(.nav-item, .nav-item-wiki).active span {
+    display: inline !important;
+    margin-left: 0 !important;
+    font-size: 13px !important;
   }
 
   /* Стили выпадающих меню (Dropdowns) в Top-Nav */

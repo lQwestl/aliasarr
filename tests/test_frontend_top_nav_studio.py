@@ -68,5 +68,18 @@ class TestFrontendTopNavStudio(unittest.TestCase):
         self.assertTrue('tasks_hud_pct' in self.app_js or 'tasks-hud-pct' in self.app_js)
 
 
+    def test_sidebar_footer_no_line_and_aligned(self):
+        # Проверяем удаление полосы (border-top: none) и нулевые отступы футера
+        self.assertIn('border-top: none !important', self.style)
+        self.assertIn('padding-top: 0 !important', self.style)
+
+    def test_wiki_icon_centered_in_icons_pill(self):
+        # Проверяем центрирование и обнуление отступов иконки в режиме icons-pill
+        self.assertIn('margin-right: 0 !important', self.style)
+        # Проверяем компактную верстку nav-wiki без пробелов между тегами
+        self.assertIn('<a href="/wiki" target="_blank" rel="noopener noreferrer" class="nav-item-wiki" id="nav-wiki" title="База знаний и документация" data-i18n-title="nav.wiki_tooltip" onclick="openWiki(event)"><i data-lucide="book-open"', self.index_html)
+
+
 if __name__ == "__main__":
     unittest.main()
+
