@@ -79,6 +79,56 @@ class TestFrontendTopNavStudio(unittest.TestCase):
         # Проверяем компактную верстку nav-wiki без пробелов между тегами
         self.assertIn('<a href="/wiki" target="_blank" rel="noopener noreferrer" class="nav-item-wiki" id="nav-wiki" title="База знаний и документация" data-i18n-title="nav.wiki_tooltip" onclick="openWiki(event)"><i data-lucide="book-open"', self.index_html)
 
+    def test_settings_interface_panel_reorganized_to_regional(self):
+        # Проверяем переименование панели в «Региональные параметры»
+        self.assertIn('data-i18n="settings.regional_title"', self.index_html)
+        self.assertIn('data-i18n="settings.regional_subtitle"', self.index_html)
+        self.assertIn('id="setting-language"', self.index_html)
+        self.assertIn('id="setting-timezone"', self.index_html)
+        # Проверяем удаление дублирующих селекторов из карточки региональных настроек
+        card_interface_chunk = self.index_html[self.index_html.find('id="card-interface"'):self.index_html.find('id="card-design"')]
+        self.assertNotIn('id="setting-theme"', card_interface_chunk)
+        self.assertNotIn('id="setting-glass"', card_interface_chunk)
+        self.assertNotIn('id="setting-scrollbar"', card_interface_chunk)
+        self.assertNotIn('switchTab(\'design-studio\')', card_interface_chunk)
+
+    def test_design_cards_buttons_and_studio_footer(self):
+        # В шапке блока «Дизайн интерфейса» больше нет отдельной кнопки перехода в студию
+        card_design_chunk = self.index_html[self.index_html.find('id="card-design"'):self.index_html.find('id="card-media-folders"')]
+        header_chunk = card_design_chunk[:card_design_chunk.find('class="design-cards-grid"')]
+        self.assertNotIn('switchTab(\'design-studio\')', header_chunk)
+        # В карточке STUDIO есть кнопка Студия дизайна рядом с «Выбрать стиль»
+        self.assertIn('data-i18n="design_studio.open_studio">Студия дизайна</span>', card_design_chunk)
+        # Кнопка в карточке Modern однотонная btn-secondary (без белого фона)
+        modern_card_chunk = card_design_chunk[card_design_chunk.find('data-design-choice="modern"'):card_design_chunk.find('data-design-choice="servarr"')]
+        self.assertIn('btn-secondary btn-small w-full', modern_card_chunk)
+        self.assertNotIn('btn-primary', modern_card_chunk)
+
+    def test_design_studio_gpu_blur_tip_present(self):
+        # Предупреждение о нагрузке backdrop-filter на GPU под слайдером размытия
+        self.assertIn('studio-gpu-tip', self.index_html)
+        self.assertIn('design_studio.gpu_blur_tip', self.app_js)
+        self.assertIn('backdrop-filter', self.index_html)
+
+    def test_design_studio_base_tone_custom_palette(self):
+        # Наличие hex-индикатора и нативного пикера для базового тона подложки
+        self.assertIn('id="studio-base-tone-hex-label"', self.index_html)
+        self.assertIn('id="studio-base-tone-color-input"', self.index_html)
+        self.assertIn('onStudioCustomBaseToneInput', self.app_js)
+        self.assertIn('computeCustomBaseTone', self.app_js)
+
+    def test_design_studio_scrollbar_controls_and_colors(self):
+        # Контролы полосы прокрутки: режим, палитра пресетов, свой цвет
+        self.assertIn('id="studio-scrollbar-mode-toggle"', self.index_html)
+        self.assertIn('id="studio-scrollbar-swatches"', self.index_html)
+        self.assertIn('id="studio-scrollbar-color-input"', self.index_html)
+        self.assertIn('id="studio-scrollbar-hex-label"', self.index_html)
+        self.assertIn('STUDIO_SCROLLBAR_COLORS', self.app_js)
+        self.assertIn('setStudioScrollbarMode', self.app_js)
+        self.assertIn('setStudioScrollbarColor', self.app_js)
+        self.assertIn('onStudioCustomScrollbarColorInput', self.app_js)
+        self.assertIn('computeScrollbarThumbColors', self.app_js)
+
 
 if __name__ == "__main__":
     unittest.main()

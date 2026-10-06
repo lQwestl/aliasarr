@@ -81,8 +81,9 @@ class TestMobileLibrarySearch(unittest.TestCase):
 class TestAppearancePersistence(unittest.TestCase):
     def test_controls_save_choice_immediately(self):
         index = read(INDEX_PATH)
-        self.assertIn('id="setting-theme" class="input" onchange="selectTheme(this.value)"', index)
-        self.assertIn('id="setting-glass" class="input" onchange="selectGlassMode(this.value)"', index)
+        self.assertIn("selectTheme('slate')", index)
+        self.assertNotIn('id="setting-theme"', index)
+        self.assertNotIn('id="setting-glass"', index)
 
         app = read(APP_JS_PATH)
         expected = {

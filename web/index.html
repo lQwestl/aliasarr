@@ -1893,6 +1893,37 @@
                 </div>
               </div>
 
+              <!-- Полосы прокрутки (Scrollbar) -->
+              <div class="studio-field-group">
+                <label class="settings-field-label">
+                  <span data-i18n="design_studio.scrollbar_title">Полосы прокрутки</span>
+                  <span class="settings-field-hint">(режим отображения и поведение)</span>
+                </label>
+                <div class="studio-toggle-group" id="studio-scrollbar-mode-toggle">
+                  <button type="button" class="studio-toggle-btn active" data-value="autohide" onclick="setStudioScrollbarMode('autohide')" data-i18n="settings.scrollbar_autohide">Автоскрытие</button>
+                  <button type="button" class="studio-toggle-btn" data-value="styled" onclick="setStudioScrollbarMode('styled')" data-i18n="settings.scrollbar_styled">Тонкие</button>
+                  <button type="button" class="studio-toggle-btn" data-value="hidden" onclick="setStudioScrollbarMode('hidden')" data-i18n="settings.scrollbar_hidden">Скрытые</button>
+                  <button type="button" class="studio-toggle-btn" data-value="native" onclick="setStudioScrollbarMode('native')" data-i18n="settings.scrollbar_native">Системные</button>
+                </div>
+              </div>
+
+              <!-- Цвет бегунка полосы прокрутки -->
+              <div style="margin-top: 14px; margin-bottom: 6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                  <label class="settings-field-label" style="margin-bottom: 0;">
+                    <span data-i18n="design_studio.scrollbar_color">Цвет полосы прокрутки</span>
+                    <span class="settings-field-hint">(пресет или свой оттенок)</span>
+                  </label>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:12px; font-family:var(--font-mono); color:var(--text-muted);" id="studio-scrollbar-hex-label">#00F0FF</span>
+                    <input type="color" id="studio-scrollbar-color-input" value="#00F0FF" oninput="onStudioCustomScrollbarColorInput(this.value)" style="width:28px; height:28px; border:none; padding:0; background:transparent; cursor:pointer; border-radius:50%;">
+                  </div>
+                </div>
+                <div class="studio-swatches-grid" id="studio-scrollbar-swatches">
+                  <!-- Swatches injected by app.js -->
+                </div>
+              </div>
+
               <!-- Сетка постеров -->
               <div class="studio-field-group">
                 <label class="settings-field-label">
@@ -1992,12 +2023,18 @@
 
             <!-- Базовый нейтральный тон -->
             <div style="margin-bottom: 20px;">
-              <label class="settings-field-label" style="margin-bottom: 10px;">
-                <span data-i18n="design_studio.base_neutral">Базовый тон подложки</span>
-                <span class="settings-field-hint">(нейтральный оттенок интерфейса)</span>
-              </label>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                <label class="settings-field-label" style="margin-bottom: 0;">
+                  <span data-i18n="design_studio.base_neutral">Базовый тон подложки</span>
+                  <span class="settings-field-hint">(нейтральный оттенок интерфейса)</span>
+                </label>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:12px; font-family:var(--font-mono); color:var(--text-muted);" id="studio-base-tone-hex-label">#0B0F19</span>
+                  <input type="color" id="studio-base-tone-color-input" value="#0b0f19" oninput="onStudioCustomBaseToneInput(this.value)" style="width:28px; height:28px; border:none; padding:0; background:transparent; cursor:pointer; border-radius:50%;">
+                </div>
+              </div>
               <div class="studio-swatches-grid" id="studio-base-swatches">
-                <!-- OLED True Black, Obsidian, Midnight, Slate, Stone, Zinc, Clean Light -->
+                <!-- OLED True Black, Obsidian, Midnight, Slate, Stone, Zinc, Clean Light, Custom -->
               </div>
             </div>
 
@@ -2187,6 +2224,10 @@
                   <span>16px</span>
                   <span>32px (Frosted)</span>
                 </div>
+                <div class="studio-field-hint studio-gpu-tip" style="margin-top: 8px; display: flex; align-items: flex-start; gap: 6px; padding: 6px 10px; border-radius: var(--radius-sm, 6px); background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); color: var(--text-muted); font-size: 11.5px; line-height: 1.4;">
+                  <i data-lucide="info" class="ico-xs" style="color: var(--teal); flex-shrink: 0; margin-top: 1px;"></i>
+                  <span data-i18n="design_studio.gpu_blur_tip">Tip: Эффект стекла (размытие подложки / backdrop-filter) нагружает видеокарту при скроллинге. Для слабой графики рекомендуется значение 0px.</span>
+                </div>
               </div>
 
               <!-- Прозрачность панелей (Surface Opacity) -->
@@ -2345,17 +2386,13 @@
           <div class="settings-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div class="settings-card-header-left">
               <div class="settings-card-icon-badge">
-                <i data-lucide="palette"></i>
+                <i data-lucide="globe"></i>
               </div>
               <div class="settings-card-title-wrap">
-                <h3 data-i18n="settings.interface_title">Интерфейс</h3>
-                <p class="subtitle" data-i18n="settings.interface_subtitle">Язык, цветовая тема оформления, режим прокрутки и часовой пояс</p>
+                <h3 data-i18n="settings.regional_title">Региональные параметры</h3>
+                <p class="subtitle" data-i18n="settings.regional_subtitle">Язык интерфейса и часовой пояс для календаря, журнала и событий</p>
               </div>
             </div>
-            <button type="button" class="btn btn-secondary btn-small" onclick="switchTab('design-studio'); switchStudioSection('themes');" title="Открыть расширенную Студию дизайна">
-              <i data-lucide="palette" class="ico-xs"></i>
-              <span data-i18n="design_studio.open_studio">Студия дизайна</span>
-            </button>
           </div>
           <div class="form-grid-modern">
             <div class="settings-field-group">
@@ -2363,33 +2400,6 @@
               <select id="setting-language" class="input">
                 <option value="ru">Русский</option>
                 <option value="en">English</option>
-              </select>
-            </div>
-            <div class="settings-field-group">
-              <label class="settings-field-label" data-i18n="settings.theme">Тема</label>
-              <select id="setting-theme" class="input" onchange="selectTheme(this.value)">
-                <option value="slate" data-i18n="settings.theme_slate">Nordic Slate (Графит и сталь)</option>
-                <option value="oled" data-i18n="settings.theme_oled">OLED Void (Абсолютный черный)</option>
-                <option value="indigo" data-i18n="settings.theme_indigo">Deep Midnight (Ночной индиго)</option>
-                <option value="pine" data-i18n="settings.theme_pine">Emerald Spruce (Хвойный сланец)</option>
-                <option value="paper" data-i18n="settings.theme_paper">Daylight Paper (Светлая бумага)</option>
-              </select>
-              <div class="settings-field-hint servarr-theme-note" data-i18n="settings.theme_servarr_note">В дизайне Servarr Classic используется собственная нейтральная палитра — выбранная тема применится к другим дизайнам.</div>
-            </div>
-            <div class="settings-field-group">
-              <label class="settings-field-label" data-i18n="settings.scrollbar">Полосы прокрутки</label>
-              <select id="setting-scrollbar" class="input" onchange="selectScrollbarMode(this.value)">
-                <option value="autohide" data-i18n="settings.scrollbar_autohide">Автоскрытие при прокрутке</option>
-                <option value="styled" data-i18n="settings.scrollbar_styled">Стилизованные (всегда видны)</option>
-                <option value="hidden" data-i18n="settings.scrollbar_hidden">Скрытые (без полос)</option>
-                <option value="native" data-i18n="settings.scrollbar_native">Системные (по умолчанию)</option>
-              </select>
-            </div>
-            <div class="settings-field-group">
-              <label class="settings-field-label"><span data-i18n="settings.glass">Эффекты стекла</span> <span class="settings-field-hint" data-i18n="settings.glass_hint">(размытие подложки, нагружает видеокарту)</span></label>
-              <select id="setting-glass" class="input" onchange="selectGlassMode(this.value)">
-                <option value="off" data-i18n="settings.glass_off">Выключено (рекомендуется)</option>
-                <option value="on" data-i18n="settings.glass_on">Включено (размытие подложки)</option>
               </select>
             </div>
             <div class="settings-field-group">
@@ -2924,7 +2934,7 @@
 
         <!-- Дизайн интерфейса -->
         <div class="settings-section-card" id="card-design" style="margin-bottom: 24px;">
-          <div class="settings-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div class="settings-card-header">
             <div class="settings-card-header-left">
               <div class="settings-card-icon-badge">
                 <i data-lucide="layout-template"></i>
@@ -2936,10 +2946,6 @@
                 </p>
               </div>
             </div>
-            <button type="button" class="btn btn-secondary btn-small" onclick="switchTab('design-studio'); switchStudioSection('design');" title="Открыть расширенную Студию дизайна">
-              <i data-lucide="layout-template" class="ico-xs"></i>
-              <span data-i18n="design_studio.open_studio">Студия дизайна</span>
-            </button>
           </div>
 
           <div class="design-cards-grid">
@@ -2979,7 +2985,7 @@
                 </div>
               </div>
               <div class="design-card-footer">
-                <button class="btn btn-primary btn-small w-full" data-i18n="settings.btn_select_design">Выбрать стиль</button>
+                <button class="btn btn-secondary btn-small w-full" data-i18n="settings.btn_select_design">Выбрать стиль</button>
               </div>
             </div>
 
@@ -3058,8 +3064,11 @@
                 </div>
               </div>
               <div class="design-card-footer" style="display:flex; gap:8px;">
-                <button class="btn btn-secondary btn-small w-full" data-i18n="settings.btn_select_design">Выбрать стиль</button>
-                <button class="btn btn-primary btn-small" type="button" onclick="event.stopPropagation(); switchTab('design-studio');" title="Открыть редактор студии"><i data-lucide="palette" class="ico-xs"></i></button>
+                <button class="btn btn-secondary btn-small" style="flex:1;" data-i18n="settings.btn_select_design">Выбрать стиль</button>
+                <button class="btn btn-secondary btn-small" type="button" onclick="event.stopPropagation(); switchTab('design-studio');" title="Открыть расширенную Студию дизайна">
+                  <i data-lucide="layout-template" class="ico-xs"></i>
+                  <span data-i18n="design_studio.open_studio">Студия дизайна</span>
+                </button>
               </div>
             </div>
           </div>

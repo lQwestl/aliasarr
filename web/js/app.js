@@ -437,6 +437,11 @@ const TRANSLATIONS = {
     "design_studio.colors_subtitle": "Глубина темного фона, неоновые акценты и семантические маркеры",
     "design_studio.base_neutral": "Базовый тон подложки",
     "design_studio.accent_color": "Главный акцентный цвет",
+    "design_studio.scrollbar_title": "Полосы прокрутки",
+    "design_studio.scrollbar_color": "Цвет полосы прокрутки",
+    "design_studio.gpu_blur_tip": "Tip: Эффект стекла (размытие подложки / backdrop-filter) существенно увеличивает нагрузку на видеокарту при скроллинге. Для слабой графики рекомендуется значение 0px.",
+    "settings.regional_title": "Региональные параметры",
+    "settings.regional_subtitle": "Язык интерфейса и часовой пояс для календаря, журнала и событий",
     "design_studio.materials_title": "Материалы, геометрия и стекломорфизм",
     "design_studio.materials_subtitle": "Скругление углов, сила матового размытия и неоновое свечение",
     "design_studio.radius": "Скругление углов (Border Radius)",
@@ -2182,6 +2187,11 @@ const TRANSLATIONS = {
     "design_studio.colors_subtitle": "Dark background depth, neon accents and semantic tags",
     "design_studio.base_neutral": "Base Neutral Tone",
     "design_studio.accent_color": "Primary Accent Color",
+    "design_studio.scrollbar_title": "Scrollbars",
+    "design_studio.scrollbar_color": "Scrollbar Color",
+    "design_studio.gpu_blur_tip": "Tip: Glassmorphism blur (backdrop-filter) increases GPU load during scrolling. 0px is recommended for low-power GPUs.",
+    "settings.regional_title": "Regional Settings",
+    "settings.regional_subtitle": "Interface language and timezone for calendar, logs and events",
     "design_studio.materials_title": "Materials, Geometry & Glassmorphism",
     "design_studio.materials_subtitle": "Corner rounding, frosted glass blur and neon aura",
     "design_studio.radius": "Border Radius",
@@ -18417,7 +18427,8 @@ async function loadGeneralSettings() {
     if (keyInp) keyInp.value = s.api_key || "";
 
     document.getElementById("setting-language").value = s.language || "ru";
-    document.getElementById("setting-theme").value = normalizeTheme(s.theme || "slate");
+    const themeEl = document.getElementById("setting-theme");
+    if (themeEl) themeEl.value = normalizeTheme(s.theme || "slate");
     document.getElementById("setting-timezone").value = s.timezone || "UTC";
     APP_TIMEZONE = s.timezone || "UTC";
     localStorage.setItem("vbeacon_timezone", APP_TIMEZONE);
@@ -18499,12 +18510,12 @@ async function loadGeneralSettings() {
 async function saveInterfaceSettings(btn) {
   await withLoading(btn, async () => {
     try {
-      const language = document.getElementById("setting-language").value;
-      const theme = document.getElementById("setting-theme").value;
-      const scrollbar_mode = document.getElementById("setting-scrollbar")?.value || "autohide";
-      const timezone = document.getElementById("setting-timezone").value;
+      const language = document.getElementById("setting-language")?.value || "ru";
+      const timezone = document.getElementById("setting-timezone")?.value || "UTC";
+      const theme = document.getElementById("setting-theme")?.value || document.documentElement.getAttribute("data-theme") || "slate";
+      const scrollbar_mode = document.getElementById("setting-scrollbar")?.value || document.documentElement.getAttribute("data-scrollbar") || "autohide";
       const design_system = document.documentElement.getAttribute("data-design") || "classic";
-      const glass_mode = document.documentElement.getAttribute("data-glass") || "off";
+      const glass_mode = document.getElementById("setting-glass")?.value || document.documentElement.getAttribute("data-glass") || "off";
       await api("/api/v1/settings", {
         method: "PUT",
         body: JSON.stringify({
@@ -26546,6 +26557,17 @@ const STUDIO_ACCENTS = [
   { id: "lilac", color: "#BD93F9", name: "Lilac" },
 ];
 
+const STUDIO_SCROLLBAR_COLORS = [
+  { id: "accent", color: "#00F0FF", name: "Акцент темы" },
+  { id: "teal", color: "#00F0FF", name: "Teal" },
+  { id: "purple", color: "#6838F7", name: "Purple" },
+  { id: "slate", color: "#64748B", name: "Slate Muted" },
+  { id: "rose", color: "#F43F5E", name: "Rose" },
+  { id: "emerald", color: "#10B981", name: "Emerald" },
+  { id: "amber", color: "#F59E0B", name: "Amber" },
+  { id: "white", color: "#E2E8F0", name: "Light Slate" },
+];
+
 let STUDIO_CURRENT_STATE = {
   preset_id: "cyber-neon",
   custom_theme_id: null,
@@ -26559,7 +26581,11 @@ let STUDIO_CURRENT_STATE = {
   poster_size: "md",
   card_style: "neoglass",
   base_tone: "slate",
+  custom_base_tone_color: "#0b0f19",
   accent: "#00F0FF",
+  scrollbar_mode: "autohide",
+  scrollbar_color: "accent",
+  scrollbar_custom_color: "#00F0FF",
   radius: 12,
   blur: 16,
   opacity: 85,
@@ -26714,6 +26740,14 @@ function loadStudioStateFromStorage(serverConfig = null, serverThemes = null) {
       if (tnt) STUDIO_CURRENT_STATE.top_nav_tasks_mode = tnt;
       const tvm = localStorage.getItem("aliasarr_tasks_view_mode");
       if (tvm) STUDIO_CURRENT_STATE.tasks_view_mode = tvm;
+      const sbm = localStorage.getItem("aliasarr_scrollbar_mode") || localStorage.getItem("aliasarr_scrollbar");
+      if (sbm) STUDIO_CURRENT_STATE.scrollbar_mode = sbm;
+      const sbc = localStorage.getItem("aliasarr_scrollbar_color");
+      if (sbc) STUDIO_CURRENT_STATE.scrollbar_color = sbc;
+      const sbcc = localStorage.getItem("aliasarr_scrollbar_custom_color");
+      if (sbcc) STUDIO_CURRENT_STATE.scrollbar_custom_color = sbcc;
+      const cbt = localStorage.getItem("aliasarr_custom_base_tone");
+      if (cbt) STUDIO_CURRENT_STATE.custom_base_tone_color = cbt;
     }
     const savedThemes = localStorage.getItem("aliasarr_custom_themes_list");
     if (savedThemes) {
@@ -26845,6 +26879,37 @@ function syncStudioControlsUI() {
   const hexLabel = document.getElementById("studio-accent-hex-label");
   if (hexLabel) hexLabel.textContent = STUDIO_CURRENT_STATE.accent.toUpperCase();
 
+  // Полосы прокрутки
+  document.querySelectorAll("#studio-scrollbar-mode-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === (STUDIO_CURRENT_STATE.scrollbar_mode || "autohide"));
+  });
+  const sbInput = document.getElementById("studio-scrollbar-color-input");
+  const sbLabel = document.getElementById("studio-scrollbar-hex-label");
+  if (sbInput && sbLabel) {
+    let activeHex = STUDIO_CURRENT_STATE.scrollbar_custom_color || "#00F0FF";
+    if (STUDIO_CURRENT_STATE.scrollbar_color === "accent") {
+      activeHex = STUDIO_CURRENT_STATE.accent;
+    } else if (STUDIO_CURRENT_STATE.scrollbar_color !== "custom") {
+      const found = STUDIO_SCROLLBAR_COLORS.find(c => c.id === STUDIO_CURRENT_STATE.scrollbar_color);
+      if (found) activeHex = found.color;
+    }
+    sbInput.value = activeHex.startsWith("#") ? activeHex : "#00F0FF";
+    sbLabel.textContent = activeHex.toUpperCase();
+  }
+
+  // Базовый тон подложки
+  const baseInput = document.getElementById("studio-base-tone-color-input");
+  const baseLabel = document.getElementById("studio-base-tone-hex-label");
+  if (baseInput && baseLabel) {
+    let baseHex = STUDIO_CURRENT_STATE.custom_base_tone_color || "#0b0f19";
+    if (STUDIO_CURRENT_STATE.base_tone !== "custom") {
+      const found = STUDIO_BASE_TONES.find(b => b.id === STUDIO_CURRENT_STATE.base_tone);
+      if (found) baseHex = found.color;
+    }
+    baseInput.value = baseHex.startsWith("#") ? baseHex : "#0b0f19";
+    baseLabel.textContent = baseHex.toUpperCase();
+  }
+
   // Синхронизация разделов дизайна, тем, карточек и поиска
   const activeDesign = document.documentElement.getAttribute("data-design") || "modern";
   document.querySelectorAll(".studio-design-choice-card").forEach(card => {
@@ -26905,6 +26970,22 @@ function renderStudioSwatches() {
            title="${escapeHtml(a.name)}">
       </div>
     `).join("");
+  }
+
+  const sbWrap = document.getElementById("studio-scrollbar-swatches");
+  if (sbWrap) {
+    const isCustom = STUDIO_CURRENT_STATE.scrollbar_color === "custom";
+    sbWrap.innerHTML = STUDIO_SCROLLBAR_COLORS.map(c => {
+      const isActive = !isCustom && STUDIO_CURRENT_STATE.scrollbar_color === c.id;
+      const displayColor = c.id === "accent" ? STUDIO_CURRENT_STATE.accent : c.color;
+      return `
+        <div class="studio-swatch ${isActive ? 'active' : ''}" 
+             style="background:${displayColor}; border-color:${displayColor === '#f8fafc' || displayColor === '#E2E8F0' ? '#cbd5e1' : 'rgba(255,255,255,0.15)'};"
+             onclick="setStudioScrollbarColor('${c.id}')"
+             title="${escapeHtml(c.name)}">
+        </div>
+      `;
+    }).join("");
   }
 }
 
@@ -26993,7 +27074,57 @@ function onStudioBaseToneSelect(toneId) {
   STUDIO_CURRENT_STATE.base_tone = toneId;
   STUDIO_CURRENT_STATE.preset_id = null;
   STUDIO_CURRENT_STATE.custom_theme_id = null;
+  const found = STUDIO_BASE_TONES.find(b => b.id === toneId);
+  if (found) {
+    const hexInput = document.getElementById("studio-base-tone-color-input");
+    if (hexInput) hexInput.value = found.color;
+    const hexLabel = document.getElementById("studio-base-tone-hex-label");
+    if (hexLabel) hexLabel.textContent = found.color.toUpperCase();
+  }
   renderStudioPresets();
+  renderStudioSwatches();
+  applyStudioLivePreview(true);
+}
+
+function onStudioCustomBaseToneInput(val) {
+  STUDIO_CURRENT_STATE.base_tone = "custom";
+  STUDIO_CURRENT_STATE.custom_base_tone_color = val;
+  STUDIO_CURRENT_STATE.preset_id = null;
+  STUDIO_CURRENT_STATE.custom_theme_id = null;
+  const hexLabel = document.getElementById("studio-base-tone-hex-label");
+  if (hexLabel) hexLabel.textContent = val.toUpperCase();
+  renderStudioPresets();
+  renderStudioSwatches();
+  applyStudioLivePreview(true);
+}
+
+function setStudioScrollbarMode(val) {
+  STUDIO_CURRENT_STATE.scrollbar_mode = val;
+  document.querySelectorAll("#studio-scrollbar-mode-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === val);
+  });
+  applyScrollbarMode(val, true);
+  applyStudioLivePreview(true);
+}
+
+function setStudioScrollbarColor(val) {
+  STUDIO_CURRENT_STATE.scrollbar_color = val;
+  const found = STUDIO_SCROLLBAR_COLORS.find(c => c.id === val);
+  if (found) {
+    const hexInput = document.getElementById("studio-scrollbar-color-input");
+    if (hexInput && found.id !== "accent") hexInput.value = found.color;
+    const hexLabel = document.getElementById("studio-scrollbar-hex-label");
+    if (hexLabel) hexLabel.textContent = (found.id === "accent" ? STUDIO_CURRENT_STATE.accent : found.color).toUpperCase();
+  }
+  renderStudioSwatches();
+  applyStudioLivePreview(true);
+}
+
+function onStudioCustomScrollbarColorInput(val) {
+  STUDIO_CURRENT_STATE.scrollbar_color = "custom";
+  STUDIO_CURRENT_STATE.scrollbar_custom_color = val;
+  const hexLabel = document.getElementById("studio-scrollbar-hex-label");
+  if (hexLabel) hexLabel.textContent = val.toUpperCase();
   renderStudioSwatches();
   applyStudioLivePreview(true);
 }
@@ -27188,11 +27319,66 @@ function setStudioPreviewMode(mode) {
   renderStudioPreviewCanvas();
 }
 
+function computeCustomBaseTone(hex) {
+  let c = (hex || "#0b0f19").replace("#", "");
+  if (c.length === 3) c = c.split("").map(x => x + x).join("");
+  let r = 11, g = 15, b = 25;
+  if (c.length === 6) {
+    r = parseInt(c.substring(0, 2), 16) || 0;
+    g = parseInt(c.substring(2, 4), 16) || 0;
+    b = parseInt(c.substring(4, 6), 16) || 0;
+  }
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+  const isLight = lum > 140;
+
+  let panelR = isLight ? Math.max(0, r - 12) : Math.min(255, r + 12);
+  let panelG = isLight ? Math.max(0, g - 12) : Math.min(255, g + 12);
+  let panelB = isLight ? Math.max(0, b - 12) : Math.min(255, b + 12);
+  const panelHex = `#${panelR.toString(16).padStart(2, "0")}${panelG.toString(16).padStart(2, "0")}${panelB.toString(16).padStart(2, "0")}`;
+
+  const border = isLight ? "rgba(0, 0, 0, 0.12)" : "rgba(255, 255, 255, 0.10)";
+  const text = isLight ? "#0f172a" : "#f8fafc";
+
+  return {
+    id: "custom",
+    name: "Custom",
+    color: hex.startsWith("#") ? hex : `#${hex}`,
+    panel: panelHex,
+    border: border,
+    text: text,
+  };
+}
+
+function computeScrollbarThumbColors(colorId, customHex, accentHex) {
+  let targetHex = customHex || "#00F0FF";
+  if (colorId === "accent") {
+    targetHex = accentHex || "#00F0FF";
+  } else {
+    const found = STUDIO_SCROLLBAR_COLORS.find(c => c.id === colorId);
+    if (found) targetHex = found.color;
+  }
+  let c = targetHex.replace("#", "");
+  if (c.length === 3) c = c.split("").map(x => x + x).join("");
+  let r = 0, g = 240, b = 255;
+  if (c.length === 6) {
+    r = parseInt(c.substring(0, 2), 16) || 0;
+    g = parseInt(c.substring(2, 4), 16) || 0;
+    b = parseInt(c.substring(4, 6), 16) || 0;
+  }
+  return {
+    thumb: `rgba(${r}, ${g}, ${b}, 0.38)`,
+    thumbHover: `rgba(${r}, ${g}, ${b}, 0.88)`,
+    solid: targetHex,
+  };
+}
+
 function applyStudioLivePreview(saveDraft = true) {
   const isStudioActive = document.documentElement.getAttribute("data-design") === "studio";
   const normCard = normalizeCardStyle(STUDIO_CURRENT_STATE.card_style);
   STUDIO_CURRENT_STATE.card_style = normCard;
   CURRENT_CARD_STYLE = normCard;
+
+  const scrollbarMode = STUDIO_CURRENT_STATE.scrollbar_mode || "autohide";
 
   // ПРИМЕНЕНИЕ К HTML ТОЛЬКО ЕСЛИ АКТИВЕН ДИЗАЙН "STUDIO" (100% ИЗОЛЯЦИЯ ОТ CLASSIC, VANGUARD, SERVARR)
   if (isStudioActive) {
@@ -27213,6 +27399,7 @@ function applyStudioLivePreview(saveDraft = true) {
     document.documentElement.setAttribute("data-top-nav-layout", STUDIO_CURRENT_STATE.top_nav_layout || "compact-more");
     document.documentElement.setAttribute("data-top-nav-tasks", STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud");
     document.documentElement.setAttribute("data-tasks-view", STUDIO_CURRENT_STATE.tasks_view_mode || "popup");
+    document.documentElement.setAttribute("data-scrollbar", scrollbarMode);
 
     const tasksPopup = document.getElementById("tasks-popup");
     if (tasksPopup) {
@@ -27255,9 +27442,16 @@ function applyStudioLivePreview(saveDraft = true) {
     canvas.setAttribute("data-top-nav-layout", STUDIO_CURRENT_STATE.top_nav_layout || "compact-more");
     canvas.setAttribute("data-top-nav-tasks", STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud");
     canvas.setAttribute("data-tasks-view", STUDIO_CURRENT_STATE.tasks_view_mode || "popup");
+    canvas.setAttribute("data-scrollbar", scrollbarMode);
   }
 
-  const tone = STUDIO_BASE_TONES.find(t => t.id === STUDIO_CURRENT_STATE.base_tone) || STUDIO_BASE_TONES[2];
+  let tone;
+  if (STUDIO_CURRENT_STATE.base_tone === "custom") {
+    tone = computeCustomBaseTone(STUDIO_CURRENT_STATE.custom_base_tone_color || "#0b0f19");
+  } else {
+    tone = STUDIO_BASE_TONES.find(t => t.id === STUDIO_CURRENT_STATE.base_tone) || STUDIO_BASE_TONES[2];
+  }
+
   const accent = STUDIO_CURRENT_STATE.accent;
   const radius = `${STUDIO_CURRENT_STATE.radius}px`;
   const radiusSm = `${Math.max(4, Math.round(STUDIO_CURRENT_STATE.radius * 0.65))}px`;
@@ -27269,6 +27463,12 @@ function applyStudioLivePreview(saveDraft = true) {
   else if (STUDIO_CURRENT_STATE.glow === 1) glowAlpha = 0.15;
   else if (STUDIO_CURRENT_STATE.glow === 2) glowAlpha = 0.35;
   else if (STUDIO_CURRENT_STATE.glow === 3) glowAlpha = 0.65;
+
+  const sbColors = computeScrollbarThumbColors(
+    STUDIO_CURRENT_STATE.scrollbar_color || "accent",
+    STUDIO_CURRENT_STATE.scrollbar_custom_color || "#00F0FF",
+    accent
+  );
 
   let styleEl = document.getElementById("aliasarr-custom-theme-vars");
   if (!styleEl) {
@@ -27293,6 +27493,8 @@ function applyStudioLivePreview(saveDraft = true) {
       --radius-lg: ${radiusLg} !important;
       --glass-blur: ${blurVal} !important;
       --brand-name-glow: ${accent}${Math.round(glowAlpha * 255).toString(16).padStart(2, '0')} !important;
+      --scrollbar-thumb: ${sbColors.thumb} !important;
+      --scrollbar-thumb-hover: ${sbColors.thumbHover} !important;
     }
   `;
   styleEl.textContent = isStudioActive || canvas ? cssRules : "";
@@ -27346,6 +27548,13 @@ function applyStudioLivePreview(saveDraft = true) {
       localStorage.setItem("aliasarr_top_nav_layout", STUDIO_CURRENT_STATE.top_nav_layout || "compact-more");
       localStorage.setItem("aliasarr_top_nav_tasks_mode", STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud");
       localStorage.setItem("aliasarr_tasks_view_mode", STUDIO_CURRENT_STATE.tasks_view_mode || "popup");
+      localStorage.setItem("aliasarr_scrollbar_mode", scrollbarMode);
+      localStorage.setItem("aliasarr_scrollbar", scrollbarMode);
+      localStorage.setItem("aliasarr_scrollbar_color", STUDIO_CURRENT_STATE.scrollbar_color || "accent");
+      localStorage.setItem("aliasarr_scrollbar_custom_color", STUDIO_CURRENT_STATE.scrollbar_custom_color || "#00F0FF");
+      if (STUDIO_CURRENT_STATE.custom_base_tone_color) {
+        localStorage.setItem("aliasarr_custom_base_tone", STUDIO_CURRENT_STATE.custom_base_tone_color);
+      }
       localStorage.setItem("aliasarr_custom_css_vars", JSON.stringify({
         "--bg": tone.color,
         "--panel": tone.panel,
@@ -27356,6 +27565,8 @@ function applyStudioLivePreview(saveDraft = true) {
         "--radius": radius,
         "--radius-sm": radiusSm,
         "--radius-lg": radiusLg,
+        "--scrollbar-thumb": sbColors.thumb,
+        "--scrollbar-thumb-hover": sbColors.thumbHover,
       }));
     } catch (e) {}
   }
@@ -28040,6 +28251,10 @@ window.setStudioBadgeColorMode = setStudioBadgeColorMode;
 window.setStudioUiFont = setStudioUiFont;
 window.setStudioMonoFont = setStudioMonoFont;
 window.setStudioFontScale = setStudioFontScale;
+window.onStudioCustomBaseToneInput = onStudioCustomBaseToneInput;
+window.setStudioScrollbarMode = setStudioScrollbarMode;
+window.setStudioScrollbarColor = setStudioScrollbarColor;
+window.onStudioCustomScrollbarColorInput = onStudioCustomScrollbarColorInput;
 
 // Применяем язык/тему/дизайн/скроллбар из localStorage сразу, не дожидаясь ответа /api/v1/settings —
 // они всё равно будут перезаписаны актуальными значениями в loadGeneralSettings().
