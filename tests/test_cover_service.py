@@ -350,9 +350,9 @@ class TestCoverServiceEndpointsAndDb(unittest.TestCase):
 
     def test_import_show_auto_downloads_cover(self):
         from app.api.metadata_routes import import_show, ImportShowRequest
-        from app.services.metadata import MetadataDetails
+        from app.services.metadata import MetadataShowDetails
 
-        mock_details = MetadataDetails(
+        mock_details = MetadataShowDetails(
             title="New Show With Poster",
             external_id="tvdb:9999",
             poster_url="https://image.tmdb.org/t/p/original/new_poster.jpg",

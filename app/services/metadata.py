@@ -192,6 +192,8 @@ class MetadataShowDetails:
             self.episodes = deduped
 
 
+MetadataDetails = MetadataShowDetails
+
 import re
 
 _NON_LATIN_CHAR_RE = re.compile(
