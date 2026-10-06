@@ -1300,6 +1300,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
 }
 .show-card:hover { 
   border-color: var(--teal, #00F0FF); 
@@ -8043,6 +8045,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   cursor: pointer;
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   background: transparent;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 54px;
 }
 
 .spotlight-result-item:hover,
@@ -18623,6 +18627,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
   backdrop-filter: var(--glass-blur, blur(16px));
   -webkit-backdrop-filter: var(--glass-blur, blur(16px));
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
 }
 
 .collection-card:hover {

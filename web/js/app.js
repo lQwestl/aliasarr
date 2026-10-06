@@ -7408,7 +7408,13 @@ function onSpotlightBackdropClick(e) {
   }
 }
 
+let spotlightSearchDebounceTimer = null;
+
 function clearSpotlightSearch() {
+  if (spotlightSearchDebounceTimer) {
+    clearTimeout(spotlightSearchDebounceTimer);
+    spotlightSearchDebounceTimer = null;
+  }
   const input = document.getElementById("spotlight-search-input");
   if (input) {
     input.value = "";
@@ -7426,7 +7432,13 @@ function onSpotlightSearchInput() {
   if (clearBtn) {
     clearBtn.style.display = q.length > 0 ? "flex" : "none";
   }
-  renderSpotlightInitialOrFiltered(q);
+  if (spotlightSearchDebounceTimer) {
+    clearTimeout(spotlightSearchDebounceTimer);
+  }
+  spotlightSearchDebounceTimer = setTimeout(() => {
+    spotlightSearchDebounceTimer = null;
+    renderSpotlightInitialOrFiltered(q);
+  }, 120);
 }
 
 function renderSpotlightInitialOrFiltered(query = "") {
@@ -7527,7 +7539,7 @@ function renderSpotlightInitialOrFiltered(query = "") {
       html += `
         <div class="spotlight-result-item ${isSelected ? 'active' : ''}" data-index="${idx}" onclick="selectSpotlightItem(${idx})">
           <div class="spotlight-item-poster-wrap">
-            <img class="spotlight-item-poster" src="${escapeHtml(posterUrl)}" alt="${title}" loading="lazy" onerror="this.onerror=null; this.src='/static/img/no-poster.png';">
+            <img class="spotlight-item-poster" src="${escapeHtml(posterUrl)}" alt="${title}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/static/img/no-poster.png';">
           </div>
           <div class="spotlight-item-info">
             <div class="spotlight-item-title-row">
@@ -7555,7 +7567,7 @@ function renderSpotlightInitialOrFiltered(query = "") {
       html += `
         <div class="spotlight-result-item ${isSelected ? 'active' : ''}" data-index="${idx}" onclick="selectSpotlightItem(${idx})">
           <div class="spotlight-item-poster-wrap">
-            <img class="spotlight-item-poster" src="${escapeHtml(posterUrl)}" alt="${title}" loading="lazy" onerror="this.onerror=null; this.src='/static/img/no-poster.png';">
+            <img class="spotlight-item-poster" src="${escapeHtml(posterUrl)}" alt="${title}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/static/img/no-poster.png';">
           </div>
           <div class="spotlight-item-info">
             <div class="spotlight-item-title-row">
@@ -7575,7 +7587,7 @@ function renderSpotlightInitialOrFiltered(query = "") {
   });
 
   listEl.innerHTML = html;
-  if (window.lucide) lucide.createIcons();
+  if (window.lucide) lucide.createIcons({ root: listEl });
 }
 
 function onSpotlightKeyDown(e) {
@@ -8100,13 +8112,21 @@ function qualityProfileName(id) {
   return qp ? qp.name : (id ? `Профиль #${id}` : t("common.any_quality"));
 }
 
+let librarySearchDebounceTimer = null;
+
 function onLibrarySearchInput() {
   const searchInput = document.getElementById("library-search");
   const clearBtn = document.getElementById("library-search-clear");
   if (clearBtn) {
     clearBtn.style.display = (searchInput && searchInput.value.length > 0) ? "inline-flex" : "none";
   }
-  renderLibrary();
+  if (librarySearchDebounceTimer) {
+    clearTimeout(librarySearchDebounceTimer);
+  }
+  librarySearchDebounceTimer = setTimeout(() => {
+    librarySearchDebounceTimer = null;
+    renderLibrary();
+  }, 150);
 }
 
 function onLibrarySearchKeyDown(event) {
@@ -8117,6 +8137,10 @@ function onLibrarySearchKeyDown(event) {
 }
 
 function clearLibrarySearch() {
+  if (librarySearchDebounceTimer) {
+    clearTimeout(librarySearchDebounceTimer);
+    librarySearchDebounceTimer = null;
+  }
   const searchInput = document.getElementById("library-search");
   if (searchInput) {
     searchInput.value = "";
@@ -8215,7 +8239,7 @@ function renderLibrary() {
       grid.className = "shows-grid size-" + POSTER_OPTIONS.size + " card-style-" + CURRENT_CARD_STYLE + (LIBRARY_BULK_MODE ? " bulk-mode-active" : "");
       grid.innerHTML = shows.map(renderShowCard).join("");
       shows.forEach(s => document.getElementById("show-card-" + s.id)?.addEventListener("click", (e) => onShowCardClick(s.id, e)));
-      if (window.lucide) lucide.createIcons();
+      if (window.lucide) lucide.createIcons({ root: grid });
     }
   } else if (LIBRARY_VIEW_MODE === "table") {
     const tbody = document.getElementById("shows-table-body");
@@ -8223,14 +8247,14 @@ function renderLibrary() {
       if (tableWrap) tableWrap.classList.toggle("bulk-mode-active", LIBRARY_BULK_MODE);
       tbody.innerHTML = shows.map(renderShowTableRow).join("");
       shows.forEach(s => document.getElementById("show-row-" + s.id)?.addEventListener("click", (e) => onShowRowClick(s.id, e)));
-      if (window.lucide) lucide.createIcons();
+      if (window.lucide) lucide.createIcons({ root: tbody });
     }
   } else {
     if (overviewWrap) {
       overviewWrap.className = "shows-overview size-" + (POSTER_OPTIONS.size || "medium") + " card-style-" + CURRENT_CARD_STYLE + (LIBRARY_BULK_MODE ? " bulk-mode-active" : "");
       overviewWrap.innerHTML = shows.map(renderShowOverviewRow).join("");
       shows.forEach(s => document.getElementById("show-overview-" + s.id)?.addEventListener("click", (e) => onShowOverviewClick(s.id, e)));
-      if (window.lucide) lucide.createIcons();
+      if (window.lucide) lucide.createIcons({ root: overviewWrap });
     }
   }
   buildAlphabetIndex(shows);
@@ -8250,16 +8274,28 @@ async function loadCollections(force = false) {
   }
 }
 
+let collectionsSearchDebounceTimer = null;
+
 function onCollectionsSearchInput() {
   const searchInput = document.getElementById("collections-search");
   const clearBtn = document.getElementById("collections-search-clear");
   if (clearBtn) {
     clearBtn.style.display = (searchInput && searchInput.value.length > 0) ? "inline-flex" : "none";
   }
-  renderCollectionsView();
+  if (collectionsSearchDebounceTimer) {
+    clearTimeout(collectionsSearchDebounceTimer);
+  }
+  collectionsSearchDebounceTimer = setTimeout(() => {
+    collectionsSearchDebounceTimer = null;
+    renderCollectionsView();
+  }, 150);
 }
 
 function clearCollectionsSearch() {
+  if (collectionsSearchDebounceTimer) {
+    clearTimeout(collectionsSearchDebounceTimer);
+    collectionsSearchDebounceTimer = null;
+  }
   const searchInput = document.getElementById("collections-search");
   if (searchInput) {
     searchInput.value = "";
@@ -8324,14 +8360,14 @@ async function renderCollectionsView(query = "", force = false) {
         <p style="max-width: 500px; margin: 8px auto; color: var(--text-muted); font-size: 13.5px; line-height: 1.5;">${t("collections.empty_desc")}</p>
       </div>
     `;
-    if (window.lucide) lucide.createIcons();
+    if (window.lucide) lucide.createIcons({ root: collectionsGrid });
     return;
   }
 
   collectionsGrid.className = "shows-grid collections-grid size-" + (COLLECTIONS_POSTER_OPTIONS.size || "large") + " card-style-" + CURRENT_COLLECTIONS_CARD_STYLE;
   collectionsGrid.innerHTML = filtered.map(renderCollectionCard).join("");
   buildAlphabetIndex(filtered, "collections-alphabet-index");
-  if (window.lucide) lucide.createIcons();
+  if (window.lucide) lucide.createIcons({ root: collectionsGrid });
 }
 
 function renderCollectionCard(coll) {
@@ -25898,7 +25934,19 @@ function _servarrNormalize(v) {
   return String(v || "").toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 
-async function onServarrSearchInput() {
+let _SERVARR_SEARCH_DEBOUNCE_TIMER = null;
+
+function onServarrSearchInput() {
+  if (_SERVARR_SEARCH_DEBOUNCE_TIMER) {
+    clearTimeout(_SERVARR_SEARCH_DEBOUNCE_TIMER);
+  }
+  _SERVARR_SEARCH_DEBOUNCE_TIMER = setTimeout(() => {
+    _SERVARR_SEARCH_DEBOUNCE_TIMER = null;
+    _runServarrSearch();
+  }, 120);
+}
+
+async function _runServarrSearch() {
   const input = document.getElementById("servarr-search-input");
   const box = document.getElementById("servarr-search-results");
   if (!input || !box) return;
@@ -25944,7 +25992,7 @@ function renderServarrSearchResults(q) {
   if (_SERVARR_SEARCH_ITEMS.length) {
     html += `<div class="servarr-search-section">${escapeHtml(t("servarr.search_existing"))}</div><ul class="servarr-search-list">`;
     _SERVARR_SEARCH_ITEMS.forEach((show, idx) => {
-      const poster = show.poster_url ? `<img class="servarr-search-poster" src="${escapeHtml(show.poster_url)}" alt="" loading="lazy">` : `<div class="servarr-search-poster"></div>`;
+      const poster = show.poster_url ? `<img class="servarr-search-poster" src="${escapeHtml(show.poster_url)}" alt="" loading="lazy" decoding="async">` : `<div class="servarr-search-poster"></div>`;
       const year = show.year ? ` (${show.year})` : "";
       const typeKey = show.content_type === "movie" ? "library.filter_movies" : (show.content_type === "anime" ? "library.filter_anime" : "library.filter_series");
       html += `<li class="servarr-search-item${idx === _SERVARR_SEARCH_INDEX ? " highlighted" : ""}" onmousedown="event.preventDefault(); openServarrSearchResult(${idx})">
@@ -25988,6 +26036,10 @@ function onServarrSearchKeyDown(e) {
 }
 
 function _servarrResetSearch() {
+  if (_SERVARR_SEARCH_DEBOUNCE_TIMER) {
+    clearTimeout(_SERVARR_SEARCH_DEBOUNCE_TIMER);
+    _SERVARR_SEARCH_DEBOUNCE_TIMER = null;
+  }
   const input = document.getElementById("servarr-search-input");
   const box = document.getElementById("servarr-search-results");
   if (input) { input.value = ""; input.blur(); }

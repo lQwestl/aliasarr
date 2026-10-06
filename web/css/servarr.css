@@ -354,6 +354,8 @@
   padding: 5px 16px;
   cursor: pointer;
   white-space: nowrap;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 52px;
 }
 [data-design="servarr"] .servarr-search-item.highlighted,
 [data-design="servarr"] .servarr-search-item:hover { background-color: var(--sv-light); }
@@ -1933,6 +1935,8 @@ html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child >
   box-shadow: none;
   transform: none;
   transition: all 200ms ease-in;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
 }
 [data-design="servarr"] .shows-grid > .show-card:hover {
   z-index: 2;
@@ -3395,7 +3399,11 @@ html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child >
 [data-design="servarr"] .profile-avatar,
 [data-design="servarr"] .user-avatar-initial { box-shadow: none; }
 [data-design="servarr"] #collections-card-style-btn { display: none !important; }
-[data-design="servarr"] .collection-card.servarr-poster-card { cursor: pointer; }
+[data-design="servarr"] .collection-card.servarr-poster-card {
+  cursor: pointer;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
+}
 [data-design="servarr"] .collection-card.servarr-poster-card .collection-poster-wrap { background-color: var(--sv-series-bg); }
 
 /* Переключатель языка названия на тёмном заднике */
