@@ -582,14 +582,22 @@ def ensure_safe_show_path(db: Optional[Session], show: Show, root_folder: str) -
     подбирает официальное короткое название из алиасов, обновляет show.path в БД и возвращает безопасный путь.
     """
     raw_path = getattr(show, "path", None) or ""
-    if not raw_path:
-        raw_path = get_show_default_path(show, getattr(db, "_settings", None) or type("Obj", (), {"root_folder": root_folder, "root_folder_movies": None, "root_folder_anime": None, "root_folder_series": None})())
+    if not raw_path or not str(raw_path).strip():
+        safe_title = pick_safe_title_candidate(
+            getattr(show, "title", "") or "Show",
+            aliases=[a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)],
+            max_bytes=200,
+        )
+        safe_title_no_yr = _title_without_year(safe_title)
+        yr = getattr(show, "year", None)
+        folder = f"{safe_title_no_yr} ({yr})" if yr else safe_title
+        return os.path.join(root_folder, sanitize_filename(folder, 220))
 
-    folder_name = os.path.basename(raw_path.rstrip("/\\"))
+    folder_name = os.path.basename(str(raw_path).strip().rstrip("/\\"))
     if len(folder_name.encode("utf-8")) <= 240:
-        return raw_path
+        return str(raw_path).strip()
 
-    parent_dir = os.path.dirname(raw_path.rstrip("/\\")) or root_folder
+    parent_dir = os.path.dirname(str(raw_path).strip().rstrip("/\\")) or root_folder
     alias_texts = [a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)]
     safe_title = pick_safe_title_candidate(
         getattr(show, "title", "") or "Show",
@@ -613,7 +621,10 @@ def ensure_safe_show_path(db: Optional[Session], show: Show, root_folder: str) -
             )
         except Exception as e:
             logger.warning("Не удалось сохранить скорректированный show.path в БД: %s", e)
-            db.rollback()
+            try:
+                db.rollback()
+            except Exception:
+                pass
 
     return new_path
 

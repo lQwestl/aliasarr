@@ -772,6 +772,7 @@ async def import_show(
             else:
                 chosen_title = details.title
 
+        title_no_year = _re.sub(r"\s*\(\d{4}\)$|\s+\d{4}$", "", chosen_title or "").strip()
         # Подбираем безопасное официальное название папки (<= 200 байт в UTF-8), чтобы не превысить лимит Linux (255 B)
         safe_folder_title = pick_safe_title_candidate(
             chosen_title,
