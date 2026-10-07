@@ -292,10 +292,11 @@ async def get_collection_detail(
             if matched_show:
                 show_id_val = matched_show.id
                 ep = db.query(Episode).filter(Episode.show_id == matched_show.id).first()
-                show_st = ep.status if ep else "wanted"
-                is_dl = bool(ep and ep.status == "downloaded")
-                file_qual = (ep.quality if (ep and ep.quality) else None) or (matched_show.edition if getattr(matched_show, "edition", None) else None)
-                f_size = (ep.file_size if (ep and ep.file_size) else None) or getattr(matched_show, "size_on_disk_bytes", 0) or None
+                st_val = str(getattr(ep.status, "value", ep.status)) if (ep and ep.status) else "wanted"
+                show_st = st_val
+                is_dl = bool(ep and (ep.status == EpisodeStatus.DOWNLOADED or st_val == "downloaded"))
+                file_qual = getattr(ep, "downloaded_quality", None) or (matched_show.edition if getattr(matched_show, "edition", None) else None)
+                f_size = getattr(ep, "file_size_bytes", None) or getattr(matched_show, "size_on_disk_bytes", 0) or None
 
             part_ov = part.get("overview")
             if not part_ov and matched_show and matched_show.overview:
@@ -329,10 +330,11 @@ async def get_collection_detail(
             clean_id = (s.metadata_id or "").replace("movie:", "").replace("tmdb:", "").strip()
             tmdb_id_val = int(clean_id) if clean_id.isdigit() else (s.tmdb_id or s.id or 0)
             ep = db.query(Episode).filter(Episode.show_id == s.id).first()
-            show_st = ep.status if ep else "wanted"
-            is_dl = bool(ep and ep.status == "downloaded")
-            file_qual = (ep.quality if (ep and ep.quality) else None) or (s.edition if getattr(s, "edition", None) else None)
-            f_size = (ep.file_size if (ep and ep.file_size) else None) or getattr(s, "size_on_disk_bytes", 0) or None
+            st_val = str(getattr(ep.status, "value", ep.status)) if (ep and ep.status) else "wanted"
+            show_st = st_val
+            is_dl = bool(ep and (ep.status == EpisodeStatus.DOWNLOADED or st_val == "downloaded"))
+            file_qual = getattr(ep, "downloaded_quality", None) or (s.edition if getattr(s, "edition", None) else None)
+            f_size = getattr(ep, "file_size_bytes", None) or getattr(s, "size_on_disk_bytes", 0) or None
             rel_date = None
             if s.premiere_date:
                 rel_date = s.premiere_date.strftime("%Y-%m-%d")
@@ -914,7 +916,8 @@ async def search_missing_collection_movies(
     shows_to_search = []
     for s in shows:
         ep = db.query(Episode).filter(Episode.show_id == s.id).first()
-        if not ep or ep.status != "downloaded":
+        st_val = str(getattr(ep.status, "value", ep.status)) if (ep and ep.status) else ""
+        if not ep or (ep.status != EpisodeStatus.DOWNLOADED and st_val != "downloaded"):
             shows_to_search.append(s.id)
 
     if not shows_to_search:

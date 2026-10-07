@@ -6689,7 +6689,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 /* Library Header, Spotlight Search & Toolbar Layout */
-.library-panel-header .header-row {
+.library-panel-header .header-row,
+.collections-panel-header .header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -6697,7 +6698,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   flex-wrap: nowrap;
 }
 
-.library-header-title-block {
+.library-header-title-block,
+.collections-header-title-block {
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
@@ -11232,14 +11234,16 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   }
 
   /* Library Header & Controls on Mobile */
-  .library-panel-header .header-row {
+  .library-panel-header .header-row,
+  .collections-panel-header .header-row {
     display: flex !important;
     flex-direction: column !important;
     width: 100% !important;
     gap: 8px !important;
     box-sizing: border-box !important;
   }
-  .library-header-title-block {
+  .library-header-title-block,
+  .collections-header-title-block {
     order: 1 !important;
     width: 100% !important;
   }
@@ -11247,7 +11251,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
     font-size: 11px !important;
     padding: 1px 7px !important;
   }
-  #tab-library .header-actions {
+  #tab-library .header-actions,
+  #tab-collections .header-actions {
     order: 3 !important;
   }
   .header-spotlight-action-btn,

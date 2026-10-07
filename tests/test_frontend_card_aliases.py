@@ -400,6 +400,28 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
         self.assertIn("show-collection-chip", self.app_js)
         self.assertIn("Part ${show.collection_order}", self.app_js)
 
+    def test_collections_search_in_header_row_and_safe_episode_quality(self):
+        """Ensure collections search is located in header-row next to actions, and collections routes use downloaded_quality."""
+        # 1. Search wrap is located in collections-panel-header, NOT inside collections-toolbar
+        header_match = re.search(r'<header class="panel-header collections-panel-header">.*?</header>', self.index_html, re.DOTALL)
+        self.assertIsNotNone(header_match, "collections-panel-header not found in index.html")
+        header_html = header_match.group(0)
+        self.assertIn('id="collections-search-wrap"', header_html)
+        self.assertIn('id="btn-collections-spotlight-action"', header_html)
+        self.assertIn('refreshAllCollections()', header_html)
+
+        # 2. collections-toolbar only contains filter control and sort switcher (no search wrap)
+        toolbar_match = re.search(r'<div class="toolbar collections-toolbar">.*?</div>\s*</div>\s*<div class="shows-grid collections-grid', self.index_html, re.DOTALL)
+        if toolbar_match:
+            toolbar_html = toolbar_match.group(0)
+            self.assertNotIn('id="collections-search-wrap"', toolbar_html)
+
+        # 3. Backend routes use downloaded_quality and file_size_bytes
+        routes_py = read(ROOT / "app" / "api" / "collections_routes.py")
+        self.assertIn('getattr(ep, "downloaded_quality", None)', routes_py)
+        self.assertIn('getattr(ep, "file_size_bytes", None)', routes_py)
+        self.assertNotIn('ep.quality', routes_py, "Direct ep.quality must not be used (causes AttributeError)")
+
 
 if __name__ == "__main__":
     unittest.main()

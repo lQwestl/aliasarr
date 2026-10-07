@@ -900,20 +900,14 @@
     <!-- КОЛЛЕКЦИИ -->
     <section id="tab-collections" class="tab-panel">
       <div class="panel-sticky-header">
-        <header class="panel-header">
+        <header class="panel-header collections-panel-header">
           <div class="header-row">
-            <div>
+            <div class="collections-header-title-block">
               <h1 data-i18n="nav.collections">Коллекции</h1>
               <p class="subtitle"><span data-i18n="subtitle.collections">Франшизы, саги и киноциклы ваших фильмов</span><span id="collections-stats-counter" class="collections-stats-counter" style="margin-left: 10px; font-weight: 500; color: var(--text-muted); font-size: 13px;"></span></p>
             </div>
-            <div class="header-actions">
-              <button class="btn btn-secondary" onclick="refreshAllCollections()" title="Обновить метаданные коллекций" data-i18n-title="collections.refresh_all"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="collections.refresh_all">Синхронизировать</span></button>
-            </div>
-          </div>
-        </header>
 
-        <div class="toolbar collections-toolbar">
-          <div class="toolbar-left" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <!-- Spotlight Search Command Bar for Desktop Collections Header -->
             <div class="library-search-wrap library-spotlight-search" id="collections-search-wrap" onclick="onCollectionsSearchWrapClick(event)">
               <i data-lucide="search" class="library-search-icon"></i>
               <input id="collections-search" class="input library-search-input" type="text" placeholder="Найти коллекцию…" data-i18n-placeholder="collections.search_placeholder" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="onCollectionsSearchInput()">
@@ -923,6 +917,15 @@
               </button>
             </div>
 
+            <div class="header-actions" style="display:flex; align-items:center; gap:8px;">
+              <button id="btn-collections-spotlight-action" class="btn btn-secondary header-spotlight-action-btn" onclick="openSpotlightCommandPalette()" title="Быстрый поиск (⌘K или Ctrl+K)" data-i18n-title="search_layout.search_action_title" style="display:none;"><i data-lucide="search" class="ico-sm text-teal"></i> <span data-i18n="search_layout.search_action_label">Поиск</span> <kbd class="search-kbd-badge" style="margin-left:4px; font-size:10px; padding:1px 5px;">⌘K</kbd></button>
+              <button class="btn btn-secondary" onclick="refreshAllCollections()" title="Обновить метаданные коллекций" data-i18n-title="collections.refresh_all"><i data-lucide="refresh-cw" class="ico-sm"></i> <span data-i18n="collections.refresh_all">Синхронизировать</span></button>
+            </div>
+          </div>
+        </header>
+
+        <div class="toolbar collections-toolbar">
+          <div class="toolbar-left" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
             <!-- Сегментированные фильтры саг (Все / Неполные / Собраны / Отслеживаемые) -->
             <div class="glass-segmented-control" id="collections-filter-control">
               <button class="segmented-capsule-btn active" data-filter="all" onclick="selectCollectionsFilter('all')">
@@ -947,7 +950,6 @@
             </div>
           </div>
           <div class="toolbar-right">
-            <button id="btn-collections-spotlight-action" class="btn btn-secondary header-spotlight-action-btn" onclick="openSpotlightCommandPalette()" title="Быстрый поиск (⌘K или Ctrl+K)" data-i18n-title="search_layout.search_action_title" style="display:none;"><i data-lucide="search" class="ico-sm text-teal"></i> <span data-i18n="search_layout.search_action_label">Поиск</span> <kbd class="search-kbd-badge" style="margin-left:4px; font-size:10px; padding:1px 5px;">⌘K</kbd></button>
             <div class="view-switcher" id="collections-sort-switcher">
               <select id="collections-sort-select" class="input input-small" style="height: 32px; font-size: 12px; background: var(--panel-alt); border-radius: var(--radius-sm, 8px); padding: 0 10px;" onchange="onCollectionsSortChange(this.value)" title="Сортировка саг" data-i18n-title="collections.sort_title">
                 <option value="title_asc">Название (А–Я)</option>
