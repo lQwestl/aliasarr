@@ -2023,18 +2023,18 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 4px;
-  background: rgba(0, 240, 255, 0.08);
+  background: color-mix(in srgb, var(--teal) 10%, transparent);
   color: var(--teal);
-  border: 1px solid rgba(0, 240, 255, 0.35);
+  border: 1px solid color-mix(in srgb, var(--teal) 28%, transparent);
 }
 .alias-chip.lang-ru,
 .alias-chip.lang-en,
 .alias-chip.lang-jp,
 .alias-chip.lang-romaji,
 .alias-chip.lang-other {
-  border-color: rgba(0, 240, 255, 0.35);
+  border-color: color-mix(in srgb, var(--teal) 28%, transparent);
   color: var(--teal);
-  background: rgba(0, 240, 255, 0.08);
+  background: color-mix(in srgb, var(--teal) 10%, transparent);
 }
 
 /* Show Card Tags - Full width block chips matching card boundaries */
@@ -2055,9 +2055,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   word-break: break-word;
   white-space: normal;
   text-align: left;
-  border: 1px solid rgba(0, 240, 255, 0.35);
+  border: 1px solid color-mix(in srgb, var(--teal) 28%, transparent);
   color: var(--teal);
-  background: rgba(0, 240, 255, 0.08);
+  background: color-mix(in srgb, var(--teal) 10%, transparent);
 }
 .show-card .alias-chip.interactive {
   cursor: pointer;
@@ -2065,10 +2065,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .show-card .alias-chip.interactive:hover {
-  background: rgba(0, 240, 255, 0.2);
+  background: color-mix(in srgb, var(--teal) 20%, transparent);
   border-color: var(--teal);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 240, 255, 0.25);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--teal) 25%, transparent);
 }
 
 /* ---------- ALIAS MANAGER (в карточке шоу) ---------- */
@@ -2114,7 +2114,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .alias-chip-make-primary:hover {
   opacity: 1;
   transform: scale(1.15);
-  background: rgba(0, 240, 255, 0.2);
+  background: color-mix(in srgb, var(--teal) 20%, transparent);
 }
 
 /* ---------- ALPHABET INDEX (Sonarr-style Jump Bar) ---------- */
@@ -2168,7 +2168,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: var(--teal);
   color: #fff;
   transform: scale(1.25);
-  box-shadow: 0 2px 8px rgba(45, 212, 191, 0.4);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--teal) 40%, transparent);
 }
 
 :is([data-theme="paper"], [data-theme="light"]) .alphabet-link.active:hover {
@@ -3226,14 +3226,14 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .title-lang-chip:hover {
   border-color: var(--teal);
   color: var(--text);
-  background: rgba(45, 212, 191, 0.08);
+  background: color-mix(in srgb, var(--teal) 10%, transparent);
 }
 .title-lang-chip.active {
-  background: rgba(45, 212, 191, 0.16);
+  background: color-mix(in srgb, var(--teal) 16%, transparent);
   border-color: var(--teal);
   color: var(--teal);
   font-weight: 600;
-  box-shadow: 0 0 10px rgba(45, 212, 191, 0.2);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--teal) 22%, transparent);
 }
 .title-lang-tag {
   font-family: var(--font-mono);
@@ -3286,12 +3286,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .title-lang-more-btn:hover {
   border-color: var(--teal);
   color: var(--teal);
-  background: rgba(45, 212, 191, 0.08);
+  background: color-mix(in srgb, var(--teal) 10%, transparent);
 }
 .show-title-lang-bar.is-expanded .title-lang-more-btn {
-  border-color: rgba(45, 212, 191, 0.5);
+  border-color: color-mix(in srgb, var(--teal) 50%, transparent);
   color: var(--teal);
-  background: rgba(45, 212, 191, 0.12);
+  background: color-mix(in srgb, var(--teal) 14%, transparent);
 }
 .show-title-lang-extra {
   display: inline-flex;
@@ -5494,32 +5494,58 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 #show-modal .modal,
 #collection-modal .modal {
-  padding-top: 52px;
+  padding: 0 0 24px 0;
   overflow-x: hidden;
   box-sizing: border-box;
 }
+
+#show-modal-content > :not(.show-hero-container),
+#collection-modal-content > :not(.collection-hero),
+#show-modal-task-banner {
+  margin-left: 24px;
+  margin-right: 24px;
+}
+
 #show-modal .modal-close,
 #collection-modal .modal-close {
   top: 14px;
   right: 18px;
   z-index: 30;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f8fafc;
+  backdrop-filter: var(--glass-blur, blur(8px));
+  -webkit-backdrop-filter: var(--glass-blur, blur(8px));
+}
+#show-modal .modal-close:hover,
+#collection-modal .modal-close:hover {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+}
+:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #show-modal .modal-close,
+:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #collection-modal .modal-close {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: #1e293b;
 }
 
 /* Show Detail Modal - Modern Hero Banner & Badges (Sonarr / Radarr Style) */
 .show-hero-container {
   position: relative;
-  border-radius: 14px;
+  border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
   overflow: visible !important;
-  margin-bottom: 14px;
-  background: var(--panel-alt);
-  border: 1px solid var(--border);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  margin-bottom: 20px;
+  background: transparent !important;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
 }
 
 .show-hero-backdrop-wrap {
   position: absolute;
   inset: 0;
-  border-radius: 13px;
+  border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
   overflow: hidden;
   pointer-events: none;
   z-index: 1;
@@ -5527,39 +5553,39 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 .show-hero-backdrop {
   position: absolute;
-  inset: -10px;
+  inset: 0;
   background-size: cover;
   background-position: center 25%;
-  filter: blur(8px) brightness(0.35);
-  transform: scale(1.05);
+  filter: none !important;
+  transform: none;
   pointer-events: none;
-  border-radius: 13px;
-  clip-path: inset(0 round 13px);
+  border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
+  clip-path: none;
   z-index: 1;
 }
 
 .show-hero-gradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(8, 12, 22, 0.78) 0%, rgba(8, 12, 22, 0.48) 48%, rgba(8, 12, 22, 0.22) 100%),
-              linear-gradient(0deg, rgba(8, 12, 22, 0.82) 0%, transparent 60%);
+  background: linear-gradient(90deg, rgba(8, 12, 22, 0.72) 0%, rgba(8, 12, 22, 0.40) 45%, rgba(8, 12, 22, 0.10) 100%),
+              linear-gradient(0deg, var(--panel) 0%, transparent 40%);
   z-index: 2;
   pointer-events: none;
-  border-radius: 13px;
-  clip-path: inset(0 round 13px);
+  border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
+  clip-path: none;
 }
 
-:is([data-theme="paper"], [data-theme="light"]) .show-hero-gradient {
-  background: linear-gradient(90deg, rgba(248, 250, 252, 0.86) 0%, rgba(248, 250, 252, 0.58) 48%, rgba(248, 250, 252, 0.3) 100%),
-              linear-gradient(0deg, rgba(248, 250, 252, 0.85) 0%, transparent 60%);
+:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .show-hero-gradient {
+  background: linear-gradient(90deg, rgba(248, 250, 252, 0.78) 0%, rgba(248, 250, 252, 0.45) 45%, rgba(248, 250, 252, 0.12) 100%),
+              linear-gradient(0deg, var(--panel) 0%, transparent 40%);
 }
 
 .show-hero-content {
   position: relative;
   z-index: 3;
   display: flex;
-  gap: 22px;
-  padding: 22px;
+  gap: 24px;
+  padding: 24px;
   align-items: flex-start;
 }
 
@@ -5568,17 +5594,17 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   flex-direction: column;
   gap: 8px;
   flex-shrink: 0;
-  width: 180px;
-  min-width: 180px;
-  max-width: 180px;
+  width: 230px;
+  min-width: 230px;
+  max-width: 230px;
   box-sizing: border-box;
 }
 
 .show-hero-poster-wrap {
   position: relative;
-  width: 180px;
-  height: 270px;
-  min-height: 270px;
+  width: 230px;
+  height: 345px;
+  min-height: 345px;
   flex-shrink: 0;
   box-sizing: border-box;
 }
@@ -5597,10 +5623,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 .show-hero-poster {
   position: relative;
-  width: 180px;
-  height: 270px;
+  width: 230px;
+  height: 345px;
   aspect-ratio: 2 / 3;
-  min-height: 270px;
+  min-height: 345px;
   border-radius: 12px;
   background: var(--panel);
   background-size: 104% auto;
@@ -5610,7 +5636,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
-  font-size: 52px;
+  font-size: 56px;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -5623,9 +5649,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 .show-hero-poster-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
-  max-width: 180px;
+  max-width: 230px;
   box-sizing: border-box;
 }
 
@@ -5634,18 +5660,18 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 [data-theme="dracula"][data-design="vanguard"] .show-hero-poster-actions .btn,
 :is([data-theme="paper"], [data-theme="light"])[data-design="vanguard"] .show-hero-poster-actions .btn {
   flex: 1 1 0 !important;
-  width: calc(50% - 3px) !important;
+  width: calc(50% - 4px) !important;
   min-width: 0 !important;
-  max-width: calc(50% - 3px) !important;
-  padding: 0 4px !important;
-  height: 28px !important;
-  min-height: 28px !important;
-  font-size: 11px !important;
-  border-radius: 6px !important;
+  max-width: calc(50% - 4px) !important;
+  padding: 0 8px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  font-size: 12px !important;
+  border-radius: 7px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 4px !important;
+  gap: 5px !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
@@ -5659,7 +5685,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
-  font-size: 11px !important;
+  font-size: 12px !important;
 }
 
 .show-hero-meta {
@@ -5732,9 +5758,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .meta-pill-status.status-continuing {
-  color: var(--teal, #00f0ff);
-  background: rgba(0, 240, 255, 0.12);
-  border-color: rgba(0, 240, 255, 0.35);
+  color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 12%, transparent);
+  border-color: color-mix(in srgb, var(--teal) 32%, transparent);
 }
 
 .meta-pill-status.status-ended {
@@ -5750,9 +5776,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .meta-pill.meta-pill-in-lib {
-  color: var(--teal, #00f0ff);
-  background: rgba(0, 240, 255, 0.12);
-  border-color: rgba(0, 240, 255, 0.35);
+  color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 12%, transparent);
+  border-color: color-mix(in srgb, var(--teal) 32%, transparent);
 }
 
 :is([data-theme="paper"], [data-theme="light"]) .meta-pill-status.status-complete {
@@ -5798,7 +5824,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 .show-path-badge:hover {
   border-color: var(--teal);
-  background: rgba(0, 240, 255, 0.14);
+  background: color-mix(in srgb, var(--teal) 14%, transparent);
   transform: translateY(-1px);
 }
 
@@ -5822,9 +5848,23 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .show-hero-aliases-block {
-  margin-top: 6px;
+  margin-top: 8px;
   width: 100%;
   box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 8px);
+  background: color-mix(in srgb, var(--panel-alt, var(--panel)) 45%, transparent);
+  overflow: hidden;
+  transition: border-color var(--transition-fast, 0.15s ease),
+              box-shadow var(--transition-fast, 0.15s ease),
+              background var(--transition-fast, 0.15s ease);
+}
+
+.show-hero-aliases-block:hover,
+.show-hero-aliases-block:focus-within,
+.show-hero-aliases-block.is-expanded {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--teal) 22%, transparent);
 }
 
 .show-aliases-accordion-header {
@@ -5832,29 +5872,27 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 12px;
-  background: var(--panel-alt);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  padding: 7px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: var(--text-muted);
   cursor: pointer;
   user-select: none;
   font-family: var(--font-body);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background var(--transition-fast, 0.15s ease), color var(--transition-fast, 0.15s ease);
   box-sizing: border-box;
 }
 
 .show-aliases-accordion-header:hover {
-  border-color: rgba(45, 212, 191, 0.4);
-  background: var(--panel);
+  background: color-mix(in srgb, var(--teal) 8%, transparent);
   color: var(--text);
 }
 
 .show-hero-aliases-block.is-expanded .show-aliases-accordion-header {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  border-bottom-color: rgba(255, 255, 255, 0.05);
-  background: var(--panel);
+  border-radius: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--teal) 6%, transparent);
   color: var(--text);
 }
 
@@ -5881,12 +5919,12 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   font-family: var(--font-mono);
   font-weight: 600;
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--teal) 15%, transparent);
   color: var(--teal);
 }
 
 :is([data-theme="paper"], [data-theme="light"]) .show-aliases-count-badge {
-  background: rgba(0, 0, 0, 0.06);
+  background: color-mix(in srgb, var(--teal) 12%, transparent);
 }
 
 .show-aliases-header-right {
@@ -5900,10 +5938,9 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .show-aliases-accordion-body {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 10px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   padding: 10px 12px;
   box-sizing: border-box;
   animation: fadeInAliases 0.15s ease-out;
@@ -5942,6 +5979,16 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   gap: 6px;
   line-height: 1.35;
   padding: 4px 8px;
+  background: color-mix(in srgb, var(--teal) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--teal) 28%, transparent);
+  color: var(--teal);
+  border-radius: 6px;
+  transition: all var(--transition-fast, 0.15s ease);
+}
+
+.show-hero-aliases-block .alias-chip:hover {
+  background: color-mix(in srgb, var(--teal) 18%, transparent);
+  border-color: var(--teal);
 }
 
 .show-hero-aliases-block .alias-add-row {
@@ -10275,7 +10322,14 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   #collection-modal .modal,
   [data-design="vanguard"] #show-modal .modal,
   [data-design="vanguard"] #collection-modal .modal {
-    padding-top: calc(52px + env(safe-area-inset-top, 0px)) !important;
+    padding: 0 0 calc(60px + env(safe-area-inset-bottom, 0px)) 0 !important;
+  }
+
+  #show-modal-content > :not(.show-hero-container),
+  #collection-modal-content > :not(.collection-hero),
+  #show-modal-task-banner {
+    margin-left: 12px !important;
+    margin-right: 12px !important;
   }
 
   .modal-header {
@@ -18757,10 +18811,11 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 /* Collection Detail Modal / Drawer */
 .collection-hero {
   position: relative;
-  border-radius: 14px;
+  border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
   overflow: hidden;
-  background: var(--panel-alt);
-  border: 1px solid var(--border);
+  background: transparent !important;
+  border: none;
+  border-bottom: 1px solid var(--border);
   margin-bottom: 18px;
 }
 
@@ -18769,8 +18824,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   inset: 0;
   background-size: cover;
   background-position: center top;
-  filter: blur(8px) brightness(0.35);
-  transform: scale(1.05);
+  filter: none !important;
+  transform: none;
 }
 
 .collection-hero-content {
