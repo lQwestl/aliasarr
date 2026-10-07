@@ -4277,34 +4277,64 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .modal-close i,
-.modal-close svg {
+.modal-close svg,
+.window-close-btn i,
+.window-close-btn svg {
   width: 16px;
   height: 16px;
   stroke-width: 2.2;
 }
 
-.modal-close:hover {
-  background: rgba(239, 68, 68, 0.14);
-  border-color: var(--danger);
-  color: var(--danger);
-  transform: scale(1.06);
+:root:not([data-design="servarr"]) .modal-close,
+:root:not([data-design="servarr"]) .window-close-btn,
+:root:not([data-design="servarr"]) .release-drawer-close,
+:root:not([data-design="servarr"]) .mobile-drawer-close,
+:root:not([data-design="servarr"]) .tasks-popup-close {
+  border-radius: 50% !important;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease !important;
 }
 
-.modal-close:active {
-  transform: scale(0.96);
+:root:not([data-design="servarr"]) .modal-close:hover,
+:root:not([data-design="servarr"]) .window-close-btn:hover,
+:root:not([data-design="servarr"]) .release-drawer-close:hover,
+:root:not([data-design="servarr"]) .mobile-drawer-close:hover,
+:root:not([data-design="servarr"]) .tasks-popup-close:hover {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: rgba(239, 68, 68, 0.6) !important;
+  color: #ff6b6b !important;
+  transform: rotate(90deg) !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25) !important;
 }
 
-:is([data-theme="paper"], [data-theme="light"]) .modal-close {
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .modal-close,
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .window-close-btn,
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .release-drawer-close,
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .mobile-drawer-close,
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .tasks-popup-close {
   background: #f1f5f9;
   border-color: #cbd5e1;
   color: #64748b;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-:is([data-theme="paper"], [data-theme="light"]) .modal-close:hover {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: #ef4444;
-  color: #ef4444;
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .modal-close:hover,
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .window-close-btn:hover,
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .release-drawer-close:hover,
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .mobile-drawer-close:hover,
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .tasks-popup-close:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #dc2626 !important;
+  transform: rotate(90deg) !important;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.2) !important;
+}
+
+:root:not([data-design="servarr"]) .modal-close:active,
+:root:not([data-design="servarr"]) .window-close-btn:active,
+:root:not([data-design="servarr"]) .release-drawer-close:active,
+:root:not([data-design="servarr"]) .mobile-drawer-close:active,
+:root:not([data-design="servarr"]) .tasks-popup-close:active {
+  transform: rotate(90deg) scale(0.92) !important;
 }
 
 /* Modal Title & Header collision protection with close button.
@@ -5529,14 +5559,16 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: rgba(239, 68, 68, 0.3) !important;
   border-color: rgba(239, 68, 68, 0.6) !important;
   color: #ff6b6b !important;
-  transform: rotate(90deg);
+  transform: rotate(90deg) !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25) !important;
 }
 :root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #show-modal .modal-close:hover,
 :root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #collection-modal .modal-close:hover {
   background: rgba(239, 68, 68, 0.15) !important;
   border-color: rgba(239, 68, 68, 0.4) !important;
   color: #dc2626 !important;
-  transform: rotate(90deg);
+  transform: rotate(90deg) !important;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.2) !important;
 }
 
 /* Show Detail Modal - Modern Hero Banner & Badges (Sonarr / Radarr Style) */
@@ -6467,18 +6499,18 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   user-select: none; transition: all 0.15s ease;
 }
 .chip-toggle:hover {
-  border-color: var(--teal); color: var(--text); background: rgba(45, 212, 191, 0.05);
+  border-color: var(--teal); color: var(--text); background: color-mix(in srgb, var(--teal) 6%, transparent);
 }
 .chip-toggle.selected {
-  border-color: var(--teal); color: var(--teal); background: rgba(45, 212, 191, 0.15); font-weight: 600;
-  box-shadow: 0 0 10px rgba(45, 212, 191, 0.15);
+  border-color: var(--teal); color: var(--teal); background: color-mix(in srgb, var(--teal) 16%, transparent); font-weight: 600;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--teal) 20%, transparent);
 }
 .chip {
   font-family: var(--font-mono); font-size: 12px; padding: 6px 14px; border-radius: 999px;
   background: var(--panel-alt); border: 1px solid var(--border); color: var(--text-muted); cursor: pointer;
   user-select: none; transition: all 0.15s ease;
 }
-.chip-selected { border-color: var(--teal); color: var(--teal); background: rgba(45,212,191,0.1); font-weight: 600; }
+.chip-selected { border-color: var(--teal); color: var(--teal); background: color-mix(in srgb, var(--teal) 15%, transparent); font-weight: 600; }
 
 /* ---------- WIZARD STEPPER TRACK (VANGUARD LUXE) ---------- */
 .wizard-header {
@@ -6566,16 +6598,16 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 /* Active Step */
 .wizard-step-item.active {
   background: var(--panel);
-  border-color: rgba(45, 212, 191, 0.3);
+  border-color: color-mix(in srgb, var(--teal) 45%, transparent);
   color: var(--text);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18), 0 0 12px rgba(45, 212, 191, 0.12);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18), 0 0 12px color-mix(in srgb, var(--teal) 18%, transparent);
 }
 
 .wizard-step-item.active .wizard-step-badge {
-  background: rgba(45, 212, 191, 0.15);
+  background: color-mix(in srgb, var(--teal) 16%, transparent);
   border-color: var(--teal);
   color: var(--teal);
-  box-shadow: 0 0 10px rgba(45, 212, 191, 0.3);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--teal) 30%, transparent);
 }
 
 .wizard-step-item.active .wizard-step-title {
@@ -6613,7 +6645,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 .wizard-stepper-connector.active {
   background: linear-gradient(90deg, #10b981, var(--teal));
-  box-shadow: 0 0 8px rgba(45, 212, 191, 0.4);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--teal) 35%, transparent);
 }
 
 .wizard-method-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px; }

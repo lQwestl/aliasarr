@@ -9,6 +9,7 @@ STYLE_PATH = ROOT / "web" / "css" / "style.css"
 SERVARR_PATH = ROOT / "web" / "css" / "servarr.css"
 APP_JS_PATH = ROOT / "web" / "js" / "app.js"
 AUTO_SEARCH_PATH = ROOT / "app" / "services" / "auto_search.py"
+HTML_PATH = ROOT / "web" / "index.html"
 
 
 def read(path: Path) -> str:
@@ -21,6 +22,7 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
         self.servarr = read(SERVARR_PATH)
         self.app_js = read(APP_JS_PATH)
         self.auto_search = read(AUTO_SEARCH_PATH)
+        self.index_html = read(HTML_PATH)
 
     def test_outer_card_aliases_do_not_switch_title(self):
         """Ensure renderShowCard does not attach onAliasCardChipClick or interactive class to alias chips."""
@@ -215,6 +217,80 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
         grad_css = gradient_match.group(1)
         self.assertIn("0.88", grad_css)
         self.assertIn("0.60", grad_css)
+
+    def test_wizard_stepper_theme_colors_and_no_duplicate_numbers(self):
+        """Ensure wizard stepper adapts to theme accent colors and does not duplicate step numbers."""
+        # 1. Check CSS stepper rules
+        step_active_match = re.search(r"\.wizard-step-item\.active\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(step_active_match, ".wizard-step-item.active rule not found")
+        active_css = step_active_match.group(1)
+        self.assertNotIn("rgba(45, 212, 191", active_css, "Hardcoded teal must not be in .wizard-step-item.active")
+        self.assertIn("var(--teal)", active_css)
+        self.assertIn("color-mix", active_css)
+
+        connector_active_match = re.search(r"\.wizard-stepper-connector\.active\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(connector_active_match, ".wizard-stepper-connector.active rule not found")
+        connector_css = connector_active_match.group(1)
+        self.assertNotIn("rgba(45, 212, 191", connector_css, "Hardcoded teal must not be in connector")
+        self.assertIn("var(--teal)", connector_css)
+
+        # 2. Check localization strings (no duplicate 1. or 2.)
+        self.assertIn('"wizard.step_search": "Поиск"', self.app_js)
+        self.assertIn('"wizard.step_setup": "Настройка"', self.app_js)
+        self.assertNotIn('"wizard.step_search": "1. Поиск"', self.app_js)
+        self.assertNotIn('"wizard.step_setup": "2. Настройка"', self.app_js)
+
+        self.assertIn('"wizard.step_search": "Search"', self.app_js)
+        self.assertIn('"wizard.step_setup": "Setup"', self.app_js)
+        self.assertNotIn('"wizard.step_search": "1. Search"', self.app_js)
+        self.assertNotIn('"wizard.step_setup": "2. Setup"', self.app_js)
+
+        # 3. Check HTML template
+        self.assertIn('data-i18n="wizard.step_search">Поиск</span>', self.index_html)
+        self.assertIn('data-i18n="wizard.step_setup">Настройка</span>', self.index_html)
+        self.assertNotIn('data-i18n="wizard.step_search">1. Поиск</span>', self.index_html)
+        self.assertNotIn('data-i18n="wizard.step_setup">2. Настройка</span>', self.index_html)
+
+    def test_modal_and_window_close_buttons_circular_animated_red_hover(self):
+        """Ensure all modals and windows have circular close buttons with 90deg rotation and red hover."""
+        # 1. Universal animated hover rule in style.css scoped with :root:not([data-design="servarr"])
+        hover_pattern = r":root:not\(\[data-design=\"servarr\"\]\)\s+\.modal-close:hover[^{]*\{([^}]+)\}"
+        hover_match = re.search(hover_pattern, self.style)
+        self.assertIsNotNone(hover_match, "Universal modal-close hover rule not found")
+        hover_css = hover_match.group(1)
+        self.assertIn("transform: rotate(90deg)", hover_css)
+        self.assertIn("#ff6b6b", hover_css)
+
+        # 2. Base circular border-radius
+        base_pattern = r":root:not\(\[data-design=\"servarr\"\]\)\s+\.modal-close[^{]*\{([^}]+)\}"
+        base_match = re.search(base_pattern, self.style)
+        self.assertIsNotNone(base_match, "Universal modal-close base rule not found")
+        base_css = base_match.group(1)
+        self.assertIn("border-radius: 50%", base_css)
+
+        # 3. Specific modals use modal-close
+        self.assertIn('<button class="modal-close" onclick="closeModal(\'delete-show-modal\')"', self.index_html)
+        self.assertIn('<button class="modal-close" onclick="closeModal(\'ssl-redirect-modal\')"', self.index_html)
+        self.assertIn('<button class="modal-close" onclick="closeModal(\'wizard-modal\')"', self.index_html)
+
+        # 4. Drawers & popups have window-close-btn
+        self.assertIn("tasks-popup-close window-close-btn", self.index_html)
+        self.assertIn("release-drawer-close window-close-btn", self.index_html)
+        self.assertIn("mobile-drawer-close window-close-btn", self.index_html)
+
+    def test_servarr_theme_close_button_strict_isolation(self):
+        """Ensure servarr theme retains static, non-rotating, borderless close button."""
+        servarr_close_match = re.search(r"\[data-design=\"servarr\"\]\s+\.modal-close[^{]*\{([^}]+)\}", self.servarr)
+        self.assertIsNotNone(servarr_close_match, "Servarr modal-close rule not found")
+        servarr_css = servarr_close_match.group(1)
+        self.assertIn("transform: none", servarr_css)
+        self.assertIn("border: 0", servarr_css)
+        self.assertIn("border-radius: 0", servarr_css)
+
+        servarr_hover_match = re.search(r"\[data-design=\"servarr\"\]\s+\.modal-close:hover[^{]*\{([^}]+)\}", self.servarr)
+        self.assertIsNotNone(servarr_hover_match, "Servarr modal-close hover rule not found")
+        servarr_hover_css = servarr_hover_match.group(1)
+        self.assertIn("transform: none", servarr_hover_css)
 
 
 if __name__ == "__main__":

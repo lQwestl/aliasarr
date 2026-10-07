@@ -235,7 +235,7 @@
         </div>
         <div class="brand-name">Aliasarr</div>
       </div>
-      <button class="mobile-drawer-close" onclick="closeMobileMenu()" aria-label="Close">
+      <button class="mobile-drawer-close window-close-btn" onclick="closeMobileMenu()" aria-label="Close">
         <i data-lucide="x"></i>
       </button>
     </div>
@@ -422,7 +422,7 @@
       </div>
       <div class="tasks-popup-actions">
         <button class="btn-icon-only btn-small" onclick="loadTasksStatus(true)" title="Обновить" data-i18n-title="common.refresh"><i data-lucide="refresh-cw" class="ico-sm"></i></button>
-        <button class="btn-icon-only btn-small" onclick="toggleTasksPopup(event)" title="Закрыть" data-i18n-title="common.close"><i data-lucide="x" class="ico-sm"></i></button>
+        <button class="btn-icon-only btn-small tasks-popup-close window-close-btn" onclick="toggleTasksPopup(event)" title="Закрыть" data-i18n-title="common.close"><i data-lucide="x" class="ico-sm"></i></button>
       </div>
     </div>
     <div class="tasks-popup-body">
@@ -5534,12 +5534,12 @@
 <!-- Модалка подтверждения удаления карточки тайтла / сезонов / серий -->
 <div id="delete-show-modal" class="modal-overlay">
   <div class="modal card" style="max-width: 580px; width: 95%;">
+    <button class="modal-close" onclick="closeModal('delete-show-modal')" aria-label="Закрыть" title="Закрыть"><i data-lucide="x"></i></button>
     <div class="card-header-row" style="margin-bottom: 12px;">
       <h3 style="display:flex; align-items:center; gap:8px; margin:0; color:var(--danger);">
         <i data-lucide="trash-2" class="ico-sm"></i>
         <span id="delete-modal-title-text" data-i18n="show.delete_modal_title">Удаление</span>
       </h3>
-      <button class="btn-icon-only" onclick="closeModal('delete-show-modal')"><i data-lucide="x" class="ico-sm"></i></button>
     </div>
 
     <!-- Переключатель режима удаления -->
@@ -5743,7 +5743,7 @@
             <i data-lucide="check" class="wizard-step-check"></i>
           </span>
           <span class="wizard-step-meta">
-            <span class="wizard-step-title" data-i18n="wizard.step_search">1. Поиск</span>
+            <span class="wizard-step-title" data-i18n="wizard.step_search">Поиск</span>
             <span class="wizard-step-sub" data-i18n="wizard.step_search_sub">Выбор тайтла</span>
           </span>
         </button>
@@ -5753,7 +5753,7 @@
             <span class="wizard-step-num">2</span>
           </span>
           <span class="wizard-step-meta">
-            <span class="wizard-step-title" data-i18n="wizard.step_setup">2. Настройка</span>
+            <span class="wizard-step-title" data-i18n="wizard.step_setup">Настройка</span>
             <span class="wizard-step-sub" data-i18n="wizard.step_setup_sub">Параметры и профиль</span>
           </span>
         </button>
@@ -6737,12 +6737,12 @@
 
 <div id="ssl-redirect-modal" class="modal-overlay">
   <div class="modal card" style="max-width: 520px;">
+    <button class="modal-close" onclick="closeModal('ssl-redirect-modal')" aria-label="Закрыть" title="Закрыть"><i data-lucide="x"></i></button>
     <div class="card-header-row" style="margin-bottom: 12px;">
       <h3 id="ssl-redirect-title" style="display:flex; align-items:center; gap:8px; margin:0;">
         <i data-lucide="shield-check" class="ico-sm" style="color:var(--teal);"></i>
         <span>Безопасный протокол HTTPS</span>
       </h3>
-      <button class="btn-icon-only" onclick="closeModal('ssl-redirect-modal')"><i data-lucide="x" class="ico-sm"></i></button>
     </div>
 
     <div style="margin: 14px 0;">
@@ -7238,7 +7238,7 @@
         <p class="subtitle" id="drawer-release-subtitle">Хронология и принятые решения движка</p>
       </div>
     </div>
-    <button class="btn-icon-only release-drawer-close" onclick="closeReleaseHistoryDrawer()" title="Закрыть панель (Esc)">
+    <button class="btn-icon-only release-drawer-close window-close-btn" onclick="closeReleaseHistoryDrawer()" title="Закрыть панель (Esc)">
       <i data-lucide="x" class="ico-sm"></i>
     </button>
   </div>

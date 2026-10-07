@@ -1753,9 +1753,9 @@ const TRANSLATIONS = {
     "manual_import.success": "Файлы успешно импортированы",
 
     // Add Video Wizard
-    "wizard.step_search": "1. Поиск",
+    "wizard.step_search": "Поиск",
     "wizard.step_search_sub": "Выбор тайтла",
-    "wizard.step_setup": "2. Настройка",
+    "wizard.step_setup": "Настройка",
     "wizard.step_setup_sub": "Параметры и профиль",
     "wizard.search_placeholder": "Название, IMDb ID (tt0903747) или ссылка на IMDb…",
     "wizard.search_empty_title": "Найдите фильм, сериал или аниме",
@@ -3503,9 +3503,9 @@ const TRANSLATIONS = {
     "manual_import.success": "Files imported successfully",
 
     // Add Video Wizard
-    "wizard.step_search": "1. Search",
+    "wizard.step_search": "Search",
     "wizard.step_search_sub": "Select title",
-    "wizard.step_setup": "2. Setup",
+    "wizard.step_setup": "Setup",
     "wizard.step_setup_sub": "Parameters and profile",
     "wizard.search_placeholder": "Title, IMDb ID (tt0903747) or IMDb link…",
     "wizard.search_empty_title": "Find movies, series, or anime",
