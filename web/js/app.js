@@ -512,6 +512,11 @@ const TRANSLATIONS = {
     "collections.empty_title": "Коллекции не найдены",
     "collections.empty_desc": "Коллекции и саги фильмов появятся здесь автоматически при добавлении фильмов франшизы.",
     "collections.synced_toast": "Метаданные коллекций синхронизированы",
+    "collections.filter_all": "Все",
+    "collections.filter_incomplete": "Неполные",
+    "collections.filter_complete": "Собраны",
+    "collections.filter_monitored": "Отслеживаемые",
+    "collections.sort_title": "Сортировка саг",
     // Modern Settings Keys
     "settings.interface_subtitle": "Язык, цветовая тема оформления, режим прокрутки и часовой пояс",
     // Modern Modals Keys
@@ -2262,6 +2267,11 @@ const TRANSLATIONS = {
     "collections.empty_title": "No collections found",
     "collections.empty_desc": "Movie collections and sagas will appear here automatically when adding movies from a franchise.",
     "collections.synced_toast": "Collections metadata synced",
+    "collections.filter_all": "All",
+    "collections.filter_incomplete": "Incomplete",
+    "collections.filter_complete": "Complete",
+    "collections.filter_monitored": "Monitored",
+    "collections.sort_title": "Sort sagas",
     // Modern Settings Keys
     "settings.interface_subtitle": "Language, color theme, scrollbar mode and timezone",
     // Modern Modals Keys
@@ -7121,6 +7131,9 @@ let LIBRARY_SORT_DIRECTION = localStorage.getItem("aliasarr_library_sort_directi
 let LIBRARY_CATEGORY_FILTER = localStorage.getItem("aliasarr_library_cat") || "all";
 let LIBRARY_MONITOR_FILTER = localStorage.getItem("aliasarr_library_mon") || "all";
 let CACHED_COLLECTIONS = [];
+let COLLECTIONS_FILTER = localStorage.getItem("aliasarr_collections_filter") || "all";
+let COLLECTIONS_SORT = localStorage.getItem("aliasarr_collections_sort") || "title_asc";
+let LAST_FILTERED_COLLECTIONS = [];
 
 function setLibraryCategory(category) {
   if (LIBRARY_CATEGORY_FILTER === category && category !== "all") {
@@ -8360,6 +8373,24 @@ async function refreshAllCollections() {
   }
 }
 
+function selectCollectionsFilter(filterKey) {
+  COLLECTIONS_FILTER = filterKey || "all";
+  try { localStorage.setItem("aliasarr_collections_filter", COLLECTIONS_FILTER); } catch (e) {}
+  const container = document.getElementById("collections-filter-control");
+  if (container) {
+    container.querySelectorAll(".segmented-capsule-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.filter === COLLECTIONS_FILTER);
+    });
+  }
+  renderCollectionsView();
+}
+
+function onCollectionsSortChange(sortVal) {
+  COLLECTIONS_SORT = sortVal || "title_asc";
+  try { localStorage.setItem("aliasarr_collections_sort", COLLECTIONS_SORT); } catch (e) {}
+  renderCollectionsView();
+}
+
 async function renderCollectionsView(query = "", force = false) {
   const collectionsGrid = document.getElementById("collections-grid");
   if (!collectionsGrid) return;
@@ -8377,8 +8408,83 @@ async function renderCollectionsView(query = "", force = false) {
   }
 
   const collections = await loadCollections(force);
-  let filtered = collections || [];
+  const allColls = collections || [];
 
+  // Update stats summary counter and filter counts
+  const totalSagas = allColls.length;
+  let completeCount = 0;
+  let incompleteCount = 0;
+  let monitoredCount = 0;
+  let missingPartsTotal = 0;
+
+  allColls.forEach(c => {
+    const totalParts = c.parts_count || c.shows_count || 0;
+    const downloaded = c.downloaded_count || 0;
+    const missing = c.missing_count !== undefined ? c.missing_count : Math.max(0, totalParts - downloaded);
+    const isComplete = missing === 0 && (totalParts === 0 || downloaded >= totalParts);
+    if (isComplete) completeCount++;
+    else incompleteCount++;
+    if (c.monitored) monitoredCount++;
+    missingPartsTotal += missing;
+  });
+
+  const statsCounterEl = document.getElementById("collections-stats-counter");
+  if (statsCounterEl) {
+    if (totalSagas > 0) {
+      statsCounterEl.textContent = CURRENT_LANG === "en"
+        ? `• ${totalSagas} sagas • ${completeCount} complete • ${missingPartsTotal} missing`
+        : `• ${totalSagas} саг • ${completeCount} собрано • ${missingPartsTotal} не хватает`;
+    } else {
+      statsCounterEl.textContent = "";
+    }
+  }
+
+  // Update badges on segmented filter control
+  const cAll = document.getElementById("coll-filter-count-all");
+  const cInc = document.getElementById("coll-filter-count-incomplete");
+  const cComp = document.getElementById("coll-filter-count-complete");
+  const cMon = document.getElementById("coll-filter-count-monitored");
+  if (cAll) cAll.textContent = totalSagas;
+  if (cInc) cInc.textContent = incompleteCount;
+  if (cComp) cComp.textContent = completeCount;
+  if (cMon) cMon.textContent = monitoredCount;
+
+  // Sync active state on segmented filter buttons
+  const filterControl = document.getElementById("collections-filter-control");
+  if (filterControl) {
+    filterControl.querySelectorAll(".segmented-capsule-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.filter === COLLECTIONS_FILTER);
+    });
+  }
+
+  // Sync sort select
+  const sortSelect = document.getElementById("collections-sort-select");
+  if (sortSelect && sortSelect.value !== COLLECTIONS_SORT) {
+    sortSelect.value = COLLECTIONS_SORT;
+  }
+
+  let filtered = allColls;
+
+  // 1. Filter by chip
+  if (COLLECTIONS_FILTER === "incomplete") {
+    filtered = filtered.filter(c => {
+      const totalParts = c.parts_count || c.shows_count || 0;
+      const downloaded = c.downloaded_count || 0;
+      const missing = c.missing_count !== undefined ? c.missing_count : Math.max(0, totalParts - downloaded);
+      return missing > 0 || (totalParts > 0 && downloaded < totalParts);
+    });
+  } else if (COLLECTIONS_FILTER === "complete") {
+    filtered = filtered.filter(c => {
+      const totalParts = c.parts_count || c.shows_count || 0;
+      const downloaded = c.downloaded_count || 0;
+      const missing = c.missing_count !== undefined ? c.missing_count : Math.max(0, totalParts - downloaded);
+      return missing === 0 && (totalParts === 0 || downloaded >= totalParts);
+    });
+  } else if (COLLECTIONS_FILTER === "monitored") {
+    filtered = filtered.filter(c => !!c.monitored);
+  }
+
+  // 2. Search query filter
   if (q) {
     filtered = filtered.filter(c => {
       const dispTitle = getCollectionDisplayTitle(c);
@@ -8387,6 +8493,39 @@ async function renderCollectionsView(query = "", force = false) {
         (c.overview && c.overview.toLowerCase().includes(q));
     });
   }
+
+  // 3. Sorting
+  filtered = [...filtered].sort((a, b) => {
+    const titleA = (getCollectionDisplayTitle(a) || a.title || "").toLowerCase();
+    const titleB = (getCollectionDisplayTitle(b) || b.title || "").toLowerCase();
+    const partsA = a.parts_count || a.shows_count || 0;
+    const partsB = b.parts_count || b.shows_count || 0;
+    const dlA = a.downloaded_count || 0;
+    const dlB = b.downloaded_count || 0;
+    const pctA = partsA > 0 ? (dlA / partsA) : 0;
+    const pctB = partsB > 0 ? (dlB / partsB) : 0;
+    const missingA = a.missing_count !== undefined ? a.missing_count : Math.max(0, partsA - dlA);
+    const missingB = b.missing_count !== undefined ? b.missing_count : Math.max(0, partsB - dlB);
+
+    switch (COLLECTIONS_SORT) {
+      case "title_desc":
+        return titleB.localeCompare(titleA, "ru");
+      case "progress_desc":
+        if (pctB !== pctA) return pctB - pctA;
+        return titleA.localeCompare(titleB, "ru");
+      case "parts_desc":
+        if (partsB !== partsA) return partsB - partsA;
+        return titleA.localeCompare(titleB, "ru");
+      case "missing_desc":
+        if (missingB !== missingA) return missingB - missingA;
+        return titleA.localeCompare(titleB, "ru");
+      case "title_asc":
+      default:
+        return titleA.localeCompare(titleB, "ru");
+    }
+  });
+
+  LAST_FILTERED_COLLECTIONS = filtered;
 
   const alphaIndex = document.getElementById("collections-alphabet-index");
 
@@ -8587,8 +8726,111 @@ function renderCollectionCard(coll) {
 
 let CURRENT_COLLECTION_ID = null;
 
+function getActiveCollectionsList() {
+  if (Array.isArray(LAST_FILTERED_COLLECTIONS) && LAST_FILTERED_COLLECTIONS.length > 0) {
+    return LAST_FILTERED_COLLECTIONS;
+  }
+  return Array.isArray(CACHED_COLLECTIONS) ? CACHED_COLLECTIONS : [];
+}
+
+function updateCollectionModalNavButtons(currId) {
+  const prevBtn = document.getElementById("collection-modal-prev-btn");
+  const nextBtn = document.getElementById("collection-modal-next-btn");
+  if (!prevBtn || !nextBtn) return;
+  const list = getActiveCollectionsList();
+  if (!list.length || list.length <= 1) {
+    prevBtn.style.display = "none";
+    nextBtn.style.display = "none";
+    return;
+  }
+  prevBtn.style.display = "inline-flex";
+  nextBtn.style.display = "inline-flex";
+
+  const idx = list.findIndex(c => c.id === currId);
+  if (idx !== -1) {
+    const prevIdx = (idx - 1 + list.length) % list.length;
+    const nextIdx = (idx + 1) % list.length;
+    const prevTitle = getCollectionDisplayTitle(list[prevIdx]) || list[prevIdx].title || "";
+    const nextTitle = getCollectionDisplayTitle(list[nextIdx]) || list[nextIdx].title || "";
+    prevBtn.title = (CURRENT_LANG === "en" ? `Previous: ${prevTitle} (←)` : `Предыдущая: ${prevTitle} (←)`);
+    nextBtn.title = (CURRENT_LANG === "en" ? `Next: ${nextTitle} (→)` : `Следующая: ${nextTitle} (→)`);
+  }
+}
+
+function navigateCollectionModal(delta) {
+  const list = getActiveCollectionsList();
+  if (!list || list.length <= 1) return;
+  const idx = list.findIndex(c => c.id === CURRENT_COLLECTION_ID);
+  if (idx === -1) return;
+  const newIdx = (idx + delta + list.length) % list.length;
+  const target = list[newIdx];
+  if (target && target.id) {
+    openCollectionModal(target.id);
+  }
+}
+
+async function toggleCollectionMonitored(collId, el) {
+  if (!hasPermission("manage_library")) return;
+  const collInCache = (CACHED_COLLECTIONS || []).find(c => c.id === collId);
+  const currentVal = collInCache ? !!collInCache.monitored : (el && el.classList.contains("is-monitored"));
+  const newVal = !currentVal;
+  if (el) {
+    el.style.opacity = "0.6";
+    el.style.pointerEvents = "none";
+  }
+  try {
+    await api(`/api/v1/collections/${collId}`, {
+      method: "PUT",
+      body: JSON.stringify({ monitored: newVal })
+    });
+    if (collInCache) collInCache.monitored = newVal;
+    toast(newVal
+      ? (CURRENT_LANG === "en" ? "Franchise set to monitored" : "Сага переведена в отслеживаемые")
+      : (CURRENT_LANG === "en" ? "Franchise unmonitored" : "Мониторинг саги отключен"),
+      "info"
+    );
+    await openCollectionModal(collId);
+    if (typeof CURRENT_TAB !== "undefined" && CURRENT_TAB === "collections") {
+      renderCollectionsView();
+    }
+  } catch (err) {
+    toast((CURRENT_LANG === "en" ? "Failed to update monitored state: " : "Ошибка обновления мониторинга: ") + err.message, "danger");
+    if (el) {
+      el.style.opacity = "";
+      el.style.pointerEvents = "";
+    }
+  }
+}
+
+async function searchMissingCollectionMovies(collId, btnEl) {
+  if (!hasPermission("manage_library")) return;
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = `<i data-lucide="loader-2" class="status-pill-spin ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Searching...' : 'Поиск...'}</span>`;
+    if (window.lucide) lucide.createIcons();
+  }
+  try {
+    const res = await api(`/api/v1/collections/${collId}/search-missing`, { method: "POST" });
+    const count = res.missing_count || 0;
+    toast(CURRENT_LANG === "en"
+      ? `Automated search launched for ${count} movies`
+      : `Запущен автопоиск для ${count} нескачанных фильмов`,
+      "success"
+    );
+  } catch (err) {
+    toast((CURRENT_LANG === "en" ? "Search failed: " : "Ошибка поиска: ") + err.message, "danger");
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = `<i data-lucide="search" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Search files' : 'Искать файлы'}</span>`;
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+}
+
 async function openCollectionModal(collectionId) {
   CURRENT_COLLECTION_ID = collectionId;
+  updateCollectionModalNavButtons(collectionId);
   const content = document.getElementById("collection-modal-content");
   if (!content) return;
   content.innerHTML = renderRaysLoaderHtml(
@@ -8611,6 +8853,7 @@ async function openCollectionModal(collectionId) {
 
     const parts = coll.franchise_parts || [];
     const missingCount = coll.missing_count !== undefined ? coll.missing_count : parts.filter(p => !p.in_library).length;
+    const undownloadedInLib = parts.filter(p => p.in_library && !p.is_downloaded).length;
     const canManageLib = hasPermission("manage_library");
     const effectiveQpId = coll.quality_profile_id || (coll.shows && coll.shows.find(s => s.quality_profile_id)?.quality_profile_id) || (CACHED_QUALITY_PROFILES && CACHED_QUALITY_PROFILES[0]?.id) || null;
 
@@ -8642,7 +8885,7 @@ async function openCollectionModal(collectionId) {
                 ${coll.poster_url ? "" : `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:800;color:var(--text-muted);"><i data-lucide="boxes"></i></div>`}
               </div>
             </div>
-            ${canManageLib && (coll.tmdb_collection_id || missingCount > 0) ? `
+            ${canManageLib && (coll.tmdb_collection_id || missingCount > 0 || undownloadedInLib > 0) ? `
               <div class="collection-hero-poster-actions">
                 ${coll.tmdb_collection_id ? `
                   <button class="btn btn-secondary btn-small" id="btn-refresh-collection-${coll.id}" onclick="refreshCollectionMetadata(${coll.id}, this)" title="${CURRENT_LANG === 'en' ? 'Refresh franchise metadata from TMDb' : 'Обновить метаданные саги из TMDb'}">
@@ -8651,9 +8894,15 @@ async function openCollectionModal(collectionId) {
                   </button>
                 ` : ""}
                 ${missingCount > 0 ? `
-                  <button class="btn btn-primary btn-small" id="btn-import-missing-${coll.id}" onclick="importMissingFranchiseMovies(${coll.id}, this)">
+                  <button class="btn btn-primary btn-small" id="btn-import-missing-${coll.id}" onclick="importMissingFranchiseMovies(${coll.id}, this)" title="${CURRENT_LANG === 'en' ? 'Add missing movies from TMDb to library' : 'Добавить недостающие фильмы саги в медиатеку'}">
                     <i data-lucide="download-cloud" class="ico-xs"></i>
                     <span>${t("collection.btn_import_missing")} (${missingCount})</span>
+                  </button>
+                ` : ""}
+                ${undownloadedInLib > 0 ? `
+                  <button class="btn btn-secondary btn-small" id="btn-search-missing-${coll.id}" onclick="searchMissingCollectionMovies(${coll.id}, this)" title="${CURRENT_LANG === 'en' ? 'Trigger automated search for movies missing on disk' : 'Запустить автопоиск файлов для нескачанных фильмов франшизы'}">
+                    <i data-lucide="search" class="ico-xs text-teal"></i>
+                    <span>${CURRENT_LANG === 'en' ? 'Search' : 'Искать'} (${undownloadedInLib})</span>
                   </button>
                 ` : ""}
               </div>
@@ -8671,6 +8920,17 @@ async function openCollectionModal(collectionId) {
               ${avgRating ? `<span class="meta-pill meta-pill-rating"><i data-lucide="award" class="ico-xxs"></i> ${avgRating}</span>` : ""}
               <span class="meta-pill mono meta-pill-in-lib"><i data-lucide="film" class="ico-xs"></i> ${coll.shows_count} ${t("collection.in_library")}</span>
               ${missingCount > 0 ? `<span class="meta-pill mono text-warning"><i data-lucide="circle-dashed" class="ico-xs"></i> ${missingCount} ${t("collection.missing")}</span>` : `<span class="meta-pill meta-pill-status status-complete"><i data-lucide="check-circle-2" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Collection Complete' : 'Коллекция собрана'}</span></span>`}
+              ${canManageLib ? `
+                <span class="meta-pill meta-pill-monitored ${coll.monitored ? 'is-monitored' : 'is-unmonitored'}" onclick="toggleCollectionMonitored(${coll.id}, this)" title="${CURRENT_LANG === 'en' ? 'Click to toggle franchise monitoring' : 'Нажмите, чтобы переключить отслеживание саги'}">
+                  <i data-lucide="${coll.monitored ? 'bookmark-check' : 'bookmark-minus'}" class="ico-xxs"></i>
+                  <span>${coll.monitored ? (CURRENT_LANG === 'en' ? 'Monitored' : 'Отслеживается') : (CURRENT_LANG === 'en' ? 'Unmonitored' : 'Не отслеживается')}</span>
+                </span>
+              ` : `
+                <span class="meta-pill mono ${coll.monitored ? 'text-teal' : 'text-muted'}">
+                  <i data-lucide="${coll.monitored ? 'bookmark-check' : 'bookmark-minus'}" class="ico-xxs"></i>
+                  <span>${coll.monitored ? (CURRENT_LANG === 'en' ? 'Monitored' : 'Отслеживается') : (CURRENT_LANG === 'en' ? 'Unmonitored' : 'Не отслеживается')}</span>
+                </span>
+              `}
               ${canManageLib ? `
                 <div style="display:inline-flex; align-items:center; gap:6px; margin-left:auto;">
                   <span style="font-size:11.5px; color:var(--text-muted); font-weight:500;">
@@ -8712,9 +8972,25 @@ async function openCollectionModal(collectionId) {
         ${parts.map((p, idx) => {
           const partPosterStyle = safeBackgroundImageStyle(p.poster_url);
           const isInLib = p.in_library;
-          const statusBadge = isInLib
-            ? `<span class="badge badge-success" style="font-size:11px;"><i data-lucide="check" class="ico-xxs"></i> ${t("collection.status_in_lib")}</span>`
-            : `<span class="badge badge-secondary" style="font-size:11px; color:var(--text-muted);"><i data-lucide="circle-dashed" class="ico-xxs"></i> ${t("collection.status_missing")}</span>`;
+          const isDl = !!p.is_downloaded;
+          let statusBadge = "";
+          if (isInLib) {
+            if (isDl) {
+              statusBadge = `<span class="badge franchise-part-badge-disk" style="font-size:11px;"><i data-lucide="hard-drive" class="ico-xxs"></i> ${CURRENT_LANG === 'en' ? 'On disk' : 'На диске'}</span>`;
+            } else {
+              statusBadge = `<span class="badge franchise-part-badge-queue" style="font-size:11px;"><i data-lucide="clock" class="ico-xxs"></i> ${CURRENT_LANG === 'en' ? 'In queue' : 'В очереди'}</span>`;
+            }
+          } else {
+            statusBadge = `<span class="badge badge-secondary" style="font-size:11px; color:var(--text-muted);"><i data-lucide="circle-dashed" class="ico-xxs"></i> ${t("collection.status_missing")}</span>`;
+          }
+
+          const qualityBadge = (isDl && p.file_quality)
+            ? `<span class="meta-pill mono franchise-part-quality" style="font-size:11px; padding:2px 7px;"><i data-lucide="sparkles" class="ico-xxs text-teal"></i> ${escapeHtml(p.file_quality)}</span>`
+            : "";
+          const sizeBadge = (isDl && p.file_size_bytes)
+            ? `<span class="meta-pill mono franchise-part-size" style="font-size:11px; padding:2px 6px;">${formatBytes(p.file_size_bytes)}</span>`
+            : "";
+
           const rowClickAttr = isInLib && p.show_id ? `onclick="if (!event.target.closest('button, a, select, input')) { closeModal('collection-modal'); openShowModal(${p.show_id}); }"` : "";
 
           return `
@@ -8729,6 +9005,8 @@ async function openCollectionModal(collectionId) {
                   ${p.year ? `<span class="meta-pill mono" style="font-size:11px; padding:2px 6px;"><i data-lucide="calendar" class="ico-xxs"></i> ${p.year}</span>` : ""}
                   ${p.rating ? `<span class="meta-pill meta-pill-rating" style="font-size:11px; padding:2px 6px;"><i data-lucide="award" class="ico-xxs"></i> ${Number(p.rating).toFixed(1)}</span>` : ""}
                   ${statusBadge}
+                  ${qualityBadge}
+                  ${sizeBadge}
                 </div>
                 ${p.overview ? `<p class="franchise-part-overview">${escapeHtml(p.overview)}</p>` : ""}
               </div>
@@ -10482,8 +10760,26 @@ async function refreshShowModal() {
 
             <div class="show-hero-badges-row">
               ${show.collection_id && show.collection_title ? `
-                <span class="show-collection-chip" onclick="openCollectionModal(${show.collection_id})" title="${CURRENT_LANG === 'en' ? 'Part of Collection' : 'Входит в коллекцию'}">
-                  <i data-lucide="boxes" class="ico-xs"></i> <span>${escapeHtml(show.collection_title)}</span>
+                <span class="show-collection-chip" onclick="openCollectionModal(${show.collection_id})" title="${CURRENT_LANG === 'en' ? 'Part of Collection • Click to view franchise' : 'Входит в коллекцию • Нажмите, чтобы открыть сагу'}">
+                  <i data-lucide="boxes" class="ico-xs"></i> <span>${(function() {
+                    const collName = escapeHtml(show.collection_title);
+                    let partInfo = "";
+                    if (show.collection_order) {
+                      partInfo = CURRENT_LANG === 'en' ? `Part ${show.collection_order}` : `Часть ${show.collection_order}`;
+                    }
+                    if (Array.isArray(CACHED_COLLECTIONS)) {
+                      const cached = CACHED_COLLECTIONS.find(c => c.id === show.collection_id);
+                      if (cached && (cached.parts_count || cached.shows_count)) {
+                        const totalP = cached.parts_count || cached.shows_count;
+                        if (show.collection_order) {
+                          partInfo = CURRENT_LANG === 'en' ? `Part ${show.collection_order} of ${totalP}` : `Часть ${show.collection_order} из ${totalP}`;
+                        } else {
+                          partInfo = `${cached.shows_count || 1}/${totalP}`;
+                        }
+                      }
+                    }
+                    return (partInfo ? partInfo + " • " : "") + collName;
+                  })()}</span>
                 </span>
               ` : ""}
               ${show.path ? `
@@ -25118,6 +25414,16 @@ document.addEventListener("keydown", (e) => {
       if (colSearchInput) {
         colSearchInput.focus();
         colSearchInput.select();
+      }
+    }
+  }
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    const collModal = document.getElementById("collection-modal");
+    if (collModal && collModal.classList.contains("active")) {
+      const tag = (document.activeElement && document.activeElement.tagName) || "";
+      if (tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT") {
+        e.preventDefault();
+        navigateCollectionModal(e.key === "ArrowLeft" ? -1 : 1);
       }
     }
   }

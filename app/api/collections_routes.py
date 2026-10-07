@@ -38,6 +38,9 @@ class FranchisePart(BaseModel):
     in_library: bool = False
     show_id: Optional[int] = None
     show_status: Optional[str] = None
+    file_quality: Optional[str] = None
+    file_size_bytes: Optional[int] = None
+    is_downloaded: bool = False
 
 
 class MovieCollectionDetailOut(BaseModel):
@@ -283,10 +286,16 @@ async def get_collection_detail(
             in_lib = matched_show is not None
             show_st = None
             show_id_val = None
+            file_qual = None
+            f_size = None
+            is_dl = False
             if matched_show:
                 show_id_val = matched_show.id
                 ep = db.query(Episode).filter(Episode.show_id == matched_show.id).first()
                 show_st = ep.status if ep else "wanted"
+                is_dl = bool(ep and ep.status == "downloaded")
+                file_qual = (ep.quality if (ep and ep.quality) else None) or (matched_show.edition if getattr(matched_show, "edition", None) else None)
+                f_size = (ep.file_size if (ep and ep.file_size) else None) or getattr(matched_show, "size_on_disk_bytes", 0) or None
 
             part_ov = part.get("overview")
             if not part_ov and matched_show and matched_show.overview:
@@ -308,6 +317,9 @@ async def get_collection_detail(
                     in_library=in_lib,
                     show_id=show_id_val,
                     show_status=show_st,
+                    file_quality=file_qual,
+                    file_size_bytes=f_size,
+                    is_downloaded=is_dl,
                 )
             )
 
@@ -318,6 +330,9 @@ async def get_collection_detail(
             tmdb_id_val = int(clean_id) if clean_id.isdigit() else (s.tmdb_id or s.id or 0)
             ep = db.query(Episode).filter(Episode.show_id == s.id).first()
             show_st = ep.status if ep else "wanted"
+            is_dl = bool(ep and ep.status == "downloaded")
+            file_qual = (ep.quality if (ep and ep.quality) else None) or (s.edition if getattr(s, "edition", None) else None)
+            f_size = (ep.file_size if (ep and ep.file_size) else None) or getattr(s, "size_on_disk_bytes", 0) or None
             rel_date = None
             if s.premiere_date:
                 rel_date = s.premiere_date.strftime("%Y-%m-%d")
@@ -336,6 +351,9 @@ async def get_collection_detail(
                     in_library=True,
                     show_id=s.id,
                     show_status=show_st,
+                    file_quality=file_qual,
+                    file_size_bytes=f_size,
+                    is_downloaded=is_dl,
                 )
             )
 
@@ -872,3 +890,56 @@ async def import_missing_collection_movies(
         "added_count": len(added_shows),
         "added_shows": added_shows,
     }
+
+
+@router.post("/{collection_id}/search-missing")
+async def search_missing_collection_movies(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_permission("manual_search")),
+):
+    """Запустить принудительный автопоиск для всех нескачанных фильмов саги."""
+    import asyncio
+    from app.database import SessionLocal
+    from app.services.auto_search import search_and_grab_show, clear_rejected_cache_for_show
+
+    coll = db.get(MovieCollection, collection_id)
+    if not coll:
+        raise HTTPException(404, "Movie collection not found")
+
+    shows = db.query(Show).filter(Show.collection_id == collection_id).all()
+    if not shows:
+        return {"searched": 0, "grabbed": 0, "message": "Фильмы коллекции не найдены"}
+
+    shows_to_search = []
+    for s in shows:
+        ep = db.query(Episode).filter(Episode.show_id == s.id).first()
+        if not ep or ep.status != "downloaded":
+            shows_to_search.append(s.id)
+
+    if not shows_to_search:
+        return {"searched": 0, "grabbed": 0, "message": "Все добавленные фильмы саги уже скачаны"}
+
+    for sid in shows_to_search:
+        clear_rejected_cache_for_show(sid, db)
+
+        async def _bg_search_part(target_id=sid):
+            bg_db = SessionLocal()
+            try:
+                s_obj = bg_db.get(Show, target_id)
+                if s_obj:
+                    await search_and_grab_show(bg_db, s_obj)
+            except Exception as exc:
+                logger.debug("Background auto-search on movie %s failed: %s", target_id, exc)
+            finally:
+                bg_db.close()
+
+        asyncio.create_task(_bg_search_part())
+
+    return {
+        "success": True,
+        "collection_id": collection_id,
+        "searched": len(shows_to_search),
+        "message": f"Запущен фоновый поиск для {len(shows_to_search)} фильмов саги",
+    }
+

@@ -340,17 +340,17 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
         self.assertIn("color: #f8fafc", overview_css)
         self.assertIn("text-shadow:", overview_css)
 
-        # 4. Title row padding-right for close button isolation
+        # 4. Title row padding-right for close & nav buttons isolation
         title_row_match = re.search(r"(?:^|\n)\.collection-hero-title-row\s*\{([^}]+)\}", self.style)
         self.assertIsNotNone(title_row_match, ".collection-hero-title-row rule not found")
-        self.assertIn("padding-right: 52px", title_row_match.group(1))
+        self.assertIn("padding-right: 120px", title_row_match.group(1))
 
         # 5. Franchise parts enlarged poster & 2-line overview
         part_poster_match = re.search(r"(?:^|\n)\.franchise-part-poster\s*\{([^}]+)\}", self.style)
         self.assertIsNotNone(part_poster_match, ".franchise-part-poster rule not found")
         part_poster_css = part_poster_match.group(1)
-        self.assertIn("width: 76px", part_poster_css)
-        self.assertIn("height: 114px", part_poster_css)
+        self.assertIn("width: 90px", part_poster_css)
+        self.assertIn("height: 135px", part_poster_css)
 
         part_overview_match = re.search(r"\.franchise-part-overview\s*\{([^}]+)\}", self.style)
         self.assertIsNotNone(part_overview_match, ".franchise-part-overview rule not found")
@@ -365,6 +365,40 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
         self.assertIn("franchise-progress-pill", self.app_js)
         self.assertIn("franchise-part-index", self.app_js)
         self.assertIn("franchise-part-row ${isInLib ? 'is-in-library' : ''}", self.app_js)
+
+    def test_collection_modal_navigation_and_toolbar_features(self):
+        """Ensure saga gallery navigation, monitored toggle, search-missing, chip filters, and stats exist."""
+        # 1. Navigation controls in HTML and JS
+        self.assertIn("collection-modal-nav-wrap", self.index_html)
+        self.assertIn("collection-modal-prev-btn", self.index_html)
+        self.assertIn("collection-modal-next-btn", self.index_html)
+        self.assertIn("function navigateCollectionModal", self.app_js)
+        self.assertIn("function updateCollectionModalNavButtons", self.app_js)
+
+        # 2. Monitored toggle and search-missing
+        self.assertIn("function toggleCollectionMonitored", self.app_js)
+        self.assertIn("function searchMissingCollectionMovies", self.app_js)
+        self.assertIn("meta-pill-monitored", self.style)
+        self.assertIn("meta-pill-monitored", self.app_js)
+
+        # 3. Badges for franchise parts (disk / queue / quality / size)
+        self.assertIn("franchise-part-badge-disk", self.style)
+        self.assertIn("franchise-part-badge-queue", self.style)
+        self.assertIn("franchise-part-quality", self.style)
+        self.assertIn("franchise-part-badge-disk", self.app_js)
+        self.assertIn("franchise-part-badge-queue", self.app_js)
+        self.assertIn("franchise-part-quality", self.app_js)
+
+        # 4. Collections segmented filter & sorting in HTML and JS
+        self.assertIn("collections-filter-control", self.index_html)
+        self.assertIn("collections-sort-select", self.index_html)
+        self.assertIn("collections-stats-counter", self.index_html)
+        self.assertIn("function selectCollectionsFilter", self.app_js)
+        self.assertIn("function onCollectionsSortChange", self.app_js)
+
+        # 5. Library card collection chip displays part number
+        self.assertIn("show-collection-chip", self.app_js)
+        self.assertIn("Part ${show.collection_order}", self.app_js)
 
 
 if __name__ == "__main__":

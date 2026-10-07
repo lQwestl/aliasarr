@@ -18755,8 +18755,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 .collection-card:hover {
   transform: translateY(-4px);
-  border-color: var(--teal);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 0 16px color-mix(in srgb, var(--teal) 22%, transparent);
+  border-color: var(--primary, var(--accent, var(--teal)));
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 0 16px color-mix(in srgb, var(--primary, var(--teal)) 24%, transparent);
 }
 
 .collection-card .collection-poster-wrap {
@@ -18879,6 +18879,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 /* Collection Detail Modal / Drawer */
 .collection-hero {
   position: relative;
+  width: 100% !important;
   border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
   overflow: visible !important;
   background: transparent !important;
@@ -18890,6 +18891,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .collection-hero-backdrop-wrap {
   position: absolute;
   inset: 0;
+  width: 100%;
   border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
   overflow: hidden;
   pointer-events: none;
@@ -18899,6 +18901,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .collection-hero-backdrop {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   background-size: cover;
   background-position: center 25%;
   filter: none !important;
@@ -18912,8 +18916,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .collection-hero-gradient {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   background:
-    linear-gradient(90deg, rgba(8, 12, 22, 0.90) 0%, rgba(8, 12, 22, 0.80) 35%, rgba(8, 12, 22, 0.62) 70%, rgba(8, 12, 22, 0.32) 100%),
+    linear-gradient(90deg, rgba(8, 12, 22, 0.84) 0%, rgba(8, 12, 22, 0.65) 35%, rgba(8, 12, 22, 0.35) 70%, rgba(8, 12, 22, 0.15) 100%),
     linear-gradient(0deg, var(--panel) 0%, transparent 45%),
     linear-gradient(180deg, rgba(8, 12, 22, 0.35) 0%, transparent 25%);
   z-index: 2;
@@ -18924,7 +18930,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 :root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .collection-hero-gradient {
   background:
-    linear-gradient(90deg, rgba(248, 250, 252, 0.94) 0%, rgba(248, 250, 252, 0.84) 35%, rgba(248, 250, 252, 0.70) 70%, rgba(248, 250, 252, 0.38) 100%),
+    linear-gradient(90deg, rgba(248, 250, 252, 0.88) 0%, rgba(248, 250, 252, 0.72) 35%, rgba(248, 250, 252, 0.40) 70%, rgba(248, 250, 252, 0.15) 100%),
     linear-gradient(0deg, var(--panel) 0%, transparent 45%),
     linear-gradient(180deg, rgba(248, 250, 252, 0.35) 0%, transparent 25%);
 }
@@ -19051,7 +19057,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding-right: 52px;
+  padding-right: 120px;
   box-sizing: border-box;
 }
 
@@ -19086,6 +19092,104 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 :root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .collection-hero-overview {
   color: #0f172a;
   text-shadow: none;
+}
+
+/* Modal Gallery Navigation Wrap (‹, ›, ✕) */
+:root:not([data-design="servarr"]) .collection-modal-nav-wrap {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  z-index: 35;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+:root:not([data-design="servarr"]) .collection-modal-nav-wrap .modal-close {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+}
+:root:not([data-design="servarr"]) .modal-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50% !important;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f8fafc;
+  backdrop-filter: var(--glass-blur, blur(8px));
+  -webkit-backdrop-filter: var(--glass-blur, blur(8px));
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease !important;
+  padding: 0;
+  font-size: 16px;
+  outline: none;
+  flex-shrink: 0;
+}
+:root:not([data-design="servarr"]) .modal-nav-btn i,
+:root:not([data-design="servarr"]) .modal-nav-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.2;
+}
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .modal-nav-btn {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: #1e293b;
+}
+:root:not([data-design="servarr"]) .modal-nav-btn:hover {
+  background: color-mix(in srgb, var(--primary, var(--teal)) 25%, transparent) !important;
+  border-color: var(--primary, var(--teal)) !important;
+  color: #ffffff !important;
+  transform: scale(1.08) !important;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--primary, var(--teal)) 30%, transparent) !important;
+}
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .modal-nav-btn:hover {
+  background: color-mix(in srgb, var(--primary, #0284c7) 15%, transparent) !important;
+  border-color: var(--primary, #0284c7) !important;
+  color: var(--primary, #0284c7) !important;
+  transform: scale(1.08) !important;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--primary, #0284c7) 20%, transparent) !important;
+}
+:root:not([data-design="servarr"]) .modal-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Monitored Toggle Pill in Meta Bar */
+:root:not([data-design="servarr"]) .meta-pill-monitored {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+:root:not([data-design="servarr"]) .meta-pill-monitored.is-monitored {
+  background: color-mix(in srgb, var(--primary, var(--teal)) 15%, transparent);
+  border-color: color-mix(in srgb, var(--primary, var(--teal)) 35%, transparent);
+  color: var(--primary, var(--teal));
+}
+:root:not([data-design="servarr"]) .meta-pill-monitored.is-monitored:hover {
+  background: color-mix(in srgb, var(--primary, var(--teal)) 25%, transparent);
+  border-color: var(--primary, var(--teal));
+  transform: translateY(-1px);
+}
+:root:not([data-design="servarr"]) .meta-pill-monitored.is-unmonitored {
+  background: var(--panel-alt);
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+:root:not([data-design="servarr"]) .meta-pill-monitored.is-unmonitored:hover {
+  background: rgba(148, 163, 184, 0.15);
+  border-color: var(--border-hover);
+  color: var(--text);
+  transform: translateY(-1px);
 }
 
 /* Franchise Progress Badge in Header */
@@ -19139,8 +19243,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 
 .franchise-part-row:hover {
   background: var(--panel-alt);
-  border-color: var(--teal);
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--teal) 14%, transparent);
+  border-color: var(--primary, var(--teal));
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--primary, var(--teal)) 14%, transparent);
   transform: translateY(-2px);
 }
 
@@ -19149,15 +19253,16 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .franchise-part-poster {
-  width: 76px;
-  height: 114px;
+  width: 90px;
+  min-width: 90px;
+  height: 135px;
   aspect-ratio: 2 / 3;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   flex-shrink: 0;
   background-color: var(--panel-alt);
   overflow: hidden;
@@ -19187,8 +19292,44 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   font-family: var(--font-mono);
   font-weight: 800;
   font-size: 13px;
-  color: var(--teal);
+  color: var(--primary, var(--teal));
   min-width: 24px;
+}
+
+:root:not([data-design="servarr"]) .franchise-part-badge-disk {
+  background: color-mix(in srgb, var(--success, #22c55e) 15%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--success, #22c55e) 30%, transparent) !important;
+  color: var(--success, #34d399) !important;
+}
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .franchise-part-badge-disk {
+  color: #16a34a !important;
+}
+
+:root:not([data-design="servarr"]) .franchise-part-badge-queue {
+  background: color-mix(in srgb, var(--warning, #fbbf24) 15%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--warning, #fbbf24) 30%, transparent) !important;
+  color: var(--warning, #fbbf24) !important;
+}
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .franchise-part-badge-queue {
+  color: #d97706 !important;
+}
+
+:root:not([data-design="servarr"]) .franchise-part-quality {
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .franchise-part-quality {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #1e293b;
+}
+
+:root:not([data-design="servarr"]) .franchise-part-size {
+  color: var(--text-muted);
+  opacity: 0.9;
 }
 
 .franchise-part-title {
