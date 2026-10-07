@@ -5492,22 +5492,22 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .modal-wide { max-width: 1180px; width: 95%; }
 .modal-small { max-width: 420px; }
 
-#show-modal .modal,
-#collection-modal .modal {
+:not([data-design="servarr"]) #show-modal .modal,
+:not([data-design="servarr"]) #collection-modal .modal {
   padding: 0 0 24px 0;
   overflow-x: hidden;
   box-sizing: border-box;
 }
 
-#show-modal-content > :not(.show-hero-container),
-#collection-modal-content > :not(.collection-hero),
-#show-modal-task-banner {
+:not([data-design="servarr"]) #show-modal-content > :not(.show-hero-container),
+:not([data-design="servarr"]) #collection-modal-content > :not(.collection-hero),
+:not([data-design="servarr"]) #show-modal-task-banner {
   margin-left: 24px;
   margin-right: 24px;
 }
 
-#show-modal .modal-close,
-#collection-modal .modal-close {
+:not([data-design="servarr"]) #show-modal .modal-close,
+:not([data-design="servarr"]) #collection-modal .modal-close {
   top: 14px;
   right: 18px;
   z-index: 30;
@@ -5516,6 +5516,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   color: #f8fafc;
   backdrop-filter: var(--glass-blur, blur(8px));
   -webkit-backdrop-filter: var(--glass-blur, blur(8px));
+}
 :is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #show-modal .modal-close,
 :is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #collection-modal .modal-close {
   background: rgba(255, 255, 255, 0.85);
@@ -5523,8 +5524,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   color: #1e293b;
 }
 
-#show-modal .modal-close:hover,
-#collection-modal .modal-close:hover {
+:not([data-design="servarr"]) #show-modal .modal-close:hover,
+:not([data-design="servarr"]) #collection-modal .modal-close:hover {
   background: rgba(239, 68, 68, 0.3) !important;
   border-color: rgba(239, 68, 68, 0.6) !important;
   color: #ff6b6b !important;
@@ -6010,7 +6011,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 /* Action Bars & Quick Settings */
-.show-detail-path-actions-bar {
+:not([data-design="servarr"]) .show-detail-path-actions-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -6022,7 +6023,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   margin-bottom: 12px;
 }
 
-.show-detail-path-actions-bar .btn {
+:not([data-design="servarr"]) .show-detail-path-actions-bar .btn {
   padding: 0 8px !important;
   height: 28px !important;
   min-height: 28px !important;
@@ -6032,8 +6033,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   flex: 0 0 auto !important;
 }
 
-.show-detail-path-actions-bar .btn i,
-.show-detail-path-actions-bar .btn svg {
+:not([data-design="servarr"]) .show-detail-path-actions-bar .btn i,
+:not([data-design="servarr"]) .show-detail-path-actions-bar .btn svg {
   width: 13px !important;
   height: 13px !important;
 }
