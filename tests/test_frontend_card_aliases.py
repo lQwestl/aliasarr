@@ -201,6 +201,21 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
         self.assertIn("height: 28px !important", btn_css)
         self.assertIn("padding: 0 8px !important", btn_css)
 
+    def test_modal_hero_overview_readability_and_contrast(self):
+        """Ensure overview text has crisp contrast, text-shadow, and reinforced backdrop gradient."""
+        overview_match = re.search(r"(?:^|\n)\.show-hero-overview\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(overview_match, ".show-hero-overview rule not found")
+        overview_css = overview_match.group(1)
+        self.assertIn("color: #f8fafc", overview_css)
+        self.assertIn("text-shadow:", overview_css)
+        self.assertIn("font-size: 13.5px", overview_css)
+
+        gradient_match = re.search(r"(?:^|\n)\.show-hero-gradient\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(gradient_match, ".show-hero-gradient rule not found")
+        grad_css = gradient_match.group(1)
+        self.assertIn("0.88", grad_css)
+        self.assertIn("0.60", grad_css)
+
 
 if __name__ == "__main__":
     unittest.main()

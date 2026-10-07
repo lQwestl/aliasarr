@@ -5576,8 +5576,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .show-hero-gradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(8, 12, 22, 0.72) 0%, rgba(8, 12, 22, 0.40) 45%, rgba(8, 12, 22, 0.10) 100%),
-              linear-gradient(0deg, var(--panel) 0%, transparent 40%);
+  background:
+    linear-gradient(90deg, rgba(8, 12, 22, 0.88) 0%, rgba(8, 12, 22, 0.78) 32%, rgba(8, 12, 22, 0.60) 70%, rgba(8, 12, 22, 0.32) 100%),
+    linear-gradient(0deg, var(--panel) 0%, transparent 45%),
+    linear-gradient(180deg, rgba(8, 12, 22, 0.35) 0%, transparent 25%);
   z-index: 2;
   pointer-events: none;
   border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
@@ -5585,8 +5587,10 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 :root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .show-hero-gradient {
-  background: linear-gradient(90deg, rgba(248, 250, 252, 0.78) 0%, rgba(248, 250, 252, 0.45) 45%, rgba(248, 250, 252, 0.12) 100%),
-              linear-gradient(0deg, var(--panel) 0%, transparent 40%);
+  background:
+    linear-gradient(90deg, rgba(248, 250, 252, 0.92) 0%, rgba(248, 250, 252, 0.82) 32%, rgba(248, 250, 252, 0.68) 70%, rgba(248, 250, 252, 0.38) 100%),
+    linear-gradient(0deg, var(--panel) 0%, transparent 45%),
+    linear-gradient(180deg, rgba(248, 250, 252, 0.35) 0%, transparent 25%);
 }
 
 .show-hero-content {
@@ -5844,18 +5848,20 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 .show-hero-overview {
-  font-size: 13px;
-  line-height: 1.5;
-  color: #cbd5e1;
-  margin: 2px 0 4px 0;
-  max-height: 75px;
+  font-size: 13.5px;
+  line-height: 1.54;
+  color: #f8fafc;
+  margin: 3px 0 5px 0;
+  max-height: 82px;
   overflow-y: auto;
   padding-right: 6px;
   word-break: break-word;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
-:is([data-theme="paper"], [data-theme="light"]) .show-hero-overview {
-  color: #334155;
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .show-hero-overview {
+  color: #0f172a;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
 }
 
 .show-hero-aliases-block {
