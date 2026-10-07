@@ -451,25 +451,171 @@ def natural_sort_key(s: str) -> list[int | str]:
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", s or "")]
 
 
-def sanitize_filename(name: str) -> str:
-    return _INVALID_FS_CHARS.sub("", name or "").strip()
+def truncate_fs_name(name: str, max_bytes: int = 220) -> str:
+    """Безопасно обрезает строку так, чтобы её длина в UTF-8 не превышала max_bytes (лимит Linux NAME_MAX = 255 байт).
+
+    Обрезает по границе слова и зачищает висячие знаки препинания.
+    """
+    text = (name or "").strip()
+    encoded = text.encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return text
+
+    truncated = encoded[:max_bytes].decode("utf-8", errors="ignore").rstrip()
+
+    if " " in truncated and len(truncated) > 20:
+        last_space = truncated.rfind(" ")
+        if last_space > 20:
+            truncated = truncated[:last_space].rstrip()
+
+    clean = truncated.rstrip(" .-_,;:«»'\"()[]{}")
+    return clean or truncated[:max_bytes].decode("utf-8", errors="ignore").strip()
+
+
+def sanitize_filename(name: str, max_bytes: int = 240) -> str:
+    """Удаляет недопустимые файловые символы и гарантирует, что компонент пути не превысит max_bytes в UTF-8."""
+    cleaned = _INVALID_FS_CHARS.sub("", name or "").strip()
+    return truncate_fs_name(cleaned, max_bytes=max_bytes)
+
+
+def pick_safe_title_candidate(
+    primary_title: str,
+    *,
+    titles_by_lang: Optional[dict[str, str]] = None,
+    aliases: Optional[list[str]] = None,
+    original_title: Optional[str] = None,
+    max_bytes: int = 220,
+) -> str:
+    """Подбирает наиболее подходящее официальное название тайтла, укладывающееся в лимит файловой системы (<= max_bytes).
+
+    Приоритет:
+    1. primary_title (если укладывается в max_bytes).
+    2. Короткое русское название из titles_by_lang / aliases (<= max_bytes).
+    3. Официальное английское название из titles_by_lang / aliases (<= max_bytes).
+    4. Официальное оригинальное / Romaji название (<= max_bytes).
+    5. Любой доступный алиас (<= max_bytes).
+    6. Аккуратное усечение primary_title до max_bytes.
+    """
+    clean_primary = (primary_title or "").strip()
+    if clean_primary and len(clean_primary.encode("utf-8")) <= max_bytes:
+        return clean_primary
+
+    tbl = titles_by_lang or {}
+
+    # 1. Проверяем короткие русские варианты
+    ru_candidates: list[str] = []
+    if tbl.get("ru"):
+        ru_candidates.append(str(tbl["ru"]).strip())
+    for a in aliases or []:
+        if isinstance(a, str) and any("\u0400" <= c <= "\u04ff" for c in a):
+            ru_candidates.append(a.strip())
+    for rc in ru_candidates:
+        if rc and len(rc.encode("utf-8")) <= max_bytes:
+            return rc
+
+    # 2. Проверяем официальные английские варианты
+    en_candidates: list[str] = []
+    if tbl.get("en"):
+        en_candidates.append(str(tbl["en"]).strip())
+    for a in aliases or []:
+        if isinstance(a, str) and not any("\u0400" <= c <= "\u04ff" for c in a) and all(ord(c) < 128 for c in a):
+            en_candidates.append(a.strip())
+    for ec in en_candidates:
+        if ec and len(ec.encode("utf-8")) <= max_bytes:
+            return ec
+
+    # 3. Проверяем оригинальное / Romaji
+    if original_title:
+        ot = str(original_title).strip()
+        if ot and len(ot.encode("utf-8")) <= max_bytes:
+            return ot
+    if tbl.get("original"):
+        og = str(tbl["original"]).strip()
+        if og and len(og.encode("utf-8")) <= max_bytes:
+            return og
+
+    # 4. Проверяем любые остальные алиасы
+    for a in aliases or []:
+        text = str(a).strip() if a else ""
+        if text and len(text.encode("utf-8")) <= max_bytes:
+            return text
+
+    # 5. Fallback: усекаем primary_title
+    return truncate_fs_name(clean_primary, max_bytes=max_bytes)
 
 
 def get_show_default_path(show: Show, settings) -> str:
-    if show.path and show.path.strip():
-        return show.path.strip()
-    if show.content_type == "movie":
+    current_path = getattr(show, "path", None)
+    if current_path and str(current_path).strip():
+        p = str(current_path).strip()
+        folder_component = os.path.basename(p.rstrip("/\\"))
+        if len(folder_component.encode("utf-8")) <= 240:
+            return p
+
+    alias_texts = [a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)]
+    safe_title = pick_safe_title_candidate(
+        getattr(show, "title", "") or "Show",
+        aliases=alias_texts,
+        max_bytes=200,
+    )
+
+    clean_title_no_yr = _title_without_year(safe_title)
+    yr = getattr(show, "year", None)
+    if getattr(show, "content_type", "series") == "movie":
         root = settings.root_folder_movies or settings.root_folder or ""
-        folder = f"{sanitize_filename(_title_without_year(show.title))} ({show.year})" if show.year else sanitize_filename(show.title)
-    elif show.content_type == "anime":
+        folder = f"{sanitize_filename(clean_title_no_yr, 200)} ({yr})" if yr else sanitize_filename(safe_title, 220)
+    elif getattr(show, "content_type", "series") == "anime":
         root = settings.root_folder_anime or settings.root_folder or ""
-        folder = sanitize_filename(show.title)
+        folder = f"{sanitize_filename(clean_title_no_yr, 200)} ({yr})" if yr else sanitize_filename(safe_title, 220)
     else:
         root = settings.root_folder_series or settings.root_folder or ""
-        folder = sanitize_filename(show.title)
+        folder = f"{sanitize_filename(clean_title_no_yr, 200)} ({yr})" if yr else sanitize_filename(safe_title, 220)
     if not root:
         return ""
     return os.path.join(root, folder)
+
+
+def ensure_safe_show_path(db: Optional[Session], show: Show, root_folder: str) -> str:
+    """Проверяет путь тайтла show.path на превышение системного лимита файловой системы (NAME_MAX = 255 байт).
+
+    Если компонент папки превышает 240 байт UTF-8 (например, у сверхдлинных названий аниме),
+    подбирает официальное короткое название из алиасов, обновляет show.path в БД и возвращает безопасный путь.
+    """
+    raw_path = getattr(show, "path", None) or ""
+    if not raw_path:
+        raw_path = get_show_default_path(show, getattr(db, "_settings", None) or type("Obj", (), {"root_folder": root_folder, "root_folder_movies": None, "root_folder_anime": None, "root_folder_series": None})())
+
+    folder_name = os.path.basename(raw_path.rstrip("/\\"))
+    if len(folder_name.encode("utf-8")) <= 240:
+        return raw_path
+
+    parent_dir = os.path.dirname(raw_path.rstrip("/\\")) or root_folder
+    alias_texts = [a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)]
+    safe_title = pick_safe_title_candidate(
+        getattr(show, "title", "") or "Show",
+        aliases=alias_texts,
+        max_bytes=200,
+    )
+    safe_title_no_yr = _title_without_year(safe_title)
+    yr = getattr(show, "year", None)
+    new_folder = f"{safe_title_no_yr} ({yr})" if yr else safe_title
+    new_path = os.path.join(parent_dir, sanitize_filename(new_folder, 220))
+
+    if db and hasattr(show, "path") and show.path != new_path:
+        old_path = show.path
+        show.path = new_path
+        try:
+            db.add(show)
+            db.commit()
+            logger.info(
+                "Путь тайтла «%s» (id=%s) автоматически скорректирован из-за лимита файловой системы Linux (NAME_MAX): %s -> %s",
+                getattr(show, "title", ""), getattr(show, "id", ""), old_path, new_path,
+            )
+        except Exception as e:
+            logger.warning("Не удалось сохранить скорректированный show.path в БД: %s", e)
+            db.rollback()
+
+    return new_path
 
 
 def _clean_title(title: str) -> str:
@@ -1166,7 +1312,7 @@ def process_download(
     - обновляет статус Episode -> DOWNLOADED, прогресс 100%, записывает file_path
     """
     results = []
-    show_root = getattr(show, "path", None) or os.path.join(root_folder, sanitize_filename(getattr(show, "title", "") or "Show"))
+    show_root = ensure_safe_show_path(db, show, root_folder) if (db and show) else (getattr(show, "path", None) or os.path.join(root_folder, sanitize_filename(getattr(show, "title", "") or "Show")))
 
     keep_source = False
     use_hardlinks = True
@@ -1688,6 +1834,26 @@ def process_download(
                 quality=quality,
                 year=show.year,
             )
+            ext_b = len(ext.encode("utf-8"))
+            max_stem_b = max(40, 240 - ext_b)
+            if len(target_stem.encode("utf-8")) > max_stem_b:
+                safe_short_title = pick_safe_title_candidate(
+                    show.title,
+                    aliases=[a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)],
+                    max_bytes=100,
+                )
+                target_stem = render_episode_template(
+                    rename_template,
+                    show_title=safe_short_title,
+                    season=season_num,
+                    episode=actual_ep_num,
+                    episode_title=episode_title,
+                    absolute=absolute_num,
+                    quality=quality,
+                    year=show.year,
+                )
+                if len(target_stem.encode("utf-8")) > max_stem_b:
+                    target_stem = truncate_fs_name(target_stem, max_bytes=max_stem_b)
             dest_video_path = os.path.join(target_dir, target_stem + ext)
 
             try:
@@ -2130,10 +2296,7 @@ def process_movie_download(
 
     release_files = find_release_files(download_path, specific_files=specific_files)
     video_files = release_files["video"]
-    movie_root = show.path or os.path.join(
-        root_folder,
-        f"{sanitize_filename(show.title)} ({show.year})" if show.year else sanitize_filename(show.title),
-    )
+    movie_root = ensure_safe_show_path(db, show, root_folder) if (db and show) else (getattr(show, "path", None) or os.path.join(root_folder, f"{sanitize_filename(show.title)} ({show.year})" if show.year else sanitize_filename(show.title)))
     _validate_media_operation_roots(
         settings,
         movie_root,
@@ -2282,6 +2445,25 @@ def process_movie_download(
         imdb_id=getattr(show, "imdb_id", "") or "",
         tmdb_id=str(getattr(show, "tmdb_id", "") or ""),
     )
+    ext_b = len(ext.encode("utf-8"))
+    max_stem_b = max(40, 240 - ext_b)
+    if len(target_stem.encode("utf-8")) > max_stem_b:
+        safe_short_title = pick_safe_title_candidate(
+            show.title,
+            aliases=[a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)],
+            max_bytes=100,
+        )
+        target_stem = render_movie_template(
+            rename_template,
+            show_title=safe_short_title,
+            year=show.year,
+            quality=quality,
+            edition=movie_edition,
+            imdb_id=getattr(show, "imdb_id", "") or "",
+            tmdb_id=str(getattr(show, "tmdb_id", "") or ""),
+        )
+        if len(target_stem.encode("utf-8")) > max_stem_b:
+            target_stem = truncate_fs_name(target_stem, max_bytes=max_stem_b)
     dest_video_path = os.path.join(movie_root, target_stem + ext)
 
     if progress_callback:

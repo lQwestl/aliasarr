@@ -5950,6 +5950,44 @@ function getTitleVariantsFromResult(r) {
   return variants;
 }
 
+function getUtf8ByteLength(str) {
+  if (!str) return 0;
+  try {
+    return new TextEncoder().encode(str).length;
+  } catch (e) {
+    return (str || "").length * 2;
+  }
+}
+
+function findSafeWizardFolderName(r, selectedTitle) {
+  if (!selectedTitle) return "";
+  const byteLen = getUtf8ByteLength(selectedTitle);
+  if (byteLen <= 220) {
+    return formatShowTitleWithYear(selectedTitle, r ? r.year : null);
+  }
+  const variants = getTitleVariantsFromResult(r);
+  const yr = r ? r.year : null;
+  // 1. Короткие русские варианты <= 220 байт
+  const ruVariant = variants.find(v => v.langKey === "ru" && getUtf8ByteLength(v.title) <= 220);
+  if (ruVariant) return formatShowTitleWithYear(ruVariant.title, yr);
+
+  // 2. Официальные английские варианты <= 220 байт
+  const enVariant = variants.find(v => (v.langKey === "en" || v.langTag === "EN") && getUtf8ByteLength(v.title) <= 220);
+  if (enVariant) return formatShowTitleWithYear(enVariant.title, yr);
+
+  // 3. Оригинальные / Romaji <= 220 байт
+  const origVariant = variants.find(v => (v.langKey === "original" || v.langTag === "ORIG" || v.langTag === "JP") && getUtf8ByteLength(v.title) <= 220);
+  if (origVariant) return formatShowTitleWithYear(origVariant.title, yr);
+
+  // 4. Любой другой вариант <= 220 байт
+  const anyVariant = variants.find(v => getUtf8ByteLength(v.title) <= 220);
+  if (anyVariant) return formatShowTitleWithYear(anyVariant.title, yr);
+
+  // 5. Аккуратное усечение
+  const truncated = selectedTitle.slice(0, 100).trim();
+  return formatShowTitleWithYear(truncated, yr);
+}
+
 function getTitleVariantsFromShow(show) {
   if (!show) return [];
   const variants = [];
@@ -6399,6 +6437,27 @@ function selectWizardTitle(btn) {
   document.querySelectorAll("#wizard-title-lang-switcher .title-lang-chip").forEach(el => {
     el.classList.toggle("active", el.dataset.title === chosen);
   });
+  updateWizardFsWarningBanner();
+}
+
+function updateWizardFsWarningBanner() {
+  const r = WIZARD_STATE.selectedResult;
+  if (!r) return;
+  const banner = document.getElementById("wizard-fs-warning-banner");
+  if (!banner) return;
+  const currentTitle = WIZARD_STATE.selectedTitle || r.title || "";
+  const byteLen = getUtf8ByteLength(currentTitle);
+  if (byteLen > 220) {
+    const safeFolder = findSafeWizardFolderName(r, currentTitle);
+    const countEl = document.getElementById("wizard-fs-bytes-count");
+    const codeEl = document.getElementById("wizard-fs-folder-code");
+    if (countEl) countEl.textContent = byteLen;
+    if (codeEl) codeEl.textContent = safeFolder;
+    banner.style.display = "flex";
+    if (window.lucide) lucide.createIcons();
+  } else {
+    banner.style.display = "none";
+  }
 }
 
 async function loadWizardDetails(r) {
@@ -15585,6 +15644,11 @@ function renderWizardStep2Content() {
   }
 
   const variants = getTitleVariantsFromResult(r);
+  const activeTitle = WIZARD_STATE.selectedTitle || r.title || "";
+  const byteLen = getUtf8ByteLength(activeTitle);
+  const safeFolder = findSafeWizardFolderName(r, activeTitle);
+  const isFsWarning = byteLen > 220;
+
   const langSwitcherHtml = variants.length > 1 ? `
     <div class="wizard-title-lang-wrap" id="wizard-title-lang-wrap">
       <span class="wizard-title-lang-label">
@@ -15593,19 +15657,38 @@ function renderWizardStep2Content() {
       </span>
       <div class="title-lang-switcher" id="wizard-title-lang-switcher">
         ${variants.map(v => {
-          const isActive = v.title.toLowerCase() === (WIZARD_STATE.selectedTitle || r.title || "").toLowerCase();
+          const isActive = v.title.toLowerCase() === activeTitle.toLowerCase();
+          const vByteLen = getUtf8ByteLength(v.title);
+          const hasFsLimit = vByteLen > 220;
           return `
             <button type="button" class="title-lang-chip ${isActive ? 'active' : ''}" 
               data-title="${escapeHtml(v.title)}" 
               onclick="selectWizardTitle(this)">
               <span class="title-lang-tag">${v.langTag}</span>
               <span class="title-lang-val">${escapeHtml(v.title)}</span>
+              ${hasFsLimit ? `<span class="title-lang-fs-badge" title="${CURRENT_LANG === 'en' ? 'Length > 255B — safe disk folder will be used' : 'Длина > 255 B — папка на диске будет создана с безопасным коротким именем'}">!</span>` : ''}
             </button>
           `;
         }).join("")}
       </div>
     </div>
   ` : "";
+
+  const fsWarningHtml = `
+    <div class="wizard-fs-warning-banner" id="wizard-fs-warning-banner" style="${isFsWarning ? '' : 'display:none;'}">
+      <div class="wizard-fs-warning-icon">
+        <i data-lucide="info"></i>
+      </div>
+      <div class="wizard-fs-warning-body">
+        <div class="wizard-fs-warning-title">${CURRENT_LANG === 'en' ? 'Linux Filesystem Name Limit (NAME_MAX: 255 bytes)' : 'Ограничение длины файловой системы Linux (NAME_MAX: 255 байт)'}</div>
+        <div class="wizard-fs-warning-text" id="wizard-fs-warning-text">
+          ${CURRENT_LANG === 'en' 
+            ? `Selected title takes <strong><span id="wizard-fs-bytes-count">${byteLen}</span> bytes</strong> (Linux filesystem limit is 255 bytes).<br>• In Aliasarr library: <strong>full title is displayed</strong>.<br>• For disk folder and Plex/Jellyfin matching: <code class="mono wizard-fs-folder-code" id="wizard-fs-folder-code">${escapeHtml(safeFolder)}</code>`
+            : `Выбранное русское название занимает <strong><span id="wizard-fs-bytes-count">${byteLen}</span> байт</strong> (лимит файловой системы — 255 байт).<br>• В библиотеке Aliasarr: отображается <strong>полное русское название</strong>.<br>• Для папки на диске и Plex/Jellyfin назначено: <code class="mono wizard-fs-folder-code" id="wizard-fs-folder-code">${escapeHtml(safeFolder)}</code>`}
+        </div>
+      </div>
+    </div>
+  `;
 
   content.innerHTML = `
     <div class="wizard-selected-banner">
@@ -15617,6 +15700,7 @@ function renderWizardStep2Content() {
           <h3 class="wizard-selected-title" id="wizard-selected-title">${escapeHtml(formatShowTitleWithYear(WIZARD_STATE.selectedTitle || r.title, r.year))}</h3>
         </div>
         ${langSwitcherHtml}
+        ${fsWarningHtml}
         <div class="wizard-selected-badges">
           ${r.content_type ? `<span class="meta-badge meta-badge-type ${typeClass}"><i data-lucide="${typeIco}" class="ico-xs"></i>${escapeHtml(typeLabel)}</span>` : ""}
           ${r.year ? `<span class="meta-badge mono"><i data-lucide="calendar" class="ico-xs"></i> ${r.year}</span>` : ""}
@@ -15783,7 +15867,13 @@ async function finishWizard(button) {
         });
       }
 
-      toast((CURRENT_LANG === "en" ? "Added to library: " : "Добавлено в библиотеку: ") + `«${title}»`);
+      const isLongTitle = getUtf8ByteLength(title) > 220;
+      const safeFolder = findSafeWizardFolderName(WIZARD_STATE.selectedResult, title);
+      if (isLongTitle && safeFolder) {
+        toast((CURRENT_LANG === "en" ? "Added to library: " : "Добавлено в библиотеку: ") + `«${title}»` + ` (${CURRENT_LANG === "en" ? "Disk folder" : "Папка на диске"}: «${safeFolder}»)`);
+      } else {
+        toast((CURRENT_LANG === "en" ? "Added to library: " : "Добавлено в библиотеку: ") + `«${title}»`);
+      }
       closeModal("wizard-modal");
       await loadShows();
       switchTab("library");

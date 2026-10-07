@@ -3028,6 +3028,83 @@ select option {
   margin: 0;
 }
 
+/* Wizard Filesystem Name Limit Banner */
+:root:not([data-design="servarr"]) .wizard-fs-warning-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: color-mix(in srgb, var(--warning, #f59e0b) 12%, var(--panel, #111827));
+  border: 1px solid color-mix(in srgb, var(--warning, #f59e0b) 32%, transparent);
+  border-radius: var(--radius-sm, 10px);
+  padding: 12px 14px;
+  margin-top: 12px;
+  box-sizing: border-box;
+}
+:root:not([data-design="servarr"]) .wizard-fs-warning-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--warning, #f59e0b) 25%, transparent);
+  color: var(--warning, #f59e0b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+:root:not([data-design="servarr"]) .wizard-fs-warning-icon i,
+:root:not([data-design="servarr"]) .wizard-fs-warning-icon svg {
+  width: 14px;
+  height: 14px;
+}
+:root:not([data-design="servarr"]) .wizard-fs-warning-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+:root:not([data-design="servarr"]) .wizard-fs-warning-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--warning, #fbbf24);
+  line-height: 1.3;
+}
+:root:not([data-design="servarr"]) .wizard-fs-warning-text {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.48;
+}
+:root:not([data-design="servarr"]) .wizard-fs-folder-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--teal);
+  border: 1px solid color-mix(in srgb, var(--teal) 20%, transparent);
+}
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .wizard-fs-warning-banner {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .wizard-fs-warning-title {
+  color: #b45309;
+}
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .wizard-fs-warning-text {
+  color: #451a03;
+}
+:root:not([data-design="servarr"]) .title-lang-fs-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--warning, #f59e0b) 20%, transparent);
+  color: var(--warning, #f59e0b);
+  border: 1px solid color-mix(in srgb, var(--warning, #f59e0b) 30%, transparent);
+  margin-left: 4px;
+}
+
 /* Step 2 Config Grid & Cards */
 .wizard-config-grid {
   display: grid;

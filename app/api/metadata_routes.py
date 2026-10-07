@@ -752,7 +752,7 @@ async def import_show(
             )
 
         from app.services.settings_service import get_or_create_settings
-        from app.services.postprocess import get_show_default_path, sanitize_filename
+        from app.services.postprocess import get_show_default_path, sanitize_filename, pick_safe_title_candidate
         import os as _os
         import re as _re
 
@@ -772,18 +772,26 @@ async def import_show(
             else:
                 chosen_title = details.title
 
-        title_no_year = _re.sub(r"\s*\(\d{4}\)$|\s+\d{4}$", "", chosen_title or "").strip()
+        # Подбираем безопасное официальное название папки (<= 200 байт в UTF-8), чтобы не превысить лимит Linux (255 B)
+        safe_folder_title = pick_safe_title_candidate(
+            chosen_title,
+            titles_by_lang=getattr(details, "titles_by_lang", {}) or {},
+            aliases=[a.text for a in getattr(details, "aliases", []) or [] if hasattr(a, "text")],
+            original_title=getattr(details, "original_title", None),
+            max_bytes=200,
+        )
+        safe_title_no_year = _re.sub(r"\s*\(\d{4}\)$|\s+\d{4}$", "", safe_folder_title or "").strip()
         if payload.path:
             p = payload.path.strip().rstrip("/\\")
             base_p = _os.path.basename(p).lower()
             if base_p in ("test", "movies", "films", "downloads", "data", "media", "video") or not base_p:
-                subfolder = sanitize_filename(f"{title_no_year} ({show_year})" if show_year else chosen_title)
+                subfolder = sanitize_filename(f"{safe_title_no_year} ({show_year})" if show_year else safe_folder_title, max_bytes=220)
                 final_path = _os.path.join(p, subfolder)
             else:
                 final_path = payload.path.strip()
         else:
             final_path = get_show_default_path(
-                Show(title=chosen_title, year=show_year, content_type=content_type),
+                Show(title=safe_folder_title, year=show_year, content_type=content_type),
                 settings,
             )
 
