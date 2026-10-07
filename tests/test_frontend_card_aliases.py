@@ -189,11 +189,11 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
             self.assertEqual(open_cnt, close_cnt, f"Mismatched braces in {css_file}: {open_cnt} open vs {close_cnt} close")
 
     def test_show_hero_title_row_clearance(self):
-        """Ensure .show-hero-title-row has padding-right to not overlap with close button."""
+        """Ensure .show-hero-title-row has padding-right to not overlap with navigation and close buttons."""
         title_row_match = re.search(r"\.show-hero-title-row\s*\{([^}]+)\}", self.style)
         self.assertIsNotNone(title_row_match, ".show-hero-title-row rule not found")
         title_row_css = title_row_match.group(1)
-        self.assertIn("padding-right: 48px", title_row_css)
+        self.assertIn("padding-right: 120px", title_row_css)
 
     def test_show_detail_path_actions_bar_compact(self):
         """Ensure .show-detail-path-actions-bar buttons are compact to fit on one row."""
@@ -357,11 +357,12 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
         self.assertIn("-webkit-line-clamp: 2", part_overview_match.group(1))
 
     def test_collection_modal_app_js_structure(self):
-        """Ensure openCollectionModal in app.js renders poster actions under poster and handles interactive rows."""
+        """Ensure openCollectionModal in app.js renders actions in hero actions bar (not cramped under poster) and uses quality capsule."""
         self.assertIn("collection-hero-backdrop-wrap", self.app_js)
         self.assertIn("collection-hero-gradient", self.app_js)
         self.assertIn("collection-hero-poster-col", self.app_js)
-        self.assertIn("collection-hero-poster-actions", self.app_js)
+        self.assertIn("collection-hero-actions-bar", self.app_js)
+        self.assertIn("meta-pill-quality-profile", self.app_js)
         self.assertIn("franchise-progress-pill", self.app_js)
         self.assertIn("franchise-part-index", self.app_js)
         self.assertIn("franchise-part-row ${isInLib ? 'is-in-library' : ''}", self.app_js)
@@ -421,6 +422,27 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
         self.assertIn('getattr(ep, "downloaded_quality", None)', routes_py)
         self.assertIn('getattr(ep, "file_size_bytes", None)', routes_py)
         self.assertNotIn('ep.quality', routes_py, "Direct ep.quality must not be used (causes AttributeError)")
+
+    def test_show_modal_gallery_navigation_and_quality_profile_badge(self):
+        """Ensure show modal has gallery navigation buttons and quality profile is styled as a capsule badge."""
+        # 1. Show modal header actions with prev and next buttons in index.html
+        self.assertIn("show-modal-header-actions", self.index_html)
+        self.assertIn("show-modal-nav-wrap", self.index_html)
+        self.assertIn("show-modal-prev-btn", self.index_html)
+        self.assertIn("show-modal-next-btn", self.index_html)
+
+        # 2. Navigation logic in app.js
+        self.assertIn("function navigateShowModal", self.app_js)
+        self.assertIn("function updateShowModalNavButtons", self.app_js)
+        self.assertIn("function getActiveShowsList", self.app_js)
+
+        # 3. Quality profile capsule badge in CSS
+        self.assertIn(".meta-pill-quality-profile", self.style)
+        self.assertIn(".meta-pill-qp-label", self.style)
+        self.assertIn(".meta-pill-qp-select", self.style)
+
+        # 4. Collection hero actions bar in CSS
+        self.assertIn(".collection-hero-actions-bar", self.style)
 
 
 if __name__ == "__main__":

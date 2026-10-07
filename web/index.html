@@ -5536,7 +5536,17 @@
 <!-- Модалка деталей видео -->
 <div id="show-modal" class="modal-overlay">
   <div class="modal modal-wide">
-    <button class="modal-close" onclick="closeModal('show-modal')" aria-label="Закрыть" title="Закрыть"><i data-lucide="x"></i></button>
+    <div class="show-modal-header-actions">
+      <div class="show-modal-nav-wrap">
+        <button id="show-modal-prev-btn" class="modal-nav-btn" onclick="navigateShowModal(-1)" title="Предыдущий тайтл (←)">
+          <i data-lucide="chevron-left"></i>
+        </button>
+        <button id="show-modal-next-btn" class="modal-nav-btn" onclick="navigateShowModal(1)" title="Следующий тайтл (→)">
+          <i data-lucide="chevron-right"></i>
+        </button>
+      </div>
+      <button class="modal-close" onclick="closeModal('show-modal')" aria-label="Закрыть" title="Закрыть"><i data-lucide="x"></i></button>
+    </div>
     <div id="show-modal-task-banner" class="show-modal-task-banner-container" style="display:none;"></div>
     <div id="show-modal-content"></div>
   </div>

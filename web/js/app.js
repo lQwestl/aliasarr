@@ -7134,6 +7134,7 @@ let CACHED_COLLECTIONS = [];
 let COLLECTIONS_FILTER = localStorage.getItem("aliasarr_collections_filter") || "all";
 let COLLECTIONS_SORT = localStorage.getItem("aliasarr_collections_sort") || "title_asc";
 let LAST_FILTERED_COLLECTIONS = [];
+let LAST_FILTERED_SHOWS = [];
 
 function setLibraryCategory(category) {
   if (LIBRARY_CATEGORY_FILTER === category && category !== "all") {
@@ -8266,6 +8267,7 @@ function renderLibrary() {
   }
 
   shows = sortLibraryShows(shows);
+  LAST_FILTERED_SHOWS = shows;
 
   if (!CACHED_SHOWS.length) {
     if (grid) grid.innerHTML = "";
@@ -8885,28 +8887,6 @@ async function openCollectionModal(collectionId) {
                 ${coll.poster_url ? "" : `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:800;color:var(--text-muted);"><i data-lucide="boxes"></i></div>`}
               </div>
             </div>
-            ${canManageLib && (coll.tmdb_collection_id || missingCount > 0 || undownloadedInLib > 0) ? `
-              <div class="collection-hero-poster-actions">
-                ${coll.tmdb_collection_id ? `
-                  <button class="btn btn-secondary btn-small" id="btn-refresh-collection-${coll.id}" onclick="refreshCollectionMetadata(${coll.id}, this)" title="${CURRENT_LANG === 'en' ? 'Refresh franchise metadata from TMDb' : 'Обновить метаданные саги из TMDb'}">
-                    <i data-lucide="refresh-cw" class="ico-xs"></i>
-                    <span>${CURRENT_LANG === 'en' ? 'Refresh' : 'Обновить'}</span>
-                  </button>
-                ` : ""}
-                ${missingCount > 0 ? `
-                  <button class="btn btn-primary btn-small" id="btn-import-missing-${coll.id}" onclick="importMissingFranchiseMovies(${coll.id}, this)" title="${CURRENT_LANG === 'en' ? 'Add missing movies from TMDb to library' : 'Добавить недостающие фильмы саги в медиатеку'}">
-                    <i data-lucide="download-cloud" class="ico-xs"></i>
-                    <span>${t("collection.btn_import_missing")} (${missingCount})</span>
-                  </button>
-                ` : ""}
-                ${undownloadedInLib > 0 ? `
-                  <button class="btn btn-secondary btn-small" id="btn-search-missing-${coll.id}" onclick="searchMissingCollectionMovies(${coll.id}, this)" title="${CURRENT_LANG === 'en' ? 'Trigger automated search for movies missing on disk' : 'Запустить автопоиск файлов для нескачанных фильмов франшизы'}">
-                    <i data-lucide="search" class="ico-xs text-teal"></i>
-                    <span>${CURRENT_LANG === 'en' ? 'Search' : 'Искать'} (${undownloadedInLib})</span>
-                  </button>
-                ` : ""}
-              </div>
-            ` : ""}
           </div>
           <div class="collection-hero-meta">
             <div class="collection-hero-title-row">
@@ -8932,11 +8912,10 @@ async function openCollectionModal(collectionId) {
                 </span>
               `}
               ${canManageLib ? `
-                <div style="display:inline-flex; align-items:center; gap:6px; margin-left:auto;">
-                  <span style="font-size:11.5px; color:var(--text-muted); font-weight:500;">
-                    <i data-lucide="sliders" class="ico-xxs"></i> ${t("collection.quality_profile")}:
-                  </span>
-                  <select class="input input-small" id="collection-quality-profile-select" style="padding: 2px 8px; font-size: 11.5px; height: 26px; border-radius: 6px; width: auto; background: var(--panel-alt);" onchange="onCollectionQualityProfileChange(${coll.id}, this.value)">
+                <div class="meta-pill meta-pill-quality-profile" title="${t("collection.quality_profile")}">
+                  <i data-lucide="sliders" class="ico-xxs text-teal"></i>
+                  <span class="meta-pill-qp-label">${t("collection.quality_profile")}:</span>
+                  <select class="meta-pill-qp-select" id="collection-quality-profile-select" onchange="onCollectionQualityProfileChange(${coll.id}, this.value)">
                     <option value="">${t("common.any_quality")}</option>
                     ${(CACHED_QUALITY_PROFILES || []).map(qp => `
                       <option value="${qp.id}" ${qp.id === effectiveQpId ? "selected" : ""}>${escapeHtml(qp.name)}</option>
@@ -8944,10 +8923,36 @@ async function openCollectionModal(collectionId) {
                   </select>
                 </div>
               ` : `
-                <span class="meta-pill mono" style="margin-left:auto;" title="${t("collection.quality_profile")}"><i data-lucide="sliders" class="ico-xxs"></i> ${qualityProfileName(coll.quality_profile_id || effectiveQpId)}</span>
+                <span class="meta-pill mono meta-pill-quality-profile" title="${t("collection.quality_profile")}">
+                  <i data-lucide="sliders" class="ico-xxs text-teal"></i>
+                  <span class="meta-pill-qp-label">${t("collection.quality_profile")}:</span>
+                  <span style="color:#f8fafc; font-weight:600;">${qualityProfileName(coll.quality_profile_id || effectiveQpId)}</span>
+                </span>
               `}
             </div>
             ${coll.overview ? `<p class="collection-hero-overview">${escapeHtml(coll.overview)}</p>` : ""}
+            ${canManageLib && (coll.tmdb_collection_id || missingCount > 0 || undownloadedInLib > 0) ? `
+              <div class="collection-hero-actions-bar">
+                ${coll.tmdb_collection_id ? `
+                  <button class="btn btn-secondary" id="btn-refresh-collection-${coll.id}" onclick="refreshCollectionMetadata(${coll.id}, this)" title="${CURRENT_LANG === 'en' ? 'Refresh franchise metadata from TMDb' : 'Обновить метаданные саги из TMDb'}">
+                    <i data-lucide="refresh-cw" class="ico-xs"></i>
+                    <span>${CURRENT_LANG === 'en' ? 'Refresh saga' : 'Обновить сагу'}</span>
+                  </button>
+                ` : ""}
+                ${missingCount > 0 ? `
+                  <button class="btn btn-primary" id="btn-import-missing-${coll.id}" onclick="importMissingFranchiseMovies(${coll.id}, this)" title="${CURRENT_LANG === 'en' ? 'Add missing movies from TMDb to library' : 'Добавить недостающие фильмы саги в медиатеку'}">
+                    <i data-lucide="download-cloud" class="ico-xs"></i>
+                    <span>${CURRENT_LANG === 'en' ? `Add missing movies (${missingCount})` : `Добавить недостающие фильмы (${missingCount})`}</span>
+                  </button>
+                ` : ""}
+                ${undownloadedInLib > 0 ? `
+                  <button class="btn btn-secondary" id="btn-search-missing-${coll.id}" onclick="searchMissingCollectionMovies(${coll.id}, this)" title="${CURRENT_LANG === 'en' ? 'Trigger automated search for movies missing on disk' : 'Запустить автопоиск файлов для нескачанных фильмов франшизы'}">
+                    <i data-lucide="search" class="ico-xs text-teal"></i>
+                    <span>${CURRENT_LANG === 'en' ? `Search files (${undownloadedInLib})` : `Искать недостающие файлы (${undownloadedInLib})`}</span>
+                  </button>
+                ` : ""}
+              </div>
+            ` : ""}
           </div>
         </div>
       </div>
@@ -10240,8 +10245,52 @@ let SHOW_MODAL_POLL_INTERVAL = null;
 let SHOW_EXPANDED_SEASONS = window._SHOW_EXPANDED_SEASONS || {};
 window._SHOW_EXPANDED_SEASONS = SHOW_EXPANDED_SEASONS;
 
+function getActiveShowsList() {
+  if (Array.isArray(LAST_FILTERED_SHOWS) && LAST_FILTERED_SHOWS.length > 0) {
+    return LAST_FILTERED_SHOWS;
+  }
+  return Array.isArray(CACHED_SHOWS) ? CACHED_SHOWS : [];
+}
+
+function updateShowModalNavButtons(currId) {
+  const prevBtn = document.getElementById("show-modal-prev-btn");
+  const nextBtn = document.getElementById("show-modal-next-btn");
+  if (!prevBtn || !nextBtn) return;
+  const list = getActiveShowsList();
+  if (!list.length || list.length <= 1) {
+    prevBtn.style.display = "none";
+    nextBtn.style.display = "none";
+    return;
+  }
+  prevBtn.style.display = "inline-flex";
+  nextBtn.style.display = "inline-flex";
+
+  const idx = list.findIndex(s => s.id === currId);
+  if (idx !== -1) {
+    const prevIdx = (idx - 1 + list.length) % list.length;
+    const nextIdx = (idx + 1) % list.length;
+    const prevTitle = list[prevIdx].title || "";
+    const nextTitle = list[nextIdx].title || "";
+    prevBtn.title = (CURRENT_LANG === "en" ? `Previous: ${prevTitle} (←)` : `Предыдущий: ${prevTitle} (←)`);
+    nextBtn.title = (CURRENT_LANG === "en" ? `Next: ${nextTitle} (→)` : `Следующий: ${nextTitle} (→)`);
+  }
+}
+
+function navigateShowModal(delta) {
+  const list = getActiveShowsList();
+  if (!list || list.length <= 1) return;
+  const idx = list.findIndex(s => s.id === CURRENT_SHOW_ID);
+  if (idx === -1) return;
+  const newIdx = (idx + delta + list.length) % list.length;
+  const target = list[newIdx];
+  if (target && target.id) {
+    openShowModal(target.id);
+  }
+}
+
 async function openShowModal(showId) {
   CURRENT_SHOW_ID = showId;
+  updateShowModalNavButtons(showId);
   delete SHOW_EXPANDED_SEASONS[showId];
   const content = document.getElementById("show-modal-content");
   content.innerHTML = `<p>${t("common.loading")}</p>`;
@@ -25419,11 +25468,15 @@ document.addEventListener("keydown", (e) => {
   }
   if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
     const collModal = document.getElementById("collection-modal");
-    if (collModal && collModal.classList.contains("active")) {
-      const tag = (document.activeElement && document.activeElement.tagName) || "";
-      if (tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT") {
+    const showModal = document.getElementById("show-modal");
+    const tag = (document.activeElement && document.activeElement.tagName) || "";
+    if (tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT") {
+      if (collModal && collModal.classList.contains("active")) {
         e.preventDefault();
         navigateCollectionModal(e.key === "ArrowLeft" ? -1 : 1);
+      } else if (showModal && showModal.classList.contains("active")) {
+        e.preventDefault();
+        navigateShowModal(e.key === "ArrowLeft" ? -1 : 1);
       }
     }
   }
