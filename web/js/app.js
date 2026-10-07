@@ -8614,38 +8614,61 @@ async function openCollectionModal(collectionId) {
     const canManageLib = hasPermission("manage_library");
     const effectiveQpId = coll.quality_profile_id || (coll.shows && coll.shows.find(s => s.quality_profile_id)?.quality_profile_id) || (CACHED_QUALITY_PROFILES && CACHED_QUALITY_PROFILES[0]?.id) || null;
 
+    // Saga metadata statistics
+    const years = parts.map(p => Number(p.year)).filter(y => y && !isNaN(y) && y > 1880 && y < 2100);
+    const minYear = years.length ? Math.min(...years) : null;
+    const maxYear = years.length ? Math.max(...years) : null;
+    const yearRange = minYear ? (minYear === maxYear ? String(minYear) : `${minYear} – ${maxYear}`) : "";
+
+    const ratings = parts.map(p => Number(p.rating)).filter(r => r !== null && r !== undefined && !isNaN(r) && r > 0);
+    const avgRating = ratings.length ? (ratings.reduce((acc, val) => acc + val, 0) / ratings.length).toFixed(1) : null;
+
+    const totalParts = parts.length || coll.shows_count || 0;
+    const inLibCount = parts.filter(p => p.in_library).length || coll.shows_count || 0;
+    const progressPct = totalParts > 0 ? Math.round((inLibCount / totalParts) * 100) : 100;
+    const isComplete = missingCount === 0;
+
     content.innerHTML = `
       <div class="collection-hero">
-        <div class="collection-hero-backdrop" ${backdropStyle}></div>
+        <div class="collection-hero-backdrop-wrap">
+          <div class="collection-hero-backdrop" ${backdropStyle}></div>
+          <div class="collection-hero-gradient"></div>
+        </div>
         <div class="collection-hero-content">
-          <div class="collection-hero-poster-wrap">
-            ${coll.poster_url ? `<div class="collection-hero-poster-ambient" ${posterStyle}></div>` : ""}
-            <div class="collection-hero-poster" ${posterStyle}>
-              ${coll.poster_url ? "" : `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:800;color:var(--text-muted);"><i data-lucide="boxes"></i></div>`}
-            </div>
-          </div>
-          <div class="collection-hero-meta">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
-              <div style="flex: 1; min-width: 200px;">
-                <h2 class="collection-hero-title" style="margin-bottom: 2px;">${escapeHtml(coll.title)}</h2>
-                ${renderCollectionTitleLangSwitcher(coll, canManageLib)}
+          <div class="collection-hero-poster-col">
+            <div class="collection-hero-poster-wrap">
+              ${coll.poster_url ? `<div class="collection-hero-poster-ambient" ${posterStyle}></div>` : ""}
+              <div class="collection-hero-poster" ${posterStyle}>
+                ${coll.poster_url ? "" : `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:800;color:var(--text-muted);"><i data-lucide="boxes"></i></div>`}
               </div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                ${canManageLib && coll.tmdb_collection_id ? `
+            </div>
+            ${canManageLib && (coll.tmdb_collection_id || missingCount > 0) ? `
+              <div class="collection-hero-poster-actions">
+                ${coll.tmdb_collection_id ? `
                   <button class="btn btn-secondary btn-small" id="btn-refresh-collection-${coll.id}" onclick="refreshCollectionMetadata(${coll.id}, this)" title="${CURRENT_LANG === 'en' ? 'Refresh franchise metadata from TMDb' : 'Обновить метаданные саги из TMDb'}">
                     <i data-lucide="refresh-cw" class="ico-xs"></i>
                     <span>${CURRENT_LANG === 'en' ? 'Refresh' : 'Обновить'}</span>
                   </button>
                 ` : ""}
-                ${canManageLib && missingCount > 0 ? `
+                ${missingCount > 0 ? `
                   <button class="btn btn-primary btn-small" id="btn-import-missing-${coll.id}" onclick="importMissingFranchiseMovies(${coll.id}, this)">
                     <i data-lucide="download-cloud" class="ico-xs"></i>
                     <span>${t("collection.btn_import_missing")} (${missingCount})</span>
                   </button>
                 ` : ""}
               </div>
+            ` : ""}
+          </div>
+          <div class="collection-hero-meta">
+            <div class="collection-hero-title-row">
+              <div style="flex: 1; min-width: 200px;">
+                <h2 class="collection-hero-title" style="margin-bottom: 4px;">${escapeHtml(coll.title)}</h2>
+                ${renderCollectionTitleLangSwitcher(coll, canManageLib)}
+              </div>
             </div>
             <div class="show-hero-meta-bar" style="margin: 0; align-items:center; flex-wrap:wrap; gap:8px;">
+              ${yearRange ? `<span class="meta-pill mono"><i data-lucide="calendar" class="ico-xxs"></i> ${yearRange}</span>` : ""}
+              ${avgRating ? `<span class="meta-pill meta-pill-rating"><i data-lucide="award" class="ico-xxs"></i> ${avgRating}</span>` : ""}
               <span class="meta-pill mono meta-pill-in-lib"><i data-lucide="film" class="ico-xs"></i> ${coll.shows_count} ${t("collection.in_library")}</span>
               ${missingCount > 0 ? `<span class="meta-pill mono text-warning"><i data-lucide="circle-dashed" class="ico-xs"></i> ${missingCount} ${t("collection.missing")}</span>` : `<span class="meta-pill meta-pill-status status-complete"><i data-lucide="check-circle-2" class="ico-xs"></i> <span>${CURRENT_LANG === 'en' ? 'Collection Complete' : 'Коллекция собрана'}</span></span>`}
               ${canManageLib ? `
@@ -8669,7 +8692,7 @@ async function openCollectionModal(collectionId) {
         </div>
       </div>
 
-      <div class="settings-card-header" style="margin-bottom: 12px;">
+      <div class="settings-card-header" style="margin-bottom: 14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
         <div class="settings-card-header-left">
           <div class="settings-card-icon-badge"><i data-lucide="film"></i></div>
           <div class="settings-card-title-wrap">
@@ -8677,6 +8700,12 @@ async function openCollectionModal(collectionId) {
             <p class="subtitle" style="margin:0; font-size:12px;">${CURRENT_LANG === 'en' ? 'All movies in chronological/saga order' : 'Все части саги в хронологическом порядке выхода'}</p>
           </div>
         </div>
+        ${totalParts > 0 ? `
+          <div class="franchise-progress-pill ${isComplete ? 'is-complete' : ''}">
+            <i data-lucide="${isComplete ? 'check-check' : 'layers'}" class="ico-xs"></i>
+            <span>${CURRENT_LANG === 'en' ? `Collected: ${inLibCount} of ${totalParts} (${progressPct}%)` : `Собрано: ${inLibCount} из ${totalParts} (${progressPct}%)`}</span>
+          </div>
+        ` : ""}
       </div>
 
       <div class="franchise-parts-grid">
@@ -8686,29 +8715,32 @@ async function openCollectionModal(collectionId) {
           const statusBadge = isInLib
             ? `<span class="badge badge-success" style="font-size:11px;"><i data-lucide="check" class="ico-xxs"></i> ${t("collection.status_in_lib")}</span>`
             : `<span class="badge badge-secondary" style="font-size:11px; color:var(--text-muted);"><i data-lucide="circle-dashed" class="ico-xxs"></i> ${t("collection.status_missing")}</span>`;
+          const rowClickAttr = isInLib && p.show_id ? `onclick="if (!event.target.closest('button, a, select, input')) { closeModal('collection-modal'); openShowModal(${p.show_id}); }"` : "";
 
           return `
-            <div class="franchise-part-row">
-              <div class="franchise-part-poster" ${partPosterStyle}></div>
+            <div class="franchise-part-row ${isInLib ? 'is-in-library' : ''}" ${rowClickAttr} ${isInLib ? `title="${CURRENT_LANG === 'en' ? 'Click to open movie card' : 'Нажмите, чтобы открыть карточку фильма'}"` : ""}>
+              <div class="franchise-part-poster" ${partPosterStyle}>
+                ${!p.poster_url ? `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:20px;"><i data-lucide="film"></i></div>` : ""}
+              </div>
               <div class="franchise-part-info">
                 <div class="franchise-part-title-row">
-                  <span class="mono" style="font-weight:700; color:var(--teal); font-size:13px;">#${idx + 1}</span>
+                  <span class="franchise-part-index">#${idx + 1}</span>
                   <span class="franchise-part-title">${escapeHtml(p.title)}</span>
                   ${p.year ? `<span class="meta-pill mono" style="font-size:11px; padding:2px 6px;"><i data-lucide="calendar" class="ico-xxs"></i> ${p.year}</span>` : ""}
                   ${p.rating ? `<span class="meta-pill meta-pill-rating" style="font-size:11px; padding:2px 6px;"><i data-lucide="award" class="ico-xxs"></i> ${Number(p.rating).toFixed(1)}</span>` : ""}
                   ${statusBadge}
                 </div>
-                ${p.overview ? `<p style="font-size:12px; color:var(--text-muted); margin:0; line-height:1.4; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;">${escapeHtml(p.overview)}</p>` : ""}
+                ${p.overview ? `<p class="franchise-part-overview">${escapeHtml(p.overview)}</p>` : ""}
               </div>
               <div class="franchise-part-actions">
                 ${isInLib ? `
-                  <button class="btn btn-secondary btn-small" onclick="closeModal('collection-modal'); openShowModal(${p.show_id})" title="${CURRENT_LANG === 'en' ? 'Open Movie' : 'Открыть карточку фильма'}">
+                  <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); closeModal('collection-modal'); openShowModal(${p.show_id})" title="${CURRENT_LANG === 'en' ? 'Open Movie' : 'Открыть карточку фильма'}">
                     <i data-lucide="arrow-up-right" class="ico-xs text-teal"></i>
                     <span>${CURRENT_LANG === 'en' ? 'Open' : 'Открыть'}</span>
                   </button>
                 ` : `
                   ${canManageLib ? `
-                    <button class="btn btn-primary btn-small" onclick="importSingleMovieFromFranchise(${coll.id}, ${p.tmdb_id}, this)">
+                    <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); importSingleMovieFromFranchise(${coll.id}, ${p.tmdb_id}, this)">
                       <i data-lucide="plus" class="ico-xs"></i>
                       <span>${t("collection.btn_add_to_library")}</span>
                     </button>

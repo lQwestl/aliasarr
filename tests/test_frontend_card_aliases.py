@@ -293,6 +293,81 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
         self.assertIn("transform: none", servarr_hover_css)
 
 
+    def test_collection_card_hover_theme_color_and_no_cyan(self):
+        """Ensure .collection-card:hover and .show-card:hover use var(--teal) and color-mix instead of hardcoded cyan."""
+        card_hover_match = re.search(r"\.collection-card:hover\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(card_hover_match, ".collection-card:hover rule not found")
+        card_hover_css = card_hover_match.group(1)
+        self.assertNotIn("rgba(0, 240, 255", card_hover_css, "Hardcoded cyan must not be in .collection-card:hover")
+        self.assertIn("var(--teal)", card_hover_css)
+        self.assertIn("color-mix", card_hover_css)
+
+        show_hover_match = re.search(r"\.show-card:hover\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(show_hover_match, ".show-card:hover rule not found")
+        show_hover_css = show_hover_match.group(1)
+        self.assertNotIn("rgba(0, 240, 255", show_hover_css, "Hardcoded cyan must not be in .show-card:hover")
+        self.assertIn("var(--teal)", show_hover_css)
+        self.assertIn("color-mix", show_hover_css)
+
+    def test_collection_modal_hero_poster_and_parts_dimensions(self):
+        """Ensure collection modal has 230px poster, 76px franchise parts, contrast gradient, and poster actions."""
+        # 1. Poster column and poster dimensions (unindented desktop rule)
+        poster_col_match = re.search(r"(?:^|\n)\.collection-hero-poster-col\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(poster_col_match, ".collection-hero-poster-col rule not found")
+        self.assertIn("width: 230px", poster_col_match.group(1))
+
+        poster_match = re.search(r"(?:^|\n)\.collection-hero-poster\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(poster_match, ".collection-hero-poster rule not found")
+        poster_css = poster_match.group(1)
+        self.assertIn("width: 230px", poster_css)
+        self.assertIn("height: 345px", poster_css)
+
+        # 2. Poster actions under poster
+        poster_actions_match = re.search(r"(?:^|\n)\.collection-hero-poster-actions\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(poster_actions_match, ".collection-hero-poster-actions rule not found")
+        self.assertIn("max-width: 230px", poster_actions_match.group(1))
+
+        # 3. Backdrop gradient and text readability
+        grad_match = re.search(r"\.collection-hero-gradient\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(grad_match, ".collection-hero-gradient rule not found")
+        grad_css = grad_match.group(1)
+        self.assertIn("linear-gradient", grad_css)
+        self.assertIn("z-index: 2", grad_css)
+
+        overview_match = re.search(r"(?:^|\n)\.collection-hero-overview\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(overview_match, ".collection-hero-overview rule not found")
+        overview_css = overview_match.group(1)
+        self.assertIn("color: #f8fafc", overview_css)
+        self.assertIn("text-shadow:", overview_css)
+
+        # 4. Title row padding-right for close button isolation
+        title_row_match = re.search(r"(?:^|\n)\.collection-hero-title-row\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(title_row_match, ".collection-hero-title-row rule not found")
+        self.assertIn("padding-right: 52px", title_row_match.group(1))
+
+        # 5. Franchise parts enlarged poster & 2-line overview
+        part_poster_match = re.search(r"(?:^|\n)\.franchise-part-poster\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(part_poster_match, ".franchise-part-poster rule not found")
+        part_poster_css = part_poster_match.group(1)
+        self.assertIn("width: 76px", part_poster_css)
+        self.assertIn("height: 114px", part_poster_css)
+
+        part_overview_match = re.search(r"\.franchise-part-overview\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(part_overview_match, ".franchise-part-overview rule not found")
+        self.assertIn("-webkit-line-clamp: 2", part_overview_match.group(1))
+
+    def test_collection_modal_app_js_structure(self):
+        """Ensure openCollectionModal in app.js renders poster actions under poster and handles interactive rows."""
+        self.assertIn("collection-hero-backdrop-wrap", self.app_js)
+        self.assertIn("collection-hero-gradient", self.app_js)
+        self.assertIn("collection-hero-poster-col", self.app_js)
+        self.assertIn("collection-hero-poster-actions", self.app_js)
+        self.assertIn("franchise-progress-pill", self.app_js)
+        self.assertIn("franchise-part-index", self.app_js)
+        self.assertIn("franchise-part-row ${isInLib ? 'is-in-library' : ''}", self.app_js)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
