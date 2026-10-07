@@ -77,7 +77,9 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
         self.assertIn("criteria_clean = str(criteria).strip()", self.auto_search)
         self.assertIn("rest_count = len(parts) - 2", self.auto_search)
 
-        modal_match = re.search(r"(?::not\(\[data-design=\"servarr\"\]\)\s+)?#show-modal\s+\.modal,\s*\n(?::not\(\[data-design=\"servarr\"\]\)\s+)?#collection-modal\s+\.modal\s*\{([^}]+)\}", self.style)
+    def test_modal_hero_backdrop_full_bleed_and_transparent(self):
+        """Ensure modal has zero top padding, hero container is full width and backdrop filter is removed."""
+        modal_match = re.search(r"(?::root:not\(\[data-design=\"servarr\"\]\)\s+)?#show-modal\s+\.modal,\s*\n(?::root:not\(\[data-design=\"servarr\"\]\)\s+)?#collection-modal\s+\.modal\s*\{([^}]+)\}", self.style)
         self.assertIsNotNone(modal_match, "Modal rule not found")
         modal_css = modal_match.group(1)
         self.assertIn("padding: 0 0 24px 0", modal_css)
@@ -138,21 +140,41 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
 
     def test_modal_close_hover_red(self):
         """Ensure modal close button hover has red styling and rotation in custom themes."""
-        hover_match = re.search(r":not\(\[data-design=\"servarr\"\]\)\s+#show-modal\s+\.modal-close:hover[^{]*\{([^}]+)\}", self.style)
-        self.assertIsNotNone(hover_match, ":not([data-design=\"servarr\"]) #show-modal .modal-close:hover rule not found")
+        hover_match = re.search(r":root:not\(\[data-design=\"servarr\"\]\)\s+#show-modal\s+\.modal-close:hover[^{]*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(hover_match, ":root:not([data-design=\"servarr\"]) #show-modal .modal-close:hover rule not found")
         hover_css = hover_match.group(1)
         self.assertIn("rgba(239, 68, 68", hover_css)
         self.assertIn("color: #ff6b6b !important", hover_css)
         self.assertIn("transform: rotate(90deg)", hover_css)
 
     def test_modal_close_isolated_from_servarr(self):
-        """Ensure #show-modal .modal-close rules in style.css are strictly isolated from Servarr."""
-        # Unscoped #show-modal .modal-close must NOT exist in style.css without :not([data-design="servarr"])
+        """Ensure #show-modal .modal-close rules in style.css are strictly isolated from Servarr via :root."""
+        # Unscoped #show-modal .modal-close must NOT exist in style.css
         unscoped_rule = re.search(r"(?:^|\n)\s*#show-modal\s+\.modal-close\s*\{", self.style)
         self.assertIsNone(unscoped_rule, "Found unscoped #show-modal .modal-close rule in style.css that bleeds into Servarr")
 
-        scoped_rule = re.search(r":not\(\[data-design=\"servarr\"\]\)\s+#show-modal\s+\.modal-close\b", self.style)
-        self.assertIsNotNone(scoped_rule, "Expected scoped :not([data-design=\"servarr\"]) #show-modal .modal-close in style.css")
+        # Must have :root prefix, not bare :not([data-design="servarr"])
+        bare_not_rule = re.search(r"(?:^|\n)\s*:not\(\[data-design=\"servarr\"\]\)\s+#show-modal\s+\.modal-close\b", self.style)
+        self.assertIsNone(bare_not_rule, "Found bare :not([data-design=\"servarr\"]) without :root which matches body ancestor")
+
+        scoped_rule = re.search(r":root:not\(\[data-design=\"servarr\"\]\)\s+#show-modal\s+\.modal-close\b", self.style)
+        self.assertIsNotNone(scoped_rule, "Expected scoped :root:not([data-design=\"servarr\"]) #show-modal .modal-close in style.css")
+
+    def test_servarr_modal_close_static_and_transparent(self):
+        """Ensure Servarr design mode has 100% transparent, borderless, non-rotating close button."""
+        close_match = re.search(r"\[data-design=\"servarr\"\]\s+\.modal-close,\s*\n\[data-design=\"servarr\"\]\s+\.modal\s+\.modal-close\s*\{([^}]+)\}", self.servarr)
+        self.assertIsNotNone(close_match, "Servarr modal-close base rule not found")
+        close_css = close_match.group(1)
+        self.assertIn("border: 0", close_css)
+        self.assertIn("background: transparent", close_css)
+        self.assertIn("transform: none", close_css)
+
+        hover_match = re.search(r"\[data-design=\"servarr\"\]\s+\.modal-close:hover,\s*\n\[data-design=\"servarr\"\]\s+\.modal\s+\.modal-close:hover\s*\{([^}]+)\}", self.servarr)
+        self.assertIsNotNone(hover_match, "Servarr modal-close:hover rule not found")
+        hover_css = hover_match.group(1)
+        self.assertIn("border: 0", hover_css)
+        self.assertIn("background: transparent", hover_css)
+        self.assertIn("transform: none", hover_css)
 
     def test_css_braces_balanced(self):
         """Ensure style.css and servarr.css have completely balanced braces."""

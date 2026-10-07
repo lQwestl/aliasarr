@@ -5492,22 +5492,22 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 .modal-wide { max-width: 1180px; width: 95%; }
 .modal-small { max-width: 420px; }
 
-:not([data-design="servarr"]) #show-modal .modal,
-:not([data-design="servarr"]) #collection-modal .modal {
+:root:not([data-design="servarr"]) #show-modal .modal,
+:root:not([data-design="servarr"]) #collection-modal .modal {
   padding: 0 0 24px 0;
   overflow-x: hidden;
   box-sizing: border-box;
 }
 
-:not([data-design="servarr"]) #show-modal-content > :not(.show-hero-container),
-:not([data-design="servarr"]) #collection-modal-content > :not(.collection-hero),
-:not([data-design="servarr"]) #show-modal-task-banner {
+:root:not([data-design="servarr"]) #show-modal-content > :not(.show-hero-container),
+:root:not([data-design="servarr"]) #collection-modal-content > :not(.collection-hero),
+:root:not([data-design="servarr"]) #show-modal-task-banner {
   margin-left: 24px;
   margin-right: 24px;
 }
 
-:not([data-design="servarr"]) #show-modal .modal-close,
-:not([data-design="servarr"]) #collection-modal .modal-close {
+:root:not([data-design="servarr"]) #show-modal .modal-close,
+:root:not([data-design="servarr"]) #collection-modal .modal-close {
   top: 14px;
   right: 18px;
   z-index: 30;
@@ -5517,22 +5517,22 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   backdrop-filter: var(--glass-blur, blur(8px));
   -webkit-backdrop-filter: var(--glass-blur, blur(8px));
 }
-:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #show-modal .modal-close,
-:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #collection-modal .modal-close {
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #show-modal .modal-close,
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #collection-modal .modal-close {
   background: rgba(255, 255, 255, 0.85);
   border: 1px solid rgba(0, 0, 0, 0.15);
   color: #1e293b;
 }
 
-:not([data-design="servarr"]) #show-modal .modal-close:hover,
-:not([data-design="servarr"]) #collection-modal .modal-close:hover {
+:root:not([data-design="servarr"]) #show-modal .modal-close:hover,
+:root:not([data-design="servarr"]) #collection-modal .modal-close:hover {
   background: rgba(239, 68, 68, 0.3) !important;
   border-color: rgba(239, 68, 68, 0.6) !important;
   color: #ff6b6b !important;
   transform: rotate(90deg);
 }
-:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #show-modal .modal-close:hover,
-:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #collection-modal .modal-close:hover {
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #show-modal .modal-close:hover,
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #collection-modal .modal-close:hover {
   background: rgba(239, 68, 68, 0.15) !important;
   border-color: rgba(239, 68, 68, 0.4) !important;
   color: #dc2626 !important;
@@ -5584,7 +5584,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   clip-path: none;
 }
 
-:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .show-hero-gradient {
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .show-hero-gradient {
   background: linear-gradient(90deg, rgba(248, 250, 252, 0.78) 0%, rgba(248, 250, 252, 0.45) 45%, rgba(248, 250, 252, 0.12) 100%),
               linear-gradient(0deg, var(--panel) 0%, transparent 40%);
 }
@@ -6011,7 +6011,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
 }
 
 /* Action Bars & Quick Settings */
-:not([data-design="servarr"]) .show-detail-path-actions-bar {
+:root:not([data-design="servarr"]) .show-detail-path-actions-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -6023,7 +6023,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   margin-bottom: 12px;
 }
 
-:not([data-design="servarr"]) .show-detail-path-actions-bar .btn {
+:root:not([data-design="servarr"]) .show-detail-path-actions-bar .btn {
   padding: 0 8px !important;
   height: 28px !important;
   min-height: 28px !important;
@@ -6033,8 +6033,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   flex: 0 0 auto !important;
 }
 
-:not([data-design="servarr"]) .show-detail-path-actions-bar .btn i,
-:not([data-design="servarr"]) .show-detail-path-actions-bar .btn svg {
+:root:not([data-design="servarr"]) .show-detail-path-actions-bar .btn i,
+:root:not([data-design="servarr"]) .show-detail-path-actions-bar .btn svg {
   width: 13px !important;
   height: 13px !important;
 }
