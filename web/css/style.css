@@ -1141,6 +1141,25 @@ body::before {
 .input-grow { flex: 1; }
 textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px 12px; height: auto; resize: vertical; }
 
+select.input,
+select {
+  color-scheme: dark;
+}
+select.input option,
+select option {
+  background-color: var(--panel, #111827);
+  color: var(--text, #f1f5f9);
+}
+:root:is([data-theme="paper"], [data-theme="light"]) select.input,
+:root:is([data-theme="paper"], [data-theme="light"]) select {
+  color-scheme: light;
+}
+:root:is([data-theme="paper"], [data-theme="light"]) select.input option,
+:root:is([data-theme="paper"], [data-theme="light"]) select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
 .checkbox-row { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text); cursor: pointer; }
 
 /* Tactile Button Engine */
@@ -19239,6 +19258,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   background: rgba(255, 255, 255, 0.1) !important;
   border: 1px solid rgba(255, 255, 255, 0.22) !important;
   color: #f8fafc !important;
+  color-scheme: dark;
   font-size: 11.5px !important;
   font-weight: 500;
   height: 24px !important;
@@ -19248,9 +19268,18 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   outline: none;
   transition: border-color 0.18s ease, background 0.18s ease;
 }
+:root:not([data-design="servarr"]) .meta-pill-qp-select option {
+  background-color: var(--panel-alt, #1a2234) !important;
+  color: #f8fafc !important;
+}
 :root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .meta-pill-qp-select {
   background: rgba(0, 0, 0, 0.05) !important;
   border: 1px solid rgba(0, 0, 0, 0.2) !important;
+  color: #0f172a !important;
+  color-scheme: light;
+}
+:root:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) .meta-pill-qp-select option {
+  background-color: #ffffff !important;
   color: #0f172a !important;
 }
 :root:not([data-design="servarr"]) .meta-pill-qp-select:hover,

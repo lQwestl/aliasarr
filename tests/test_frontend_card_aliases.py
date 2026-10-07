@@ -440,6 +440,8 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
         self.assertIn(".meta-pill-quality-profile", self.style)
         self.assertIn(".meta-pill-qp-label", self.style)
         self.assertIn(".meta-pill-qp-select", self.style)
+        self.assertIn(".meta-pill-qp-select option", self.style)
+        self.assertIn("color-scheme: dark", self.style)
 
         # 4. Collection hero actions bar in CSS
         self.assertIn(".collection-hero-actions-bar", self.style)
