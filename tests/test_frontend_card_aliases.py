@@ -138,6 +138,31 @@ class TestFrontendCardAliasesAndSearchStatus(unittest.TestCase):
         self.assertNotIn("rgba(0, 240, 255,", chip_css)
 
 
+    def test_modal_close_hover_red(self):
+        """Ensure modal close button hover has red styling and rotation."""
+        hover_match = re.search(r"#show-modal\s+\.modal-close:hover[^{]*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(hover_match, "#show-modal .modal-close:hover rule not found")
+        hover_css = hover_match.group(1)
+        self.assertIn("rgba(239, 68, 68", hover_css)
+        self.assertIn("color: #ff6b6b !important", hover_css)
+        self.assertIn("transform: rotate(90deg)", hover_css)
+
+    def test_show_hero_title_row_clearance(self):
+        """Ensure .show-hero-title-row has padding-right to not overlap with close button."""
+        title_row_match = re.search(r"\.show-hero-title-row\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(title_row_match, ".show-hero-title-row rule not found")
+        title_row_css = title_row_match.group(1)
+        self.assertIn("padding-right: 48px", title_row_css)
+
+    def test_show_detail_path_actions_bar_compact(self):
+        """Ensure .show-detail-path-actions-bar buttons are compact to fit on one row."""
+        actions_btn_match = re.search(r"\.show-detail-path-actions-bar\s+\.btn\s*\{([^}]+)\}", self.style)
+        self.assertIsNotNone(actions_btn_match, ".show-detail-path-actions-bar .btn rule not found")
+        btn_css = actions_btn_match.group(1)
+        self.assertIn("height: 28px !important", btn_css)
+        self.assertIn("padding: 0 8px !important", btn_css)
+
+
 if __name__ == "__main__":
     unittest.main()
 

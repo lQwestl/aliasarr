@@ -5516,18 +5516,26 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   color: #f8fafc;
   backdrop-filter: var(--glass-blur, blur(8px));
   -webkit-backdrop-filter: var(--glass-blur, blur(8px));
-}
-#show-modal .modal-close:hover,
-#collection-modal .modal-close:hover {
-  background: rgba(15, 23, 42, 0.85);
-  border-color: rgba(255, 255, 255, 0.4);
-  color: #ffffff;
-}
 :is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #show-modal .modal-close,
 :is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #collection-modal .modal-close {
   background: rgba(255, 255, 255, 0.85);
   border: 1px solid rgba(0, 0, 0, 0.15);
   color: #1e293b;
+}
+
+#show-modal .modal-close:hover,
+#collection-modal .modal-close:hover {
+  background: rgba(239, 68, 68, 0.3) !important;
+  border-color: rgba(239, 68, 68, 0.6) !important;
+  color: #ff6b6b !important;
+  transform: rotate(90deg);
+}
+:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #show-modal .modal-close:hover,
+:is([data-theme="paper"], [data-theme="light"]):not([data-design="servarr"]) #collection-modal .modal-close:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #dc2626 !important;
+  transform: rotate(90deg);
 }
 
 /* Show Detail Modal - Modern Hero Banner & Badges (Sonarr / Radarr Style) */
@@ -5704,6 +5712,8 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  padding-right: 48px;
+  box-sizing: border-box;
 }
 
 .show-hero-title {
@@ -6004,12 +6014,28 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 6px;
+  padding: 8px 12px;
   background: var(--panel-alt);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm, 10px);
   margin-bottom: 12px;
+}
+
+.show-detail-path-actions-bar .btn {
+  padding: 0 8px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  font-size: 11.5px !important;
+  gap: 4px !important;
+  white-space: nowrap !important;
+  flex: 0 0 auto !important;
+}
+
+.show-detail-path-actions-bar .btn i,
+.show-detail-path-actions-bar .btn svg {
+  width: 13px !important;
+  height: 13px !important;
 }
 
 .show-detail-settings-bar {
@@ -6109,6 +6135,7 @@ textarea.input { font-family: var(--font-mono); font-size: 13.5px; padding: 10px
   .show-hero-title-row {
     justify-content: center !important;
     width: 100% !important;
+    padding-right: 0 !important;
   }
 
   .show-hero-title {
