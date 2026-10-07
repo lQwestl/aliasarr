@@ -19718,6 +19718,7 @@ async function saveSecuritySettings(btn) {
 // =============================================================================
 
 let EDITING_USER_ID = null;
+let EDITING_USER_IS_OWNER = false;
 let RESETTING_PASSWORD_USER_ID = null;
 
 const ROLE_PRESETS_DEF = {
@@ -19865,12 +19866,19 @@ function setRolePresetCardActive(roleKey) {
 }
 
 function selectUserRolePreset(roleKey) {
+  const isEditingSelf = EDITING_USER_ID && CURRENT_USER && CURRENT_USER.id === EDITING_USER_ID;
+  const isTargetOwner = !!EDITING_USER_IS_OWNER;
+  const isCurrentUserOwner = CURRENT_USER ? !!CURRENT_USER.is_owner : false;
+  const blockPermissions = isEditingSelf || isTargetOwner;
+  if (blockPermissions) return;
+
+  if (roleKey === "admin" && !isCurrentUserOwner) {
+    toast(CURRENT_LANG === "en" ? "Only the main administrator can grant the administrator role" : "Назначать администраторов может только главный администратор", true);
+    return;
+  }
+
   setRolePresetCardActive(roleKey);
   const adminCb = document.getElementById("user-form-is-admin");
-  const isEditingSelf = EDITING_USER_ID && CURRENT_USER && CURRENT_USER.id === EDITING_USER_ID;
-  const isOwner = CURRENT_USER && !!CURRENT_USER.is_owner;
-  const blockPermissions = isEditingSelf && !isOwner;
-  if (blockPermissions) return;
 
   if (roleKey === "admin") {
     if (adminCb) adminCb.checked = true;
@@ -19923,6 +19931,8 @@ function onUserPermCheckboxChange() {
 
 function resetUserForm() {
   EDITING_USER_ID = null;
+  EDITING_USER_IS_OWNER = false;
+  const isCurrentUserOwner = CURRENT_USER ? !!CURRENT_USER.is_owner : false;
   const titleEl = document.getElementById("user-form-title");
   if (titleEl) titleEl.textContent = t("users.add_title");
   
@@ -19942,14 +19952,29 @@ function resetUserForm() {
   if (timeoutSel) timeoutSel.value = "43200";
 
   const adminCb = document.getElementById("user-form-is-admin");
-  if (adminCb) { adminCb.checked = false; adminCb.disabled = false; }
+  if (adminCb) {
+    adminCb.checked = false;
+    adminCb.disabled = !isCurrentUserOwner;
+  }
 
   document.querySelectorAll(".user-perm-check").forEach(cb => {
+    cb.checked = false;
     cb.disabled = false;
   });
 
   const roleCards = document.querySelectorAll(".role-preset-card");
-  roleCards.forEach(c => c.style.pointerEvents = "auto");
+  roleCards.forEach(c => {
+    const radio = c.querySelector("input[value='admin']");
+    if (radio && !isCurrentUserOwner) {
+      c.style.pointerEvents = "none";
+      c.style.opacity = "0.5";
+      c.title = CURRENT_LANG === "en" ? "Only the main administrator can create admins" : "Назначать администраторов может только главный администратор";
+    } else {
+      c.style.pointerEvents = "auto";
+      c.style.opacity = "1";
+      c.title = "";
+    }
+  });
 
   selectUserRolePreset("user");
 
@@ -19965,6 +19990,7 @@ function resetUserForm() {
 
 function editUser(u) {
   EDITING_USER_ID = u.id;
+  EDITING_USER_IS_OWNER = !!u.is_owner;
   const titleEl = document.getElementById("user-form-title");
   if (titleEl) titleEl.textContent = t("users.edit_title", { name: u.display_name || u.username });
 
@@ -19981,33 +20007,52 @@ function editUser(u) {
   if (timeoutSel) timeoutSel.value = String(u.session_timeout_minutes || 43200);
 
   const isEditingSelf = CURRENT_USER && CURRENT_USER.id === u.id;
-  const isOwner = CURRENT_USER && !!CURRENT_USER.is_owner;
-  const blockPermissions = isEditingSelf && !isOwner;
+  const isTargetOwner = !!u.is_owner;
+  const isCurrentUserOwner = CURRENT_USER && !!CURRENT_USER.is_owner;
+  const blockPermissions = isEditingSelf || isTargetOwner;
 
   const adminCb = document.getElementById("user-form-is-admin");
   if (adminCb) {
-    adminCb.checked = !!u.is_admin;
-    adminCb.disabled = !!u.is_owner || blockPermissions;
+    adminCb.checked = isTargetOwner || !!u.is_admin;
+    adminCb.disabled = blockPermissions || !isCurrentUserOwner;
   }
 
   const perms = u.permissions || {};
   document.querySelectorAll(".user-perm-check").forEach(cb => {
-    cb.checked = u.is_admin || !!perms[cb.value];
+    cb.checked = isTargetOwner || u.is_admin || !!perms[cb.value];
     cb.disabled = blockPermissions;
   });
 
   const roleCards = document.querySelectorAll(".role-preset-card");
   roleCards.forEach(c => {
-    c.style.pointerEvents = blockPermissions ? "none" : "auto";
+    const radio = c.querySelector("input[value='admin']");
+    if (blockPermissions) {
+      c.style.pointerEvents = "none";
+      c.style.opacity = "0.6";
+      c.title = "";
+    } else if (radio && !isCurrentUserOwner) {
+      c.style.pointerEvents = "none";
+      c.style.opacity = "0.5";
+      c.title = CURRENT_LANG === "en" ? "Only the main administrator can grant admin role" : "Назначать администраторов может только главный администратор";
+    } else {
+      c.style.pointerEvents = "auto";
+      c.style.opacity = "1";
+      c.title = "";
+    }
   });
 
-  const detectedRole = u.role || (u.is_owner || u.is_admin ? "admin" : detectCurrentFormRole());
+  const detectedRole = isTargetOwner ? "admin" : (u.role || (u.is_admin ? "admin" : detectCurrentFormRole()));
   setRolePresetCardActive(detectedRole);
   toggleUserFormAdminMode();
 
   const permHint = document.getElementById("user-form-self-perm-hint");
   if (permHint) {
-    if (blockPermissions) {
+    if (isTargetOwner) {
+      permHint.textContent = CURRENT_LANG === "en"
+        ? "The Main Administrator holds all system permissions. Permission modification is disabled for safety."
+        : "Главный администратор обладает всеми правами системы. Изменение прав заблокировано для безопасности.";
+      permHint.style.display = "block";
+    } else if (isEditingSelf) {
       permHint.textContent = CURRENT_LANG === "en"
         ? "You cannot modify your own permissions or admin role"
         : "Вы не можете изменять собственные права доступа и роль администратора";
@@ -20106,7 +20151,9 @@ async function loadUsers() {
         : `<span class="badge badge-secondary" style="opacity:0.65;">${t("users.2fa_disabled")}</span>`;
       const lastLogin = u.last_login_at ? formatDateTZ(u.last_login_at) : `<span style="color:var(--text-muted)">${t("users.never_logged_in")}</span>`;
 
-      const canManageThisUser = !u.is_owner || isCurrentUserOwner;
+      const isSelf = CURRENT_USER && CURRENT_USER.id === u.id;
+      const isTargetOwner = !!u.is_owner;
+      const isTargetAdmin = !!u.is_admin;
 
       // Пользователи не могут видеть api-key друг друга, кроме главного администратора
       let apiKeyActionHtml = "";
@@ -20119,14 +20166,33 @@ async function loadUsers() {
       }
 
       // Кнопки 2FA:
+      // Главный администратор может управлять 2FA всех.
+      // Назначенные администраторы могут управлять 2FA только обычных пользователей (не других админов и не владельца).
+      const canManageTotp = isCurrentUserOwner || (!isTargetOwner && !isTargetAdmin);
       let totpActionHtml = "";
-      if (canManageThisUser) {
+      if (canManageTotp) {
         if (is2FA) {
           totpActionHtml = `<button class="btn btn-secondary btn-small danger" title="${CURRENT_LANG === 'en' ? 'Disable 2FA for user' : 'Отключить 2FA для пользователя'}" onclick="adminResetUser2FA(${u.id}, '${escapeHtml(u.username)}')"><i data-lucide="shield-off" class="ico-sm"></i></button>`;
         } else {
           totpActionHtml = `<button class="btn btn-secondary btn-small" title="${CURRENT_LANG === 'en' ? 'Setup 2FA for user' : 'Настроить 2FA для пользователя'}" onclick="adminSetupUser2FA(${u.id}, '${escapeHtml(u.username)}')"><i data-lucide="shield-check" class="ico-sm"></i></button>`;
         }
       }
+
+      // Кнопка сброса пароля:
+      // Главный админ может сбросить пароль любому.
+      // Суб-админ НЕ может сбросить пароль владельцу или другому админу.
+      const canResetPwd = isCurrentUserOwner || (!isTargetOwner && !isTargetAdmin);
+
+      // Кнопка редактирования:
+      // Главный админ может редактировать любого (включая себя для имени/таймаута).
+      // Суб-админ может редактировать себя (для имени/таймаута) и обычных пользователей, но НЕ других админов и НЕ владельца.
+      const canEditUser = isCurrentUserOwner || !isTargetAdmin || isSelf;
+
+      // Кнопка удаления:
+      // Нельзя удалить владельца.
+      // Нельзя удалить себя.
+      // Суб-админ НЕ может удалить другого админа.
+      const canDeleteUser = !isTargetOwner && !isSelf && (isCurrentUserOwner || !isTargetAdmin);
 
       return `
         <tr>
@@ -20143,9 +20209,9 @@ async function loadUsers() {
             <div class="row-actions">
               ${apiKeyActionHtml}
               ${totpActionHtml}
-              ${canManageThisUser ? `<button class="btn btn-secondary btn-small" title="${t("users.btn_reset_pwd")}" onclick="openUserPasswordResetModal(${u.id}, '${escapeHtml(u.username)}')"><i data-lucide="lock" class="ico-sm"></i></button>` : ""}
-              ${canManageThisUser ? `<button class="btn-icon-only" title="${t("common.edit")}" onclick='editUser(${JSON.stringify(u).replace(/'/g, "&apos;")})'><i data-lucide="edit-2" class="ico-sm"></i></button>` : ""}
-              ${!u.is_owner && (!CURRENT_USER || CURRENT_USER.id !== u.id) ? `<button class="btn-icon-only danger" title="${t("common.delete")}" onclick="removeUser(${u.id}, '${escapeHtml(u.username)}')"><i data-lucide="trash-2" class="ico-sm"></i></button>` : ""}
+              ${canResetPwd ? `<button class="btn btn-secondary btn-small" title="${t("users.btn_reset_pwd")}" onclick="openUserPasswordResetModal(${u.id}, '${escapeHtml(u.username)}')"><i data-lucide="lock" class="ico-sm"></i></button>` : ""}
+              ${canEditUser ? `<button class="btn-icon-only" title="${t("common.edit")}" onclick='editUser(${JSON.stringify(u).replace(/'/g, "&apos;")})'><i data-lucide="edit-2" class="ico-sm"></i></button>` : ""}
+              ${canDeleteUser ? `<button class="btn-icon-only danger" title="${t("common.delete")}" onclick="removeUser(${u.id}, '${escapeHtml(u.username)}')"><i data-lucide="trash-2" class="ico-sm"></i></button>` : ""}
             </div>
           </td>
         </tr>
@@ -20177,15 +20243,23 @@ async function submitUser() {
 
   try {
     if (EDITING_USER_ID) {
+      const isEditingSelf = CURRENT_USER && CURRENT_USER.id === EDITING_USER_ID;
+      const isTargetOwner = !!EDITING_USER_IS_OWNER;
+
+      const payload = {
+        display_name: displayName || username,
+        session_timeout_minutes: sessionTimeout,
+      };
+
+      if (!isEditingSelf && !isTargetOwner) {
+        payload.role = role;
+        payload.is_admin = isAdmin;
+        payload.permissions = perms;
+      }
+
       await api(`/api/v1/users/${EDITING_USER_ID}`, {
         method: "PUT",
-        body: JSON.stringify({
-          display_name: displayName || username,
-          role: role,
-          is_admin: isAdmin,
-          permissions: perms,
-          session_timeout_minutes: sessionTimeout,
-        }),
+        body: JSON.stringify(payload),
       });
       toast(t("settings.toast_saved"));
     } else {

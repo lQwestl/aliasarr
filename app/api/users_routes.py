@@ -84,24 +84,24 @@ def _format_user(u: User, viewer: Optional[User] = None) -> dict[str, Any]:
 
 
 def _ensure_can_manage(current_user: User, target: User) -> None:
-    """Изменять администратора может только администратор (владельца — только он сам).
+    """Изменять учетные записи администраторов может только главный администратор.
 
-    Право manage_users без прав администратора выдаётся, например, модератору в
-    роли «Custom». Без этой проверки он сбрасывал бы пароли администраторов,
-    перевыпускал их API-ключи и тем самым получал их полномочия.
+    Главного администратора (is_owner) может изменять только он сам (свой профиль).
+    Назначенных администраторов (is_admin) может изменять только главный администратор.
+    Обычные администраторы и менеджеры могут управлять только учетными записями обычных пользователей.
     """
     if target.is_owner and not current_user.is_owner and target.id != current_user.id:
-        raise HTTPException(403, "Изменять главного администратора может только он сам")
-    if target.is_admin and not current_user.is_admin:
-        raise HTTPException(403, "Изменять учётные записи администраторов может только администратор")
+        raise HTTPException(403, "Изменять данные главного администратора не разрешено")
+    if target.is_admin and target.id != current_user.id and not current_user.is_owner:
+        raise HTTPException(403, "Управлять учетными записями администраторов может только главный администратор")
 
 
 def _ensure_can_grant(current_user: User, is_admin: bool, permissions: Optional[dict]) -> None:
-    """Нельзя выдать другому больше прав, чем есть у себя."""
+    """Нельзя выдать другому больше прав, чем есть у себя. Назначать администраторов может только главный администратор."""
+    if is_admin and not current_user.is_owner:
+        raise HTTPException(403, "Назначать администраторов может только главный администратор")
     if current_user.is_admin:
         return
-    if is_admin:
-        raise HTTPException(403, "Назначать администраторов может только администратор")
     own = current_user.permissions or {}
     extra = sorted(key for key, value in (permissions or {}).items() if value and not own.get(key))
     if extra:
@@ -208,16 +208,17 @@ def update_user(
         raise HTTPException(404, "Пользователь не найден")
     _ensure_can_manage(current_user, user)
 
-    # Главного администратора (is_owner) может редактировать ТОЛЬКО он сам
-    if user.is_owner and not current_user.is_owner:
-        raise HTTPException(403, "Другие пользователи и администраторы не могут изменять данные главного администратора")
-
+    # 1. Защита учетной записи главного администратора (is_owner)
     if user.is_owner:
+        if not current_user.is_owner:
+            raise HTTPException(403, "Другие пользователи и администраторы не могут изменять данные главного администратора")
         if payload.is_admin is False or payload.enabled is False:
             raise HTTPException(400, "Нельзя отключить или ограничить главного администратора")
+        if payload.role is not None and payload.role != "admin":
+            raise HTTPException(400, "Нельзя изменить роль главного администратора")
 
-    # Пользователи и назначенные администраторы не могут изменять сами себе роль и права доступа
-    if current_user.id == user.id and not current_user.is_owner:
+    # 2. Ни один пользователь (включая главного администратора) не может изменять себе роль, статус админа, права или отключать себя
+    if current_user.id == user.id:
         if payload.role is not None and payload.role != detect_user_role(user):
             raise HTTPException(400, "Вы не можете изменять собственную роль")
         if payload.is_admin is not None and payload.is_admin != user.is_admin:
@@ -227,33 +228,48 @@ def update_user(
         if payload.enabled is False:
             raise HTTPException(400, "Вы не можете отключить собственную учётную запись")
 
+    # 3. Управлять учетными записями других администраторов может ТОЛЬКО главный администратор
+    if user.is_admin and current_user.id != user.id and not current_user.is_owner:
+        raise HTTPException(403, "Управлять учетными записями администраторов может только главный администратор")
+
     if payload.display_name is not None:
         user.display_name = payload.display_name.strip() or user.username
 
-    requested_admin = bool(payload.is_admin) or payload.role == "admin"
-    requested_perms = dict(payload.permissions or {})
-    if payload.role and payload.role in ROLE_PRESETS and payload.role != "admin":
-        requested_perms.update(ROLE_PRESETS[payload.role]["permissions"])
-    _ensure_can_grant(current_user, requested_admin, requested_perms)
     was_enabled = bool(user.enabled)
 
-    if payload.role and payload.role in ROLE_PRESETS and not user.is_owner and (current_user.id != user.id or current_user.is_owner):
-        preset = ROLE_PRESETS[payload.role]
-        if payload.role == "admin":
-            user.is_admin = True
-            user.permissions = {perm: True for perm in ALL_PERMISSIONS}
-        else:
-            user.is_admin = False
-            user.permissions = dict(preset["permissions"])
+    # Изменение роли, прав доступа, статуса администратора и активности
+    # разрешено только в отношении ДРУГИХ пользователей (не к себе и не к главному администратору)
+    if not user.is_owner and current_user.id != user.id:
+        requested_admin = bool(payload.is_admin) or payload.role == "admin"
+        requested_perms = dict(payload.permissions or {})
+        if payload.role and payload.role in ROLE_PRESETS and payload.role != "admin":
+            requested_perms.update(ROLE_PRESETS[payload.role]["permissions"])
+        _ensure_can_grant(current_user, requested_admin, requested_perms)
 
-    if payload.is_admin is not None and not user.is_owner and current_user.id != user.id:
-        user.is_admin = payload.is_admin
-        if user.is_admin:
-            user.permissions = {perm: True for perm in ALL_PERMISSIONS}
-    if payload.permissions is not None and (current_user.id != user.id or current_user.is_owner):
-        user.permissions = payload.permissions
-    if payload.enabled is not None and not user.is_owner and current_user.id != user.id:
-        user.enabled = payload.enabled
+        if payload.role and payload.role in ROLE_PRESETS:
+            preset = ROLE_PRESETS[payload.role]
+            if payload.role == "admin":
+                user.is_admin = True
+                user.permissions = {perm: True for perm in ALL_PERMISSIONS}
+            else:
+                user.is_admin = False
+                user.permissions = dict(preset["permissions"])
+
+        if payload.is_admin is not None:
+            user.is_admin = payload.is_admin
+            if user.is_admin:
+                user.permissions = {perm: True for perm in ALL_PERMISSIONS}
+        if payload.permissions is not None:
+            user.permissions = payload.permissions
+        if payload.enabled is not None:
+            user.enabled = payload.enabled
+
+    # У главного администратора всегда гарантированы все права в БД и статус администратора
+    if user.is_owner:
+        user.is_admin = True
+        user.enabled = True
+        user.permissions = {perm: True for perm in ALL_PERMISSIONS}
+
     if payload.session_timeout_minutes is not None and payload.session_timeout_minutes > 0:
         user.session_timeout_minutes = min(payload.session_timeout_minutes, MAX_SESSION_TIMEOUT_MINUTES)
 
@@ -329,6 +345,9 @@ def delete_user(
 
     if user.id == current_user.id:
         raise HTTPException(400, "Вы не можете удалить свою собственную учётную запись")
+
+    if user.is_admin and not current_user.is_owner:
+        raise HTTPException(403, "Удалять учетную запись администратора может только главный администратор")
 
     uname = user.username
     revoke_user_sessions(db, user.id)
