@@ -73,6 +73,8 @@ from app.services.postprocess import (
     natural_sort_key,
     render_episode_template,
     render_movie_template,
+    safe_render_episode_stem,
+    safe_render_movie_stem,
     render_season_folder_template,
     sanitize_filename,
 )
@@ -2521,15 +2523,18 @@ def execute_manual_import(
             quality = item.quality or parse_quality(os.path.basename(item.file_path)).name
 
             ext = os.path.splitext(item.file_path)[1]
+            aliases = [a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)]
             if show.content_type == "movie":
-                target_stem = render_movie_template(
+                target_stem = safe_render_movie_stem(
                     rename_template,
                     show_title=show.title,
                     year=show.year,
                     quality=quality,
+                    ext=ext,
+                    aliases=aliases,
                 )
             else:
-                target_stem = render_episode_template(
+                target_stem = safe_render_episode_stem(
                     rename_template,
                     show_title=getattr(show, "title", "") or "",
                     season=getattr(episode, "season_number", 1),
@@ -2538,6 +2543,8 @@ def execute_manual_import(
                     absolute=getattr(episode, "absolute_number", None) or getattr(episode, "episode_number", 1),
                     quality=quality,
                     year=getattr(show, "year", None),
+                    ext=ext,
+                    aliases=aliases,
                 )
             dest_video_path = os.path.join(target_dir, target_stem + ext)
             dest_abs = os.path.abspath(dest_video_path)
@@ -3070,15 +3077,18 @@ def execute_global_manual_import(
 
             quality = item.quality or parse_quality(os.path.basename(item.file_path)).name
             ext = os.path.splitext(item.file_path)[1]
+            aliases = [a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)]
             if show.content_type == "movie":
-                target_stem = render_movie_template(
+                target_stem = safe_render_movie_stem(
                     rename_template,
                     show_title=show.title,
                     year=show.year,
                     quality=quality,
+                    ext=ext,
+                    aliases=aliases,
                 )
             else:
-                target_stem = render_episode_template(
+                target_stem = safe_render_episode_stem(
                     rename_template,
                     show_title=getattr(show, "title", "") or "",
                     season=getattr(episode, "season_number", 1),
@@ -3087,6 +3097,8 @@ def execute_global_manual_import(
                     absolute=getattr(episode, "absolute_number", None) or getattr(episode, "episode_number", 1),
                     quality=quality,
                     year=getattr(show, "year", None),
+                    ext=ext,
+                    aliases=aliases,
                 )
             dest_video_path = os.path.join(target_dir, target_stem + ext)
             dest_abs = os.path.abspath(dest_video_path)

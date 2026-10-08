@@ -881,6 +881,187 @@ def render_movie_template(
     return re.sub(r"\s+", " ", res).strip()
 
 
+def safe_render_episode_stem(
+    template: str,
+    *,
+    show_title: str,
+    season: int,
+    episode: int,
+    episode_title: str = "",
+    absolute: Optional[int] = None,
+    quality: str = "",
+    year: Optional[int] = None,
+    ext: str = "",
+    aliases: Optional[list[str]] = None,
+    max_total_bytes: int = 240,
+) -> str:
+    """
+    Рендерит шаблон серии с гарантией непревышения файлового лимита (max_total_bytes с учетом расширения).
+    В случае превышения лимита:
+    1. Если у серии длинное название (episode_title), сначала сокращает именно его (по границам слов),
+       сохраняя название тайтла, номер сезона/серии и тег качества (например, WEBDL-1080p).
+    2. Если по-прежнему не влезает, подбирает короткий алиас для show_title.
+    3. Если и с коротким алиасом превышает лимит, усекает итоговый stem как крайнюю меру.
+    """
+    ext_b = len(ext.encode("utf-8")) if ext else 0
+    max_stem_b = max(40, max_total_bytes - ext_b)
+
+    target_stem = render_episode_template(
+        template,
+        show_title=show_title,
+        season=season,
+        episode=episode,
+        episode_title=episode_title,
+        absolute=absolute,
+        quality=quality,
+        year=year,
+    )
+    if len(target_stem.encode("utf-8")) <= max_stem_b:
+        return target_stem
+
+    # 1. Попытка усечь длинное название серии (если оно есть)
+    if episode_title and len(episode_title.encode("utf-8")) > 25:
+        stem_no_ep = render_episode_template(
+            template,
+            show_title=show_title,
+            season=season,
+            episode=episode,
+            episode_title="",
+            absolute=absolute,
+            quality=quality,
+            year=year,
+        )
+        base_len = len(stem_no_ep.encode("utf-8"))
+        avail_for_ep = max_stem_b - base_len
+        if avail_for_ep >= 20:
+            short_ep_title = truncate_fs_name(episode_title, max_bytes=avail_for_ep)
+            candidate = render_episode_template(
+                template,
+                show_title=show_title,
+                season=season,
+                episode=episode,
+                episode_title=short_ep_title,
+                absolute=absolute,
+                quality=quality,
+                year=year,
+            )
+            if len(candidate.encode("utf-8")) <= max_stem_b:
+                return candidate
+
+    # 2. Если всё ещё не влезает — подбираем короткий алиас для show_title
+    safe_short_title = pick_safe_title_candidate(
+        show_title,
+        aliases=aliases,
+        max_bytes=100,
+    )
+    candidate = render_episode_template(
+        template,
+        show_title=safe_short_title,
+        season=season,
+        episode=episode,
+        episode_title=episode_title,
+        absolute=absolute,
+        quality=quality,
+        year=year,
+    )
+    if len(candidate.encode("utf-8")) <= max_stem_b:
+        return candidate
+
+    # С коротким show_title и усеченным episode_title
+    if episode_title and len(episode_title.encode("utf-8")) > 20:
+        stem_no_ep = render_episode_template(
+            template,
+            show_title=safe_short_title,
+            season=season,
+            episode=episode,
+            episode_title="",
+            absolute=absolute,
+            quality=quality,
+            year=year,
+        )
+        base_len = len(stem_no_ep.encode("utf-8"))
+        avail_for_ep = max_stem_b - base_len
+        if avail_for_ep >= 15:
+            short_ep_title = truncate_fs_name(episode_title, max_bytes=avail_for_ep)
+            candidate = render_episode_template(
+                template,
+                show_title=safe_short_title,
+                season=season,
+                episode=episode,
+                episode_title=short_ep_title,
+                absolute=absolute,
+                quality=quality,
+                year=year,
+            )
+            if len(candidate.encode("utf-8")) <= max_stem_b:
+                return candidate
+
+    # 3. Крайняя мера: обрезка всего stem с конца
+    return truncate_fs_name(candidate, max_bytes=max_stem_b)
+
+
+def safe_render_movie_stem(
+    template: str,
+    *,
+    show_title: str = "",
+    movie_title: str = "",
+    year: Optional[int] = None,
+    movie_year: Optional[int] = None,
+    quality: str = "",
+    quality_title: str = "",
+    edition: Optional[str] = None,
+    release_group: str = "",
+    imdb_id: str = "",
+    tmdb_id: str = "",
+    ext: str = "",
+    aliases: Optional[list[str]] = None,
+    max_total_bytes: int = 240,
+) -> str:
+    """Рендерит шаблон фильма с гарантией непревышения файлового лимита."""
+    ext_b = len(ext.encode("utf-8")) if ext else 0
+    max_stem_b = max(40, max_total_bytes - ext_b)
+
+    target_stem = render_movie_template(
+        template,
+        show_title=show_title,
+        movie_title=movie_title,
+        year=year,
+        movie_year=movie_year,
+        quality=quality,
+        quality_title=quality_title,
+        edition=edition,
+        release_group=release_group,
+        imdb_id=imdb_id,
+        tmdb_id=tmdb_id,
+    )
+    if len(target_stem.encode("utf-8")) <= max_stem_b:
+        return target_stem
+
+    primary_title = movie_title or show_title
+    safe_short_title = pick_safe_title_candidate(
+        primary_title,
+        aliases=aliases,
+        max_bytes=100,
+    )
+    candidate = render_movie_template(
+        template,
+        show_title=safe_short_title if not movie_title else "",
+        movie_title=safe_short_title if movie_title else "",
+        year=year,
+        movie_year=movie_year,
+        quality=quality,
+        quality_title=quality_title,
+        edition=edition,
+        release_group=release_group,
+        imdb_id=imdb_id,
+        tmdb_id=tmdb_id,
+    )
+    if len(candidate.encode("utf-8")) <= max_stem_b:
+        return candidate
+
+    return truncate_fs_name(candidate, max_bytes=max_stem_b)
+
+
 def copy_file_with_progress(
     src: str,
     dst: str,
@@ -1835,7 +2016,8 @@ def process_download(
                 # Скрываем папку fonts из библиотеки Jellyfin через .ignore
                 ensure_fonts_ignore(season_fonts_dir)
 
-            target_stem = render_episode_template(
+            aliases = [a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)]
+            target_stem = safe_render_episode_stem(
                 rename_template,
                 show_title=show.title,
                 season=season_num,
@@ -1844,27 +2026,9 @@ def process_download(
                 absolute=absolute_num,
                 quality=quality,
                 year=show.year,
+                ext=ext,
+                aliases=aliases,
             )
-            ext_b = len(ext.encode("utf-8"))
-            max_stem_b = max(40, 240 - ext_b)
-            if len(target_stem.encode("utf-8")) > max_stem_b:
-                safe_short_title = pick_safe_title_candidate(
-                    show.title,
-                    aliases=[a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)],
-                    max_bytes=100,
-                )
-                target_stem = render_episode_template(
-                    rename_template,
-                    show_title=safe_short_title,
-                    season=season_num,
-                    episode=actual_ep_num,
-                    episode_title=episode_title,
-                    absolute=absolute_num,
-                    quality=quality,
-                    year=show.year,
-                )
-                if len(target_stem.encode("utf-8")) > max_stem_b:
-                    target_stem = truncate_fs_name(target_stem, max_bytes=max_stem_b)
             dest_video_path = os.path.join(target_dir, target_stem + ext)
 
             try:
@@ -2447,7 +2611,8 @@ def process_movie_download(
     q_info = detect_file_quality(main_file, context_hints)
     quality = q_info.name
 
-    target_stem = render_movie_template(
+    aliases = [a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)]
+    target_stem = safe_render_movie_stem(
         rename_template,
         show_title=show.title,
         year=show.year,
@@ -2455,26 +2620,9 @@ def process_movie_download(
         edition=movie_edition,
         imdb_id=getattr(show, "imdb_id", "") or "",
         tmdb_id=str(getattr(show, "tmdb_id", "") or ""),
+        ext=ext,
+        aliases=aliases,
     )
-    ext_b = len(ext.encode("utf-8"))
-    max_stem_b = max(40, 240 - ext_b)
-    if len(target_stem.encode("utf-8")) > max_stem_b:
-        safe_short_title = pick_safe_title_candidate(
-            show.title,
-            aliases=[a.text for a in getattr(show, "aliases", []) or [] if getattr(a, "text", None)],
-            max_bytes=100,
-        )
-        target_stem = render_movie_template(
-            rename_template,
-            show_title=safe_short_title,
-            year=show.year,
-            quality=quality,
-            edition=movie_edition,
-            imdb_id=getattr(show, "imdb_id", "") or "",
-            tmdb_id=str(getattr(show, "tmdb_id", "") or ""),
-        )
-        if len(target_stem.encode("utf-8")) > max_stem_b:
-            target_stem = truncate_fs_name(target_stem, max_bytes=max_stem_b)
     dest_video_path = os.path.join(movie_root, target_stem + ext)
 
     if progress_callback:

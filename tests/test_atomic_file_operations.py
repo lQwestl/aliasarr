@@ -10,6 +10,7 @@ from unittest.mock import patch
 from app.services.file_preflight import (
     OperationMode,
     atomic_transfer,
+    make_safe_temp_atomic_path,
     quarantine_path,
     restore_quarantined,
 )
@@ -123,6 +124,36 @@ class TestAtomicTransfer(unittest.TestCase):
         quarantined = list(recycle.glob("*/episode.mkv"))
         self.assertEqual(len(quarantined), 1)
         self.assertEqual(quarantined[0].read_bytes(), b"old")
+
+    def test_make_safe_temp_atomic_path_length_guarantee(self):
+        long_base = "A" * 250 + ".mkv"
+        temp = make_safe_temp_atomic_path(Path("/tmp"), long_base, "aliasarr-part")
+        self.assertLessEqual(len(temp.name.encode("utf-8")), 255)
+        self.assertTrue(temp.name.startswith("."))
+        self.assertIn(".aliasarr-part-", temp.name)
+
+        backup = make_safe_temp_atomic_path(Path("/tmp"), long_base, "aliasarr-backup")
+        self.assertLessEqual(len(backup.name.encode("utf-8")), 255)
+        self.assertTrue(backup.name.startswith("."))
+        self.assertIn(".aliasarr-backup-", backup.name)
+
+    def test_atomic_transfer_handles_long_filename_near_os_limit(self):
+        # 228 bytes filename as seen in anime titles with long episode names
+        long_name = (
+            "The Laid-Off Cheat-Granting Mage Enjoys a Second Lease on Life - S01E01 - "
+            "Everyone Knows What It's Like When Nothing Goes Right, but What Do I Do When That Happens "
+            "Why, It's Obvious! I Run and Scream My Head Off! WEBDL-1080p.mkv"
+        )
+        self.assertEqual(len(long_name.encode("utf-8")), 228)
+        dst_long = self.dst.parent / long_name
+        self.src.write_bytes(b"content-for-long-file")
+
+        result = atomic_transfer(self.src, dst_long, mode=OperationMode.HARDLINK)
+        self.assertEqual(result, "hardlink")
+        self.assertTrue(dst_long.exists())
+        self.assertEqual(dst_long.read_bytes(), b"content-for-long-file")
+        self.assertEqual(self.src.stat().st_ino, dst_long.stat().st_ino)
+        self.assertEqual(list(dst_long.parent.glob(".*.aliasarr-part-*")), [])
 
 
 class TestQuarantine(unittest.TestCase):

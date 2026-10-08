@@ -372,6 +372,23 @@ def restore_quarantined(record: QuarantineRecord, *, overwrite: bool = False) ->
     return destination
 
 
+def make_safe_temp_atomic_path(parent: Path, base_name: str, marker: str) -> Path:
+    """Генерирует скрытый путь для временного файла или бэкапа с гарантией длины <= 255 байт (Linux NAME_MAX)."""
+    uid = uuid.uuid4().hex
+    suffix = f".{marker}-{uid}"
+    prefix = "."
+    prefix_b = len(prefix.encode("utf-8"))
+    suffix_b = len(suffix.encode("utf-8"))
+    max_base_bytes = 255 - prefix_b - suffix_b  # 207 байт для aliasarr-part, 205 байт для aliasarr-backup
+
+    base_b = (base_name or "").encode("utf-8")
+    if len(base_b) <= max_base_bytes:
+        safe_base = base_name
+    else:
+        safe_base = base_b[:max_base_bytes].decode("utf-8", errors="ignore").rstrip(" .-_")
+    return parent / f"{prefix}{safe_base}{suffix}"
+
+
 def atomic_transfer(
     source: str | os.PathLike[str],
     destination: str | os.PathLike[str],
@@ -410,7 +427,7 @@ def atomic_transfer(
     if requested in {OperationMode.MOVE, OperationMode.RENAME} and not same_device:
         effective = OperationMode.COPY
 
-    temp = dst.parent / f".{dst.name}.aliasarr-part-{uuid.uuid4().hex}"
+    temp = make_safe_temp_atomic_path(dst.parent, dst.name, "aliasarr-part")
     backup = None
     quarantined = None
     source_was_moved = False
@@ -468,7 +485,7 @@ def atomic_transfer(
             if quarantine_root is not None:
                 quarantined = quarantine_path(dst, quarantine_root, operation="replace")
             else:
-                backup = dst.parent / f".{dst.name}.aliasarr-backup-{uuid.uuid4().hex}"
+                backup = make_safe_temp_atomic_path(dst.parent, dst.name, "aliasarr-backup")
                 os.replace(dst, backup)
 
         try:

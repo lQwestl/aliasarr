@@ -5,6 +5,8 @@ from app.services.postprocess import (
     truncate_fs_name,
     sanitize_filename,
     pick_safe_title_candidate,
+    safe_render_episode_stem,
+    safe_render_movie_stem,
     get_show_default_path,
     ensure_safe_show_path,
 )
@@ -126,6 +128,47 @@ class TestFilenameLengthLimits(unittest.TestCase):
             meta_py = f.read()
         self.assertIn("pick_safe_title_candidate", meta_py)
         self.assertIn("safe_folder_title = pick_safe_title_candidate", meta_py)
+
+    def test_safe_render_episode_stem_preserves_quality_and_structure(self):
+        template = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"
+        show_title = "The Laid-Off Cheat-Granting Mage Enjoys a Second Lease on Life"
+        ep_title = (
+            "Everyone Knows What It's Like When Nothing Goes Right, but What Do I Do When That Happens "
+            "Why, It's Obvious! I Run and Scream My Head Off!"
+        )
+        res = safe_render_episode_stem(
+            template,
+            show_title=show_title,
+            season=1,
+            episode=1,
+            episode_title=ep_title,
+            quality="WEBDL-1080p",
+            ext=".mkv",
+            max_total_bytes=240,
+        )
+        full_name = res + ".mkv"
+        self.assertLessEqual(len(full_name.encode("utf-8")), 240)
+        self.assertTrue(res.startswith("The Laid-Off Cheat-Granting Mage Enjoys a Second Lease on Life - S01E01 - "))
+        self.assertTrue(res.endswith("WEBDL-1080p"))
+
+    def test_safe_render_episode_stem_cyrillic_with_alias(self):
+        template = "{Series Title} - S{season:00}E{episode:00} - {Episode Title} {Quality Full}"
+        long_ep = "Очень длинное название серии на русском языке " * 5
+        res = safe_render_episode_stem(
+            template,
+            show_title=LONG_RU_TITLE,
+            season=1,
+            episode=1,
+            episode_title=long_ep,
+            quality="WEBDL-1080p",
+            ext=".mkv",
+            aliases=["The Banished Court Magician"],
+            max_total_bytes=240,
+        )
+        full_name = res + ".mkv"
+        self.assertLessEqual(len(full_name.encode("utf-8")), 240)
+        self.assertIn("S01E01", res)
+        self.assertTrue(res.endswith("WEBDL-1080p"))
 
 
 if __name__ == "__main__":
