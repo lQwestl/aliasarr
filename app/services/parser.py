@@ -64,10 +64,23 @@ _NOISE_PATTERNS = [
     r"\b\d+(?:\.\d+)?\s?(?:kbps|mbps|Mb|Gb|GB|MB)\b",
     r"\b\d{1,2}\s*[xхXХ]\s*(?:DUB|MVO|DVO|VO|AVO|LVO|Dub|Sub|Audio|голос(?:а|ов)?|озвучк(?:и|а)?|перевод(?:а|ов)?|дубляж(?:а)?|многоголос(?:ый|ых)?)\b",
     r"\b(?:aac|ac3|dts|flac|mp3)\b",
+    r"\b(?:5\.1|7\.1|2\.0)\b",
     r"\b(?:web-?dl|webrip|bdrip|hdtv|dvdrip|bluray|remux)\b",
 ]
 
 _NOISE_RE = re.compile("|".join(_NOISE_PATTERNS), re.IGNORECASE)
+
+# CRC32-хэши в квадратных скобках (типично для аниме-файлов: [9A3C2F10])
+_CRC32_RE = re.compile(r"\[[0-9a-fA-F]{8}\]")
+
+# Релиз-группы в квадратных скобках в начале строки ([Moozzi2], [Erai-raws], [SubsPlease] и т.д.)
+_LEADING_GROUP_RE = re.compile(r"^\s*\[([A-Za-z0-9_.\s-]+)\]\s*")
+
+# Дробные / половинчатые серии аниме (5.5, 12.5, 24.5 — спешлы/рекапы, сезон 0)
+_RE_FRACTIONAL_EP = re.compile(
+    r"(?:^|[\s_.\-\(\[/])(\d{1,3})\.5(?:v\d)?(?=$|[\s_.\-\(\]\)/])",
+    re.IGNORECASE,
+)
 
 # Года выпуска (2019-2025 и т.п.) — НЕ путать с диапазоном серий
 _YEAR_RANGE_RE = re.compile(r"\b(19|20)\d{2}\s*[-–]\s*(19|20)\d{2}\b")
@@ -75,9 +88,29 @@ _YEAR_RE = re.compile(r"\b(19|20)\d{2}\b")
 
 
 def normalize(name: str) -> str:
-    """Убирает технический шум (разрешения, кодеки, битрейты) перед парсингом."""
-    cleaned = _NOISE_RE.sub(" ", name)
-    cleaned = re.sub(r"[._]+", " ", cleaned)     # точки/подчёркивания -> пробелы
+    """Убирает технический шум (разрешения, кодеки, битрейты, релиз-группы) перед парсингом."""
+    # Очищаем контрольные суммы CRC32 в скобках ([9A3C2F10])
+    cleaned = _CRC32_RE.sub(" ", name)
+
+    # Отрезаем ведущий тег релиз-группы в квадратных скобках ([Moozzi2] и т.д.),
+    # если это не специальный префикс трекера (AniBelka) и не явный сезон/серия
+    while True:
+        m_grp = _LEADING_GROUP_RE.match(cleaned)
+        if m_grp:
+            tag = m_grp.group(1).lower().strip()
+            # Сохраняем префиксы AniBelka [mv], [rus], [uni], [sub], а также [S01], [01-12], [01 из 12]
+            if (
+                tag not in ("mv", "rus", "uni", "sub")
+                and not re.match(r"^(?:s\d+|\d+|tv\s*\d+|сезон\s*\d+)", tag)
+                and not re.search(r"\b(?:из|of|iz|\/|\|)\b|[-–~]\s*\d+", tag)
+            ):
+                cleaned = cleaned[m_grp.end():]
+                continue
+        break
+
+    cleaned = _NOISE_RE.sub(" ", cleaned)
+    # Заменяем точки и подчёркивания пробелами, но сохраняем точку в дробных номерах серий (5.5, 12.5)
+    cleaned = re.sub(r"(?<!\d)\.|\.(?!\d)|_+", " ", cleaned)
     cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
     return cleaned
 
@@ -307,7 +340,7 @@ _RE_SINGLE_IZ_N = re.compile(
 _RE_PLAIN_RANGE = re.compile(r"\b(\d{1,4})\s*[-–~]\s*(\d{1,4})\b")
 
 # Аниме absolute: "- 154", "- 05", "- 001", "- 00", "- 000", "- 05v2"
-_RE_DASH_ABSOLUTE = re.compile(r"[-–]\s?(\d{1,4})(?:v\d)?\b(?!\d)")
+_RE_DASH_ABSOLUTE = re.compile(r"[-–]\s?(\d{1,4})(?:v\d)?\b(?!\d|\.\d)")
 
 # Fallback: одинокое 1-4 значное число
 _RE_LONE_NUMBER = re.compile(r"(?<!\d)(\d{1,4})(?!\d)")
@@ -1000,6 +1033,12 @@ def _parse_episode_internal(release_name: str) -> ParsedRelease:
                 kind=ReleaseKind.EPISODE, season=0, episodes=[int(m_dash.group(1))],
                 raw=raw, matched_pattern="ova_dash_ep",
             )
+        m_frac = _RE_FRACTIONAL_EP.search(protected)
+        if m_frac:
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=0, episodes=[1],
+                raw=raw, matched_pattern="ova_fractional_special",
+            )
         m_lone = _RE_LONE_NUMBER.search(protected)
         if m_lone:
             return ParsedRelease(
@@ -1099,7 +1138,15 @@ def _parse_episode_internal(release_name: str) -> ParsedRelease:
                     is_range=True, raw=raw, matched_pattern="plain_range",
                 )
 
-    # 7. Аниме absolute: "- 154", "- 05", "- 001", "- 00", "- 000"
+    # 7. Дробные / половинчатые серии аниме (5.5, 12.5, 24.5 — спешлы/рекапы, сезон 0)
+    m_frac = _RE_FRACTIONAL_EP.search(protected)
+    if m_frac:
+        return ParsedRelease(
+            kind=ReleaseKind.EPISODE, season=0, episodes=[1],
+            raw=raw, matched_pattern="fractional_special",
+        )
+
+    # 7б. Аниме absolute: "- 154", "- 05", "- 001", "- 00", "- 000"
     m = _RE_DASH_ABSOLUTE.search(protected)
     if m:
         return ParsedRelease(

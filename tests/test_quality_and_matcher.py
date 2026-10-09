@@ -1139,6 +1139,35 @@ class TestQualityAndMatcher(unittest.TestCase):
         )
         self.assertEqual(prio_sample, 0)
 
+    def test_subsequent_season_arc_and_year_matching(self):
+        from app.services.matcher import AliasCandidate, match_release
+
+        aliases = [
+            AliasCandidate(1, "Link Click", season_number=1),
+            AliasCandidate(2, "Shiguang Dailiren", season_number=1),
+            AliasCandidate(3, "Shiguang Dailiren II", season_number=2),
+            AliasCandidate(4, "Link Click: Bridon Arc", season_number=3),
+            AliasCandidate(5, "Агент времени: Глава Инду", season_number=3),
+        ]
+
+        # 1. Bridon Arc (2024) matches 2021 show because season 3 alias has year >= 2021 - 2
+        res1 = match_release("Link Click: Bridon Arc (2024) [WEB-DL 1080p]", 1, aliases, show_year=2021)
+        self.assertTrue(res1.matched)
+        self.assertEqual(res1.alias_candidate.text, "Link Click: Bridon Arc")
+        self.assertEqual(res1.score, 100.0)
+
+        # 2. Russian alias for Bridon Arc
+        res2 = match_release("Агент времени: Глава Инду [01-06 из 06] (2024) WEB-DL 1080p", 1, aliases, show_year=2021)
+        self.assertTrue(res2.matched)
+        self.assertEqual(res2.alias_candidate.text, "Агент времени: Глава Инду")
+        self.assertEqual(res2.score, 100.0)
+
+        # 3. Multi-season pack
+        res3 = match_release("[Moozzi2] Shiguang Dailiren [S01 SP 2021 + S02 2023] (BD 1920x1080 x265-10Bit Flac)", 1, aliases, show_year=2021)
+        self.assertTrue(res3.matched)
+        self.assertEqual(res3.alias_candidate.text, "Shiguang Dailiren")
+        self.assertEqual(res3.score, 100.0)
+
 
 if __name__ == "__main__":
     unittest.main()

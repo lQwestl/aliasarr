@@ -155,6 +155,7 @@ def evaluate_torrent_file_priority(
     out_file_reasons: Optional[dict[int, str]] = None,
     alias_offset: int = 0,
     scoped_season: Optional[int] = None,
+    target_number: Optional[int] = None,
 ) -> int:
     """
     Определяет приоритет скачивания файла торрента (1 = скачивать, 0 = не скачивать).
@@ -306,22 +307,22 @@ def evaluate_torrent_file_priority(
             # Проверяем сегменты директории от ближайшего (внутреннего) к внешнему
             dir_segments = [s for s in dir_name.split("/") if s]
             for seg in reversed(dir_segments):
-                seg_parsed = parse_episode(seg)
-                if seg_parsed and seg_parsed.season is not None and not (seg_parsed.seasons and len(seg_parsed.seasons) > 1):
-                    season = seg_parsed.season
-                    break
                 s_lbl = detect_season_label(seg)
                 if s_lbl["type"] == "numbered":
                     season = s_lbl["season"]
                     break
+                seg_parsed = parse_episode(seg)
+                if seg_parsed and seg_parsed.season is not None and not (seg_parsed.seasons and len(seg_parsed.seasons) > 1):
+                    season = seg_parsed.season
+                    break
             if season is None:
-                dir_parsed = parse_episode(dir_name)
-                if dir_parsed and dir_parsed.season is not None and not (dir_parsed.seasons and len(dir_parsed.seasons) > 1):
-                    season = dir_parsed.season
+                s_lbl = detect_season_label(dir_name)
+                if s_lbl["type"] == "numbered":
+                    season = s_lbl["season"]
                 else:
-                    s_lbl = detect_season_label(dir_name)
-                    if s_lbl["type"] == "numbered":
-                        season = s_lbl["season"]
+                    dir_parsed = parse_episode(dir_name)
+                    if dir_parsed and dir_parsed.season is not None and not (dir_parsed.seasons and len(dir_parsed.seasons) > 1):
+                        season = dir_parsed.season
 
     # Если сезон не определен ни из basename, ни из dir_name, пробуем определить из torrent_name
     if season is None and torrent_name:
@@ -383,18 +384,26 @@ def evaluate_torrent_file_priority(
             if not any((season, ep_n) in target_keys for ep_n in episodes):
                 return _set_res(0, f"Сопоставлен по названию серии «{best_ep.title}» -> S{best_ep.season_number:02d}E{best_ep.episode_number:02d} (ОТКЛЮЧЕН, серия уже скачана/не разыскивается)")
 
-    is_special_dir = bool(dir_name and any(
-        re.search(r"\b" + re.escape(kw) + r"\b", dir_name.lower()) or
-        f"[{kw}]" in dir_name.lower() or
-        f"({kw})" in dir_name.lower() or
-        f"/{kw}/" in dir_name.lower() or
-        dir_name.lower().endswith(f"/{kw}") or
-        dir_name.lower().endswith(f"[{kw}]")
-        for kw in ("special", "specials", "спешл", "спешлы", "sp", "bonus", "omake", "extras", "extra", "ova", "ona", "oad")
-    ))
+    leaf_dir = os.path.basename(dir_name).lower() if dir_name else ""
+    leaf_has_main_season = bool(
+        leaf_dir and re.search(r"\b(?:s0?[1-9]\d?|season\s*\d+|сезон\s*\d+|\d+\s*сезон)\b", leaf_dir)
+    )
+    is_special_dir = bool(
+        dir_name
+        and not leaf_has_main_season
+        and any(
+            re.search(r"\b" + re.escape(kw) + r"\b", dir_name.lower()) or
+            f"[{kw}]" in dir_name.lower() or
+            f"({kw})" in dir_name.lower() or
+            f"/{kw}/" in dir_name.lower() or
+            dir_name.lower().endswith(f"/{kw}") or
+            dir_name.lower().endswith(f"[{kw}]")
+            for kw in ("special", "specials", "спешл", "спешлы", "sp", "bonus", "omake", "extras", "extra", "ova", "ona", "oad")
+        )
+    )
 
     is_special_file = (
-        (parsed and (parsed.season == 0 or parsed.matched_pattern in ("season_pack:ova_ona", "leading_num_special"))) or
+        (parsed and (parsed.season == 0 or parsed.matched_pattern in ("season_pack:ova_ona", "leading_num_special", "fractional_special", "ova_fractional_special"))) or
         is_special_dir or
         bool(re.search(r"\b(?:ova|ona|oad|special|specials|спешл|спешлы|sp|bonus|omake)\b", base_name, re.IGNORECASE)) or
         (episodes and 0 in episodes)
@@ -422,6 +431,8 @@ def evaluate_torrent_file_priority(
                 allow_ova_as_s1 = (ova_mode == "season_1") or (
                     ova_mode == "auto" and not has_wanted_specials and any(sn == 1 for sn, _ in target_keys)
                 )
+                if parsed and parsed.matched_pattern in ("fractional_special", "ova_fractional_special"):
+                    allow_ova_as_s1 = False
                 if allow_ova_as_s1 and ((1, ep_num) in target_keys or ep_num in target_abs):
                     return _set_res(1, f"Сопутствующий файл к OVA/S01E{ep_num:02d} (ВКЛЮЧЕН)")
                 if (0, ep_num) in target_keys or has_wanted_specials:
@@ -461,6 +472,8 @@ def evaluate_torrent_file_priority(
             allow_ova_as_s1 = (ova_mode == "season_1") or (
                 ova_mode == "auto" and not has_wanted_specials and any(sn == 1 for sn, _ in target_keys)
             )
+            if parsed and parsed.matched_pattern in ("fractional_special", "ova_fractional_special"):
+                allow_ova_as_s1 = False
             if allow_ova_as_s1 and episodes:
                 for ep_num in episodes:
                     if (1, ep_num) in target_keys or ep_num in target_abs:
@@ -537,13 +550,14 @@ def evaluate_torrent_file_priority(
 
             # 2. При известном сезоне (проверяем только если сезон среди разыскиваемых)
             if season is not None:
-                if season in target_seasons:
-                    if (season, ep_num) in target_keys:
+                eff_season = scoped_season if (scoped_season is not None and target_number is not None and season == target_number) else season
+                if eff_season in target_seasons:
+                    if (eff_season, ep_num) in target_keys:
                         if out_matched_episodes is not None:
-                            matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (season, ep_num)), None)
+                            matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (eff_season, ep_num)), None)
                             if matched:
                                 out_matched_episodes.append(matched)
-                        return _set_res(1, f"Серия S{season:02d}E{ep_num:02d} (ВКЛЮЧЕН, разыскивается)")
+                        return _set_res(1, f"Серия S{eff_season:02d}E{ep_num:02d} (ВКЛЮЧЕН, разыскивается)")
                     if ep_num in target_abs:
                         if out_matched_episodes is not None:
                             matched = next((ep for ep in target_episodes if getattr(ep, "absolute_number", None) == ep_num), None)
@@ -551,12 +565,12 @@ def evaluate_torrent_file_priority(
                                 out_matched_episodes.append(matched)
                         return _set_res(1, f"Серия {ep_num} (абсолютная нумерация) (ВКЛЮЧЕН, разыскивается)")
                     if is_part_2 and 1 <= ep_num <= 12:
-                        if (season, ep_num + 12) in target_keys:
+                        if (eff_season, ep_num + 12) in target_keys:
                             if out_matched_episodes is not None:
-                                matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (season, ep_num + 12)), None)
+                                matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (eff_season, ep_num + 12)), None)
                                 if matched:
                                     out_matched_episodes.append(matched)
-                            return _set_res(1, f"Серия Part 2 S{season:02d}E{ep_num + 12:02d} (ВКЛЮЧЕН, разыскивается)")
+                            return _set_res(1, f"Серия Part 2 S{eff_season:02d}E{ep_num + 12:02d} (ВКЛЮЧЕН, разыскивается)")
             else:
                 # 3. Если сезон не указан явно в имени файла/папке:
                 # 3a. Официальная абсолютная нумерация (актуально для аниме)
@@ -700,6 +714,7 @@ async def _limit_torrent_files_to_episodes(
     show_words = None
     alias_offset = 0
     scoped_season = None
+    target_number = None
     t_name = getattr(torrent, "name", "") or ""
 
     if target_eps:
@@ -718,6 +733,7 @@ async def _limit_torrent_files_to_episodes(
                         if b_alias:
                             alias_offset = getattr(b_alias, "episode_offset", 0) or 0
                             scoped_season = getattr(b_alias, "season_number", None)
+                            target_number = getattr(b_alias, "target_number", None)
                     raw_eps = s_db.query(Episode).filter(Episode.show_id == show_id).order_by(Episode.season_number, Episode.episode_number).all()
                     all_show_episodes = [
                         Episode(
@@ -754,6 +770,7 @@ async def _limit_torrent_files_to_episodes(
             out_file_reasons=file_reasons,
             alias_offset=alias_offset,
             scoped_season=scoped_season,
+            target_number=target_number,
         )
         if prio > 0:
             wanted_indices.append(f.index)
@@ -1970,6 +1987,7 @@ async def _do_search_and_grab(
         match = c.get("match")
         alias_cand = getattr(match, "alias_candidate", None) if match else None
         scoped_season = alias_cand.season_number if (alias_cand and alias_cand.season_number is not None) else None
+        target_number = getattr(alias_cand, "target_number", None) if alias_cand else None
         alias_offset = (alias_cand.episode_offset or 0) if alias_cand else 0
         alias_start = alias_cand.episode_start if (alias_cand and alias_cand.episode_start is not None) else None
         alias_end = alias_cand.episode_end if (alias_cand and alias_cand.episode_end is not None) else None
@@ -2058,7 +2076,10 @@ async def _do_search_and_grab(
         # --- Если сезон явно переопределен сматченным алиасом (Scoped Alias Season) ---
         if scoped_season is not None:
             rel_s = parsed.season if parsed.season is not None else (season_label["season"] if label_type == "numbered" else None)
-            if alias_offset == 0 and rel_s is not None and rel_s != scoped_season and label_type not in ("range", "complete"):
+            allowed_seasons = {scoped_season}
+            if target_number is not None:
+                allowed_seasons.add(target_number)
+            if alias_offset == 0 and rel_s is not None and rel_s not in allowed_seasons and label_type not in ("range", "complete"):
                 return False
             if ep.season_number == scoped_season:
                 return _has_ep_match()

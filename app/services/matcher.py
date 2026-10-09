@@ -495,6 +495,9 @@ def _is_part_2_alias(a: Any) -> bool:
 
 
 def _is_part_1_alias(a: Any) -> bool:
+    sn = getattr(a, "season_number", None)
+    if _is_int(sn) and sn >= 2:
+        return False
     offset = getattr(a, "episode_offset", None)
     target_num = getattr(a, "target_number", None)
     ep_start = getattr(a, "episode_start", None)
@@ -531,6 +534,7 @@ def best_alias_match(
     s_lbl = detect_season_label(release_name)
     rel_s = parsed.season if parsed.season is not None else (s_lbl.get("season") if s_lbl.get("type") == "numbered" else None)
     is_part_2 = (rel_s is not None and rel_s >= 2) or bool(re.search(r"\b(?:тв|tv)[\s\-_]?2\b|\b2nd\s*season\b|\bpart\s*2\b|\bчасть\s*2\b", release_name, re.IGNORECASE))
+    is_part_1 = (rel_s == 1) or bool(re.search(r"\b(?:тв|tv)[\s\-_]?1\b|\b1st\s*season\b|\bpart\s*1\b|\bчасть\s*1\b", release_name, re.IGNORECASE))
 
     alias_list = list(aliases)
     m_country = _RELEASE_COUNTRY_RE.search(release_name or "")
@@ -555,13 +559,15 @@ def best_alias_match(
         # Проверка совместимости области действия алиаса и сезона релиза
         is_alias_part_2 = _is_part_2_alias(alias)
         is_alias_part_1 = _is_part_1_alias(alias)
+        is_ova_rel = bool(s_lbl.get("type") == "ova_ona" or (parsed and parsed.season == 0))
 
-        if is_part_2 and is_alias_part_1 and has_scoped_part_2:
-            # Релиз относится ко 2-й части/сезону, а алиас строго ограничен 1-й частью
-            continue
-        if not is_part_2 and is_alias_part_2 and has_scoped_part_1:
-            # Релиз относится к 1-й части/сезону, а алиас строго ограничен 2-й частью
-            continue
+        if not is_ova_rel:
+            if is_part_2 and is_alias_part_1 and has_scoped_part_2:
+                # Релиз относится ко 2-й части/сезону, а алиас строго ограничен 1-й частью
+                continue
+            if is_part_1 and is_alias_part_2 and has_scoped_part_1:
+                # Релиз относится к 1-й части/сезону, а алиас строго ограничен 2-й частью
+                continue
 
         alias_words = set(norm_alias.split())
         alias_clean = _clean_stopwords(norm_alias)
@@ -730,10 +736,21 @@ def match_release(
                 s_lbl = detect_season_label(release_name)
                 s_num = parsed.season or (s_lbl.get("season") if s_lbl.get("type") == "numbered" else None)
                 s_list = parsed.seasons or (s_lbl.get("seasons") if s_lbl.get("type") == "range" else [])
-                is_subsequent_season = bool((s_num and s_num >= 2) or any(s >= 2 for s in s_list))
+                alias_s_num = getattr(alias, "season_number", None)
+                is_subsequent_season = bool(
+                    (s_num and s_num >= 2)
+                    or any(s >= 2 for s in s_list)
+                    or (alias_s_num and alias_s_num >= 2)
+                    or s_lbl.get("type") == "ova_ona"
+                    or parsed.season == 0
+                    or parsed.matched_pattern in (
+                        "season_pack:ova_ona", "ova_ona_range", "ova_ona_episode",
+                        "fractional_special", "ova_fractional_special",
+                    )
+                )
 
                 if is_subsequent_season:
-                    # Для сезонов 2+ (S2, S3, S4) релиз закономерно выходит в более поздние годы (например, 2024 при старте в 2016).
+                    # Для сезонов 2+ (S2, S3, S4), спешлов и OVA/ONA релиз закономерно выходит в более поздние годы (например, 2024 при старте тайтла в 2021).
                     has_matching_year = any(y >= (show_year - 2) for y in rel_years)
                 else:
                     # Для 1-го сезона / сериала без указания сезона — год должен соответствовать году выхода сериала (±1 год).

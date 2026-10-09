@@ -658,6 +658,79 @@ class TestParser(unittest.TestCase):
         self.assertEqual(p14.season, 1)
         self.assertEqual(p14.episodes, list(range(1, 9)))
 
+    def test_anime_fractional_specials_and_release_groups(self):
+        # 1. Fractional episodes (5.5, 12.5, 24.5) are parsed as special (season 0)
+        p1 = parse_episode("[Moozzi2] Shiguang Dailiren - 5.5 (BD 1920x1080 x265-10Bit Flac).mkv")
+        self.assertEqual(p1.kind, ReleaseKind.EPISODE)
+        self.assertEqual(p1.season, 0)
+        self.assertEqual(p1.episodes, [1])
+        self.assertEqual(p1.matched_pattern, "fractional_special")
+
+        p2 = parse_episode("[Erai-raws] Jujutsu Kaisen - 12.5 [1080p][9A3C2F10].mkv")
+        self.assertEqual(p2.kind, ReleaseKind.EPISODE)
+        self.assertEqual(p2.season, 0)
+        self.assertEqual(p2.episodes, [1])
+
+        p3 = parse_episode("[SubsPlease] Frieren - 24.5 (1080p) [ABCD1234].mkv")
+        self.assertEqual(p3.kind, ReleaseKind.EPISODE)
+        self.assertEqual(p3.season, 0)
+        self.assertEqual(p3.episodes, [1])
+
+        # 2. Leading release group is stripped while preserving regular episode number
+        p4 = parse_episode("[Moozzi2] Shiguang Dailiren - 01 (BD 1920x1080 x265-10Bit Flac).mkv")
+        self.assertEqual(p4.episodes, [1])
+
+        # 3. AniBelka tags [rus], [mv], [uni], [sub] are preserved
+        p5 = parse_episode("[rus] Shiguang Dailiren - 02.mkv")
+        self.assertEqual(p5.episodes, [2])
+        p6 = parse_episode("[mv] Shiguang Dailiren - 03.mkv")
+        self.assertEqual(p6.episodes, [3])
+
+        # 4. CRC32 stripped in normalize
+        norm = normalize("Shiguang Dailiren - 01 [9A3C2F10].mkv")
+        self.assertNotIn("9A3C2F10", norm)
+
+    def test_uztracker_season_pack_file_priorities(self):
+        from app.services.auto_search import evaluate_torrent_file_priority
+
+        class MockEp:
+            def __init__(self, s, e, a=None):
+                self.season_number = s
+                self.episode_number = e
+                self.absolute_number = a
+
+        s1_eps = [MockEp(1, i, i) for i in range(1, 12)]
+        sp_eps = [MockEp(0, i) for i in range(1, 29)]
+        s2_eps = [MockEp(2, i, 12 + i) for i in range(1, 13)]
+        all_eps = sp_eps + s1_eps + s2_eps
+
+        f1 = "[Moozzi2] Shiguang Dailiren [S01 SP 2021]/[Moozzi2] Shiguang Dailiren - 01 (BD 1920x1080 x265-10Bit Flac).mkv"
+        f5_5 = "[Moozzi2] Shiguang Dailiren [S01 SP 2021]/[Moozzi2] Shiguang Dailiren - 5.5 (BD 1920x1080 x265-10Bit Flac).mkv"
+        f11 = "[Moozzi2] Shiguang Dailiren [S01 SP 2021]/[Moozzi2] Shiguang Dailiren - 11 (BD 1920x1080 x265-10Bit Flac).mkv"
+        f2_1 = "[Moozzi2] Shiguang Dailiren II [S02 2023]/[Moozzi2] Shiguang Dailiren II - 01 (BD 1920x1080 x265-10Bit Flac).mkv"
+
+        reasons = {}
+        # Case 1: Searching for Season 1 only
+        prio_s1_01 = evaluate_torrent_file_priority(f1, 0, target_episodes=s1_eps, all_show_episodes=all_eps, out_file_reasons=reasons)
+        prio_s1_5_5 = evaluate_torrent_file_priority(f5_5, 1, target_episodes=s1_eps, all_show_episodes=all_eps, out_file_reasons=reasons)
+        prio_s1_11 = evaluate_torrent_file_priority(f11, 2, target_episodes=s1_eps, all_show_episodes=all_eps, out_file_reasons=reasons)
+        prio_s2_01 = evaluate_torrent_file_priority(f2_1, 3, target_episodes=s1_eps, all_show_episodes=all_eps, out_file_reasons=reasons)
+
+        self.assertEqual(prio_s1_01, 1)
+        self.assertEqual(prio_s1_5_5, 0)  # Specials not wanted in Season 1 search
+        self.assertEqual(prio_s1_11, 1)
+        self.assertEqual(prio_s2_01, 0)  # Season 2 excluded
+
+        # Case 2: Searching for Season 1 + Specials
+        prio_sp_5_5 = evaluate_torrent_file_priority(f5_5, 1, target_episodes=s1_eps + sp_eps, all_show_episodes=all_eps, out_file_reasons=reasons)
+        self.assertEqual(prio_sp_5_5, 1)  # Special enabled when specials are in target_episodes
+
+        # Case 3: Searching for Season 2 only
+        prio2_s1_01 = evaluate_torrent_file_priority(f1, 0, target_episodes=s2_eps, all_show_episodes=all_eps, out_file_reasons=reasons)
+        prio2_s2_01 = evaluate_torrent_file_priority(f2_1, 3, target_episodes=s2_eps, all_show_episodes=all_eps, out_file_reasons=reasons)
+        self.assertEqual(prio2_s1_01, 0)
+        self.assertEqual(prio2_s2_01, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
