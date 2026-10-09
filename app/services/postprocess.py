@@ -1765,18 +1765,26 @@ def process_download(
         q_info = detect_file_quality(file_path, context_hints)
         quality = q_info.name
 
-        if parsed.kind not in (ReleaseKind.EPISODE, ReleaseKind.ABSOLUTE) or not parsed.episodes or parsed.season is None:
+        # Если номер серии уже успешно извлечен из имени файла, но сезон не определен —
+        # извлекаем сезон из родительской папки (не перетирая при этом уже найденные номера серий)
+        if parsed.kind in (ReleaseKind.EPISODE, ReleaseKind.ABSOLUTE) and parsed.episodes and parsed.season is None:
+            parent_dir = os.path.basename(os.path.dirname(file_path))
+            if parent_dir and parent_dir != os.path.basename(download_path):
+                from app.services.parser import detect_season_label
+                dir_s = detect_season_label(parent_dir)
+                if dir_s.get("type") == "numbered":
+                    parsed.season = dir_s["season"]
+                else:
+                    dir_parsed = parse_episode(parent_dir)
+                    if dir_parsed and dir_parsed.season is not None and not (dir_parsed.seasons and len(dir_parsed.seasons) > 1):
+                        parsed.season = dir_parsed.season
+
+        if parsed.kind not in (ReleaseKind.EPISODE, ReleaseKind.ABSOLUTE) or not parsed.episodes:
             parent_dir = os.path.basename(os.path.dirname(file_path))
             if parent_dir and parent_dir != os.path.basename(download_path):
                 parent_parsed = parse_episode(parent_dir + " " + filename)
-                if parent_parsed.kind == ReleaseKind.EPISODE and parent_parsed.episodes:
+                if parent_parsed.kind in (ReleaseKind.EPISODE, ReleaseKind.ABSOLUTE) and parent_parsed.episodes:
                     parsed = parent_parsed
-                elif parsed.episodes and parsed.season is None:
-                    from app.services.parser import detect_season_label
-                    dir_s = detect_season_label(parent_dir)
-                    if dir_s.get("type") == "numbered":
-                        parsed.season = dir_s["season"]
-                        parsed.kind = ReleaseKind.EPISODE
 
         if parsed.season is None:
             from app.services.parser import detect_season_label

@@ -285,6 +285,38 @@ class TestScopedAliasesPure(unittest.TestCase):
         )
         self.assertTrue(decision.approved, f"Decision rejected: {decision.rejections}")
 
+    def test_postprocess_season_sp_folder_resolution(self):
+        """Test that files in a folder named 'S01 SP' are correctly identified as Season 1 regular episodes, while fractional .5 files are specials."""
+        import os
+        from app.services.parser import parse_episode, detect_season_label, ReleaseKind
+
+        dl_files = [
+            ("[Moozzi2] Shiguang Dailiren [BDRip 1080p x265 FLAC]/Shiguang Dailiren [S01 SP 2021]/[Moozzi2] Shiguang Dailiren 01 [BDRip 1080p x265 FLAC].mkv", 1, [1]),
+            ("[Moozzi2] Shiguang Dailiren [BDRip 1080p x265 FLAC]/Shiguang Dailiren [S01 SP 2021]/[Moozzi2] Shiguang Dailiren 02 [BDRip 1080p x265 FLAC].mkv", 1, [2]),
+            ("[Moozzi2] Shiguang Dailiren [BDRip 1080p x265 FLAC]/Shiguang Dailiren [S01 SP 2021]/[Moozzi2] Shiguang Dailiren 5.5 [BDRip 1080p x265 FLAC].mkv", 0, [1]),
+            ("[Moozzi2] Shiguang Dailiren [BDRip 1080p x265 FLAC]/Shiguang Dailiren [S01 SP 2021]/[Moozzi2] Shiguang Dailiren 11 [BDRip 1080p x265 FLAC].mkv", 1, [11]),
+            ("[Moozzi2] Shiguang Dailiren [BDRip 1080p x265 FLAC]/Shiguang Dailiren II [S02 2023]/[Moozzi2] Shiguang Dailiren II 01 [BDRip 1080p x265 FLAC].mkv", 2, [1]),
+        ]
+
+        download_path = "/data/DL/[Moozzi2] Shiguang Dailiren [BDRip 1080p x265 FLAC]"
+
+        for f_path, exp_season, exp_eps in dl_files:
+            filename = os.path.basename(f_path)
+            parent_dir = os.path.basename(os.path.dirname(f_path))
+            parsed = parse_episode(filename)
+            if parsed.kind in (ReleaseKind.EPISODE, ReleaseKind.ABSOLUTE) and parsed.episodes and parsed.season is None:
+                if parent_dir and parent_dir != os.path.basename(download_path):
+                    dir_s = detect_season_label(parent_dir)
+                    if dir_s.get("type") == "numbered":
+                        parsed.season = dir_s["season"]
+                    else:
+                        dir_parsed = parse_episode(parent_dir)
+                        if dir_parsed and dir_parsed.season is not None and not (dir_parsed.seasons and len(dir_parsed.seasons) > 1):
+                            parsed.season = dir_parsed.season
+
+            self.assertEqual(parsed.season, exp_season, f"File {filename} should be season {exp_season}")
+            self.assertEqual(parsed.episodes, exp_eps, f"File {filename} should be episodes {exp_eps}")
+
 
 @unittest.skipUnless(HAS_DB, "Requires sqlalchemy, fastapi, and pydantic")
 class TestScopedAliasesDB(unittest.TestCase):

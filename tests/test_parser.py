@@ -238,10 +238,24 @@ class TestParser(unittest.TestCase):
         self.assertEqual(p4.season, 0)
         self.assertEqual(p4.episodes, [2])
 
-        # Season Special
+        # Season Special without number
         p5 = parse_episode("Tensei Shitara Slime Datta Ken 2 sp.avi")
         self.assertEqual(p5.season, 0)
         self.assertEqual(p5.episodes, [1])
+
+        p6 = parse_episode("Doctor Who (1963) S01 Special.mkv")
+        self.assertEqual(p6.season, 0)
+        self.assertEqual(p6.episodes, [1])
+
+        # Season Special WITH episode number must preserve episode number
+        p7 = parse_episode("Slime S02 SP 03.mkv")
+        self.assertEqual(p7.season, 0)
+        self.assertEqual(p7.episodes, [3])
+
+        # S01 SP tag in folder name followed by bracketed episode must not turn regular episode into season 0 episode 1
+        p8 = parse_episode("Shiguang Dailiren [S01 SP 2021] [02].mkv")
+        self.assertEqual(p8.season, 1)
+        self.assertEqual(p8.episodes, [2])
 
     def test_e_of_n_formats_and_vermeil(self):
         # 1. Exact user example: Vermeil in Gold [E12 of 12]

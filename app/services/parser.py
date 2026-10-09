@@ -796,11 +796,17 @@ def _parse_episode_internal(release_name: str) -> ParsedRelease:
     # 1е3. Сезонный спешл без номера ("Season 2 SP", "2 sp.avi", "S01 Special")
     m_s_sp = _RE_SEASON_SP.search(protected)
     if m_s_sp:
-        s_num = next((int(g) for g in m_s_sp.groups() if g is not None), 1)
-        return ParsedRelease(
-            kind=ReleaseKind.EPISODE, season=0, episodes=[1],
-            raw=raw, matched_pattern=f"season_{s_num}_special",
-        )
+        # Убедимся, что после маркера SP нет конкретного номера серии (например, "S02 SP 03" или "[S01 SP] ... 01.mkv")
+        remainder = protected[m_s_sp.end():].strip()
+        rem_no_ext = re.sub(r"\.(?:mkv|mp4|avi|ts|mov|m4v|flv|wmv)$", "", remainder, flags=re.IGNORECASE).strip()
+        cleaned_rem = re.sub(r"\b(?:1080[pi]|720[pi]|2160[pi]|4k|x264|x265|h264|h265|hevc|avc|10bit|8bit|[12]\d{3})\b", "", rem_no_ext, flags=re.IGNORECASE)
+        has_ep_number = bool(re.search(r"(?:\[|\(|\b)(?:e|ep|сери[яи]|#|№)?\s*\d{1,4}(?:\s*[-–~]\s*\d{1,4})?(?:\]|\)|\b)", cleaned_rem, re.IGNORECASE))
+        if not has_ep_number:
+            s_num = next((int(g) for g in m_s_sp.groups() if g is not None), 1)
+            return ParsedRelease(
+                kind=ReleaseKind.EPISODE, season=0, episodes=[1],
+                raw=raw, matched_pattern=f"season_{s_num}_special",
+            )
 
     # 1ж. Префиксные сезоны с сериями: "2nd Season - 01", "2nd Season [01-12]", "2-й сезон - 02", "1st Season 05", "5 сезон / 0, 10, 19 серия"
     m_pref_list = _RE_PREFIX_SEASON_EP_LIST.search(protected)
