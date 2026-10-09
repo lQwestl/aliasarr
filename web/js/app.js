@@ -10784,6 +10784,7 @@ async function refreshShowModal() {
       }
     });
 
+    const downloadedEpsCount = episodes.filter(e => e.status === "downloaded" || (e.file_path && e.status !== "ignored")).length;
     show.episodes = episodes;
     show.episodes_count = episodes.length;
     show.downloaded_episodes_count = downloadedEpsCount;
