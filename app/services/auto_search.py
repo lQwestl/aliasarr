@@ -746,6 +746,30 @@ async def _limit_torrent_files_to_episodes(
                         )
                         for e in raw_eps
                     ]
+                    # При общем автопоиске тайтла/сезона (без явного ограничения по episode_ids),
+                    # если у тайтла есть нескачанные мониторящиеся спецвыпуски (сезон 0),
+                    # добавляем их в target_eps, чтобы сопутствующие файлы спешлов в раздаче (например 5.5.mkv) не отключались
+                    if explicit_episode_ids is None:
+                        try:
+                            from app.models.db import EpisodeStatus
+                            downloaded_status = EpisodeStatus.DOWNLOADED
+                        except Exception:
+                            downloaded_status = "downloaded"
+                        wanted_specials = [
+                            e for e in raw_eps
+                            if e.season_number == 0 and getattr(e, "monitored", True) and (getattr(e, "status", None) not in ("downloaded", downloaded_status))
+                        ]
+                        existing_target_ids = {e.id for e in target_eps}
+                        for sp in wanted_specials:
+                            if sp.id not in existing_target_ids:
+                                target_eps.append(Episode(
+                                    id=sp.id,
+                                    show_id=sp.show_id,
+                                    season_number=sp.season_number,
+                                    episode_number=sp.episode_number,
+                                    absolute_number=sp.absolute_number,
+                                    title=sp.title,
+                                ))
         except Exception as e:
             logger.debug("Не удалось загрузить эпизоды тайтла для пофайлового сопоставления: %s", e)
 

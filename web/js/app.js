@@ -10784,14 +10784,14 @@ async function refreshShowModal() {
       }
     });
 
-    const downloadedEpsCount = episodes.filter(e => e.status === "downloaded" || (e.file_path && e.status !== "ignored")).length;
+    show.episodes = episodes;
     show.episodes_count = episodes.length;
     show.downloaded_episodes_count = downloadedEpsCount;
 
     if (Array.isArray(CACHED_SHOWS)) {
       const idx = CACHED_SHOWS.findIndex(s => s.id === show.id);
       if (idx !== -1) {
-        CACHED_SHOWS[idx] = Object.assign({}, CACHED_SHOWS[idx], show);
+        CACHED_SHOWS[idx] = Object.assign({}, CACHED_SHOWS[idx], show, { episodes });
       }
     }
     if (typeof updateShowCardProgressInDOM === "function") {
@@ -11703,14 +11703,37 @@ function renderSeasonSplitBadges(show, canManageLib = true) {
   `;
 }
 
-function openSeasonSplitModal(showId, splitId = null) {
-  const show = (typeof CACHED_SHOWS !== "undefined" && Array.isArray(CACHED_SHOWS))
+async function openSeasonSplitModal(showId, splitId = null) {
+  let show = (typeof CACHED_SHOWS !== "undefined" && Array.isArray(CACHED_SHOWS))
     ? CACHED_SHOWS.find(x => x.id === showId)
     : null;
 
   if (!show) {
+    try {
+      show = await api(`/api/v1/shows/${showId}`);
+    } catch (e) {}
+  }
+
+  if (!show) {
     toast(CURRENT_LANG === "en" ? "Show not found" : "Тайтл не найден", true);
     return;
+  }
+
+  if (!show.episodes || !show.episodes.length) {
+    try {
+      const fetchedEps = await api(`/api/v1/shows/${showId}/episodes`);
+      if (Array.isArray(fetchedEps) && fetchedEps.length) {
+        show.episodes = fetchedEps;
+        if (Array.isArray(CACHED_SHOWS)) {
+          const idx = CACHED_SHOWS.findIndex(s => s.id === showId);
+          if (idx !== -1) {
+            CACHED_SHOWS[idx] = Object.assign({}, CACHED_SHOWS[idx], { episodes: fetchedEps });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Could not load episodes for season splitter:", e);
+    }
   }
 
   document.getElementById("season-split-show-id").value = showId;
@@ -11756,8 +11779,14 @@ function openSeasonSplitModal(showId, splitId = null) {
     CURRENT_SEASON_SPLIT_PARTS = JSON.parse(JSON.stringify(split.parts || []));
     if (deleteBtn) deleteBtn.style.display = "inline-flex";
   } else {
-    const firstSeason = seasonNums[0] || 1;
-    seasonSelect.value = firstSeason;
+    let defaultSeason = seasonNums[0] || 1;
+    if (typeof SHOW_EXPANDED_SEASONS !== "undefined" && SHOW_EXPANDED_SEASONS[showId]) {
+      const expanded = Array.from(SHOW_EXPANDED_SEASONS[showId]).filter(sn => sn > 0 && seasonNums.includes(sn));
+      if (expanded.length === 1) {
+        defaultSeason = expanded[0];
+      }
+    }
+    seasonSelect.value = defaultSeason;
 
     CURRENT_SEASON_SPLIT_PARTS = [
       {
