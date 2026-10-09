@@ -2318,6 +2318,28 @@ select option {
   margin-left: auto;
 }
 
+.season-split-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: var(--radius-xs, 4px);
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  color: var(--color-primary, #3b82f6);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.season-split-header-badge:hover {
+  background: rgba(59, 130, 246, 0.22);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: translateY(-1px);
+}
+
 .season-split-modal-dialog {
   max-width: 680px;
   width: 95%;

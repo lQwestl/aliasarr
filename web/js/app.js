@@ -10950,11 +10950,12 @@ async function refreshShowModal() {
                       </select>
                       <button class="btn btn-secondary btn-small" onclick="addAlias(${show.id})"><i data-lucide="plus" class="ico-sm"></i> ${t("common.add")}</button>
                     </div>` : ""}
-                    ${renderSeasonSplitBadges(show, canManageLib)}
                   </div>
                 </div>
               `;
             })()}
+
+            ${renderSeasonSplitBadges(show, canManageLib)}
           </div>
         </div>
       </div>
@@ -10989,6 +10990,7 @@ async function refreshShowModal() {
         ${show.content_type !== "movie" ? `
         <button type="button" class="btn btn-secondary btn-small" onclick="openSeasonSplitModal(${show.id})" title="${CURRENT_LANG === 'en' ? 'Season Splitter for split-cour / multi-part anime seasons' : 'Разделитель сезона для сплит-куров и составных сезонов'}">
           <i data-lucide="split" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Season Splitter' : 'Разделитель сезона'}</span>
+          ${(show.season_splits && show.season_splits.length) ? `<span class="badge-count" style="margin-left:5px; padding:1px 6px; font-size:10px; font-family:var(--font-mono, monospace); background:rgba(59,130,246,0.25); border:1px solid rgba(59,130,246,0.4); color:var(--text-main); border-radius:10px;">${show.season_splits.length}</span>` : ""}
         </button>` : ""}
         <button type="button" class="btn btn-secondary btn-small" onclick="openShowBlocklistModal(${show.id})" title="${CURRENT_LANG === 'en' ? 'Show blocklisted releases for this title' : 'Черный список раздач для этого тайтла'}">
           <i data-lucide="shield-alert" class="ico-sm"></i> <span>${CURRENT_LANG === 'en' ? 'Blocklist' : 'Черный список'}</span>
@@ -11674,6 +11676,11 @@ function renderSeasonSplitBadges(show, canManageLib = true) {
 
   return `
     <div class="season-splits-container" id="season-splits-container-${show.id}">
+      <div class="season-splits-header" style="display:flex; align-items:center; gap:6px; font-size:11px; font-weight:600; color:var(--text-muted); margin-bottom:2px;">
+        <i data-lucide="split" class="ico-xs" style="color:var(--color-primary, #3b82f6);"></i>
+        <span>${CURRENT_LANG === 'en' ? 'Active Season Splitters' : 'Активные разделители сезонов'}</span>
+        <span class="mono" style="font-size:10px; opacity:0.8;">(${splits.length})</span>
+      </div>
       ${splits.map(s => {
         const parts = s.parts || [];
         const partsSummary = parts.map(p => {
@@ -11686,7 +11693,7 @@ function renderSeasonSplitBadges(show, canManageLib = true) {
         return `
           <div class="season-split-badge">
             <span class="season-split-badge-title">
-              <i data-lucide="split" class="ico-xs"></i>
+              <i data-lucide="layers" class="ico-xs"></i>
               <span>${escapeHtml(s.name || `Сезон ${s.season_number}`)}</span>
             </span>
             <div class="season-split-badge-parts">
@@ -11704,7 +11711,7 @@ function renderSeasonSplitBadges(show, canManageLib = true) {
   `;
 }
 
-async function openSeasonSplitModal(showId, splitId = null) {
+async function openSeasonSplitModal(showId, splitId = null, forcedSeasonNumber = null) {
   let show = (typeof CACHED_SHOWS !== "undefined" && Array.isArray(CACHED_SHOWS))
     ? CACHED_SHOWS.find(x => x.id === showId)
     : null;
@@ -11773,15 +11780,19 @@ async function openSeasonSplitModal(showId, splitId = null) {
   let split = null;
   if (splitId && show.season_splits) {
     split = show.season_splits.find(s => s.id === splitId);
+  } else if (!splitId && forcedSeasonNumber != null && show.season_splits) {
+    split = show.season_splits.find(s => s.season_number === forcedSeasonNumber);
   }
 
   if (split) {
+    document.getElementById("season-split-id").value = split.id;
     seasonSelect.value = split.season_number || 1;
     CURRENT_SEASON_SPLIT_PARTS = JSON.parse(JSON.stringify(split.parts || []));
     if (deleteBtn) deleteBtn.style.display = "inline-flex";
   } else {
-    let defaultSeason = seasonNums[0] || 1;
-    if (typeof SHOW_EXPANDED_SEASONS !== "undefined" && SHOW_EXPANDED_SEASONS[showId]) {
+    document.getElementById("season-split-id").value = "";
+    let defaultSeason = (forcedSeasonNumber != null && seasonNums.includes(forcedSeasonNumber)) ? forcedSeasonNumber : (seasonNums[0] || 1);
+    if (forcedSeasonNumber == null && typeof SHOW_EXPANDED_SEASONS !== "undefined" && SHOW_EXPANDED_SEASONS[showId]) {
       const expanded = Array.from(SHOW_EXPANDED_SEASONS[showId]).filter(sn => sn > 0 && seasonNums.includes(sn));
       if (expanded.length === 1) {
         defaultSeason = expanded[0];
@@ -11974,6 +11985,28 @@ function removeSeasonSplitPart(idx) {
 }
 
 function onSeasonSplitCardSeasonChange() {
+  const showId = parseInt(document.getElementById("season-split-show-id").value, 10);
+  const sn = parseInt(document.getElementById("season-split-season-select").value, 10) || 1;
+  const show = (typeof CACHED_SHOWS !== "undefined" && Array.isArray(CACHED_SHOWS))
+    ? CACHED_SHOWS.find(x => x.id === showId)
+    : null;
+  const deleteBtn = document.getElementById("season-split-delete-btn");
+
+  if (show && show.season_splits) {
+    const existingSplit = show.season_splits.find(s => s.season_number === sn);
+    if (existingSplit) {
+      document.getElementById("season-split-id").value = existingSplit.id;
+      CURRENT_SEASON_SPLIT_PARTS = JSON.parse(JSON.stringify(existingSplit.parts || []));
+      if (deleteBtn) deleteBtn.style.display = "inline-flex";
+      renderSeasonSplitParts();
+      updateSeasonSplitPreview();
+      return;
+    }
+  }
+
+  document.getElementById("season-split-id").value = "";
+  if (deleteBtn) deleteBtn.style.display = "none";
+  renderSeasonSplitParts();
   updateSeasonSplitPreview();
 }
 
@@ -12395,6 +12428,24 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
             <i data-lucide="${progressIcon}"></i>
             <span>${downloaded}/${totalEps} ${t("status.downloaded")}</span>
           </span>
+          ${(() => {
+            if (seasonNumber === 0) return "";
+            const split = (show && show.season_splits) ? show.season_splits.find(s => s.season_number === seasonNumber) : null;
+            if (!split) return "";
+            const parts = split.parts || [];
+            const summary = parts.map(p => {
+              const range = (p.episode_start && p.episode_end) ? `${p.episode_start}–${p.episode_end}` : "";
+              const offStr = (p.episode_offset && p.episode_offset > 0) ? ` (+${p.episode_offset})` : "";
+              return `ТВ-${p.target_number}${range ? `: ${range}` : ""}${offStr}`;
+            }).join(" • ");
+            return `
+              <span class="season-split-header-badge" onclick="event.stopPropagation(); openSeasonSplitModal(${targetShowId}, ${split.id}, ${seasonNumber})"
+                title="${CURRENT_LANG === 'en' ? 'Season Splitter active (click to edit)' : 'Активен разделитель сезона (нажмите для редактирования)'}">
+                <i data-lucide="layers" class="ico-xxs"></i>
+                <span>${CURRENT_LANG === 'en' ? 'Split' : 'Разделитель'}: ${summary}</span>
+              </span>
+            `;
+          })()}
         </div>
         <div class="season-header-actions" onclick="event.stopPropagation()">
           <div class="season-main-buttons">
@@ -12413,6 +12464,8 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
           </div>
           ${canManageLib ? `
           <div class="season-icon-buttons">
+            ${seasonNumber > 0 && show && show.content_type !== "movie" ? `
+            <button class="btn-icon-only" title="${CURRENT_LANG === 'en' ? `Season Splitter for season ${seasonNumber}` : `Разделитель для сезона ${seasonNumber}`}" onclick="event.stopPropagation(); openSeasonSplitModal(${targetShowId}, null, ${seasonNumber})"><i data-lucide="split" class="ico-xs"></i></button>` : ""}
             <button class="btn-icon-only" title="${CURRENT_LANG === 'en' ? 'Mark season for quality upgrade' : 'Поставить весь сезон на обновление качества'}" onclick="toggleSeasonUpgrade(${seasonNumber}, ${targetShowId})"><i data-lucide="arrow-up-circle" class="ico-xs"></i></button>
             <button class="btn-icon-only" title="${t("action.monitor_season")}" onclick="setSeasonMonitor(${seasonNumber}, true)"><i data-lucide="bookmark" class="ico-xs"></i></button>
             <button class="btn-icon-only" title="${t("action.unmonitor_season")}" onclick="setSeasonMonitor(${seasonNumber}, false)"><i data-lucide="bookmark-minus" class="ico-xs"></i></button>
