@@ -264,6 +264,27 @@ class TestScopedAliasesPure(unittest.TestCase):
         self.assertEqual(matched_eps[0].season_number, 3)
         self.assertEqual(matched_eps[0].episode_number, 1)
 
+        # Test DecisionEngine logic with mock DB and precomputed match
+        from unittest.mock import MagicMock
+        from app.services.decision_engine import DecisionEngine
+
+        show = SimpleNamespace(id=1, title="Агенты времени", content_type="anime", year=2021, quality_profile_id=None, episodes=[])
+        mock_db = MagicMock()
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+        mock_db.query.return_value.filter.return_value.all.return_value = []
+        mock_db.query.return_value.all.return_value = []
+
+        m_res = match_release("Yingdu Chapter [ONA] [1-6 из 6]", show_id=1, aliases=[ona_cand], content_type="anime")
+        decision = DecisionEngine.evaluate_release(
+            db=mock_db,
+            title="Yingdu Chapter [ONA] [1-6 из 6]",
+            show=show,
+            episodes=wanted_eps,
+            seeders=10,
+            precomputed_match=m_res,
+        )
+        self.assertTrue(decision.approved, f"Decision rejected: {decision.rejections}")
+
 
 @unittest.skipUnless(HAS_DB, "Requires sqlalchemy, fastapi, and pydantic")
 class TestScopedAliasesDB(unittest.TestCase):

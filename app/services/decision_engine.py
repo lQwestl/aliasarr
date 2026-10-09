@@ -247,7 +247,15 @@ class DecisionEngine:
                         if scoped_season is not None:
                             rel_s = scoped_season
                             parsed_s = match.parsed.season if match.parsed.season is not None else (s_lbl["season"] if lbl_type == "numbered" else None)
-                            if alias_offset == 0 and parsed_s is not None and parsed_s != scoped_season and lbl_type not in ("range", "complete"):
+                            target_num = getattr(alias_cand, "target_number", None) if alias_cand else None
+                            is_ona_split = (target_num == 0) or (getattr(alias_cand, "part_type", None) in ("ona", "ova"))
+                            allowed_seasons = {scoped_season}
+                            if target_num is not None:
+                                allowed_seasons.add(target_num)
+                            if is_ona_split or lbl_type == "ova_ona":
+                                allowed_seasons.add(0)
+
+                            if alias_offset == 0 and parsed_s is not None and parsed_s not in allowed_seasons and lbl_type not in ("range", "complete"):
                                 rejections.append(f"Релиз относится к сезону S{parsed_s:02d}, а алиас «{getattr(alias_cand, 'text', '')}» относится к S{scoped_season:02d} без смещения")
                             elif rel_s not in target_seasons:
                                 min_tgt = min(target_seasons) if target_seasons else 0
