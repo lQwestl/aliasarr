@@ -222,6 +222,48 @@ class TestScopedAliasesPure(unittest.TestCase):
         )
         self.assertTrue(_is_part_2_alias(part2_alias))
 
+    def test_ona_split_pure_matching_and_priority(self):
+        """Pure test for ONA alias candidate matching and file prioritization."""
+        from app.services.matcher import best_alias_match, _is_ona_alias
+
+        ona_cand = AliasCandidate(
+            alias_id=10,
+            text="Yingdu Chapter",
+            language="ru",
+            priority=5,
+            season_number=3,
+            episode_start=1,
+            episode_end=6,
+            episode_offset=0,
+            part_type="ona",
+            target_number=0,
+        )
+        self.assertTrue(_is_ona_alias(ona_cand))
+
+        matched, score = best_alias_match("Yingdu Chapter [ONA] [1-6 из 6]", [ona_cand])
+        self.assertIsNotNone(matched)
+        self.assertEqual(matched.text, "Yingdu Chapter")
+        self.assertEqual(matched.season_number, 3)
+        self.assertEqual(matched.target_number, 0)
+
+        wanted_eps = [
+            SimpleNamespace(id=1, season_number=3, episode_number=1, absolute_number=None, title="Ep 1")
+        ]
+        matched_eps = []
+        prio = evaluate_torrent_file_priority(
+            file_name="[Sub] Yingdu Chapter [ONA] - 01.mkv",
+            file_index=0,
+            target_episodes=wanted_eps,
+            content_type="anime",
+            scoped_season=3,
+            target_number=0,
+            out_matched_episodes=matched_eps,
+        )
+        self.assertEqual(prio, 1)
+        self.assertEqual(len(matched_eps), 1)
+        self.assertEqual(matched_eps[0].season_number, 3)
+        self.assertEqual(matched_eps[0].episode_number, 1)
+
 
 @unittest.skipUnless(HAS_DB, "Requires sqlalchemy, fastapi, and pydantic")
 class TestScopedAliasesDB(unittest.TestCase):
@@ -442,8 +484,12 @@ class TestScopedAliasesDB(unittest.TestCase):
         from app.services.matcher import build_alias_candidates, best_alias_match
         from app.services.auto_search import evaluate_torrent_file_priority
 
-        show = Show(title="Агенты времени", original_title="Shiguang Dailiren", content_type="anime")
+        show = Show(title="Агенты времени", content_type="anime")
         self.db.add(show)
+        self.db.flush()
+
+        alias = Alias(show_id=show.id, text="Shiguang Dailiren")
+        self.db.add(alias)
         self.db.flush()
 
         # Создаем эпизоды 3-го сезона (1-6)
