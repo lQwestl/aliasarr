@@ -793,6 +793,7 @@ async def check_downloads(db: Session) -> list[dict]:
                     # Определение смещения и привязанного сезона сматченного алиаса
                     alias_offset = 0
                     scoped_season = None
+                    target_number = None
                     if show_obj:
                         from app.services.matcher import build_alias_candidates, match_release
                         show_aliases = build_alias_candidates(show_obj, db=db)
@@ -805,6 +806,7 @@ async def check_downloads(db: Session) -> list[dict]:
                         if m_res and m_res.matched and m_res.alias_candidate:
                             alias_offset = m_res.alias_candidate.episode_offset or 0
                             scoped_season = m_res.alias_candidate.season_number
+                            target_number = getattr(m_res.alias_candidate, "target_number", None)
 
                     matched_eps = []
                     wanted_indices = []
@@ -822,6 +824,7 @@ async def check_downloads(db: Session) -> list[dict]:
                             show_words=show_words,
                             alias_offset=alias_offset,
                             scoped_season=scoped_season,
+                            target_number=target_number,
                         )
                         if prio > 0:
                             wanted_indices.append(f.index)

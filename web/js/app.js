@@ -11684,10 +11684,16 @@ function renderSeasonSplitBadges(show, canManageLib = true) {
       ${splits.map(s => {
         const parts = s.parts || [];
         const partsSummary = parts.map(p => {
-          const typeLabel = p.part_type === "cour" ? "Кур" : (p.part_type === "part" ? "Часть" : "ТВ");
+          let typeLabel = "ТВ";
+          if (p.part_type === "cour") typeLabel = "Кур";
+          else if (p.part_type === "part") typeLabel = "Часть";
+          else if (p.part_type === "ona") typeLabel = "ONA";
+          else if (p.part_type === "ova") typeLabel = "OVA";
           const epRange = (p.episode_start && p.episode_end) ? `${p.episode_start}–${p.episode_end}` : "";
           const offStr = (p.episode_offset && p.episode_offset > 0) ? ` (+${p.episode_offset})` : "";
-          return `<span class="season-split-badge-part">${typeLabel}-${p.target_number}: ${epRange}${offStr}</span>`;
+          const isOna = (p.part_type === "ona" || p.part_type === "ova" || p.target_number === 0);
+          const targetStr = isOna ? "" : `-${p.target_number}`;
+          return `<span class="season-split-badge-part">${typeLabel}${targetStr}: ${epRange}${offStr}</span>`;
         }).join(" ");
 
         return `
@@ -11838,14 +11844,22 @@ function renderSeasonSplitParts() {
 
     const partLabel = CURRENT_LANG === "en" ? `Part ${idx + 1}` : `Часть ${idx + 1}`;
     const delTitle = CURRENT_LANG === "en" ? "Delete part" : "Удалить часть";
+    const typeLabelText = CURRENT_LANG === "en" ? "Type" : "Тип части";
     const trackerNumLabel = CURRENT_LANG === "en" ? "Number on trackers" : "Номер на трекерах";
     const epStartLabel = CURRENT_LANG === "en" ? "Episode from" : "Серия с";
     const epEndLabel = CURRENT_LANG === "en" ? "Episode to" : "Серия по";
     const aliasesLabel = CURRENT_LANG === "en" ? "Search aliases for part (comma-separated)" : "Поисковые алиасы части (через запятую)";
-    const targetNum = p.target_number ?? (idx + 1);
-    const aliasesPlaceholder = (idx === 0)
-      ? (CURRENT_LANG === "en" ? "e.g. Space Dandy, Space Dandy (TV-1)" : "Например: Space Dandy, Космический Денди (ТВ-1)")
-      : (CURRENT_LANG === "en" ? `e.g. Space Dandy ${targetNum}, Space Dandy (TV-${targetNum})` : `Например: Space Dandy ${targetNum}, Космический Денди (ТВ-${targetNum})`);
+
+    const pType = p.part_type || "season";
+    const isOna = (pType === "ona" || pType === "ova");
+    const targetNum = isOna ? 0 : ((p.target_number != null && !isNaN(p.target_number)) ? p.target_number : (idx + 1));
+    p.target_number = targetNum;
+
+    const aliasesPlaceholder = isOna
+      ? (CURRENT_LANG === "en" ? "e.g. Yingdu Chapter, Bridon Arc, ONA, Special" : "Например: Yingdu Chapter, Bridon Arc, ONA, Спешл")
+      : ((idx === 0)
+        ? (CURRENT_LANG === "en" ? "e.g. Space Dandy, Space Dandy (TV-1)" : "Например: Space Dandy, Космический Денди (ТВ-1)")
+        : (CURRENT_LANG === "en" ? `e.g. Space Dandy ${targetNum}, Space Dandy (TV-${targetNum})` : `Например: Space Dandy ${targetNum}, Космический Денди (ТВ-${targetNum})`));
 
     return `
     <div class="season-split-part-card" data-index="${idx}">
@@ -11863,9 +11877,19 @@ function renderSeasonSplitParts() {
       </div>
 
       <div class="season-split-fields-grid">
+        <div class="form-group season-split-field-type">
+          <label class="form-label">${typeLabelText}</label>
+          <select class="input input-small" onchange="onPartTypeChange(${idx}, this.value)">
+            <option value="season" ${pType === 'season' ? 'selected' : ''}>${CURRENT_LANG === 'en' ? 'TV / Season' : 'ТВ / Сезон'}</option>
+            <option value="part" ${pType === 'part' ? 'selected' : ''}>${CURRENT_LANG === 'en' ? 'Part' : 'Часть (Part)'}</option>
+            <option value="cour" ${pType === 'cour' ? 'selected' : ''}>${CURRENT_LANG === 'en' ? 'Cour' : 'Кур (Cour)'}</option>
+            <option value="ona" ${isOna ? 'selected' : ''}>${CURRENT_LANG === 'en' ? 'ONA / OVA / Special' : 'ONA / OVA / Спешл'}</option>
+          </select>
+        </div>
+
         <div class="form-group season-split-field-target">
           <label class="form-label">${trackerNumLabel}</label>
-          <input type="number" class="input input-small" min="1" value="${p.target_number ?? (idx + 1)}" placeholder="${idx + 1}" oninput="onPartFieldChange(${idx}, 'target_number', parseInt(this.value, 10))">
+          <input type="number" class="input input-small" min="0" value="${targetNum}" ${isOna ? 'disabled style="opacity:0.6;"' : ''} placeholder="${isOna ? '0 (ONA)' : (idx + 1)}" oninput="onPartFieldChange(${idx}, 'target_number', parseInt(this.value, 10))">
         </div>
 
         <div class="form-group season-split-field-start">
@@ -11888,6 +11912,18 @@ function renderSeasonSplitParts() {
   }).join("");
 
   if (typeof lucide !== "undefined" && lucide.createIcons) lucide.createIcons();
+}
+
+function onPartTypeChange(idx, val) {
+  if (!CURRENT_SEASON_SPLIT_PARTS[idx]) return;
+  CURRENT_SEASON_SPLIT_PARTS[idx].part_type = val;
+  if (val === "ona" || val === "ova") {
+    CURRENT_SEASON_SPLIT_PARTS[idx].target_number = 0;
+  } else if (CURRENT_SEASON_SPLIT_PARTS[idx].target_number === 0) {
+    CURRENT_SEASON_SPLIT_PARTS[idx].target_number = idx + 1;
+  }
+  renderSeasonSplitParts();
+  updateSeasonSplitPreview();
 }
 
 function syncSeasonSplitPartOffsetsAndRanges() {
@@ -11957,7 +11993,8 @@ function onPartEndChange(idx, val) {
 
 function addSeasonSplitPart() {
   const lastPart = CURRENT_SEASON_SPLIT_PARTS[CURRENT_SEASON_SPLIT_PARTS.length - 1];
-  const nextTarget = (lastPart ? (lastPart.target_number || 1) : 0) + 1;
+  const lastTarget = lastPart ? ((lastPart.target_number != null && !isNaN(lastPart.target_number)) ? lastPart.target_number : 1) : 0;
+  const nextTarget = Math.max(1, lastTarget + 1);
   const nextStart = (lastPart && lastPart.episode_end)
     ? lastPart.episode_end + 1
     : (lastPart && lastPart.episode_start ? lastPart.episode_start + 12 : null);
@@ -12024,14 +12061,23 @@ function updateSeasonSplitPreview() {
   }
 
   const lines = CURRENT_SEASON_SPLIT_PARTS.map((p, idx) => {
-    const tNum = p.target_number ?? (idx + 1);
+    const isOna = (p.part_type === "ona" || p.part_type === "ova" || p.target_number === 0);
+    const tNum = isOna ? 0 : (p.target_number ?? (idx + 1));
     const start = (p.episode_start != null && p.episode_start !== "") ? parseInt(p.episode_start, 10) : null;
     const end = (p.episode_end != null && p.episode_end !== "") ? parseInt(p.episode_end, 10) : null;
+
+    const targetDesc = isOna
+      ? "ONA / OVA (Сезон 0)"
+      : (p.part_type === "cour"
+        ? (CURRENT_LANG === "en" ? `Cour ${tNum}` : `Кур ${tNum}`)
+        : (p.part_type === "part"
+          ? (CURRENT_LANG === "en" ? `Part ${tNum}` : `Часть ${tNum}`)
+          : (CURRENT_LANG === "en" ? `Season ${tNum} (TV-${tNum})` : `ТВ-${tNum} (Сезон ${tNum})`)));
 
     if (start == null && end == null) {
       return `
         <div class="season-split-preview-row">
-          <span><strong>${idx + 1}.</strong> ${CURRENT_LANG === "en" ? `Target on trackers: <strong>Part ${tNum} (TV-${tNum})</strong>` : `Поиск на трекерах: <strong>Часть ${tNum} (ТВ-${tNum})</strong>`}</span>
+          <span><strong>${idx + 1}.</strong> ${CURRENT_LANG === "en" ? `Target on trackers: <strong>${targetDesc}</strong>` : `Поиск на трекерах: <strong>${targetDesc}</strong>`}</span>
           <span style="color:var(--text-muted);">(${CURRENT_LANG === "en" ? "specify episode range" : "укажите диапазон серий"})</span>
         </div>
       `;
@@ -12050,7 +12096,7 @@ function updateSeasonSplitPreview() {
 
     return `
       <div class="season-split-preview-row">
-        <span><strong>${idx + 1}.</strong> ${CURRENT_LANG === "en" ? `Search as <strong>Part ${tNum} (TV-${tNum})</strong>:` : `Искать как <strong>ТВ-${tNum} (Сезон ${tNum})</strong>:`}</span>
+        <span><strong>${idx + 1}.</strong> ${CURRENT_LANG === "en" ? `Search as <strong>${targetDesc}</strong>:` : `Искать как <strong>${targetDesc}</strong>:`}</span>
         <span>${CURRENT_LANG === "en" ? "release" : "раздача"} <code>${relEpStr}</code></span>
         <span class="season-split-preview-arrow">→</span>
         <span>${CURRENT_LANG === "en" ? "import into library as" : "в библиотеку как"} <code>${libEpStr}</code></span>
@@ -12079,10 +12125,12 @@ async function saveSeasonSplit() {
       const start = (p.episode_start != null && p.episode_start !== "") ? parseInt(p.episode_start, 10) : null;
       const end = (p.episode_end != null && p.episode_end !== "") ? parseInt(p.episode_end, 10) : null;
       const offset = start != null ? Math.max(0, start - 1) : 0;
+      const isOna = (p.part_type === "ona" || p.part_type === "ova");
+      const targetNum = isOna ? 0 : ((p.target_number != null && !isNaN(p.target_number)) ? parseInt(p.target_number, 10) : 1);
 
       return {
         part_type: p.part_type || "season",
-        target_number: p.target_number || 1,
+        target_number: targetNum,
         episode_start: start,
         episode_end: end,
         episode_offset: offset,
@@ -12434,9 +12482,16 @@ function renderSeasonBlock(seasonNumber, episodes, canManageLib = true, canSearc
             if (!split) return "";
             const parts = split.parts || [];
             const summary = parts.map(p => {
+              let typeLabel = "ТВ";
+              if (p.part_type === "cour") typeLabel = "Кур";
+              else if (p.part_type === "part") typeLabel = "Часть";
+              else if (p.part_type === "ona") typeLabel = "ONA";
+              else if (p.part_type === "ova") typeLabel = "OVA";
+              const isOna = (p.part_type === "ona" || p.part_type === "ova" || p.target_number === 0);
+              const targetStr = isOna ? "" : `-${p.target_number}`;
               const range = (p.episode_start && p.episode_end) ? `${p.episode_start}–${p.episode_end}` : "";
               const offStr = (p.episode_offset && p.episode_offset > 0) ? ` (+${p.episode_offset})` : "";
-              return `ТВ-${p.target_number}${range ? `: ${range}` : ""}${offStr}`;
+              return `${typeLabel}${targetStr}${range ? `: ${range}` : ""}${offStr}`;
             }).join(" • ");
             return `
               <span class="season-split-header-badge" onclick="event.stopPropagation(); openSeasonSplitModal(${targetShowId}, ${split.id}, ${seasonNumber})"

@@ -1242,7 +1242,7 @@ def create_season_split(
         part = SeasonSplitPart(
             split_id=split.id,
             part_type=p.part_type or "season",
-            target_number=p.target_number or 1,
+            target_number=p.target_number if p.target_number is not None else 1,
             episode_start=p.episode_start or 1,
             episode_end=p.episode_end or 1,
             episode_offset=p.episode_offset if p.episode_offset is not None else 0,
@@ -1283,7 +1283,7 @@ def update_season_split(
         for p in payload.parts:
             part = SeasonSplitPart(
                 part_type=p.part_type or "season",
-                target_number=p.target_number or 1,
+                target_number=p.target_number if p.target_number is not None else 1,
                 episode_start=p.episode_start or 1,
                 episode_end=p.episode_end or 1,
                 episode_offset=p.episode_offset if p.episode_offset is not None else 0,

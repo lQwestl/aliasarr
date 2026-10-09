@@ -36,7 +36,7 @@ class AliasUpdate(BaseModel):
 
 
 class SeasonSplitPartCreate(BaseModel):
-    part_type: str = "season"  # "season" | "part" | "cour"
+    part_type: str = "season"  # "season" | "part" | "cour" | "ona" | "ova"
     target_number: int = 1
     episode_start: int = 1
     episode_end: int = 1

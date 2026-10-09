@@ -435,6 +435,100 @@ class TestScopedAliasesDB(unittest.TestCase):
         self.assertEqual(len(remaining), 1)
         self.assertEqual(remaining[0].reason, "Плохое качество перевода")
 
+    def test_season_split_ona_crud_matcher_and_priority(self):
+        """Проверка работы ONA (сезон 0) в Season Splitter: сохранение target_number=0, авто-алиасы, матчинг и приоритет файлов."""
+        from app.schemas import SeasonSplitCreate, SeasonSplitPartCreate
+        from app.api.shows import create_season_split
+        from app.services.matcher import build_alias_candidates, best_alias_match
+        from app.services.auto_search import evaluate_torrent_file_priority
+
+        show = Show(title="Агенты времени", original_title="Shiguang Dailiren", content_type="anime")
+        self.db.add(show)
+        self.db.flush()
+
+        # Создаем эпизоды 3-го сезона (1-6)
+        s3_eps = []
+        for ep_i in range(1, 7):
+            ep = Episode(
+                show_id=show.id,
+                season_number=3,
+                episode_number=ep_i,
+                status=EpisodeStatus.WANTED,
+            )
+            self.db.add(ep)
+            s3_eps.append(ep)
+        self.db.commit()
+
+        # Создаем разделитель для Сезона 3 с ONA (target_number=0, part_type="ona")
+        split_payload = SeasonSplitCreate(
+            name="Сезон 3 (ONA)",
+            season_number=3,
+            parts=[
+                SeasonSplitPartCreate(
+                    part_type="ona",
+                    target_number=0,
+                    episode_start=1,
+                    episode_end=6,
+                    episode_offset=0,
+                    aliases="Yingdu Chapter, Bridon Arc",
+                )
+            ]
+        )
+
+        split_out = create_season_split(show.id, split_payload, db=self.db, current_user=self.user)
+        self.assertEqual(split_out.parts[0].target_number, 0)
+        self.assertEqual(split_out.parts[0].part_type, "ona")
+
+        # 1. Проверяем авто-алиасы
+        candidates = build_alias_candidates(show, db=self.db)
+        c_texts = [c.text for c in candidates]
+        self.assertIn("Yingdu Chapter", c_texts)
+        self.assertIn("Bridon Arc", c_texts)
+        self.assertIn("Агенты времени ONA", c_texts)
+        self.assertIn("Агенты времени [ONA]", c_texts)
+
+        ona_cand = next(c for c in candidates if c.text == "Yingdu Chapter")
+        self.assertEqual(ona_cand.target_number, 0)
+        self.assertEqual(ona_cand.part_type, "ona")
+        self.assertEqual(ona_cand.season_number, 3)
+
+        # 2. Проверяем матчинг релиза с [ONA]
+        matched, score = best_alias_match("Yingdu Chapter [ONA] [1-6 из 6]", candidates)
+        self.assertIsNotNone(matched)
+        self.assertEqual(matched.text, "Yingdu Chapter")
+        self.assertEqual(matched.season_number, 3)
+        self.assertEqual(matched.target_number, 0)
+
+        # 3. Проверяем DecisionEngine для Сезона 3
+        decision = DecisionEngine.evaluate_release(
+            self.db,
+            "Yingdu Chapter [ONA] [1-6 из 6]",
+            show=show,
+            episodes=[s3_eps[0]],
+            seeders=10,
+        )
+        self.assertTrue(decision.approved, f"Decision rejected: {decision.rejections}")
+
+        # 4. Проверяем приоритет файлов торрента с ONA внутри имени файла
+        matched_eps = []
+        prio = evaluate_torrent_file_priority(
+            file_name="[Sub] Yingdu Chapter [ONA] - 01.mkv",
+            file_index=0,
+            target_episodes=s3_eps,
+            content_type="anime",
+            ova_mode="auto",
+            torrent_name="Yingdu Chapter [ONA] [1-6 из 6]",
+            all_show_episodes=s3_eps,
+            out_matched_episodes=matched_eps,
+            alias_offset=0,
+            scoped_season=3,
+            target_number=0,
+        )
+        self.assertEqual(prio, 1)
+        self.assertEqual(len(matched_eps), 1)
+        self.assertEqual(matched_eps[0].season_number, 3)
+        self.assertEqual(matched_eps[0].episode_number, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

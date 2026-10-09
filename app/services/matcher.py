@@ -323,7 +323,8 @@ def build_alias_candidates(show, db=None) -> list[AliasCandidate]:
         parts = getattr(split, "parts", []) or []
         for part in parts:
             p_type = getattr(part, "part_type", "season") or "season"
-            p_target = getattr(part, "target_number", 1) or 1
+            p_target_raw = getattr(part, "target_number", None)
+            p_target = p_target_raw if p_target_raw is not None else 1
             p_start = getattr(part, "episode_start", None)
             p_end = getattr(part, "episode_end", None)
             p_offset = getattr(part, "episode_offset", 0) or 0
@@ -340,7 +341,19 @@ def build_alias_candidates(show, db=None) -> list[AliasCandidate]:
             auto_variants = []
             for bt in base_titles:
                 clean_bt = _clean_alias_season_suffix(bt) or bt
-                if p_target > 1:
+                if p_type in ("ona", "ova") or p_target == 0:
+                    auto_variants.extend([
+                        f"{clean_bt} ONA",
+                        f"{clean_bt} [ONA]",
+                        f"{clean_bt} OVA",
+                        f"{clean_bt} [OVA]",
+                        f"{clean_bt} Special",
+                        f"{clean_bt} Specials",
+                        f"{clean_bt} Спешл",
+                        f"{clean_bt} Спешлы",
+                        f"{clean_bt} S00",
+                    ])
+                elif p_target > 1:
                     auto_variants.extend([
                         f"{clean_bt} Season {p_target}",
                         f"{clean_bt} (ТВ-{p_target})",
@@ -494,7 +507,19 @@ def _is_part_2_alias(a: Any) -> bool:
     return False
 
 
+def _is_ona_alias(a: Any) -> bool:
+    pt = getattr(a, "part_type", None)
+    if pt in ("ona", "ova"):
+        return True
+    tn = getattr(a, "target_number", None)
+    if tn == 0:
+        return True
+    return False
+
+
 def _is_part_1_alias(a: Any) -> bool:
+    if _is_ona_alias(a):
+        return False
     sn = getattr(a, "season_number", None)
     if _is_int(sn) and sn >= 2:
         return False
@@ -541,6 +566,7 @@ def best_alias_match(
     release_country = m_country.group(1).lower() if m_country else None
     has_scoped_part_2 = any(_is_part_2_alias(a) for a in alias_list)
     has_scoped_part_1 = any(_is_part_1_alias(a) for a in alias_list)
+    has_scoped_ona = any(_is_ona_alias(a) for a in alias_list)
 
     best: Optional[AliasCandidate] = None
     best_score = 0.0
@@ -559,14 +585,20 @@ def best_alias_match(
         # Проверка совместимости области действия алиаса и сезона релиза
         is_alias_part_2 = _is_part_2_alias(alias)
         is_alias_part_1 = _is_part_1_alias(alias)
+        is_alias_ona = _is_ona_alias(alias)
         is_ova_rel = bool(s_lbl.get("type") == "ova_ona" or (parsed and parsed.season == 0))
 
         if not is_ova_rel:
+            if is_alias_ona and (is_part_1 or is_part_2 or (rel_s is not None and rel_s > 0)):
+                continue
             if is_part_2 and is_alias_part_1 and has_scoped_part_2:
                 # Релиз относится ко 2-й части/сезону, а алиас строго ограничен 1-й частью
                 continue
             if is_part_1 and is_alias_part_2 and has_scoped_part_1:
                 # Релиз относится к 1-й части/сезону, а алиас строго ограничен 2-й частью
+                continue
+        else:
+            if not is_alias_ona and has_scoped_ona and getattr(alias, "split_id", None):
                 continue
 
         alias_words = set(norm_alias.split())
@@ -594,6 +626,8 @@ def best_alias_match(
                 score = 100.0
                 if is_part_2 and is_alias_part_2:
                     score += 5.0
+                if is_ova_rel and is_alias_ona:
+                    score += 5.0
                 if score > best_score:
                     best_score = score
                     best = alias
@@ -603,9 +637,13 @@ def best_alias_match(
             if base_alias and (seg == base_alias or (base_clean and seg_clean == base_clean)):
                 if is_alias_part_2 and not is_part_2:
                     pass
+                elif is_alias_ona and not is_ova_rel:
+                    pass
                 else:
                     score = 98.0
                     if is_part_2 and is_alias_part_2:
+                        score += 5.0
+                    if is_ova_rel and is_alias_ona:
                         score += 5.0
                     if score > best_score:
                         best_score = score
@@ -614,7 +652,7 @@ def best_alias_match(
 
             # 3. Нечёткое сравнение
             target_candidates = [norm_alias]
-            if base_alias and base_alias != norm_alias and not (is_alias_part_2 and not is_part_2):
+            if base_alias and base_alias != norm_alias and not (is_alias_part_2 and not is_part_2) and not (is_alias_ona and not is_ova_rel):
                 target_candidates.append(base_alias)
 
             for target_name in target_candidates:
@@ -641,6 +679,8 @@ def best_alias_match(
                     score = base_score_val
 
                 if is_part_2 and is_alias_part_2:
+                    score += 5.0
+                if is_ova_rel and is_alias_ona:
                     score += 5.0
 
                 if score > best_score:

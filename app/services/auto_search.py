@@ -429,8 +429,10 @@ def evaluate_torrent_file_priority(
                     return _set_res(0, f"Сопутствующий файл к неразыскиваемой серии S{s_div:02d}E{e_mod:02d} (ОТКЛЮЧЕН)")
 
             if is_special_file:
+                if scoped_season is not None and target_number == 0 and (scoped_season, ep_num + alias_offset) in target_keys:
+                    return _set_res(1, f"Сопутствующий файл к ONA/S{scoped_season:02d}E{ep_num + alias_offset:02d} (ВКЛЮЧЕН)")
                 allow_ova_as_s1 = (ova_mode == "season_1") or (
-                    ova_mode == "auto" and not has_wanted_specials and any(sn == 1 for sn, _ in target_keys)
+                    ova_mode == "auto" and not has_wanted_specials and any(sn == 1 for sn, _ in target_keys) and scoped_season is None
                 )
                 if parsed and parsed.matched_pattern in ("fractional_special", "ova_fractional_special"):
                     allow_ova_as_s1 = False
@@ -470,8 +472,18 @@ def evaluate_torrent_file_priority(
     # 3. Видеофайлы (.mkv, .mp4, .avi, .ts, etc.)
     if ext in {".mkv", ".mp4", ".avi", ".ts", ".m2ts", ".mov", ".webm"}:
         if is_special_file:
+            if scoped_season is not None and target_number == 0 and episodes:
+                for ep_num in episodes:
+                    eff_ep = ep_num + alias_offset
+                    if (scoped_season, eff_ep) in target_keys or eff_ep in target_abs:
+                        if out_matched_episodes is not None:
+                            matched = next((ep for ep in target_episodes if (ep.season_number, ep.episode_number) == (scoped_season, eff_ep) or getattr(ep, "absolute_number", None) == eff_ep), None)
+                            if matched:
+                                out_matched_episodes.append(matched)
+                        return _set_res(1, f"ONA/OVA сопоставлена с Сезоном {scoped_season} Серия {eff_ep} (ВКЛЮЧЕН, разыскивается)")
+
             allow_ova_as_s1 = (ova_mode == "season_1") or (
-                ova_mode == "auto" and not has_wanted_specials and any(sn == 1 for sn, _ in target_keys)
+                ova_mode == "auto" and not has_wanted_specials and any(sn == 1 for sn, _ in target_keys) and scoped_season is None
             )
             if parsed and parsed.matched_pattern in ("fractional_special", "ova_fractional_special"):
                 allow_ova_as_s1 = False
@@ -1493,7 +1505,13 @@ async def _collect_candidates(
             _add_query(alias.text)
             # Если алиас явно относится к части/сплит-куру (offset > 0 или ТВ-2/3...)
             t_num = getattr(alias, "target_number", None)
-            if _is_part_2_alias(alias) or (t_num and t_num >= 2):
+            p_type = getattr(alias, "part_type", None)
+            if p_type in ("ona", "ova") or t_num == 0:
+                root_b = _clean_alias_season_suffix(alias.text) or alias.text
+                _add_query(f"{root_b} ONA")
+                _add_query(f"{root_b} OVA")
+                _add_query(f"{root_b} Special")
+            elif _is_part_2_alias(alias) or (t_num and t_num >= 2):
                 tgt = t_num if (t_num and t_num >= 2) else 2
                 root_b = _clean_alias_season_suffix(alias.text) or alias.text
                 ord_str = _ordinal_en(tgt)
@@ -2063,7 +2081,7 @@ async def _do_search_and_grab(
         )
 
         remap_to_season_1 = False
-        if is_ova_release and show.content_type in ("series", "anime") and ova_mode != "specials":
+        if is_ova_release and show.content_type in ("series", "anime") and ova_mode != "specials" and scoped_season is None:
             if ova_mode == "season_1":
                 remap_to_season_1 = True
             elif ova_mode == "auto":
@@ -2092,6 +2110,9 @@ async def _do_search_and_grab(
             allowed_seasons = {scoped_season}
             if target_number is not None:
                 allowed_seasons.add(target_number)
+            is_ona_split = (target_number == 0) or (getattr(alias_cand, "part_type", None) in ("ona", "ova"))
+            if is_ona_split or label_type == "ova_ona":
+                allowed_seasons.add(0)
             if alias_offset == 0 and rel_s is not None and rel_s not in allowed_seasons and label_type not in ("range", "complete"):
                 return False
             if ep.season_number == scoped_season:
@@ -2130,10 +2151,11 @@ async def _do_search_and_grab(
 
         # --- Случай 4: OVA/ONA/Special — сезон 0 ---
         if label_type == "ova_ona" or parsed.season == 0:
-            if ep.season_number != 0:
+            target_season_req = scoped_season if scoped_season is not None else 0
+            if ep.season_number != target_season_req:
                 return False
             if parsed.episodes:
-                return ep.episode_number in parsed.episodes
+                return ep.episode_number in parsed.episodes or (effective_offset > 0 and (ep.episode_number - effective_offset) in parsed.episodes)
             return True
 
         # --- Случай 5: сезон в названии релиза указан через parse_episode ---

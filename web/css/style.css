@@ -2459,7 +2459,7 @@ select option {
 
 .season-split-fields-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: minmax(130px, 1.2fr) minmax(90px, 1fr) minmax(75px, 0.8fr) minmax(75px, 0.8fr);
   gap: 10px;
   width: 100%;
   align-items: flex-start;
@@ -2498,8 +2498,11 @@ select option {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
+  .season-split-field-type {
+    grid-column: 1;
+  }
   .season-split-field-target {
-    grid-column: 1 / -1;
+    grid-column: 2;
   }
   .season-split-field-start {
     grid-column: 1;
