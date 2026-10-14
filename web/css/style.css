@@ -324,6 +324,7 @@ body {
   position: relative;
 }
 
+html.modal-open,
 body.modal-open {
   overflow: hidden !important;
 }
@@ -5647,6 +5648,8 @@ select option {
 :root:not([data-design="servarr"]) #collection-modal .modal {
   padding: 0 0 24px 0;
   overflow-x: hidden;
+  overflow-y: auto;
+  overflow-y: overlay;
   box-sizing: border-box;
 }
 
@@ -5695,6 +5698,7 @@ select option {
 /* Show Detail Modal - Modern Hero Banner & Badges (Sonarr / Radarr Style) */
 .show-hero-container {
   position: relative;
+  width: 100% !important;
   border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
   overflow: visible !important;
   margin-bottom: 20px;
@@ -5707,7 +5711,7 @@ select option {
 .show-hero-backdrop-wrap {
   position: absolute;
   inset: 0;
-  border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
+  border-radius: inherit;
   overflow: hidden;
   pointer-events: none;
   z-index: 1;
@@ -5721,7 +5725,7 @@ select option {
   filter: none !important;
   transform: none;
   pointer-events: none;
-  border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
+  border-radius: inherit;
   clip-path: none;
   z-index: 1;
 }
@@ -5735,7 +5739,7 @@ select option {
     linear-gradient(180deg, rgba(8, 12, 22, 0.35) 0%, transparent 25%);
   z-index: 2;
   pointer-events: none;
-  border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
+  border-radius: inherit;
   clip-path: none;
 }
 
@@ -10474,9 +10478,7 @@ select option {
   [data-theme="obsidian"][data-design="vanguard"] .modal {
     position: relative !important;
     width: 100% !important;
-    width: 100vw !important;
     max-width: 100% !important;
-    max-width: 100vw !important;
     min-height: 100vh !important;
     min-height: 100dvh !important;
     height: auto !important;
@@ -10486,6 +10488,8 @@ select option {
     border: none !important;
     box-shadow: none !important;
     padding: max(16px, env(safe-area-inset-top, 16px)) 14px calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
     overflow-y: visible !important;
     -webkit-overflow-scrolling: touch !important;
     box-sizing: border-box !important;
@@ -10495,9 +10499,7 @@ select option {
   }
   .modal-wide, .modal-large, .modal-small, .modal-medium {
     width: 100% !important;
-    width: 100vw !important;
     max-width: 100% !important;
-    max-width: 100vw !important;
   }
 
   #show-modal-content {
@@ -10513,6 +10515,11 @@ select option {
   [data-design="vanguard"] #show-modal .modal,
   [data-design="vanguard"] #collection-modal .modal {
     padding: 0 0 calc(60px + env(safe-area-inset-bottom, 0px)) 0 !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   #show-modal-content > :not(.show-hero-container),
@@ -14643,9 +14650,7 @@ select option {
   [data-design="vanguard"] .modal {
     position: relative !important;
     width: 100% !important;
-    width: 100vw !important;
     max-width: 100% !important;
-    max-width: 100vw !important;
     min-height: 100vh !important;
     min-height: 100dvh !important;
     height: auto !important;
@@ -14655,6 +14660,8 @@ select option {
     border: none !important;
     box-shadow: none !important;
     padding: max(16px, env(safe-area-inset-top, 16px)) 14px calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
     overflow-y: visible !important;
     box-sizing: border-box !important;
     display: block !important;
@@ -19019,7 +19026,7 @@ select option {
   position: absolute;
   inset: 0;
   width: 100%;
-  border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
+  border-radius: inherit;
   overflow: hidden;
   pointer-events: none;
   z-index: 1;
@@ -19035,7 +19042,7 @@ select option {
   filter: none !important;
   transform: none;
   pointer-events: none;
-  border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
+  border-radius: inherit;
   clip-path: none;
   z-index: 1;
 }
@@ -19051,7 +19058,7 @@ select option {
     linear-gradient(180deg, rgba(8, 12, 22, 0.35) 0%, transparent 25%);
   z-index: 2;
   pointer-events: none;
-  border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
+  border-radius: inherit;
   clip-path: none;
 }
 

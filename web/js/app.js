@@ -4051,6 +4051,7 @@ function openModal(id) {
   const el = document.getElementById(id);
   if (el) el.classList.add("active");
   document.body.classList.add("modal-open");
+  document.documentElement.classList.add("modal-open");
   if (window.lucide && typeof lucide.createIcons === "function") {
     lucide.createIcons();
   }
@@ -4060,6 +4061,7 @@ function closeModal(id) {
   if (el) el.classList.remove("active");
   if (!document.querySelector(".modal-overlay.active, .modal.active")) {
     document.body.classList.remove("modal-open");
+    document.documentElement.classList.remove("modal-open");
   }
   if (id === "show-modal") {
     if (typeof stopSearchStatusRotator === "function") {
