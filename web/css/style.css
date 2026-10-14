@@ -5661,8 +5661,9 @@ select option {
   justify-content: flex-start;
 }
 
-#show-modal .modal,
-#collection-modal .modal {
+:root:not([data-design="servarr"]) #show-modal .modal,
+:root:not([data-design="servarr"]) #collection-modal .modal {
+  padding: 0 0 24px 0;
   max-height: none !important;
   height: auto !important;
   overflow: hidden !important;
@@ -5673,9 +5674,16 @@ select option {
   box-sizing: border-box;
 }
 
-:root:not([data-design="servarr"]) #show-modal .modal,
-:root:not([data-design="servarr"]) #collection-modal .modal {
-  padding: 0 0 24px 0;
+[data-design="servarr"] #show-modal .modal,
+[data-design="servarr"] #collection-modal .modal {
+  max-height: none !important;
+  height: auto !important;
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+  margin: auto 0;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 :root:not([data-design="servarr"]) #show-modal-content > :not(.show-hero-container),
