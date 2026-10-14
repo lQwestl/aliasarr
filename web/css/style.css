@@ -5644,13 +5644,38 @@ select option {
 .modal-wide { max-width: 1180px; width: 95%; }
 .modal-small { max-width: 420px; }
 
+#show-modal.modal-overlay,
+#collection-modal.modal-overlay {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 32px 16px;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+}
+
+#show-modal.modal-overlay.active,
+#collection-modal.modal-overlay.active {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+#show-modal .modal,
+#collection-modal .modal {
+  max-height: none !important;
+  height: auto !important;
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+  margin: auto 0;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
 :root:not([data-design="servarr"]) #show-modal .modal,
 :root:not([data-design="servarr"]) #collection-modal .modal {
   padding: 0 0 24px 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overflow-y: overlay;
-  box-sizing: border-box;
 }
 
 :root:not([data-design="servarr"]) #show-modal-content > :not(.show-hero-container),
@@ -5698,8 +5723,8 @@ select option {
 /* Show Detail Modal - Modern Hero Banner & Badges (Sonarr / Radarr Style) */
 .show-hero-container {
   position: relative;
-  width: calc(100% + max(var(--scrollbar-width, 8px), 12px)) !important;
-  margin-right: calc(-1 * max(var(--scrollbar-width, 8px), 12px)) !important;
+  width: 100% !important;
+  margin-right: 0 !important;
   border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
   overflow: visible !important;
   margin-bottom: 20px;
@@ -5757,7 +5782,6 @@ select option {
   display: flex;
   gap: 24px;
   padding: 24px;
-  padding-right: calc(24px + max(var(--scrollbar-width, 8px), 12px));
   align-items: flex-start;
 }
 
@@ -19021,8 +19045,8 @@ select option {
 /* Collection Detail Modal / Drawer */
 .collection-hero {
   position: relative;
-  width: calc(100% + max(var(--scrollbar-width, 8px), 12px)) !important;
-  margin-right: calc(-1 * max(var(--scrollbar-width, 8px), 12px)) !important;
+  width: 100% !important;
+  margin-right: 0 !important;
   border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
   overflow: visible !important;
   background: transparent !important;
@@ -19088,7 +19112,6 @@ select option {
   display: flex;
   gap: 24px;
   padding: 24px;
-  padding-right: calc(24px + max(var(--scrollbar-width, 8px), 12px));
   align-items: flex-start;
 }
 
