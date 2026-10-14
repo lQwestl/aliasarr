@@ -7517,7 +7517,7 @@ select option {
   display: flex;
   align-items: center;
   margin-bottom: 12px;
-  width: 100%;
+  width: auto;
   max-width: 100%;
   box-sizing: border-box;
   min-width: 0;
@@ -7687,7 +7687,7 @@ select option {
   background: var(--panel-alt);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm, 10px);
-  margin-bottom: 4px;
+  margin-bottom: 0;
   transition: border-color 0.2s ease, background 0.2s ease;
 }
 
@@ -20822,10 +20822,15 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-status-pil
   padding: 0 !important;
   margin: 0 !important;
   display: flex !important;
+  flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
   position: relative !important;
-  gap: 0 !important;
+  gap: 2px !important;
+  overflow: hidden !important;
+}
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-status-widget.has-running .tasks-idle-icon {
+  display: none !important;
 }
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-idle-icon {
   display: flex !important;
@@ -20840,19 +20845,36 @@ html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-idle-icon 
   stroke-width: 2px !important;
 }
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-spinner {
-  width: 20px !important;
-  height: 20px !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-width: 2px !important;
   margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-hud-pct {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  font-family: var(--font-mono, monospace) !important;
+  color: var(--teal) !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  letter-spacing: -0.3px !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 html[data-design="studio"][data-shell="mini-sidebar"] .sidebar .tasks-count-badge {
   position: absolute !important;
-  top: 2px !important;
-  right: 2px !important;
-  font-size: 9px !important;
-  padding: 1px 4px !important;
-  min-width: 14px !important;
+  top: 3px !important;
+  right: 3px !important;
+  font-size: 8.5px !important;
+  padding: 0 4px !important;
+  min-width: 13px !important;
+  height: 13px !important;
+  line-height: 13px !important;
   text-align: center !important;
+  border-radius: 999px !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+  margin: 0 !important;
 }
 
 /* --- 2. ТРАНСФОРМАЦИЯ КАРКАСА: TOP-NAV (ВЕРХНЯЯ ШАПКА - ТОЛЬКО STUDIO) --- */
