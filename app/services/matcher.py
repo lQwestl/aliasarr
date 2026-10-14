@@ -491,20 +491,17 @@ def _is_int(v: Any) -> bool:
 
 
 def _is_part_2_alias(a: Any) -> bool:
+    if _is_ona_alias(a):
+        return False
     offset = getattr(a, "episode_offset", None)
-    sn = getattr(a, "season_number", None)
-    target_num = getattr(a, "target_number", None)
     ep_start = getattr(a, "episode_start", None)
-    split_id = getattr(a, "split_id", None)
     if _is_int(offset) and offset > 0:
         return True
-    if _is_int(target_num) and target_num >= 2:
+    if _is_int(ep_start) and ep_start > 1:
         return True
-    if not split_id and _is_int(sn) and sn >= 2:
-        return True
-    if _is_int(ep_start) and ep_start >= 12:
-        return True
-    return False
+    # Обычный алиас без привязки к сплиттеру (проверяем явный текст Part 2 / Часть 2)
+    txt = getattr(a, "text", "") or ""
+    return bool(re.search(r"\b(?:part|часть|cour|кур)\s*(?:2|two|ii)\b|\b2nd\s*(?:cour|part)\b", txt, re.IGNORECASE))
 
 
 def _is_ona_alias(a: Any) -> bool:
@@ -520,18 +517,19 @@ def _is_ona_alias(a: Any) -> bool:
 def _is_part_1_alias(a: Any) -> bool:
     if _is_ona_alias(a):
         return False
-    sn = getattr(a, "season_number", None)
-    if _is_int(sn) and sn >= 2:
+    if _is_part_2_alias(a):
         return False
-    offset = getattr(a, "episode_offset", None)
-    target_num = getattr(a, "target_number", None)
-    ep_start = getattr(a, "episode_start", None)
+    split_id = getattr(a, "split_id", None)
     ep_end = getattr(a, "episode_end", None)
-    offset_ok = not _is_int(offset) or offset == 0
-    target_ok = not _is_int(target_num) or target_num == 1
-    start_ok = not _is_int(ep_start) or ep_start == 1
-    end_ok = not _is_int(ep_end) or ep_end < 20
-    return offset_ok and target_ok and start_ok and end_ok
+    offset = getattr(a, "episode_offset", None)
+    ep_start = getattr(a, "episode_start", None)
+    if (split_id is not None or ep_end is not None) and (_is_int(offset) or _is_int(ep_start)):
+        offset_ok = not _is_int(offset) or offset == 0
+        start_ok = not _is_int(ep_start) or ep_start <= 1
+        return offset_ok and start_ok
+    # Обычный алиас без привязки к сплиттеру (проверяем явный текст Part 1 / Часть 1)
+    txt = getattr(a, "text", "") or ""
+    return bool(re.search(r"\b(?:part|часть|cour|кур)\s*(?:1|one|i)\b|\b1st\s*(?:cour|part)\b", txt, re.IGNORECASE))
 
 
 _COUNTRY_TAGS = {"us", "uk", "au", "nz", "ca"}
@@ -558,8 +556,9 @@ def best_alias_match(
     parsed = parse_episode(release_name)
     s_lbl = detect_season_label(release_name)
     rel_s = parsed.season if parsed.season is not None else (s_lbl.get("season") if s_lbl.get("type") == "numbered" else None)
-    is_part_2 = (rel_s is not None and rel_s >= 2) or bool(re.search(r"\b(?:тв|tv)[\s\-_]?2\b|\b2nd\s*season\b|\bpart\s*2\b|\bчасть\s*2\b", release_name, re.IGNORECASE))
-    is_part_1 = (rel_s == 1) or bool(re.search(r"\b(?:тв|tv)[\s\-_]?1\b|\b1st\s*season\b|\bpart\s*1\b|\bчасть\s*1\b", release_name, re.IGNORECASE))
+
+    has_explicit_p1 = bool(re.search(r"\b(?:part|часть|cour|кур)\s*(?:1|one|i)\b|\b1st\s*(?:cour|part)\b", release_name, re.IGNORECASE))
+    has_explicit_p2 = bool(re.search(r"\b(?:part|часть|cour|кур)\s*(?:2|two|ii)\b|\b2nd\s*(?:cour|part)\b", release_name, re.IGNORECASE))
 
     alias_list = list(aliases)
     m_country = _RELEASE_COUNTRY_RE.search(release_name or "")
@@ -567,6 +566,31 @@ def best_alias_match(
     has_scoped_part_2 = any(_is_part_2_alias(a) for a in alias_list)
     has_scoped_part_1 = any(_is_part_1_alias(a) for a in alias_list)
     has_scoped_ona = any(_is_ona_alias(a) for a in alias_list)
+
+    if has_explicit_p1 and not has_explicit_p2:
+        is_part_1 = True
+        is_part_2 = False
+    elif has_explicit_p2 and not has_explicit_p1:
+        is_part_2 = True
+        is_part_1 = False
+    else:
+        is_tv_2 = bool(re.search(r"\b(?:тв|tv)[\s\-_]?2\b|\b2nd\s*season\b", release_name, re.IGNORECASE))
+        is_tv_1 = bool(re.search(r"\b(?:тв|tv)[\s\-_]?1\b|\b1st\s*season\b", release_name, re.IGNORECASE))
+        if is_tv_2 and not is_tv_1:
+            is_part_2 = True
+            is_part_1 = False
+        elif is_tv_1 and not is_tv_2:
+            is_part_1 = True
+            is_part_2 = False
+        elif rel_s == 2 and any(getattr(a, "season_number", None) == 1 and _is_part_2_alias(a) for a in alias_list):
+            is_part_2 = True
+            is_part_1 = False
+        elif rel_s == 1 and any(getattr(a, "season_number", None) == 1 and _is_part_1_alias(a) for a in alias_list):
+            is_part_1 = True
+            is_part_2 = False
+        else:
+            is_part_2 = False
+            is_part_1 = False
 
     best: Optional[AliasCandidate] = None
     best_score = 0.0
@@ -626,6 +650,10 @@ def best_alias_match(
                 score = 100.0
                 if is_part_2 and is_alias_part_2:
                     score += 5.0
+                if is_part_1 and is_alias_part_1:
+                    score += 5.0
+                if getattr(alias, "target_number", None) is not None and rel_s is not None and rel_s == alias.target_number:
+                    score += 5.0
                 if is_ova_rel and is_alias_ona:
                     score += 5.0
                 if score > best_score:
@@ -642,6 +670,10 @@ def best_alias_match(
                 else:
                     score = 98.0
                     if is_part_2 and is_alias_part_2:
+                        score += 5.0
+                    if is_part_1 and is_alias_part_1:
+                        score += 5.0
+                    if getattr(alias, "target_number", None) is not None and rel_s is not None and rel_s == alias.target_number:
                         score += 5.0
                     if is_ova_rel and is_alias_ona:
                         score += 5.0
@@ -679,6 +711,10 @@ def best_alias_match(
                     score = base_score_val
 
                 if is_part_2 and is_alias_part_2:
+                    score += 5.0
+                if is_part_1 and is_alias_part_1:
+                    score += 5.0
+                if getattr(alias, "target_number", None) is not None and rel_s is not None and rel_s == alias.target_number:
                     score += 5.0
                 if is_ova_rel and is_alias_ona:
                     score += 5.0

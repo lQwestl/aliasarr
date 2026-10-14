@@ -925,6 +925,45 @@ async def check_downloads(db: Session) -> list[dict]:
                             _RECONCILED_TORRENTS.discard(torrent_hash)
                             continue
 
+                        # Проверяем, не была ли эта раздача добавлена вручную пользователем
+                        is_manual_grab = False
+                        if torrent_hash:
+                            try:
+                                from app.models.db import ReleaseLog
+                                m_log = (
+                                    db.query(ReleaseLog)
+                                    .filter(
+                                        ReleaseLog.stage == "grab",
+                                        ReleaseLog.message.like("%Ручной захват%"),
+                                        ReleaseLog.details.like(f"%{torrent_hash}%"),
+                                    )
+                                    .first()
+                                )
+                                if m_log is not None:
+                                    is_manual_grab = True
+                            except Exception:
+                                pass
+
+                        if is_manual_grab:
+                            logger.warning(
+                                "DownloadsMonitor: Раздача %s добавлена вручную, но файлы пока не сопоставлены с сериями для «%s». Раздача сохранена в клиенте.",
+                                torrent_hash, getattr(show_obj, "title", torrent_hash),
+                            )
+                            if show_obj:
+                                log_release_event(
+                                    stage="download",
+                                    level="warning",
+                                    show_title=show_obj.title,
+                                    show_id=show_obj.id,
+                                    release_title=getattr(t, "name", torrent_hash),
+                                    indexer="DownloadsMonitor",
+                                    message=f"Раздача «{getattr(t, 'name', torrent_hash)}» добавлена вручную, но файлы не сопоставлены с сериями для «{show_obj.title}». Раздача сохранена в клиенте.",
+                                    details={"torrent_hash": torrent_hash, "reason": "Ручной захват: файлы не сопоставлены со структурой сериала"},
+                                    db=db,
+                                )
+                            _RECONCILED_TORRENTS.add(torrent_hash)
+                            continue
+
                         # В раздаче действительно нет ни одной нужной серии/видеофайла для тайтла
                         try:
                             blocklist_service.add_to_blocklist(

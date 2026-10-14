@@ -419,15 +419,23 @@ _RE_MULTI_SEASON_EP_RANGE = re.compile(
 # Комбинированные релизы TV + Special (например [E13+5 of 13+5], [13+5 из 13+5], [TV+Special] [E13+5 of 13+5], [TV] [E13 of 13] [Special] [E5 of 5])
 _RE_TV_MARKER = re.compile(r"\b(?:TV|ТВ)\b|\[(?:TV|ТВ)\]|\((?:TV|ТВ)\)", re.IGNORECASE)
 _RE_SP_MARKER = re.compile(
-    r"\b(?:Special|Specials|Спешл(?:ы)?|Спецвыпуск(?:и)?|SP|speciel)\b|\[(?:Special|Specials|Спешл(?:ы)?|SP|speciel|OVA|ONA|OAD)\]|\b(?:OVA|ONA|OAD)\b",
+    r"\b(?:Special|Specials|Спешл(?:ы)?|Спецвыпуск(?:и)?|SP|speciel)\b|\[(?:Special|Specials|Спешл(?:ы)?|SP|speciel|OVA|OAD)\]|\b(?:OVA|OAD)\b",
     re.IGNORECASE,
 )
 _RE_TV_SEGMENT_COUNT = re.compile(
-    r"(?:\[|\()?\s*(?:TV|ТВ)[\s\-_:]*(?:\]|\))?\s*\[?\s*(?:(?:ep|e|сери[ия]|эп)\.?\s*)?(?:(\d{1,4})\s*[-–~]\s*)?(\d{1,4})(?:\s*(?:из|of|iz|\/)\s*(\d{1,4}))?\s*\]?",
+    r"(?:"
+    r"\[?\s*(?:TV|ТВ)[\s\-_:]*\]?\s*\[?\s*(?:(?:ep|e|сери[ия]|эп)\.?\s*)?(?:(\d{1,4})\s*[-–~]\s*)(\d{1,4})(?:\s*(?:из|of|iz|\/)\s*(\d{1,4}))?\s*\]?"
+    r"|"
+    r"\[?\s*(?:TV|ТВ)[\s\-_:]*\]?\s*\[?\s*(?:(?:ep|e|сери[ия]|эп)\.?\s*)(\d{1,4})\s*(?:из|of|iz|\/)\s*(\d{1,4})\s*\]?"
+    r"|"
+    r"\[\s*(?:TV|ТВ)[\s\-_:]*\]\s*\[\s*(?:(?:ep|e|сери[ия]|эп)\.?\s*)(\d{1,4})\s*\]"
+    r"|"
+    r"\[\s*(?:TV|ТВ)\s+(?:(?:ep|e|сери[ия]|эп)\.?\s*)?(\d{1,4})\s*(?:\+|\])"
+    r")",
     re.IGNORECASE,
 )
 _RE_SP_SEGMENT_COUNT = re.compile(
-    r"(?:\[|\()?\s*(?:Special|Specials|Спешл(?:ы)?|Спецвыпуск(?:и)?|SP|speciel|OVA|ONA|OAD)[\s\-_:]*(?:\]|\))?\s*\[?\s*(?:(?:ep|e|сери[ия]|эп)\.?\s*)?(?:(\d{1,4})\s*[-–~]\s*)?(\d{1,4})(?:\s*(?:из|of|iz|\/)\s*(\d{1,4}))?\s*\]?",
+    r"(?:\[|\()?\s*(?:Special|Specials|Спешл(?:ы)?|Спецвыпуск(?:и)?|SP|speciel|OVA|OAD)[\s\-_:]*(?:\]|\))?\s*\[?\s*(?:(?:ep|e|сери[ия]|эп)\.?\s*)?(?:(\d{1,4})\s*[-–~]\s*)?(\d{1,4})(?:\s*(?:из|of|iz|\/)\s*(\d{1,4}))?\s*\]?",
     re.IGNORECASE,
 )
 _RE_TV_PLUS_SPECIAL_OF = re.compile(
@@ -508,20 +516,23 @@ def _extract_tv_plus_special(protected: str, raw: str) -> Optional[ParsedRelease
         m_tv_cnt = _RE_TV_SEGMENT_COUNT.search(protected)
         m_sp_cnt = _RE_SP_SEGMENT_COUNT.search(protected)
         if m_tv_cnt and m_sp_cnt:
-            tv_cnt = int(m_tv_cnt.group(3) or m_tv_cnt.group(2) or m_tv_cnt.group(1))
-            sp_cnt = int(m_sp_cnt.group(3) or m_sp_cnt.group(2) or m_sp_cnt.group(1))
-            if 1 <= tv_cnt <= 2000 and 1 <= sp_cnt <= 200:
-                tv_season = _extract_tv_season(protected)
-                return ParsedRelease(
-                    kind=ReleaseKind.EPISODE,
-                    season=tv_season,
-                    episodes=list(range(1, tv_cnt + 1)),
-                    is_range=True,
-                    has_specials=True,
-                    special_episodes=list(range(1, sp_cnt + 1)),
-                    raw=raw,
-                    matched_pattern="tv_and_special_markers",
-                )
+            tv_groups = [g for g in m_tv_cnt.groups() if g is not None]
+            sp_groups = [g for g in m_sp_cnt.groups() if g is not None]
+            if tv_groups and sp_groups:
+                tv_cnt = int(tv_groups[-1])
+                sp_cnt = int(sp_groups[-1])
+                if 1 <= tv_cnt <= 2000 and 1 <= sp_cnt <= 200:
+                    tv_season = _extract_tv_season(protected)
+                    return ParsedRelease(
+                        kind=ReleaseKind.EPISODE,
+                        season=tv_season,
+                        episodes=list(range(1, tv_cnt + 1)),
+                        is_range=True,
+                        has_specials=True,
+                        special_episodes=list(range(1, sp_cnt + 1)),
+                        raw=raw,
+                        matched_pattern="tv_and_special_markers",
+                    )
 
     return None
 
