@@ -5698,7 +5698,8 @@ select option {
 /* Show Detail Modal - Modern Hero Banner & Badges (Sonarr / Radarr Style) */
 .show-hero-container {
   position: relative;
-  width: 100% !important;
+  width: calc(100% + max(var(--scrollbar-width, 8px), 12px)) !important;
+  margin-right: calc(-1 * max(var(--scrollbar-width, 8px), 12px)) !important;
   border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
   overflow: visible !important;
   margin-bottom: 20px;
@@ -5756,6 +5757,7 @@ select option {
   display: flex;
   gap: 24px;
   padding: 24px;
+  padding-right: calc(24px + max(var(--scrollbar-width, 8px), 12px));
   align-items: flex-start;
 }
 
@@ -10520,6 +10522,12 @@ select option {
     overflow-y: visible !important;
     width: 100% !important;
     max-width: 100% !important;
+  }
+
+  .show-hero-container,
+  .collection-hero {
+    width: 100% !important;
+    margin-right: 0 !important;
   }
 
   #show-modal-content > :not(.show-hero-container),
@@ -19013,7 +19021,8 @@ select option {
 /* Collection Detail Modal / Drawer */
 .collection-hero {
   position: relative;
-  width: 100% !important;
+  width: calc(100% + max(var(--scrollbar-width, 8px), 12px)) !important;
+  margin-right: calc(-1 * max(var(--scrollbar-width, 8px), 12px)) !important;
   border-radius: var(--radius-lg, 16px) var(--radius-lg, 16px) 0 0;
   overflow: visible !important;
   background: transparent !important;
@@ -19079,6 +19088,7 @@ select option {
   display: flex;
   gap: 24px;
   padding: 24px;
+  padding-right: calc(24px + max(var(--scrollbar-width, 8px), 12px));
   align-items: flex-start;
 }
 
