@@ -11303,35 +11303,65 @@ function startSearchStatusRotator(targetEl) {
       } else {
         targetEl.style.display = "";
         if (style === "laserstrip") {
-          targetEl.innerHTML = `
-            <div class="search-laser-container is-searching" title="${CURRENT_LANG === 'en' ? 'Active search in progress' : 'Выполняется автоматический поиск'}">
-              <div class="search-laser-header">
-                <div class="search-laser-header-left">
-                  <span class="search-laser-icon-wrap">${stage.icon}</span>
-                  <span class="search-laser-text">${escapeHtml(stageText)}</span>
+          const container = targetEl.querySelector(".search-laser-container");
+          if (container) {
+            const textEl = container.querySelector(".search-laser-text");
+            const iconEl = container.querySelector(".search-laser-icon-wrap");
+            const badgeEl = container.querySelector(".search-laser-step-badge");
+            if (textEl) {
+              textEl.style.opacity = "0.4";
+              setTimeout(() => {
+                textEl.textContent = stageText;
+                textEl.style.opacity = "1";
+              }, 120);
+            }
+            if (iconEl && iconEl.innerHTML !== stage.icon) iconEl.innerHTML = stage.icon;
+            if (badgeEl) badgeEl.textContent = `${(_SEARCH_STATUS_STAGE_INDEX % SEARCH_STATUS_STAGES.length) + 1}/4`;
+          } else {
+            targetEl.innerHTML = `
+              <div class="search-laser-container is-searching" title="${CURRENT_LANG === 'en' ? 'Active search in progress' : 'Выполняется автоматический поиск'}">
+                <div class="search-laser-header">
+                  <div class="search-laser-header-left">
+                    <span class="search-laser-icon-wrap">${stage.icon}</span>
+                    <span class="search-laser-text">${escapeHtml(stageText)}</span>
+                  </div>
+                  <div class="search-laser-header-right">
+                    <span class="search-laser-step-badge">${(_SEARCH_STATUS_STAGE_INDEX % SEARCH_STATUS_STAGES.length) + 1}/4</span>
+                  </div>
                 </div>
-                <div class="search-laser-header-right">
-                  <span class="search-laser-step-badge">${(_SEARCH_STATUS_STAGE_INDEX % SEARCH_STATUS_STAGES.length) + 1}/4</span>
+                <div class="search-laser-track">
+                  <div class="search-laser-beam"></div>
                 </div>
-              </div>
-              <div class="search-laser-track">
-                <div class="search-laser-beam"></div>
-              </div>
-            </div>`;
+              </div>`;
+          }
         } else if (style === "vanguard") {
-          targetEl.innerHTML = `
-            <span class="search-status-badge search-style-vanguard is-searching" title="${CURRENT_LANG === 'en' ? 'Active search in progress' : 'Выполняется автоматический поиск'}">
-              <span class="vanguard-tag vanguard-tag-live">LIVE</span>
-              <span class="search-stage-text">${escapeHtml(stageText)}</span>
-              <span class="vanguard-step-counter">${(_SEARCH_STATUS_STAGE_INDEX % SEARCH_STATUS_STAGES.length) + 1}/4</span>
-            </span>`;
+          const badgeEl = targetEl.querySelector(".search-style-vanguard");
+          if (badgeEl) {
+            const textEl = badgeEl.querySelector(".search-stage-text");
+            const counterEl = badgeEl.querySelector(".vanguard-step-counter");
+            if (textEl) textEl.textContent = stageText;
+            if (counterEl) counterEl.textContent = `${(_SEARCH_STATUS_STAGE_INDEX % SEARCH_STATUS_STAGES.length) + 1}/4`;
+          } else {
+            targetEl.innerHTML = `
+              <span class="search-status-badge search-style-vanguard is-searching" title="${CURRENT_LANG === 'en' ? 'Active search in progress' : 'Выполняется автоматический поиск'}">
+                <span class="vanguard-tag vanguard-tag-live">LIVE</span>
+                <span class="search-stage-text">${escapeHtml(stageText)}</span>
+                <span class="vanguard-step-counter">${(_SEARCH_STATUS_STAGE_INDEX % SEARCH_STATUS_STAGES.length) + 1}/4</span>
+              </span>`;
+          }
         } else {
           // micropill
-          targetEl.innerHTML = `
-            <span class="search-status-badge search-style-micropill is-searching" title="${CURRENT_LANG === 'en' ? 'Active search in progress' : 'Выполняется автоматический поиск'}">
-              <span class="search-beacon-dot"></span>
-              <span class="search-stage-text">${escapeHtml(stageText)}</span>
-            </span>`;
+          const badgeEl = targetEl.querySelector(".search-style-micropill");
+          if (badgeEl) {
+            const textEl = badgeEl.querySelector(".search-stage-text");
+            if (textEl) textEl.textContent = stageText;
+          } else {
+            targetEl.innerHTML = `
+              <span class="search-status-badge search-style-micropill is-searching" title="${CURRENT_LANG === 'en' ? 'Active search in progress' : 'Выполняется автоматический поиск'}">
+                <span class="search-beacon-dot"></span>
+                <span class="search-stage-text">${escapeHtml(stageText)}</span>
+              </span>`;
+          }
         }
       }
     }
@@ -11348,7 +11378,7 @@ function startSearchStatusRotator(targetEl) {
     } else {
       stopSearchStatusRotator();
     }
-  }, 1800);
+  }, 2400);
 }
 
 function stopSearchStatusRotator() {
