@@ -11306,8 +11306,13 @@ function startSearchStatusRotator(targetEl) {
           targetEl.innerHTML = `
             <div class="search-laser-container is-searching" title="${CURRENT_LANG === 'en' ? 'Active search in progress' : 'Выполняется автоматический поиск'}">
               <div class="search-laser-header">
-                <span class="search-laser-icon-wrap">${stage.icon}</span>
-                <span class="search-laser-text">${escapeHtml(stageText)}</span>
+                <div class="search-laser-header-left">
+                  <span class="search-laser-icon-wrap">${stage.icon}</span>
+                  <span class="search-laser-text">${escapeHtml(stageText)}</span>
+                </div>
+                <div class="search-laser-header-right">
+                  <span class="search-laser-step-badge">${(_SEARCH_STATUS_STAGE_INDEX % SEARCH_STATUS_STAGES.length) + 1}/4</span>
+                </div>
               </div>
               <div class="search-laser-track">
                 <div class="search-laser-beam"></div>
@@ -11409,8 +11414,13 @@ function renderSearchStatus(show) {
       return `
         <div class="search-laser-container is-searching" title="${CURRENT_LANG === 'en' ? 'Active search in progress' : 'Выполняется автоматический поиск'}">
           <div class="search-laser-header">
-            <span class="search-laser-icon-wrap">${stage.icon}</span>
-            <span class="search-laser-text">${escapeHtml(stageText)}</span>
+            <div class="search-laser-header-left">
+              <span class="search-laser-icon-wrap">${stage.icon}</span>
+              <span class="search-laser-text">${escapeHtml(stageText)}</span>
+            </div>
+            <div class="search-laser-header-right">
+              <span class="search-laser-step-badge">${(_SEARCH_STATUS_STAGE_INDEX % SEARCH_STATUS_STAGES.length) + 1}/4</span>
+            </div>
           </div>
           <div class="search-laser-track">
             <div class="search-laser-beam"></div>
@@ -11441,8 +11451,10 @@ function renderSearchStatus(show) {
       return `
         <div class="search-laser-container status-none" title="${CURRENT_LANG === 'en' ? 'No search performed yet' : 'Поиск еще не выполнялся'}">
           <div class="search-laser-header">
-            <svg class="ico-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            <span class="search-status-text">${CURRENT_LANG === 'en' ? 'No search performed yet' : 'Поиск еще не выполнялся'}</span>
+            <div class="search-laser-header-left">
+              <svg class="ico-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span class="search-status-text">${CURRENT_LANG === 'en' ? 'No search performed yet' : 'Поиск еще не выполнялся'}</span>
+            </div>
           </div>
         </div>`;
     }
@@ -11482,11 +11494,13 @@ function renderSearchStatus(show) {
     return `
       <div class="search-laser-container ${statusCls}" title="${escapeHtml(tooltipText)}">
         <div class="search-laser-header">
-          ${iconSvg}
-          <span class="search-status-body">
-            <span class="search-status-text">${statusDisplayHtml}</span>
-            <span class="search-status-date">(${when})</span>
-          </span>
+          <div class="search-laser-header-left">
+            ${iconSvg}
+            <span class="search-status-body">
+              <span class="search-status-text">${statusDisplayHtml}</span>
+              <span class="search-status-date">(${when})</span>
+            </span>
+          </div>
         </div>
       </div>`;
   }
@@ -28593,16 +28607,18 @@ function renderStudioPreviewCanvas() {
     let progressHtml = "";
     if (searchProgress === "laserstrip") {
       progressHtml = `
-        <div class="search-laser-container is-searching" style="width:100%; padding:10px 14px; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-sm, 10px);">
-          <div class="search-laser-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-            <span style="display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; font-family:var(--font-body);">
-              <i data-lucide="search" class="ico-xs text-primary"></i>
-              <span>${CURRENT_LANG === 'en' ? 'Scanning torrent providers...' : 'Сканирование провайдеров...'}</span>
-            </span>
-            <span class="badge badge-primary" style="font-size:11px; font-family:var(--font-mono);">24 ${CURRENT_LANG === 'en' ? 'releases' : 'релиза'}</span>
+        <div class="search-laser-container is-searching">
+          <div class="search-laser-header">
+            <div class="search-laser-header-left">
+              <span class="search-laser-icon-wrap"><i data-lucide="search" class="ico-xs text-primary"></i></span>
+              <span class="search-laser-text">${CURRENT_LANG === 'en' ? 'Scanning torrent providers...' : 'Сканирование провайдеров...'}</span>
+            </div>
+            <div class="search-laser-header-right">
+              <span class="search-laser-step-badge">24 ${CURRENT_LANG === 'en' ? 'releases' : 'релиза'}</span>
+            </div>
           </div>
-          <div class="search-laser-track" style="height:3px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden; position:relative;">
-            <div class="search-laser-beam" style="width:65%; height:100%; background:linear-gradient(90deg, transparent, var(--teal, #00f0ff), transparent); border-radius:999px;"></div>
+          <div class="search-laser-track">
+            <div class="search-laser-beam"></div>
           </div>
         </div>
       `;
