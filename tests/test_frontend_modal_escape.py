@@ -8,6 +8,9 @@ APP_JS_PATH = ROOT / "web" / "js" / "app.js"
 INDEX_PATH = ROOT / "web" / "index.html"
 
 
+SERVARR_CSS_PATH = ROOT / "web" / "css" / "servarr.css"
+
+
 def read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
@@ -16,6 +19,7 @@ class TestFrontendModalEscape(unittest.TestCase):
     def setUp(self):
         self.app_js = read(APP_JS_PATH)
         self.index_html = read(INDEX_PATH)
+        self.servarr_css = read(SERVARR_CSS_PATH)
 
     def test_modal_stack_and_helpers_defined(self):
         """Проверяем наличие стека модальных окон MODAL_STACK и вспомогательных функций getTopActiveModal и closeActiveModalById."""
@@ -47,6 +51,16 @@ class TestFrontendModalEscape(unittest.TestCase):
     def test_modal_close_buttons_tooltips_include_esc(self):
         """Кнопки закрытия ключевых модальных окон имеют подсказку (Esc)."""
         self.assertIn("title=\"Закрыть (Esc)\"", self.index_html)
+
+    def test_servarr_modal_navigation_buttons_styled(self):
+        """В дизайне Servarr кнопки навигации тайтлов и коллекций позиционируются абсолютно и оформлены в стиле Sonarr/Radarr."""
+        self.assertIn('[data-design="servarr"] .show-modal-header-actions', self.servarr_css)
+        self.assertIn('[data-design="servarr"] .collection-modal-nav-wrap', self.servarr_css)
+        self.assertIn("position: absolute;", self.servarr_css)
+        self.assertIn('[data-design="servarr"] .modal-nav-btn', self.servarr_css)
+        self.assertIn("border-radius: 4px;", self.servarr_css)
+        self.assertIn("color: #e1e2e3;", self.servarr_css)
+        self.assertIn('[data-design="servarr"] .show-modal-header-actions .modal-close', self.servarr_css)
 
 
 if __name__ == "__main__":

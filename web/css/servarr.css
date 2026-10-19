@@ -2223,14 +2223,122 @@ html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child >
 }
 [data-design="servarr"] #collection-modal-content { padding: 0 !important; }
 [data-design="servarr"] #collection-modal-content > :not(.collection-hero) { margin-left: 20px; margin-right: 20px; }
-[data-design="servarr"] #show-modal .modal-close,
-[data-design="servarr"] #collection-modal .modal-close {
-  top: 0;
-  right: 0;
-  color: #e1e2e3;
+/* ---------------------------------------------------------------------------
+   Навигация между тайтлами и коллекциями (‹, ›, ✕) в стиле Sonarr/Radarr
+   --------------------------------------------------------------------------- */
+[data-design="servarr"] .show-modal-header-actions,
+[data-design="servarr"] .collection-modal-nav-wrap {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 35;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: auto;
 }
-[data-design="servarr"] #show-modal .modal-close:hover,
-[data-design="servarr"] #collection-modal .modal-close:hover { color: var(--sv-icon-hover-light); }
+
+[data-design="servarr"] .show-modal-nav-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+[data-design="servarr"] .modal-nav-btn {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #e1e2e3;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  box-shadow: none;
+  transform: none;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+[data-design="servarr"] .modal-nav-btn svg,
+[data-design="servarr"] .modal-nav-btn i {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.2;
+}
+
+[data-design="servarr"] .modal-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+[data-design="servarr"] .modal-nav-btn:active {
+  background: rgba(0, 0, 0, 0.7);
+  transform: translateY(1px);
+}
+
+[data-design="servarr"] .modal-nav-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Кнопка закрытия внутри блока навигации карточки тайтла/коллекции */
+[data-design="servarr"] .show-modal-header-actions .modal-close,
+[data-design="servarr"] .collection-modal-nav-wrap .modal-close {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 4px !important;
+  background: rgba(0, 0, 0, 0.45) !important;
+  color: #e1e2e3 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease !important;
+  flex-shrink: 0 !important;
+}
+
+[data-design="servarr"] .show-modal-header-actions .modal-close svg,
+[data-design="servarr"] .collection-modal-nav-wrap .modal-close svg {
+  width: 16px !important;
+  height: 16px !important;
+  stroke-width: 2.2 !important;
+}
+
+[data-design="servarr"] .show-modal-header-actions .modal-close:hover,
+[data-design="servarr"] .collection-modal-nav-wrap .modal-close:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+[data-design="servarr"] .show-modal-header-actions .modal-close:active,
+[data-design="servarr"] .collection-modal-nav-wrap .modal-close:active {
+  background: rgba(0, 0, 0, 0.7) !important;
+  transform: translateY(1px) !important;
+}
 
 /* Коллекции: такой же затемнённый задник, как у карточки тайтла */
 [data-design="servarr"] .collection-hero {
@@ -3094,6 +3202,11 @@ html[data-design="servarr"] .settings-field-group > .switch-toggle:first-child >
   [data-design="servarr"] .modal .modal-footer { margin: 15px -15px -15px; padding: 15px; }
   [data-design="servarr"] #show-modal .modal,
   [data-design="servarr"] #collection-modal .modal { padding: 0 0 15px !important; }
+  [data-design="servarr"] .show-modal-header-actions,
+  [data-design="servarr"] .collection-modal-nav-wrap {
+    top: 10px;
+    right: 10px;
+  }
   [data-design="servarr"] #show-modal-content > :not(.show-hero-container) { margin-left: 10px; margin-right: 10px; }
   [data-design="servarr"] .settings-card-header { flex-wrap: wrap; }
   [data-design="servarr"] .calendar-legend-item { width: auto; }
