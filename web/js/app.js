@@ -124,6 +124,7 @@ function applyDesign(design, isUserAction = false) {
     root.removeAttribute("data-badge-font");
     root.removeAttribute("data-badge-case");
     root.removeAttribute("data-badge-color");
+    root.removeAttribute("data-bg-texture");
     const styleEl = document.getElementById("aliasarr-custom-theme-vars");
     if (styleEl) styleEl.textContent = "";
     applyTheme(USER_THEME);
@@ -445,6 +446,12 @@ const TRANSLATIONS = {
     "design_studio.colors_title": "Цветовая палитра и акценты",
     "design_studio.colors_subtitle": "Глубина темного фона, неоновые акценты и семантические маркеры",
     "design_studio.base_neutral": "Базовый тон подложки",
+    "design_studio.bg_texture": "Текстура подложки",
+    "design_studio.texture_solid": "Сплошная",
+    "design_studio.texture_grain": "Зерно",
+    "design_studio.texture_dots": "Точки",
+    "design_studio.texture_grid": "Сетка",
+    "design_studio.texture_stripes": "Карбон",
     "design_studio.accent_color": "Главный акцентный цвет",
     "design_studio.scrollbar_title": "Полосы прокрутки",
     "design_studio.scrollbar_color": "Цвет полосы прокрутки",
@@ -2200,6 +2207,12 @@ const TRANSLATIONS = {
     "design_studio.colors_title": "Color Palette and Accents",
     "design_studio.colors_subtitle": "Dark background depth, neon accents and semantic tags",
     "design_studio.base_neutral": "Base Neutral Tone",
+    "design_studio.bg_texture": "Background Texture",
+    "design_studio.texture_solid": "Solid",
+    "design_studio.texture_grain": "Grain",
+    "design_studio.texture_dots": "Dots",
+    "design_studio.texture_grid": "Grid",
+    "design_studio.texture_stripes": "Carbon",
     "design_studio.accent_color": "Primary Accent Color",
     "design_studio.scrollbar_title": "Scrollbars",
     "design_studio.scrollbar_color": "Scrollbar Color",
@@ -27330,6 +27343,7 @@ let STUDIO_CURRENT_STATE = {
   card_style: "neoglass",
   base_tone: "slate",
   custom_base_tone_color: "#0b0f19",
+  bg_texture: "grain",
   accent: "#00F0FF",
   scrollbar_mode: "autohide",
   scrollbar_color: "accent",
@@ -27496,6 +27510,8 @@ function loadStudioStateFromStorage(serverConfig = null, serverThemes = null) {
       if (sbcc) STUDIO_CURRENT_STATE.scrollbar_custom_color = sbcc;
       const cbt = localStorage.getItem("aliasarr_custom_base_tone");
       if (cbt) STUDIO_CURRENT_STATE.custom_base_tone_color = cbt;
+      const bgt = localStorage.getItem("aliasarr_bg_texture");
+      if (bgt) STUDIO_CURRENT_STATE.bg_texture = bgt;
     }
     const savedThemes = localStorage.getItem("aliasarr_custom_themes_list");
     if (savedThemes) {
@@ -27656,6 +27672,23 @@ function syncStudioControlsUI() {
     }
     baseInput.value = baseHex.startsWith("#") ? baseHex : "#0b0f19";
     baseLabel.textContent = baseHex.toUpperCase();
+  }
+
+  // Текстура подложки
+  const activeBgTex = STUDIO_CURRENT_STATE.bg_texture || "grain";
+  document.querySelectorAll("#studio-bg-texture-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === activeBgTex);
+  });
+  const bgTexLabel = document.getElementById("studio-bg-texture-label");
+  if (bgTexLabel) {
+    const bgLabels = {
+      solid: CURRENT_LANG === "en" ? "Solid (Flat)" : "Сплошная (без текстуры)",
+      grain: CURRENT_LANG === "en" ? "Micro-grain" : "Зерно (матовая)",
+      dots: CURRENT_LANG === "en" ? "Dot Matrix" : "Точечная матрица",
+      grid: CURRENT_LANG === "en" ? "Blueprint Grid" : "Инженерная сетка",
+      stripes: CURRENT_LANG === "en" ? "Carbon Weave" : "Карбон"
+    };
+    bgTexLabel.textContent = bgLabels[activeBgTex] || "Зерно";
   }
 
   // Синхронизация разделов дизайна, тем, карточек и поиска
@@ -27874,6 +27907,34 @@ function onStudioCustomScrollbarColorInput(val) {
   const hexLabel = document.getElementById("studio-scrollbar-hex-label");
   if (hexLabel) hexLabel.textContent = val.toUpperCase();
   renderStudioSwatches();
+  applyStudioLivePreview(true);
+}
+
+function applyBgTexture(texture) {
+  const t = texture || "grain";
+  document.documentElement.setAttribute("data-bg-texture", t);
+  const canvas = document.querySelector(".studio-preview-canvas");
+  if (canvas) canvas.setAttribute("data-bg-texture", t);
+  try { localStorage.setItem("aliasarr_bg_texture", t); } catch (e) {}
+  const label = document.getElementById("studio-bg-texture-label");
+  if (label) {
+    const bgLabels = {
+      solid: CURRENT_LANG === "en" ? "Solid (Flat)" : "Сплошная (без текстуры)",
+      grain: CURRENT_LANG === "en" ? "Micro-grain" : "Зерно (матовая)",
+      dots: CURRENT_LANG === "en" ? "Dot Matrix" : "Точечная матрица",
+      grid: CURRENT_LANG === "en" ? "Blueprint Grid" : "Инженерная сетка",
+      stripes: CURRENT_LANG === "en" ? "Carbon Weave" : "Карбон"
+    };
+    label.textContent = bgLabels[t] || t;
+  }
+  document.querySelectorAll("#studio-bg-texture-toggle .studio-toggle-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.value === t);
+  });
+}
+
+function setStudioBgTexture(texture) {
+  STUDIO_CURRENT_STATE.bg_texture = texture;
+  applyBgTexture(texture);
   applyStudioLivePreview(true);
 }
 
@@ -28148,6 +28209,7 @@ function applyStudioLivePreview(saveDraft = true) {
     document.documentElement.setAttribute("data-top-nav-tasks", STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud");
     document.documentElement.setAttribute("data-tasks-view", STUDIO_CURRENT_STATE.tasks_view_mode || "popup");
     document.documentElement.setAttribute("data-scrollbar", scrollbarMode);
+    document.documentElement.setAttribute("data-bg-texture", STUDIO_CURRENT_STATE.bg_texture || "grain");
 
     const tasksPopup = document.getElementById("tasks-popup");
     if (tasksPopup) {
@@ -28191,6 +28253,7 @@ function applyStudioLivePreview(saveDraft = true) {
     canvas.setAttribute("data-top-nav-tasks", STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud");
     canvas.setAttribute("data-tasks-view", STUDIO_CURRENT_STATE.tasks_view_mode || "popup");
     canvas.setAttribute("data-scrollbar", scrollbarMode);
+    canvas.setAttribute("data-bg-texture", STUDIO_CURRENT_STATE.bg_texture || "grain");
   }
 
   let tone;
@@ -28315,6 +28378,7 @@ function applyStudioLivePreview(saveDraft = true) {
       localStorage.setItem("aliasarr_scrollbar", scrollbarMode);
       localStorage.setItem("aliasarr_scrollbar_color", STUDIO_CURRENT_STATE.scrollbar_color || "accent");
       localStorage.setItem("aliasarr_scrollbar_custom_color", STUDIO_CURRENT_STATE.scrollbar_custom_color || "#00F0FF");
+      localStorage.setItem("aliasarr_bg_texture", STUDIO_CURRENT_STATE.bg_texture || "grain");
       if (STUDIO_CURRENT_STATE.custom_base_tone_color) {
         localStorage.setItem("aliasarr_custom_base_tone", STUDIO_CURRENT_STATE.custom_base_tone_color);
       }
