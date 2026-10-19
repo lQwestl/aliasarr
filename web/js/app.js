@@ -27504,6 +27504,8 @@ function loadStudioStateFromStorage(serverConfig = null, serverThemes = null) {
       if (sbcc) STUDIO_CURRENT_STATE.scrollbar_custom_color = sbcc;
       const cbt = localStorage.getItem("aliasarr_custom_base_tone");
       if (cbt) STUDIO_CURRENT_STATE.custom_base_tone_color = cbt;
+      const bt = localStorage.getItem("aliasarr_base_tone");
+      if (bt) STUDIO_CURRENT_STATE.base_tone = bt;
       const bgt = localStorage.getItem("aliasarr_bg_texture");
       if (bgt) STUDIO_CURRENT_STATE.bg_texture = (bgt === "solid") ? "solid" : "grain";
     }
@@ -28198,6 +28200,7 @@ function applyStudioLivePreview(saveDraft = true) {
     document.documentElement.setAttribute("data-top-nav-tasks", STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud");
     document.documentElement.setAttribute("data-tasks-view", STUDIO_CURRENT_STATE.tasks_view_mode || "popup");
     document.documentElement.setAttribute("data-scrollbar", scrollbarMode);
+    document.documentElement.setAttribute("data-base-tone", STUDIO_CURRENT_STATE.base_tone || "slate");
     document.documentElement.setAttribute("data-bg-texture", STUDIO_CURRENT_STATE.bg_texture || "grain");
 
     const tasksPopup = document.getElementById("tasks-popup");
@@ -28242,6 +28245,7 @@ function applyStudioLivePreview(saveDraft = true) {
     canvas.setAttribute("data-top-nav-tasks", STUDIO_CURRENT_STATE.top_nav_tasks_mode || "hud");
     canvas.setAttribute("data-tasks-view", STUDIO_CURRENT_STATE.tasks_view_mode || "popup");
     canvas.setAttribute("data-scrollbar", scrollbarMode);
+    canvas.setAttribute("data-base-tone", STUDIO_CURRENT_STATE.base_tone || "slate");
     canvas.setAttribute("data-bg-texture", STUDIO_CURRENT_STATE.bg_texture || "grain");
   }
 
@@ -28368,6 +28372,7 @@ function applyStudioLivePreview(saveDraft = true) {
       localStorage.setItem("aliasarr_scrollbar_color", STUDIO_CURRENT_STATE.scrollbar_color || "accent");
       localStorage.setItem("aliasarr_scrollbar_custom_color", STUDIO_CURRENT_STATE.scrollbar_custom_color || "#00F0FF");
       localStorage.setItem("aliasarr_bg_texture", STUDIO_CURRENT_STATE.bg_texture || "grain");
+      localStorage.setItem("aliasarr_base_tone", STUDIO_CURRENT_STATE.base_tone || "slate");
       if (STUDIO_CURRENT_STATE.custom_base_tone_color) {
         localStorage.setItem("aliasarr_custom_base_tone", STUDIO_CURRENT_STATE.custom_base_tone_color);
       }
