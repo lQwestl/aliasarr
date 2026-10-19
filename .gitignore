@@ -67,6 +67,7 @@ data/*
 downloads/*
 !downloads/.gitkeep
 logs/
+logs_*/
 *.log
 
 # Testing & Coverage

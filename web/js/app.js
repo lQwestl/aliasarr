@@ -4063,9 +4063,61 @@ async function withLoading(button, fn) {
 }
 
 // ---------- Modal system ----------
+let MODAL_STACK = [];
+
+function getTopActiveModal() {
+  for (let i = MODAL_STACK.length - 1; i >= 0; i--) {
+    const id = MODAL_STACK[i];
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (id === "spotlight-modal" && el.classList.contains("open")) return id;
+    if (id === "save-custom-theme-modal" && (el.style.display === "flex" || el.style.display === "block" || el.classList.contains("active"))) return id;
+    if (el.classList.contains("active") || el.classList.contains("open")) return id;
+  }
+  // Fallback: check DOM elements
+  const allActive = Array.from(document.querySelectorAll(".modal-overlay.active, .modal-overlay.open, #spotlight-modal.open, #save-custom-theme-modal[style*='display: flex'], #save-custom-theme-modal[style*='display: block']"));
+  if (allActive.length > 0) {
+    return allActive[allActive.length - 1].id;
+  }
+  return null;
+}
+
+function closeActiveModalById(id) {
+  if (!id) return false;
+  const modalEl = document.getElementById(id);
+  if (document.activeElement && modalEl && modalEl.contains(document.activeElement)) {
+    try { document.activeElement.blur(); } catch (e) {}
+  }
+  if (id === "confirm-modal") {
+    const cancelBtn = document.getElementById("confirm-cancel-btn");
+    if (cancelBtn) {
+      cancelBtn.click();
+    } else {
+      closeModal("confirm-modal");
+    }
+    return true;
+  }
+  if (id === "spotlight-modal") {
+    closeSpotlightCommandPalette();
+    return true;
+  }
+  if (id === "save-custom-theme-modal") {
+    closeSaveCustomThemeModal();
+    return true;
+  }
+  if (id === "library-import-modal") {
+    closeLibraryImport();
+    return true;
+  }
+  closeModal(id);
+  return true;
+}
+
 function openModal(id) {
   const el = document.getElementById(id);
   if (el) el.classList.add("active");
+  MODAL_STACK = MODAL_STACK.filter(m => m !== id);
+  MODAL_STACK.push(id);
   document.body.classList.add("modal-open");
   document.documentElement.classList.add("modal-open");
   if (window.lucide && typeof lucide.createIcons === "function") {
@@ -4075,6 +4127,7 @@ function openModal(id) {
 function closeModal(id) {
   const el = document.getElementById(id);
   if (el) el.classList.remove("active");
+  MODAL_STACK = MODAL_STACK.filter(m => m !== id);
   if (!document.querySelector(".modal-overlay.active, .modal.active")) {
     document.body.classList.remove("modal-open");
     document.documentElement.classList.remove("modal-open");
@@ -4110,13 +4163,16 @@ function confirmModal(message, { danger = true, isHtml = false } = {}) {
     const cancelBtn = document.getElementById("confirm-cancel-btn");
     if (okBtn) okBtn.className = "btn btn-solid " + (danger ? "btn-danger" : "btn-primary");
 
+    const closeBtn = document.querySelector("#confirm-modal .modal-close");
     const cleanup = () => {
       if (okBtn) okBtn.onclick = null;
       if (cancelBtn) cancelBtn.onclick = null;
+      if (closeBtn) closeBtn.onclick = null;
       closeModal("confirm-modal");
     };
     if (okBtn) okBtn.onclick = () => { cleanup(); resolve(true); };
     if (cancelBtn) cancelBtn.onclick = () => { cleanup(); resolve(false); };
+    if (closeBtn) closeBtn.onclick = () => { cleanup(); resolve(false); };
     openModal("confirm-modal");
   });
 }
@@ -7495,6 +7551,8 @@ function openSpotlightCommandPalette() {
   if (!modal) return;
 
   modal.classList.add("open");
+  MODAL_STACK = MODAL_STACK.filter(m => m !== "spotlight-modal");
+  MODAL_STACK.push("spotlight-modal");
   const input = document.getElementById("spotlight-search-input");
   if (input) {
     input.value = "";
@@ -7531,6 +7589,7 @@ function closeSpotlightCommandPalette() {
   if (modal) {
     modal.classList.remove("open");
   }
+  MODAL_STACK = MODAL_STACK.filter(m => m !== "spotlight-modal");
 }
 
 function onSpotlightBackdropClick(e) {
@@ -25771,21 +25830,47 @@ document.addEventListener("keydown", (e) => {
     }
   }
   if (e.key === "Escape") {
-    const spotlightModal = document.getElementById("spotlight-modal");
-    if (spotlightModal && spotlightModal.classList.contains("open")) {
-      closeSpotlightCommandPalette();
+    // 1. Поповеры и контекстные выпадающие меню (наивысший локальный приоритет)
+    const openPopovers = document.querySelectorAll(".show-links-popover.is-open");
+    if (openPopovers.length > 0) {
+      e.preventDefault();
+      openPopovers.forEach(pop => pop.classList.remove("is-open"));
+      return;
     }
-    document.querySelectorAll(".show-links-popover.is-open").forEach(pop => pop.classList.remove("is-open"));
+
+    const servarrSearchBox = document.getElementById("servarr-search-results");
+    if (servarrSearchBox && servarrSearchBox.style.display !== "none") {
+      e.preventDefault();
+      servarrSearchBox.style.display = "none";
+      const sInput = document.getElementById("servarr-search-input");
+      if (sInput) sInput.blur();
+      return;
+    }
+
+    // 2. Выдвижные дроверы и попап задач
     const drawer = document.getElementById("release-history-drawer");
     if (drawer && drawer.classList.contains("open")) {
+      e.preventDefault();
       closeReleaseHistoryDrawer();
+      return;
     }
+
     const tasksPopup = document.getElementById("tasks-popup");
     const tasksOverlay = document.getElementById("tasks-drawer-overlay");
     if (tasksPopup && (tasksPopup.classList.contains("drawer-open") || tasksPopup.style.display !== "none")) {
+      e.preventDefault();
       tasksPopup.classList.remove("drawer-open");
       tasksPopup.style.display = "none";
       if (tasksOverlay) tasksOverlay.classList.remove("open");
+      return;
+    }
+
+    // 3. Активные модальные окна (закрытие верхнего окна по LIFO-стеку)
+    const topModalId = getTopActiveModal();
+    if (topModalId) {
+      e.preventDefault();
+      closeActiveModalById(topModalId);
+      return;
     }
   }
 });
@@ -25793,7 +25878,16 @@ document.addEventListener("keydown", (e) => {
 // ---------- INIT ----------
 document.querySelectorAll(".modal-overlay").forEach(overlay => {
   overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) closeModal(overlay.id);
+    if (e.target === overlay) {
+      if (overlay.id === "confirm-modal") {
+        const cancelBtn = document.getElementById("confirm-cancel-btn");
+        if (cancelBtn) {
+          cancelBtn.click();
+          return;
+        }
+      }
+      closeModal(overlay.id);
+    }
   });
 });
 
@@ -28890,6 +28984,8 @@ function shuffleStudioTheme() {
 function openSaveCustomThemeModal() {
   const modal = document.getElementById("save-custom-theme-modal");
   if (!modal) return;
+  MODAL_STACK = MODAL_STACK.filter(m => m !== "save-custom-theme-modal");
+  MODAL_STACK.push("save-custom-theme-modal");
   const nameInp = document.getElementById("save-custom-theme-name");
   if (nameInp) nameInp.value = "";
   const descInp = document.getElementById("save-custom-theme-desc");
@@ -28901,6 +28997,7 @@ function openSaveCustomThemeModal() {
 function closeSaveCustomThemeModal() {
   const modal = document.getElementById("save-custom-theme-modal");
   if (modal) modal.style.display = "none";
+  MODAL_STACK = MODAL_STACK.filter(m => m !== "save-custom-theme-modal");
 }
 
 function confirmSaveCustomTheme() {
