@@ -21676,15 +21676,10 @@ html[data-design="studio"][data-archetype="cyber-hud"] .btn-primary {
 }
 
 /* OLED Void Minimal */
-html[data-design="studio"][data-archetype="oled-void"] {
-  --bg: #000000 !important;
-  --panel: #060608 !important;
-  --panel-alt: #0a0c10 !important;
-}
 html[data-design="studio"][data-archetype="oled-void"] .card,
 html[data-design="studio"][data-archetype="oled-void"] .settings-section-card,
 html[data-design="studio"][data-archetype="oled-void"] .sidebar {
-  border: 0.5px solid rgba(255, 255, 255, 0.12) !important;
+  border: 0.5px solid var(--border) !important;
   backdrop-filter: none !important;
   box-shadow: none !important;
 }
@@ -21697,30 +21692,16 @@ html[data-design="studio"][data-archetype="liquid-glass"] .settings-section-card
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
-/* Retro Amber CRT */
-html[data-design="studio"][data-archetype="retro-crt"] {
-  --accent: #f59e0b !important;
-  --teal: #f59e0b !important;
-}
-
-/* Nordic Slate */
-html[data-design="studio"][data-archetype="nordic-slate"] {
-  --bg: #0f172a !important;
-  --panel: #1e293b !important;
-  --panel-alt: #273549 !important;
-  --border: rgba(148, 163, 184, 0.18) !important;
-}
-
 /* Titanium Luxury */
-html[data-design="studio"][data-archetype="titanium-luxe"] {
-  --bg: #0d0e12 !important;
-  --panel: #15171e !important;
-  --border: rgba(234, 179, 8, 0.22) !important;
-  --teal: #eab308 !important;
-}
 html[data-design="studio"][data-archetype="titanium-luxe"] .card,
 html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-card {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(234, 179, 8, 0.18);
+}
+
+/* Гарантия согласованности карточек внутри Студии дизайна */
+html[data-design="studio"] .settings-section-card {
+  background: var(--panel) !important;
+  border-color: var(--border) !important;
 }
 
 /* --- 10. ЭЛЕМЕНТЫ УПРАВЛЕНИЯ СТУДИИ ДИЗАЙНА --- */
@@ -21828,12 +21809,17 @@ html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-car
   background: rgba(var(--accent-rgb, 0, 240, 255), 0.08);
   box-shadow: 0 0 14px rgba(var(--accent-rgb, 0, 240, 255), 0.2);
 }
+.studio-theme-choice-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
 .studio-theme-palette-preview {
   display: flex;
   height: 22px;
   border-radius: 6px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
   margin-bottom: 2px;
 }
 .studio-theme-palette-color {
@@ -21925,7 +21911,7 @@ html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-car
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(128, 128, 128, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -21978,8 +21964,8 @@ html[data-design="studio"][data-archetype="titanium-luxe"] .settings-section-car
 }
 .studio-preset-card.active {
   border-color: var(--teal);
-  background: rgba(0, 240, 255, 0.08);
-  box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+  background: rgba(var(--accent-rgb, 56, 189, 248), 0.12);
+  box-shadow: 0 0 12px rgba(var(--accent-rgb, 56, 189, 248), 0.25);
 }
 .studio-preset-header {
   display: flex;

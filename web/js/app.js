@@ -216,11 +216,20 @@ function selectTheme(theme) {
   };
   if (typeof STUDIO_CURRENT_STATE !== "undefined" && themeToTone[USER_THEME]) {
     STUDIO_CURRENT_STATE.base_tone = themeToTone[USER_THEME];
+    STUDIO_CURRENT_STATE.preset_id = null;
+    STUDIO_CURRENT_STATE.custom_theme_id = null;
     try {
       localStorage.setItem("aliasarr_studio_config", JSON.stringify(STUDIO_CURRENT_STATE));
     } catch (e) {}
   }
   persistAppearance({ theme: USER_THEME });
+
+  if (document.documentElement.getAttribute("data-design") === "studio" || typeof applyStudioLivePreview === "function") {
+    if (typeof syncStudioControlsUI === "function") syncStudioControlsUI();
+    if (typeof renderStudioPresets === "function") renderStudioPresets();
+    if (typeof renderStudioSwatches === "function") renderStudioSwatches();
+    if (typeof applyStudioLivePreview === "function") applyStudioLivePreview(true);
+  }
 }
 
 function updateDesignSettingsUI(currentDesign) {
@@ -28216,17 +28225,29 @@ function applyStudioLivePreview(saveDraft = true) {
     document.head.appendChild(styleEl);
   }
 
+  let accentRgb = "56, 189, 248";
+  if (accent && accent.startsWith("#") && accent.length >= 7) {
+    const r = parseInt(accent.slice(1, 3), 16) || 56;
+    const g = parseInt(accent.slice(3, 5), 16) || 189;
+    const b = parseInt(accent.slice(5, 7), 16) || 248;
+    accentRgb = `${r}, ${g}, ${b}`;
+  }
+
   // Строго изолированные селекторы: html[data-design='studio'] и .studio-preview-canvas
   const cssRules = `
     html[data-design="studio"],
+    html[data-design="studio"][data-archetype],
     .studio-preview-canvas {
       --bg: ${tone.color} !important;
       --panel: ${tone.panel} !important;
       --panel-alt: ${tone.color === '#000000' ? '#111116' : (tone.color === '#f8fafc' ? '#f1f5f9' : '#151c2a')} !important;
       --border: ${tone.border} !important;
       --text: ${tone.text} !important;
+      --text-muted: ${tone.color === '#f8fafc' ? '#64748b' : '#94a3b8'} !important;
+      --sidebar-bg: ${tone.panel} !important;
       --teal: ${accent} !important;
       --primary: ${accent} !important;
+      --accent-rgb: ${accentRgb} !important;
       --radius: ${radius} !important;
       --radius-sm: ${radiusSm} !important;
       --radius-lg: ${radiusLg} !important;
@@ -28252,6 +28273,9 @@ function applyStudioLivePreview(saveDraft = true) {
     USER_THEME = effectiveTheme;
     document.documentElement.setAttribute("data-theme", effectiveTheme);
     updateFavicon(effectiveTheme);
+    document.querySelectorAll(".studio-theme-choice-card").forEach(card => {
+      card.classList.toggle("active", card.dataset.themeChoice === effectiveTheme);
+    });
   }
 
   const summaryEl = document.getElementById("studio-preview-code-summary");
