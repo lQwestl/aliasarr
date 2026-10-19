@@ -329,7 +329,7 @@ body.modal-open {
   overflow: hidden !important;
 }
 
-/* ---------- ТЕКСТУРЫ И ПАТТЕРНЫ ПОДЛОЖКИ (BACKGROUND TEXTURES) ---------- */
+/* ---------- ТЕКСТУРЫ ПОДЛОЖКИ (BACKGROUND TEXTURES) ---------- */
 /* Сплошная подложка (чистый цвет без текстур и зерна) */
 html[data-bg-texture="solid"] body::before {
   display: none !important;
@@ -345,57 +345,8 @@ body::before {
   opacity: 0.025;
   z-index: 9999;
 }
-:is([data-theme="paper"], [data-theme="light"]):not([data-bg-texture="solid"]):not([data-bg-texture="dots"]):not([data-bg-texture="grid"]):not([data-bg-texture="stripes"]) body::before {
+:is([data-theme="paper"], [data-theme="light"]):not([data-bg-texture="solid"]) body::before {
   opacity: 0.01;
-}
-
-/* Точечная матрица (Dot Matrix) */
-html[data-bg-texture="dots"] body::before {
-  display: block !important;
-  background: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
-  background-size: 24px 24px;
-  opacity: 1 !important;
-}
-:is([data-theme="paper"], [data-theme="light"])[data-bg-texture="dots"] body::before {
-  background: radial-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-/* Инженерная сетка (Blueprint Grid) */
-html[data-bg-texture="grid"] body::before {
-  display: block !important;
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 32px 32px;
-  opacity: 1 !important;
-}
-:is([data-theme="paper"], [data-theme="light"])[data-bg-texture="grid"] body::before {
-  background-image: 
-    linear-gradient(rgba(0, 0, 0, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.035) 1px, transparent 1px);
-}
-
-/* Карбон / диагональная штриховка (Carbon Weave) */
-html[data-bg-texture="stripes"] body::before {
-  display: block !important;
-  background: repeating-linear-gradient(
-    -45deg,
-    rgba(255, 255, 255, 0.018),
-    rgba(255, 255, 255, 0.018) 1px,
-    transparent 1px,
-    transparent 8px
-  );
-  opacity: 1 !important;
-}
-:is([data-theme="paper"], [data-theme="light"])[data-bg-texture="stripes"] body::before {
-  background: repeating-linear-gradient(
-    -45deg,
-    rgba(0, 0, 0, 0.02),
-    rgba(0, 0, 0, 0.02) 1px,
-    transparent 1px,
-    transparent 8px
-  );
 }
 
 .app-shell {
@@ -22402,42 +22353,6 @@ html[data-design="studio"] .settings-section-card {
 }
 .studio-preview-canvas[data-bg-texture="grain"] {
   background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.02) 0%, transparent 70%) !important;
-}
-.studio-preview-canvas[data-bg-texture="dots"] {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px) !important;
-  background-size: 20px 20px !important;
-}
-:is([data-theme="paper"], [data-theme="light"]) .studio-preview-canvas[data-bg-texture="dots"] {
-  background-image: radial-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px) !important;
-}
-.studio-preview-canvas[data-bg-texture="grid"] {
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px) !important;
-  background-size: 24px 24px !important;
-}
-:is([data-theme="paper"], [data-theme="light"]) .studio-preview-canvas[data-bg-texture="grid"] {
-  background-image: 
-    linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px) !important;
-}
-.studio-preview-canvas[data-bg-texture="stripes"] {
-  background: repeating-linear-gradient(
-    -45deg,
-    rgba(255, 255, 255, 0.022),
-    rgba(255, 255, 255, 0.022) 1px,
-    transparent 1px,
-    transparent 8px
-  ) !important;
-}
-:is([data-theme="paper"], [data-theme="light"]) .studio-preview-canvas[data-bg-texture="stripes"] {
-  background: repeating-linear-gradient(
-    -45deg,
-    rgba(0, 0, 0, 0.02),
-    rgba(0, 0, 0, 0.02) 1px,
-    transparent 1px,
-    transparent 8px
-  ) !important;
 }
 .studio-preview-footer {
   padding: 10px 14px;

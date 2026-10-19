@@ -86,7 +86,7 @@
         document.documentElement.setAttribute("data-badge-case", badgeCase);
         var badgeColor = localStorage.getItem("aliasarr_badge_color") || "semantic";
         document.documentElement.setAttribute("data-badge-color", badgeColor);
-        var bgTexture = localStorage.getItem("aliasarr_bg_texture") || "grain";
+        var bgTexture = localStorage.getItem("aliasarr_bg_texture") === "solid" ? "solid" : "grain";
         document.documentElement.setAttribute("data-bg-texture", bgTexture);
 
         // Пользовательские CSS переменные Студии изолированы строго для html[data-design='studio']
@@ -2079,16 +2079,13 @@
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
                 <label class="settings-field-label" style="margin-bottom: 0;">
                   <span data-i18n="design_studio.bg_texture">Текстура подложки</span>
-                  <span class="settings-field-hint">(чистый цвет без текстур или пресет)</span>
+                  <span class="settings-field-hint">(матовое микрозерно или сплошной цвет)</span>
                 </label>
                 <span style="font-size:12px; font-family:var(--font-mono); color:var(--text-muted);" id="studio-bg-texture-label">Зерно</span>
               </div>
               <div class="studio-toggle-group" id="studio-bg-texture-toggle">
-                <button class="studio-toggle-btn" data-value="solid" onclick="setStudioBgTexture('solid')" data-i18n="design_studio.texture_solid">Сплошная</button>
                 <button class="studio-toggle-btn active" data-value="grain" onclick="setStudioBgTexture('grain')" data-i18n="design_studio.texture_grain">Зерно</button>
-                <button class="studio-toggle-btn" data-value="dots" onclick="setStudioBgTexture('dots')" data-i18n="design_studio.texture_dots">Точки</button>
-                <button class="studio-toggle-btn" data-value="grid" onclick="setStudioBgTexture('grid')" data-i18n="design_studio.texture_grid">Сетка</button>
-                <button class="studio-toggle-btn" data-value="stripes" onclick="setStudioBgTexture('stripes')" data-i18n="design_studio.texture_stripes">Карбон</button>
+                <button class="studio-toggle-btn" data-value="solid" onclick="setStudioBgTexture('solid')" data-i18n="design_studio.texture_solid">Сплошная</button>
               </div>
             </div>
 

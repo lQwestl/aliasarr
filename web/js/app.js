@@ -447,11 +447,8 @@ const TRANSLATIONS = {
     "design_studio.colors_subtitle": "Глубина темного фона, неоновые акценты и семантические маркеры",
     "design_studio.base_neutral": "Базовый тон подложки",
     "design_studio.bg_texture": "Текстура подложки",
-    "design_studio.texture_solid": "Сплошная",
     "design_studio.texture_grain": "Зерно",
-    "design_studio.texture_dots": "Точки",
-    "design_studio.texture_grid": "Сетка",
-    "design_studio.texture_stripes": "Карбон",
+    "design_studio.texture_solid": "Сплошная",
     "design_studio.accent_color": "Главный акцентный цвет",
     "design_studio.scrollbar_title": "Полосы прокрутки",
     "design_studio.scrollbar_color": "Цвет полосы прокрутки",
@@ -2208,11 +2205,8 @@ const TRANSLATIONS = {
     "design_studio.colors_subtitle": "Dark background depth, neon accents and semantic tags",
     "design_studio.base_neutral": "Base Neutral Tone",
     "design_studio.bg_texture": "Background Texture",
-    "design_studio.texture_solid": "Solid",
     "design_studio.texture_grain": "Grain",
-    "design_studio.texture_dots": "Dots",
-    "design_studio.texture_grid": "Grid",
-    "design_studio.texture_stripes": "Carbon",
+    "design_studio.texture_solid": "Solid",
     "design_studio.accent_color": "Primary Accent Color",
     "design_studio.scrollbar_title": "Scrollbars",
     "design_studio.scrollbar_color": "Scrollbar Color",
@@ -27511,7 +27505,7 @@ function loadStudioStateFromStorage(serverConfig = null, serverThemes = null) {
       const cbt = localStorage.getItem("aliasarr_custom_base_tone");
       if (cbt) STUDIO_CURRENT_STATE.custom_base_tone_color = cbt;
       const bgt = localStorage.getItem("aliasarr_bg_texture");
-      if (bgt) STUDIO_CURRENT_STATE.bg_texture = bgt;
+      if (bgt) STUDIO_CURRENT_STATE.bg_texture = (bgt === "solid") ? "solid" : "grain";
     }
     const savedThemes = localStorage.getItem("aliasarr_custom_themes_list");
     if (savedThemes) {
@@ -27675,18 +27669,15 @@ function syncStudioControlsUI() {
   }
 
   // Текстура подложки
-  const activeBgTex = STUDIO_CURRENT_STATE.bg_texture || "grain";
+  const activeBgTex = STUDIO_CURRENT_STATE.bg_texture === "solid" ? "solid" : "grain";
   document.querySelectorAll("#studio-bg-texture-toggle .studio-toggle-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.value === activeBgTex);
   });
   const bgTexLabel = document.getElementById("studio-bg-texture-label");
   if (bgTexLabel) {
     const bgLabels = {
-      solid: CURRENT_LANG === "en" ? "Solid (Flat)" : "Сплошная (без текстуры)",
       grain: CURRENT_LANG === "en" ? "Micro-grain" : "Зерно (матовая)",
-      dots: CURRENT_LANG === "en" ? "Dot Matrix" : "Точечная матрица",
-      grid: CURRENT_LANG === "en" ? "Blueprint Grid" : "Инженерная сетка",
-      stripes: CURRENT_LANG === "en" ? "Carbon Weave" : "Карбон"
+      solid: CURRENT_LANG === "en" ? "Solid (Flat)" : "Сплошная (без текстуры)"
     };
     bgTexLabel.textContent = bgLabels[activeBgTex] || "Зерно";
   }
@@ -27911,7 +27902,7 @@ function onStudioCustomScrollbarColorInput(val) {
 }
 
 function applyBgTexture(texture) {
-  const t = texture || "grain";
+  const t = (texture === "solid") ? "solid" : "grain";
   document.documentElement.setAttribute("data-bg-texture", t);
   const canvas = document.querySelector(".studio-preview-canvas");
   if (canvas) canvas.setAttribute("data-bg-texture", t);
@@ -27919,13 +27910,10 @@ function applyBgTexture(texture) {
   const label = document.getElementById("studio-bg-texture-label");
   if (label) {
     const bgLabels = {
-      solid: CURRENT_LANG === "en" ? "Solid (Flat)" : "Сплошная (без текстуры)",
       grain: CURRENT_LANG === "en" ? "Micro-grain" : "Зерно (матовая)",
-      dots: CURRENT_LANG === "en" ? "Dot Matrix" : "Точечная матрица",
-      grid: CURRENT_LANG === "en" ? "Blueprint Grid" : "Инженерная сетка",
-      stripes: CURRENT_LANG === "en" ? "Carbon Weave" : "Карбон"
+      solid: CURRENT_LANG === "en" ? "Solid (Flat)" : "Сплошная (без текстуры)"
     };
-    label.textContent = bgLabels[t] || t;
+    label.textContent = bgLabels[t] || (t === "solid" ? "Сплошная" : "Зерно");
   }
   document.querySelectorAll("#studio-bg-texture-toggle .studio-toggle-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.value === t);
@@ -27933,8 +27921,9 @@ function applyBgTexture(texture) {
 }
 
 function setStudioBgTexture(texture) {
-  STUDIO_CURRENT_STATE.bg_texture = texture;
-  applyBgTexture(texture);
+  const t = (texture === "solid") ? "solid" : "grain";
+  STUDIO_CURRENT_STATE.bg_texture = t;
+  applyBgTexture(t);
   applyStudioLivePreview(true);
 }
 
